@@ -1,0 +1,1 @@
+﻿ts=2026-10-11 02:17:42 head=c21e7ab5 pair=h_id_native5 KEEP_SERVER=1 DET_TRACE=1 MODULES=<> ENIGMA_SEM_LIB=<> AIDM_LLAMA_CPP_SERVER_URL=http://localhost:28184 mode=NATIVE-arbiter=goldenA warmup_pid=11696 ct=2026-10-11 02:01:02 note=measurement-I-native5

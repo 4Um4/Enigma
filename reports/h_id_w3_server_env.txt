@@ -1,0 +1,6 @@
+﻿ts=2026-10-11 12:07:25 head=c21e7ab5 stage=SPAWN server_pid=4080 ct=2026-10-11 12:07:25 port=28184
+stage=SPAWN_VERIFY pid=4080 ct_ok=True cmd_ok=True health=ok
+stage=W3_POST pid=4080 ct_ok=True cmd_ok=True health=ok
+stage=NATIVE5_POST pid=4080 ct_ok=True cmd_ok=True health=ok
+stage=NATIVE5_DONE ts=2026-10-11 12:44:35
+stage=STOP pid=4080 listener_gone=True ts=2026-10-11 12:44:37

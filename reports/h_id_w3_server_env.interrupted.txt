@@ -1,0 +1,3 @@
+﻿ts=2026-10-11 02:01:02 head=c21e7ab5 stage=SPAWN server_pid=11696 ct=2026-10-11 02:01:02 port=28184
+stage=SPAWN_VERIFY pid=11696 ct_ok=True cmd_ok=True health=ok
+stage=W3_POST pid=11696 ct_ok=True cmd_ok=True health=ok

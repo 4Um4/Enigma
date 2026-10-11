@@ -1,0 +1,644 @@
+Запускаю LLM-сервер для probe corpus...
+[LLM_MANAGER] llama-server уже запущен.
+[DET-ENV] mode=REUSE — identity NOT verified | model=Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-IQ3_M.gguf | port=8181 | owner_pid=unknown
+[DET-TRACE] prompt_md5=0afd57bb6f8f887212c1507ae5c921c4 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=446010923 resp_md5=a61759577815b3befdccc16ce2b4e683
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'greeting', 'social_intent': 'build_rapport', 'semantic_acts': [], 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.3, 'desperation': 0.0}, 'actor': 'player', 'target_zone': None, 'target': None, 'addressee': None, 'actor_role': 'player', 'target_role': None, 'proposition': None, 'requested_outcome': 'initiate_contact', 'offered_outcom"
+[RECOVERY] applied=['semantic_acts']
+
+=== SEMANTIC PROBE CORPUS v0 ===
+[DET-TRACE] prompt_md5=f5ab69793ca253ee3aa8fcba0785bf7e sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=368879603 resp_md5=c7f7efe28925634f23b364b08cee8127
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'greeting', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.6, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 's"
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[DET-TRACE] prompt_md5=f5ab69793ca253ee3aa8fcba0785bf7e sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=368879603 resp_md5=c7f7efe28925634f23b364b08cee8127
+[RECOVERY] applied=['semantic_acts']
+
+[H-GREET] TEXT: 'Быть добру! Привет! Здоровеньки булы!'
+  ACTION: DIALOGUE | SPEECH_ACT: greeting
+  ACTS: GREETING()*
+  PROP: None
+  EXPECTED: GREETING | latency: 6.78s
+[DET-TRACE] prompt_md5=4223eba278d9cbe9dd9183148d185b85 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=30196790 resp_md5=159d55a1b839d33a26ae410e6ea0223c
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'greeting', 'social_intent': 'build_rapport', 'semantic_acts': [{'type': 'GREETING'}], 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.7, 'desperation': 0.0}, 'target_zone': None, 'tool_reference': None, 'addressee': None, 'target': None, 'actor': 'player', 'proposition': None, 'requested_outcome': 'establish friendly contact', 'offer"
+
+[H-GREET] TEXT: 'Здавствуй и процветай!'
+  ACTION: DIALOGUE | SPEECH_ACT: greeting
+  ACTS: GREETING()
+  PROP: None
+  EXPECTED: GREETING | latency: 2.31s
+[DET-TRACE] prompt_md5=60360ede853dc0d4307a0a2019d83769 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=268117083 resp_md5=c7f7efe28925634f23b364b08cee8127
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'greeting', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.6, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 's"
+[RECOVERY] applied=['semantic_acts']
+
+[H-GREET] TEXT: 'Рад встрече!'
+  ACTION: DIALOGUE | SPEECH_ACT: greeting
+  ACTS: GREETING()*
+  PROP: None
+  EXPECTED: GREETING | latency: 3.32s
+[DET-TRACE] prompt_md5=c3e7170bd5c59605f944edf2f503d081 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=2048635252 resp_md5=995becd3b8d6bd144cbe36245adccfbe
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'apology', 'social_intent': 'repair_relationship', 'proposition': None, 'requested_outcome': 'seek forgiveness or clarification', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.4, 'social_pressure': 0.3, 'semantic':"
+
+[H-GREET] TEXT: 'Извините, а ....'
+  ACTION: DIALOGUE | SPEECH_ACT: apology
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: NEUTRAL/обрыв | latency: 3.37s
+[DET-TRACE] prompt_md5=9989b83a67a0b0519a7503b8c5df6836 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1670754631 resp_md5=d23453fb0be5556f63cf80142aeb6dd3
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'greeting', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.2, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 's"
+[RECOVERY] applied=['semantic_acts']
+
+[H-GREET] TEXT: 'Утро доброе!'
+  ACTION: DIALOGUE | SPEECH_ACT: greeting
+  ACTS: GREETING()*
+  PROP: None
+  EXPECTED: GREETING | latency: 3.33s
+[DET-TRACE] prompt_md5=7672c57e1bd4cf920ec7360bfe74d8e9 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1846964093 resp_md5=83290888058121118ae39bb21966af04
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'sha"
+
+[H-INTRO] TEXT: 'Разрешите представиться - я Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: GREETING(); SELF_INTRODUCTION()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 4.3s
+[DET-TRACE] prompt_md5=ab0539f3db4f80183dfa211150490b6f sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=586637400 resp_md5=a00504e8365f3c6f85bb12960a3e3122
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'sha"
+
+[H-INTRO] TEXT: 'Имя моё Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: SELF_INTRODUCTION()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 3.96s
+[DET-TRACE] prompt_md5=c720b9ef41fb8e3a7fe647ad3d76b6e8 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=692147069 resp_md5=7cc27c73492b0e8d325afd2e9cd55af7
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.2, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'sha"
+
+[H-INTRO] TEXT: 'Слушай сюда, звать меня Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: GREETING(); SELF_INTRODUCTION()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 4.3s
+[DET-TRACE] prompt_md5=8bf12506c34877d15e15ac7aa956f1cb sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=268462947 resp_md5=1cc72d72f5027139cc864c24a6d8b88f
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': 'player', 'speech_act': 'order', 'social_intent': 'obtain_compliance', 'proposition': None, 'requested_outcome': 'NPC будет обращаться к игроку как Мю', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.7, 'semanti"
+
+[H-INTRO] TEXT: 'Помни и запоминай, обращайся ко мне Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: order
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 3.48s
+[DET-TRACE] prompt_md5=458846ba0797afe97f319afd6cbcd712 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1276254624 resp_md5=df44f1f74bfeaf84d4ea3a1f15c42508
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'question', 'social_intent': 'obtain_information', 'proposition': None, 'requested_outcome': 'узнать имя собеседника', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.2, 'semantic': {'aggressi"
+[RECOVERY] applied=['semantic_acts']
+
+[H-INTRO] TEXT: 'Мю ВАн - а вы?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать имя собеседника)*
+  PROP: None
+  EXPECTED: SELF_INTRO+ASK_IDENTITY | latency: 2.16s
+[RECOVERY] multi-sentence fast=MOVE → LLM comprehension
+[DET-TRACE] prompt_md5=b76fcfbbecefe9e0826e156cc0461c10 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=789666005 resp_md5=c615926a5506f58a4d4405dbd867e565
+
+[H-AGGRO] TEXT: 'Эй! Гнида, сюда иди...'
+  ACTION: MOVE | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: THREAT/INSULT | latency: 3.41s
+[DET-TRACE] prompt_md5=a5c4f40353c9a6ee358995456f51bfd1 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=927775039 resp_md5=1fa10b87898d027b70613c9a5734b10e
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'question', 'social_intent': 'obtain_information', 'proposition': None, 'requested_outcome': 'узнать, кто именно произнёс информацию', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.4, 'social_pressure': 0.3, 'seman"
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[DET-TRACE] prompt_md5=a5c4f40353c9a6ee358995456f51bfd1 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=927775039 resp_md5=1fa10b87898d027b70613c9a5734b10e
+[RECOVERY] applied=['semantic_acts']
+
+[H-AGGRO] TEXT: 'Это ты сказал? Или твоя мама?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать, кто именно произнёс информацию)*
+  PROP: None
+  EXPECTED: QUESTION-провокация | latency: 6.92s
+[DET-TRACE] prompt_md5=9b035a241fa70885b2d1ac1685e345a4 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1193627490 resp_md5=a103836ea740aab07520db63885b1139
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': 'npc', 'speech_act': 'question', 'social_intent': 'provoke', 'proposition': None, 'requested_outcome': 'force npc to reveal true nature or admit deception', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.7, 'social_pressure': 0.6, 'sem"
+[RECOVERY] applied=['semantic_acts']
+
+[H-AGGRO] TEXT: 'Ты идиот или притворяешься?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(force npc to reveal true nature or admit deception)*
+  PROP: None
+  EXPECTED: INSULT/QUESTION | latency: 3.46s
+[DET-TRACE] prompt_md5=b884050825bb7ae19d53dd1d7ddc9944 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=151498431 resp_md5=080fbf9d26e90a8478c2e90446b358d0
+
+[H-AGGRO] TEXT: 'Херню не неси! Что за чушь?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASSERT()*
+  PROP: None
+  EXPECTED: CHALLENGE-грубый | latency: 3.45s
+[DET-TRACE] prompt_md5=ad738e592cd35c44bdb4ffe8b67e6639 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=892095477 resp_md5=d0f8c18bd0bcb5cfa7b4e34a27e8dcca
+[DIAG-LLM] slow-path: "{'action': 'THREATEN', 'actor': 'player', 'target': 'npc', 'speech_act': 'threat', 'social_intent': 'intimidate', 'proposition': None, 'requested_outcome': 'immediate compliance and silence', 'offered_outcome': None, 'condition': 'immediate obedience', 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.9, 'social_pressure': 0.95, 'se"
+[RECOVERY] multi-sentence fast=THREATEN → LLM comprehension
+[DET-TRACE] prompt_md5=ad738e592cd35c44bdb4ffe8b67e6639 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=892095477 resp_md5=d0f8c18bd0bcb5cfa7b4e34a27e8dcca
+
+[H-AGGRO] TEXT: 'Слышь, дура! Слушайся меня, а не то...'
+  ACTION: THREATEN | SPEECH_ACT: threat
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: THREAT | latency: 6.99s
+[DET-TRACE] prompt_md5=53af19149e4a28c1bbf895c24f513386 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1441948092 resp_md5=88e2c5da55e8c86ebf5ed795c9190ec5
+
+[H-PROV] TEXT: 'Кто рассказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 2.44s
+[DET-TRACE] prompt_md5=d6ba3185e3d44d2d8fee4ee080a54fc1 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=371189485 resp_md5=7ee26ecee190d05f2866eb07200a24d5
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'question', 'social_intent': 'obtain_information', 'semantic_acts': [{'type': 'QUESTION', 'params': {'topic': 'источник информации о сказанном'}}], 'proposition': None, 'actor': 'player', 'target': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'tool_reference': None, 'requested_outcome': 'Узнать, кто именно произнёс эти слова или откуда известно это утве"
+
+[H-PROV] TEXT: 'Это я говорил?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(источник информации о сказанном)
+  PROP: None
+  EXPECTED: META/QUESTION | latency: 2.71s
+[DET-TRACE] prompt_md5=66416ed268b4f641440cda5b511b5b8c sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=664861730 resp_md5=8e70df2e57690521c61dd6a97fe50c0e
+
+[H-PROV] TEXT: 'откуда знаешь?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 2.45s
+[DET-TRACE] prompt_md5=0cf21ff796b10c8afd9ae0a111f238d8 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1373471954 resp_md5=2927223c98822d688b590295e4560907
+[RECONCILE] proposition raw-entity 'информации' снята/заменена (LLM)
+[RECONCILE] action overridden: fast=ATTACK → llm=DIALOGUE (phantom proposition)
+
+[H-PROV] TEXT: 'источник данной информации?'
+  ACTION: DIALOGUE | SPEECH_ACT: 
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 2.45s
+[DET-TRACE] prompt_md5=1958ae432ca64907211a09320802f7ab sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=200456619 resp_md5=0bd5255449f9c021f2cd1c653d989629
+
+[H-PROV] TEXT: 'Кто подсказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 2.43s
+[DET-TRACE] prompt_md5=265c62f49d0a11820f1d6ed3a96fdb8b sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1623085612 resp_md5=8d699527c12dc3098d40a421e5c4e65c
+
+[H-PROV] TEXT: 'Ты уверен, или просто краем уха услышал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: CONFIRMATION_SEEKING(confirmation of the source of the information)*
+  PROP: None
+  EXPECTED: PROVENANCE/CHALLENGE | latency: 3.43s
+[DET-TRACE] prompt_md5=54af2734a45697f991a36184b731b22c sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1286268041 resp_md5=8939739e965a0638815155f57673c0e5
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'question', 'social_intent': 'deceive', 'proposition': None, 'requested_outcome': 'вызвать сомнение в правдивости информации', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.6, 'social_pressure': 0.5, 'semantic': {'"
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[DET-TRACE] prompt_md5=54af2734a45697f991a36184b731b22c sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1286268041 resp_md5=8939739e965a0638815155f57673c0e5
+[RECOVERY] applied=['semantic_acts']
+
+[H-PROV] TEXT: 'Выдумываешь? может тебе показалось?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(вызвать сомнение в правдивости информации)*
+  PROP: None
+  EXPECTED: CHALLENGE | latency: 6.93s
+[DET-TRACE] prompt_md5=5c6851c2ee36215dae49df3634ab7efb sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=2107544952 resp_md5=bb9b651262cd9c67cff820d35c97cee1
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'question', 'social_intent': 'obtain_information', 'semantic_acts': [{'type': 'ASK_PROVENANCE', 'params': {'about': 'источник информации'}}], 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.3, 'desperation': 0.2}, 'actor': 'player', 'target_zone': 'UNDEFINED', 'addressee': None, 'target': None, 'proposition': None, 'requested_outcome'"
+
+[H-PROV] TEXT: 'Откуда информация?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 2.45s
+[DET-TRACE] prompt_md5=5d2487b4b8b29e8811947c1a42b3f56d sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=2082570867 resp_md5=b11068bc1f09e46ef74f7b95feb29781
+[DIAG-LLM] slow-path: "{'action': 'ATTACK', 'actor': 'player', 'target': 'her', 'speech_act': 'order', 'social_intent': 'intimidate', 'proposition': None, 'requested_outcome': 'force a kiss', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.9, 'emotional_charge': 0.7, 'social_pressure': 0.8, 'semantic': {'aggression': 0.85, 'fear': 0.3"
+
+[H-ACTION] TEXT: 'Поцеловать её'
+  ACTION: ATTACK | SPEECH_ACT: order
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: ACTION/INTERACT | latency: 3.36s
+[DET-TRACE] prompt_md5=0a2cab476ab22169b8f018b9213a068d sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=343718052 resp_md5=6aa54768a10272f6278fed980d645f19
+
+[H-ACTION] TEXT: 'Спросить кто тут главный'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(hierarchy)
+  PROP: None
+  EXPECTED: QUESTION-об мир | latency: 2.55s
+[DET-TRACE] prompt_md5=c2de4e92d1d8b48174716ecc90cc188a sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1829427595 resp_md5=407695f2279b4e262a4acf84c0ea4269
+[DIAG-LLM] slow-path: "{'action': 'ATTACK', 'actor': 'player', 'target': 'him', 'speech_act': 'order', 'social_intent': 'intimidate', 'proposition': None, 'requested_outcome': 'strip the target of his pants', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'GROIN', 'physical_force': 0.9, 'emotional_charge': 0.7, 'social_pressure': 0.8, 'semantic': {'aggression': 0.9,"
+
+[H-ACTION] TEXT: 'Стянуть с него штаны'
+  ACTION: ATTACK | SPEECH_ACT: order
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: ACTION | latency: 3.4s
+[DET-TRACE] prompt_md5=9af1015a5e10c1d6619d88102c41ebaf sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=564088390 resp_md5=b5535ac98dc755635b85e27e71cd82ed
+[RECONCILE] proposition raw-entity 'пояса' снята/заменена (LLM)
+[RECONCILE] CONFLICT target: fast='пояса' llm='him' (v0: fast)
+
+[H-ACTION] TEXT: 'Выхватить у него меч из-за пояса и ударить им его же'
+  ACTION: ATTACK | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: ATTACK+tool | latency: 3.51s
+[DET-TRACE] prompt_md5=220f451579e533522ee623116ce790ca sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1382120251 resp_md5=67f5cddc0b43e059b550b06c220fb518
+
+[H-ACTION] TEXT: 'Осмотреть его - как он выглядит? (что при нем из вещей?)'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(detailed visual and inventory description of the target)*
+  PROP: None
+  EXPECTED: OBSERVE+QUESTION | latency: 3.49s
+[DET-TRACE] prompt_md5=3e6a7eaa182d9283819ac21bc73b010f sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1130603993 resp_md5=8268792f7ab4de4e9ba52f7f235346ce
+[DIAG-LLM] slow-path: "{'action': 'STEAL', 'actor': 'player', 'target': None, 'speech_act': 'order', 'social_intent': 'obtain_cooperation', 'proposition': None, 'requested_outcome': 'совершение кражи', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.5, 'semantic': {'aggression': 0.4, 'f"
+
+[H-ACTION] TEXT: 'Украсть'
+  ACTION: STEAL | SPEECH_ACT: order
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: STEAL | latency: 3.37s
+[RECOVERY] multi-sentence fast=PERSUADE → LLM comprehension
+[DET-TRACE] prompt_md5=d554657d755e89e722f541ddb08ba1f8 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=2043929654 resp_md5=2dc042abf2e582d8229921df3965dc08
+
+[H-ACTION] TEXT: 'Сесть на стул. И попросить служанку обслужить меня'
+  ACTION: PERSUADE | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: MULTI-действие | latency: 2.27s
+[DET-TRACE] prompt_md5=80a45e2f78765ae3e91290e93da0c4be sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1517557816 resp_md5=7cb77e06b1b2c49ec96ac741f6b00bd0
+[RECONCILE] proposition raw-entity 'денег' снята/заменена (LLM)
+[RECONCILE] action overridden: fast=ATTACK → llm=DIALOGUE (phantom proposition)
+
+[H-ACTION] TEXT: 'Эй! а денег дашь?'
+  ACTION: DIALOGUE | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: QUESTION/GIVE-запрос | latency: 3.39s
+[DET-TRACE] prompt_md5=08bac60772a121427601235d2d3812e3 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=653698968 resp_md5=5a56e2971edeb023f5ab550372965376
+
+[H-ACTION] TEXT: 'Что у вас можно купить?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(available_goods)
+  PROP: None
+  EXPECTED: TRADE-вопрос | latency: 2.4s
+[DET-TRACE] prompt_md5=7525d6397634779064c2ca1b383eeea0 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=497091165 resp_md5=3ddc6ecdc25898d8f2847bea9fd822df
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'question', 'social_intent': 'obtain_information', 'semantic_acts': [{'type': 'QUESTION', 'params': {'topic': 'possessability'}}], 'proposition': None, 'actor': 'player', 'target': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'tool_reference': None, 'requested_outcome': 'узнать, можно ли купить адресата', 'offered_outcome': None, 'condition': None, 'phy"
+
+[H-ACTION] TEXT: 'А тебя купить можно?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(possessability)
+  PROP: None
+  EXPECTED: TRADE/FLIRT-провокация | latency: 2.54s
+[DET-TRACE] prompt_md5=1caee491188b282ace816607a2634090 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=984380526 resp_md5=d582d8e95f2aeb8152b9d7edb671990c
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'question', 'social_intent': 'obtain_information', 'semantic_acts': [{'type': 'QUESTION', 'params': {'topic': 'location_of_information'}}], 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.3, 'desperation': 0.2}, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.4, 'social_pressure': 0.2, 'addressee': None, 'targ"
+
+[H-ACTION] TEXT: 'Где мне найти информацию об...'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(location_of_information)
+  PROP: None
+  EXPECTED: QUESTION-обрыв | latency: 2.53s
+[DET-TRACE] prompt_md5=ac6b9a199064462a752c28a2ff423d50 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=950670262 resp_md5=8f659d11b37cb037d61281f7140bac76
+[RECONCILE] proposition raw-entity 'зад' снята/заменена (LLM)
+[RECONCILE] CONFLICT target: fast='зад' llm='unspecified' (v0: fast)
+
+[H-ACTION] TEXT: 'Пнуть под зад'
+  ACTION: ATTACK | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: ATTACK | latency: 3.48s
+[DET-TRACE] prompt_md5=44c6f1b087900190bd0a3fb8733232e2 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1432227438 resp_md5=9d6bef1e990cabde5d4cf9cf14b94217
+
+[H-CHAT] TEXT: 'Ты куешь? А что куешь посуду или оружие?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать, чем занимается игрок (куёт ли посуду или оружие))*
+  PROP: None
+  EXPECTED: QUESTION-поток | latency: 3.56s
+[DET-TRACE] prompt_md5=62af26b304c0d65a5003fb8ab5f7360f sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=894173452 resp_md5=4f3bfb1a2a34fd4145b644677207e883
+
+[H-CHAT] TEXT: 'А что там за таверной есть? Или вы тут все и ночуете?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать, есть ли в таверне свободные места/место для ночлега)*
+  PROP: None
+  EXPECTED: QUESTION-поток | latency: 3.6s
+[DET-TRACE] prompt_md5=fcb6876104700622aa82b883e8f89f10 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1422979713 resp_md5=829e47dab10f7d9a653e7d8dda02af89
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'question', 'social_intent': 'obtain_information', 'proposition': None, 'requested_outcome': 'узнать, где спит NPC и как часто он питается', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.2, 'social_pressure': 0.3, "
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[DET-TRACE] prompt_md5=fcb6876104700622aa82b883e8f89f10 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1422979713 resp_md5=829e47dab10f7d9a653e7d8dda02af89
+[RECOVERY] applied=['semantic_acts']
+
+[H-CHAT] TEXT: 'Где вы спите? И часто вы едите?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать, где спит npc и как часто он питается)*
+  PROP: None
+  EXPECTED: QUESTION-поток | latency: 7.08s
+[DET-TRACE] prompt_md5=4758efc0bd01540a7d34d0f35ffe889a sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1346934398 resp_md5=d08a10398f537aff1fd10d0e072a1194
+
+[H-CHAT] TEXT: 'Ну рассказывайте - кто уже трахался с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать, кто из присутствующих был в интимной связи с люсей)*
+  PROP: None
+  EXPECTED: QUESTION-сплетни | latency: 3.6s
+[DET-TRACE] prompt_md5=218db70f2917841838db687788e1687d sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=375335297 resp_md5=b7bab908e3e0f0d6dea18a11bc3d59f6
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0."
+
+[SELF_INTRO] TEXT: 'Я Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 2.1s
+[DET-TRACE] prompt_md5=ea3bdf8719232bfa86cb3f7345f2f62e sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=551017462 resp_md5=e56e7ecb16d6719a42363b8d8236dace
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.2, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'sha"
+
+[SELF_INTRO] TEXT: 'Меня зовут Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 3.33s
+[DET-TRACE] prompt_md5=bded8e56be07c293e90ffb8658e3ea58 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=508457972 resp_md5=6ce507eca97645cb41d6e14923061f7c
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'sha"
+
+[SELF_INTRO] TEXT: 'Это я Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: SELF_INTRODUCTION()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 3.96s
+[DET-TRACE] prompt_md5=4a1a7020f10fa15f5584da5daf43788b sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1662446355 resp_md5=3d65dcc73500c30cc81d64a0074f6dc6
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': 'чтобы меня называли Мю', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.0, 'semantic': {'aggression': 0."
+[RECOVERY] applied=['semantic_acts']
+
+[SELF_INTRO] TEXT: 'Зови меня Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: ASSERT()*
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 3.43s
+[DET-TRACE] prompt_md5=7da3134a406e2aa20426e60d650bafa5 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1640209303 resp_md5=3435da6b54e2aa7b966cc1b1c72b0b8d
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'clarify', 'proposition': None, 'requested_outcome': 'confirmation of identity', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.2, 'semantic': {'aggression': 0.0, '"
+[RECOVERY] applied=['semantic_acts']
+
+[CORRECTION] TEXT: 'Нет, я Ворг'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: ASSERT()*
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION{name:Ворг} | latency: 3.33s
+[DET-TRACE] prompt_md5=db7bae53d33b56ea01ff97aa01db4ded sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=288150297 resp_md5=11268ea7eba349a61f55c408119a3619
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'clarify', 'proposition': None, 'requested_outcome': 'уточнить имя игрока', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.2, 'social_pressure': 0.1, 'semantic': {'aggression': 0.0, 'fear'"
+[RECOVERY] applied=['semantic_acts']
+
+[CORRECTION] TEXT: 'Поправка: я Ворг'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: ASSERT()*
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 2.18s
+[DET-TRACE] prompt_md5=03de06dc1c8a4cc87c12377d19126ea2 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1687216480 resp_md5=9e07b6c6878bcecb0a35e53c65f2702e
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': 'Мю', 'speech_act': 'order', 'social_intent': 'intimidate', 'proposition': None, 'requested_outcome': 'чтобы игрок забыл о Мю и принял Ворга как новую значимую фигуру', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.8, 'social_pressure"
+
+[CORRECTION] TEXT: 'Забудь Мю, я Ворг'
+  ACTION: DIALOGUE | SPEECH_ACT: order
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION+отрицание | latency: 3.65s
+[DET-TRACE] prompt_md5=db447d507b882f69bc29c57ae715f4ff sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1853986977 resp_md5=e853290bf74c530e32a7a8ce59306455
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'question', 'social_intent': 'deceive', 'semantic_acts': [{'type': 'ASSERT', 'params': {'claim': 'я соврал', 'subject': 'player'}}, {'type': 'QUESTION', 'params': {'topic': 'последствия моего лживого утверждения'}}], 'actor': 'player', 'target_zone': 'UNDEFINED', 'addressee': None, 'target': None, 'proposition': None, 'requested_outcome': 'выяснить, что произой"
+
+[CHALLENGE] TEXT: 'А если я соврал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASSERT(); QUESTION(последствия моего лживого утверждения)
+  PROP: None
+  EXPECTED: CHALLENGE | latency: 2.85s
+[DET-TRACE] prompt_md5=73078f68d6e5ef5922cf9406f663b288 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1069291570 resp_md5=e33101a47a210d125634d3e985bc660f
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'question', 'social_intent': 'obtain_information', 'semantic_acts': [{'type': 'QUESTION', 'params': {'topic': 'certainty'}}], 'proposition': None, 'actor': 'player', 'target': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'tool_reference': None, 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.2, 'requested_outcome': 'узнать, наскольк"
+
+[CHALLENGE] TEXT: 'Ты уверен?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(certainty)
+  PROP: None
+  EXPECTED: CHALLENGE/QUESTION | latency: 2.52s
+[DET-TRACE] prompt_md5=5b36d4b0a267cb8b64979e2ae63ead08 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1300164358 resp_md5=73591f65ac2fe983a4a7809171becd50
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'question', 'social_intent': 'obtain_information', 'proposition': None, 'requested_outcome': 'confirmation or denial of a previously stated fact', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.4, 'social_pressure':"
+[RECOVERY] applied=['semantic_acts']
+
+[CHALLENGE] TEXT: 'А вдруг это неправда?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: CONFIRMATION_SEEKING(confirmation or denial of a previously stated fact)*
+  PROP: None
+  EXPECTED: CHALLENGE | latency: 3.45s
+[DET-TRACE] prompt_md5=3d583e8c093623ec0719c2523a05d279 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1014005199 resp_md5=2000781cc83fad25f06080013ecdfd15
+
+[PROVENANCE] TEXT: 'Кто тебе сказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации)*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 3.38s
+[DET-TRACE] prompt_md5=3fc3b6a4b903e9e8ff51348b4606586c sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=2122330991 resp_md5=94d4ba5caf068dd43488a18abe351139
+
+[PROVENANCE] TEXT: 'Откуда ты это знаешь?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации)*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 3.37s
+[DET-TRACE] prompt_md5=32e2c9c904cccf5781866a67dbace384 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1764674890 resp_md5=e5aca171c5938423b52172926d21b90c
+
+[PROVENANCE] TEXT: 'Кто сообщил тебе, что я Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 4.12s
+[DET-TRACE] prompt_md5=8d1b2fabf3b5d0f1d2cf25b8a6665daa sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1789567808 resp_md5=9742d9cbcd4326ba298766dab8dfdd4e
+
+[META] TEXT: 'Ты знаешь, что меня зовут Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: CONFIRMATION_SEEKING(confirmation of player's name)*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 3.4s
+[DET-TRACE] prompt_md5=e5cadcfc262097a8e060c7812e31c2ff sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1661566523 resp_md5=e38137bf01585f07f445866807861304
+[DIAG-LLM] slow-path: '{\'action\': \'DIALOGUE\', \'speech_act\': \'question\', \'social_intent\': \'obtain_information\', \'semantic_acts\': [{\'type\': \'QUESTION\', \'params\': {\'topic\': "player\'s name"}}], \'actor\': \'player\', \'target\': None, \'addressee\': None, \'target_zone\': \'UNDEFINED\', \'proposition\': None, \'tool_reference\': None, \'physical_force\': 0.0, \'emotional_charge\': 0.3, \'social_pressure\': 0.2, \'requested_outcome\': \'player confi'
+
+[META] TEXT: 'Ты помнишь моё имя?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(player's name)
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 2.42s
+[DET-TRACE] prompt_md5=c9db6155655eebc670424a06f014c1e1 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=745490507 resp_md5=225f10f4a95cb3de181488e82ea18191
+
+[META] TEXT: 'Ты уверен, что меня зовут Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 2.55s
+[DET-TRACE] prompt_md5=c11b1a14c8f37b1fa8ad10f6389e128c sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=2140708698 resp_md5=2d096e21d29896e9edb8598420881840
+
+[MULTI] TEXT: 'Привет, я Мю. А кто ты?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: GREETING(); SELF_INTRODUCTION(); ASK_IDENTITY()
+  PROP: None
+  EXPECTED: GREETING+SELF_INTRO+ASK_IDENTITY | latency: 4.54s
+[DET-TRACE] prompt_md5=26b36d7908a516e5ee36a7ff7d6cb9f2 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=91407717 resp_md5=2348f0f1f74612c2e80a7357df1240bd
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'deceive', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.2, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0"
+
+[MULTI] TEXT: 'Я Мю, но вообще-то я Ворг'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRO x2 / коррекция | latency: 3.33s
+[DET-TRACE] prompt_md5=5314ff4eed860f05b16936d353e9fc6f sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=90182313 resp_md5=c03efd804cd904b7d20c49c3d3aaa3b1
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'question', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': 'establish contact and orient in the environment', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.0, 's"
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[DET-TRACE] prompt_md5=5314ff4eed860f05b16936d353e9fc6f sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=90182313 resp_md5=c03efd804cd904b7d20c49c3d3aaa3b1
+[RECOVERY] applied=['semantic_acts']
+
+[MULTI] TEXT: 'Привет! Меня зовут Мю. Где мы?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(establish contact and orient in the environment)*
+  PROP: None
+  EXPECTED: GREETING+SELF_INTRO+ASK_LOCATION | latency: 6.91s
+[DET-TRACE] prompt_md5=4d42345285295196bd6b01c66439afb1 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=684349631 resp_md5=8a5fd118f23274609c63167c1c4af57a
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'question', 'social_intent': 'obtain_information', 'semantic_acts': [{'type': 'ASK_IDENTITY', 'params': {'about': 'имя игрока'}}], 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.0, 'desperation': 0.0}, 'actor': 'player', 'target': 'player', 'addressee': None, 'target_zone': 'UNDEFINED', 'tool_reference': None, 'proposition': None, 'r"
+
+[CONTRAST] TEXT: 'Ты Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_IDENTITY()
+  PROP: None
+  EXPECTED: QUESTION о собеседнике | latency: 2.53s
+[DET-TRACE] prompt_md5=1c12b962b64be1cd15d6091057fcfd9d sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=335190834 resp_md5=570269dbd7c70d351a6d7c32c25e8f63
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'question', 'social_intent': 'obtain_information', 'semantic_acts': [{'type': 'ASK_IDENTITY', 'params': {'about': 'имя игрока'}}], 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.0, 'desperation': 0.0}, 'actor': 'player', 'target': 'player', 'addressee': None, 'target_zone': 'UNDEFINED', 'tool_reference': None, 'proposition': None, 'r"[LLM_COMPRESSOR] Unexpected error: timed out
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: HTTPError code=500 | SERVER BODY: {"error":{"code":500,"message":"Context size has been exceeded.","type":"server_error"}}
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] Unexpected error: timed out
+[RECONCILE] llm None: fast остаётся
+
+
+[CONTRAST] TEXT: 'Ты ведь Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_IDENTITY()
+  PROP: None
+  EXPECTED: CONFIRMATION_SEEKING | latency: 2.52s
+[DET-TRACE] prompt_md5=b977ee205ead54b604e405f57e778e1b sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1940034720 resp_md5=3a0b218d1b6521150bce541ff6ff7d99
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'clarify', 'proposition': None, 'requested_outcome': 'correction of identity assumption', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.2, 'semantic': {'aggression"
+[RECOVERY] applied=['semantic_acts']
+
+[CONTRAST] TEXT: 'Я не Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: ASSERT()*
+  PROP: None
+  EXPECTED: отрицание идентичности | latency: 3.38s
+[DET-TRACE] prompt_md5=22d3e3fd6e21c04b94c644ae109df957 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=172691091 resp_md5=ac4b6d20b49c2937e24f0cd47f2cb609
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'question', 'social_intent': 'obtain_information', 'proposition': None, 'requested_outcome': 'player wants to know the source of the information about their name', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, '"
+[RECOVERY] applied=['semantic_acts']
+
+[GEN-PROV] TEXT: 'Откуда у тебя сведения о моём имени?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(player wants to know the source of the information about their name)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 3.56s
+[DET-TRACE] prompt_md5=a97c9b6e3927b10bb7156b6f784c35c8 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=909954044 resp_md5=660d3712f3cfa3b497af7415c3161e00
+
+[GEN-PROV] TEXT: 'Кто тебя просветил насчёт моего имени?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации о своём имени)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 3.47s
+[DET-TRACE] prompt_md5=ef3ececac11f12a87b0abcb4210fe3d6 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=893462390 resp_md5=18c45224f741c2a38727ed5f49e5e17a
+
+[GEN-PROV] TEXT: 'Ты сам это узнал или тебе кто-то сказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE/boundary | latency: 3.4s
+[RECOVERY] applied=['semantic_acts']
+
+[GEN-3RD] TEXT: 'Кто вчера был с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 60.03s
+[RECOVERY] applied=['semantic_acts']
+
+[GEN-3RD] TEXT: 'Кто ей об этом рассказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: boundary — не назначать заранее | latency: 0.34s
+[DET-TRACE] prompt_md5=bec30d5b6f8596aa77385279eb098b53 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1422622312 resp_md5=6d372f09660b0d3cf44388f7edf87cd7
+
+[GEN-3RD] TEXT: 'Кто с ней вообще разговаривал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(who spoke to her)
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 3.67s
+[DET-TRACE] prompt_md5=d92cbb36543143c083c94c689ed022d9 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1853214014 resp_md5=4555be127ff79e275acd1ac91ecff1fd
+
+[GEN-3RD] TEXT: 'Кто что-то делал с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(кто совершил действие с Люсей)
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 2.56s
+[DET-TRACE] prompt_md5=151c473e5af8f59f1f9748e8870b57af sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=405836946 resp_md5=237beb82967ac70660e36cde167c5034
+
+[AB-PROV] TEXT: 'Кто тебе сказал, что я Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.08s
+[DET-TRACE] prompt_md5=c34262124bac5eb1645bc1fdca2f206f sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=395540324 resp_md5=3494f4d490b67bc57d36c18c8d387819
+
+[AB-PROV] TEXT: 'Кто сказал, что я Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.07s
+[DET-TRACE] prompt_md5=3ec5a5823a9ab43f46722985738636e2 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1293598341 resp_md5=976d0fa847d1e9d90fef62833beff43d
+
+[AB-PROV] TEXT: 'Кто сообщил тебе моё имя?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации о своём имени)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 3.4s
+[DET-TRACE] prompt_md5=70936e6f1a1bfe91402c3a5f75a4cb1e sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1017784285 resp_md5=6a9b088c09205429ae99495e8588789a
+
+[AB-PROV] TEXT: 'Откуда ты знаешь, что меня зовут Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.11s
+[RECOVERY] applied=['semantic_acts']
+
+[AB-3RD] TEXT: 'Кто уже разговаривал с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION | latency: 60.02s
+[DET-TRACE] prompt_md5=33443bfe08c8db2b8b269b00a37c6eb5 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=617444700 resp_md5=2e5bedc7448962d2a58ce5849355db43
+
+[AB-3RD] TEXT: 'Кто уже трахался с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(sexual activity with Luse)
+  PROP: None
+  EXPECTED: QUESTION | latency: 2.62s
+[DET-TRACE] prompt_md5=a5c017a880c75695b82c97065b36c026 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1823824874 resp_md5=09d7173edff1ad693c8c2d3dc6bfda57
+
+[AB-EDGE] TEXT: 'Кто рассказал Люсе про меня?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn the identity of the person who informed luce about the player)*
+  PROP: None
+  EXPECTED: context-dependent | latency: 3.54s
+[DET-TRACE] prompt_md5=2454ada43dac08523040e7dde31f61e4 sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1326363625 resp_md5=3e259957521d7705392b58bda98d2a42
+
+[AB-PROV] TEXT: 'Кто источник этой информации?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 3.36s
+[DET-TRACE] prompt_md5=8d1b2fabf3b5d0f1d2cf25b8a6665daa sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1789567808 resp_md5=9742d9cbcd4326ba298766dab8dfdd4e
+
+[AB-META] TEXT: 'Ты знаешь, что меня зовут Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: CONFIRMATION_SEEKING(confirmation of player's name)*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 3.4s
+[DET-TRACE] prompt_md5=3fe00f6cc7cd89c81d610d5a6d74f83a sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1897750750 resp_md5=3acc37f6a8d14b0781fe3622c36539f9
+
+[AB-META] TEXT: 'Кто ты?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_IDENTITY()
+  PROP: None
+  EXPECTED: ASK_IDENTITY | latency: 2.38s
+[DET-TRACE] prompt_md5=1aa8eb5cb4e7f310a84200b3e098ccdc sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1485883816 resp_md5=79811e37a2abb33a0e55815bd42654ea
+
+[IND-PROV] TEXT: 'Кто тебе проинформировал о моём имени?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации о своём имени)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 3.45s
+[DET-TRACE] prompt_md5=01f9677695e20a21cb3119ecdae96aeb sys_md5=ea88b405df45f7b6f95715cac4e6af13 seed=1028451579 resp_md5=ca2051250e2f37db69c26399f22591b8^C

@@ -1,0 +1,3 @@
+﻿ts=2026-10-11 00:41:43 head=c21e7ab5 stage=SPAWN server_pid=19792 ct=2026-10-11 00:41:42 port=28184
+stage=SPAWN_VERIFY pid=19792 ct_ok=True cmd_ok=True health=ok
+stage=FINALLY_STOP pid=19792 listener_gone=True ts=2026-10-11 00:49:17

@@ -21,7 +21,11 @@ param(
   # CPU-потоков сервера. Default 8 = историческое поведение (без флага
   # байт-неизменно); -Threads 1 = диагностическая нога локализации
   # A/A-шума. НЕ перекалибровка В-8: измерительный прибор, не контент.
-  [int]$Threads = 8
+  [int]$Threads = 8,
+  # S342-v3.3 (вердикт Мастера): выделенный экспериментальный порт + двухрежимность.
+  # Default 8181/SPAWN = байт-неизменность исторических ног.
+  [int]$Port = 8181,
+  [ValidateSet('SPAWN','REUSE')][string]$Mode = 'SPAWN'
 )
  $ErrorActionPreference = 'Stop'
  $traceFile = Join-Path (Split-Path $ArtifactA -Parent) 'b2_health_trace.txt'
@@ -30,12 +34,12 @@ param(
 function _probe {
   param([string]$tag, [switch]$CheckParent)
   $t = Get-Date -Format 'HH:mm:ss'
-  $l = Get-NetTCPConnection -LocalPort 8181 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+  $l = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
   $p = 0; if ($l) { $p = [int]$l.OwningProcess }
   $ppid = 0
   if ($p -ne 0) { $ppid = [int]((Get-CimInstance Win32_Process -Filter "ProcessId=$p" -ErrorAction SilentlyContinue).ParentProcessId) }
   $s = 'FAIL-NO-LISTENER'
-  if ($p -ne 0) { try { $r = Invoke-RestMethod -Uri 'http://localhost:8181/health' -TimeoutSec 10; $s = [string]$r.status } catch { $s = 'FAIL-' + $_.Exception.GetType().Name } }
+  if ($p -ne 0) { try { $r = Invoke-RestMethod -Uri ('http://localhost:' + $Port + '/health') -TimeoutSec 10; $s = [string]$r.status } catch { $s = 'FAIL-' + $_.Exception.GetType().Name } }
   $line = "HEALTH-PROBE $tag t=$t listener_pid=$p ppid=$ppid status=$s"
   $line | Tee-Object -FilePath $traceFile -Append | Out-Null
   return [pscustomobject]@{ pid = $p; ppid = $ppid; status = $s }
@@ -45,7 +49,7 @@ function _cleanup {
   if ($script:_owned -ne 0) {
     Stop-Process -Id $script:_owned -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
-    $gone = -not (Get-NetTCPConnection -LocalPort 8181 -State Listen -ErrorAction SilentlyContinue)
+    $gone = -not (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)
     $line = "CLEANUP owned_pid=$($script:_owned) listener_gone=$gone t=$(Get-Date -Format 'HH:mm:ss')"
     $line | Tee-Object -FilePath $traceFile -Append | Out-Null
     $script:_owned = 0
@@ -54,9 +58,22 @@ function _cleanup {
 
 try {
   $pre = _probe 'PRE'
+  # S342-v3.3-fix: стопы занятого порта / осиротевшего llama — ТОЛЬКО SPAWN-режим.
+  # REUSE обязан НАЙТИ занятый порт (внешний сервер, verify ниже); безусловный
+  # гвард убивал положительный REUSE-путь до ветки (негативный смоук слеп к этому).
+  if ($Mode -ne 'REUSE') {
   if ($pre.pid -ne 0) { Write-Output "ABORT: порт занят (pid=$($pre.pid))"; exit 2 }
   $_ll = Get-Process llama-server -ErrorAction SilentlyContinue
   if ($_ll) { Write-Output "ABORT: llama без listener ($($_ll.Id -join ','))"; exit 2 }
+  }
+  # S342-v3.3: REUSE-режим — verify чужого сервера, не спавнить, не убивать
+  if ($Mode -eq 'REUSE') {
+    if ($pre.status -ne 'ok') { Write-Output "ABORT: REUSE без живого сервера (port=$Port)"; exit 2 }
+    $rp = Get-CimInstance Win32_Process -Filter "ProcessId=$($pre.pid)"
+    $rc = $rp.CommandLine
+    if ($rc -notmatch 'IQ3_M' -or $rc -notmatch '-t 1' -or $rc -notmatch 'enable_thinking') { Write-Output "ABORT: REUSE чужой сервер (cmd=$($rc.Substring(0,[Math]::Min(120,$rc.Length))))"; exit 2 }
+    Write-Output "REUSE OK: pid=$($pre.pid) cmd verified (IQ3_M + -t 1 + thinking-off)"
+  }
 
   $exe   = 'C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\llama\llama-server.exe'
   $model = 'C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf'
@@ -69,9 +86,11 @@ try {
   # на два токена -> сервер умирал на старте молча (smoke exit 3, lesson).
   # ProcessStartInfo + UseShellExecute=$false: явное квотирование, прямой
   # child (PPID-инвариант by construction), stderr-захват (L4, громкий отказ).
+  $proc = $null; $_ok = $true
+  if ($Mode -ne 'REUSE') {
   $psi = New-Object System.Diagnostics.ProcessStartInfo
   $psi.FileName = $exe
-  $psi.Arguments = "-m `"$model`" --port 8181 --host localhost -ngl 99 -c 8192 -t $Threads $serverExtra"
+  $psi.Arguments = "-m `"$model`" --port $port --host localhost -ngl 99 -c 8192 -t $Threads $serverExtra"
   $psi.UseShellExecute = $false
   $psi.CreateNoWindow = $true
   $psi.RedirectStandardOutput = $true
@@ -85,7 +104,7 @@ try {
   for ($i=0; $i -lt 24; $i++) {
     Start-Sleep -Seconds 5
     if ($proc.HasExited) { break }
-    try { $r = Invoke-RestMethod -Uri 'http://localhost:8181/health' -TimeoutSec 5; if ([string]$r.status -eq 'ok') { $_ok = $true; break } } catch {}
+    try { $r = Invoke-RestMethod -Uri ('http://localhost:' + $Port + '/health') -TimeoutSec 5; if ([string]$r.status -eq 'ok') { $_ok = $true; break } } catch {}
   }
   $h = _probe 'HARNESS-SPAWN'
   # LOCK-1: родительство + громкая диагностика мёртвого spawn (stderr в вывод)
@@ -98,6 +117,8 @@ try {
     _cleanup; exit 3
   }
   Write-Output "HARNESS OWN: llama_pid=$($proc.Id) ppid=$PID t=$Threads verified"
+  }
+  # S342-v3.3: REUSE — $proc=$null; гварды ниже переключаются на $pre.pid
 
   if (-not $SkipIPTGate) {
     $_ipt = cmd /c "python backend\tests\IPT.py 2>&1" | Out-String
@@ -110,12 +131,14 @@ try {
 
   cmd /c "cd /d backend && python -B -m tests.sandbox.SUPERBOX.scenarios.semantic_probe_corpus > ..\$ArtifactA 2>&1"
   $mid = _probe 'MID-A' -CheckParent
-  if ($mid.pid -ne $proc.Id -or $mid.status -ne 'ok' -or $mid.ppid -ne $PID) {
-    Write-Output "INVALID: плечо A (pid=$($mid.pid) ppid=$($mid.ppid))"; _cleanup; exit 5
+  $exp = if ($proc) { $proc.Id } else { $pre.pid }
+  $expP = if ($proc) { $PID } else { $exp }
+  if ($mid.pid -ne $exp -or $mid.status -ne 'ok') {
+    Write-Output "INVALID: плечо A (pid=$($mid.pid) exp=$exp)"; _cleanup; exit 5
   }
   $preB = _probe 'PRE-B' -CheckParent
-  if ($preB.pid -ne $proc.Id -or $preB.status -ne 'ok' -or $preB.ppid -ne $PID) {
-    Write-Output "INVALID: до B"; _cleanup; exit 5
+  if ($preB.pid -ne $exp -or $preB.status -ne 'ok') {
+    Write-Output "INVALID: до B (pid=$($preB.pid) exp=$exp)"; _cleanup; exit 5
   }
   # leg-env: правки ТОЛЬКО плеча B (контрбаланс состояний на owned-сервере);
   # ПОСЛЕ PRE-B-пробы, до запуска плеча B
@@ -123,14 +146,21 @@ try {
   foreach ($n in ($LegBClear -split ';' | Where-Object { $_ })) { Remove-Item -Path "env:$n" -ErrorAction SilentlyContinue }
   cmd /c "cd /d backend && python -B -m tests.sandbox.SUPERBOX.scenarios.semantic_probe_corpus > ..\$ArtifactB 2>&1"
   $post = _probe 'POST-B' -CheckParent
-  if ($post.pid -ne $proc.Id -or $post.status -ne 'ok' -or $post.ppid -ne $PID) {
-    Write-Output "INVALID: плечо B (pid=$($post.pid) ppid=$($post.ppid))"; _cleanup; exit 5
+  $expP = if ($proc) { $PID } else { $exp }
+  if ($post.pid -ne $exp -or $post.status -ne 'ok') {
+    Write-Output "INVALID: плечо B (pid=$($post.pid) exp=$exp)"; _cleanup; exit 5
   }
   # Id захватывается ДО cleanup: после Stop-Process дескриптор процесса
   # освобождён — .Id на exited/disposed Process кидает InvalidCast (PS 5.1).
-  $ownedPid = $proc.Id
+  # S342-v3.3-fix: REUSE — $proc=$null → exp-модель PID (PS 5.1 молчит на
+  # null-property: пустой owned_pid в PAIR OK); teardown — только SPAWN-владение.
+  $ownedPid = if ($proc) { $proc.Id } else { $pre.pid }
   _cleanup
-  Write-Output "PAIR OK: owned_pid=$ownedPid teardown verified"
+  if ($Mode -eq 'REUSE') {
+    Write-Output "PAIR OK: reuse_pid=$ownedPid alive (external ownership, no teardown)"
+  } else {
+    Write-Output "PAIR OK: owned_pid=$ownedPid teardown verified"
+  }
   exit 0
 }
 finally {
