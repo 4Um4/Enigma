@@ -18,8 +18,6 @@
 import asyncio
 from types import SimpleNamespace
 
-import pytest
-
 from app.domain.intent_profile import ActionType, IntentSemanticField
 from app.services.game_loop.phase_1_input import resolve_player_intent
 from app.services.game_loop.turn_pipeline import TurnPipeline
@@ -79,7 +77,21 @@ def _run_player_action(sem_action: str, readiness: str, resolution=None) -> _Spy
         payload={"text": "stub", "player_name": "p", "semantic_action": sem_action,
                  "target_id": "guard_gate", "target_reference": "стражник", "tick": 1},
     )
-    TickOrchestrator._process_player_action(SimpleNamespace(_event_bus=bus), ctx, interv)
+    # D4-реструктуризация (урок прогона): через ГРАНИЦУ — место гейта ④.
+    self_stub = SimpleNamespace(
+        _event_bus=bus,
+        _get_life_engine=lambda: None,
+        _process_player_dm_action=lambda ctx, dm_ctx: None,
+    )
+    self_stub._player_intent_readiness = (
+        lambda ctx, interv: TickOrchestrator._player_intent_readiness(self_stub, ctx, interv)
+    )
+    self_stub._process_player_action = (
+        lambda ctx, interv: TickOrchestrator._process_player_action(self_stub, ctx, interv)
+    )
+    ctx.interventions = [interv]
+    ctx.campaign_id = "c1"
+    TickOrchestrator._phase_1_input_merge(self_stub, ctx)
     return bus
 
 
@@ -89,7 +101,6 @@ def _attack_events(bus: _SpyBus) -> list:
 
 # ── (1) S122-труба ─────────────────────────────────────────────────
 
-@pytest.mark.xfail(strict=True, reason="D4: PLAYER_ATTACKED при PARTIAL — мини-ADR ④")
 def test_red_s122_partial_attack_not_published():
     bus = _run_player_action("ATTACK", "PARTIAL")
     assert not _attack_events(bus), (
@@ -97,7 +108,6 @@ def test_red_s122_partial_attack_not_published():
     )
 
 
-@pytest.mark.xfail(strict=True, reason="D4: PLAYER_ATTACKED при REFERENCE_AMBIGUOUS — мини-ADR ④")
 def test_red_s122_reference_ambiguous_attack_not_published():
     bus = _run_player_action("ATTACK", "REFERENCE_AMBIGUOUS")
     assert not _attack_events(bus), "PLAYER_ATTACKED при REFERENCE_AMBIGUOUS (REF-01)"
@@ -130,11 +140,24 @@ def _run_help(readiness: str) -> list:
         payload={"text": "stub", "player_name": "p", "semantic_action": "HELP",
                  "target_id": "guard_gate", "target_reference": "стражник", "tick": 1},
     )
-    TickOrchestrator._process_player_action(SimpleNamespace(_event_bus=bus), ctx, interv)
+    # D4-реструктуризация: через ГРАНИЦУ _phase_1_input_merge (гейт ④).
+    self_stub = SimpleNamespace(
+        _event_bus=bus,
+        _get_life_engine=lambda: None,
+        _process_player_dm_action=lambda ctx, dm_ctx: None,
+    )
+    self_stub._player_intent_readiness = (
+        lambda ctx, interv: TickOrchestrator._player_intent_readiness(self_stub, ctx, interv)
+    )
+    self_stub._process_player_action = (
+        lambda ctx, interv: TickOrchestrator._process_player_action(self_stub, ctx, interv)
+    )
+    ctx.interventions = [interv]
+    ctx.campaign_id = "c1"
+    TickOrchestrator._phase_1_input_merge(self_stub, ctx)
     return calls
 
 
-@pytest.mark.xfail(strict=True, reason="D4: M1 компилирует при non-RESOLVED — мини-ADR ④")
 def test_red_m1_partial_help_not_compiled():
     assert not _run_help("PARTIAL"), "ActionConsequenceCompiler вызван при PARTIAL HELP"
 
@@ -163,7 +186,7 @@ def _run_finalize(readiness: str, monkeypatch) -> list:
         dm_orchestrator=SimpleNamespace(_router=SimpleNamespace(get_rules_action_type=lambda t: t)),
         avatar_service=SimpleNamespace(load_state=lambda c, n: None),
         _rel_store=None,
-        _svc=SimpleNamespace(get_state_appliculator=None) if False else SimpleNamespace(get_state_applicator=lambda c: None),
+        _svc=SimpleNamespace(get_state_applicator=lambda c: None),
         _get_life_engine=lambda: None,
     )
     ctx = SimpleNamespace(all_npcs_raw=[], scene_state={"location_id": "tavern"})
@@ -184,7 +207,6 @@ def _run_finalize(readiness: str, monkeypatch) -> list:
     return calls
 
 
-@pytest.mark.xfail(strict=True, reason="D4: Rules-событие при non-RESOLVED — мини-ADR ④")
 def test_red_rules_partial_not_synthesized(monkeypatch):
     assert not _run_finalize("PARTIAL", monkeypatch), "Rules синтезирован при PARTIAL"
 

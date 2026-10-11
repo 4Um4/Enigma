@@ -314,26 +314,48 @@ def run_npc_orchestration(
                 )
             )
         elif _sem_action == "ATTACK":
-            _l1_events.append(
-                TraitDriftEvent(
-                    tick_id=_tick,
-                    target_id=_target_id,
-                    source_id="player",
-                    effect_value=-0.9,
-                    observation_weight=1.0,
-                    event_type="attack",
-                )
+            # S-UE/D4 (L1-контур; GO Тай, причинный путь подтверждён):
+            # sem_action из intent_resolution порождал TraitDriftEvent
+            # (attack, -0.9 / damage, -0.5) БЕЗ проверки готовности —
+            # «Не бей Торнина» (PARTIAL) фиксировал несостоявшуюся атаку
+            # в хронике (живая находка ручного прогона). Не-RESOLVED:
+            # попытка ≠ событие — attack/damage-дрифт не создаётся.
+            _ue_ready = getattr(
+                getattr(
+                    getattr(shared_context, "intent_resolution", None),
+                    "original_intent",
+                    None,
+                ),
+                "parameters",
+                None,
             )
-            _l1_events.append(
-                TraitDriftEvent(
-                    tick_id=_tick,
-                    target_id=_target_id,
-                    source_id="combat",
-                    effect_value=-0.5,
-                    observation_weight=1.0,
-                    event_type="damage",
+            _ue_ready = getattr(_ue_ready, "intent_readiness", None)
+            if _ue_ready and _ue_ready != "RESOLVED":
+                logger.warning(
+                    f"[UE-GATE-L1] attack/damage-дрифт подавлен "
+                    f"(intent_readiness={_ue_ready})"
                 )
-            )
+            else:
+                _l1_events.append(
+                    TraitDriftEvent(
+                        tick_id=_tick,
+                        target_id=_target_id,
+                        source_id="player",
+                        effect_value=-0.9,
+                        observation_weight=1.0,
+                        event_type="attack",
+                    )
+                )
+                _l1_events.append(
+                    TraitDriftEvent(
+                        tick_id=_tick,
+                        target_id=_target_id,
+                        source_id="combat",
+                        effect_value=-0.5,
+                        observation_weight=1.0,
+                        event_type="damage",
+                    )
+                )
 
         if _l1_events:
             try:

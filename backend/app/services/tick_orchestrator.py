@@ -1344,6 +1344,23 @@ class TickOrchestrator:
                         f"[NPIC_NORMALIZE] NPC '{_npc.get('npc_id', '?')}' missing body_state. Injected DISABLED sentinel."
                     )
 
+    def _player_intent_readiness(self, ctx: _TickContext, interv: Any) -> "str | None":
+        """S-UE/D4 (мини-ADR, вариант A): канонический readiness
+        player-вмешательства. dm_ctx-ветка — dm_ctx.intent_resolution;
+        interv-ветка — ctx.shared_context.intent_resolution (кладёт
+        npc_orchestration). None = путь без классификации (легаси,
+        контракт DTO S-UE Блок 3) — гейт не срабатывает."""
+        _res = None
+        _payload = getattr(interv, "payload", None) or {}
+        if "dm_ctx" in _payload:
+            _res = getattr(_payload.get("dm_ctx"), "intent_resolution", None)
+        if _res is None:
+            _res = getattr(
+                getattr(ctx, "shared_context", None), "intent_resolution", None
+            )
+        _params = getattr(getattr(_res, "original_intent", None), "parameters", None)
+        return getattr(_params, "intent_readiness", None)
+
     def _phase_1_input_merge(self, ctx: _TickContext) -> None:
         """Подслой 1.2: Merge interventions into delta_buffer."""
         if not ctx.interventions:
@@ -1380,6 +1397,23 @@ class TickOrchestrator:
                     ctx.all_npcs_raw.append(_player_entry)
 
         for interv in ctx.interventions:
+            # S-UE/D4 (мини-ADR, вариант A, GO Тай): fail-closed гейт
+            # АВТОРИТНОЙ границы — единая точка ДО ветвления процессоров
+            # исполнения (dm_ctx-директивы / M1 / S122 / FAST_PATH_MOVE).
+            # Не-RESOLVED намерение не диспетчеризуется: PLAYER_SPOKE и
+            # raw_input опубликованы game_loop ДО тика (если публикация
+            # не подавлена WV — action_rejected, который НЕ трогаем:
+            # у него другая семантика). intent_readiness=None (легаси) —
+            # гейт не срабатывает (контракт DTO S-UE Блок 3).
+            if interv.source == "player":
+                _ue_readiness = self._player_intent_readiness(ctx, interv)
+                if _ue_readiness and _ue_readiness != "RESOLVED":
+                    logger.warning(
+                        f"[UE-GATE-KERNEL] intervention игрока не диспетчеризуется "
+                        f"(intent_readiness={_ue_readiness}): исполнение закрыто, "
+                        f"PLAYER_SPOKE остаётся (попытка ≠ событие)"
+                    )
+                    continue
             if interv.source == "player" and "dm_ctx" in interv.payload:
                 _dm_ctx = interv.payload.get("dm_ctx")
                 if _dm_ctx:

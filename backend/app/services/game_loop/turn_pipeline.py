@@ -166,8 +166,32 @@ class TurnPipeline:
             "raw_input": actions[0].action if actions else "",
         }
 
-        _rules_sub = RulesSubscriber()
-        _rules_delta = _rules_sub.handle(_rules_event, _rules_snapshot)
+        # S-UE/D4 (мини-ADR, вариант A): Rules/экономика-гейт —
+        # не-RESOLVED намерение не порождает rules-последствий
+        # (чексы/экономика замкнуты): классификация action_type не
+        # доверяется непонятому вводу. PLAYER_SPOKE/raw_input уже
+        # опубликованы game_loop (если WV не подавил публикацию —
+        # action_rejected не трогаем, другая семантика).
+        # intent_readiness=None (легаси) — гейт не срабатывает.
+        _ue_readiness = getattr(
+            getattr(
+                getattr(shared_context, "intent_resolution", None),
+                "original_intent",
+                None,
+            ),
+            "parameters",
+            None,
+        )
+        _ue_readiness = getattr(_ue_readiness, "intent_readiness", None)
+        _rules_delta = None
+        if _ue_readiness and _ue_readiness != "RESOLVED":
+            logger.warning(
+                f"[UE-GATE-RULES] rules-последствия подавлены "
+                f"(intent_readiness={_ue_readiness})"
+            )
+        else:
+            _rules_sub = RulesSubscriber()
+            _rules_delta = _rules_sub.handle(_rules_event, _rules_snapshot)
 
         rules_result = {"checks": _rules_delta.checks} if _rules_delta else {}
         logger.warning(
