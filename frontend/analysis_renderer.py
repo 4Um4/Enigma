@@ -31,6 +31,11 @@ class AnalysisRenderer:
         if player_beliefs is None:
             player_beliefs = []
         """Отрисовка панели Журнала (ADR-JOURNAL). Возвращает обновлённые хитбоксы вкладок."""
+        # UX-J-01 (Тай): состояние внутреннего скролла записей (ключ —
+        # спикер+текст; хитбоксы — в экранных координатах, для колеса)
+        if not hasattr(self, "_journal_entry_offsets"):
+            self._journal_entry_offsets = {}
+        self._journal_entry_rects = []
         if not journal_data:
             return []
 
@@ -122,10 +127,10 @@ class AnalysisRenderer:
                     else:
                         _color = COLOR_TEXT_DEFAULT
 
-                    _name_surf = _font_name.render(f"{_speaker}:", True, _color)
-                    _journal_surf.blit(_name_surf, (15, _y_offset))
-                    _y_offset += 24
-
+                    # UX-J-01 (Тай): строки считаются ДО отрисовки — запись
+                    # получает коробку min(полная высота, остаток панели);
+                    # обрезанная запись скроллится колесом изнутри (ховер;
+                    # приоритет пузырю всегда — вердикт Тай №3).
                     _words = _text.split(" ")
                     _lines = []
                     _current_line = ""
@@ -138,13 +143,49 @@ class AnalysisRenderer:
                             _current_line = _word + " "
                     _lines.append(_current_line)
 
+                    _panel_bottom = self.screen.get_height() - 40
+                    _full_h = 24 + 20 * len(_lines) + 10
+                    _vis_h = min(_full_h, _panel_bottom - _y_offset)
+                    if _vis_h <= 24:
+                        break  # даже имя не влезает — ниже записей нет
+                    _key = f"{_speaker}|{_text[:96]}"
+                    _text_h = 20 * len(_lines)
+                    _max_off = max(0, _text_h - (_vis_h - 24))
+                    _off = self._journal_entry_offsets.get(_key, 0)
+
+                    _name_surf = _font_name.render(f"{_speaker}:", True, _color)
+                    _journal_surf.blit(_name_surf, (15, _y_offset))
+                    _y_offset += 24
+
+                    _clip_saved = _journal_surf.get_clip()
+                    _journal_surf.set_clip(
+                        pygame.Rect(0, _y_offset, _panel_width, _vis_h - 24)
+                    )
+                    _line_y = _y_offset - _off
                     for _line in _lines:
                         _text_surf = _font_text.render(_line, True, COLOR_TEXT_DEFAULT)
-                        _journal_surf.blit(_text_surf, (15, _y_offset))
-                        _y_offset += 20
+                        _journal_surf.blit(_text_surf, (15, _line_y))
+                        _line_y += 20
+                    _journal_surf.set_clip(_clip_saved)
 
-                    _y_offset += 10
-                    if _y_offset > self.screen.get_height() - 40:
+                    if _max_off > 0:
+                        _more_surf = _font_text.render("▾", True, COLOR_TEXT_MUTED)
+                        _journal_surf.blit(
+                            _more_surf, (_panel_width - 30, _y_offset + _vis_h - 24 - 18)
+                        )
+                    self._journal_entry_rects.append((
+                        pygame.Rect(
+                            self.screen.get_width() - _panel_width + 15,
+                            _y_offset - 24,
+                            _panel_width - 30,
+                            _vis_h,
+                        ),
+                        _key,
+                        _max_off,
+                    ))
+
+                    _y_offset += _vis_h - 24 + 10
+                    if _y_offset >= _panel_bottom:
                         break
         elif active_tab == "hypotheses":
             _empty_surf = _font_text.render("У вас пока нет гипотез.", True, COLOR_TEXT_MUTED)
@@ -153,8 +194,29 @@ class AnalysisRenderer:
             _empty_surf = _font_text.render("Установленных фактов нет.", True, COLOR_TEXT_MUTED)
             _journal_surf.blit(_empty_surf, (15, _y_offset))
 
+        # UX-J-01: чистка оффсетов исчезнувших записей (анти-рост состояния)
+        _live_keys = {_k for (_r, _k, _m) in self._journal_entry_rects}
+        for _k in list(self._journal_entry_offsets):
+            if _k not in _live_keys:
+                del self._journal_entry_offsets[_k]
         self.screen.blit(_journal_surf, (self.screen.get_width() - _panel_width, 0))
         return _new_rects
+
+    def scroll_journal_entry_at(self, pos: tuple, direction: int) -> bool:
+        """UX-J-01 (Тай): колесо над записью журнала — внутренний скролл.
+
+        True = позиция внутри записи (колесо поглощено — приоритет пузырю
+        всегда, даже на границах; вердикт Тай №3). Шаг — 20px (строка).
+        """
+        for _rect, _key, _max_off in getattr(self, "_journal_entry_rects", []):
+            if _rect.collidepoint(pos):
+                if _max_off > 0:
+                    _cur = self._journal_entry_offsets.get(_key, 0)
+                    self._journal_entry_offsets[_key] = max(
+                        0, min(_max_off, _cur + direction * 20)
+                    )
+                return True
+        return False
 
     def draw_inventory(self, topo_dict: dict) -> None:
         """Отрисовка панели инвентаря (BodyTopology)."""

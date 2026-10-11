@@ -185,12 +185,37 @@ def test_decompose_retry_then_success():
     assert r.ok is True and router.calls == 2  # ровно один retry (FR-2.2)
 
 
-def test_decompose_pool_down_no_retry_logged():
-    router = _FakeRouter([RuntimeError("пул недоступен")])
+def test_decompose_pool_down_waits_then_honest_failure(monkeypatch):
+    """Вердикт Мастера «готов ждать»: пул-отказ = возмущение среды, не приговор —
+    decompose ждёт паузами и ретраится; исчерпав попытки — честный отказ
+    (r.ok=False, error не пуст). Сон мокается, реальных пауз в тесте нет."""
+    _slept = []
+
+    async def _fake_sleep(w):
+        _slept.append(w)
+
+    monkeypatch.setattr(asyncio, "sleep", _fake_sleep)
+    router = _FakeRouter([RuntimeError("пул недоступен"), RuntimeError("пул недоступен")])
     r = _decompose(router)
     assert r.ok is False
-    assert "LLM-пул недоступен" in (r.error or "")
-    assert router.calls == 1  # инфраструктурный отказ не ретраится
+    assert r.error is not None and "после retry" in r.error
+    assert router.calls == 2  # обе попытки исчерпаны на пул-ретраях
+    assert _slept == [1.0, 3.0]  # паузы 1с/3с (5-секундная недостижима при 2 попытках)
+
+
+def test_decompose_pool_busy_then_success(monkeypatch):
+    """«Пул занят» при первой попытке → пауза → вторая попытка успешна
+    (декомпозиция доходит; дрейф-контракт старого no-retry теста)."""
+    _slept = []
+
+    async def _fake_sleep(w):
+        _slept.append(w)
+
+    monkeypatch.setattr(asyncio, "sleep", _fake_sleep)
+    router = _FakeRouter([RuntimeError("пул занят"), _GOOD])
+    r = _decompose(router)
+    assert r.ok is True and len(r.items) == 1 and router.calls == 2
+    assert _slept == [1.0]
 
 
 def test_decompose_double_failure_after_retry():

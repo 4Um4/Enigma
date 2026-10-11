@@ -102,6 +102,10 @@ class BiographyDecomposer:
         router = self._router or ModelRouter()
         system_prompt = self._ensure_prompt()
         last_error = ""
+        import asyncio as _aio
+
+        _POOL_WAITS = (1.0, 3.0, 5.0)  # сек пауз при «пул занят» (Q4_K_M выдыхает на серии)
+        _pool_retry = 0
         for attempt in (1, 2):
             try:
                 from app.services.llm.provider import GenerationParams
@@ -125,8 +129,19 @@ class BiographyDecomposer:
                 last_error = str(e)
                 continue  # ровно один retry (FR-2.2)
             except RuntimeError as e:
-                # L4: отказ пула виден на error-уровне (тихий return = L4-нарушение)
-                logger.error(f"[CHRONICLE_DECOMPOSER] LLM-пул недоступен: {e}")
+                # L4: отказ пула виден на warn-уровне. «Пул занят» — возмущение
+                # среды (LLM обрабатывает предыдущий запрос), НЕ приговор:
+                # ждём и пробуем снова (вердикт Мастера «готов ждать»);
+                # сдаёмся только после исчерпания пауз.
+                if _pool_retry < len(_POOL_WAITS):
+                    _w = _POOL_WAITS[_pool_retry]
+                    _pool_retry += 1
+                    logger.warning(
+                        f"[CHRONICLE_DECOMPOSER] пул занят ({str(e)[:60]}) — пауза {_w}с, попытка {_pool_retry + 1}/4"
+                    )
+                    await _aio.sleep(_w)
+                    continue  # тот же attempt, счётчик пул-ретраев отдельный
+                logger.error(f"[CHRONICLE_DECOMPOSER] LLM-пул недоступен после ожидания: {e}")
                 return DecomposeResult.failure(f"LLM-пул недоступен: {e}")
         return DecomposeResult.failure(f"Декомпозиция не удалась после retry: {last_error}")
 

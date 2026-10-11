@@ -1002,7 +1002,16 @@ class GameScreen:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     # S128: Клик по вкладкам журнала (вернули из KEYDOWN-цепочки,
                     # где ветка была мертва: event.type в цепочке event.key всегда False)
-                    if event.button == 1 and self.show_journal and self._journal_tab_rects:
+                    if event.button in (4, 5) and self.show_journal:
+                        # UX-J-01 (Тай): скролл внутри скролла — колесо над
+                        # ховеренной записью журнала прокручивает её текст в
+                        # собственном облачке (приоритет пузырю всегда —
+                        # вердикт Тай №3); вне записей колесо поглощается
+                        # без действия (внешний скролл списка — отдельный шаг)
+                        self._analysis_renderer.scroll_journal_entry_at(
+                            event.pos, 1 if event.button == 5 else -1
+                        )
+                    elif event.button == 1 and self.show_journal and self._journal_tab_rects:
                         _mx, _my = event.pos
                         _tab_hit = False
                         for _tab_id, _rect in self._journal_tab_rects:
@@ -1448,6 +1457,8 @@ class GameScreen:
                     not _skip_time_active[0]
                     and not self.workbench_paused
                     and not _llm_ctrl.llm_paused  # COV-2/D61: мир стоит
+                    and not text_input.visible   # UX-DLG-PAUSE (Тай): мир ждёт,
+                    # пока открыта панель ввода диалога (от прибытия :1091 до Tab :845)
                 ):
                     _idle_tick_running[0] = True
                     _last_idle_tick = _now

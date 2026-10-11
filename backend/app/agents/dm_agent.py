@@ -1203,6 +1203,6 @@ class DmAgent:
             "world_changes": [],
             "llm_degraded": _llm_degraded,
             "llm_degraded_reason": (
-                str(error)[:200] if (_llm_degraded and error is not None) else None
+                str(error)[:200] if (_llm_degraded and error is not None) else None  # noqa: ENIGMA001
             ),
         }

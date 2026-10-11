@@ -188,6 +188,14 @@ flags:
     owner: A
 
   # ── KEEP-LOG (диагностика / lab) ────────────────────────────────────────
+  ENIGMA_DIALOGUE_LOG:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: KEEP-LOG
+    adr: "-"
+    owner: master
+    note: "UX-DLG-LOG/UX-FB (Тай): путь внешнего журнала диалогов; пусто = <родитель игры>/EnigmaDialogueLog/dialogue_log.jsonl; журнал пишется всегда, env только переопределяет файл"
   COGNITION_DIAG:
     type: env
     read_mode: mixed

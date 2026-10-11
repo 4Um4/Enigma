@@ -1,4 +1,4 @@
-# ENIGMA Session State — 2026-10-11 18:53
+# ENIGMA Session State — 2026-10-12 00:06
 
 Кампания: `?` | Игрок: `?`
 
@@ -16,7 +16,7 @@
 
 ## DNA — МЕТРИКИ ЗДОРОВЬЯ СИСТЕМЫ
 
-_Сессия: 4.7 мин | Тиков: 0 | LLM-вызовов: 13_
+_Сессия: 0.2 мин | Тиков: 0 | LLM-вызовов: 0_
 
 | Метрика | Значение | Δ от прошлой | Интерпретация для LLM |
 |---------|----------|--------------|----------------------|
@@ -25,7 +25,7 @@ _Сессия: 4.7 мин | Тиков: 0 | LLM-вызовов: 13_
 | **OBI** (Obedience) | 0% | → +0.0% | нет директив в сессии — OBI не применим |
 | **SCF** (Spatial Coherence) | 1.0 | → +0.0 | ✅ пространство целостно: граф загружен корректно |
 | **ADR** (Debt Ratio) | 0.00 | → +0.0 | нет ADR-записей — невозможно оценить |
-| **CVS** (Causal Velocity) | 2.75/мин | ↑ +2.2 | ✅ 2.75/мин: активная сессия |
+| **CVS** (Causal Velocity) | 0.00/мин | → +0.0 | LLM не вызывалась: сессия без действий игрока |
 | **PFI** (Pre-Bus Failure) | 0% | → +0.0% | ✅ норма: пред-шинных отказов нет — CDS видит всё |
 | **Tracebacks** | 0 (AttrErr=0, TypeErr=0) | → | ✅ норма |
 | **BCI** (Belief Crystallization) | 0 (idx=0.00) | → | ⚠️ Память не кристаллизуется (BCI=0) |
@@ -34,10 +34,7 @@ _Сессия: 4.7 мин | Тиков: 0 | LLM-вызовов: 13_
 | **DRI** (Response Integrity) | 100% | → +0.0% | ✅ LLM отвечает на все запросы |
 | **DPI** (Dialogue Pipeline) | 100% | → +0.0% | ✅ Конвейер диалогов стабилен |
 
-**Системные сигналы (требуют внимания):**
-- SHI=0% при активных LLM-вызовах: игрок взаимодействует но NPC не решают — разрыв между R3_DIRECT и DecisionHub
-
-_История: `reports/dna_history.jsonl` — 1294 записей_
+_История: `reports/dna_history.jsonl` — 1303 записей_
 
 ## 🟢 КРАСНЫЕ ИНВАРИАНТЫ — ТИХИЕ ДЕГРАДАЦИИ
 
@@ -57,11 +54,11 @@ _Не обнаружено — игра жива._
 _(баги не обнаружены в этой сессии)_
 
 ### Последние изменения (git log -5):
-  - 8b69e1d2 S345: CCH-4 — history scroll (wheel, 22-row window; Borco-24th-item verdict), roster display_name (name from individuals config; cyrillic-header resolver for collection import), silent-failure fix in get_display_names (IPT INV-SILENT-FAILURE caught bare except), collection import per-NPC routing + world author layer (_world_author_layer.md); IPT 52/52
-  - 2c6cbb89 COV-2/cosmetic: W292 newline factory.py (вердикт GO)
-  - 31387976 COV-2/D61-бэкенд: детектор отказа (pool_backoff_status + /llm/outage — доказанный backoff немедленно, health-only через дебаунс фронта) + настоящий рестарт в server_lifecycle (сериализация lock, kill только проверенного llama-server по PID, защита занятого порта, поллинг /health до 200, успех => сброс backoff) + прод-роут /api/llm/restart (debug-алиас сохранён) + main.py делегирует спавн + T-D61 x10
-  - 7317f6c7 S346-reg: закрытие Understanding Engine фронта — строка S346 (8 коммитов: контракт/автопик/fail-closed гейт/per-act инфраструктура/A/B-данные/эскалация/ORDER-гейт); три защитных эффекта замкнуты фальсификаторами; языковая граница Qwen2.5-7B честно зафиксирована (negated не распознаётся тремя путями — не объявлено решённым); хвосты: UX-фронт (вердикты Мастера приняты), S122/RC3, fast-path, пример-итерация; попутно восстановлена PROV_B-запись S343-реестра (COV-контур уведомлён); МЕТА 228→229 по грепу правила 5
-  - c1283454 S-UE-fix3: мини-fix №3 (вердикт Мастера, изолированный diff) — контракт гейта приведён в соответствие с фактическим состоянием интерпретации: неразобранная негация закрывает исполнение ORDER-актов, не только world-changing (находка 5.2: 'Не говори ему…' = RESOLVED — противоречие контракту безопасности; спасение акты=[] было случайным). КОРНЕВОЙ ДИАГНОЗ (догма-зонд): _content_words len>2-фильтр отрезал частицы 'не/ни' ('Не бей его.' -> {'бить','он'}, hit=False) — фильтр легитимен для сверки имён (предлоги), фатален для частиц; фикс: параметр keep_short (существующие вызовы байт-неизменны, negation-детекция — keep_short=True). Контракт: частица ЕСТЬ ∧ ни один акт не разобрал negated -> не-RESOLVED; позитивный ORDER без частицы = RESOLVED (обычные приказы не блокируются); LLM negated=False разблокирует (мост). Тесты: 6/6 (ORDER+не=блок / позитив ORDER=RESOLVED / ATTACK+не=PARTIAL / легаси-акты / мост negated=False / world-changing-без-target). Параллельная серия: PERACT-запись ушла в HEAD их fixup'ом 92ab49dc (смешанное авторство, зафиксировано); ВОССТАНОВЛЕНА утраченная там же запись ENIGMA_PROV_B (вербатим из 1e12c105, S343-реестр; их тотал-лауэркейс-инцидент удалил её вместе с правками Региона-B) — closes INV-FLAG-REGISTRY, COV-контур уведомлен этой строкой. Гейты: fix3 6/6, UE-сьюта 31/31, боевые 43/43, lint_flags 0 (registry=54), IPT 52/0
+  - fb2840a9 V.0.5.4.3.3_ещё_1: полное сохранение проекта в main (ветка V.0.5.4.3.3_ещё_1). Версии унифицированы до 0.5.4.3.3 во всех 7 SSOT-источниках: version.txt (по-прежнему 9 байт, без BOM/перевода — формат publish_release.ps1 сохранён), backend/pyproject.toml, frontend/constants.py PROJECT_VERSION, README.md x2 (шапка + §4), CITATION.cff (version + date-released=2026-10-11), шапка docs/ENIGMA_ROADMAP_v4_6.md (Код: V.0.5.4.3.3) — единообразие сверено по publish_release.ps1 (SSOT=version.txt); активных упоминаний 0.5.4.3.2 не осталось (git grep), исторические (базисы read-only аудитов MEM-D/COV-D, MUTATIONS, TZ-корпус, reports/history) осознанно не тронуты. Гейты ДО коммита: ruff . = 0; ruff backend/frontend = 0; mypy все 3 CI-режима = 0 (564/121/446 файлов); ENIGMA-линты 10/10 PASS (domain purity, wall-clock, kernel RNG, epistemic boundary, relationship engine, AST §1, HP-SSOT, silent failures, perception, flags-registry); pytest micro = 325/325; полный CI-сьют = 2412 passed / 33 skipped / 7 xfailed + 1 ИЗВЕСТНЫЙ RED (вердикт Мастера, см. ниже); хуки: compileall OK, pre-push sandbox 7/7. Mypy-доводка 3->0: trait_gap_detector — cast(Dict[str, Any], json.loads) в _load_lexicon (no-any-return); provider_manager — reset_errors() на ModelMetrics (no-op-якорь контракта pool_reset_backoff: error-состояние живёт в ModelProvider, реальные ModelMetrics падали AttributeError после подтверждённого рестарта D61 — тест-контракт test_pool_backoff_status_and_reset не тронут); router — снята повторная аннотация self._slot_busy в ленивой инициализации (no-redef: первый деф-сайт в _grant_next_locked, __init__ не трогаем). Ruff-доводка 5->0: I001 x2 phase_1_input + I001 router (порядок импортов автофиксом), W292 reports/d1_native5_gate, F841 llm_raw в ue0_baseline_probe (неиспользуемая переменная удалена). AST-гейт §1 (lint_enigma_ast) 16->0: noqa-хвосты ENIGMA001/ENIGMA002 на легитимных Optional-контрактах по каноническому прецеденту (415 сайтов, ea655cdb): tick_orchestrator x7 (S-UE/D4 readiness-цепочка), npc_orchestration x4 (L1-гейт attack/damage-драйта), phase_1_input x3 (reference_candidates + DTO-guard'ы), router x2 (replay_store, D65); 0 behavioral фиксов. Semlib byte-lock 8->0: golden A/B/I перерезаны = текущий production (контракт тестов «golden текущего production»); дрейф внёс S-UE-B4 (447b7649: промпт-таблица per-act контракта negated/modality/quoted), эталоны не обновили — байт-принимка test_semlib_{off,on,router,identity} краснела; регенерация байтовая (write_bytes, переводы строк не тронуты). ИЗВЕСТНЫЙ RED (вердикт Мастера): test_p2_provenance_origin_vs_seeded 13 != 16 — новый канон config/npc/chronicles/guard_borko.json (авторский канон v1, сегодня 18:51: author_text заполнен, entries=0) по FR-11.2 «канон вместо legacy» затирает 3 origin-воспоминания Борко; файл сохраняется КАК ЕСТЬ (решение Мастера), гейт доработает владелец CCH-4 — остальные 2412 тестов зелёные. Контент сессии: канон-хроника Борко (CCH-4 редактор), UE0-базлайн-пробы SUPERBOX (ue0_baseline_corpus/ue0_baseline_probe), docs/Почти Актуальные TZ («Редактор кампаний», «Прошлое персонажей черновик»), отчёты h_id_det_native2/3, h_id_warmup2, ue1_block*, ue_fix3, smoke_spawn_occ, ue0_baseline_report, patch_d61_frontend, LAST_SESSION/b2_health_trace, character_lexicon, npc_relationships. В main так же уходят 35 ранее незапушенных коммитов (хвост S341-S345 + трек UX-UE-01: ADR-O-424/D4-гейт, RED-спецификации + COV-2/D61-D66 LLM-резилиенс: детектор отказа, /llm/outage, приоритетная очередь worker, wall-time watchdog, playback, доктрина обязательной LLM во фронте). Тег v0.5.4.3.3 и ветка V.0.5.4.3.3_ещё_1 указывают на этот коммит.
+  - 0bac98a4 UX-UE-01 дифф A — ADR-контур: ADR-O-424 (UE-Kernel Readiness Gate — D4) в атлас + IMPACT-аудит (требование hook'а ADR IMPACT AUDIT REQUIRED, Устав 11.4). Номер max+1 по живому грепу (после O-423). Реестр — отдельной строкой после интеграционной приёмки.
+  - 0508008e UX-UE-01 дифф A (D4, мини-ADR, GO Тай): fail-closed readiness-гейт авторитетных путей. (1) _phase_1_input_merge (ядро): единая точка до ветвления — не-RESOLVED player-вмешательство не диспетчеризуется (M1/S122/dm_ctx/FAST_PATH); PLAYER_SPOKE/raw сохранены; action_rejected (WV) не тронут. (2) turn_pipeline: Rules/экономика-гейт. (3) npc_orchestration: L1-гейт attack/damage-дрейта (утечка подтверждена: «Не бей Торнина» фиксировал несостоявшуюся атаку -0.9/-0.5). Тесты: S122/M1 реструктурированы на уровень границы; xfail снят по XPASS-сигналу x4. Гейты: <вставить фактические>.
+  - ea5a05d1 D61-фронт (COV-2): доктрина обязательной LLM — LlmOutageController, модалка двух выборов, гейты кадра (idle+skip x4), гвард submit по self (ТЗ §3.4-4), старт-гейт, watcher c gen-счётчиком, T-пауза x3 (27/27)
+  - 37767346 UX-UE-01 Этап 1: тест-контракты (①②③ RED-спецификации xfail-strict; ④ D4 красные фиксаторы S122+M1+Rules, runtime-репродукция x4). Гейты: UE 52+11xf, боевые 24+1skip, IPT 52/0. Прод-код 0.
 
 ### Последние записи MUTATIONS.md:
   - (MUTATIONS.md не найден)
@@ -109,7 +106,7 @@ _(см. секции #1 и #3 — файлы backend/app/services/)_
 ### Состояние симуляции (последняя сессия игры):
 
 **Tick Pipeline:**
-Тиков: 0 | Decisions > 0: 0/0 | LLM: 13 вызовов / 13 ответов | Симуляция: ✅ живёт
+Тиков: 0 | Decisions > 0: 0/0 | LLM: 0 вызовов / 0 ответов | Симуляция: ✅ живёт
 - LLM "Ничего не произошло": 0 раз
 - LLM CJK-галлюцинации: 0 строк
 - Стартап backend: ✅
