@@ -251,6 +251,13 @@ flags:
     verdict: KEEP-LOG
     adr: S-UE-B5.1
     owner: UE
+  ENIGMA_PROV_B:
+    type: env
+    read_mode: call
+    default: "none"
+    verdict: KEEP-LOG
+    adr: S313
+    owner: B
   ENIGMA_SEM_LIB:
     type: env
     read_mode: call

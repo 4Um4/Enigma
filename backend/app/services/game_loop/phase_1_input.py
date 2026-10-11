@@ -98,16 +98,21 @@ def _resolve_target_reference(field: IntentSemanticField, scene_context: Any) ->
     return npc_name_map[matches[0]] if matches else ""
 
 
-def _content_words(text: str) -> set:
-    """S-UE Блок 2: леммы значимых слов (len>2) для сверки имён NPC с
-    сырой репликой. Зонд-эмпирика: строчная _lemmatize ненадёжна на
+def _content_words(text: str, keep_short: bool = False) -> set:
+    """S-UE Блок 2: леммы значимых слов для сверки имён NPC с сырой
+    репликой. Зонд-эмпирика: строчная _lemmatize ненадёжна на
     многословных строках — пунктуация отравляет разбор целиком
     ('Спроси трактирщика…' не лемматизировался вовсе). Поэтому:
     (1) регекс-токены без пунктуации; (2) лемматизация ПОСЛОВНО через
-    _lemmatize (одиночный токен — её корректный режим)."""
+    _lemmatize (одиночный токен — её корректный режим).
+    keep_short=True — режим мини-fix №3: сохранять 1-2-символьные
+    токены («не»/«ни» — отрезались len>2-фильтром, задуманным против
+    предлогов сверки имён; догма-зонд: 'Не бей его.' → {'бить','он'},
+    частица потеряна). Существующие вызовы (сверка имён) — без
+    параметра, поведение байт-неизменно."""
     _out: set = set()
     for _tok in re.findall(r"[а-яёa-z0-9]+", str(text).lower()):
-        if len(_tok) > 2:
+        if len(_tok) > 2 or keep_short:
             _out.add(_lemmatize(_tok))
     return _out
 
@@ -145,9 +150,22 @@ def compute_intent_readiness(
         # U-9: решение по структуре, не по самооценке модели
         if not resolved_target_id:
             return "PARTIAL"
+    # S-UE мини-fix №3 (вердикт Мастера): неразобранная негация закрывает
+    # исполнение не только world-changing-классов, но и ORDER-актов
+    # (диалоговый приказ «Не говори ему…» был RESOLVED — противоречие
+    # контракту безопасности; спасение акты=[] было случайным). Источник
+    # признака — лемма-частица в raw_text (детерминированный, единый с
+    # эскалацией 5.2 и world-changing-детектором); negated=None ничего не
+    # доказывает: частица ЕСТЬ ∧ ни один акт не разобрал negated → не
+    # RESOLVED. Позитивный приказ без частицы («Ударь его») — RESOLVED
+    # (пункт 3 контракта) по построению. LLM negated=False на не-реплике
+    # разблокирует (мост test_matrix_negated_known_unblocks).
+    _has_order = any(str(a.get("type", "")).upper() == "ORDER" for a in _acts)
+    if _world_changing or _has_order:
         _negated_known = any(a.get("negated") is not None for a in _acts)
         if not _negated_known and any(
-            w in _UNRESOLVED_NEGATION_LEMMAS for w in _content_words(field.raw_text)
+            w in _UNRESOLVED_NEGATION_LEMMAS
+            for w in _content_words(field.raw_text, keep_short=True)
         ):
             return "PARTIAL"
     return "RESOLVED"
