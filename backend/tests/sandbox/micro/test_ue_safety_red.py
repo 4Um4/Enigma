@@ -21,10 +21,9 @@ _SCENE = {
 }
 
 
-@pytest.mark.xfail(strict=True, reason="UE-RED-1 (baseline NEG-04): ATTACK без "
-                   "разрешённого отрицания обязан быть не-RESOLVED; readiness "
-                   "появляется в Блоке 3 — тогда снять xfail")
 def test_red_attack_unresolved_negation_not_resolved():
+    """UE-RED-1 (baseline NEG-04) — защита Блока 3: ATTACK с неразрешённым
+    отрицанием = PARTIAL, не-RESOLVED; исполнение закрыто гейтом."""
     # «Не бей его» сегодня: ATTACK, негация потеряна fast-path'ом (0.001s),
     # negated-информации нет вовсе → исполнение обязано быть закрыто.
     sf = IntentSemanticField(action=ActionType.ATTACK, raw_text="Не бей его.")
