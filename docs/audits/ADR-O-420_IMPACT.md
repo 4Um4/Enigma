@@ -63,3 +63,12 @@ ADR-O-420 [STANDARD] **IMPACT** (S331; Ступень 0 CCH-0 — doc-only, ко
 - Инфра: HttpClient.put (по прецеденту _execute); двойной sys.path-корень фронта решён явно (map_editor-файлы поднимают frontend-путь от __file__); rename editor_core→chronicle_app (дизамбигуация с map_editor/editor_core).
 - Коммиты: d85ef720 (step B) / 37d30584 (fixup rename — урок: git mv НОВЫЙ путь обязателен в pathspec) / d6c11b3f (C-backend) / b9f147e8 (C-frontend, частично) / 0b4249a0 (D).
 - Отложено решением Мастера: E (MERGE_CANDIDATE-карточки склеек → event_groups) и F (глубина F7-экрана) — до доказанной потребности использования.
+
+## Реализация CCH-4 (S341/S345/S347 — финал)
+- chronicle_seeder (ADR-O-423): pure translator + new-game-гейт в npc_loader; цензусы НЕ расширены; правило приоритета архитектурой.
+- Единый редактор (вердикт «один редактор — два входа»): ChronicleEditorCore embeddable + F7-обёртка + Shift+F7 из меню (пункт из видимого списка убран).
+- Ctrl+O сборник «Все.md» (6 историй → свои NPC через display-name-резолвер, кириллица↔латиница); мировой слой автора («Карта Правды» и др.) → saves/<campaign>/chronicle_drafts/_world_author_layer.md; Ctrl+G understand-everything (пауза-ретраи пула: «пул занят» ≠ приговор; таймауты не роняют редактор).
+- decompose→draft-мост: LLM_DRAFT-записи merge в черновик по детерминированному entry_id (замена без дублей); канон не трогается (запрет 1).
+- EntryKind расширен вердиктами Мастера: PORTRET (авторский монолог дословно — оригинал > интерпретация), DESIRE_SEED (мечта ≠ событие; антипример «сбежать на юг») — ревизия настоящего ADR.
+- character_lexicon.json v1 (код-верифицированный словарь онтологии характера; драйвы ×4 WORKING вопреки манифесту-DEBT — эскалация; traumatized orphan-reader) + trait_gap_detector → LIVE MAP 134/134 НЕТ В ИГРЕ — стартовый документ Character Calibration (следующая сессия).
+- Коммиты: 16dc8fdc / cc985e8e / d7bf9c11 / 61b2fb69 / b02de35a / 40ec4a0f / e6e067f3 / 07ee2250 / 8b69e1d2 / b81347ce.
