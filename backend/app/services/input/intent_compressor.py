@@ -224,9 +224,17 @@ _VALID_ACT_TYPES = {
 }
 
 
+# S-UE Блок 4: белый список модальностей акта (промпт-контракт; расширение — мини-ADR)
+_VALID_ACT_MODALITIES = frozenset({"REALIS", "HYPOTHETICAL", "CONDITIONAL", "DESIRED"})
+
+
 def _validate_acts(raw_acts: Any) -> List[Dict[str, Any]]:
     """Multi-Act: Python-валидация актов LLM (белый список типов, params
-    строковые). Мусор по-элементно, валидные сохраняются."""
+    строковые). Мусор по-элементно, валидные сохраняются.
+    S-UE Блок 4: per-act признаки negated/modality/quoted/quoted_speaker_hint
+    проходят белый фильтр с жёсткой типизацией; мусорное значение = ключ
+    ОТБРАСЫВАЕТСЯ (не None): отсутствие ключа = честное «не знает» — так
+    гейт Блока 3 читает его как недостаточную информацию (fail-closed)."""
     _out: List[Dict[str, Any]] = []
     if not isinstance(raw_acts, list):
         return _out
@@ -238,7 +246,21 @@ def _validate_acts(raw_acts: Any) -> List[Dict[str, Any]]:
             continue
         _p_raw = _raw.get("params")
         _p = {str(k): str(v) for k, v in _p_raw.items()} if isinstance(_p_raw, dict) else {}
-        _out.append({"type": _t, "params": _p})
+        _act: Dict[str, Any] = {"type": _t, "params": _p}
+        # ── S-UE Блок 4: per-act контракт (Блок 1) — белый фильтр ──
+        _neg = _raw.get("negated")
+        if isinstance(_neg, bool):
+            _act["negated"] = _neg
+        _mod = _raw.get("modality")
+        if isinstance(_mod, str) and _mod.upper() in _VALID_ACT_MODALITIES:
+            _act["modality"] = _mod.upper()
+        _quo = _raw.get("quoted")
+        if isinstance(_quo, bool):
+            _act["quoted"] = _quo
+        _qsh = _raw.get("quoted_speaker_hint")
+        if isinstance(_qsh, str) and _qsh.strip():
+            _act["quoted_speaker_hint"] = _qsh.strip()[:80]
+        _out.append(_act)
     return _out
 
 
@@ -457,6 +479,7 @@ class IntentCompressor:
 
         # Классификация пути (вердикт: три входа — одна граница)
         _llm: Optional[Dict[str, Any]] = None
+        _llm_attempted = False  # S-UE Блок 4: факт для comprehension_facts (U-9: машинный, не самооценка)
         if fast_result is None:
             # SLOW-ONLY: fast не увидел ничего — LLM обязана разобрать
             _field = await self._recover_acts(
@@ -466,6 +489,7 @@ class IntentCompressor:
         elif self._fast_incomplete(fast_result, scene_context):
             # FAST-INCOMPLETE: fast нашёл якорь, но неполон — LLM дополняет
             try:
+                _llm_attempted = True
                 _llm = await self._llm_client.compress_intent(raw_text, scene_context, dialogue_session)
             except Exception as _e:
                 logger.warning(f"[RECONCILE] llm EXC {type(_e).__name__}: {_e}", exc_info=True)
@@ -478,7 +502,32 @@ class IntentCompressor:
             _field = fast_result
 
         # ЕДИНАЯ ГРАНИЦА: recovery/canonicalization для ВСЕХ путей
-        return await self._recover_acts(_field, _llm, scene_context)
+        _field = await self._recover_acts(_field, _llm, scene_context)
+
+        # S-UE Блок 4: машинные факты полноты — мост FAILED-детекции гейта
+        # Блока 3 (llm_status ранее не писался вовсе). Статусы по путям:
+        # OK = LLM ответила; UNAVAILABLE = попытка без ответа (fast-incomplete
+        # отказ ИЛИ slow-only-сигнатура мёртвой LLM: UNCERTAIN + parse<=0.1,
+        # fallback _slow_path_parse); FAST_ONLY = LLM не звалась; SLOW_ONLY =
+        # slow-ответ без fast-якоря. Гейт: UNCERTAIN + статус≠OK → FAILED.
+        if _llm is not None:
+            _llm_status = "OK"
+        elif _llm_attempted:
+            _llm_status = "UNAVAILABLE"
+        elif fast_result is not None:
+            _llm_status = "FAST_ONLY"
+        elif _field.action is ActionType.UNCERTAIN and _field.confidence.parse <= 0.1:
+            _llm_status = "UNAVAILABLE"
+        else:
+            _llm_status = "SLOW_ONLY"
+        _facts: Dict[str, Any] = {
+            "has_acts": bool(_field.semantic_acts),
+            "action_class": _field.action.value,
+            "llm_status": _llm_status,
+            "ambiguity_flag": str(_field.ambiguity.value),
+            "act_completeness": bool(_field.semantic_acts),
+        }
+        return _field.model_copy(update={"comprehension_facts": _facts})
 
     def _scene_npc_ids(self, scene_context: Any) -> set:
         """Канонические id сцены — проверка резолва сущностей."""

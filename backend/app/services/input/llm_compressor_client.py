@@ -200,6 +200,20 @@ class LlamaCppCompressorClient:
         # ключевым словам: один общий якорь («корабль»), различие чисто
         # реляционное. ENIGMA_PROV_B=1 (default OFF = baseline байт-неизменен).
         _prov_b_block = ""
+        # S-UE Блок 4 (поеапный GO, промпт-этап): per-act признаки в контракте
+        # актов — ОПРЕДЕЛЕНИЯ, не примеры (RC8-запрет few-shot не нарушается;
+        # B/B2-пары — env-гейтированные эксперименты, не трогаются). Правило
+        # неуверенности: ключ опускается — отсутствие = честное «не знаю»
+        # (валидатор Python трактует отсутствующий ключ как мусор → ключ
+        # отброшен; гейт исполнения Блока 3 закрывает действие).
+        _per_act_contract = (
+            "\n- каждый акт может нести необязательные признаки (не уверены — опустите ключ):\n"
+            '  negated: true — акт есть запрет/отрицание иллкюции («не говори», «не бей»); опущено = приказ/просьба утверждены.\n'
+            '  modality: "hypothetical" | "conditional" | "desired" | "realis" — статус акта: гипотеза («а если предложу»), условие, желание или реальное действие.\n'
+            "  quoted: true — акт находится внутри чужой прямой речи («он сказал: „…“»); процитированные команды не являются намерением говорящего.\n"
+            "  quoted_speaker_hint: кем предположительно произнесена цитата (npc из сцены).\n"
+            "  примеры формулировок для признаков — «не говори ему» (negated), «а если я предложу» (modality), «она сказала: уйди» (quoted)."
+        )
         # B2 (вердикт Мастера, GO после закрытого det-check): ВТОРАЯ независимая
         # контрастная пара на другом реляционном паттерне provenance
         # (откуда-знаешь vs когда-случается), контент чужой корпусу и паре B
@@ -271,7 +285,7 @@ class LlamaCppCompressorClient:
 Если игрок говорит или спрашивает что-то (не угрожает и не флиртует), используй action = "DIALOGUE".
 Если игрок угрожает (но не бьёт) — "THREATEN". Если бьёт или применяет силу — "ATTACK".
 Допустимые speech_act: ["assert", "question", "request", "order", "offer", "promise", "threat", "apology", "compliment", "insult", "accusation", "greeting", "farewell", "continue", "clarify", "reject", "accept"].
-- semantic_acts: массив ВСЕХ актов фразы по порядку. Допустимые type: "GREETING", "ASK_NAME", "ASK_IDENTITY", "ASK_LOCATION", "SELF_INTRODUCTION" (params: {{"name": "..."}}), "QUESTION" (params: {{"topic": "..."}}), "ASSERT" (params: {{"claim": "..."}}), "ORDER", "THREAT", "COMPLIMENT", "FAREWELL"{_prov_enum_tail}. Для одиночного действия — один акт или [].{_prov_class_block}{_prov_b_block}{_prov_b2_block}
+- semantic_acts: массив ВСЕХ актов фразы по порядку. Допустимые type: "GREETING", "ASK_NAME", "ASK_IDENTITY", "ASK_LOCATION", "SELF_INTRODUCTION" (params: {{"name": "..."}}), "QUESTION" (params: {{"topic": "..."}}), "ASSERT" (params: {{"claim": "..."}}), "ORDER", "THREAT", "COMPLIMENT", "FAREWELL"{_prov_enum_tail}. Для одиночного действия — один акт или [].{_prov_class_block}{_prov_b_block}{_prov_b2_block}{_per_act_contract}
 Допустимые social_intent и их жесткая связь с action и speech_act:
 - "obtain_information": action="DIALOGUE", speech_act="QUESTION" или "ORDER". (Узнать секрет, правду, факт. Примеры: "что ты скрываешь", "в чем секрет", "расскажи мне правду").
 - "obtain_cooperation": action="PERSUADE", speech_act="REQUEST" или "OFFER". (Договориться о помощи, сделке).
