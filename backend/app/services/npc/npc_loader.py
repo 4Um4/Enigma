@@ -754,6 +754,37 @@ def list_individual_ids() -> List[str]:
     return out
 
 
+def get_display_names() -> Dict[str, str]:
+    """CCH-4/S345: человеческие имена NPC («Люся», «Орм») для резолвера
+    импорта сборника. Источник — config individuals (имя/описание-шапка),
+    единый читатель — этот модуль. Формат name-поля определяю фактом
+    (guede-фолбэк: id)."""
+    out: Dict[str, str] = {}
+    individuals_dir = _CONFIG_NPC_ROOT / "individuals"
+    if not individuals_dir.exists():
+        return out
+    for json_file in sorted(individuals_dir.glob("*.json")):
+        try:
+            data = _load_json_file(json_file)
+        except Exception as e:
+            # L4: ростер — инструмент отображения, загрузку не роняет,
+            # но отказ НАБЛЮДАЕМ (прецедент list_individual_ids выше)
+            logger.warning(f"[NPC_LOADER] display_names: {json_file.name} не читается: {e}")
+            continue
+        _id = data.get("id")
+        if not _id:
+            continue
+        # Имя: name / display_name / description-шапка — по факту конфига
+        _name = (
+            data.get("name")
+            or data.get("display_name")
+            or str(data.get("description", ""))[:40]
+            or str(_id)
+        )
+        out[str(_id)] = str(_name)
+    return out
+
+
 def _restore_narrative_cache(cache_list: List[Dict]) -> Tuple[Any, ...]:
     """Восстанавливает narrative_cache из JSON в кортеж EventMemory."""
     if not cache_list:

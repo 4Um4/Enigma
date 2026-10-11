@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Optional
 
 import pygame
 from api_client import HttpClient
@@ -21,7 +22,7 @@ _BG = (18, 18, 23)
 _TEXT = (220, 220, 220)
 _ACCENT = (180, 160, 90)
 _PANEL = (28, 28, 36)
-_HINT1 = "Enter: читать целиком · мышь/↑↓: персонаж · клик: выбрать · TAB: лента⇄история · F1/F2: понять · C: вопрос · 1-4: ответ"
+_HINT1 = "Enter: читать целиком · колесо: прокрутка истории · мышь/↑↓: персонаж · клик: выбрать · TAB: лента⇄история · F1/F2: понять"
 _HINT2 = "F9: утвердить как правду · F4: чистый черновик · Ctrl+O: загрузить · Ctrl+D: карта разрывов · Ctrl+S: сводка убеждений · ESC: выход"
 
 
@@ -69,6 +70,7 @@ class ChronicleEditorCore:
         self.exit_requested = False
         self._view_history = False  # TAB: ЛЕНТА (разборы) ⇄ ИСТОРИЯ (пункты автора)
         self._detail: tuple | None = None  # Enter: чтение выбранного ЦЕЛИКОМ
+        self._hist_scroll = 0  # прокрутка истории (колесо; урок Борко: 24-й пункт вне клика)
         self._load_roster()
 
     # ── Данные ────────────────────────────────────────────────────────────
@@ -91,11 +93,17 @@ class ChronicleEditorCore:
         npc = self._npcs[self._npc_idx]
         self._doc = self._api.get_draft(self._campaign, npc)
         self._items = []
+        self._hist_scroll = 0
         self._status = f"{npc}: {'draft загружен' if self._doc else 'черновика нет'}"
 
     # ── Ввод (клавиатура + мышь; UX-вердикт: редактор обязан понимать мышь) ─
 
     def handle_event(self, event: pygame.event.Event) -> None:
+        if event.type == pygame.MOUSEWHEEL and self._view_history:
+            _frs = self._history_fragments()
+            _max_scroll = max(0, len(_frs) - 22)
+            self._hist_scroll = max(0, min(self._hist_scroll - event.y, _max_scroll))
+            return
         if self._detail is not None:
             if event.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN):
                 self._detail = None
@@ -151,8 +159,10 @@ class ChronicleEditorCore:
         if 20 <= x <= 260 and 100 <= y <= 100 + len(self._npcs) * 26:
             self._npc_idx = (y - 100) // 26
             self._reload()
-        elif 300 <= x <= 520 and 100 <= y <= 100 + 24 * 22:
-            self._frag_ord = (y - 100) // 22
+        elif 300 <= x <= 520 and 100 <= y <= 100 + 22 * 22:
+            self._frag_ord = (y - 100) // 22 + self._hist_scroll
+            if self._view_history and self._frag_ord >= len(self._history_fragments()):
+                return
             if self._view_history:
                 frs = self._history_fragments()
                 num = frs[self._frag_ord][0] if self._frag_ord < len(frs) else None
@@ -212,6 +222,71 @@ class ChronicleEditorCore:
             f.write(data.get("text", ""))
         self._status = f"Карта разрывов: {path} ({data.get('count', 0)} слов)"
 
+    @staticmethod
+    def _resolve_npc_by_title(title: str, roster: list) -> Optional[str]:
+        """«ЛЮСЯ» → maid_lusya. Русские заголовки Мастера матчатся против
+        ЧЕЛОВЕЧЕСКИХ имён из ростера (name от сервера), латиница — против id.
+        Урок smoke-теста: «ЛЮСЯ» и 'maid_lusya' не пересекаются как строки —
+        разные алфавиты; без name-поля резолв невозможен."""
+        t = title.strip().lower()
+        for r in roster:
+            npc_id = str(r.get("npc_id", ""))
+            name = str(r.get("name", "")).lower()
+            if name and (name in t or t in name):
+                return npc_id
+            base = npc_id.lower().split("_")[-1]
+            if base and (base in t or t in base):
+                return npc_id
+        return None
+
+    def _import_collection(self, text: str, source_name: str) -> None:
+        """Сборник «## ИМЯ» × N (вердикт Мастера): каждая история — в СВОЙ
+        черновик. Авторские секции (КАРТА ПРАВДЫ/СИММЕТРИИ/ПРАВДА) —
+        не персонажи: сохраняются в saves/<campaign>/chronicle_drafts/
+        _world_author_layer.md (не теряются, в NPC не кладутся).
+        Нераспознанные имена — в статус с именем."""
+        import re
+
+        parts = re.split(r"(?m)^## ", text)
+        blocks = []  # (заголовок, текст)
+        for p in parts[1:]:
+            m = re.match(r"(.+)", p)
+            title = m.group(1).strip() if m else "?"
+            body = p[m.end():].strip() if m else p.strip()
+            blocks.append((title, body))
+        world_markers = ("КАРТА ПРАВДЫ", "СИММЕТРИИ", "ПРАВДА И ВЕРСИИ")
+        world_layer = []
+        ok, unknown = [], []
+        for title, body in blocks:
+            if any(w in title.upper() for w in world_markers):
+                world_layer.append(f"## {title}\n\n{body}")
+                continue
+            npc_id = self._resolve_npc_by_title(title, self._roster)
+            if npc_id is None:
+                unknown.append(title)
+                continue
+            doc = dict({"npc_ref": npc_id, "entries": [], "canonical": False})
+            doc["chronicle_id"] = npc_id
+            doc["schema_version"] = 1
+            doc["author_text"] = body
+            if self._api.save_draft(self._campaign, npc_id, doc):
+                ok.append(f"{title}→{npc_id}")
+            else:
+                unknown.append(f"{title} (PUT отказ)")
+        if world_layer:
+            from pathlib import Path as _P
+
+            _wp = _P("saves") / self._campaign / "chronicle_drafts" / "_world_author_layer.md"
+            _wp.parent.mkdir(parents=True, exist_ok=True)
+            _wp.write_text("\n\n---\n\n".join(world_layer), encoding="utf-8")
+        parts_msg = [f"✅ {len(ok)} историй по NPC"]
+        if unknown:
+            parts_msg.append(f"❗не распознано: {', '.join(unknown)}")
+        if world_layer:
+            parts_msg.append(f"мировой слой → {len(world_layer)} секц. (_world_author_layer.md)")
+        self._status = f"{source_name}: " + " · ".join(parts_msg)
+        self._reload()
+
     def _import_history(self) -> None:
         """Ctrl+O «Загрузить историю…» (вердикт Мастера): файл .md/.txt →
         авторский текст ДОПИСЫВАЕТСЯ к author_text черновика текущего NPC
@@ -235,6 +310,12 @@ class ChronicleEditorCore:
             return
         if not text:
             self._status = "Файл пуст"
+            return
+        import re as _re
+
+        _collection_titles = _re.findall(r"(?m)^## (.+)$", text)
+        if len(_collection_titles) >= 2:
+            self._import_collection(text, Path(path).name)
             return
         doc = dict(self._doc or {"npc_ref": self._npcs[self._npc_idx], "entries": [], "canonical": False})
         old = str(doc.get("author_text", "") or "")
@@ -489,10 +570,15 @@ class ChronicleEditorCore:
         mode_title = "ИСТОРИЯ (твой текст — TAB: лента)" if self._view_history else "ЛЕНТА (разборы — TAB: история)"
         surface.blit(self._font_big.render(mode_title, True, _ACCENT), (280, 55))
         if self._view_history:
-            for i, (num, txt) in enumerate(self._history_fragments()[:25]):
+            _frs = self._history_fragments()
+            for _row, i in enumerate(range(self._hist_scroll, min(self._hist_scroll + 22, len(_frs)))):
+                num, txt = _frs[i]
                 label = f"{num}." if num is not None else "·"
                 color = _ACCENT if i == self._frag_ord else _TEXT
-                surface.blit(self._font.render(f"{label} {txt[:58]}", True, color), (280, 100 + i * 22))
+                surface.blit(self._font.render(f"{label} {txt[:58]}", True, color), (280, 100 + _row * 22))
+            if len(_frs) > 22:
+                _pct = int(100 * (self._hist_scroll + 22) / len(_frs))
+                surface.blit(self._font.render(f"▼ {self._hist_scroll + 1}–{min(self._hist_scroll + 22, len(_frs))} из {len(_frs)} ({_pct}%) — колесо мыши", True, (120, 120, 120)), (280, 645))
         elif self._doc:
             for i, e in enumerate((self._doc.get("entries") or [])[:25]):
                 age = e.get("historical_age")

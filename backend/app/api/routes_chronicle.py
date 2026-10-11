@@ -81,9 +81,10 @@ async def get_roster(campaign_id: str) -> Dict[str, Any]:
     источника истины (вердикт владельца): редактор берёт список ТОЛЬКО
     отсюда. Источник имён — list_individual_ids (единый читатель
     individuals); статус — по файлам store: canon > draft > none."""
-    from app.services.npc.npc_loader import list_individual_ids
+    from app.services.npc.npc_loader import get_display_names, list_individual_ids
 
     store = _get_store()
+    _names = get_display_names()
     roster = []
     for npc_id in list_individual_ids():
         if store.canonical_path(npc_id).exists():
@@ -92,7 +93,7 @@ async def get_roster(campaign_id: str) -> Dict[str, Any]:
             status = "draft"
         else:
             status = "none"
-        roster.append({"npc_id": npc_id, "chronicle": status})
+        roster.append({"npc_id": npc_id, "chronicle": status, "name": _names.get(npc_id, npc_id)})
     return {"roster": roster}
 
 
