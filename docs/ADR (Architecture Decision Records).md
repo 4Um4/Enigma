@@ -804,3 +804,10 @@ tests/micro/test_chronicle_consistency.py
 
 
 
+
+ADR-O-424 [FIX] **UE-Kernel Readiness Gate — D4** (UX-UE-01 дифф A, коммит 0508008e)
+Суть: intent_readiness (S346) замкнут на авторитетных путях исполнения: (1) _phase_1_input_merge — единый fail-closed гейт до ветвления: не-RESOLVED player-вмешательство не диспетчеризуется (M1/S122/dm_ctx/FAST_PATH); PLAYER_SPOKE/raw_input сохранены; action_rejected (WV) не используется (подавляет публикацию — иная семантика); (2) turn_pipeline._finalize — Rules/экономика-гейт; (3) npc_orchestration — L1-гейт attack/damage-дрейта (утечка: «Не бей Торнина» фиксировал несостоявшуюся атаку -0.9/-0.5; путь подтверждён кодом и живым прогоном). Легаси (readiness=None) — fail-open по контракту DTO. Продюсеры не тронуты: компрессор/fast-path/негация — без изменений. Тесты: test_ue_d4_kernel_red 8/8 (xfail снят по XPASS×4); UE-сьюта 56+7xf; боевые 24+1skip; IPT 52/0.
+❌ Taboo: дублирование гейта в диспетче npc_orchestration; action_rejected как универсальный переключатель речи; расширение компрессора/fast-path/негации под видом гейта.
+Status: ACTIVE
+Files: backend/app/services/tick_orchestrator.py, backend/app/services/game_loop/turn_pipeline.py, backend/app/services/game_loop/npc_orchestration.py, backend/tests/sandbox/micro/test_ue_d4_kernel_red.py
+
