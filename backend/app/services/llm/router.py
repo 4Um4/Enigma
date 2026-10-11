@@ -332,31 +332,31 @@ class ModelRouter:
         except Exception as e:
             logger.debug(f"[R4A_ABORT] failed: {e}")
 
-    def _grant_next_locked(self) -> none:
-        """cov-2/d62: выдать освободившийся слот лучшему живому ожидающему.
+    def _grant_next_locked(self) -> None:
+        """COV-2/D62: выдать освободившийся слот лучшему живому ожидающему.
 
-        порядок: canonical раньше ambient; внутри класса — fifo по прибытию
-        (seq). требует удержания _worker_lock. dead-ожидающие пропускаются:
+        Порядок: canonical раньше ambient; внутри класса — FIFO по прибытию
+        (seq). Требует удержания _worker_lock. dead-ожидающие пропускаются:
         их дедлайн сработал во время ожидания, задача уже отброшена."""
-        import heapq  # noqa: plc0415 — локальный по прецеденту router
+        import heapq
 
         while self._waiters:
             _w = heapq.heappop(self._waiters)
             if _w.dead:
                 continue
-            self._slot_busy = true
+            self._slot_busy = True
             self._slot_epoch += 1
             _w.granted_epoch = self._slot_epoch
             _w.event.set()
             return
 
-    def _wall_time_watchdog(self, my_epoch: int) -> none:
-        """cov-2/d62: потолок выполняющегося вызова (timer-поток; прецедент
-        adr-o-364 per-task-timeout).
+    def _wall_time_watchdog(self, my_epoch: int) -> None:
+        """COV-2/D62: потолок выполняющегося вызова (Timer-поток; прецедент
+        ADR-O-364 per-task-timeout).
 
-        слой 1 — best-effort реальная отмена: /abort llama-server (http вне
+        Слой 1 — best-effort реальная отмена: /abort llama-server (HTTP вне
         локов — цикл lock/abort замкнуться не может, lock всегда листовой).
-        слой 2 — гарантия владения: если отмена не подействовала за грейс,
+        Слой 2 — гарантия владения: если отмена не подействовала за грейс,
         слот форфейтится лучшему ожидающему, epoch продвигается — поздний
         результат старого вызова будет сконвертирован в исключение, кэш не
         пишется, состояние нового владельца не затрагивается."""
@@ -364,104 +364,104 @@ class ModelRouter:
             if not self._slot_busy or self._slot_epoch != my_epoch:
                 return  # вызов успел завершиться штатно (или уже осиротевший)
         _root_logger.warning(
-            f"[r4a_walltime] вызов epoch={my_epoch} превысил потолок — /abort"
+            f"[R4A_WALLTIME] вызов epoch={my_epoch} превысил потолок — /abort"
         )
         self._abort_generation()
-        time.sleep(_abort_grace_sec)
+        time.sleep(_ABORT_GRACE_SEC)
         with self._worker_lock:
             if self._slot_busy and self._slot_epoch == my_epoch:
                 _root_logger.error(
-                    f"[r4a_walltime] abort не подействовал — форфейт слота epoch={my_epoch}"
+                    f"[R4A_WALLTIME] abort не подействовал — форфейт слота epoch={my_epoch}"
                 )
                 self._slot_epoch += 1  # осиротить выполняющийся вызов
-                self._slot_busy = false
+                self._slot_busy = False
                 self._grant_next_locked()
 
     def _worker_request_queued(
         self,
         agent_name: str,
         prompt: str,
-        params: "generationparams | none",
-        system_prompt: "str | none",
+        params: "GenerationParams | None",
+        system_prompt: "str | None",
         priority: str,
         prompt_hash: str,
         worker_start: float,
     ) -> str:
-        """cov-2/d62 (llm_resilience_v1=on): worker-вызов через приоритетную очередь.
+        """COV-2/D62 (LLM_RESILIENCE_V1=ON): worker-вызов через приоритетную очередь.
 
-        слои: admission (ambient cap → контролируемый drop) → ожидание
-        (event на каждого ждущего: дедлайн действует во время ожидания,
-        canonical обходит ambient, fifo внутри класса) → grant (epoch) →
+        Слои: admission (ambient cap → контролируемый DROP) → ожидание
+        (Event на каждого ждущего: дедлайн действует ВО ВРЕМЯ ожидания,
+        canonical обходит ambient, FIFO внутри класса) → grant (epoch) →
         выполнение под wall-time watchdog → фиксация (поздний результат
         осиротевшего вызова = громкое исключение, не возврат) → release →
-        grant-next. сериализация модели: один слот = один вызов."""
-        import heapq  # noqa: plc0415 — локальный по прецеденту router
+        grant-next. Сериализация модели: один слот = один вызов."""
         from app.core.config import settings
+        import heapq
 
         rank = 0 if priority == "canonical" else 1
 
-        waiter: "_queuewaiter | none" = none
+        waiter: "_QueueWaiter | None" = None
         _my_epoch = -1
         with self._worker_lock:
-            # ленивая инициализация состояния очереди: off-путь эти поля не
+            # Ленивая инициализация состояния очереди: OFF-путь эти поля не
             # читает; __init__ не трогаем (прежний путь неприкосновенен).
             if not hasattr(self, "_slot_epoch"):
-                self._slot_busy: bool = false
+                self._slot_busy: bool = False
                 self._slot_epoch: int = 0
-                self._waiters: "list[_queuewaiter]" = []
+                self._waiters: "list[_QueueWaiter]" = []
                 self._waiter_seq: int = 0
             if self._slot_busy:
                 if rank == 1:
                     _live_ambient = sum(
                         1 for _w in self._waiters if not _w.dead and _w.rank == 1
                     )
-                    if _live_ambient >= _ambient_queue_cap:
+                    if _live_ambient >= _AMBIENT_QUEUE_CAP:
                         _root_logger.warning(
-                            f"[r4a_queue] ambient drop (overflow): agent={agent_name}"
+                            f"[R4A_QUEUE] ambient DROP (overflow): agent={agent_name}"
                         )
-                        raise llmqueueoverflowerror(
-                            f"ambient queue overflow (cap={_ambient_queue_cap}): {agent_name}"
+                        raise LlmQueueOverflowError(
+                            f"ambient queue overflow (cap={_AMBIENT_QUEUE_CAP}): {agent_name}"
                         )
-                waiter = _queuewaiter(rank, self._waiter_seq)
+                waiter = _QueueWaiter(rank, self._waiter_seq)
                 self._waiter_seq += 1
                 heapq.heappush(self._waiters, waiter)
             else:
-                self._slot_busy = true
+                self._slot_busy = True
                 self._slot_epoch += 1
                 _my_epoch = self._slot_epoch
 
-        if waiter is not none:
+        if waiter is not None:
             _deadline = time.monotonic() + (
-                _ambient_queue_deadline_sec if rank == 1
-                else _canonical_queue_timeout_sec
+                _AMBIENT_QUEUE_DEADLINE_SEC if rank == 1
+                else _CANONICAL_QUEUE_TIMEOUT_SEC
             )
             _granted = waiter.event.wait(timeout=max(0.0, _deadline - time.monotonic()))
             if not _granted:
                 with self._worker_lock:
-                    waiter.dead = true  # самоудаление: дедлайн сработал в ожидании
+                    waiter.dead = True  # самоудаление: дедлайн сработал в ожидании
                     _granted = waiter.event.is_set()  # гонка выдачи <-> таймаута
             if not _granted:
                 if rank == 1:
                     _root_logger.warning(
-                        f"[r4a_queue] ambient drop (deadline): agent={agent_name}"
+                        f"[R4A_QUEUE] ambient DROP (deadline): agent={agent_name}"
                     )
-                    raise llmqueuedeadlineerror(
+                    raise LlmQueueDeadlineError(
                         f"ambient queue deadline exceeded: {agent_name}"
                     )
-                raise llmqueuedeadlineerror(
+                raise LlmQueueDeadlineError(
                     f"canonical queue timeout exceeded: {agent_name}"
                 )
             _my_epoch = waiter.granted_epoch
 
-        _watchdog = threading.timer(
-            _worker_wall_time_ceiling_sec,
+        _watchdog = threading.Timer(
+            _WORKER_WALL_TIME_CEILING_SEC,
             self._wall_time_watchdog,
             args=(_my_epoch,),
         )
-        _watchdog.daemon = true
+        _watchdog.daemon = True
         _watchdog.start()
         try:
-            capability_obj = self._capability_map.get(agent_name, capability.general)
+            capability_obj = self._capability_map.get(agent_name, Capability.GENERAL)
             preferred_keys = self.get_capability_preferences(capability_obj)
             _result = self._request_via_pool(
                 capability_obj,
@@ -470,22 +470,22 @@ class ModelRouter:
                 params=params,
                 system_prompt=system_prompt,
             )
-            # защита от позднего результата: осиротевший (форфейтенный) вызов
+            # Защита от позднего результата: осиротевший (форфейтенный) вызов
             # не возвращает результат владельцу и не пишет кэш — только отказ.
             with self._worker_lock:
                 _orphaned = self._slot_epoch != _my_epoch
             if _orphaned:
-                raise runtimeerror(
-                    "r4a_walltime: вызов покинут — слот форфейтен после потолка "
+                raise RuntimeError(
+                    "R4A_WALLTIME: вызов покинут — слот форфейтен после потолка "
                     "wall-time; результат отброшен, слот у следующего владельца"
                 )
             _root_logger.info(
-                f"[r4a_worker] returned {len(_result) if _result else 0} chars"
+                f"[R4A_WORKER] returned {len(_result) if _result else 0} chars"
             )
-            # кэш + телеметрия: контракт прежнего worker-пути (дублирование
-            # сознательное — off-путь остаётся нетронутым)
+            # Кэш + телеметрия: контракт прежнего worker-пути (дублирование
+            # сознательное — OFF-путь остаётся нетронутым)
             if settings.replay_record:
-                _store = getattr(self, "_replay_store", none)  # noqa: enigma002
+                _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
                 if _store:
                     _store.record_llm_call(
                         session_id=getattr(self, "_current_session_id", "unknown"),
@@ -498,26 +498,26 @@ class ModelRouter:
                         system_prompt=system_prompt,
                         params=params,
                     )
-            from app.services.logging_tools import jsonl_log  # noqa: plc0415
-            from app.services.replay.llm_cache import compute_prompt_hash  # noqa: plc0415
+            from app.services.logging_tools import jsonl_log
+            from app.services.replay.llm_cache import compute_prompt_hash
 
             jsonl_log({
-                "level": "info",
+                "level": "INFO",
                 "agent": "llm_output",
                 "tick_id": getattr(self, "_current_tick_id", 0),
                 "npc_id": agent_name,
                 "prompt_hash": prompt_hash,
-                "response_hash": compute_prompt_hash(_result) if _result else none,  # noqa: enigma001
+                "response_hash": compute_prompt_hash(_result) if _result else None,  # noqa: ENIGMA001
                 "model": self.get_model_for_agent(agent_name),
                 "latency": round((time.perf_counter() - worker_start) * 1000, 1),
-                "cache_hit": false,
+                "cache_hit": False,
             })
             return _result
         finally:
             _watchdog.cancel()
             with self._worker_lock:
                 if self._slot_busy and self._slot_epoch == _my_epoch:
-                    self._slot_busy = false
+                    self._slot_busy = False
                     self._grant_next_locked()
 
     def _request_via_pool(

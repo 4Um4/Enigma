@@ -126,13 +126,13 @@ flags:
     adr: W-track
     owner: B
   LLM_RESILIENCE_V1:
-    TYPE: ENV
-    READ_MODE: CALL
-    DEFAULT: ""
-    VERDICT: ROLLOUT-PENDING
-    ADR: COV-2 (ADR ПАКЕТА ЗАПИСЫВАЕТСЯ ПРИ ЗАКРЫТИИ СЕССИИ)
-    OWNER: B
-    NOTE: "D62 ОЧЕРЕДЬ + D61 ДОКТРИНА ОБЯЗАТЕЛЬНОЙ LLM; УСТАНАВЛИВАТЬ ДО ПЕРВОГО ЗАПРОСА ПРОЦЕССА; ON = ОТДЕЛЬНАЯ ПРИЁМКА МАСТЕРА (ДОКТРИНА LIVE ТОЛЬКО ПОСЛЕ ВЕРДИКТА)"
+    type: env
+    read_mode: call
+    default: ""
+    verdict: ROLLOUT-PENDING
+    adr: COV-2
+    owner: B
+    note: "D62 очередь + D61 доктрина обязательной LLM; устанавливать до первого запроса процесса; ON = отдельная приёмка Мастера (доктрина live только после вердикта ON)"
   WORK_ENABLED:
     type: env
     read_mode: call
@@ -244,13 +244,13 @@ flags:
     verdict: KEEP-LOG
     adr: S313
     owner: B
-  ENIGMA_PROV_B:
+  ENIGMA_PERACT_FSHOT:
     type: env
     read_mode: call
     default: "none"
     verdict: KEEP-LOG
-    adr: S313
-    owner: B
+    adr: S-UE-B5.1
+    owner: UE
   ENIGMA_SEM_LIB:
     type: env
     read_mode: call
