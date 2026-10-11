@@ -1561,9 +1561,34 @@ class GameLoop:
 
             def _dm_unavailable_response() -> ChatTurnResponse:
                 """LLM недоступен: честная ошибка игроку + последний известный снапшот.
-                Контракт ChatTurnResponse (обязательные поля) соблюдён."""
+                Контракт ChatTurnResponse (обязательные поля) соблюдён.
+                UX-FB (Тай): llm_degraded=True — фронт поднимает модалку-предложение
+                рестарта (D61); техдетали (_err_msg) — только в dialogue_log, не игроку.
+                Путь короткий (return до основного хука) — логируем здесь."""
+                try:
+                    from app.services.game_loop.dialogue_log import log_turn
+
+                    _uir = getattr(state.shared_context, "intent_resolution", None)
+                    _uip = getattr(getattr(_uir, "original_intent", None), "parameters", None)
+                    log_turn(
+                        campaign_id=req.campaign_id,
+                        location=req.location,
+                        player_text=(req.actions[0].action if req.actions else ""),
+                        dm_response="[СИСТЕМА] Движок не ответил — мир ждёт.",
+                        npc_reactions=[],
+                        understanding={
+                            "semantic_action": getattr(_uip, "semantic_action", None),
+                            "target_id": getattr(_uip, "target_id", None),
+                            "intent_readiness": getattr(_uip, "intent_readiness", None),
+                            "acts": [a.get("type") for a in (getattr(_uip, "semantic_acts", None) or [])],
+                            "llm_degraded": True,
+                            "llm_degraded_reason": str(_err_msg)[:200],
+                        },
+                    )
+                except Exception as _dlg_log_err:  # noqa: ENIGMA002
+                    logger.warning(f"[DIALOGUE_LOG] hook failed: {_dlg_log_err}")
                 return ChatTurnResponse(
-                    dm_response=f"[СИСТЕМА: LLM сервер недоступен — {_err_msg}]",
+                    dm_response="[СИСТЕМА] Движок не ответил — мир ждёт.",
                     npc_reactions=[],
                     world_changes=[],
                     journal_entry_id="",
@@ -1571,6 +1596,7 @@ class GameLoop:
                     world_snapshot=state.shared_context.world_snapshot or {},
                     will_conflict_data=None,
                     player_intent_projection=_intent_projection,
+                    llm_degraded=True,
                 )
             # Recovery: пробуем перезапустить llama-server и повторить запрос
             try:
@@ -1610,7 +1636,11 @@ class GameLoop:
 
         # RCE: Reality Commit Extractor — извлекаем npc_reactions из DM-нарратива
         # Инвариант: ни один LLM-выход не считается состоянием мира, пока не прошёл RCE-коммит
-        if isinstance(dm_result, dict) and dm_result.get("dm_response"):
+        # UX-FB (Тай): фоллбэк деградации — НЕ реплика NPC: RCE-атрибуция и
+        # STM-запись запрещены (сбой ≠ речь; имя адресата не утекает в префикс,
+        # мир не «запоминает» фоллбэк как сказанное NPC)
+        _dm_degraded = bool(isinstance(dm_result, dict) and dm_result.get("llm_degraded"))
+        if isinstance(dm_result, dict) and dm_result.get("dm_response") and not _dm_degraded:
             from app.services.memory.rce import extract_speech_events
 
             _anr_rce = getattr(state.shared_context, "all_npcs_raw_snapshot", None)  # noqa: ENIGMA002
@@ -1831,6 +1861,31 @@ class GameLoop:
 
         _resp_facts = getattr(state, "observed_facts", [])  # noqa: ENIGMA002
         logger.debug(f"[DEBUG_RUN_TURN] state.observed_facts count={len(_resp_facts)}")
+        # UX-DLG-LOG (Тай): внешний авто-журнал диалогов (вне папки игры):
+        # игрок/DM/NPC + проекция понимания — диагностика адекватности ответов
+        try:
+            from app.services.game_loop.dialogue_log import log_turn
+
+            _ir = getattr(state.shared_context, "intent_resolution", None)
+            _ip = getattr(getattr(_ir, "original_intent", None), "parameters", None)
+            log_turn(
+                campaign_id=req.campaign_id,
+                location=req.location,
+                player_text=(req.actions[0].action if req.actions else ""),
+                dm_response=dm_result.get("dm_response", ""),
+                npc_reactions=dm_result.get("npc_reactions", []),
+                understanding={
+                    "semantic_action": getattr(_ip, "semantic_action", None),
+                    "target_id": getattr(_ip, "target_id", None),
+                    "intent_readiness": getattr(_ip, "intent_readiness", None),
+                    "acts": [a.get("type") for a in (getattr(_ip, "semantic_acts", None) or [])],
+                    "llm_degraded": bool(dm_result.get("llm_degraded", False)),
+                    "llm_degraded_reason": dm_result.get("llm_degraded_reason"),
+                },
+            )
+        except Exception as _dlg_log_err:  # noqa: ENIGMA002
+            logger.warning(f"[DIALOGUE_LOG] hook failed: {_dlg_log_err}")
+
         _final_response = ChatTurnResponse(
             dm_response=dm_result.get("dm_response", ""),
             npc_reactions=dm_result.get("npc_reactions", []),
@@ -1845,6 +1900,7 @@ class GameLoop:
             player_intent_projection=_intent_projection,
             # Sprint P9: Проброс ObservedFactsBundle для UI и DM
             observed_facts=_resp_facts,
+            llm_degraded=bool(dm_result.get("llm_degraded", False)),
             journal_entry_id=self.memory_manager.persist_dm_response(
                 req.campaign_id,
                 world_id=req.world_id,

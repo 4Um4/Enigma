@@ -1139,6 +1139,7 @@ async def game_action(request: dict, game_loop: Any = Depends(get_game_loop)) ->
 
         return {
             "response": result.dm_response,
+            "llm_degraded": bool(getattr(result, "llm_degraded", False)),
             "npc_reactions": result.npc_reactions,
             "world_changes": result.world_changes,
             "journal_entry_id": result.journal_entry_id,

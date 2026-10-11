@@ -1188,12 +1188,21 @@ class DmAgent:
 
     def _fallback_narrate(self, error: Optional[Exception] = None) -> Dict:
         _msg = MSG_NOTHING_HAPPENED
+        _llm_degraded = False
         if error is not None:
             _err_text = str(error).lower()
             if "llama" in _err_text or "недоступн" in _err_text or "pool" in _err_text or "timeout" in _err_text:
                 _msg = MSG_LLM_UNAVAILABLE
+                # UX-FB (Тай): деградация хода — сигнал модалке-предложению
+                # рестарта (D61-контур). НЕ record_failure: транзиент не
+                # должен лочить пул на 300с (ход восстанавливается сам).
+                _llm_degraded = True
         return {
             "dm_response": _msg,
             "npc_reactions": [],
             "world_changes": [],
+            "llm_degraded": _llm_degraded,
+            "llm_degraded_reason": (
+                str(error)[:200] if (_llm_degraded and error is not None) else None
+            ),
         }

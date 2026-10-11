@@ -82,6 +82,9 @@ class ChatTurnResponse(BaseModel):
     player_intent_projection: Optional[Dict[str, Any]] = None
     # Sprint P9: Факты, донесённые до игрока (для UI и отладки)
     observed_facts: List[Any] = []
+    # UX-FB (Тай): ход деградировал (LLM не ответила) — фронт поднимает
+    # модалку-предложение рестарта (D61), не жёсткую паузу
+    llm_degraded: bool = False
 
 
 # ADR-030: Avatar Creation Vector — Вектор Начальных Условий Гибридной Сущности
