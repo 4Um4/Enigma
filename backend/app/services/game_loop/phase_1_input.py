@@ -112,7 +112,7 @@ def _content_words(text: str) -> set:
     return _out
 
 
-_UNRESOLVED_NEGATION_LEMMAS = {"не", "ни", "нет", "нес"}
+from app.services.input.intent_compressor import _NEGATION_PARTICLES as _UNRESOLVED_NEGATION_LEMMAS  # noqa: E402  # S-UE 5.2: единый источник частиц
 
 
 def compute_intent_readiness(

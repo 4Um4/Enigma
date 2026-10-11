@@ -227,6 +227,10 @@ _VALID_ACT_TYPES = {
 # S-UE Блок 4: белый список модальностей акта (промпт-контракт; расширение — мини-ADR)
 _VALID_ACT_MODALITIES = frozenset({"REALIS", "HYPOTHETICAL", "CONDITIONAL", "DESIRED"})
 
+# S-UE Блок 5.2: неизменяемые отрицательные частицы (эскалация в slow-path;
+# Блок 3-гейт использует тот же набор — единый источник, синхронизированы)
+_NEGATION_PARTICLES = frozenset({"не", "ни", "нет", "нельзя", "нес"})
+
 
 def _validate_acts(raw_acts: Any) -> List[Dict[str, Any]]:
     """Multi-Act: Python-валидация актов LLM (белый список типов, params
@@ -556,6 +560,20 @@ class IntentCompressor:
                 and not fast.semantic_acts
                 and getattr(fast, "speech_act", None) is not None  # noqa: ENIGMA002
                 and str(getattr(getattr(fast, "speech_act", None), "value", fast.speech_act) or "").lower() == "question"  # noqa: ENIGMA002
+            ):
+                return True
+            # S-UE Блок 5.2 (GO Мастера, узкий эксперимент): однопредложенческий
+            # диалог с отрицательной частицей и пустыми актами — fast не
+            # извлекает негацию (A/B: NEG-01/02 завершались на fast, промпт
+            # недостижим). Эскалация на LLM — единственный путь получить
+            # ORDER+negated; гейт Блока 3 остаётся независимой страховкой при
+            # любом исходе (неразобранная негация = PARTIAL, не RESOLVED).
+            # Критерии остановки эксперимента — вердикт Мастера: не расширять
+            # правило при отсутствии устойчивого распознавания.
+            if (
+                fast.action is ActionType.DIALOGUE
+                and not fast.semantic_acts
+                and _NEGATION_PARTICLES & self._lemmatize(fast.raw_text)
             ):
                 return True
             return False
