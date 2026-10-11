@@ -45,6 +45,9 @@ class IntentParametersDTO:
     proposition_predicate: Optional[str] = None
     proposition_object_id: Optional[str] = None
     proposition_polarity: Optional[bool] = None
+    # S-UE Блок 2: кандидаты при неоднозначной ссылке (fail-closed резолвер;
+    # None = ветка неоднозначности не встречена — старые читатели не затронуты)
+    reference_candidates: Optional[List[str]] = None
 
 
 @dataclass(frozen=True)

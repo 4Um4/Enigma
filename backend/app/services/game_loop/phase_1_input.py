@@ -36,6 +36,8 @@ from app.services.events.event_bus import get_event_bus
 from app.services.events.event_types import EventType
 from app.services.will import resolve_intent_pressure
 
+import re  # S-UE Блок 2: чистая токенизация (пунктуация отравляет pymorphy-разбор)
+
 logger = logging.getLogger(__name__)
 
 
@@ -94,6 +96,73 @@ def _resolve_target_reference(field: IntentSemanticField, scene_context: Any) ->
     # P1-07: Fuzzy matching (порог 0.75 — строгий, лемматизация убирает падежи)
     matches = get_close_matches(ref, npc_name_map.keys(), n=1, cutoff=0.75)
     return npc_name_map[matches[0]] if matches else ""
+
+
+def _content_words(text: str) -> set:
+    """S-UE Блок 2: леммы значимых слов (len>2) для сверки имён NPC с
+    сырой репликой. Зонд-эмпирика: строчная _lemmatize ненадёжна на
+    многословных строках — пунктуация отравляет разбор целиком
+    ('Спроси трактирщика…' не лемматизировался вовсе). Поэтому:
+    (1) регекс-токены без пунктуации; (2) лемматизация ПОСЛОВНО через
+    _lemmatize (одиночный токен — её корректный режим)."""
+    _out: set = set()
+    for _tok in re.findall(r"[а-яёa-z0-9]+", str(text).lower()):
+        if len(_tok) > 2:
+            _out.add(_lemmatize(_tok))
+    return _out
+
+
+def resolve_target_with_candidates(
+    field: IntentSemanticField, scene_context: Any
+) -> tuple[str, list]:
+    """S-UE Блок 2 (поеапный GO): запрет молчаливого автопика цели.
+
+    Эмпирика baseline: REF-01/NEG-05 — LLM сама возвращала id ОДНОГО из
+    двух стражников (R14 exact-id «валидировал» выбор; fuzzy не работал:
+    порог 0.75 режет родовые термины). Поэтому защита детерминирована по
+    СЫРОМУ тексту игрока против имён сцены (Python владеет
+    идентификацией сущностей — U-2, «LLM не источник истины»):
+      full  — все значимые слова имени NPC присутствуют в реплике;
+      partial — хотя бы одно (родовой термин «стражник»).
+    Правила: >1 full → неоднозначность; 1 full → выбор (коррекция LLM
+    допустима); 0 full и >1 partial → НЕОДНОЗНАЧНОСТЬ: target="" +
+    кандидаты, выбор LLM ОТБРАСЫВАЕТСЯ; 1 partial → легитимный родовой
+    референс уникального NPC → выбор; 0 упоминаний (анафора «его») →
+    прежние пути R14/R14b/fuzzy по target_reference — задокументированное
+    ограничение Блока 2 (анафора — Блок 5). Возвращает (target_id|"",
+    candidates).
+    """
+    entries: list = []
+    if isinstance(scene_context, dict):
+        for npc in scene_context.get("all_npcs_raw", []) or []:
+            if isinstance(npc, dict) and npc.get("name") and npc.get("npc_id"):
+                entries.append((str(npc["npc_id"]), _content_words(npc["name"])))
+        if not entries:
+            for npc_id, pos_data in scene_context.get("npc_positions", {}).items():
+                if isinstance(pos_data, dict):
+                    if _name := pos_data.get("display_name") or pos_data.get("name"):
+                        entries.append((str(npc_id), _content_words(_name)))
+
+    if not entries or not field.raw_text:
+        return _resolve_target_reference(field, scene_context), []
+
+    raw_words = _content_words(field.raw_text)
+    full = [nid for nid, w in entries if w and w.issubset(raw_words)]
+    partial = [nid for nid, w in entries if w and (w & raw_words)]
+
+    if len(full) > 1:
+        logger.warning(f"[TARGET_RESOLVE] S-UE ambiguous(full): {full}")
+        return "", full
+    if len(full) == 1:
+        return full[0], []
+    if len(partial) > 1:
+        logger.warning(f"[TARGET_RESOLVE] S-UE ambiguous(partial): {partial}")
+        return "", partial
+    if len(partial) == 1:
+        return partial[0], []
+
+    # 0 текстовых упоминаний: анафора/LLM-резолв — прежние пути
+    return _resolve_target_reference(field, scene_context), []
 
 
 def _resolve_actor_reference(field: IntentSemanticField, scene_context: Any) -> str:
@@ -157,8 +226,12 @@ def resolve_player_intent(
             f"[ARCHAE-FASTPATH] raw={raw_action!r} result={semantic_field.action_type} target_ref={semantic_field.target_reference}"
         )
 
-    # 2. Слой 2: Разрешение цели (Строка -> ID)
-    resolved_target_id = _resolve_target_reference(semantic_field, scene_context)
+    # 2. Слой 2: Разрешение цели (Строка -> ID). S-UE Блок 2: обёртка с
+    # кандидатами — молчаливый автопик при неточном матче >1 запрещён
+    # (baseline REF-01); readiness по кандидатам — Блок 3.
+    resolved_target_id, _ref_candidates = resolve_target_with_candidates(
+        semantic_field, scene_context
+    )
     # ADR-O-315: Разрешение актора (Кто действует?)
     resolved_actor_id = _resolve_actor_reference(semantic_field, scene_context)
 
@@ -194,6 +267,8 @@ def resolve_player_intent(
         proposition_predicate=(semantic_field.proposition.predicate.value if semantic_field.proposition else None),  # noqa: ENIGMA001
         proposition_object_id=(semantic_field.proposition.object_id if semantic_field.proposition else None),  # noqa: ENIGMA001
         proposition_polarity=(semantic_field.proposition.polarity if semantic_field.proposition else None),  # noqa: ENIGMA001
+        # S-UE Блок 2: кандидаты неоднозначной ссылки доезжают до потребителей
+        reference_candidates=(_ref_candidates if _ref_candidates else None),
     )
 
     intent = IntentDTO(

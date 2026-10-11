@@ -35,10 +35,9 @@ def test_red_attack_unresolved_negation_not_resolved():
     assert res.original_intent.parameters.intent_readiness != "RESOLVED"
 
 
-@pytest.mark.xfail(strict=True, reason="UE-RED-2 (baseline REF-01): два "
-                   "стражника — автопик первого без основания запрещён; "
-                   "reference_candidates появляются в Блоке 2 — тогда снять xfail")
 def test_red_two_guards_no_silent_pick():
+    """UE-RED-2 (baseline REF-01) — защита Блока 2: два стражника →
+    кандидаты перечислены, автопик запрещён. xfail снят по XPASS-сигналу."""
     # «Проследи за стражником» при двух стражниках: резолвер обязан вернуть
     # кандидатов, а не молча выбрать guard_market.
     sf = IntentSemanticField(action=ActionType.OBSERVE, raw_text="Проследи за стражником.", target="стражник")
