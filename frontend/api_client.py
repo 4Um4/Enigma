@@ -254,6 +254,19 @@ class BackendContract:
     def health(self) -> dict:
         return self._t.get("/api/health")
 
+    def get_llm_outage(self) -> dict:
+        """COV-2/D61: статус LLM-контура бэкенда.
+
+        {"status": "outage"|"unconfirmed"|"online", "reason": str}:
+        доказанный outage (pool backoff) — пауза фронта немедленно;
+        unconfirmed (health offline, чистый пул) — дебаунс 2 проб.
+        """
+        return self._t.get("/api/llm/outage")
+
+    def restart_llm(self) -> dict:
+        """COV-2/D61: перезапуск llama-server (прод-роут lifecycle)."""
+        return self._t.post("/api/llm/restart", {})
+
     def create_player_session(self, campaign_id: str, player_name: str) -> dict:
         return self._t.post(
             f"/api/player/session/{campaign_id}",

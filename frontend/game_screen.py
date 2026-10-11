@@ -567,6 +567,23 @@ class GameScreen:
 
         # Неблокирующая очередь к backend — LLM не замораживает Pygame
         _gateway, action_queue = create_game_gateway()
+        # COV-2/D61: фронтенд-контур обязательной LLM (ветка Б)
+        from llm_outage_ui import LlmOutageController, draw_outage_modal
+        _llm_ctrl = LlmOutageController(_gateway)
+        self._llm_ctrl = _llm_ctrl  # ТЗ §3.4-4: гвард submit в _handle_text_input
+        _llm_ctrl.start()
+        # Старт-гейт (ТЗ §3.5): мир не стартует при доказанном отказе;
+        # unconfirmed на старте — без модалки, watcher доберёт пробой 2
+        try:
+            _d61_out = _gateway.get_llm_outage()
+        except Exception as _d61_exc:
+            logger.info("[D61] старт-гейт: бэкенд недоступен (%s)", _d61_exc)
+            _d61_out = None
+        _d61_status = (_d61_out or {}).get("status")
+        if _d61_status in ("outage", "unconfirmed"):
+            _llm_ctrl._apply_status(
+                _d61_status, (_d61_out or {}).get("reason", "")
+            )
         action_queue.start()
         # Phase 4 Investigation Board: workbench-окну нужен доступ к
         # gateway и кампании (board-запросы) — ранее были локальными.
@@ -851,19 +868,31 @@ class GameScreen:
                     elif not text_input.focused and event.key == get_key(load_keybinds(), "toggle_inventory"):
                         self._workbench.toggle_inventory()
                     # Time Controls: ускорение симуляции — через бинды
-                    elif event.key == get_key(load_keybinds(), "skip_time_short") and not text_input.focused:
+                    elif (
+                        event.key == get_key(load_keybinds(), "skip_time_short") and not text_input.focused
+                        and not _llm_ctrl.llm_paused  # COV-2/D61
+                    ):
                         threading.Thread(
                             target=lambda: _do_skip_time(10), daemon=True
                         ).start()
-                    elif event.key == get_key(load_keybinds(), "skip_time_long") and not text_input.focused:
+                    elif (
+                        event.key == get_key(load_keybinds(), "skip_time_long") and not text_input.focused
+                        and not _llm_ctrl.llm_paused  # COV-2/D61
+                    ):
                         threading.Thread(
                             target=lambda: _do_skip_time(100), daemon=True
                         ).start()
-                    elif event.key == get_key(load_keybinds(), "skip_time_500") and not text_input.focused:
+                    elif (
+                        event.key == get_key(load_keybinds(), "skip_time_500") and not text_input.focused
+                        and not _llm_ctrl.llm_paused  # COV-2/D61
+                    ):
                         threading.Thread(
                             target=lambda: _do_skip_time(500), daemon=True
                         ).start()
-                    elif event.key == get_key(load_keybinds(), "skip_time_2000") and not text_input.focused:
+                    elif (
+                        event.key == get_key(load_keybinds(), "skip_time_2000") and not text_input.focused
+                        and not _llm_ctrl.llm_paused  # COV-2/D61
+                    ):
                         threading.Thread(
                             target=lambda: _do_skip_time(2000), daemon=True
                         ).start()
@@ -1415,12 +1444,42 @@ class GameScreen:
                     _gateway.save_scene_state(campaign_folder, scene_state)
                 except Exception as e:
                     logger.warning(f"[GAME_SCREEN] save_scene_state failed: {e}")
-                if not _skip_time_active[0] and not self.workbench_paused:
+                if (
+                    not _skip_time_active[0]
+                    and not self.workbench_paused
+                    and not _llm_ctrl.llm_paused  # COV-2/D61: мир стоит
+                ):
                     _idle_tick_running[0] = True
                     _last_idle_tick = _now
                     logger.info(f"[IDLE_TICK] fired at {_now}ms")
                     threading.Thread(target=_do_idle_tick, daemon=True).start()
 
+            # === COV-2/D61: модалка LLM-отказа (поглощает кадр) ===
+            if _llm_ctrl.modal_state is not None:
+                if _llm_ctrl.modal_state == "RESTARTING":
+                    _llm_ctrl.poll_restart()
+                # Модалка владеет кадром: дренаж событий; QUIT не глотаем
+                _d61_quit = False
+                for _d61_ev in pygame.event.get():
+                    if _d61_ev.type == pygame.QUIT:
+                        _d61_quit = True
+                        break
+                if _d61_quit:
+                    _d61_act = "exit"
+                else:
+                    _d61_act = draw_outage_modal(self.screen, _llm_ctrl, None)
+                if _d61_act == "restart":
+                    _llm_ctrl.begin_restart()
+                elif _d61_act == "resume":
+                    _llm_ctrl.confirm_resume()
+                elif _d61_act == "exit":
+                    _llm_ctrl.stop()
+                    action_queue.stop()
+                    running = False
+                    return "PAUSE"
+                pygame.display.flip()
+                self.clock.tick(30)  # темп кадра модалки (общий clock)
+                continue
             # === Poll backend responses ===
             result = action_queue.poll()
             if result is not None:
@@ -2408,6 +2467,9 @@ class GameScreen:
         px, py = _player_xy(scene_state)
         _wx = last_world_pos[0] if last_world_pos else None
         _wy = last_world_pos[1] if last_world_pos else None
+        if self._llm_ctrl.llm_paused:  # COV-2/D61: без LLM запрещено
+            logger.info("[D61] действие отклонено: LLM-пауза")
+            return
         action_queue.submit(campaign_folder, player_name, text, px, py, _wx, _wy)
 
     def _handle_click(
@@ -2447,3 +2509,4 @@ class GameScreen:
         # M20: клик по пустому месту снимает выделение NPC (круг не висит)
         focus.focus_entity_id = None
         return None
+

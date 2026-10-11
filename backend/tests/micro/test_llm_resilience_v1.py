@@ -592,3 +592,129 @@ def test_start_reports_missing_model(monkeypatch):
     )
     result = _aio.run(_sl.start_llama_server())
     assert result["started"] is False and result["reason"] == "model_missing"
+
+
+# ===========================================================================
+# COV-2/D61: T-пауза x3 — фронтенд-контроллер LlmOutageController (ТЗ §3.6)
+# ===========================================================================
+import os as _os
+import sys as _sys
+import time as _time
+
+_ROOT_D61 = _os.path.dirname(
+    _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+)
+_FE_D61 = _os.path.join(_ROOT_D61, "frontend")
+if _FE_D61 not in _sys.path:
+    _sys.path.append(_FE_D61)  # ТЗ §3.6: sys.path += frontend
+
+from llm_outage_ui import LlmOutageController  # noqa: E402
+
+
+class _D61CountingGateway:
+    """Мок-gateway: программируемый статус + счётчики idle/skip."""
+
+    def __init__(self, status: str = "online", reason: str = "") -> None:
+        self.status = status
+        self.reason = reason
+        self.idle_calls = 0
+        self.skip_calls = 0
+        self.restart_calls = 0
+
+    def get_llm_outage(self) -> dict:
+        return {"status": self.status, "reason": self.reason}
+
+    def restart_llm(self) -> dict:
+        self.restart_calls += 1
+        return {"restarted": True}
+
+    def idle_tick(self) -> None:
+        self.idle_calls += 1
+
+    def skip_time(self) -> None:
+        self.skip_calls += 1
+
+
+def _d61_frame_gates(ctrl: LlmOutageController, gw: _D61CountingGateway) -> None:
+    """Мини-реплика гейтов кадра game_screen (врезки 2-3 ТЗ D61).
+
+    Условия скопированы дословно из патча: idle-гейт и skip-гейты обязаны
+    молчать при llm_paused. Настоящие гейты в game_screen.py проверяет smoke.
+    """
+    _skip_time_active = [False]
+    _workbench_paused = False
+    if (
+        not _skip_time_active[0]
+        and not _workbench_paused
+        and not ctrl.llm_paused
+    ):
+        gw.idle_tick()
+    if not ctrl.llm_paused:
+        gw.skip_time()
+
+
+def test_t_pause_1_outage_immediate_pause_and_gates_silent() -> None:
+    """T-пауза 1: доказанный outage -> пауза немедленно; гейты молчат."""
+    gw = _D61CountingGateway(status="outage", reason="pool backoff доказан")
+    ctrl = LlmOutageController(gw)
+    assert ctrl.llm_paused is False
+    ctrl._apply_status("outage", "pool backoff доказан")
+    assert ctrl.llm_paused is True
+    assert ctrl.modal_state == "OUTAGE"
+    assert "backoff" in ctrl.modal_reason
+    for _ in range(5):
+        _d61_frame_gates(ctrl, gw)
+    assert gw.idle_calls == 0
+    assert gw.skip_calls == 0
+
+
+def test_t_pause_2_unconfirmed_debounce_two_probes() -> None:
+    """T-пауза 2: unconfirmed x1 — без паузы; x2 подряд — пауза; online."""
+    gw = _D61CountingGateway(status="unconfirmed", reason="health offline")
+    ctrl = LlmOutageController(gw)
+    ctrl._apply_status("unconfirmed", "health offline")
+    assert ctrl.llm_paused is False
+    assert ctrl.modal_state is None
+    ctrl._apply_status("unconfirmed", "health offline")
+    assert ctrl.llm_paused is True
+    assert ctrl.modal_state == "OUTAGE"
+    # online НЕ снимает паузу — авто-возобновление запрещено (доктрина №3)
+    ctrl._apply_status("online", "")
+    assert ctrl.llm_paused is True
+    assert ctrl.modal_state == "OUTAGE"
+    # сброс счётчика до порога: unconfirmed/online/unconfirmed — без паузы
+    ctrl2 = LlmOutageController(gw)
+    ctrl2._apply_status("unconfirmed", "x")
+    ctrl2._apply_status("online", "")
+    ctrl2._apply_status("unconfirmed", "x")
+    assert ctrl2.llm_paused is False
+
+
+def test_t_pause_3_generation_invalidation() -> None:
+    """T-пауза 3: confirm_resume меняет поколение — старый результат отбит."""
+    gw = _D61CountingGateway(status="online")
+    ctrl = LlmOutageController(gw)
+    ctrl._apply_status("outage", "r")
+    assert ctrl.llm_paused is True
+    ctrl.begin_restart()
+    assert ctrl.modal_state == "RESTARTING"
+    stale_gen = ctrl._gen
+    ctrl._restart_result = ({"restarted": True}, stale_gen)
+    ctrl.confirm_resume()
+    assert ctrl._gen == stale_gen + 1
+    assert ctrl.llm_paused is False
+    assert ctrl.modal_state is None
+    ctrl.poll_restart()  # результат старого поколения обязан быть отброшен
+    assert ctrl.modal_state is None
+    assert ctrl.llm_paused is False
+    # свежее поколение: рестарт применяется и переводит модалку в SUCCESS
+    ctrl._apply_status("outage", "r")
+    ctrl.begin_restart()
+    ctrl.poll_restart()  # запуск воркера restart_llm
+    for _ in range(200):
+        ctrl.poll_restart()
+        if ctrl.modal_state == "SUCCESS":
+            break
+        _time.sleep(0.01)
+    assert ctrl.modal_state == "SUCCESS"
+    assert gw.restart_calls == 1
