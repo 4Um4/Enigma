@@ -127,6 +127,62 @@ DEFAULT_AGENT_CAPABILITY_MAP: dict[str, Capability] = {
 }
 
 
+# ── COV-2/D62: приоритетная очередь worker-ветки (LLM_RESILIENCE_V1) ──────
+# Вердикты Мастера: canonical default; ambient назначается явно (только
+# D8P-экстракция); FIFO среди canonical; ambient cap=8 + дедлайн 300с
+# (контролируемый DROP с причиной); canonical-бюджет 90с (громкий отказ,
+# никогда пустой успех); выполняющийся запрос не прерывается прибытием.
+# Wall-time — ДВА НЕСМЕШИВАЕМЫХ свойства: (1) best-effort реальная отмена
+# (/abort); (2) гарантированное владение слотом + защита от позднего
+# результата (epoch). CALIBRATION-константы (не env): перевод в env — только
+# вместе с записью flags.yaml (иначе C1-линтер RED).
+
+_CANONICAL_QUEUE_TIMEOUT_SEC: float = 90.0   # бюджет ОЖИДАНИЯ слота (НЕ загрузка модели — та: model_load_timeout_sec)
+_AMBIENT_QUEUE_DEADLINE_SEC: float = 300.0   # дедлайн фоновой задачи, действует ВО ВРЕМЯ ожидания
+_AMBIENT_QUEUE_CAP: int = 8                  # максимум одновременно ожидающих ambient (сверх — DROP)
+_WORKER_WALL_TIME_CEILING_SEC: float = 120.0 # потолок ВЫПОЛНЯЮЩЕГОСЯ вызова (3x30с retry + 1+2с sleeps + запас)
+_ABORT_GRACE_SEC: float = 2.0                # ожидание эффекта /abort до форфейта (прецедент: sleep 1-2с старого пути)
+
+
+def _llm_resilience_v1_enabled() -> bool:
+    """Env-флаг LLM_RESILIENCE_V1 (default OFF = прежняя abort-механика).
+
+    Call-time чтение. Устанавливать ДО первого запроса процесса: смена при
+    живых вызовах смешивает пути владения слотом (старый _request_in_progress
+    и новый epoch не видят друг друга)."""
+    import os
+
+    return os.environ.get("LLM_RESILIENCE_V1", "").strip().lower() in (
+        "1", "true", "yes", "on",
+    )
+
+
+class LlmQueueOverflowError(RuntimeError):
+    """D62: ambient-задача отброшена — очередь ожидающих ambient переполнена."""
+
+
+class LlmQueueDeadlineError(RuntimeError):
+    """D62: бюджет ожидания слота истёк (ambient-дедлайн или canonical-таймаут)."""
+
+
+class _QueueWaiter:
+    """Ожидающий слот: собственный Event — дедлайн действует во время ожидания
+    (wait(remaining) + самоудаление dead-маркером); granted_epoch — защита от
+    позднего результата (форфейт продвигает epoch владельца слота)."""
+
+    __slots__ = ("rank", "seq", "event", "dead", "granted_epoch")
+
+    def __init__(self, rank: int, seq: int) -> None:
+        self.rank = rank  # 0 = canonical, 1 = ambient
+        self.seq = seq
+        self.event = threading.Event()
+        self.dead = False
+        self.granted_epoch = -1
+
+    def __lt__(self, other: "_QueueWaiter") -> bool:
+        return (self.rank, self.seq) < (other.rank, other.seq)
+
+
 class ModelRouter:
     """
     Маршрутизатор LLM запросов на основе возможностей.
@@ -275,6 +331,194 @@ class ModelRouter:
                 logger.debug(f"[R4A_ABORT] sent /abort to {pool.active_model_key}")
         except Exception as e:
             logger.debug(f"[R4A_ABORT] failed: {e}")
+
+    def _grant_next_locked(self) -> none:
+        """cov-2/d62: выдать освободившийся слот лучшему живому ожидающему.
+
+        порядок: canonical раньше ambient; внутри класса — fifo по прибытию
+        (seq). требует удержания _worker_lock. dead-ожидающие пропускаются:
+        их дедлайн сработал во время ожидания, задача уже отброшена."""
+        import heapq  # noqa: plc0415 — локальный по прецеденту router
+
+        while self._waiters:
+            _w = heapq.heappop(self._waiters)
+            if _w.dead:
+                continue
+            self._slot_busy = true
+            self._slot_epoch += 1
+            _w.granted_epoch = self._slot_epoch
+            _w.event.set()
+            return
+
+    def _wall_time_watchdog(self, my_epoch: int) -> none:
+        """cov-2/d62: потолок выполняющегося вызова (timer-поток; прецедент
+        adr-o-364 per-task-timeout).
+
+        слой 1 — best-effort реальная отмена: /abort llama-server (http вне
+        локов — цикл lock/abort замкнуться не может, lock всегда листовой).
+        слой 2 — гарантия владения: если отмена не подействовала за грейс,
+        слот форфейтится лучшему ожидающему, epoch продвигается — поздний
+        результат старого вызова будет сконвертирован в исключение, кэш не
+        пишется, состояние нового владельца не затрагивается."""
+        with self._worker_lock:
+            if not self._slot_busy or self._slot_epoch != my_epoch:
+                return  # вызов успел завершиться штатно (или уже осиротевший)
+        _root_logger.warning(
+            f"[r4a_walltime] вызов epoch={my_epoch} превысил потолок — /abort"
+        )
+        self._abort_generation()
+        time.sleep(_abort_grace_sec)
+        with self._worker_lock:
+            if self._slot_busy and self._slot_epoch == my_epoch:
+                _root_logger.error(
+                    f"[r4a_walltime] abort не подействовал — форфейт слота epoch={my_epoch}"
+                )
+                self._slot_epoch += 1  # осиротить выполняющийся вызов
+                self._slot_busy = false
+                self._grant_next_locked()
+
+    def _worker_request_queued(
+        self,
+        agent_name: str,
+        prompt: str,
+        params: "generationparams | none",
+        system_prompt: "str | none",
+        priority: str,
+        prompt_hash: str,
+        worker_start: float,
+    ) -> str:
+        """cov-2/d62 (llm_resilience_v1=on): worker-вызов через приоритетную очередь.
+
+        слои: admission (ambient cap → контролируемый drop) → ожидание
+        (event на каждого ждущего: дедлайн действует во время ожидания,
+        canonical обходит ambient, fifo внутри класса) → grant (epoch) →
+        выполнение под wall-time watchdog → фиксация (поздний результат
+        осиротевшего вызова = громкое исключение, не возврат) → release →
+        grant-next. сериализация модели: один слот = один вызов."""
+        import heapq  # noqa: plc0415 — локальный по прецеденту router
+        from app.core.config import settings
+
+        rank = 0 if priority == "canonical" else 1
+
+        waiter: "_queuewaiter | none" = none
+        _my_epoch = -1
+        with self._worker_lock:
+            # ленивая инициализация состояния очереди: off-путь эти поля не
+            # читает; __init__ не трогаем (прежний путь неприкосновенен).
+            if not hasattr(self, "_slot_epoch"):
+                self._slot_busy: bool = false
+                self._slot_epoch: int = 0
+                self._waiters: "list[_queuewaiter]" = []
+                self._waiter_seq: int = 0
+            if self._slot_busy:
+                if rank == 1:
+                    _live_ambient = sum(
+                        1 for _w in self._waiters if not _w.dead and _w.rank == 1
+                    )
+                    if _live_ambient >= _ambient_queue_cap:
+                        _root_logger.warning(
+                            f"[r4a_queue] ambient drop (overflow): agent={agent_name}"
+                        )
+                        raise llmqueueoverflowerror(
+                            f"ambient queue overflow (cap={_ambient_queue_cap}): {agent_name}"
+                        )
+                waiter = _queuewaiter(rank, self._waiter_seq)
+                self._waiter_seq += 1
+                heapq.heappush(self._waiters, waiter)
+            else:
+                self._slot_busy = true
+                self._slot_epoch += 1
+                _my_epoch = self._slot_epoch
+
+        if waiter is not none:
+            _deadline = time.monotonic() + (
+                _ambient_queue_deadline_sec if rank == 1
+                else _canonical_queue_timeout_sec
+            )
+            _granted = waiter.event.wait(timeout=max(0.0, _deadline - time.monotonic()))
+            if not _granted:
+                with self._worker_lock:
+                    waiter.dead = true  # самоудаление: дедлайн сработал в ожидании
+                    _granted = waiter.event.is_set()  # гонка выдачи <-> таймаута
+            if not _granted:
+                if rank == 1:
+                    _root_logger.warning(
+                        f"[r4a_queue] ambient drop (deadline): agent={agent_name}"
+                    )
+                    raise llmqueuedeadlineerror(
+                        f"ambient queue deadline exceeded: {agent_name}"
+                    )
+                raise llmqueuedeadlineerror(
+                    f"canonical queue timeout exceeded: {agent_name}"
+                )
+            _my_epoch = waiter.granted_epoch
+
+        _watchdog = threading.timer(
+            _worker_wall_time_ceiling_sec,
+            self._wall_time_watchdog,
+            args=(_my_epoch,),
+        )
+        _watchdog.daemon = true
+        _watchdog.start()
+        try:
+            capability_obj = self._capability_map.get(agent_name, capability.general)
+            preferred_keys = self.get_capability_preferences(capability_obj)
+            _result = self._request_via_pool(
+                capability_obj,
+                preferred_keys=preferred_keys,
+                prompt=prompt,
+                params=params,
+                system_prompt=system_prompt,
+            )
+            # защита от позднего результата: осиротевший (форфейтенный) вызов
+            # не возвращает результат владельцу и не пишет кэш — только отказ.
+            with self._worker_lock:
+                _orphaned = self._slot_epoch != _my_epoch
+            if _orphaned:
+                raise runtimeerror(
+                    "r4a_walltime: вызов покинут — слот форфейтен после потолка "
+                    "wall-time; результат отброшен, слот у следующего владельца"
+                )
+            _root_logger.info(
+                f"[r4a_worker] returned {len(_result) if _result else 0} chars"
+            )
+            # кэш + телеметрия: контракт прежнего worker-пути (дублирование
+            # сознательное — off-путь остаётся нетронутым)
+            if settings.replay_record:
+                _store = getattr(self, "_replay_store", none)  # noqa: enigma002
+                if _store:
+                    _store.record_llm_call(
+                        session_id=getattr(self, "_current_session_id", "unknown"),
+                        tick_id=getattr(self, "_current_tick_id", 0),
+                        agent_name=agent_name,
+                        prompt=prompt,
+                        response=_result,
+                        model_name=self.get_model_for_agent(agent_name),
+                        latency_ms=int((time.perf_counter() - worker_start) * 1000),
+                        system_prompt=system_prompt,
+                        params=params,
+                    )
+            from app.services.logging_tools import jsonl_log  # noqa: plc0415
+            from app.services.replay.llm_cache import compute_prompt_hash  # noqa: plc0415
+
+            jsonl_log({
+                "level": "info",
+                "agent": "llm_output",
+                "tick_id": getattr(self, "_current_tick_id", 0),
+                "npc_id": agent_name,
+                "prompt_hash": prompt_hash,
+                "response_hash": compute_prompt_hash(_result) if _result else none,  # noqa: enigma001
+                "model": self.get_model_for_agent(agent_name),
+                "latency": round((time.perf_counter() - worker_start) * 1000, 1),
+                "cache_hit": false,
+            })
+            return _result
+        finally:
+            _watchdog.cancel()
+            with self._worker_lock:
+                if self._slot_busy and self._slot_epoch == _my_epoch:
+                    self._slot_busy = false
+                    self._grant_next_locked()
 
     def _request_via_pool(
         self,
@@ -473,6 +717,7 @@ class ModelRouter:
         prompt: str,
         params: GenerationParams | None = None,
         system_prompt: str | None = None,
+        priority: str = "canonical",
     ) -> str:
         """
         Отправить запрос от имени агента.
@@ -488,6 +733,13 @@ class ModelRouter:
         Returns:
             Ответ от LLM
         """
+        # COV-2/D62: класс запроса для приоритетной очереди (используется
+        # только при LLM_RESILIENCE_V1=ON; валидация всегда — опечатка не
+        # имеет права молча превратиться в canonical).
+        if priority not in ("canonical", "ambient"):
+            raise ValueError(
+                f"priority must be 'canonical'|'ambient', got {priority!r}"
+            )
         capability = self._capability_map.get(agent_name, Capability.GENERAL)
 
         # Подсистема 2: LLM Cache для Replay (Этап 2.3)
@@ -555,6 +807,18 @@ class ModelRouter:
             # COV-2/D64-ядро: фактическая латентность worker-пути (раньше
             # кэш/телеметрия писали константный ноль).
             _worker_start = time.perf_counter()
+            # COV-2/D62: приоритетная очередь за флагом. OFF = код ниже не
+            # тронут ни на строку (механика abort при in_progress сохранена).
+            if _llm_resilience_v1_enabled():
+                return self._worker_request_queued(
+                    agent_name=agent_name,
+                    prompt=prompt,
+                    params=params,
+                    system_prompt=system_prompt,
+                    priority=priority,
+                    prompt_hash=_prompt_hash,
+                    worker_start=_worker_start,
+                )
             with self._worker_lock: # H-11 FIX: Потокобезопасная проверка и установка флага
                 capability_obj = self._capability_map.get(agent_name, Capability.GENERAL)
                 preferred_keys = self.get_capability_preferences(capability_obj)

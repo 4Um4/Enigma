@@ -125,6 +125,14 @@ flags:
     verdict: ROLLOUT-PENDING
     adr: W-track
     owner: B
+  LLM_RESILIENCE_V1:
+    TYPE: ENV
+    READ_MODE: CALL
+    DEFAULT: ""
+    VERDICT: ROLLOUT-PENDING
+    ADR: COV-2 (ADR ПАКЕТА ЗАПИСЫВАЕТСЯ ПРИ ЗАКРЫТИИ СЕССИИ)
+    OWNER: B
+    NOTE: "D62 ОЧЕРЕДЬ + D61 ДОКТРИНА ОБЯЗАТЕЛЬНОЙ LLM; УСТАНАВЛИВАТЬ ДО ПЕРВОГО ЗАПРОСА ПРОЦЕССА; ON = ОТДЕЛЬНАЯ ПРИЁМКА МАСТЕРА (ДОКТРИНА LIVE ТОЛЬКО ПОСЛЕ ВЕРДИКТА)"
   WORK_ENABLED:
     type: env
     read_mode: call
