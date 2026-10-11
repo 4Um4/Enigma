@@ -30,7 +30,12 @@ from tools.constants import MODE_WORLD  # noqa: E402
 class ChronicleScreen:
     def __init__(self, core) -> None:
         self._core = core
-        self._editor = ChronicleEditorCore(ChronicleApi(), self._campaign_of(core))
+        from api_client import HttpClient
+
+        self._editor = ChronicleEditorCore(
+            ChronicleApi(HttpClient("http://127.0.0.1:8000", timeout_sec=180)),
+            self._campaign_of(core),
+        )
 
     @staticmethod
     def _campaign_of(core) -> str:

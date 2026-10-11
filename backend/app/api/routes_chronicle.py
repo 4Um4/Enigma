@@ -171,10 +171,52 @@ async def trait_gaps_export(campaign_id: str, format: str = "md") -> Dict[str, A
 
 @chronicle_router.post("/chronicle/{campaign_id}/{npc_id}/decompose")
 async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeRequest) -> Dict[str, Any]:
-    """FR-2.x: фрагмент → декомпозиция (transient). Не пишет ни канон, ни draft."""
+    """FR-2.x: фрагмент → декомпозиция. Результат merge-ится в ЧЕРНОВИК как
+    LLM_DRAFT-записи (канон не трогается — запрет 1; повторный разбор того же
+    фрагмента ЗАМЕНЯЕТ записи: entry_id детерминирован (chronicle:фрагмент:
+    порядковый), дубли невозможны по построению). Мост «разбор → лампочка»."""
     result = await _get_decomposer().decompose(req.npc_id, req.fragment_ord, req.fragment)
     if not result.ok:
         return {"status": "NOT_DECOMPOSED", "error": result.error, "age_anchors": result.age_anchors or []}
+    # ── Merge в draft (S345: мост transient → persistent) ──────────────────
+    from app.domain.chronicle import (
+        ChronicleDocument,
+        ChronicleEntry,
+        EntityRef,
+        EntityRefKind,
+        EntryProvenance,
+        make_entry_id,
+    )
+    store = _get_store()
+    doc = store.load_draft(req.campaign_id, req.npc_id)
+    if doc is None:
+        doc = ChronicleDocument(chronicle_id=req.npc_id, npc_ref=req.npc_id)
+    new_ids = set()
+    new_entries = []
+    for _idx, _it in enumerate(result.items):
+        _eid = make_entry_id(doc.chronicle_id, req.fragment_ord, _idx)
+        new_ids.add(_eid)
+        _age = _it.draft_payload.get("age", _it.draft_payload.get("historical_age"))
+        # §1.1: однострочное «X if cond else None» = тихий отказ — развёрнуто
+        _age_value = None
+        if isinstance(_age, int):
+            _age_value = _age
+        new_entries.append(
+            ChronicleEntry(
+                entry_id=_eid,
+                kind=_it.kind,
+                subject_id=EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id=req.npc_id),
+                historical_age=_age_value,
+                payload=dict(_it.draft_payload),
+                provenance=EntryProvenance.LLM_DRAFT,
+                confidence=_it.confidence,
+                open_questions=(_it.question,) if _it.question is not None else (),
+                ordinal=req.fragment_ord * 100 + _idx,
+            )
+        )
+    _kept = [e for e in doc.entries if e.entry_id not in new_ids]
+    _merged = tuple(sorted(_kept + new_entries, key=lambda e: e.ordinal))
+    store.save_draft(replace(doc, entries=_merged), req.campaign_id)
     return {
         "status": "OK",
         "age_anchors": result.age_anchors,

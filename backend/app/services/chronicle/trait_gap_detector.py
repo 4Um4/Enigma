@@ -26,6 +26,14 @@ _LEXICON_PATH: str = "config/ontology/character_lexicon.json"
 # всего подряд. statement используется ТОЛЬКО для соседей.
 
 _AUTHOR_OK = (EntryProvenance.AUTHOR_CONFIRMED, EntryProvenance.AUTHOR_AUTHORED)
+# Лампочка читает И черновики LLM (вердикт Мастера: карта = инструмент автора,
+# не канон; честная пометка статуса в отчёте), и PORTRET/TRAIT/BELIEF/DESIRE
+_GAP_KINDS = (
+    EntryKind.PORTRET,
+    EntryKind.TRAIT_SEED,
+    EntryKind.BELIEF_SEED,
+    EntryKind.DESIRE_SEED,
+)
 
 
 def _load_lexicon() -> Dict[str, Any]:
@@ -64,12 +72,23 @@ def collect_words(
     for npc_id in sorted(docs_by_npc):
         doc = docs_by_npc[npc_id]
         for e in doc.entries:
-            if e.provenance not in _AUTHOR_OK:
+            # Лампочка читает И LLM-черновики (вердикт Мастера: карта —
+            # инструмент автора, не канон; портреты/черты/убеждения/мечты
+            # из гипотез честно помечаются draft=true в отчёте)
+            _is_gap_kind = e.kind in (
+                EntryKind.PORTRET,
+                EntryKind.TRAIT_SEED,
+                EntryKind.BELIEF_SEED,
+                EntryKind.DESIRE_SEED,
+            )
+            if not _is_gap_kind and e.provenance not in _AUTHOR_OK:
                 continue
             p = e.payload
             candidates: List[str] = []
             if e.kind is EntryKind.PORTRET:
                 candidates = [str(x) for x in p.get("traits", []) if x]
+                if not candidates and p.get("statement"):
+                    candidates = [str(p.get("statement", ""))[:60]]
             elif e.kind is EntryKind.TRAIT_SEED:
                 candidates = [str(p.get("trait", ""))] if p.get("trait") else []
             elif e.kind is EntryKind.BELIEF_SEED:
@@ -102,18 +121,14 @@ def build_report(
     docs_by_npc: Dict[str, ChronicleDocument], campaign: str
 ) -> Dict[str, Any]:
     # L4-UX: пустой вход = не молчаливый пустой файл, а честный диагноз
-    _has_author_entries = any(
-        e.provenance in _AUTHOR_OK
-        and e.kind in (
-            EntryKind.PORTRET,
-            EntryKind.TRAIT_SEED,
-            EntryKind.BELIEF_SEED,
-            EntryKind.DESIRE_SEED,
-        )
+    _has_gap_input = any(
+        e.kind
+        in (EntryKind.PORTRET, EntryKind.TRAIT_SEED, EntryKind.BELIEF_SEED, EntryKind.DESIRE_SEED)
+        or e.provenance in _AUTHOR_OK
         for doc in docs_by_npc.values()
         for e in doc.entries
     )
-    if not _has_author_entries:
+    if not _has_gap_input:
         return {
             "campaign": campaign,
             "total": 0,

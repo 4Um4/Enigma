@@ -23,7 +23,7 @@ _TEXT = (220, 220, 220)
 _ACCENT = (180, 160, 90)
 _PANEL = (28, 28, 36)
 _HINT1 = "Enter: читать целиком · колесо: прокрутка истории · мышь/↑↓: персонаж · клик: выбрать · TAB: лента⇄история · F1/F2: понять"
-_HINT2 = "F9: утвердить как правду · F4: чистый черновик · Ctrl+O: загрузить · Ctrl+D: карта разрывов · Ctrl+S: сводка убеждений · ESC: выход"
+_HINT2 = "Ctrl+G: понять всё+карта · F9: утвердить · F4: чистый черновик · Ctrl+O: загрузить · Ctrl+D: карта разрывов · Ctrl+S: сводка · ESC: выход"
 
 
 _OPTION_BY_KEY = {
@@ -134,6 +134,8 @@ class ChronicleEditorCore:
             self._import_history()
         elif key == pygame.K_d and pygame.key.get_pressed()[pygame.K_LCTRL]:
             self._export_gaps()
+        elif key == pygame.K_g and pygame.key.get_pressed()[pygame.K_LCTRL]:
+            self._understand_everything()
         elif key == pygame.K_F4:
             self._new_clean_draft()
         elif key == pygame.K_TAB:
@@ -286,6 +288,41 @@ class ChronicleEditorCore:
             parts_msg.append(f"мировой слой → {len(world_layer)} секц. (_world_author_layer.md)")
         self._status = f"{source_name}: " + " · ".join(parts_msg)
         self._reload()
+
+    def _understand_everything(self) -> None:
+        """Ctrl+G (вердикт Мастера): разбор ВСЕХ пунктов ВСЕХ NPC подряд,
+        затем сразу диалог сохранения карты разрывов. Сеть/таймаут не роняют
+        (счётчик неудач); прогресс — в статусе. Долго: ~10–20 с на пункт."""
+        total_ok, total_fail = 0, 0
+        for r in self._roster:
+            npc_id = r.get("npc_id", "")
+            doc = self._api.get_draft(self._campaign, npc_id)
+            frags = self._split_fragments(str((doc or {}).get("author_text", "") or ""))
+            for fi, frag in enumerate(frags):
+                self._status = (
+                    f"Понимаю: {npc_id} {fi + 1}/{len(frags)} "
+                    f"(понято {total_ok}, сбоев {total_fail}) — не закрывай"
+                )
+                self.draw(pygame.display.get_surface())
+                pygame.display.flip()
+                try:
+                    res = self._api.decompose(self._campaign, npc_id, fi, frag)
+                except Exception as e:
+                    total_fail += 1
+                    self._last_fail_reason = f"{npc_id} п.{fi + 1}: {str(e)[:70]}"
+                    continue
+                if res.get("status") == "OK":
+                    total_ok += 1
+                else:
+                    total_fail += 1
+                import time as _t
+
+                _t.sleep(1.0)  # пауза между запросами: LLM-контекст выдыхает
+        _why = f" Последний сбой: {getattr(self, '_last_fail_reason', '?')}" if total_fail else ""
+        self._status = f"Готово: понято {total_ok}, сбоев {total_fail}.{_why} Карта:"
+        self.draw(pygame.display.get_surface())
+        pygame.display.flip()
+        self._export_gaps()
 
     def _import_history(self) -> None:
         """Ctrl+O «Загрузить историю…» (вердикт Мастера): файл .md/.txt →
@@ -522,18 +559,23 @@ class ChronicleEditorCore:
                 out.append((None, p))
         return out
 
-    def _frag_index_by_number(self, num: int) -> int:
-        """Индекс фрагмента (для _decompose_ordinal) по авторскому номеру."""
-        for i, (n, _t) in enumerate(self._history_fragments()):
-            if n == num:
-                return i
-        return num
-
     @staticmethod
     def _wrap(text: str, width: int) -> list:
         import textwrap
 
         return textwrap.wrap(str(text), width=width) or [""]
+
+    def _current_label(self) -> str:
+        """Человекочитаемая метка выбранного (пункт N в истории / № в ленте) —
+        единый источник для статуса и вопросов (двойное вычисление убрано)."""
+        frs = self._history_fragments()
+        if (
+            self._view_history
+            and self._frag_ord < len(frs)
+            and frs[self._frag_ord][0] is not None
+        ):
+            return f"пункт {frs[self._frag_ord][0]}"
+        return f"фрагмент #{self._frag_ord}"
 
     def _open_detail(self) -> None:
         """Enter: читать выбранное ЦЕЛИКОМ (вердикт «всё обрезано — как
@@ -616,9 +658,10 @@ class ChronicleEditorCore:
         surface.blit(self._font.render(self._status[:130], True, _TEXT), (20, 726))
         q = self._current_q or self._next_open_question()
         if q:
+            _npc = self._npcs[self._npc_idx] if self._npcs else "?"
             qline = (
-                f"❓ {q.get('target_span','')[:48]} — кто это?  "
-                "1:из списка · 2:новый · 3:массовка · 4:белое пятно (C — взять)"
+                f"❓ {_npc}, {self._current_label()}: «…{q.get('target_span','')[:40]}…» — кто это? "
+                "1:из списка · 2:новый · 3:массовка · 4:пятно"
             )
             surface.blit(self._font.render(qline[:150], True, _ACCENT), (20, 746))
         else:
@@ -660,7 +703,11 @@ class ChronicleEditorApp:
         self.screen = pygame.display.set_mode((1280, 800), pygame.RESIZABLE)
         pygame.display.set_caption("ENIGMA — Редактор хроник")
         # Кампания: селектор — Шаг 2; пока дефолт silver_wolf.
-        self._core = ChronicleEditorCore(ChronicleApi(HttpClient(base_url)), "silver_wolf")
+        # Таймаут 180 с (вердикт Мастера «готов ждать»): плотные пункты
+        # Торнина (28 пунктов × развилки) живут дольше 60-секундного дефолта.
+        self._core = ChronicleEditorCore(
+            ChronicleApi(HttpClient(base_url, timeout_sec=180)), "silver_wolf"
+        )
 
     def run(self) -> None:
         clock = pygame.time.Clock()
