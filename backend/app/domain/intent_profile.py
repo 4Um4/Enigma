@@ -43,6 +43,23 @@ class SemanticAmbiguity(str, Enum):
     AMBIGUOUS = "AMBIGUOUS"
 
 
+class IntentReadiness(str, Enum):
+    """S-UE Блок 1 (поеапный GO Мастера): готовность НАМЕРЕНИЯ к исполнению.
+    Вычисляется ТОЛЬКО на границе resolve_player_intent — ПОСЛЕ резолва ссылок
+    (компрессор не решает на данных, которых у него нет). Пять значений;
+    SEMANTIC_AMBIGUOUS ≠ PARTIAL: неоднозначность смысла и недостаток данных —
+    РАЗНЫЕ причины отказа. Правила Блоков 3–4: для world-changing актов
+    negated=None = недостаточная информация (не False); modality=None НЕ
+    означает REALIS; quoted=True запрещает материализацию акта при
+    легальности хранения в плоском semantic_acts (запрет — исполнение,
+    не хранение)."""
+    RESOLVED = "RESOLVED"
+    REFERENCE_AMBIGUOUS = "REFERENCE_AMBIGUOUS"
+    SEMANTIC_AMBIGUOUS = "SEMANTIC_AMBIGUOUS"
+    PARTIAL = "PARTIAL"
+    FAILED = "FAILED"
+
+
 class EmotionalVector(BaseModel):
     aggression: float = Field(default=0.0, ge=0.0, le=1.0)
     fear: float = Field(default=0.0, ge=0.0, le=1.0)
@@ -105,7 +122,21 @@ class IntentSemanticField(BaseModel):
     # семантических актов. LLM ПРЕДЛАГАЕТ, Python валидирует (тип+параметры).
     # semantic_acts — канонический акт; верхнеуровневые поля (action/speech_act)
     # остаются главным актом (первым/самым значимым) для обратной совместимости.
-    semantic_acts: List[Dict[str, Any]] = Field(default_factory=list, description="[{type: GREETING|ASK_NAME|SELF_INTRODUCTION|ASK_IDENTITY|ASK_LOCATION|ASSERT|ORDER|THREAT|COMPLIMENT|QUESTION|FAREWELL, params: {...}}]")
+    # S-UE Блок 1: per-act ключи (опциональны; плоский список — единый вариант
+    # Мастера; запись о цитате ХРАНИТСЯ здесь с quoted=True, но НЕ материализуется):
+    #   negated: bool|None — отрицание ИЛЛЮКЦИИ акта («не говори»); содержание
+    #     отрицается отдельно (proposition.polarity); None = неизвестно.
+    #   modality: "REALIS"|"HYPOTHETICAL"|"CONDITIONAL"|"DESIRED"|None; None
+    #     НЕ трактуется как REALIS.
+    #   quoted: bool|None — акт внутри чужой речи; True = запрет исполнения.
+    #   quoted_speaker_hint: str|None — предполагаемый автор цитаты.
+    semantic_acts: List[Dict[str, Any]] = Field(default_factory=list, description="[{type: GREETING|ASK_NAME|SELF_INTRODUCTION|ASK_IDENTITY|ASK_LOCATION|ASSERT|ORDER|THREAT|COMPLIMENT|QUESTION|FAREWELL, params: {...}, negated: bool|None, modality: str|None, quoted: bool|None, quoted_speaker_hint: str|None}]")
+    # S-UE Блок 1: машинные факты полноты разбора — НЕ самооценка LLM (U-9).
+    # Состав: {has_acts, action_class, llm_status: OK|UNAVAILABLE|INVALID,
+    # ambiguity_flag, act_completeness, temporal_marker_on_action}. Пишет
+    # компрессор (Блок 4); None = факты не собраны (легальный дефолт; для
+    # world-changing актов обрабатывается как недостаточная информация).
+    comprehension_facts: Optional[Dict[str, Any]] = Field(default=None)
     requested_outcome: Optional[str] = Field(default=None, description="Что игрок хочет получить")
     offered_outcome: Optional[str] = Field(default=None, description="Что игрок предлагает")
     condition: Optional[str] = Field(default=None, description="Условие («если будешь хорошо вести»)")
