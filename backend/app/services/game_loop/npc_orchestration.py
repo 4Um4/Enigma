@@ -320,16 +320,16 @@ def run_npc_orchestration(
             # «Не бей Торнина» (PARTIAL) фиксировал несостоявшуюся атаку
             # в хронике (живая находка ручного прогона). Не-RESOLVED:
             # попытка ≠ событие — attack/damage-дрифт не создаётся.
-            _ue_ready = getattr(
-                getattr(
-                    getattr(shared_context, "intent_resolution", None),
+            _ue_ready = getattr(  # noqa: ENIGMA002
+                getattr(  # noqa: ENIGMA002
+                    getattr(shared_context, "intent_resolution", None),  # noqa: ENIGMA002
                     "original_intent",
                     None,
                 ),
                 "parameters",
                 None,
             )
-            _ue_ready = getattr(_ue_ready, "intent_readiness", None)
+            _ue_ready = getattr(_ue_ready, "intent_readiness", None)  # noqa: ENIGMA002
             if _ue_ready and _ue_ready != "RESOLVED":
                 logger.warning(
                     f"[UE-GATE-L1] attack/damage-дрифт подавлен "

@@ -144,7 +144,7 @@
     "id": "dnd_abilities", "ru": "телесные способности (D&D)",
     "axes": ["strength/сила", "dexterity/ловкость", "constitution/телосложение", "intelligence/интеллект", "wisdom/мудрость", "charisma/обаяние", "max_hp"],
     "binding": {"config": "archetypes:body_profile.abilities", "consumers": "бой (combat_math:204-206, impact_engine:55-69) + физика тела (BodyCapabilities: ходьба/прыжок/скорость, movement_engine:802-892) + ньюгейм-профили"},
-    "status": "working-body-not-psyche",
-    "status_evidence": "кубики D&D и физика движения живы; на решения характера НЕ влияет — другой домен (тело ≠ психика)"
+    "status": "working-no-biography-bridge",
+    "status_evidence": "кубики D&D, физика движения и телесная деградация (wounds, S2B.7) живы; НО моста «биография → стартовые телесные числа» не существует — авторские сравнения (Тень сильнее Орма, Люся слабее гнома-кузнеца) теряются; биография → тело = телесный контур Character Calibration"
   }
 }

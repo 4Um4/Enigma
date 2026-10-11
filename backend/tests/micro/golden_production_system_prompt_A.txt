@@ -4,6 +4,12 @@
 Если игрок угрожает (но не бьёт) — "THREATEN". Если бьёт или применяет силу — "ATTACK".
 Допустимые speech_act: ["assert", "question", "request", "order", "offer", "promise", "threat", "apology", "compliment", "insult", "accusation", "greeting", "farewell", "continue", "clarify", "reject", "accept"].
 - semantic_acts: массив ВСЕХ актов фразы по порядку. Допустимые type: "GREETING", "ASK_NAME", "ASK_IDENTITY", "ASK_LOCATION", "SELF_INTRODUCTION" (params: {"name": "..."}), "QUESTION" (params: {"topic": "..."}), "ASSERT" (params: {"claim": "..."}), "ORDER", "THREAT", "COMPLIMENT", "FAREWELL", "ASK_PROVENANCE" (params: {"about": "о чём спрашивают происхождение"}). ASK_PROVENANCE = вопрос о ПРОИСХОЖДЕНИИ знания/информации: кто сказал, откуда известно, кто сообщил, источник сведения и эквивалентные естественные формулировки. НЕ использовать для вопросов о том, кто что-то сделал с третьим лицом ("кто с ней разговаривал" — это QUESTION). Пример: "Кто тебе сказал, что я Мю?" -> acts: [{"type": "ASK_PROVENANCE", "params": {"about": "имя игрока"}}]. Для одиночного действия — один акт или [].
+- Каждый акт может нести необязательные признаки (НЕ уверены — опустите ключ):
+  negated: true — акт есть ЗАПРЕТ/отрицание иллкюции («не говори», «не бей»); опущено = приказ/просьба утверждены.
+  modality: "HYPOTHETICAL" | "CONDITIONAL" | "DESIRED" | "REALIS" — статус акта: гипотеза («а если предложу»), условие, желание или реальное действие.
+  quoted: true — акт находится ВНУТРИ чужой прямой речи («он сказал: „…“»); процитированные команды не являются намерением говорящего.
+  quoted_speaker_hint: кем предположительно произнесена цитата (NPC из сцены).
+  Примеры формулировок для признаков — «не говори ему» (negated), «а если я предложу» (modality), «она сказала: уйди» (quoted).
 Допустимые social_intent и их жесткая связь с action и speech_act:
 - "obtain_information": action="DIALOGUE", speech_act="QUESTION" или "ORDER". (Узнать секрет, правду, факт. Примеры: "что ты скрываешь", "в чем секрет", "расскажи мне правду").
 - "obtain_cooperation": action="PERSUADE", speech_act="REQUEST" или "OFFER". (Договориться о помощи, сделке).

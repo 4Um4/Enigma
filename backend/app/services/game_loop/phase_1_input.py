@@ -27,6 +27,8 @@ def _lemmatize(text: str) -> str:
         return text
     return str(_morph.parse(text)[0].normal_form)
 
+import re  # S-UE Блок 2: токенизация _content_words (регекс; пункт «не»-детектора — Блок 3)
+
 from app.domain.events import EventDTO
 from app.domain.intent import IntentDTO, IntentParametersDTO
 from app.domain.intent_profile import ActionType, IntentSemanticField, TargetZone
@@ -35,8 +37,6 @@ from app.models.will import IntentResolution
 from app.services.events.event_bus import get_event_bus
 from app.services.events.event_types import EventType
 from app.services.will import resolve_intent_pressure
-
-import re  # S-UE Блок 2: токенизация _content_words (регекс; пункт «не»-детектора — Блок 3)
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +117,9 @@ def _content_words(text: str, keep_short: bool = False) -> set:
     return _out
 
 
-from app.services.input.intent_compressor import _NEGATION_PARTICLES as _UNRESOLVED_NEGATION_LEMMAS  # noqa: E402  # S-UE 5.2: единый источник частиц
+from app.services.input.intent_compressor import (
+    _NEGATION_PARTICLES as _UNRESOLVED_NEGATION_LEMMAS,  # noqa: E402  # S-UE 5.2: единый источник частиц
+)
 
 
 def compute_intent_readiness(
@@ -340,7 +342,7 @@ def resolve_player_intent(
         proposition_object_id=(semantic_field.proposition.object_id if semantic_field.proposition else None),  # noqa: ENIGMA001
         proposition_polarity=(semantic_field.proposition.polarity if semantic_field.proposition else None),  # noqa: ENIGMA001
         # S-UE Блок 2: кандидаты неоднозначной ссылки доезжают до потребителей
-        reference_candidates=(_ref_candidates if _ref_candidates else None),
+        reference_candidates=(_ref_candidates if _ref_candidates else None),  # noqa: ENIGMA001
         # S-UE Блок 3: readiness — после резолва (поправка №1); гейт
         # исполнения в publish_classified_player_event
         intent_readiness=compute_intent_readiness(
@@ -615,7 +617,7 @@ def publish_classified_player_event(
     # ADR-091 IC-override: даже переклассифицированный 'attack' не
     # становится PLAYER_ATTACKED при не-RESOLVED. Readiness вычислена в
     # resolve_player_intent (после резолва ссылок).
-    _readiness = getattr(_params, "intent_readiness", None) if (
+    _readiness = getattr(_params, "intent_readiness", None) if (  # noqa: ENIGMA001,ENIGMA002
         _params is not None and isinstance(_params, IntentParametersDTO)
     ) else None
     if _readiness and _readiness != "RESOLVED" and _resolved_type != EventType.PLAYER_SPOKE:

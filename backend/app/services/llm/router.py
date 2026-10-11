@@ -395,8 +395,9 @@ class ModelRouter:
         выполнение под wall-time watchdog → фиксация (поздний результат
         осиротевшего вызова = громкое исключение, не возврат) → release →
         grant-next. Сериализация модели: один слот = один вызов."""
-        from app.core.config import settings
         import heapq
+
+        from app.core.config import settings
 
         rank = 0 if priority == "canonical" else 1
 
@@ -406,7 +407,7 @@ class ModelRouter:
             # Ленивая инициализация состояния очереди: OFF-путь эти поля не
             # читает; __init__ не трогаем (прежний путь неприкосновенен).
             if not hasattr(self, "_slot_epoch"):
-                self._slot_busy: bool = False
+                self._slot_busy = False
                 self._slot_epoch: int = 0
                 self._waiters: "list[_QueueWaiter]" = []
                 self._waiter_seq: int = 0
@@ -1000,7 +1001,7 @@ class ModelRouter:
 
         if not _settings.replay_record:
             return
-        _store = getattr(self, "_replay_store", None)
+        _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
         if _store is None:
             return
         try:
@@ -1037,7 +1038,7 @@ class ModelRouter:
 
         if not _settings.replay_playback:
             return None
-        _store = getattr(self, "_replay_store", None)
+        _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
         if _store is None:
             raise RuntimeError(
                 "Replay determinism broken: playback mode without replay store "

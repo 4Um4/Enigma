@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, cast
 
 from app.domain.chronicle import ChronicleDocument, EntryKind, EntryProvenance
 
@@ -32,7 +32,7 @@ def _load_lexicon() -> Dict[str, Any]:
     from app.core.config import BASE_DIR
 
     p = BASE_DIR / _LEXICON_PATH
-    return json.loads(p.read_text(encoding="utf-8"))
+    return cast(Dict[str, Any], json.loads(p.read_text(encoding="utf-8")))
 
 
 def _lexicon_index(lex: Dict[str, Any]) -> Dict[str, str]:
@@ -101,6 +101,29 @@ def collect_words(
 def build_report(
     docs_by_npc: Dict[str, ChronicleDocument], campaign: str
 ) -> Dict[str, Any]:
+    # L4-UX: пустой вход = не молчаливый пустой файл, а честный диагноз
+    _has_author_entries = any(
+        e.provenance in _AUTHOR_OK
+        and e.kind in (
+            EntryKind.PORTRET,
+            EntryKind.TRAIT_SEED,
+            EntryKind.BELIEF_SEED,
+            EntryKind.DESIRE_SEED,
+        )
+        for doc in docs_by_npc.values()
+        for e in doc.entries
+    )
+    if not _has_author_entries:
+        return {
+            "campaign": campaign,
+            "total": 0,
+            "records": [],
+            "empty_reason": (
+                "Разборов (Портретов/Черт/Убеждений/Мечт) нет ни у одного NPC. "
+                "Сначала прогони F1 по пунктам историй в редакторе — лампочка "
+                "собирает слова ИМЕННО из разборов."
+            ),
+        }
     """Отчёт: каждое слово → частота, статус (из словаря / НЕТ В ИГРЕ),
     соседи, источники. Детерминирован (sorted)."""
     lex = _load_lexicon()
@@ -127,6 +150,8 @@ def build_report(
 
 
 def render_markdown(rep: Dict[str, Any]) -> str:
+    if rep.get("empty_reason"):
+        return f"# Карта разрывов — {rep['campaign']}\n\n**{rep['empty_reason']}**"
     lines = [
         f"# Карта разрывов языка — кампания «{rep['campaign']}»",
         "",

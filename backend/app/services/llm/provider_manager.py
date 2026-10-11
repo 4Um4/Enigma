@@ -53,6 +53,12 @@ class ModelMetrics:
     vram_usage: int
     last_used: float
 
+    def reset_errors(self) -> None:
+        """COV-2/D61: контракт pool_reset_backoff — метрики не хранят
+        error-состояние (error_count/last_error живут в ModelProvider),
+        сброс = no-op без AttributeError на реальных ModelMetrics."""
+        pass
+
 
 @dataclass
 class ModelConfig:

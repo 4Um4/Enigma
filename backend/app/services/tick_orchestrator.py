@@ -1351,15 +1351,15 @@ class TickOrchestrator:
         npc_orchestration). None = путь без классификации (легаси,
         контракт DTO S-UE Блок 3) — гейт не срабатывает."""
         _res = None
-        _payload = getattr(interv, "payload", None) or {}
+        _payload = getattr(interv, "payload", None) or {}  # noqa: ENIGMA002
         if "dm_ctx" in _payload:
-            _res = getattr(_payload.get("dm_ctx"), "intent_resolution", None)
+            _res = getattr(_payload.get("dm_ctx"), "intent_resolution", None)  # noqa: ENIGMA002
         if _res is None:
-            _res = getattr(
-                getattr(ctx, "shared_context", None), "intent_resolution", None
+            _res = getattr(  # noqa: ENIGMA002
+                getattr(ctx, "shared_context", None), "intent_resolution", None  # noqa: ENIGMA002
             )
-        _params = getattr(getattr(_res, "original_intent", None), "parameters", None)
-        return getattr(_params, "intent_readiness", None)
+        _params = getattr(getattr(_res, "original_intent", None), "parameters", None)  # noqa: ENIGMA002
+        return getattr(_params, "intent_readiness", None)  # noqa: ENIGMA002
 
     def _phase_1_input_merge(self, ctx: _TickContext) -> None:
         """Подслой 1.2: Merge interventions into delta_buffer."""

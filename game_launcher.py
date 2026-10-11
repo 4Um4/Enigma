@@ -516,6 +516,15 @@ def _ensure_servers_running() -> tuple:
     return backend_proc, llm_proc
 
 
+def _launch_chronicle_editor() -> None:
+    """Shift+F7 (вердикт владельца): хроника — авторский инструмент, из
+    видимого списка меню пункт убран; вход — скрытая клавиша. Прецедент
+    _launch_editor: блокирующий запуск, управление возвращается в меню."""
+    from chronicle_editor.chronicle_app import ChronicleEditorApp
+
+    ChronicleEditorApp().run()
+
+
 def _launch_editor() -> None:
     """Запускает редактор карт и возвращает управление после его закрытия"""
     from map_editor.editor_core import EditorCore
@@ -687,6 +696,10 @@ def main() -> None:
             if action == MenuAction.EDITOR:
                 _launch_editor()
                 # После выхода из редактора — пересоздаём поверхность и возвращаемся в меню
+                screen, clock, menu = _init_menu_display()
+
+            elif action == MenuAction.CHRONICLE_EDITOR:
+                _launch_chronicle_editor()
                 screen, clock, menu = _init_menu_display()
 
             elif action == MenuAction.NEW_GAME:

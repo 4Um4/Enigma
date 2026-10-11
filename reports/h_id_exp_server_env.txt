@@ -1,0 +1,2 @@
+ts=2026-10-10 23:17:05 head=a2ba9f23 stage=SPAWN server_pid=1716 ct= port=28184
+stage=SPAWN_VERIFY pid=1716 ct_ok=False cmd_ok=True

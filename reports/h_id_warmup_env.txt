@@ -1,0 +1,1 @@
+ts=2026-10-10 20:46:18 head=6b85b7c9 pair=h_id_warmup attempt=WARMUP KEEP_SERVER=1 DET_TRACE=1 MODULES=<> ENIGMA_SEM_LIB=<> mode=NATIVE-arbiter=goldenA note=procedure-W-not-measurement
