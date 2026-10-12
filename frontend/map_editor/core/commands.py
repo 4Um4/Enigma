@@ -125,7 +125,13 @@ class RemovePassageCommand(Command):
     def undo(self):
         if self.passage_data.get("id"):
             loc = self.dm.locations[self.filename]
-            loc["passages"].append(deepcopy(self.passage_data))
+            # ME-D3: объектные проходы возвращаются в objects, легаси — в passages
+            if self.passage_data.get("type") in (
+                "door", "window", "door_transition", "gap", "hatch",
+            ):
+                loc["objects"].append(deepcopy(self.passage_data))
+            else:
+                loc["passages"].append(deepcopy(self.passage_data))
 
 
 @dataclass

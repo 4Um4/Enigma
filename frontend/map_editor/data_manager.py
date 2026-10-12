@@ -659,6 +659,33 @@ NPC_PRESETS = {
 _OBJ_REQUIRED_KEYS = ("id", "type", "name", "position", "size", "passability", "cover")
 
 
+
+# === ME-D3: проходные типы и триформ-поиск привязки к стене ===
+_PASSAGE_TYPES = ("door", "window", "door_transition", "gap", "hatch")
+
+
+def _object_wall_id(obj: dict) -> Optional[str]:
+    """Триформ-поиск wall_id (ME-D3): root → properties → rotation-строка.
+
+    Данные живут в трёх формах одновременно (перепись S348: tavern — root+props,
+    city_gate/market_square — props+rotation-хак S129, городские ворота — без
+    привязки). Удаление обязано находить привязку в любой форме; нормализация
+    хранения в одну — ME-1.5.
+    """
+    wid = obj.get("wall_id")
+    if isinstance(wid, str) and wid:
+        return wid
+    props = obj.get("properties")
+    if isinstance(props, dict):
+        wid = props.get("wall_id")
+        if isinstance(wid, str) and wid:
+            return wid
+    rot = obj.get("rotation")
+    if isinstance(rot, str) and rot:
+        return rot
+    return None
+
+
 def _validate_location_objects(data: dict, source: str) -> list:
     """Перечень ошибок схемы объектов (пустой список = валидно).
 
@@ -688,6 +715,17 @@ def _validate_location_objects(data: dict, source: str) -> list:
         size = obj.get("size")
         if not isinstance(size, dict) or "w" not in size or "h" not in size:
             errors.append(f"{source}: объект {oid} ({otype}): size без w/h")
+    # ME-D3: ссылка на несуществующую стену = ошибка схемы (дверь пережила удаление стены)
+    wall_ids = {w.get("id") for w in data.get("walls", []) if isinstance(w, dict)}
+    for obj in data.get("objects", []):
+        if obj.get("type") not in _PASSAGE_TYPES:
+            continue
+        wid = _object_wall_id(obj)
+        if wid and wid not in wall_ids:
+            errors.append(
+                f"{source}: объект {obj.get('id')} ({obj.get('type')}): "
+                f"wall_id '{wid}' ссылается на несуществующую стену"
+            )
     return errors
 
 
@@ -1151,11 +1189,9 @@ class DataManager:
             if wall["id"] == wall_id:
                 loc["walls"].pop(i)
                 self.remove_passages_for_wall(filename, wall_id)
-                # Удаляем объекты привязанные к этой стене
+                # ME-D3: триформ-поиск привязки (root/properties/rotation-хак S129)
                 loc["objects"] = [
-                    o
-                    for o in loc["objects"]
-                    if o.get("properties", {}).get("wall_id") != wall_id
+                    o for o in loc["objects"] if _object_wall_id(o) != wall_id
                 ]
                 return True
         return False
@@ -1348,8 +1384,13 @@ class DataManager:
         return passage_id
 
     def remove_passage(self, filename: str, passage_id: str) -> bool:
-        """Удаляет проход по id"""
+        """Удаляет проход по id. ME-D3: проходы живут в objects (S143 FIX);
+        легаси-passages проверяется для совместимости старых данных."""
         loc = self.locations[filename]
+        for i, o in enumerate(loc["objects"]):
+            if o.get("id") == passage_id and o.get("type") in _PASSAGE_TYPES:
+                loc["objects"].pop(i)
+                return True
         for i, p in enumerate(loc["passages"]):
             if p["id"] == passage_id:
                 loc["passages"].pop(i)
@@ -1357,11 +1398,12 @@ class DataManager:
         return False
 
     def remove_passages_for_wall(self, filename: str, wall_id: str) -> int:
-        """Удаляет все проходы привязанные к стене. Возвращает количество удалённых."""
+        """Удаляет всё привязанное к стене (ME-D3: триформ-поиск, objects+легаси)."""
         loc = self.locations[filename]
-        before = len(loc["passages"])
+        before_o, before_p = len(loc["objects"]), len(loc["passages"])
+        loc["objects"] = [o for o in loc["objects"] if _object_wall_id(o) != wall_id]
         loc["passages"] = [p for p in loc["passages"] if p.get("wall_id") != wall_id]
-        return before - len(loc["passages"])
+        return (before_o - len(loc["objects"])) + (before_p - len(loc["passages"]))
 
     # === Управление NPC ===
     def add_npc(
