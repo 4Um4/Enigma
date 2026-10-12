@@ -655,6 +655,42 @@ NPC_PRESETS = {
 }
 
 
+# === ME-D4: обязательная схема объектов локации (fail-loud, AR-ME-3 категория 1) ===
+_OBJ_REQUIRED_KEYS = ("id", "type", "name", "position", "size", "passability", "cover")
+
+
+def _validate_location_objects(data: dict, source: str) -> list:
+    """Перечень ошибок схемы объектов (пустой список = валидно).
+
+    Усечённая запись (food_portion без name/passability/cover) молча проходит
+    загрузку и становится в игре непроходимым препятствием (_PASSABLE_TYPES-
+    фоллбэк game_screen:354). Неизвестный тип = рантайм-сущность, протёкшая
+    в editor-JSON (решение Мастера 2026-10-12: еда — только рантайм).
+    Чтение: громкий перечень (файл остаётся открыт для починки, не падаем
+    на первом же). Запись: write-gate — усечённые данные не покидают редактор.
+    rotation не типизируется: у дверей легально строка wall_id (хак S129).
+    """
+    errors = []
+    for idx, obj in enumerate(data.get("objects", [])):
+        oid = obj.get("id", f"<index {idx}>")
+        otype = obj.get("type", "<нет типа>")
+        if otype not in OBJECT_PRESETS:
+            errors.append(
+                f"{source}: объект {oid}: неизвестный тип '{otype}' "
+                f"(рантайм-архетипы в editor-JSON запрещены)"
+            )
+        for key in _OBJ_REQUIRED_KEYS:
+            if key not in obj:
+                errors.append(f"{source}: объект {oid} ({otype}): отсутствует '{key}'")
+        pos = obj.get("position")
+        if not isinstance(pos, dict) or "x" not in pos or "y" not in pos:
+            errors.append(f"{source}: объект {oid} ({otype}): position без x/y")
+        size = obj.get("size")
+        if not isinstance(size, dict) or "w" not in size or "h" not in size:
+            errors.append(f"{source}: объект {oid} ({otype}): size без w/h")
+    return errors
+
+
 class DataManager:
     """Управляет всеми данными локаций"""
 
@@ -731,6 +767,10 @@ class DataManager:
                         },
                     )
                     self._migrate_to_global_coords(data)
+                    obj_errors = _validate_location_objects(data, f.name)
+                    if obj_errors:
+                        for err in obj_errors:
+                            logger.warning(f"[ME-D4] {err}")
                     self.locations[f.name] = data
             except Exception as e:
                 print(f"⚠️ Ошибка загрузки {f}: {e}")
@@ -916,6 +956,13 @@ class DataManager:
         if not self.locations[filename].get("location_id"):
             inferred_id = filename.replace(".json", "")
             self.locations[filename]["location_id"] = inferred_id
+        obj_errors = _validate_location_objects(
+            self.locations[filename], f"{filename} (save)"
+        )
+        if obj_errors:
+            for err in obj_errors:
+                logger.error(f"[ME-D4] Сохранение заблокировано: {err}")
+            return False
         path = self.base_dir / filename
         with open(path, "w", encoding="utf-8") as f:
             json.dump(self.locations[filename], f, indent=2, ensure_ascii=False)
