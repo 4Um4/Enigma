@@ -17,6 +17,42 @@ CAMPAIGNS_DIR = Path(__file__).parent / "campaigns"
 TEMPLATE_DIR = Path(__file__).parent / "location_templates"
 
 
+# === ME-D1: схема meta campaign.json — ключи-константы (§12.1) и fail-loud валидатор ===
+_KEY_NAME = "name"
+_KEY_DESCRIPTION = "description"
+_KEY_CREATED_AT = "created_at"
+_KEY_MODIFIED_AT = "modified_at"
+_META_REQUIRED_KEYS = (_KEY_NAME, _KEY_DESCRIPTION, _KEY_CREATED_AT, _KEY_MODIFIED_AT)
+
+
+def _validate_campaign_meta(data: object, source: str) -> dict:
+    """Fail-loud валидация meta кампании (ME-D1).
+
+    Тело локации в campaign.json — валидный JSON с ЧУЖОЙ схемой: json.load
+    его пропускает, except не срабатывает, порча маскируется и вечно
+    перезаписывается _update_modified. Требование roadmap: «валидация схемы
+    на записи и на чтении», принцип §0.4 — громкая ошибка, не тихая подстановка.
+    """
+    if not isinstance(data, dict):
+        raise ValueError(
+            f"{source}: campaign.json должен быть JSON-объектом, "
+            f"получен {type(data).__name__}"
+        )
+    missing = [k for k in _META_REQUIRED_KEYS if k not in data]
+    if missing:
+        raise ValueError(
+            f"{source}: campaign.json не является meta кампании — "
+            f"отсутствуют поля {missing} (похоже на тело локации?)"
+        )
+    for key in _META_REQUIRED_KEYS:
+        if not isinstance(data[key], str):
+            raise ValueError(
+                f"{source}: поле '{key}' должно быть строкой, "
+                f"получен {type(data[key]).__name__}"
+            )
+    return data
+
+
 class CampaignManager:
     """Управляет кампаниями — папками с набором локаций"""
 
@@ -48,7 +84,7 @@ class CampaignManager:
                 continue
             try:
                 with open(meta_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
+                    data = _validate_campaign_meta(json.load(f), str(meta_file))
                 loc_dir = d / "locations"
                 loc_count = len(list(loc_dir.glob("*.json"))) if loc_dir.exists() else 0
                 result.append(
@@ -89,12 +125,15 @@ class CampaignManager:
         now = datetime.now().isoformat()
         campaign_dir.mkdir(parents=True)
         (campaign_dir / "locations").mkdir()
-        meta = {
-            "name": name[:70],
-            "description": description[:70],
-            "created_at": now,
-            "modified_at": now,
-        }
+        meta = _validate_campaign_meta(
+            {
+                _KEY_NAME: name[:70],
+                _KEY_DESCRIPTION: description[:70],
+                _KEY_CREATED_AT: now,
+                _KEY_MODIFIED_AT: now,
+            },
+            str(campaign_dir / "campaign.json"),
+        )
         with open(campaign_dir / "campaign.json", "w", encoding="utf-8") as f:
             json.dump(meta, f, indent=2, ensure_ascii=False)
         return True, ""
@@ -112,7 +151,9 @@ class CampaignManager:
             return False, f"campaign.json не найден в {campaign_dir}"
         try:
             with open(meta_file, "r", encoding="utf-8") as f:
-                self.campaign_data = json.load(f)
+                self.campaign_data = _validate_campaign_meta(
+                    json.load(f), str(meta_file)
+                )
         except Exception as e:
             return False, f"Ошибка чтения: {e}"
         self.current_campaign_name = campaign_dir.name
@@ -217,7 +258,8 @@ class CampaignManager:
             return
         meta_file = self.campaign_path / "campaign.json"
         if meta_file.exists():
-            self.campaign_data["modified_at"] = datetime.now().isoformat()
+            _validate_campaign_meta(self.campaign_data, str(meta_file))
+            self.campaign_data[_KEY_MODIFIED_AT] = datetime.now().isoformat()
             with open(meta_file, "w", encoding="utf-8") as f:
                 json.dump(self.campaign_data, f, indent=2, ensure_ascii=False)
 
