@@ -130,7 +130,7 @@ flags:
     read_mode: call
     default: ""
     verdict: ROLLOUT-PENDING
-    adr: COV-2
+    adr: ADR-O-425
     owner: B
     note: "D62 очередь + D61 доктрина обязательной LLM; устанавливать до первого запроса процесса; ON = отдельная приёмка Мастера (доктрина live только после вердикта ON)"
   WORK_ENABLED:
