@@ -1325,6 +1325,22 @@ class DataManager:
         loc["objects"].append(obj)
         return obj_id
 
+    def add_object_full(self, filename: str, data: dict) -> str:
+        """Вставка копии объекта со ВСЕМИ полями (ME-D8).
+
+        PasteCommand раньше пересобирал объект через add_object(type, x, y, w, h)
+        — копия сундука теряла name/sprite/properties/cover и становилась
+        пресетной декорацией. Здесь переносится целый словарь; новый id
+        генерируется, позиция уже смещена вызывающим (editor_core).
+        Привязка к стене (в т.ч. rotation-хак S129) сохраняется verbatim —
+        сироту поймает валидатор ME-D3 при сохранении.
+        """
+        loc = self.locations[filename]
+        obj = deepcopy(data)
+        obj["id"] = self._next_id(loc["objects"], "obj_")
+        loc["objects"].append(obj)
+        return obj["id"]
+
     def remove_object(self, filename: str, obj_id: str) -> bool:
         """Удаляет объект по строковому id"""
         loc = self.locations[filename]

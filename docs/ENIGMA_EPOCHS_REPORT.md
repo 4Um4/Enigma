@@ -1,24 +1,34 @@
-# ДОКЛАД: ПЯТЬ ЭПОХ ЭВОЛЮЦИИ ENIGMA И КАРТА БУДУЩЕГО
+# ДОКЛАД: ВОСЕМЬ ЭПОХ ЭВОЛЮЦИИ ENIGMA И КАРТА БУДУЩЕГО
 
 > **Документ:** Архитектурный доклад об эволюции системы
-> **Версия:** На момент v0.5.3.9.2 (S270+)
-> **Дата:** 2026-08-30
-> **Источник:** `MUTATIONS.md`, `ADR Master Index`, `00_CAUSAL_CONTRACT_v2.0.md`, `ENTITY_CONTINUITY_CONTRACT.md`, TZ-документы из `docs/Почти Актуальные TZ/`
-> **Покрытие:** S04 → S270+ (6 завершённых эпох) + проектирование Эпох 7-11+
+> **Версия:** Актуализировано и верифицировано кодом на V.0.5.4.3.3 (S347)
+> **Дата:** 2026-10 (актуализация S348; базовая редакция — 2026-08-30, v0.5.3.9.2 / S270+)
+> **Источник:** `MUTATIONS.md` (протокол v5.0, МЕТА 230), `ADR Master Index`, `00_CAUSAL_CONTRACT_v3.0.md`, `DTO Registry v9.2`, `ENIGMA_ROADMAP_v4_6.md`, `architecture/flags.yaml`, живое дерево `backend/`
+> **Покрытие:** S04 → S347 (8 завершённых эпох) + дальний горизонт (Эпохи 9–13+)
+> **Протокол верификации этой редакции:** живой IPT **52 passed / 0 failed (0 CRITICAL)**; батарея существования 39 артефактов (Test-Path); 17 семантических код-проверок (Select-String по владельцам законов) — все TRUE; дефолты 5 флагов сверены с `flags.yaml`; единственный писатель `sleep_onset_tick` подтверждён; канон Борко (`config/npc/chronicles/guard_borko.json`) и известный RED подтверждены. Правки против базовой редакции перечислены в §0.1.
 
 ---
 
 ## 0. КОНТЕКСТ ДОКЛАДА
 
-ENIGMA — не игра в обычном смысле. Это **исследовательский артефакт**, развивающийся 300+ сессиями через **каузальную методологию**: каждое архитектурное решение фиксируется как ADR (Architecture Decision Record), каждый инвариант становится контрактом, каждое нарушение контракта — багом. Эволюция разбита на **эпохи** — дискретные фазы, каждая из которых навсегда изменила онтологию проекта.
+ENIGMA — не игра в обычном смысле. Это **исследовательский артефакт**, развивающийся более чем 300 сессиями (S04→S347; 230 строк канонического реестра `MUTATIONS` v5.0) через **каузальную методологию**: каждое архитектурное решение фиксируется как ADR, каждый инвариант становится контрактом, каждое нарушение контракта — багом. Эволюция разбита на **эпохи** — дискретные фазы, каждая из которых навсегда изменила онтологию проекта.
 
 Этот доклад описывает:
-1. **6 завершённых эпох** (S04 → S270+) с конкретными ADR, файлами и инвариантами
-2. **5 будущих эпох** (v7.5 → v11.0+) с проекцией развития
+1. **8 завершённых эпох** (S04 → S347) с конкретными ADR, файлами и инвариантами
+2. **Дальний горизонт** (Эпохи 9–13+) и оперативный мост к нему через roadmap v4.6
+
+### 0.1. Правки против базовой редакции (с причинами)
+
+1. **Границы Эпох 5–7** приведены к канону реестра `MUTATIONS.md` §1 (5 = S142–S217 «Санация и Великая Стена», 6 = S218–S248 «Треки», 7 = S249–S310 «Causal Slices & Living World»).
+2. Добавлена **Эпоха 8 (S311–S347)**: документ-консолидация, приборы причинности (Consumer Gap), финал RE-01 (M2/D, G/H), трек AUTHORING (CCH-0…4), Understanding Engine, LLM-резилиенс (COV-2/D61–D66), двухветвевой режим v4.6.
+3. Бывшие «будущие Эпохи 7–11» перенумерованы в **9–13+** (коллизия с состоявшейся Эпохой 7 устранена).
+4. IPT-базлайн: 45/45 → **52/52** (живой прогон; МЕТА реестра 51/51 — устаревший дрейф, эскалирован Мастеру).
+5. Док-дрейф-фиксы: «ADR-O-330» для Prophecy занят (Spatial Agency Law); ярлыки L11/L11.1 и L12.1/L12.2 выровнены по атласу; ссылки на запреты — на контракт v3.0; генерационная проекция отношений — через SSOT (L13/A-415), не `relationship_cache`; боевая математика — фактический дом `services/game/combat_math.py` (путь в атласе устарел — эскалировано).
+6. Раздел «Истины» пополнен (№6 Consumer Gap, №7 разрыв словаря, №8 честность отказа — с provenance сессий).
 
 ---
 
-# ЧАСТЬ I. ПРОШЛЫЕ ЭПОХИ (S04 → S270+)
+# ЧАСТЬ I. ПРОШЛЫЕ ЭПОХИ (S04 → S347)
 
 ## ЭПОХА 1: КАУЗАЛЬНЫЙ ФУНДАМЕНТ (S04 — S82)
 
@@ -36,50 +46,29 @@ ENIGMA — не игра в обычном смысле. Это **исследо
 
 **Стало:** `body_state["current_hp"]` — единственный SSOT для HP. Бой идёт через `ImpactEngine`, который генерирует `PhysiologyPayload` (hp_delta, pain, shock, injuries). Смерть — через `evaluate_vital_state()`, не через `hp <= 0`.
 
-**Создано:**
-- `backend/app/domain/vital_state.py` — онтология жизненных состояний
+**Создано (существование подтверждено):**
+- `backend/app/domain/vital_state.py` — `evaluate_vital_state()` (:94), `is_conscious()` (:155), `is_capable()` (:230)
 - `backend/app/services/combat/impact_engine.py` — физика удара
 - `backend/app/services/combat/physiology_decay_handler.py` — decay боли/шока
 
-**Инварианты, введённые эпохой:**
+**Инварианты:**
 - **L12: Physiology & Death Lock Law** — `body_state["current_hp"]` SSOT, смерть необратима, decay для мёртвых запрещён
-- **L12.1: D&D 5e Combat Math Law** (базовый — позже расширен в Эпоху 3) — ContactLevel mapping
 
 #### 1.2. SpatialService как единственный владелец графа (ADR-008, ADR-048)
 
-**Было:** `scene_state["player_distances"]`, прямые чтения из `npc_positions`, телепортация через `npc["position"] = new_pos`
+**Стало:** `SpatialFactory.build_for_campaign()` — единственный сборщик графа. `SpatialQueryService` — единственный читатель. `TraversalState` — данные о физическом движении, отделённые от личности NPC.
 
-**Стало:** `SpatialFactory.build_for_campaign()` — единственный сборщик графа. `SpatialQueryService` — единственный читатель. Появился `TraversalState` — данные о физическом движении, отделённые от личности NPC.
+**Создано:** `spatial_factory.py`, `spatial_query_service.py`, `domain/traversal.py` (все подтверждены).
 
-**Создано:**
-- `backend/app/services/spatial/spatial_service.py`
-- `backend/app/services/spatial/spatial_factory.py`
-- `backend/app/services/spatial/spatial_query_service.py`
-- `backend/app/domain/traversal.py` — TraversalState schema
-
-**Инварианты:**
-- **L9: Spatial SSOT & Factory Law** — единый сборщик, единый читатель
-- **L10: Traversal FSM Law** — `SceneStateManager` — единственный владелец lifecycle (PENDING → MOVING → COMPLETED/CANCELLED)
-- **SC-1..SC-8: Spatial Coherence Contract** — `local_position` не (0,0), принадлежит `location_id`, `current_node` существует в graph, и т.д.
+**Инварианты:** **L9: Spatial SSOT & Factory Law** · **L10: Traversal FSM Law** · **SC-1..SC-8: Spatial Coherence Contract**.
 
 #### 1.3. Dual-Time Ontology (ADR-058, ADR-059)
 
-**Было:** `tick += 1` внутри `player.action()`, `time.time()` везде
-
-**Стало:** Разделение симуляционного времени (`game_time_seconds`, целое число, tick) и рендер-времени (wall-clock только для визуальных эффектов). `game_time_seconds` — единственный авторитет.
-
-**Инварианты:**
-- **L2 (частично):** `game_time_seconds` — единственный авторитет времени
-- §14 (позже формализован): Закон Единичного Времени
+`game_time_seconds` — единственный авторитет; рендер-время (wall-clock) — только визуальные эффекты. Позже формализован §14 Устава (Закон Единичного Времени).
 
 #### 1.4. DTO-контракт фронтенда (ADR-TZ03-1)
 
-**Было:** Frontend читал `backend/` напрямую
-
-**Стало:** Backend = единственный источник истины. Frontend = pure renderer. DTO канонизированы. Фронтенду запрещено генерировать время, аватара, журнал.
-
-**Инварианты:**
-- **L15: Frontend Authority Law** — `game_time_seconds +=` во фронтенде запрещён, вычисление manifestations запрещено
+Backend = SSOT. Frontend = pure renderer. **L15: Frontend Authority Law.**
 
 ### Итоги Эпохи 1
 
@@ -88,8 +77,6 @@ ENIGMA — не игра в обычном смысле. Это **исследо
 | Сессий | ~78 (S04-S82) |
 | Введённых ADR | ~50 (ADR-001 до ADR-082) |
 | Главных контрактов | 4 (L9, L10, L12, L15) |
-| Главных инвариантов | 12 (SC-1..SC-8, body_state SSOT, Death Lock, Dual-Time) |
-| Созданных файлов | ~150 (spatial/, combat/, models/...) |
 
 **Эпоха 1 превратила ENIGMA из RPG-sketch в симуляцию с честной физикой и централизованным пространством.**
 
@@ -99,186 +86,57 @@ ENIGMA — не игра в обычном смысле. Это **исследо
 
 **Девиз:** «Превращение ядра в чистую функцию, изоляция LLM, детерминизм»
 
-### Контекст
+#### 2.1. Уничтожение ветвления player/idle (ADR-TZ08-1, TZ09-1, TZ10-1)
 
-После Эпохи 1 физика стала честной, но **ядро было ветвистым**: `if dm_ctx: ... else: player.action: ...`. Подсистем было много, и они могли вызывать LLM в любой точке пайплайна. Random был везде. L3 (EffectiveDrives) кэшировался, нарушая эфемерность.
+Ядро не знает 'player'/'dm_ctx'. `TickState` (domain/tick.py:149) — immutable snapshot; `TickMutation` (:231) — выход. `NpcTickPipeline.run()` — чистая функция. **L1: State Mutation Law** (`Phase8Result → delta_buffer → StateApplicator.apply_batch()`), **L2: Runtime Purity Law**.
 
-### Главные архитектурные сдвиги
+#### 2.2. KernelRNG (ADR-O-301)
 
-#### 2.1. Уничтожение ветвления player/idle (ADR-TZ08-1, ADR-TZ09-1, ADR-TZ10-1)
+`KernelRNG(tick, npc_id, salt)` — детерминированный (`kernel_rng.py:43`, seed из `f"{tick}:{npc_id}:{salt}"`). `random.*` в kernel layer запрещён; `DecisionHub()` без `rng` — нарушение.
 
-**Было:** `TickOrchestrator.execute(dm_ctx=...)` — особый путь для DM; `execute(player_action=...)` — особый путь для игрока; `execute(idle=True)` — особый путь для мира. Три ветки, три кодовых пути.
+#### 2.3. L1Chronicle и эфемерность L3 (ADR-O-208, L3-P1)
 
-**Стало:** Ядро не знает 'player' или 'dm_ctx'. Только `InterventionEvent` — унифицированный вход. `TickState` — immutable snapshot входных данных. `TickMutation` — выходной результат. `NpcTickPipeline.run(state: TickState) -> TickMutation` — чистая функция.
+L1Chronicle — append-only SQLite (`TraitDriftEvent`). L3 (`EffectiveDrives`) — эфемерная проекция, кэширование запрещено. **L17: Identity Pipeline Law.** Append-only подтверждён кодом: `INSERT INTO l1_chronicle_archive`, `DELETE FROM` отсутствует (запрет №28 держится).
 
-**Создано:**
-- `backend/app/domain/tick.py` — TickState, TickMutation
-- `backend/app/services/npc/npc_tick_pipeline.py` — pure reducer
-- `backend/app/contracts/interventions.py` — InterventionEvent
+#### 2.4. Epistemic Boundary (ADR-TZ08-4/6, ADR-093)
 
-**Инварианты:**
-- **L1: State Mutation Law** — единственный путь мутации: `Phase8Result → delta_buffer → StateApplicator.apply_batch()`
-- **L2: Runtime Purity Law** — тик = чистая функция, `random.*` запрещён, `time.time()` запрещён, параметр `svc: Any` запрещён
-
-#### 2.2. KernelRNG: полная изоляция случайности (ADR-O-301)
-
-**Было:** `random.choice(...)` в combat, `random.randint(...)` в decision_hub, `random.Random()` в movement
-
-**Стало:** `KernelRNG(tick, npc_id, salt)` — детерминированный генератор. Все random в kernel layer — нарушение контракта. Replay даёт идентичный результат.
-
-**Создано:**
-- `backend/app/services/npc/kernel_rng.py`
-
-**Инварианты:**
-- **L2 (расширение):** `random.*` запрещён в kernel layer; `DecisionHub()` без `rng` — нарушение; `KernelRNG` без `salt` — нарушение
-
-#### 2.3. L1Chronicle и эфемерность L3 (ADR-O-208, ADR-O-211, L3-P1)
-
-**Было:** L3 (EffectiveDrives) кэшировался в `drives_runtime`. Identity = state. State перезаписывался каждый тик. Память была stateful, не исторической.
-
-**Стало:** L1Chronicle — append-only SQLite история деформаций личности. Каждое давление мира на NPC записывается как `TraitDriftEvent(tick_id, target_id, source_id, effect_value, observation_weight, event_type)`. L3 (`EffectiveDrives`) — строго эфемерная проекция (L0 + L2.5 beliefs), рождается и умирает в тик. Кэш L3 = рассинхрон идентичности.
-
-**Создано:**
-- `backend/app/services/npc/l1_chronicle.py` (337 строк, SQLite)
-- `backend/app/domain/identity_events.py` — `TraitDriftEvent`, `EffectiveDrives`
-- `backend/app/services/npc/drive_resolver.py` — L3 projection
-
-**Инварианты:**
-- **L17: Identity Pipeline Law** — L1Chronicle append-only, L3 эфемерен, `CalibrationEngine` не мутирует L0
-- **L3-P1:** Кэширование EffectiveDrives запрещено
-
-#### 2.4. Epistemic Boundary (ADR-TZ08-4, ADR-TZ08-6, ADR-093)
-
-**Было:** DM-agent читал `stress_delta`, `real_state`, `recalled_facts` — ментальные объекты NPC. Ядро возвращало `dm_frame` — гибрид наблюдаемого и ментального.
-
-**Стало:** DM-agent — строгий локальный наблюдатель. Читает только `observed_state` и `embodied_traces`. Нарратив рождается из наблюдаемых действий, не из сырых ментальных полей.
-
-**Создано:**
-- `backend/app/services/offscreen/world_projection_buffer.py` — pure function projection
-- `backend/app/domain/observed_facts.py`, `observed_fact.py`
-- `backend/app/domain/embodied_trace.py`
-
-**Инварианты:**
-- **L16: Epistemic Boundary Law** — чтение `stress_delta`, `real_state`, `recalled_facts` в DM-слое запрещено
+DM-agent — строгий локальный наблюдатель: только `observed_state` + `embodied_traces`. **L16: Epistemic Boundary Law.**
 
 ### Итоги Эпохи 2
 
-| Метрика | Значение |
-|---------|----------|
-| Сессий | ~22 (S83-S104) |
-| Введённых ADR | ~25 (TZ-серия, O-200..O-302) |
-| Главных контрактов | 5 (L1, L2, L16, L17, L3-P1) |
-| Главных инвариантов | 8 (Purity, KernelRNG, L3-ephemeral, Epistemic Boundary, ...) |
-| Главных файлов | ~30 (tick.py, npc_tick_pipeline.py, kernel_rng.py, l1_chronicle.py, ...) |
+~22 сессии; ~25 ADR; контракты L1, L2, L16, L17, L3-P1.
 
 **Эпоха 2 превратила ENIGMA в детерминированную чистую функцию с эпистемически честным наблюдателем.**
 
 ---
 
-## ЭПОХА 3: КРИСТАЛЛИЗАЦИЯ ИДЕНТИЧНОСТИ И ЭПИСТЕМИКА (S105 — S125)
+## ЭПОХА 3: КРИСТАЛЛИЗАЦИЯ ИДЕНТИЧНОСТИ (S105 — S125)
 
-**Девиз:** «L2.5 (Убеждения), Тройная Мембрана, замыкание каузальности потребностей»
+**Девиз:** «L2.5 (Убеждения), Тройная Мембрана, физически честное движение»
 
-### Контекст
+#### 3.1. BeliefCrystallizationEngine и асимметричная травма (ADR-O-305/306/307)
 
-После Эпохи 2 идентичность NPC была исторической (L1Chronicle), но **не интерпретирующей**. L1 накапливал события, но не было механизма, превращающего статистику в убеждения. NPC не мог "верить", что игрок предатель — он мог только накапливать evidence.
-
-Также не было **каузальной трубы потребностей**: NPC могли иметь потребности, но не было закона, что потребность рождается только из каузального входа.
-
-### Главные архитектурные сдвиги
-
-#### 3.1. BeliefCrystallizationEngine и асимметричная травма (ADR-O-305, ADR-O-306, ADR-O-307)
-
-**Было:** Trust как скаляр. `trust += 5` за хороший поступок, `trust -= 5` за плохой. Симметрично, без психологии.
-
-**Стало:** Трёхслойная модель:
-- **L1 (Факты)** — `TraitDriftEvent` в L1Chronicle
-- **L1.5 (PatternDetector)** — чистая статистика: cumulative_effect, behavior_variance. Запрещены психологические поля (`trait`, `emotion`)
-- **L2.5 (Belief Engine)** — психологическая проекция статистики. `CrystallizedBelief` — это **линза** (модификатор весов), не ген (скаляр)
-
-**Асимметричная травма ×6:** Опровержения ранят сильнее подтверждений. Если NPC верил, что игрок друг, и игрок предал — belief кристаллизуется с ×6 multiplier. Это модель cognitive dissonance из психологии, не game design.
-
-**Создано:**
-- `backend/app/services/npc/pattern_detector.py` (L1.5)
-- `backend/app/services/npc/belief_crystallization_engine.py` (L2.5)
-- `backend/app/services/npc/crystallized_belief_store.py`
-- `backend/app/models/npc/beliefs.py`
-
-**Инварианты:**
-- **L18: Belief Crystallization Law** — `PatternDetector` чистая статистика, `Belief Engine` психологическая проекция, асимметричная травма ×6, чтение L1 только через `EvidenceOfPersistence`
+Трёхслойная модель: L1 (факты) → L1.5 (PatternDetector — чистая статистика) → L2.5 (Belief Engine — психологические линзы). **Асимметричная травма ×6** — подтверждена кодом: `TRAUMA_MULTIPLIER: float = 6.0` (`belief_crystallization_engine.py:17`, применения :96, :130) + авторитетный тест (`SUPERBOX/causal_validation.py`). **L18: Belief Crystallization Law.**
 
 #### 3.2. Тройная Мембрана (ADR-O-306)
 
-**Было:** Все события L1 одинаково важны. NPC "помнил" всё, что происходило.
+Физическая / Личностная / Социальная мембраны с norm-modulated порогами фильтруют L1. **L14: Epistemic Memory Law** — память не генерирует идентичность без каузального входа.
 
-**Стало:** L1Chronicle фильтруется через **Triple Membrane** перед PatternDetector:
-1. **Физическая мембрана** — был ли NPC физически способен воспринять событие? (расстояние, LoS, слышимость)
-2. **Личностная мембрана** — соответствует ли событие personality NPC? (rigidity, openness)
-3. **Социальная мембрана** — проходит ли событие через социальные фильтры? (статус, отношения, нормы)
+#### 3.3. Entity Continuity (ADR-O-315/316/317/320/321)
 
-Каждая мембрана имеет norm-modulated пороги. Если событие не прошло одну из мембран — оно не записывается в L1.
+L0 (`CoreOrientation`) неизменен; `Identity Pressure Vector` эфемерен; `life_project` — FSM. **L20: LifeProject & Agency Model Law.**
 
-**Инварианты:**
-- **L18 (расширение):** Triple Membrane как обязательный фильтр L1
-- **L14: Epistemic Memory Law** — память не генерирует идентичность без каузального входа
+#### 3.4. Embodied Traversal (ADR-S90.1, S91, O-324, O-329)
 
-#### 3.3. Entity Continuity (ADR-O-315, ADR-O-316, ADR-O-317, ADR-O-320, ADR-O-321)
+Geometry Kernel, Z-физика, Clearance, Dynamic Doorway Routing, ETKE-IK (`DriveVector`). **L11: Spatial Agency Law** (Decision Layer не генерирует `target_node_id`) · **L11.1: Hybrid Geometry & Stigmergy Law** (микро ≠ `MovementIntent`).
 
-**Было:** NPC имел статичные traits. `identity_crisis` — скаляр. `life_project` — захардкожен.
+#### 3.5. Combat RNG: D&D 5e (ADR-164)
 
-**Стало:** `Reality-Constrained Agency Model`:
-- **L0 (`CoreOrientation`)** — неизменен (базовая личность)
-- **Layer 2: `Identity Pressure Vector`** — эфемерный вектор (prediction_error, self_model_conflict, social_reflection_delta, value_violation)
-- **L2.7 (`life_project`)** — динамический FSM, управляемый Pressure Vector
-- **Anti-Script Constraint** — сценарии не могут напрямую задавать решения агента, если есть внутренняя причинная цепь
-
-**Создано:**
-- `backend/app/services/npc/life_project_resolver.py`
-- `backend/app/services/npc/break_progress_engine.py`
-- `docs/ENTITY_CONTINUITY_CONTRACT.md` (5 слоёв непрерывности)
-
-**Инварианты:**
-- **L20: LifeProject & Agency Model Law** — мгновенная смена `life_project` запрещена, бусты в стадиях `LOST`/`SEARCHING` запрещены, скалярный `identity_crisis` запрещён
-
-#### 3.4. Embodied Traversal (S130-S132, ADR-S90.1, ADR-S91, ADR-O-324, ADR-O-329)
-
-**Было:** A* по узлам графа — примитивная навигация. NPC не мог обойти препятствие, не мог прыгнуть, не мог протиснуться.
-
-**Стало:** `LocalTraversalPlanner` + `Geometry Kernel`. Движение определяется физической геометрией:
-- **Z-координата** — честная физика прыжка
-- **Clearance** — зазоры (NPC не пролезет в щель < своего размера)
-- **Dynamic Doorway Routing** — геометрическая валидация сегментов пути, не слепое доверие графу
-- **ETKE-IK** — микро-перемещения через `DriveVector` (velocity), отдельно от макро-путей через `MovementIntent`
-
-**Создано:**
-- `backend/app/services/spatial/local_traversal_planner.py`
-- `backend/app/services/spatial/geometry_kernel.py`
-- `backend/app/services/spatial/traversability_evaluator.py`
-- `backend/app/services/motion/motion_pipeline.py`
-- `backend/app/domain/motion_core.py`
-
-**Инварианты:**
-- **L11: Hybrid Geometry & Stigmergy Law** — `MovementIntent` для микро запрещён, `DynamicAffordanceField` хранит структурные деформации
-- **L11.1: Spatial Agency Law** — Decision Layer не генерирует `target_node_id`, только `SpatialTargetIntent`
-
-#### 3.5. Combat RNG: D&D 5e с детерминизмом (ADR-164)
-
-**Было:** Custom формулы урона, нарушение KernelRNG в combat
-
-**Стало:** `combat_math.py` с D&D 5e rules (`attack_roll`, `damage_roll`) через `KernelRNG`. `ImpactEngine._resolve_contact` переведён на `attack_roll`. Результаты (Hit/Miss/Crit) маппятся на `ContactLevel` (MISS, GLANCING, PARTIAL, SOLID, PERFECT).
-
-**Инварианты:**
-- **L12.1: D&D 5e Combat Math Law** — вычисление попадания внутри `impact_engine.py` запрещено, legacy-формулы запрещены
+`attack_roll`/`damage_roll` живут в **`services/game/combat_math.py`** (:189, :257 — подтверждено); `ImpactEngine` только потребляет (:49–79). **L12.2: D&D 5e Combat Math Law** — вычисление попадания в `impact_engine` запрещено (соблюдено).
 
 ### Итоги Эпохи 3
 
-| Метрика | Значение |
-|---------|----------|
-| Сессий | ~21 (S105-S125) |
-| Введённых ADR | ~15 (O-305..O-329, S90.1, S91) |
-| Главных контрактов | 5 (L11, L11.1, L18, L20, L12.1) |
-| Главных инвариантов | 10+ (Belief ×6, Triple Membrane, Anti-Script, SC-1..SC-8, ...) |
-| Главных файлов | ~25 (belief_*, pattern_*, geometry_*, motion_*, ...) |
+~21 сессия; ~15 ADR; контракты L11, L11.1, L14, L18, L20, L12.2.
 
 **Эпоха 3 превратила ENIGMA в систему с психологически правдоподобной идентичностью и физически честным движением.**
 
@@ -288,520 +146,211 @@ ENIGMA — не игра в обычном смысле. Это **исследо
 
 **Девиз:** «5-слойная архитектура Reality → Observable Physics → Perception, World Continuity»
 
-### Контекст
-
-После Эпохи 3 NPC имел богатую внутреннюю жизнь (L1Chronicle, beliefs, life_project), но **наблюдатель не мог её видеть честно**. UI либо показывал ментальные состояния (telepathy), либо показывал ничего. Также не было связи между кампаниями — каждая кампания начиналась с чистого листа.
-
-### Главные архитектурные сдвиги
-
 #### 4.1. 5-слойная архитектура восприятия (Presentation v2.0)
 
-**Было:** DM-agent видел `psyche` и `social_stats`. UI показывал `fear_level: 0.7`. Телепатия.
+Reality → Observable Physics → Embodied Traces → Perception → Phenomenology. `ManifestationDTO.tags` — НЕ эмоции (tense/rigid/trembling, не fearful/anxious); DTO живёт в `domain/snapshot.py:172` (Registry §9, подтверждено).
 
-**Стало:** 5 слоёв:
-1. **Reality** — объективные факты мира (недоступны наблюдателю напрямую)
-2. **Observable Physics** — физические проявления (поза, голос, движение)
-3. **Embodied Traces** — `EmbodiedTraceDTO` с `confidence` и `possible_causes`
-4. **Perception** — что наблюдатель воспринял (фильтруется через PerceptualKernel)
-5. **Phenomenology** — финальная проекция для UI/DM
+**Инварианты:** **L8: CFRM & Somatic Gate Law**; CAUSAL_CONTRACT v3.0, запреты №18 (телепатия в UI) и №23 (показ эмоций).
 
-**Принцип:** Скрытая травма (хромота) порождает наблюдаемое поведение без утечки ментальных стейтов. `ManifestationDTO.tags` — НЕ эмоции (`fearful`, `anxious`), а моторные проявления (`tense`, `rigid`, `trembling`, `limping`).
+#### 4.2. World Continuity — `WorldStateDiff`/`WorldStateApplicator`, наследие мира между кампаниями.
 
-**Создано:**
-- `backend/app/services/perception/perception_projector.py`
-- `backend/app/services/perception/perceptual_attention_service.py`
-- `backend/app/services/perception/perception_physics_engine.py`
-- `backend/app/services/perception/phenomenology_projection_service.py`
-- `backend/app/services/perception/manifestation_physics_engine.py`
-- `backend/app/services/perception/behavior_manifestation_service.py`
-- `backend/app/services/perception/inference_engine.py`
-- `backend/app/services/perception/fact_extractor.py`
-- `backend/app/services/perception/presentation_assembler.py`
+#### 4.3. UI/UX — журнал-вкладки, Eavesdrop, mood-иконки из observables; `presentation_firewall.py` (подтверждён).
 
-**Инварианты:**
-- **L8: CFRM & Somatic Gate Law** — тело как фильтр восприятия, эмоции конвертируются только в моторные проявления
-- **CAUSAL_CONTRACT §4.3.18:** Передача Игроку информации о внутренних состояниях NPC запрещена
-- **CAUSAL_CONTRACT §4.3.23:** Показ fearful, anxious запрещён — только tense, rigid
-
-#### 4.2. World Continuity (ADR-O-330+)
-
-**Было:** Каждая кампания — независимая. Смерть NPC в кампании A не влияла на кампанию B.
-
-**Стало:** Опция наследия мира между кампаниями:
-- `WorldStateDiff` — diff между двумя состояниями мира
-- `WorldStateApplicator` — применяет diff к новой кампании
-- Мёртвые NPC из предыдущей кампании остаются мёртвыми
-- Изменения в фракциях переносятся
-
-**Создано:**
-- `backend/app/services/state/world_diff_builder.py`
-- `backend/app/services/state/world_diff_applicator.py`
-- `backend/app/models/world_state_diff.py`
-- `backend/app/models/world_continuity.py`
-
-#### 4.3. UI/UX: Журнал, Eavesdrop, Mood-иконки
-
-**Было:** Линейный журнал. Mood-иконки из эмоций.
-
-**Стало:**
-- Журнал переведён на вкладки (по темам, по NPC)
-- Механика подслушивания (Eavesdrop) — игрок может слышать разговор NPC-NPC, если физически близко
-- Mood-иконки рисуются строго из наблюдаемых проявлений (`ManifestationDTO.tags`), не из эмоций
-
-**Создано:**
-- `frontend/narrative_renderer.py`
-- `frontend/narrative_beat.py`
-- `frontend/presentation_firewall.py` — фильтр телепатии на фронте
-- `frontend/perceptual_momentum.py` — визуальная инерция камеры
-
-#### 4.4. Pipeline Repair: исчезновение имени NPC после idle_tick
-
-**Было:** После `idle_tick` имя NPC пропадало из `npc_positions`. Fuzzy matching слеп. `ObediencePressure = 0`.
-
-**Стало:** Обновление `confidence` перенесено в pre-commit (Фаза 10). Имя переживает idle_tick.
+#### 4.4. Pipeline Repair — имя NPC переживает idle_tick (confidence-обновление в pre-commit).
 
 ### Итоги Эпохи 4
 
-| Метрика | Значение |
-|---------|----------|
-| Сессий | ~16 (S126-S141) |
-| Введённых ADR | ~10 (преимущественно O-325..O-330) |
-| Главных контрактов | 2 (L8 расширение, World Continuity) |
-| Главных инвариантов | 8 (5-layer perception, manifest-only, eavesdrop, ...) |
-| Главных файлов | ~15 (perception/*, world_diff_*, narrative_*) |
+~16 сессий; ~10 ADR.
 
-**Эпоха 4 превратила ENIGMA в систему с эпистемически честной презентацией для игрока и DM-агента.**
+**Эпоха 4 сделала презентацию эпистемически честной для игрока и DM-агента.**
 
 ---
 
-## ЭПОХА 5: САНАЦИЯ И ОЧИСТКА ДОЛГОВ (S142 — S147)
+## ЭПОХА 5: САНАЦИЯ И ВЕЛИКАЯ СТЕНА (S142 — S217)
 
-**Девиз:** «Устранение магических чисел, TODO/FIXME, финальная типизация, V8.x Closure»
+**Девиз:** «От MVP-стабилизации — через Стену исполняемых инвариантов — к эпистемическому ядру и Vertical Slice»
 
-### Контекст
+#### 5.1. Санация и V8.x Closure (S142-S147)
+S142 (34 TODO, магические числа), S143 (Self-Healing L0-2,7), S144 (V8.3: 40+ MVP-блокеров; L1Chronicle проброшен через конвейер), S145 (Dialogue Threads; No STM = No LLM), S146 (V8.6: 17 MEDIUM/LOW), S147 (Workplace Affordance, ADR-O-326).
 
-После Эпох 1-4 архитектура была сложной, но в коде накопился долг: магические числа, дубликаты, мёртвый код, TODO маркеры, нарушение типизации. Также MVP-функционал (мини-игра "Серебряный Волк", секреты Люси) требовал доводки.
+#### 5.2. Великая Стена (S148-S156)
+**S154: CAUSAL_CONTRACT v2.0 + 11 AST-линтеров + 4 runtime-пробы** — инварианты стали исполняемыми. S148 Body Topology, S149 DriftLab v2 + PBT + Probes, S151 INV-TRAV-ZOMBIE, S152 INV-DEATH-LOCK, S155 ADR-Net, S156 Replay Core.
 
-### Главные архитектурные сдвиги
+#### 5.3. UI-эпистемическая серия (S157-S175)
+PerceivedNarrative/Manifestation DTO (S158), AuditoryDistortionPolicy (S159), UI Doctrine (S160), журнал «Наблюдения → Гипотезы → Факты» (S166), манифестации вместо эмоций (S168), «эффект незнакомца» (S169), Visual Casting (S174b/S175).
 
-#### 5.1. Санация (S142)
+#### 5.4. Cardinality Sprint (S176-S186)
+ADR-O-344..O-352: WorldTick Temporal Ownership, Pure Reducer, Entity Cardinality, Causal Ordering, Semantic Pipeline, FSM Terminality, Replay Determinism, Load Integrity; S186 Foundation Fortification.
 
-- Очищено 34 пустых маркера `TODO:`
-- Магические числа из `BreakProgressEngine` вынесены в `constants.py`
-- Устранено дублирование цветовой схемы фронтенда (`ui_theme.py`)
-- `SocialEngine` начал честно получать `player_distances` от `SpatialQueryService`
+#### 5.5. EPISTEMIC CORE — Proposition Layer (S187-S201)
+**Главный онтологический сдвиг эпохи.** SUPERBOX-001 (S187) доказал слепоту к содержанию речи; SUPERBOX-002..013 построили Epistemic Core:
 
-#### 5.2. S143: ENIGMA SELF-HEALING (Уровни 0-2, 7)
+```text
+Communication → ClaimEvent → Proposition → BeliefRevisionEngine
+  → EpistemicStore → EpistemicContextResolver → DecisionHub
+```
 
-Внедрена система защиты от тихих отказов:
-- **Уровень 0:** IPT — Invariant Probe Tests (запуск до коммита)
-- **Уровень 1:** `MvpTavernController` подписан на `TICK_COMPLETED` (N2/M-03)
-- **Уровень 2:** `TruthState` получил `discovered_secrets`, `ActionCompiler` отмечает секреты и применяет delta к фракциям
-- **Уровень 7:** `/api/health` telemetry dashboard для мониторинга
+Примитивы подтверждены кодом: `Proposition`/`ClaimEvent`/`EpistemicRecord`/`EpistemicContext` (`domain/epistemology.py:76/108/123/137`). **Modifier Contract v1 (ADR-O-354/355):** аддитивность, коммутативность, изоляция. S199 Trust-Based Reliability (O-357; инлайн-провайдер удалён S206); S200-S201 Player Epistemic Closure (O-358) — подтверждено: `max(0.0)`-guard на create+update (`belief_revision_engine.py:70-86`), табу `== "player"` в подписчике отсутствует (инвертированная проверка — пусто). Arch-Sleep (S189, O-356).
 
-Фиксы:
-- N4: `NameError` в `_fallback_to_astar`
-- N7: zombie traversal
-- N3: ambient routing dead code
-- N6: dup method
-
-#### 5.3. S144: ENIGMA V8.3 DAY 1-4 + END-SCREEN FIX (40+ bugs)
-
-Закрыты все Critical MVP blockers:
-- **V8-SP-1/2** — Spatial blockers (NPC не двигаются)
-- **V8-PSY-1..5** — Psychology pipeline (L1Chronicle, L3 cascade, belief pipeline)
-- **V8-MEM-1..3** — Memory (STM, L2 Memory, dialogue consolidation)
-- **V8-SOC-1/3/4** — Social (NPC↔NPC consequences, SocialDeltaEngine normalization)
-- **V8-FC-01/02** — FastAPI двойной префикс `/api/api/`, exit trigger
-
-**L1Chronicle проброшен через весь конвейер:** `TickState → NpcTickPipeline → StateApplicator`. Trauma pipeline, L3 Identity cascade, belief pipeline, attack windup — оживлены.
-
-#### 5.4. S145: ENIGMA DIALOGUE THREAD SYSTEM
-
-Внедрена структурная память диалогов:
-- BUG-DL-01: Реплика игрока доходит до STM целевого NPC
-- BUG-DL-08: STM не стирается при ходьбе внутри локации
-- BUG-DL-02: `DialogueExecutor` инжектит STM-блок для NPC↔NPC
-- BUG-DL-03: DM-агент получает targeted STM
-- BUG-DL-05: Per-pair sessions (ключ `campaign:npc:partner`)
-- BUG-DL-04: `thread_id` для многотоповых диалогов
-- BUG-DL-06: Отложенная запись реплик в `narrative_cache`
-- BUG-DL-07: Суммаризация диалога в EventMemory при очистке
-- BUG-DL-12: TTL реплик переведён на `game_time_seconds`
-
-**Hard Contract:** запрет на вызов LLM без STM (кроме greeting/approach).
-
-**Инварианты:**
-- **INV-DIALOGUE-STM** добавлен в IPT
-
-#### 5.5. S146: ENIGMA V8.6 CLOSURE (Days 3-5)
-
-Закрыты 17 MEDIUM/LOW багов из контракта v8.6:
-- **Spatial Day 3:** V8-SP-23 (boundary nodes не перетирают `location_id`), V8-SP-24 (micro_snap deadlock), V8-SP-25 (геометрия market_square + adjacency reciprocity), V8-SP-26 (`reinit_campaign` сбрасывает все кэши), V8-SP-28 (boundary_map actual coords), V8-ED-5
-- **Will/Avatar Day 4:** V8-WL-6 (`player_pressure` SSOT восстанавливает ADR-031), V8-WL-7/8/9 (безопасная загрузка аватара, полная персистенция FSM state)
-- **Cleanup Day 5:** V8-MEM-16 (race condition `_identity_cache` через `threading.RLock`), V8-SOC-8 (удаление мёртвых event types), V8-DLG-15/16, V8-MVP-23
-
-#### 5.6. S147: WORKPLACE AFFORDANCE CONTRACT (ADR-O-326)
-
-**Было:** NPC "работали" в произвольных местах, без привязки к миру.
-
-**Стало:** Привязка действий NPC к точкам мира через теги `workplace:<npc_id>`:
-- В `NodeRole` добавлены `GUARD_POST`, `DARK_CORNER`, `SERVING_STATION`, `KITCHEN_COUNTER`, `INN_DESK`
-- В `role_resolver` внедрён приоритет `editor_tags` над keywords
-- В `life_engine._resolve_position` поиск персонального рабочего места через `filters=[workplace:npc_id]` с fallback на роль
-- MAP EDITOR UPGRADE: валидация `_VALID_ROLES`, метод `update_node`, диалог редактирования узла, `SimpleNodeUpdateCommand` для Undo/Redo
-
-**Cross-loc materialize fix:** В `event_compiler` добавлена обработка `cross_loc_materialize` (ThickSceneChange с BoundaryResolution), устраняющая дрейф D (Causal Drift) при пересечении границ локаций.
+#### 5.6. Stage 0/1, Ownership, Vertical Slice (S202-S217)
+S209 Intent.STEAL (ADR-O-362; `_INTENT_EVENT_MAP["steal"] → EventType.THEFT` подтверждён, `intent_event_adapter.py:35`); S211 EPISTEMIC_DISPOSITIONS + ACCUSE-гейт; **S212 Stage 0+1** (Foundation Freeze, Causal Spine, Write Guards, ADR-SSOT-EPISTEMIC/ECONOMIC; DriftLab 0.0%); S213 Calibration Lab (O-361); **S214 ФИНАЛ Vertical Slice «Тень и золото»** (SUPERBOX-GORAN 12/12 — мотив→кража→свидетельство→вера→речь→вера игрока→ACCUSE→последствия, без инъекций); S215-S216 Commitment Registry + Arbitration (O-363); S217 LLM Model Manager.
 
 ### Итоги Эпохи 5
 
+~72 сессии; ~35 ADR; артефакты: IPT-фреймворк, SUPERBOX-001..015, DriftLab, Replay, ADR-Net, Vertical Slice.
+
+**Эпоха 5 превратила ENIGMA в самообороняющуюся систему с доказанной эпистемической причинностью и первым сквозным доказательством агентности.**
+
+---
+
+## ЭПОХА 6: ТРЕКИ (S218 — S248)
+
+**Девиз:** «Домены получают владельцев: RE-01, Body, W-TRACK, AG1»
+
+- **Stage 2A:** S219 Traversal Ownership + INTERRUPT; S223 Task/Windup/Sleep Ownership + Arbiter-INTERRUPT (O-365; `domain/tasks.py` удалён — uuid4-причина смерти).
+- **RE-01:** M0 (S224, O-369: 45 узлов, 20 событий, запреты №1–35, линтер) → M1a (S228, O-370: RelationshipStateStore, single-writer) → M1b (S231/S234/S246: cutover — V2 RAM-authoritative).
+- **Body 2B:** S227-S236 — Energy/Hydration/Nutrition/Fatigue (O-373), coupling-предикаты, `sleep_onset_tick` = ФАКТ (O-375; единственный писатель подтверждён: `sleep_lifecycle_service.py:71` — единственное присваивание по backend).
+- **W-TRACK:** W0 (S226), W1 (S230, O-371), W3 FSM (S237, O-376), G2 (S239, O-378).
+- **AG1:** Фаза A + E1/E2.0 (S238, O-377), B0-CLOSED (S243, O-379/380 — guard'ы PK/Beliefs), **BC-1** (S247, O-381: EXPERIENCE→CONCLUSION; `ConclusionStore.apply` — write-path подтверждён, `conclusion_store.py:30/56`).
+- **Lab M1** (S220-S222, O-367); стабилизация: mypy --strict spatial 79→0, print()→logger 36→0.
+- **Forensic:** S240-S248 (anti-writer B1.4 RED×8, дедлок LLM-роутера RE-D2, пусто-текстовые речи).
+
+### Итоги Эпохи 6
+
+~30 сессий; ~17 ADR; RE-01 V2 RAM-authoritative; BC-1 dormant (подтверждено: `BC1_ENABLED default ""` = OFF, ROLLOUT-PENDING).
+
+**Эпоха 6 превратила домены в треки с владельцами, контрактами и tombstone-онтологией.**
+
+---
+
+## ЭПОХА 7: CAUSAL SLICES & LIVING WORLD (S249 — S310)
+
+**Девиз:** «Причинные срезы, железная река детерминизма, живой мир и CognitionContext»
+
+- **State Consumer Gap (S249-S250):** GC-09A GREEN + Embodied Constraint RED («state exists ≠ state has consequence») → ADR-O-383 pressure_translator за сессию. Паттерн «RED = находка» стал каноном.
+- **Речевой/социальный контур (S253-S259):** O-385/387/389/390/392; PlayerSpeechClaim (S255); WORK Vertical Slice (S256, O-391).
+- **IRON RIVER (S260-S261):** 4 P0-брейкера; детерминизм причинного контура **кросс-процессный** (A/B 3×MATCH). S269: DriftLab → научный инструмент, Epoch seal 10k×2 MATCH.
+- **CAUSAL SLICES R5-R8:** `DesiredChange` — причинно определённое изменение ДО выбора способа. REASON-каскад подтверждён кодом: `REASON_THREAT/NEED/BELIEF/AFFECTION/EXPRESSION/GRIEVANCE` (`desired_change.py:29-34`); R5 (S262, O-394), R6 (S263, O-395), R7 grievance (S265, O-397), R8 affection (S303, O-413 — production-проб orm→lusya←care).
+- **TEMPORAL EPOCH и поток (S266-S274):** карта+ядро+PR, FIX EAT (S267 — полная каузальная цепь в multi-location), WorldView в TickState (S268), Worker Effect Outbox (S270, O-399), WATERMARK PatternDetector (S274, O-400: p95 230.6→154.9).
+- **Living World:** SLEEP VERTICAL SLICE (S271 — NEED→SATISFACTION), Exploration Phase D (S282), S2B.7 Pain/Injury (S309), G3 EXECUTION (S307, O-410), TRADE β (S310, O-412).
+- **De-god + UI Workbench + семантический контракт:** O-401/402/403; Event Identity (S283, ADR-404); Journal→Presentation (S286), SemanticSpan/DM_NARRATED (S287), Claim Bridge (S288), Investigation Board (S290); **CognitionContext v0** (S294-S296 — внимание→обнаружение→наблюдаемое поведение; DriftLab 200т: drift A–E = 0.0000%); Name-Gate (S306/S308, O-409); UI Workbench (F12, энд-скрин).
+
+### Итоги Эпохи 7
+
+~55 сессий; ~30 ADR.
+
+**Эпоха 7 доказала: причинные срезы (угроза, голод, обида, привязанность) проводят последствия до наблюдаемого поведения, и детерминизм держит железную реку.**
+
+---
+
+## ЭПОХА 8: КОНСОЛИДАЦИЯ, RE-01 ФИНАЛ, AUTHORING И UNDERSTANDING (S311 — S347)
+
+**Девиз:** «Один факт — одно место; причинность доказывается приборами; личность компилируется из авторского текста; система честно деградирует»
+
+### 8.1. Документ-консолидация (S311, S323)
+MUTATIONS v5.0 (2383→249, one-liner), roadmap v4.0 (3389→1277), атлас v8.0 (814→712), ADR-Net parser-fix (граф 281→285), 62 IMPACT-шапки; самоочистка TZ-корпуса (протокол §1.3).
+
+### 8.2. Приборы причинности (S314-S322)
+- **F5-лаборатория (S314):** microscope над production (ExperimentRunner → build_game_loop → idle_tick; temp-saves + MockProvider + ObservabilityTap; рычаг `npc_overrides.social` — canonical WriteGate).
+- **INV-CONSUMER-GAP (S317, ADR-O-414):** `lint_consumer_gap` (census 174+24), debt-реестр, `causality_manifest` (`KNOWN_ORGANS` подтверждён, `causality_manifest.py:25`) 198→291 полей; урожай 180→31.
+- **RE-01 M1b.3.5–3.7 (S314-S319):** GAP-1 (1A prod-proven / 1B unit-proven / 1C NOT BUILT), RE-D8 закрыт, греп-страж allowlist (O-415: 19 файлов / 52 сайта).
+- **GC-11 (S320, O-416):** event→V2-RAM ДОКАЗАНО живьём при поведенческом НУЛЕ — RE-D2-класс (Dual-Reader Divergence / Threshold Inertia / Silent-World).
+- **PerturbationHarness (S321):** проводимость state→reader доказывается инъекцией (fatigue/energy/trust).
+- **M1b.5 (S322, O-417):** `npc_state_helpers` удалён целиком; legacy store НЕ прод-SSOT; fail-loud `ContractValidationError`.
+- **Долговая линия:** ADR-O-R2 (feasibility-контракт оживлён), mypy strict 13→0, ruff 244→0.
+
+### 8.3. RE-01 финал контура (S326, S329)
+- **M2/D (S326, O-418):** первый живой needs-writer — `RelationshipEventSemantics` (dormant; флаг подтверждён: `RELATIONSHIP_EVENTS_ENABLED default ""` ROLLOUT-PENDING), `DeltaDomain.RELATIONSHIP`, `NeedDeltaPayload`, сплит Фаза 9/10, `apply_relationship_deltas` с Cause.
+- **G/H (S329, O-419):** время→потребность (gen_rate; флаг `RELATIONSHIP_DYNAMICS_ENABLED` dormant — подтверждён), событие→потребность (волна Фр2 = дельта), SLEEP→WAKE (no-op без утверждённых форм); pure-readout Ф1/Ф3/Ф4/С5.
+- Далее: **K (removal-test) → Полигон M**.
+
+### 8.4. Детерминизм инференса (S313, S316)
+RCA non-reproducible inference → тёплый протокол ([DET-ENV]/[DET-TRACE]; warm 90/90); **few-shot удалён из production** (RC8 A/B); det-check — постоянный протокол (RED → semantic experiment STOP).
+
+### 8.5. AUTHORING: Character Chronicle (S331-S347)
+**Слой 0 канонического порядка:** авторский текст → декомпозиция → машинная хроника → валидированный seed ДО первого тика (LLM — декомпозитор, Python — валидатор и писатель; INV-LLM-NOT-SSOT).
+- **CCH-0 (S331, O-420):** контракт AUTHORING COMPILER; WhiteSpot первоклассен (writer-guard); два времени (historical_age ≠ learned_age).
+- **CCH-1 (S332):** 6 DTO подтверждены кодом (`domain/chronicle.py`: ChronicleDocument :295, ChronicleEntry :210, WhiteSpot :192, KnowledgeLink :237, BiographyDecomposition :283, ClarificationQuestion :174); T-CCH-01 GREEN (Люся 5/5).
+- **CCH-2 (S335):** декомпозитор (FACT_EXTRACTION temp=0, KernelRNG-seed), нормализатор fail-loud ×6 + мембрана vague-relation; T-CCH-02 GREEN 6/0 на живом Q4_K_M.
+- **CCH-2.5 (S336, O-422):** Chronicle Consistency — трёхуровневый сверщик; финал склейки/конфликтов — всегда автор.
+- **CCH-3 (S337-S340):** редактор UI MVP («Принять как канон», Save = Contract; главное меню + F7).
+- **CCH-4 (S341→S347):** сеялка + Character Debugger (гейты T-CCH-05..08 подтверждены: `tests/micro/test_chronicle_cch4_seed.py`); S345 — gap-detector live, **LIVE MAP 134 gaps / 134 words / 6 NPC**; S347 — реестр-строка, МЕТА 230. Канон на диске: `config/npc/chronicles/guard_borko.json` (13 072 б) — источник известного RED `test_p2_provenance_origin_vs_seeded` (`tests/gameplay/test_p2_canon_sync.py`; вердикт Мастера: файл как есть, владелец CCH-4 дорабатывает гейт).
+- Далее: **CCH-5** (экспорт-проекции) → CCH-6 (калибровка).
+
+### 8.6. Loop Closure — начало (S334, O-421 + O-421a)
+LC-IMPL-1: **IdleEventProjection** (`@dataclass(frozen=True)` подтверждён, `idle_projection.py:19-20`) — наблюдаемая проекция idle-событий `{cause, target, value}`; v1-словарь {ACTIVITY_OUTCOME, THEFT}; флаг подтверждён: `IDLE_EVENTS_PROJECTION_ENABLED default "1"` ROLLOUT-ON; строго read-only (замок K2). Диф-тест «мир молчит → мир говорит» GREEN 3/3.
+
+### 8.7. Understanding Engine и честная деградация (S-SUE серия, S343-S347, ADR-O-424)
+- **UX-UE-01 / D4 (ADR-O-424):** fail-closed readiness-гейт авторитетных путей — не-RESOLVED player-вмешательство не диспетчеризуется (единая точка `_phase_1_input_merge` до ветвления); L1-гейт attack/damage-дрейта (утечка подтверждена живьём: «Не бей Торнина» фиксировал несостоявшуюся атаку).
+- **S-UE-fix3:** контракт гейта приведён к факту интерпретации — **неразобранная негация закрывает исполнение ORDER-актов** (корневой диагноз: `_content_words` len>2-фильтр отрезал частицу «не»; фикс — параметр `keep_short`); позитивные приказы не блокируются; LLM `negated=False` — мост. Языковая граница Qwen2.5-7B (negated не распознаётся тремя путями) зафиксирована честно — не объявлена решённой.
+- **COV-2 / D61-D66:** детектор отказа (`pool_backoff_status` + `/llm/outage`), настоящий рестарт llama-server (kill по PID, поллинг /health, сброс backoff), per-call таймаут рестарта 30с→180с, приоритетная очередь worker, wall-time watchdog, **доктрина обязательной LLM** (модалка двух выборов, гейты кадра ×4).
+- **UX-FB:** честная деградация LLM-хода — внешний `dialogue_log`, RCE-гейт (фоллбэк не реплика NPC: без атрибуции имени, без STM-загрязнения), оба пути деградации флагаются.
+- **S343:** восстановление утраченной записи ENIGMA_PROV_B реестра (флаг-контур COV).
+
+### 8.8. Двухветвевой режим v4.6
+**Ветвь А «Субъект»** (memory / epistemics / verbalization / chronicle / RE / Body) и **Ветвь Б «Мир и платформа»** (ядро тика / spatial / LLM-контур / frontend / релиз): лестницы А1–А10 и Б1–Б10, гейты стыковки S1–S7 (артефактная передача), Anti-Race Protocol.
+
+### Итоги Эпохи 8
+
 | Метрика | Значение |
 |---------|----------|
-| Сессий | 6 (S142-S147) |
-| Введённых ADR | ~5 (O-326, V8.x closure) |
-| Главных контрактов | 2 (Workplace Affordance, Dialogue Thread) |
-| Закрытых багов | 60+ (V8-* серия) |
-| Главных файлов | ~20 (mvp_tavern_controller, truth_state, dialogue_*) |
+| Сессий | ~30 (S311-S347, с ренумберами S316/S318/S326/S337–S339/S341–S342) |
+| Введённых ADR | O-414..O-424 (включая O-421a, O-423; диапазон подтверждён живым грепом) |
+| Ключевых приборов | F5-лаборатория, lint_consumer_gap + causality_manifest, PerturbationHarness, det-check |
+| Ключевой статус | **IPT 52/52 (0 CRITICAL)**; ruff 0; mypy 0 (3 CI-режима); micro 326/326; pytest 2413 passed / 33 skipped / 7 xfailed + 1 известный RED (вердикт Мастера); МЕТА 230; RE-01 до G/H; CCH-0..4; LC-IMPL-1 |
 
-**Эпоха 5 превратила ENIGMA в играбельный продукт с working MVP и стабильным baseline.**
+**Эпоха 8 сделала методологию самостоятельным предметом инженерии: причинность доказывается приборами, знание консолидируется по правилу «один факт — одно место», личность компилируется из авторского текста, а отказ LLM — честен и наблюдаем.**
 
-### Общий итог 6 эпох
+---
+
+### Общий итог 8 эпох
 
 | # | Главная тема | Главный сдвиг |
 |---|--------------|---------------|
 | 1 | Каузальный фундамент | Уничтожение телепортации, централизация пространства |
 | 2 | Чистота ядра | TickState → TickMutation, KernelRNG, L1Chronicle |
-| 3 | Идентичность | BeliefCrystallization, Triple Membrane, Embodied Traversal |
+| 3 | Идентичность | BeliefCrystallization (×6 подтверждён), Triple Membrane, Embodied Traversal |
 | 4 | Восприятие | 5-layer Reality → Perception, World Continuity |
-| 5 | Санация | V8.x closure, MVP стабилизация, Workplace Affordance |
-| 6 | Стабилизация + Infrastructure + Epistemic Core | IPT 45/45, PBT, Replay, Probes, ADR-Net, Proposition Layer, Relationship Engine v2 (M0/M1a/M1b), W-TRACK субстрат, mypy --strict spatial 0, print()→logger |
+| 5 | Великая Стена + Epistemic Core | Исполняемые инварианты, Proposition Layer, Vertical Slice «Тень и золото» |
+| 6 | Треки | Владельцы доменов: RE-01, Body 2B, W-TRACK, AG1 (BC-1) |
+| 7 | Causal Slices & Living World | R5-R8, IRON RIVER, TEMPORAL EPOCH, CognitionContext, De-god, G3 |
+| 8 | Консолидация + AUTHORING + Understanding | Consumer Gap приборы, RE-01 финал, CCH-0..4, ADR-O-424, LLM-резилиенс, Two-Branch v4.6 |
 
-**Текущее состояние (v0.5.3.9.2):** IPT 45/45, SHI=100%, 6/6 NPC с координатами, симуляция разморожена (Фаза 0), RE-01 M1b в процессе, W-TRACK dormant-substrate.
+**Текущее состояние (V.0.5.4.3.3, S347):** IPT 52/52, ruff 0, mypy 0, micro 326/326. RE-01: следующий шаг K → Полигон M. AG1: BC-1 dormant, следующий шаг BC-2. CCH: следующий шаг CCH-5. LC: LC-IMPL-1 закрыта, далее LC-IMPL-2/3. Режим — двухветвевой v4.6. Каноническая очередь — roadmap §0.2.
 
 ---
 
-# ЧАСТЬ II. БУДУЩИЕ ЭПОХИ (v7.5 → v11.0+)
+# ЧАСТЬ II. ДАЛЬНИЙ ГОРИЗОНТ (v7.5 → v13.0+)
 
 ## КОНТЕКСТ ПРОЕКТИРОВАНИЯ
 
-Ты описал видение:
-- **Игра-симулятор эффекта бабочки** — девушка выбирает из 3 парней, смотрит на незаскриптованную судьбу
-- **Игрок как 4-й кандидат** — может рассказать ей, что с ней случится в будущем (Prophecy System)
-- **Рождение и смерть, смена поколений** — WorldChronicle, Lineage, Aging
-- **Небольшое, но полноценное общество** — 20-30 живых NPC, фракции, экономика
+Видение: игра-симулятор эффекта бабочки (девушка выбирает из 3 парней); игрок как 4-й кандидат — Prophecy System; рождение/смерть и смена поколений; 20-30 живых NPC, фракции, экономика.
 
-Каждая будущая эпоха — это **расширение онтологии**, добавляющее новый слой реальности без разрушения предыдущих.
+**Оперативный мост (v4.6):** ближайшее будущее определяется канонической очередью roadmap §0.2 в двухветвевом режиме (Ветвь А: CCH-5/6, RE K→M, BC-2..BC-7, NL-01, MEM; Ветвь Б: COV-0..11, LC-IMPL-2/3, GC-спринт). Примитивы Эпохи 9 уже существуют: эпистемическая агентность доказана Vertical Slice (S214), ACCUSE-гейт и PlayerSpeechClaim — готовые точки входа Prophecy.
 
----
+## ЭПОХА 9: VERTICAL SLICE И PROPHECY SYSTEM (v7.5 — v8.0)
+Vertical Slice «Люся и 3 парня» (многомерные отношения, L2.5-интеграция, FSM `CHOOSING_PARTNER`). **Prophecy System:** игрок **утверждает** будущее → `PROPHECY` InterventionEvent → belief кристаллизуется в L2.5 → confirmation bias → ×6 trauma multiplier → уход от партнёра без реального предательства. **Новый ADR: Prophecy Causality Law** (номер — по Anti-Race Protocol; O-330 из базовой редакции занят — Spatial Agency Law).
 
-## ЭПОХА 6: СТАБИЛИЗАЦИЯ, ИНФРАСТРУКТУРА И ЭПИСТЕМИЧЕСКИЙ ФУНДАМЕНТ (S148 — S270+) ✅ ЗАВЕРШЕНА
+## ЭПОХА 10: WORLD CHRONICLE И ГЕНЕРАЦИОННАЯ ГЛУБИНА (v8.5 — v9.0)
+WorldChronicle (append-only SQLite; Birth & Death → Aging → Lineage & Succession → Integration). Наследование: 0.5× CrystallizedBelief родителя; унаследованные связи — **через SSOT-хранение отношений** (RelationshipStore / RelationshipStateStore; персистенция `relationship_cache` запрещена L13 / ADR-O-415). Memetic Domain (Bass diffusion, player-created memes). Кровная месть через `family_chronicle`.
 
-**Девиз:** «Stable baseline, infrastructure for scale, epistemic core proven»
+## ЭПОХА 11: ПОЛНОЦЕННОЕ ОБЩЕСТВО (v9.5)
+Фракции как first-class entities; экономика как driver поведения; политика (законы через memetic adoption). Crusader Kings 3 level с LLM и эпистемической честностью.
 
-### Контекст
+## ЭПОХА 12: §18 — РЕСУРСНО-ОГРАНИЧЕННЫЙ ЭПИСТЕМИЧЕСКИЙ ВЫБОР (v10.0+)
 
-Эпоха 6 — крупнейшая по объёму и **завершена** на v0.5.3.9.2 (S270+). Началась с закрытия критических багов и построения инфраструктуры (S148-S185), прошла через доказательство эпистемической причинности (SUPERBOX-001 — SUPERBOX-013, S186-S188), а затем вышла на плато стабилизации: полный цикл аудита v0.5.3.7.2 — v0.5.3.7.10 (`STABILIZATION_ROADMAP.md`), санация технического долга (mypy --strict, print()→logger, IPT-ruff) и два новых домена — Relationship Engine v2 и World Embodiment Foundation.
-
-### Главные сдвиги
-
-#### 6.1. Закрытие критических багов и инфраструктура (S148-S185)
-
-- **S148-S149:** Presentation v2.0, DriftLaboratory v2, PBT, Causal Probes
-- **S150-S156:** Dialogue Hard Contract, Zombie Traversal Detector, ADR-Net Parser, Replay System
-- **S157-S167:** Economy & Social Emergence, UI Epistemic Integration, UI Doctrine, UI Refactor
-- **S168-S175:** UI Polish, Visual Casting, Map Editor
-- **S176-S185:** WorldTick Temporal Ownership, Bugfix Report Execution, Pytest Recovery, Pure Reducer, Sprint S1-S7 (Cardinality, Causal Ordering, Semantic Pipeline, Dialogue & Travel FSM, Replay Determinism, Load Integrity)
-
-#### 6.2. Фундамент пайплайна (S186)
-
-- **P0-1 (Tick Cardinality):** Время продвигается ровно 1 раз за тик
-- **P0-2 (NPC Cardinality):** NPC из разных локаций не появляются в npc_positions друг друга
-- **P1-5 (Commit Cardinality):** atomic_commit_all — ровно 1 коммит за тик
-- **P1-6 (EventBus Cardinality):** NPC_MOVED не превышает total_npcs
-- **P1-7 (Dialogue Causal Loop):** NPC_SPOKE → STM → NPCDialogueSubscriber
-
-#### 6.3. EPISTEMIC CORE — Proposition Layer (S187-S188)
-
-**Главный архитектурный сдвиг Эпохи 6.**
-
-Доказана причинная цепь:
-
-    Communication → ClaimEvent → Proposition → BeliefRevisionEngine
-        → EpistemicStore → EpistemicContextResolver → EpistemicContext
-        → DecisionContext → DecisionHub → Intent
-
-**SUPERBOX-001 (S187):** Терминальный MVP-тест обнаружил архитектурный разрыв:
-ENIGMA реагирует на тон коммуникации, но слепа к содержанию речи.
-NPCDialogueSubscriber меняет trust(listener → speaker), но не trust(listener → third_party).
-
-**SUPERBOX-002 — SUPERBOX-013 (S188):** Построен и доказан Epistemic Core:
-
-| Примитив | Назначение |
-|----------|------------|
-| Proposition | Чистая семантика (subject, predicate, object, polarity) |
-| ClaimEvent | Контекст передачи (speaker, listener, proposition, speech_act) |
-| EpistemicRecord | Субъективное убеждение (confidence, source, provenance) |
-| BeliefRevisionEngine | Детерминированная ревизия (reliability × claim_weight) |
-| EpistemicStore | In-memory хранилище убеждений (read-only для DecisionHub) |
-| ClaimEventSubscriber | Адаптер EventBus → Epistemic Core |
-| EpistemicContextResolver | Store → Context (семантическая проекция) |
-| EpistemicContext | Decision-relevant projection (threats, allies, violations) |
-| epistemic_modifiers | Dict[str, float] — нейтральная деформация для DecisionHub |
-| apply_modifiers (pure) | Чистая функция, аддитивная, коммутативная, не мутирующая |
-
-**Modifier Contract v1:**
-> DecisionHub принимает независимые числовые деформации пространства
-> intent scores. Модификаторы аддитивны, детерминированы, коммутативны
-> и не мутируют исходный score-space.
-
-**Архитектурные инварианты:**
-1. Claim ≠ Truth
-2. Belief ≠ Truth
-3. Proposition не мутирует RelationshipStore напрямую
-4. SUPERBOX инъецирует ClaimEvent, но не Belief/Relationship/Decision
-5. L1 Chronicle не хранит субъективные убеждения
-6. confidence ≠ truth probability
-7. EpistemicContext не содержит World Truth
-8. DecisionHub не знает об EpistemicStore
-
-**Что НЕ доказано:**
-- Production-интеграция (EpistemicStore → NpcTickPipeline.run)
-- Persistence (save/load)
-- Replay determinism
-- Control vs Treatment через full GameLoop
-- Multi-agent наблюдаемость
-
-#### 6.4. Стабилизация и санация технического долга (S189-S260, STABILIZATION_ROADMAP)
-
-Полный цикл аудита v0.5.3.7.2 — v0.5.3.7.10 закрыт (`STABILIZATION_ROADMAP.md`):
-- **LLM & Cache:** C-09..C-12, H-06..H-08 — cache hit-rate разблокирован, write/read в hot-path работает.
-- **Replay & Determinism:** H-01..H-05, N-02, N-33 — wall-clock убран (`time.monotonic()`), injectable Clock работает.
-- **KernelRNG:** H-26 — Salt в 5 вызовах, коллизии потоков устранены, детерминизм восстановлен.
-- **Гейты runtime-логов:** LOG-GATE (`ENIGMA_DISABLE_FILE_LOGS`) и LOG-GATE-UI (диагностика «почему LLM молчит» на splash: модель/CUDA/VRAM/антивирус/порт) — v0.5.3.9.1_ДОВОДКА_2.
-- **Техдолг (Phase-0 debt):** mypy --strict в spatial-слоях **79 → 0** (`npc_state.py`, `graph_compiler.py`, `spatial_query_service.py`, `spatial_runtime.py`, `spatial_service.py`); `print()` → logger в `main.py` **36 → 0**; DEBT-IPT-RUFF **24 → 0** (ruff `All checks passed!`).
-
-#### 6.5. Relationship Engine v2 (ТЗ-RE-01) — M0/M1a/M1b
-
-Отдельный трек, идущий параллельно стабилизации:
-- **M0 ✅ (ADR-O-369):** контракт Relationship Engine v2, механика отношений как каузально-обусловленного слоя (не стат-блока).
-- **M1a ✅ (ADR-O-370):** `RelationshipStateStore` как единый SSOT отношений.
-- **M1b — в процессе (ADR-O-371-серия):** `RelationshipWriteGate` + миграционный адаптер — **single-writer, caller-guard** (prимая мутация стор запрещена). Стор: `git show 17930e9f`, адаптер `53183000`, WriteGate `73e0539f`.
-
-#### 6.6. World Embodiment Foundation (W-TRACK) — dormant substrate (ADR-O-371)
-
-Субстрат WORLD-домена положен без runtime-потребителей (доктрина dormant-substrate):
-- `architecture/world.yaml`, `WorldObjectStore`, 30 тестов, топология. IPT 45/45 сохраняется.
-- Следующие (включ. W2 AffordanceResolver, W3 transition_object + causal writer) — отдельным треком, **не форсировать** до этого.
-
-#### 6.7. Фаза 0 — разморозка симуляции (S260+, last session)
-
-Пост-аудит живого рантайма выявил артефактные «0 decisions» и «⏸ traversal». Разобрано:
-- **0.1 BREAK-1:** симуляция не мертва — smoke даёт **6/6 решений**; «0 decisions» — артефакт player-turn пути и счётчика [R3_DIRECT].
-- **0.3: 3 реальных бага устранены** — (a) `social_subscriber.py` None-стор больше не оборачивается в `RelationshipWriteGate`; (b) `mvp_tavern_controller.py` DEATH только по `life_status==DEAD` (SSOT VitalStateEvaluator), не по `hp<=0`; (c) `domain_phases.py` eco-стресс идёт через `StateApplicator.apply_deltas_only` (стресс больше не теряется).
-
-### Итоги Эпохи 6
-
-- **Stable baseline: IPT 45/45 passed** (было 39/0); ruff чист; mypy --strict spatial 0
-- Property-based testing (PBT), Replay system, Causal probes в production, ADR-Net graph
-- **Epistemic Core доказан** (13 экспериментов SUPERBOX-001..013)
-- **Modifier Contract v1** зафиксирован
-- **Relationship Engine v2**: M0 ✅, M1a ✅, M1b (WriteGate) в процессе
-- **W-TRACK**: WORLD-домен субстрат положен (dormant)
-- **Фаза 0 разморозки**: 3 бага устранены, симуляция жива в smoke
-- LOG-GATE / LOG-GATE-UI — диагностика LLM-сервера на splash
-
----
-
-## ЭПОХА 7: VERTICAL SLICE И PROPHECY SYSTEM (v7.5 — v8.0)
-
-**Девиз:** «Эффект бабочки как играбельная механика, игрок — творец будущего»
-
-### Контекст
-
-Инфраструктура готова. Архитектурно система поддерживает emergent narrative через L1Chronicle → PatternDetector → BeliefEngine → DecisionHub. Но это не показано игроку. Нужна **демонстрируемая механика эффекта бабочки**.
-
-### Главные сдвиги
-
-#### 7.1. Vertical Slice "Люся и 3 парня" (v7.5)
-
-Одна девушка, 3 кандидата (Торнин, Борко, Тень), 30 минут геймплея. Цель: доказать, что effect butterfly работает.
-
-- Многомерные отношения (не одно число, а multidimensional: trust, attraction, debt, fear, gratitude)
-- Долговременная интеграция (L2.5 beliefs о каждом из парней)
-- `LifeProject` FSM с state `CHOOSING_PARTNER`
-- Записанная emergent story, которой не было в коде
-
-#### 7.2. Prophecy System (v8.0) — Killer Feature
-
-**Новая механика:** Игрок не знает будущего (он не DM). Игрок **утверждает** будущее ("Торнин предаст тебя").
-
-**Архитектура:**
-- `PROPHECY` InterventionEvent — новый тип
-- Belief "future_as_asserted_by_player" — кристаллизуется в L2.5
-- Confirmation bias в perception — NPC интерпретирует будущие действия через lens предсказания
-- ×6 trauma multiplier → NPC может уйти от партнера даже без реального предательства
-
-**Это работает только в эпистемически честной симуляции.** В AI Dungeon LLM просто сгенерит нарратив. В ENIGMA belief кристаллизуется, проходит через Triple Membrane, искажает восприятие, меняет решения.
-
-**Новый ADR:**
-- **ADR-O-330: Prophecy Causality Law** — утверждение игрока становится belief, belief искажает perception, perception меняет decision. Self-fulfilling prophecy через epistemic architecture.
-
-### Итоги Эпохи 7
-
-- Vertical slice demo reel
-- Prophecy System — механика, которой нет нигде в геймдеве
-- Эмерджентная нарративная драма
-- Культивация cult-аудитории через YouTube-сессии
-
----
-
-## ЭПОХА 8: WORLD CHRONICLE И ГЕНЕРАЦИОННАЯ ГЛУБИНА (v8.5 — v9.0)
-
-**Девиз:** «Рождение и смерть, смена поколений, унаследованные убеждения»
-
-### Контекст
-
-Vertical slice доказал, что краткосрочная эмерджентность работает. Но "эффект бабочки через поколения" требует **горизонта времени** в 1000+ тиков и **передачи идентичности** от NPC к NPC.
-
-### Главные сдвиги
-
-#### 8.1. WorldChronicle (TZ-02 реализация)
-
-Основано на `VZ/ТЕХЗАДАНИЕ ПРЕЕМНИКУ TZ-02 V.2.0`:
-
-- `WorldChronicleStore` — append-only SQLite для событий мира (не NPC, а мира)
-- `WorldChronicleEvent` DTO с tick_id, location, participants, consequences
-- 4 стадии:
-  - **Stage 1:** Birth & Death Registration (`birth_tick`, `death_tick`, `generation` в NPCState)
-  - **Stage 2:** Aging (AGE_TICKS_PER_YEAR, age_years, физиологические + когнитивные effects)
-  - **Stage 3:** Lineage & Succession (наследник наследует 0.5× CrystallizedBelief родителя + relationship_cache с `inherited=True`)
-  - **Stage 4:** Integration & ADR-O-312
-
-#### 8.2. Memetic Domain (TZ_MEMETIC_01-03 реализация)
-
-Основано на `VZ/TZ_MEMETIC_01_Domain_Spec.md` (1995 строк):
-
-- **Ontology:** Concept → Expression → Spread → Crystallization → Extinction
-- **Persistence:** 3-layer Canon/History/State
-- **Cultural Pressure Accumulator** — per event × community
-- **Memetic Burst pipeline** — детерминированный триггер → LLM-генерация → валидация → реестр
-- **Bass diffusion adoption dynamics**
-- **Player-created memes** с adoption backpressure
-
-#### 8.3. Унаследованные убеждения и кровная месть
-
-- NPC помнит прадеда через `family_chronicle`
-- Кровная месть передаётся (если отец убит — сын наследует belief "X — враг")
-- Секреты передаются как memetic inheritance
-- Игрок через 1000 тиков встречает NPC, чьего прадеда он предал — и NPC "знает" это через family chronicle
-
-### Итоги Эпохи 8
-
-- NPC рождаются и умирают
-- Смена поколений (3-5 поколений за кампанию)
-- Унаследованные убеждения и кровная месть
-- Memetic domain — культурная эволюция
-- Эмерджентная история длиной в поколениях
-
----
-
-## ЭПОХА 9: ПОЛНОЦЕННОЕ ОБЩЕСТВО (v9.5)
-
-**Девиз:** «20-30 живых NPC, фракции, экономика, политика»
-
-### Контекст
-
-Генерационная глубина работает для семьи из 3-5 NPC. Но "эффект бабочки через общество" требует масштаба. Это **Crusader Kings 3 level** — но с LLM и эпистемической честностью.
-
-### Главные сдвиги
-
-#### 9.1. Фракции как first-class entities
-
-- `Faction` — социальная единица с целями, ресурсами, репутацией, иерархией
-- `FactionMembership` — NPC может быть членом нескольких фракций с разными ролями
-- `FactionDecision` — решения фракции (голосования, указы, союзы)
-- Already partial: `FactionAlignmentTracker`, `ReputationEngine`
-
-#### 9.2. Экономика как driver поведения
-
-- Ресурсы (золото, еда, информация, долги)
-- Торговля как social interaction
-- Бедность/богатство как driver решений (NPC может пойти на преступление от голода)
-- Already partial: `EconomyTracker`, `TradeResolver`, `TransactionEngine`
-
-#### 9.3. Политика
-
-- Голосования во фракциях
-- Законы как norms с adoption dynamics (через memetic domain)
-- Союзы и войны между фракциями
-
-### Итоги Эпохи 9
-
-- 20-30 живых NPC одновременно
-- 3-5 фракций с динамикой
-- Экономика как emergent driver
-- Политические решения через голосования
-
----
-
-## ЭПОХА 10: §18 — РЕСУРСНО-ОГРАНИЧЕННЫЙ ЭПИСТЕМИЧЕСКИЙ ВЫБОР (v10.0+)
-
-**Девиз:** «NPC выбирает, что помнить, исходя из ценности информации»
-
-### Контекст
-
-Основано на `VZ/TZ_§18_Resource_Bounded_Epistemic_Selection_Law.md` (1543 строки). Документ явно помечен: **"ВНЕДРЯТЬ НЕЛЬЗЯ"** до завершения Belief Layer. После Эпохи 8 (генерационная глубина + memetic) Belief Layer будет завершён.
-
-### Формула закона
-
-```
-U_M(m, c) = I(m, c) · R(m) · U(c) − C(m, c)
-
-где:
-  I — relevance (релятивность воспоминания к контексту)
-  R — reliability (надёжность воспоминания, включая causal decay)
-  U — uncertainty (неопределённость текущего наблюдения)
-  C — cost (стоимость извлечения и обработки)
-
-Активация: m участвует в inference ⟺ U_M(m, c) > 0
+```text
+U_M(m, c) = I(m, c) · R(m) · U(c) − C(m, c);  активация: U_M > 0
 ```
 
-### Главный сдвиг
+Bounded rationality (Simon/Kahneman) для NPC. **Пререквизиты (актуально на S347):** BC-2…BC-7 (лестница А3) + MEM-8. TZ §18 «ВНЕДРЯТЬ НЕЛЬЗЯ» снимается только после завершения Belief Layer.
 
-**NPC не обязан использовать всю доступную ему информацию.** Он выбирает информационную архитектуру, исходя из ожидаемой ценности информации и стоимости её обработки.
-
-Это модель **bounded rationality** из cognitive science (Simon, Kahneman) — но применённая к NPC симуляции. NPC с усталостью, стрессом, ограниченным вниманием выбирает, какие воспоминания активировать.
-
-### Итоги Эпохи 10
-
-- NPC "думает" ограниченно — как человек
-- Усталость влияет на качество решений
-- Стресс искажает retrieval памяти
-- Психологически правдоподобная когнитивная экономика
-
----
-
-## ЭПОХА 11+: НЕОГРАНИЧЕННАЯ ЭВОЛЮЦИЯ (v11.0+)
-
-**Девиз:** «За горизонтом текущего видения»
-
-Возможные направления (не зафиксированы в TZ):
-
-1. **LLM Pipeline v2 (TZ `ENIGMA_LLM_PIPELINE_TZ_v1.md`)** — constrained generation, semantic cache (BGE-small-ru + FAISS), grammar-constrained JSON. Latency P50 <2.5 сек, cache hit rate ≥35%.
-
-2. **Female-Targeted Dark Fantasy Layer (TZ `ENIGMA_TZ_Female_Targeted_Dark_Fantasy_Layer.pdf`)** — 113 страниц, V.1.0 стратегический план. Romance, drama, dark fantasy, gothic, romantic suspense. 6 доменов.
-
-3. **AWC Process/World Model (TZ `AWC_Process_World_Model_TZ.pdf`)** — Process/WorldGraph/NPCKnowledge. Не реализован.
-
-4. **Map Editor Smart Validation (TZ `ENIGMA_MAP_EDITOR_SMART_VALIDATION.md`)** — BedRegistry, валидатор, auto-cut стен.
-
-5. **Textures & Geometry (TZ `VZ/TEXTURES_AND_GEOMETRY_TZ.md`)** — BodySchema, layered textures, composite 2D model rendering. Phase 3 план.
+## ЭПОХА 13+: НЕОГРАНИЧЕННАЯ ЭВОЛЮЦИЯ (v11.0+)
+LLM Pipeline v2 (constrained generation, semantic cache); Female-Targeted Dark Fantasy Layer (6 доменов); AWC Process/World Model; Map Editor Smart Validation; Textures & Geometry.
 
 ---
 
 # ЧАСТЬ III. КАРТА ЭПОХ
-
-## Сводная таблица
 
 | Эпоха | Версия | Сессии | Главная тема | Главный артефакт |
 |-------|--------|--------|--------------|------------------|
@@ -809,119 +358,64 @@ U_M(m, c) = I(m, c) · R(m) · U(c) − C(m, c)
 | 2 | v0.5.x | S83-S104 | Чистота ядра | TickState/TickMutation, KernelRNG, L1Chronicle |
 | 3 | v0.5.3.x | S105-S125 | Идентичность | BeliefCrystallization, Triple Membrane, Embodied Traversal |
 | 4 | v0.5.3.x | S126-S141 | Восприятие | 5-layer Reality→Perception, World Continuity |
-| 5 | v0.5.3.6.x | S142-S147 | Санация | V8.x closure, Workplace Affordance |
-| **6** | **v0.5.3.7.x → v0.5.3.9.2** | **S148-S270+** | **Стабилизация + Infrastructure + Epistemic Core** | **IPT 45/45, PBT, Replay, Probes, ADR-Net, Proposition Layer, mypy --strict spatial 0** |
-| **7** | **v7.5-v8.0** | — | **Vertical Slice + Prophecy** | **Killer Feature: player-as-prophet** |
-| **8** | **v8.5-v9.0** | — | **Генерационная глубина** | **WorldChronicle, Memetic, Lineage** |
-| **9** | **v9.5** | — | **Полноценное общество** | **Factions, Economy, Politics** |
-| **10** | **v10.0+** | — | **§18 Epistemic Selection** | **Bounded rationality для NPC** |
-| 11+ | v11.0+ | — | Неограниченная эволюция | LLM Pipeline v2, Female Fantasy Layer, ... |
+| 5 | v0.5.3.x | S142-S217 | Великая Стена + Epistemic Core | CAUSAL_CONTRACT v2.0, Modifier Contract, Vertical Slice |
+| 6 | v0.5.3.7.x | S218-S248 | Треки | RE-01 M0–M1b, Body 2B, W-TRACK, AG1/BC-1 |
+| 7 | v0.5.3.8–9.x | S249-S310 | Causal Slices & Living World | IRON RIVER, R5-R8, CognitionContext, G3 |
+| 8 | v0.5.4.x | S311-S347 | Консолидация + AUTHORING + Understanding | INV-CONSUMER-GAP, RE-01 финал, CCH-0..4, ADR-O-424, Two-Branch v4.6 |
+| 9 | v7.5-v8.0 | — | Vertical Slice + Prophecy | player-as-prophet |
+| 10 | v8.5-v9.0 | — | Генерационная глубина | WorldChronicle, Memetic, Lineage |
+| 11 | v9.5 | — | Полноценное общество | Factions, Economy, Politics |
+| 12 | v10.0+ | — | §18 Epistemic Selection | Bounded rationality |
+| 13+ | v11.0+ | — | Неограниченная эволюция | LLM Pipeline v2, ... |
 
-## Граф зависимостей между эпохами
-
-```
-Эпоха 1 (Каузальный фундамент)
-    ↓
-Эпоха 2 (Чистота ядра) — требует честную физику
-    ↓
-Эпоха 3 (Идентичность) — требует детерминированное ядро
-    ↓
-Эпоха 4 (Восприятие) — требует богатую идентичность
-    ↓
-Эпоха 5 (Санация) — требует законченную архитектуру
-    ↓
-Эпоха 6 (Infrastructure) — требует stable baseline
-    ↓
-Эпоха 7 (Prophecy) — требует infrastructure для валидации
-    ↓
-Эпоха 8 (Generations) — требует Prophecy для драмы
-    ↓
-Эпоха 9 (Society) — требует generations для масштаба
-    ↓
-Эпоха 10 (§18) — требует завершённый Belief Layer
-```
+Граф зависимостей: 1→2→3→4→5→6→7→8→9(Prophecy)→10(Generations)→11(Society)→12(§18, требует завершённый Belief Layer BC-2..BC-7).
 
 ---
 
 # ЧАСТЬ IV. ИЗВЛЕЧЁННЫЕ АРХИТЕКТУРНЫЕ ИСТИНЫ
 
-После 300+ сессий система эмпирически пришла к 5 непреложным фактам (из `MUTATIONS.md`):
+После 300+ сессий (230 строк канонического реестра) система эмпирически пришла к **8 непреложным фактам**:
 
-## Истина 1: Истина = Snapshot + Chronicle
-
-State эфемерен и перезаписываем. Identity — append-only история. Это раздвоение онтологии: каждое состояние мира — это **проекция истории** в текущий момент. Не существует "текущего состояния" независимо от того, как мы к нему пришли.
-
-## Истина 2: Время и Физика — одно целое
-
-Независимых `resolve(entity, dt)` слоев не существует. Физика считается только внутри Causal Kernel. Нельзя "обновить позицию" отдельно от "обновления времени" — это один акт.
-
-## Истина 3: Нет Event Sourcing для State (но есть для Identity)
-
-State не восстанавливается из событий — он перезаписывается. `delta_buffer.clear()` уничтожает дельты после применения. Но Identity — event-sourced. L1Chronicle — append-only. Это **асимметрия**: state мимолётен, identity вечен.
-
-## Истина 4: Симптом не является причиной
-
-Фикс должен падать на ПЕРВЫЙ отказавший узел pipeline, а не латать UI. Если игрок видит "NPC не двигается" — проблема не в рендере. Проблема в `MovementIntent`, который не дошёл до `MovementEngine`. UI — симптом, не болезнь.
-
-## Истина 5: Вакуум — это локальный разрыв
-
-Unknown ≠ Neutral(0.0). Отсутствие данных не конвертируется в глобальные аккумуляторы. Если NPC не знает о событии — его `fear` не становится 0. `fear` остаётся тем, чем был. Вакуум — это локальный разрыв в каузальной цепи, не глобальный ноль.
+1. **Истина = Snapshot + Chronicle.** State эфемерен, identity — append-only история (L1Chronicle). Каждое состояние — проекция истории.
+2. **Время и Физика — одно целое.** «Обновить позицию» отдельно от «обновления времени» — один акт, не два.
+3. **Нет Event Sourcing для State (но есть для Identity).** State перезаписывается; identity event-sourced. Асимметрия: state мимолётен, identity вечен.
+4. **Симптом не является причиной.** Фикс — на ПЕРВЫЙ отказавший узел pipeline. UI — симптом.
+5. **Вакуум — это локальный разрыв.** Unknown ≠ Neutral(0.0) (§ENIGMA-003/004).
+6. **Существование состояния ≠ наличие последствия** ⭐ Эпоха 8. GC-09B (S249), GC-11 (S320: событие→хранилище живо, поведение нулевое), RE-D9 (S318), D-MOM (S328). Ответ — INV-CONSUMER-GAP (O-414) + PerturbationHarness: проводимость state→reader доказывается прибором.
+7. **Самая частая причина мёртвых контуров — разрыв словаря** ⭐ Эпоха 8. S238: 7 разрывов за сессию. Ответ: ключи-константы (§12.1), census-манифест, fail-loud.
+8. **Честность отказа** ⭐ Эпоха 8. Деградация LLM наблюдаема и не маскируется под реплику NPC (UX-FB RCE-гейт, D61 доктрина обязательной LLM, внешний dialogue_log). Система, которая не может говорить, обязана сказать об этом честно — а не галлюцинировать.
 
 ---
 
 # ЧАСТЬ V. ФИЛОСОФСКИЙ ИТОГ
 
-## Что построено за 6 эпох
-
-ENIGMA — это не "игра с LLM". Это **первая попытка построить эпистемически честную симуляцию**, где:
+## Что построено за 8 эпох
 
 1. **Каузальная честность** — каждое изменение имеет причину (Invariant I)
-2. **Историческая честность** — будущее считается из прошлого, не из вакуума (Invariant II)
-3. **Временная изоляция** — шаг симуляции неизменяем во время вычисления (Invariant III)
-4. **Семантическая валидность** — структурно корректное, но невозможное состояние отвергается (Invariant IV)
-5. **Эпистемическая честность** — никто не знает больше, чем должен (Triple Membrane, DM Boundary)
-6. **Идентификационная честность** — личность — это история, не состояние (L1Chronicle)
-7. **Восприятийная честность** — наблюдатель видит проявления, не ментальные поля (5-layer architecture)
-
-## Что будет построено в будущих эпохах
-
-| Эпоха | Что добавляет к "честности" |
-|-------|-----------------------------|
-| 7 | Пророческая честность — утверждение будущего через belief, не через script |
-| 8 | Генерационная честность — идентичность переживает смерть через наследование |
-| 9 | Социальная честность — фракции и экономика как emergent drivers |
-| 10 | Когнитивная честность — bounded rationality, NPC выбирает, что помнить |
-| **11+** | Неограниченная эволюция — LLM Pipeline v2, Female Fantasy Layer (Goran Beta), ... |
+2. **Историческая честность** — будущее считается из прошлого (Invariant II)
+3. **Временная изоляция** — шаг неизменяем во время вычисления (Invariant III)
+4. **Семантическая валидность** — невозможное состояние отвергается (Invariant IV)
+5. **Эпистемическая честность** — никто не знает больше, чем должен (Triple Membrane, Epistemic Core)
+6. **Идентификационная честность** — личность — это история (L1Chronicle)
+7. **Восприятийная честность** — наблюдатель видит проявления (5-layer)
+8. **Инструментальная честность** ⭐ — причинность доказывается приборами (Consumer Gap, PerturbationHarness, RED=находка)
+9. **Честность происхождения** ⭐ — личность компилируется из авторского текста с provenance (CCH, Слой 0)
+10. **Честность отказа** ⭐ — деградация наблюдаема, не маскируется (UX-FB, D61)
 
 ## Главная идея
 
-**ENIGMA — это не продукт, это исследование.** Каждая эпоха — это ответ на вопрос "можно ли честно симулировать X?". После 6 эпох мы знаем: можно честно симулировать физику, идентичность, восприятие, презентацию, инфраструктуру и эпистемическую причинность. После Эпохи 10 мы будем знать: можно ли честно симулировать общество и когнитивную экономику.
+**ENIGMA — это не продукт, это исследование.** Каждая эпоха — ответ на вопрос «можно ли честно симулировать X?». После 8 эпох: физика, детерминизм, идентичность, восприятие, исполнимость собственных законов, владение доменами, причинные срезы, методология доказательства, происхождение личности и честный отказ — да, можно.
 
-Это **исследование границ честной симуляции**. Если оно дойдёт до v10.0 — это будет **первая LLM-driven simulation с эпистемической честностью на горизонте поколений**.
-
-Versu закрылся. Façade остался academic demo. Prom Week — paper. NVIDIA ACE — middleware без игры. AI Dungeon — без инвариантов. У ENIGMA есть шанс занять **пустующее место**.
+Versu закрылся. Façade — academic demo. Prom Week — paper. NVIDIA ACE — middleware без игры. AI Dungeon — без инвариантов. У ENIGMA есть шанс занять **пустующее место**.
 
 ---
 
 # ФИНАЛ
 
-6 эпох уже пройдено. 5 эпох впереди. Каждая эпоха — это **не просто код**, это **онтологическое расширение**: система начинает моделировать то, чего не моделировала раньше.
+8 эпох пройдено. Эпоха 1 моделирует пространство. 2 — детерминизм. 3 — идентичность. 4 — восприятие. 5 — исполнимость собственных законов + эпистемическую причинность. 6 — владение. 7 — причинные срезы и живой мир. 8 — саму методологию доказательства, происхождение личности и честный отказ. Эпоха 9 моделирует будущее (Prophecy). 10 — поколения. 11 — общество. 12 — ограниченный разум.
 
-Эпоха 1: моделирует пространство.
-Эпоха 2: моделирует детерминизм.
-Эпоха 3: моделирует идентичность.
-Эпоха 4: моделирует восприятие.
-Эпоха 5: моделирует MVP.
-Эпоха 6: моделирует саму себя (инфраструктура) + эпистемическую причинность (Proposition Layer).
-Эпоха 7: моделирует будущее (Prophecy).
-Эпоха 8: моделирует поколения.
-Эпоха 9: моделирует общество.
-Эпоха 10: моделирует ограниченный разум.
-
-Это **постепенное онтологическое расширение**. Каждая эпоха делает систему чуть более честной, чем предыдущая. Это не "добавление фич" — это **углубление модели реальности**.
-
-И в этом — уникальность ENIGMA.
+Это **постепенное онтологическое расширение** — углубление модели реальности. И в этом — уникальность ENIGMA.
 
 ---
 
-*Доклад подготовлен на основе `MUTATIONS.md`, `ADR Master Index`, `00_CAUSAL_CONTRACT_v2.0.md`, `ENTITY_CONTINUITY_CONTRACT.md`, и TZ-документов из `docs/Почти Актуальные TZ/`. Все ссылки на сессии (S04-S270+), ADR и файлы точны на момент v0.5.3.9.2.*
+*Доклад актуализирован на S348 по канону `MUTATIONS.md` v5.0 (МЕТА 230), `ADR Master Index`, `00_CAUSAL_CONTRACT_v3.0.md`, `DTO Registry v9.2`, `architecture/flags.yaml` и живому дереву `backend/`. Верификация: живой IPT 52/52 (0 CRITICAL); батарея существования 39 артефактов; 17 семантических код-проверок — все TRUE (TRAUMA_MULTIPLIER=6.0, max(0.0)-guard, отсутствие player-continue, INSERT без DELETE, single-writer sleep_onset_tick, frozen IdleEventProjection, 6 DTO CCH, 6 REASON-констант, дефолты 5 флагов). Базовая редакция (v0.5.3.9.2, S270+) — в git-истории.*

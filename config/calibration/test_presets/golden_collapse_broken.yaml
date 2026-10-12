@@ -1,0 +1,10 @@
+meta:
+  preset_id: golden_collapse_broken
+  description: BM-closure COLLAPSE leg - max legal pressure attempt (verify-first, verdict Q1)
+npc_overrides:
+  merchant_goran:
+    psyche:
+      willpower: 0.0
+    social:
+      fear: 100.0
+      trust: -100.0

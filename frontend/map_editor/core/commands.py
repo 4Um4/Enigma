@@ -661,15 +661,9 @@ class PasteCommand(Command):
             self.wall_ids.append(wid)
         self.obj_ids.clear()
         for obj in self.objects:
-            oid = self.dm.add_object(
-                self.filename,
-                obj["type"],
-                obj["position"]["x"],
-                obj["position"]["y"],
-                obj["size"]["w"],
-                obj["size"]["h"],
-                obj.get("rotation", 0),
-            )
+            # ME-D8: вставка целым словарём — копия сохраняет имя, спрайт,
+            # свойства, cover, passability и привязку к стене
+            oid = self.dm.add_object_full(self.filename, obj)
             self.obj_ids.append(oid)
 
     def undo(self):
