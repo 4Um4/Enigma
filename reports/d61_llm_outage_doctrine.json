@@ -1,5 +1,5 @@
 {
-  "started": "2026-10-12 00:35:00",
+  "started": "2026-10-12 18:50:13",
   "checks": [
     {
       "name": "p0_llm_online",
@@ -13,8 +13,8 @@
     },
     {
       "name": "p0_status_online",
-      "ok": false,
-      "detail": "payload={'status': 'unconfirmed', 'reason': 'health offline: URLError: <urlopen error timed out>'}"
+      "ok": true,
+      "detail": "payload={'status': 'online', 'reason': ''}"
     },
     {
       "name": "g1_world_ticks",
@@ -29,12 +29,12 @@
     {
       "name": "g2_pool_backoff_proven",
       "ok": true,
-      "detail": "pool_status={'degraded': True, 'models': {'qwen_7b': {'backoff_until': 1791740429.7358878, 'active': True}}}"
+      "detail": "pool_status={'degraded': True, 'models': {'qwen_7b': {'backoff_until': 1791806144.033826, 'active': True}}}"
     },
     {
       "name": "g2_status_outage",
       "ok": true,
-      "detail": "payload={'status': 'outage', 'reason': 'pool backoff доказан (до 1791740430)'}"
+      "detail": "payload={'status': 'outage', 'reason': 'pool backoff доказан (до 1791806144)'}"
     },
     {
       "name": "g2_pause_immediate",
@@ -99,7 +99,7 @@
     {
       "name": "g5_pause_before_retry",
       "ok": true,
-      "detail": "payload={'status': 'outage', 'reason': 'pool backoff доказан (до 1791740464)'}"
+      "detail": "payload={'status': 'outage', 'reason': 'pool backoff доказан (до 1791806179)'}"
     },
     {
       "name": "g5_failed_with_reason",
@@ -124,7 +124,7 @@
     {
       "name": "g6_unconfirmed_status",
       "ok": true,
-      "detail": "payload={'status': 'unconfirmed', 'reason': 'health offline: URLError: <urlopen error timed out>'}"
+      "detail": "payload={'status': 'unconfirmed', 'reason': 'health offline: ::1: TimeoutError'}"
     },
     {
       "name": "g6_debounce_first_probe",
@@ -163,6 +163,7 @@
     }
   ],
   "obs": {
+    "p0_stabilize_sec": 0.5,
     "g1_game_time": {
       "before": null,
       "after": null
@@ -186,7 +187,7 @@
     "atexit server_lifecycle остановит lifecycle-spawned сервер при выходе",
     "gateway: health-проба 127.0.0.1:port/health (1с, без DNS) вместо check_llm_health — тайминг дебаунса; прод-латентность дебаунса = 1 медленная проба на TTL кэша"
   ],
-  "finished": "2026-10-12 00:36:35",
-  "green": 31,
-  "red": 1
+  "finished": "2026-10-12 18:51:49",
+  "green": 32,
+  "red": 0
 }

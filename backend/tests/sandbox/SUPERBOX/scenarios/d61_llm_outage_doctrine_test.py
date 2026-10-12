@@ -304,17 +304,31 @@ def _health_online_fast() -> "tuple[bool, str]":
     server_lifecycle._await_llama_ready. Прод-роут остаётся на
     кэшируемом check_llm_health (латентность прод-дебаунса = 1
     медленная проба на TTL кэша — наблюдение в артефакте)."""
-    import urllib.request
+    import socket
 
     from app.core.config import settings
 
-    url = f"http://127.0.0.1:{settings.llama_cpp_port}/health"
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-    try:
-        with opener.open(url, timeout=1.0) as resp:
-            return (resp.status == 200, f"http={resp.status}")
-    except Exception as e:
-        return (False, f"{type(e).__name__}: {str(e)[:60]}")
+    # Dual-stack (матрица 5 прогонов): менеджер поднимает --host localhost
+    # (стек ::1 — HTTP-проба на 127.0.0.1 не отвечает никогда, стабилизация
+    # 120с не помогла), lifecycle — --host 127.0.0.1 (g4/g8 GREEN).
+    # TCP-connect на оба стека: любой живой = online; мёртвый порт =
+    # refused мгновенно (тайминг g6-дебаунса сохраняется).
+    _port = int(settings.llama_cpp_port)
+    _last = "no-attempt"
+    for _host in ("127.0.0.1", "::1"):
+        _s = socket.socket(
+            socket.AF_INET6 if ":" in _host else socket.AF_INET,
+            socket.SOCK_STREAM,
+        )
+        _s.settimeout(0.5)
+        try:
+            _s.connect((_host, _port))
+            return (True, f"tcp:{_host}:{_port}")
+        except Exception as e:
+            _last = f"{_host}: {type(e).__name__}"
+        finally:
+            _s.close()
+    return (False, _last)
 
 
 class _OutageGateway:
@@ -367,6 +381,21 @@ def g0_selfhost(gw) -> bool:
             time.sleep(2)
     if not check("p0_llm_online", _llm_alive(), "health не отвечает после самоподъёма"):
         return False
+    # Стабилизация /health после спавна (прогоны 00:20/00:34/18:36:
+    # _llm_alive 3с GREEN -> fast-проба 1с timeout — /health отвечает
+    # в окне загрузки >1с; после загрузки <1с, g4_status_online GREEN
+    # той же пробой). Ждём, пока fast-проба станет online (её гейтит
+    # p0_status_online). Бюджет 120с: каждый прогон = SPAWN (atexit
+    # гасит lifecycle-сервер g8), загрузка модели до ~90с. Прод-семантика
+    # не тронута: unconfirmed на старте легален по доктрине §3.5.
+    _stab_t0 = time.time()
+    _stab_deadline = _stab_t0 + 120.0
+    while time.time() < _stab_deadline:
+        _online, _why = _health_online_fast()
+        if _online:
+            break
+        time.sleep(1.0)
+    _obs("p0_stabilize_sec", round(time.time() - _stab_t0, 1))
     from app.services.llm.router import initialize_router
 
     initialize_router()  # прод-прецедент main.py:120-122 — до любого request()
