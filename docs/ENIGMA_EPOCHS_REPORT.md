@@ -2,7 +2,7 @@
 
 > **Документ:** Архитектурный доклад об эволюции системы
 > **Версия:** Актуализировано и верифицировано кодом на V.0.5.4.3.3 (S347)
-> **Дата:** 2026-10 (актуализация S348; базовая редакция — 2026-08-30, v0.5.3.9.2 / S270+)
+> **Дата:** 2026-10 (актуализация S349; базовая редакция — 2026-08-30, v0.5.3.9.2 / S270+)
 > **Источник:** `MUTATIONS.md` (протокол v5.0, МЕТА 230), `ADR Master Index`, `00_CAUSAL_CONTRACT_v3.0.md`, `DTO Registry v9.2`, `ENIGMA_ROADMAP_v4_6.md`, `architecture/flags.yaml`, живое дерево `backend/`
 > **Покрытие:** S04 → S347 (8 завершённых эпох) + дальний горизонт (Эпохи 9–13+)
 > **Протокол верификации этой редакции:** живой IPT **52 passed / 0 failed (0 CRITICAL)**; батарея существования 39 артефактов (Test-Path); 17 семантических код-проверок (Select-String по владельцам законов) — все TRUE; дефолты 5 флагов сверены с `flags.yaml`; единственный писатель `sleep_onset_tick` подтверждён; канон Борко (`config/npc/chronicles/guard_borko.json`) и известный RED подтверждены. Правки против базовой редакции перечислены в §0.1.
@@ -418,4 +418,4 @@ Versu закрылся. Façade — academic demo. Prom Week — paper. NVIDIA A
 
 ---
 
-*Доклад актуализирован на S348 по канону `MUTATIONS.md` v5.0 (МЕТА 230), `ADR Master Index`, `00_CAUSAL_CONTRACT_v3.0.md`, `DTO Registry v9.2`, `architecture/flags.yaml` и живому дереву `backend/`. Верификация: живой IPT 52/52 (0 CRITICAL); батарея существования 39 артефактов; 17 семантических код-проверок — все TRUE (TRAUMA_MULTIPLIER=6.0, max(0.0)-guard, отсутствие player-continue, INSERT без DELETE, single-writer sleep_onset_tick, frozen IdleEventProjection, 6 DTO CCH, 6 REASON-констант, дефолты 5 флагов). Базовая редакция (v0.5.3.9.2, S270+) — в git-истории.*
+*Доклад актуализирован на S349 по канону `MUTATIONS.md` v5.0 (МЕТА 232), `ADR Master Index`, `00_CAUSAL_CONTRACT_v3.0.md`, `DTO Registry v9.2`, `architecture/flags.yaml` и живому дереву `backend/`. Верификация: живой IPT 52/52 (0 CRITICAL); батарея существования 39 артефактов; 17 семантических код-проверок — все TRUE (TRAUMA_MULTIPLIER=6.0, max(0.0)-guard, отсутствие player-continue, INSERT без DELETE, single-writer sleep_onset_tick, frozen IdleEventProjection, 6 DTO CCH, 6 REASON-констант, дефолты 5 флагов). Базовая редакция (v0.5.3.9.2, S270+) — в git-истории.*
