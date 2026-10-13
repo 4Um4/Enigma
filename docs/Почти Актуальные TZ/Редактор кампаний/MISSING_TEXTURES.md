@@ -12,7 +12,7 @@
 ## B. Спрайты-заглушки и фолбэк
 | Объект | Статус |
 |---|---|
-| `bar`, `gap` | TODO-заглушки (исторические; теперь в `_PRESET_SPRITE_FALLBACK`, sprite_registry) |
+| `bar` | TODO-заглушка (историческая; в `_PRESET_SPRITE_FALLBACK`, sprite_registry) |
 | `decoration`, `window`, `stairs_up`, `stairs_down`, `ladder`, `portal_magic` | Без sprite в пресете — живут в `_PRESET_SPRITE_FALLBACK`; при добавлении текстуры перенести `"sprite"` в пресет (data_manager) и удалить из фолбэка |
 
 ## C. Персональные NPC — заглушки общих тайлов (NEW-MVP-008)

@@ -805,7 +805,7 @@ def _run_store(
                 f"бэкап={'да' if make_backup else 'нет'}",
             )
 
-        backup_path = _backup_database(db_path) if make_backup else None
+        backup_path = _backup_database(db_path) if make_backup else None  # noqa: ENIGMA001
 
         if plan:
             for spec in plan:
@@ -851,7 +851,7 @@ def _run_store(
             detected_version=detected, head_version=head,
             applied=tuple((s.from_version, s.to_version) for s in plan),
             baseline_stamped=stamp_only,
-            backup_path=str(backup_path) if backup_path else None,
+            backup_path=str(backup_path) if backup_path else None,  # noqa: ENIGMA001
         )
     finally:
         conn.close()

@@ -61,6 +61,8 @@ mypy_report.txt
 docs/Научная обоснованность/_tex_src/
 backend/data/session_memory_*.jsonl
 
+# Replay-сессии COV-1 (replay.db + .pre-migration.bak, ~915 МБ — GitHub-лимиты)
+reports/replay_sessions/
 # Корневые диагностические дампы сессий (S262-S295 классы)
 sleep_*.txt bsf*.txt rcb*.txt sdf*.txt spk_*.txt mvt_out.txt
 d1_*.txt d2_*.txt d2a_*.txt d3_*.txt d_pop*.txt d_freeze*.txt d_wall.txt
