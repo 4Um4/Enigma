@@ -370,3 +370,42 @@ def test_T11_schema_plus_one_applied_once(tmp_path):
         assert rows == [(0, 1, "COV-1/Б"), (1, 2, "COV-1/Б"), (2, 3, "TEST/A")]
     finally:
         conn.close()
+
+
+def test_T12_extension_tables_family_stamped(tmp_path):
+    """T12: живое условие Шага D (поймано dry-run на копии): enigma_memory
+    с таблицами расширений L1/L2.5 (владельцы создают лениво) — базлайн-
+    штамп v2 без DDL, данные не тронуты; посторонняя таблица по-прежнему
+    отказ."""
+    db = tmp_path / "mem.db"
+    _build_v2(db, rows=2)
+    conn = sqlite3.connect(db)
+    try:
+        for ext in (
+            "CREATE TABLE l1_chronicle_events (id INTEGER PRIMARY KEY AUTOINCREMENT, x TEXT)",
+            "CREATE TABLE l1_chronicle_archive (id INTEGER PRIMARY KEY AUTOINCREMENT, x TEXT)",
+            "CREATE TABLE crystallized_beliefs (id INTEGER PRIMARY KEY AUTOINCREMENT, x TEXT)",
+        ):
+            conn.execute(ext)
+        conn.commit()
+    finally:
+        conn.close()
+    objs_before, cols_before, counts_before, _ = _snap(db)
+
+    out = mr.run_startup_migrations([_reg(db)])[0]
+    assert out.status == "ok"
+    assert out.baseline_stamped
+    objs_after, cols_after, counts_after, version = _snap(db)
+    assert version == 2
+    assert objs_after == objs_before and cols_after == cols_before
+    assert counts_after == counts_before
+
+    # посторонняя таблица — по-прежнему отказ без изменений (T4-семантика)
+    db2 = tmp_path / "mem2.db"
+    _build_v2(db2)
+    conn = sqlite3.connect(db2)
+    conn.execute("CREATE TABLE rogue_extra (id TEXT)")
+    conn.commit()
+    conn.close()
+    with pytest.raises(mr.MigrationError, match="неоднозначное"):
+        mr.run_startup_migrations([_reg(db2)])

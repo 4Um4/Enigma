@@ -379,8 +379,19 @@ def _table_counts(conn: sqlite3.Connection) -> dict[str, int]:
     }
 
 
+# База стора (обязательна; миграции COV-1 управляют только ею)…
 _ENIGMA_MEMORY_TABLES = frozenset(
     {"entries", "state_collections", "memory_crystals", "experience_traces", "event_memories"}
+)
+# …и расширения семейства, живущие в том же файле: их создают лениво
+# сами сторы (l1_chronicle.__init__/_ensure_loaded: l1_chronicle_events,
+# l1_chronicle_archive — Rule 28 append-only; crystallized_belief_store:
+# crystallized_beliefs), идемпотентным CREATE IF NOT EXISTS. Миграции их
+# НЕ создают и НЕ трогают; присутствие опционально (установка без
+# загрузки L1/L2.5), посторонних таблиц быть не может (поймано
+# классификатором Шага D — dry-run на копии, живой файл не тронут).
+_ENIGMA_MEMORY_EXTENSION_TABLES = frozenset(
+    {"l1_chronicle_events", "l1_chronicle_archive", "crystallized_beliefs"}
 )
 _ENIGMA_RUNTIME_TABLES = frozenset({"state_kv"})
 _REPLAY_TABLES = frozenset(
@@ -392,10 +403,13 @@ def _classify_enigma_memory(conn: sqlite3.Connection) -> int:
     tables = _user_tables(conn)
     if not tables:
         return 0
-    if tables != _ENIGMA_MEMORY_TABLES:
+    base_missing = _ENIGMA_MEMORY_TABLES - tables
+    unknown = tables - _ENIGMA_MEMORY_TABLES - _ENIGMA_MEMORY_EXTENSION_TABLES
+    if base_missing or unknown:
         raise MigrationError(
             "enigma_memory: неоднозначное легаси-состояние — таблицы не совпадают "
-            f"с ожидаемыми 5 (найдено: {sorted(tables)}). Файл НЕ изменён; "
+            f"с семейством (база 5 обязательна + известные расширения L1/L2.5; "
+            f"найдено: {sorted(tables)}). Файл НЕ изменён; "
             "решение за владельцем (ADR-O-426 §2: неизвестная схема не штампуется)."
         )
     if "secret_id" not in _table_columns(conn, "event_memories"):

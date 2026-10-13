@@ -1,0 +1,104 @@
+{
+  "mode": "dry-run",
+  "generated_at": "2026-10-13T16:43:08.901425+00:00",
+  "tmp_dir": "C:\\Users\\lipir\\AppData\\Local\\Temp\\cov1_stamp__cbk114l",
+  "stores": [
+    {
+      "store_id": "enigma_memory",
+      "live_path": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\saves\\enigma_memory.db",
+      "exists": true,
+      "size_bytes": 10821632,
+      "copy_path": "C:\\Users\\lipir\\AppData\\Local\\Temp\\cov1_stamp__cbk114l\\enigma_memory.db",
+      "classification": {
+        "status": "dry-run",
+        "detected_version": 2,
+        "head_version": 2,
+        "plan": [
+          "базлайн-штамп v2 без DDL"
+        ],
+        "reason": "таблицы=8, строк=49704; бэкап=нет",
+        "counts": {
+          "crystallized_beliefs": 11,
+          "entries": 19,
+          "event_memories": 50,
+          "experience_traces": 0,
+          "l1_chronicle_archive": 7994,
+          "l1_chronicle_events": 41630,
+          "memory_crystals": 0,
+          "state_collections": 0
+        }
+      },
+      "shadow": {
+        "status": "ok",
+        "applied": [],
+        "baseline_stamped": true,
+        "version_before": 0,
+        "version_after": 2,
+        "integrity_after": "ok",
+        "counts_preserved": true
+      }
+    },
+    {
+      "store_id": "enigma_runtime",
+      "live_path": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\saves\\enigma_runtime.db",
+      "exists": true,
+      "size_bytes": 409600,
+      "copy_path": "C:\\Users\\lipir\\AppData\\Local\\Temp\\cov1_stamp__cbk114l\\enigma_runtime.db",
+      "classification": {
+        "status": "dry-run",
+        "detected_version": 1,
+        "head_version": 1,
+        "plan": [
+          "базлайн-штамп v1 без DDL"
+        ],
+        "reason": "таблицы=1, строк=1; бэкап=нет",
+        "counts": {
+          "state_kv": 1
+        }
+      },
+      "shadow": {
+        "status": "ok",
+        "applied": [],
+        "baseline_stamped": true,
+        "version_before": 0,
+        "version_after": 1,
+        "integrity_after": "ok",
+        "counts_preserved": true
+      }
+    },
+    {
+      "store_id": "replay",
+      "live_path": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\reports\\replay_sessions\\replay.db",
+      "exists": true,
+      "size_bytes": 457551872,
+      "copy_path": "C:\\Users\\lipir\\AppData\\Local\\Temp\\cov1_stamp__cbk114l\\replay.db",
+      "classification": {
+        "status": "dry-run",
+        "detected_version": 1,
+        "head_version": 1,
+        "plan": [
+          "базлайн-штамп v1 без DDL"
+        ],
+        "reason": "таблицы=6, строк=98802; бэкап=нет",
+        "counts": {
+          "causal_probes": 0,
+          "interventions": 1499,
+          "llm_calls": 8020,
+          "scene_changes": 0,
+          "sessions": 3986,
+          "tick_snapshots": 85297
+        }
+      },
+      "shadow": {
+        "status": "ok",
+        "applied": [],
+        "baseline_stamped": true,
+        "version_before": 0,
+        "version_after": 1,
+        "integrity_after": "ok",
+        "counts_preserved": true
+      }
+    }
+  ],
+  "ok": true
+}
