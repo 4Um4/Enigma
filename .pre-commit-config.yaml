@@ -50,6 +50,12 @@ repos:
         language: system
         pass_filenames: false
 
+      - id: enigma-sqlite-registry
+        name: ENIGMA SQLite Registry (ADR-O-426 §9 / COV-1)
+        entry: python scripts/lint_sqlite_registry.py
+        language: system
+        pass_filenames: false
+
       - id: enigma-pycache-clean
         name: ENIGMA __pycache__ clean
         entry: bash -c 'find backend/ frontend/ -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null; true'

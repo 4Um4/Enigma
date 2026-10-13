@@ -73,6 +73,10 @@ class SqliteMemoryStore:
         return conn
 
     def _init_schema(self) -> None:
+        # ДВОЙНАЯ КОПИЯ DDL: этот CREATE-набор и v1-миграция MigrationRunner
+        # (ADR-O-426) обязаны оставаться в паритете — замок: тест T1
+        # (test_migration_runner, сравнение множеств таблиц/индексов/колонок).
+        # Меняешь схему здесь → зеркальная правка DDL + НОВАЯ миграция там.
         cur = self._conn.cursor()
         # Generic entries — совместимость с JsonMemoryStore
         cur.execute("""
@@ -182,17 +186,10 @@ class SqliteMemoryStore:
             CREATE INDEX IF NOT EXISTS idx_event_memories_tags
             ON event_memories(campaign_id, npc_id, tags_json)
         """)
-        # M1/P1 (ТЗ «Таверна тайн»): миграционный гвард для существующих
-        # БД — CREATE IF NOT EXISTS не расширяет живые таблицы. Первый
-        # ALTER-прецедент проекта. Индекс — СТРОГО после гварда (урок
-        # smoke-прогона: индекс до ALTER = OperationalError).
-        _em_cols = {
-            _r[1] for _r in cur.execute("PRAGMA table_info(event_memories)").fetchall()
-        }
-        if "secret_id" not in _em_cols:
-            cur.execute(
-                "ALTER TABLE event_memories ADD COLUMN secret_id TEXT DEFAULT NULL"
-            )
+        # M1/P1 (ТЗ «Таверна тайн»): колонка secret_id. Свежие БД рождаются
+        # сразу в v2 (inline в CREATE выше). Миграция ЖИВЫХ легаси-БД v1→v2
+        # — единый версионный путь: MigrationRunner (ADR-O-426, миграция
+        # 1→2), ad-hoc ALTER-гвард удалён. Индекс — идемпотентный.
         cur.execute("""
             CREATE INDEX IF NOT EXISTS idx_event_memories_secret
             ON event_memories(campaign_id, secret_id)

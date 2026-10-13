@@ -2276,9 +2276,45 @@ def inv_flag_registry(*_ctx: object) -> InvariantResult:
         )
 
 
+def inv_sqlite_registry(_ctx=None):
+    """ADR-O-426 §9 (COV-1/D58 → COV-GC-01): каждый prod SQLite-стор учтён
+    в реестре MigrationRunner; новый незарегистрированный стор — блокирующий
+    RED, не предупреждение (вердикт Мастера I.2)."""
+    try:
+        from lint_sqlite_registry import APP_DIR, SCRIPTS_DIR, TESTS_DIR, run_census
+
+        res = run_census(APP_DIR, TESTS_DIR, SCRIPTS_DIR)
+        if not res.ok:
+            _parts = list(res.unregistered) + list(res.stale_registry)
+            _parts += [f"непокрытый механизм: {name}" for name in sorted(res.uncovered)]
+            _parts += res.reasons
+            _details = "; ".join(_parts[:5])
+            return InvariantResult(
+                "INV-SQLITE-REGISTRY",
+                "CRITICAL",
+                False,
+                f"SQLITE-REGISTRY: {len(_parts)} нарушений (ADR-O-426 §9 / COV-1). "
+                f"Первые: {_details}",
+                [
+                    "scripts/lint_sqlite_registry.py",
+                    "backend/app/services/state/migration_runner.py",
+                ],
+            )
+        return InvariantResult("INV-SQLITE-REGISTRY", "CRITICAL", True, "", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-SQLITE-REGISTRY",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e}",
+            ["scripts/lint_sqlite_registry.py"],
+        )
+
+
 INVARIANTS: List[Callable] = [
     inv_re_cache_allowlist,  # ADR-O-415: freeze-поверхность relationship_cache (M1b.3.7)
     inv_flag_registry,  # COV-0: флаг-реестр (COV-D73 -> COV-GC-04)
+    inv_sqlite_registry,  # ADR-O-426 §9: реестр SQLite-сторов (COV-1/D58 -> COV-GC-01)
     inv_scene_entity_isolation,
     inv_replay_determinism,
     inv_save_load_integrity,
