@@ -2175,8 +2175,6 @@ class TickOrchestrator:
                 ]
 
 
-        # DEEP-015 FIX: Мёртвый код ExpectationStore (Active Inference) удалён.
-        # Хранилище никогда не инициализировалось, блоки всегда были no-op.
         # Оставляем пустой словарь, чтобы не ломать контракт build_tick_state.
         _pe_mods_map: dict[str, dict[str, float]] = {}
 

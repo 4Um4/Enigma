@@ -198,7 +198,7 @@ class CommunicationIntent:
 
 ФАЗА 0.5: Time-Driven Decay (ВСЕГДА, время не останавливается)
     idle_handlers → DynamicAffordanceField (purge + decay)
-    → PE Decay (ExpectationStore), Affective Decay, Perceptual Decay
+    → Affective Decay, Perceptual Decay
     → TraversalExecutionSystem.advance() (projection TraversalState → local_position)
     → _advance_idle_time() (game_time_seconds += GAME_TICK_INTERVAL_SECONDS)
 
@@ -482,7 +482,6 @@ obj = dataclasses.replace(obj, npc_id="test_override")
 | PerceptualKernel | `npc_state.py` | `_pk_from_dict` | S86 (ADR-115) |
 | BodyState | `npc_state.py` | `test_npc_state_r6` | S86 (ADR-100/127) |
 | AffectiveLoad | `npc_state.py` | `test_npc_state_r6` | S86 (ADR-121) |
-| ExpectationStore | `expectation_store.py` | `test_kernel_rng` (косвенно) | S93 (ADR-S93.2) |
 | L1Chronicle | `l1_chronicle.py` | `test_event_memory` | S86 (ADR-L1-PERSIST) |
 | Desire / ProvenanceEntry | `desire.py` | `test_living_activity_domain.py` | Living Activity (номер сессии — при записи в MUTATIONS) |
 | ActivityState / ActivityStep | `activity.py` | `test_living_activity_domain.py` | Living Activity (номер сессии — при записи в MUTATIONS) |

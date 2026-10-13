@@ -51,8 +51,6 @@ def run_phase_0_5(ctx: _TickContext, deps: Phase0_5Deps) -> None:
     if _isolation_deltas:
         ctx.delta_buffer.extend(_isolation_deltas)
 
-    # DEEP-015 FIX: Мёртвый код ExpectationStore (PE Decay) удалён.
-
     # ADR-036 / ADR-O-302: Affective Decay (Leaky Integrator для памяти)
     # Травмы затухают со временем, если не подкрепляются.
     from dataclasses import asdict
