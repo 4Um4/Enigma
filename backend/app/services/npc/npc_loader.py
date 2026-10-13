@@ -889,6 +889,23 @@ def load_l2_state_from_runtime_dict(
     except ValueError:
         _intent_enum = None
 
+    # [Этап A / разрыв №3, WARA §12.2] Параллельный загрузчик state'а хаба
+    # (npc_tick_pipeline:254/:193) читает resentment/dependency, но НЕ маску:
+    # from_legacy (V8-PSY-5) читает psyche[behavior_mask*], этот мост — нет.
+    # Маска в dict есть (прогоны №4–5: с тика 3–8), до DecisionHub не доходит
+    # (сигнатура множителя в скорах отсутствует). Safe-mapping — прецеденты
+    # will_str (:875) и intent (:884); applied_at_day: None = «никогда».
+    from app.models.behavior_mask import BehaviorMask as _BehaviorMask
+    from app.models.behavior_mask import BehaviorMaskState as _BehaviorMaskState
+
+    _mask_raw = psyche.get("behavior_mask", "none")
+    try:
+        _mask_enum = _BehaviorMask(_mask_raw)
+    except ValueError:
+        _mask_enum = _BehaviorMask.NONE
+    _mask_day_raw = psyche.get("behavior_mask_applied_at_day")
+    _mask_day = None if _mask_day_raw is None else int(_mask_day_raw)
+
     # L2.7: LifeProject — динамическая проекция L0.
     # P2: Обратная совместимость. Если нет life_project, берём старое life_direction или L0.
     _life_project = psyche.get("life_project", psyche.get("life_direction", raw_data.get("core_orientation", "survival")))
@@ -899,6 +916,12 @@ def load_l2_state_from_runtime_dict(
         # N-23 FIX: hp/max_hp удалены из NPCState, читаются только из body_state.
         stress=float(psyche.get("stress", 0.0)),
         will_state=will_enum,
+        # [Этап A / разрыв №3] маска переживает dict → state хаба (блок выше)
+        behavior_mask=_BehaviorMaskState(
+            mask=_mask_enum,
+            intensity=float(psyche.get("behavior_mask_intensity", 0.0)),
+            applied_at_day=_mask_day,
+        ),
         life_project=_life_project,
         life_project_state=_life_project_state,
         # Система слома

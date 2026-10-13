@@ -133,9 +133,6 @@ def evaluate_behavior_and_identity(
             if _old_state != _npc_state.life_project_state:
                 logger.info(f"[LIFE_PROJECT] NPC {npc_id} FSM переход: {_old_state} -> {_npc_state.life_project_state} (Проект: {_npc_state.life_project})")
 
-            # ADR-O-208: Сохраняем вычисленные дельты обратно в npc_dict
-            NPCState.to_persistence_dict(_npc_state, npc_dict)
-
             # L1Chronicle: Фиксация давления и идентичности
             if l1_chronicle is not None:
                 _affect = _npc_state.affective_load * 100
@@ -233,8 +230,12 @@ def evaluate_behavior_and_identity(
                     mask=_new_mask, intensity=_mask_intensity, applied_at_day=game_day
                 ))
 
-            # V8-PSY-18 FIX: Удалены root-level writes. to_persistence_dict() уже корректно
-            # сохраняет эти поля в psyche sub-dict, который читает from_legacy.
+            # [Этап A / ORDER-фикс, S318] Проекция перенесена сюда (была над
+            # хроникой, ДО расчёта маски): маска писалась в объект после
+            # проекции и терялась (прогон №3: mask_at_call=none → mask_after=fake).
+            # Инвариант: одна точка проекции, состояние финальное — compute →
+            # project once; ADR-O-208: сохраняем ВСЕ дельты, включая BehaviorMask.
+            NPCState.to_persistence_dict(_npc_state, npc_dict)
 
         except Exception as e:
             logger.error(f"[BREAK_PROGRESS] failed for {npc_id}: {e}")

@@ -1045,6 +1045,13 @@ class NPCState:
         psyche["identity_integrity"] = state.identity_integrity
         psyche["pressure_resistance"] = state.pressure_resistance
         psyche["recent_failures"] = state.recent_failures
+        # [Этап A / WARA §12.2] BehaviorMask round-trip: from_legacy (блок
+        # V8-PSY-5 ниже) читает psyche[behavior_mask*] — писатель обязан писать
+        # (прецедент GC-I01-E1 intent-блока). applied_at_day — None-able:
+        # None = «никогда не накладывалась» (0-sentinel запрещён, F15).
+        psyche["behavior_mask"] = state.behavior_mask.mask.value
+        psyche["behavior_mask_intensity"] = state.behavior_mask.intensity
+        psyche["behavior_mask_applied_at_day"] = state.behavior_mask.applied_at_day
         # L2.7: LifeDirection — персистенция динамического жизненного проекта
         psyche["life_project"] = state.life_project
         psyche["life_project_state"] = state.life_project_state
@@ -1247,6 +1254,13 @@ class NPCStateAdapter:
         _life_project = psyche.get("life_project", psyche.get("life_direction", npc_dict.get("core_orientation", "survival")))
         _life_project_state = psyche.get("life_project_state", "ACTIVE")
 
+        # [Этап A] Контракт applied_at_day: None = «никогда не накладывалась».
+        # Старые состояния без ключа → None (маски в них не было — семантически
+        # истинно, обратная совместимость без миграции). Guard обязателен:
+        # int(None) — краш.
+        _mask_day_raw = psyche.get("behavior_mask_applied_at_day")
+        _mask_day = None if _mask_day_raw is None else int(_mask_day_raw)
+
         return NPCState(
             npc_id=npc_dict.get("npc_id", npc_dict.get("id", "unknown")),
             stress=float(psyche.get("stress", 0)),
@@ -1292,7 +1306,7 @@ class NPCStateAdapter:
             behavior_mask=BehaviorMaskState(
                 mask=BehaviorMask(psyche.get("behavior_mask", "none")),
                 intensity=float(psyche.get("behavior_mask_intensity", 0.0)),
-                applied_at_day=int(psyche.get("behavior_mask_applied_at_day", 0))
+                applied_at_day=_mask_day
             ),
             emotion=_emotion_from_str(npc_dict.get("emotion", "neutral")),
             emotion_delta=float(npc_dict.get("emotion_delta", 0.0)),

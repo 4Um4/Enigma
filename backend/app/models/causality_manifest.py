@@ -109,7 +109,7 @@ FIELD_CAUSALITY: Dict[str, FieldCausality] = {
     "npc_state.pressure_resistance": FieldCausality("DEBT", organ="experience", terminal="decision", authority="ADR-O-414"),
     "npc_state.recent_failures": FieldCausality("DEBT", organ="memory", terminal="decision", authority="ADR-O-414"),
     "npc_state.will_state": FieldCausality("DEBT", organ=None, terminal="decision", authority="ADR-O-414"),  # воля вне десятки
-    "npc_state.behavior_mask": FieldCausality("DEBT", organ=None, terminal="projection", authority="RE-D9"),  # канал мёртв end-to-end (выборка 4)
+    "npc_state.behavior_mask": FieldCausality("CAUSAL", organ="role", terminal="decision", authority="ADR-409", proof="backend/tests/sandbox/SUPERBOX/scenarios/behavior_mask_closure_test.py"),  # канал жив end-to-end (этап A: ORDER+WARA-reader); инверсия множителя на отриц. скорах — этап B (B12)
     "npc_state.trauma_markers": FieldCausality("DEBT", organ="experience", terminal="decision", authority="ADR-O-414"),
     "npc_state.beliefs": FieldCausality("CAUSAL", organ="knowledge", terminal="decision",
                                         proof="backend/tests/sandbox/SUPERBOX/scenarios/causal_state_test.py", authority="S243"),
