@@ -13,9 +13,14 @@ _NPC_INDIVIDUALS_DIR = (
 )
 
 # Визуальный маппинг для отрисовки NPC в редакторе (ref_id -> спрайт)
+# ME-D5: персональные спрайты — единственный дом (значения из рендер-эталона S348)
 NPC_SPRITE_MAP = {
     "merchant_goran": ("Deadbeat/deadbeat_b", 25, 21),
     "thief_shadow": ("Deadbeat/deadbeat_b", 25, 22),
+    "tavern_keeper_tornin": ("Deadbeat/deadbeat_b", 23, 21),
+    "maid_lusya": ("Deadbeat/deadbeat_b", 23, 22),
+    "blacksmith_orm": ("Deadbeat/deadbeat_b", 26, 21),
+    "guard_borko": ("Deadbeat/deadbeat_b", 23, 21),
 }
 
 

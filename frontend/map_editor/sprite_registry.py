@@ -17,6 +17,11 @@ from typing import Dict, Optional, Tuple
 
 import pygame
 
+# ME-D5: дома определений спрайтов (деривация ниже; цикла нет — data_manager
+# не импортирует sprite_registry, проверено S348 командой 91/92)
+from data.npc_data import NPC_SPRITE_MAP
+from data_manager import NPC_PRESETS, OBJECT_PRESETS
+
 # Базовая директория с палитрами (NEW-MVP-007 FIX: 2-Bit Pack не существует, используем pixels)
 _BASE_DIR = os.path.join(os.path.dirname(__file__), "pixels")
 # Стандартный размер тайла для 2-Bit стилей
@@ -188,57 +193,38 @@ class SpriteRegistry:
 # ═══════════════════════════════════════════════════════════════════
 # Маппинг типов сущностей (используется рендерером)
 # ═══════════════════════════════════════════════════════════════════
-ENTITY_SPRITE_MAP: Dict[str, Tuple[str, int, int]] = {
-    # Мебель
-    "table": ("Deadbeat/deadbeat_b", 5, 11),
-    "chair": ("Deadbeat/deadbeat_b", 8, 17),
-    "stool": ("Deadbeat/deadbeat_b", 9, 19),
-    "bar": ("Deadbeat/deadbeat_b", 5, 11),  # TODO: временная заглушка
-    "bed": ("Deadbeat/deadbeat_b", 8, 16),
-    "bookshelf": ("Deadbeat/deadbeat_b", 7, 16),
-    # Двери и проходы
-    "door": ("Deadbeat/deadbeat_b", 3, 9),
+# ═══════════════════════════════════════════════════════════════════
+# Маппинг типов сущностей — ДЕРИВАЦИЯ из домов определений (ME-D5, S348)
+# Объекты: OBJECT_PRESETS[t]["sprite"] · Архетипы NPC: NPC_PRESETS[t]["sprite"]
+# Персональные NPC: NPC_SPRITE_MAP (data/npc_data.py)
+# Правка спрайта = правка в доме; здесь спрайт-литералов нет.
+# ═══════════════════════════════════════════════════════════════════
+# 7 типов без sprite в пресете (bar/gap — TODO-заглушки, MISSING_TEXTURES.md).
+# Перенос в пресеты — часть текстурных работ (ME-R-627); после переноса — удалить.
+_PRESET_SPRITE_FALLBACK: Dict[str, Tuple[str, int, int]] = {
+    "bar": ("Deadbeat/deadbeat_b", 5, 11),
+    "decoration": ("Deadbeat/deadbeat_b", 3, 9),
     "window": ("Deadbeat/deadbeat_b", 6, 9),
-    "gap": ("Deadbeat/deadbeat_b", 3, 9),  # TODO: временная заглушка
-    "ladder": ("Deadbeat/deadbeat_b", 0, 9),
-    "hatch": ("Deadbeat/deadbeat_b", 11, 16),
     "stairs_up": ("Deadbeat/deadbeat_b", 0, 9),
     "stairs_down": ("Deadbeat/deadbeat_b", 0, 9),
-    "door_transition": ("Deadbeat/deadbeat_b", 3, 9),
+    "ladder": ("Deadbeat/deadbeat_b", 0, 9),
     "portal_magic": ("Deadbeat/deadbeat_b", 6, 2),
-    # Природа
-    "tree": ("Deadbeat/deadbeat_b", 6, 0),
-    "spruce": ("Deadbeat/deadbeat_b", 6, 3),
-    "apple_tree": ("Deadbeat/deadbeat_b", 7, 4),
-    "palm": ("Deadbeat/deadbeat_b", 7, 7),
-    "grass": ("Deadbeat/deadbeat_b", 7, 0),
-    "rocks": ("Deadbeat/deadbeat_b", 6, 18),
-    # Интерьер
-    "tent": ("Deadbeat/deadbeat_b", 8, 15),
-    "toilet": ("Deadbeat/deadbeat_b", 7, 21),
-    "cauldron": ("Deadbeat/deadbeat_b", 11, 17),
-    "campfire": ("Deadbeat/deadbeat_b", 4, 15),
-    # Декорации
-    "sign_flophouse": ("Deadbeat/deadbeat_b", 11, 4),
-    "bones": ("Deadbeat/deadbeat_b", 22, 13),
-    "heart": ("Deadbeat/deadbeat_b", 22, 12),
-    "heart_empty": ("Deadbeat/deadbeat_b", 22, 12),
-    "decoration": ("Deadbeat/deadbeat_b", 3, 9),
-    # NPC
-    "mage": ("Deadbeat/deadbeat_b", 23, 22),
-    "warrior": ("Deadbeat/deadbeat_b", 25, 21),
-    "person": ("Deadbeat/deadbeat_b", 23, 21),
-    "thief": ("Deadbeat/deadbeat_b", 25, 22),
-    "cow": ("Deadbeat/deadbeat_b", 25, 28),
-    "knight": ("Deadbeat/deadbeat_b", 26, 21),
-    # NEW-MVP-008 FIX: Персональные спрайты NPC (используем доступные тайлы до добавления уникальных .png)
-    "tavern_keeper_tornin": ("Deadbeat/deadbeat_b", 23, 21),
-    "maid_lusya": ("Deadbeat/deadbeat_b", 23, 22),
-    "merchant_goran": ("Deadbeat/deadbeat_b", 25, 21),
-    "thief_shadow": ("Deadbeat/deadbeat_b", 25, 22),
-    "blacksmith_orm": ("Deadbeat/deadbeat_b", 26, 21),
-    "guard_borko": ("Deadbeat/deadbeat_b", 23, 21),
 }
+
+
+def _derive_entity_sprite_map() -> Dict[str, Tuple[str, int, int]]:
+    derived: Dict[str, Tuple[str, int, int]] = dict(_PRESET_SPRITE_FALLBACK)
+    for _t, _p in OBJECT_PRESETS.items():
+        if "sprite" in _p:
+            derived[_t] = tuple(_p["sprite"])
+    for _a, _p in NPC_PRESETS.items():
+        if "sprite" in _p:
+            derived[_a] = tuple(_p["sprite"])
+    derived.update(NPC_SPRITE_MAP)
+    return derived
+
+
+ENTITY_SPRITE_MAP: Dict[str, Tuple[str, int, int]] = _derive_entity_sprite_map()
 
 
 def get_entity_sprite(entity_type: str) -> Optional[pygame.Surface]:

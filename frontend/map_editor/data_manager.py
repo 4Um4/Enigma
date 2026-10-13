@@ -163,7 +163,7 @@ OBJECT_PRESETS = {
         "color": "#AAAAAA",
         "default_size": {"w": 1.5, "h": 2.0},
         "default_properties": {"visibility_through": 1.0, "sound_attenuation": 0.0},
-        "sprite": ("Deadbeat/deadbeat_b", 6, 9),
+        "sprite": ("Deadbeat/deadbeat_b", 3, 9),
     },
     # === Переходы между этажами ===
     "stairs_up": {
@@ -245,7 +245,7 @@ OBJECT_PRESETS = {
             "target_file": "",
             "target_portal": "",
         },
-        "sprite": ("Deadbeat/deadbeat_b", 0, 9),
+        "sprite": ("Deadbeat/deadbeat_b", 3, 9),
     },
     "portal_magic": {
         "label": "Магический портал",
@@ -285,7 +285,7 @@ OBJECT_PRESETS = {
         "height": 4.0,
         "color": "#006400",
         "default_size": {"w": 1.0, "h": 1.0},
-        "sprite": ("Deadbeat/deadbeat_b", 6, 2),
+        "sprite": ("Deadbeat/deadbeat_b", 6, 3),
     },
     "tree": {
         "label": "Дерево",
@@ -302,7 +302,7 @@ OBJECT_PRESETS = {
         "height": 5.0,
         "color": "#228B22",
         "default_size": {"w": 1.0, "h": 1.0},
-        "sprite": ("Deadbeat/deadbeat_b", 6, 3),
+        "sprite": ("Deadbeat/deadbeat_b", 6, 0),
     },
     "grass": {
         "label": "Трава",
@@ -319,7 +319,7 @@ OBJECT_PRESETS = {
         "height": 0.3,
         "color": "#32CD32",
         "default_size": {"w": 0.5, "h": 0.5},
-        "sprite": ("Deadbeat/deadbeat_b", 6, 0),
+        "sprite": ("Deadbeat/deadbeat_b", 7, 0),
     },
     "apple_tree": {
         "label": "Яблоня",
@@ -336,7 +336,7 @@ OBJECT_PRESETS = {
         "height": 4.0,
         "color": "#8B4513",
         "default_size": {"w": 1.0, "h": 1.0},
-        "sprite": ("Deadbeat/deadbeat_b", 7, 0),
+        "sprite": ("Deadbeat/deadbeat_b", 7, 4),
     },
     "palm": {
         "label": "Пальма",
@@ -353,7 +353,7 @@ OBJECT_PRESETS = {
         "height": 6.0,
         "color": "#2E8B57",
         "default_size": {"w": 1.0, "h": 1.0},
-        "sprite": ("Deadbeat/deadbeat_b", 7, 4),
+        "sprite": ("Deadbeat/deadbeat_b", 7, 7),
     },
     "rocks": {
         "label": "Камни",
@@ -370,7 +370,7 @@ OBJECT_PRESETS = {
         "height": 0.5,
         "color": "#808080",
         "default_size": {"w": 1.0, "h": 0.8},
-        "sprite": ("Deadbeat/deadbeat_b", 7, 7),
+        "sprite": ("Deadbeat/deadbeat_b", 6, 18),
     },
     # === Мебель ===
     "bookshelf": {
@@ -388,7 +388,7 @@ OBJECT_PRESETS = {
         "height": 2.0,
         "color": "#8B4513",
         "default_size": {"w": 1.0, "h": 0.4},
-        "sprite": ("Deadbeat/deadbeat_b", 6, 18),
+        "sprite": ("Deadbeat/deadbeat_b", 7, 16),
     },
     "toilet": {
         "label": "Туалет",
@@ -405,7 +405,7 @@ OBJECT_PRESETS = {
         "height": 0.5,
         "color": "#F5F5F5",
         "default_size": {"w": 0.5, "h": 0.5},
-        "sprite": ("Deadbeat/deadbeat_b", 7, 16),
+        "sprite": ("Deadbeat/deadbeat_b", 7, 21),
     },
     "tent": {
         "label": "Палатка",
@@ -422,7 +422,7 @@ OBJECT_PRESETS = {
         "height": 2.0,
         "color": "#D2691E",
         "default_size": {"w": 2.0, "h": 2.0},
-        "sprite": ("Deadbeat/deadbeat_b", 7, 21),
+        "sprite": ("Deadbeat/deadbeat_b", 8, 15),
     },
     "bed": {
         "label": "Кровать",
@@ -439,7 +439,7 @@ OBJECT_PRESETS = {
         "height": 0.6,
         "color": "#8B4513",
         "default_size": {"w": 2.0, "h": 1.0},
-        "sprite": ("Deadbeat/deadbeat_b", 8, 15),
+        "sprite": ("Deadbeat/deadbeat_b", 8, 16),
     },
     "stool": {
         "label": "Табурет",
@@ -456,7 +456,7 @@ OBJECT_PRESETS = {
         "height": 0.5,
         "color": "#A0522D",
         "default_size": {"w": 0.4, "h": 0.4},
-        "sprite": ("Deadbeat/deadbeat_b", 8, 16),
+        "sprite": ("Deadbeat/deadbeat_b", 9, 19),
     },
     # === Интерактивные ===
     "sign_flophouse": {
@@ -474,7 +474,7 @@ OBJECT_PRESETS = {
         "height": 2.5,
         "color": "#DAA520",
         "default_size": {"w": 1.0, "h": 0.3},
-        "sprite": ("Deadbeat/deadbeat_b", 9, 19),
+        "sprite": ("Deadbeat/deadbeat_b", 11, 4),
     },
     "hatch": {
         "label": "Люк",
@@ -497,7 +497,7 @@ OBJECT_PRESETS = {
             "target_file": "",
             "target_z": -1,
         },
-        "sprite": ("Deadbeat/deadbeat_b", 11, 4),
+        "sprite": ("Deadbeat/deadbeat_b", 11, 16),
     },
     "cauldron": {
         "label": "Котел",
@@ -514,7 +514,7 @@ OBJECT_PRESETS = {
         "height": 0.8,
         "color": "#696969",
         "default_size": {"w": 0.8, "h": 0.8},
-        "sprite": ("Deadbeat/deadbeat_b", 11, 16),
+        "sprite": ("Deadbeat/deadbeat_b", 11, 17),
     },
     "campfire": {
         "label": "Костер",
@@ -532,7 +532,7 @@ OBJECT_PRESETS = {
         "color": "#FF4500",
         "default_size": {"w": 0.8, "h": 0.8},
         "default_properties": {"light_radius": 5.0, "temperature": 800},
-        "sprite": ("Deadbeat/deadbeat_b", 11, 17),
+        "sprite": ("Deadbeat/deadbeat_b", 4, 15),
     },
     # === Декорации ===
     "bones": {
@@ -550,7 +550,7 @@ OBJECT_PRESETS = {
         "height": 0.1,
         "color": "#FFFFF0",
         "default_size": {"w": 0.5, "h": 0.5},
-        "sprite": ("Deadbeat/deadbeat_b", 15, 18),
+        "sprite": ("Deadbeat/deadbeat_b", 22, 13),
     },
     "heart": {
         "label": "Сердечко",
@@ -567,7 +567,7 @@ OBJECT_PRESETS = {
         "height": 0.2,
         "color": "#FF0000",
         "default_size": {"w": 0.3, "h": 0.3},
-        "sprite": ("Deadbeat/deadbeat_b", 22, 13),
+        "sprite": ("Deadbeat/deadbeat_b", 22, 12),
     },
     "heart_empty": {
         "label": "Пустое сердечко",
