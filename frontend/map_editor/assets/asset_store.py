@@ -77,12 +77,17 @@ class ResourceRecord:
 class AssetStore:
     """Склад чертежей поверх папки assets/ (ME-1.2).
 
-    Порядок чтения: сначала общие каталоги, потом каталоги кампаний —
-    поэтому своя версия предмета перекрывает общую при одинаковом имени.
+    Порядок чтения: сначала общие каталоги, потом собственный каталог
+    открытой кампании (campaign_id) — своя версия предмета перекрывает
+    общую при одинаковом имени. Каталоги ДРУГИХ кампаний не загружаются:
+    уникальные предметы кампании не видны остальным (спека §2).
     """
 
-    def __init__(self, base_dir: Path | str) -> None:
+    def __init__(self, base_dir: Path | str, campaign_id: str | None = None) -> None:
         self._base = Path(base_dir)
+        if campaign_id == _GLOBAL_CATALOGS_DIR:
+            raise ValueError("campaign_id не может называться 'catalogs'")
+        self._campaign_id = campaign_id
         self._blueprints: Dict[str, BlueprintRecord] = {}
         self._resources: Dict[str, ResourceRecord] = {}
         self._overrides: List[str] = []
@@ -113,10 +118,14 @@ class AssetStore:
                     self._load_catalog(
                         catalog, f"{_SOURCE_GLOBAL}:{catalog.name}", problems
                     )
-        for entry in sorted(self._base.iterdir()):
-            if entry.is_dir() and entry.name != _GLOBAL_CATALOGS_DIR:
+        # Приватность (спека §2): каталог кампании виден только самой кампании.
+        # Склад строится в контексте ОДНОЙ открытой кампании; чужие каталоги
+        # не загружаются — уникальные предметы не протекают наружу.
+        if self._campaign_id is not None:
+            own = self._base / self._campaign_id
+            if own.is_dir():
                 self._load_catalog(
-                    entry, f"{_SOURCE_CAMPAIGN}:{entry.name}", problems
+                    own, f"{_SOURCE_CAMPAIGN}:{self._campaign_id}", problems
                 )
         if problems:
             raise AssetStoreError(
