@@ -1,22 +1,67 @@
+﻿# Спецификация формата Entity Blueprint v1 (ME-1.1)
 
-## 4. Слои (нумерация §2.2)
+> **Статус:** исполняемая спецификация Этапа 01 · **Редакция:** 1.0 (консолидация унаследованных фрагментов) · **Дата:** 2026-10-14
+> **Канон:** roadmap v1_4 §2/§2.2/§8, AR-ME-1/2/3, ME-R-502/605/629
+> **Основана на фактах:** tavern.json obj_41 (полный словарь экземпляра, живое дерево), OBJECT_PRESETS["door"] (data_manager.py:101), DataManager.add_object/add_object_full (:1288/:1328), форма sprite (S349, проверка деривации 42/42), вердикты Мастера 2026-10-14 (каталоги, локации, расширяемость)
 
-**4.1 geometry (Форма).** `{source: "primitive"|"imported", ref?, size{w,h,d}, rotation, parts[]}`. Часть: `{id, shape|ref, pivot:[x,y], anchors:[{kind: wall|floor|object, spec}]}`; в v1 `parts` может быть пуст (объект = одна часть — сегодняшняя модель). Источник знает только слой 1 (§8.1).
+## 1. Три сущности
 
-**4.2 appearance (Вид).** `{palette?, variants[], sprites: {state: sprite_ref}, animations?}`. Форма `sprite_ref` — СВЕРИТЬ С ФАКТОМ (сегодня в коде: 3-элементная `[sheet,col,row]` или 7-элементная `[sheet,x,y,w,h,threshold,outline]`); в спеке не фиксировать до археологии.
+| Сущность | Что это | Где живёт |
+|---|---|---|
+| **Blueprint** (чертёж) | Переиспользуемое определение: слои 1–6 (§2.2 roadmap) + дефолты initial_state | каталог (§2) |
+| **Instance** (экземпляр) | Размещение: ссылка на чертёж + типизированные отклонения | `objects[]` в `location.json` |
+| **Resource** (ресурс) | Внешний визуальный материал (лист спрайтов, текстура); игровых правил не содержит (§8.2 roadmap) | `resources/` каталога |
 
-**4.3 physics (Физика).** `{passability{walk,jump_over,crawl_under,climb_on,walk_around}, cover, height?, mass?, durability?, movable, destructible, collision_mode}`. Дефолты живут в чертеже; экземпляр их не дублирует (устраняет класс ME-D8).
+## 2. Каталоги чертежей (вердикт Мастера 2026-10-14)
 
-**4.4 function (Функция).** `{components: [{type, ...}]}`. Типы v1: `storage{capacity}`, `opener{mechanism, states}`, `lockable{key_ref}`, `ownership{owner_ref, legality}`, `surface`, `light_source`. Резерв ME-1.11: `destructible{...}`, `concealable{...}`, `vertical_link{...}` — схемы объявлены, наполняются Этапом 03 (ME-3.9-3.11).
+- **Глобальные каталоги:** `assets/catalogs/<имя>/blueprints/*.json`. Доступны каждой кампании. Правка чертежа в глобальном каталоге действует на все кампании, где он используется.
+- **Каталог кампании:** `assets/<campaign_id>/blueprints/*.json`. Уникальные предметы этой кампании, другим кампаниям не видны.
+- **Приоритет при совпадении имени:** чертёж кампании перекрывает глобальный. Перекрытие видно проверкам явно.
+- **Ресурсы:** `assets/.../resources/` — реестр картинок со стабильными именами и версиями (создаёт ME-1.2). Чертёж ссылается на ресурс по имени, не встраивает картинку. Сегодняшние записи вида «лист + координаты» переносятся в реестр на шаге ME-1.6.
+
+Источник чертежей v1 — пресеты `OBJECT_PRESETS` (перенос ME-1.6): ключи пресета раскладываются по слоям §4.
+
+## 3. Две формы на диске, одна в памяти (гарантия стыка с игрой)
+
+- **На диске** в `objects[]` сосуществуют две формы: **старый объект** (полный словарь — сегодня 100% данных; фактические ключи по obj_41: `id, name, type, position{x,y}, size{w,h,d}, rotation, passability{walk, jump_over, crawl_under, climb_on, walk_around}, cover, color, show_name, properties{...}, wall_id?`) и **экземпляр-ссылка** (§5). Проверки ME-1.4 знают обе.
+- **Различитель:** есть `blueprint_id` — экземпляр; нет — старый объект, читается как раньше.
+- **В памяти** DataManager разворачивает экземпляр-ссылку в полный словарь старой формы (слияние: слои чертежа ← overrides ← initial_state) через `get_resolved_object()`. Существующий код (рисование, выделение, экспорт в игру) не меняется — контракт игры не тронут.
+
+## 4. Слои чертежа (нумерация §2.2 roadmap)
+
+**4.1 geometry (Форма).** `{source: "primitive"|"imported", ref?, size{w,h,d}, rotation_mode?, requires_wall?, parts[]}`. Часть: `{id, shape|ref, pivot:[x,y], anchors:[{kind: wall|floor|object, spec}]}`; в v1 `parts` пуст (объект = одна часть — сегодняшняя модель: `size/rotation` + привязка `wall_id`). Источник геометрии знает только этот слой (§8.1 roadmap).
+
+**4.2 appearance (Вид).** `{color?, show_name?, sprite?, variants[], animations?}`. Форма `sprite` сегодня (факт, S349): 3-элементная `[лист, столбец, строка]` или 7-элементная `[лист, x, y, ширина, высота, порог_фона, обводка]`; в чертеже — ссылка на ресурс (§2). `variants` — именованные варианты вида (новое/старое/обгоревшее).
+
+**4.3 physics (Физика).** `{passability{walk, jump_over, crawl_under, climb_on, walk_around}, cover, height, mass?, movable?, durability?, collision_mode}`. Дефолты живут в чертеже; экземпляр их не дублирует (устраняет класс дефекта «копирование теряло вид предмета»).
+
+**4.4 function (Функция).** `{components: [{type, ...}]}`. Типы v1: `storage{capacity}`, `opener{mechanism, states}`, `lockable{key_ref}`, `ownership{owner_ref, legality}`, `surface{...}`, `light_source{...}`. Сегодняшние `properties{open, locked, durability, visibility_through}` (факт, obj_41) при переносе ME-1.6 раскладываются: `open/locked` → `opener`/`lockable`; `durability` → `physics.durability`; `visibility_through` → условие заметности (§4.6).
 
 **4.5 behavior (Поведение).** `{actions: [{id, preconditions[], effects[], events[]}]}` — типизированные поля; исполнение — ядро игры (S-ME3), редактор код правил не пишет (ME-3.3). Наполняется Этапом 03.
 
-**4.6 semantics (Смысл).** `{owner?, origin?, value?, legality?, history?, knowledge_seeds?}`. `knowledge_seeds` — только seed-знания до старта, провенанс «автор задал» (§5.3). Убеждения в рантайме редактор не пишет.
+**4.6 semantics (Смысл).** `{owner?, origin?, value?, legality?, history?, knowledge_seeds?, perceivability?}`. `knowledge_seeds` — только стартовые знания до начала игры, с пометкой «задал автор» (§5.3 roadmap); убеждения в игре редактор не пишет. `perceivability` — что из действий с предметом видно/слышно (`visibility_through`, `sound_attenuation`).
 
-## 5. Экземпляр в location.json — ФОРМА СВЕРИТЬ С ФАКТОМ
+## 5. Экземпляр в location.json
 
-Целевая форма (roadmap §2.1): `{blueprint_id, position, rotation, overrides, initial_state}`. Статус: черновик до археологии реального объекта (ключи `id`, `room_id`, `wall_id`, форма `position` — проверить в campaigns/Open_road/locations/*.json и в add_object/add_object_full). Дискриминатор: есть `blueprint_id` — экземпляр; нет — легаси-объект, читается адаптером (ME-1.3).
+Целевая форма: `{blueprint_id, position{x,y}, rotation, overrides, initial_state}`. Служебные ключи: `id` (присваивает редактор), `wall_id` (пока в трёх формах — корень/properties/строка-хак; унификация — ME-1.5). `room_id` в данных отсутствует и не вводится: принадлежность комнате вычисляется, не хранится.
 
-**5.1 overrides — закрытый реестр ключей (AR-ME-2).** v1: `variant`, `semantics.owner`, `semantics.origin`, `semantics.history`, `color`. Неизвестный ключ = ошибка валидатора. Расширение реестра = ревизия спеки, не тихое добавление.
+**5.1 overrides — закрытый список ключей (AR-ME-2).** v1: `variant`, `color`, `semantics.owner`, `semantics.origin`, `semantics.history`. Неизвестный ключ — ошибка проверки. Расширение списка — ревизия этой спеки, не тихое добавление.
 
-**5.2 initial_state.** Только ключи, объявленные компонентами чертежа (`opener->open`, `lockable->locked`, `storage->contents`, `destructible->damage`) и `physics.durability`. После старта симуляции меняется только игрой (§2.1).
+**5.2 initial_state.** Только ключи, объявленные компонентами чертежа (`opener→open`, `lockable→locked`, `storage→contents`, `destructible→damage`) и `physics.durability`. После старта игры состояние меняет только игра (§2.1 roadmap).
+
+## 6. Версии и совместимость (ME-R-605)
+
+- Каждый чертёж: `blueprint_id`, `version` (целое), `compat` (минимальная поддерживаемая версия формата).
+- Изменение чертежа с существующими экземплярами: либо явный перенос, либо проверка отклоняет сохранение с перечнем затронутых экземпляров и причин. Ни один экземпляр не теряет свойства молча.
+- Локация получает `format_version`; цепочка ME-1.6 → ME-1.9 → ME-1.12 не переносит данные дважды (резервы §7).
+
+## 7. Резервы v1.1 (ME-1.11) — объявлены сейчас, наполняются позже
+
+- `destructible{durability, vulnerabilities, methods, results}` — Этап 03 (ME-3.9).
+- `concealable{perceivability, discovery_methods, disguise}` — Этап 03 (ME-3.10).
+- `vertical_link{levels, transitions}` — Этап 03 (ME-3.11).
+- Скелет Character Blueprint (Этап 05, ME-R-401): внешность; имя/происхождение; характеристики; роль/положение; потребности/цели/действия; отношения/права; биография; знания/незнание; старт/появление — слои заявлены, наполняются Этапом 05.
+
+## 8. Расширяемость (вердикт Мастера 2026-10-14)
+
+Формат рассчитан на будущее изобилие свойств: список типов компонентов — открытый реестр с версионным расширением (новый тип = ревизия спеки + обновление проверок); в перспективе панель свойств предмета — прокручиваемый список десятков компонентов. Приоритетный список будущих универсальных свойств — ME-R-629 (раздел 11 roadmap, за пределами шести этапов).
