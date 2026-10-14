@@ -26,6 +26,7 @@ from data.npc_data import (  # noqa: F401 — re-export фасада
     save_npc_calibration,
     save_npc_visual_casting,
 )
+from schema_validator import validate_location, validate_location_top_level
 
 logger = logging.getLogger(__name__)
 
@@ -838,6 +839,10 @@ class DataManager:
                     # Миграция: старые файлы с world_pos → origin
                     if "world_pos" in data:
                         data["origin"] = data.pop("world_pos")
+                    # ME-1.4: схема сырого файла ДО дефолтов — усечённая
+                    # локация громко перечисляется, а не молча долечивается
+                    for err in validate_location_top_level(data, f.name):
+                        logger.warning(f"[ME-1.4] {err}")
                     data.setdefault(
                         "origin",
                         {
@@ -871,10 +876,10 @@ class DataManager:
                     # ME-1.3: экземпляры-ссылки разворачиваются ДО проверки —
                     # валидатор всегда видит полные объекты старой формы
                     self._resolve_instance_refs(data, f.name)
-                    obj_errors = _validate_location_objects(data, f.name)
-                    if obj_errors:
-                        for err in obj_errors:
-                            logger.warning(f"[ME-D4] {err}")
+                    schema_errors = validate_location(data, f.name)
+                    if schema_errors:
+                        for err in schema_errors:
+                            logger.warning(f"[ME-1.4] {err}")
                     self.locations[f.name] = data
             except Exception as e:
                 print(f"⚠️ Ошибка загрузки {f}: {e}")
@@ -1060,12 +1065,12 @@ class DataManager:
         if not self.locations[filename].get("location_id"):
             inferred_id = filename.replace(".json", "")
             self.locations[filename]["location_id"] = inferred_id
-        obj_errors = _validate_location_objects(
+        schema_errors = validate_location(
             self.locations[filename], f"{filename} (save)"
         )
-        if obj_errors:
-            for err in obj_errors:
-                logger.error(f"[ME-D4] Сохранение заблокировано: {err}")
+        if schema_errors:
+            for err in schema_errors:
+                logger.error(f"[ME-1.4] Сохранение заблокировано: {err}")
             return False
         payload = self._fold_for_save(filename)
         path = self.base_dir / filename
@@ -1786,7 +1791,9 @@ class DataManager:
     ) -> str:
         """Создаёт произвольную надпись на карте. Возвращает id 'label_N'."""
         loc = self.locations[filename]
-        label_id = f"label_{len(loc['labels'])}"
+        # ME-1.4: _next_id вместо len() — после удаления len() даёт дубликат
+        # (было label_0+label_1 → удалить label_0 → новый снова label_1)
+        label_id = self._next_id(loc["labels"], "label_")
         loc["labels"].append(
             {
                 "id": label_id,
