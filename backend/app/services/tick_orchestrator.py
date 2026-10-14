@@ -26,6 +26,7 @@ path: backend/app/services/tick_orchestrator.py
 """
 from __future__ import annotations
 
+import hashlib  # DET-2: стабильный дайджест probe (sha256, межпроцессный)
 import logging
 import time
 
@@ -1915,6 +1916,15 @@ class TickOrchestrator:
         self._tick_thick_changes = []
         return result
 
+    @staticmethod
+    def _DET2_DIGEST_PUBLIC(v) -> str:
+        """DET-2: канонический дайджест payload probe (sha256). Публичное
+        имя для тестов; прод-путь использует ту же функцию (счётчик
+        _state_hash_ticks — свидетельство 1/1)."""
+        import json as _json
+
+        return hashlib.sha256(_json.dumps(v, default=str, sort_keys=True).encode("utf-8")).hexdigest()
+
     def _log_drift_summary(self) -> None:
         """Периодический отчёт о дрейфе (ФАЗА 2 — с DEPRECATION индикатором).
 
@@ -2321,19 +2331,38 @@ class TickOrchestrator:
             "line_of_sight": _tick_state.line_of_sight,
         }
         # S179 FIX: Хэш по каждому полю отдельно, чтобы точно определить источник мутации
-        # S265 (P2 IRON RIVER): INV-хеш — гейт 1/100 тиков (проба остаётся
-        # трипвайром; полный хеш 2×json.dumps(мир) = ~2.4% тика)
-        _do_hash = (ctx.tick_number % 100 == 0)
-        _hashes_before = {k: hash(json.dumps(v, default=str, sort_keys=True)) for k, v in _data_fields.items()} if _do_hash else {}
-        _ts_hash_before = hash(tuple(sorted(_hashes_before.items()))) if _do_hash else 0
+        # DET-2 (вердикт Мастера, §17.8; измерение reports/det2_measure.json):
+        # гейт 1/100 -> 1/1 — INV-TEMPORAL-ISOLATION теперь сплошной (каждый
+        # тик). Фактическая доля тика 0.52% (sha256) / 0.58% (2xjson.dumps) на
+        # сцене 6 NPC, MockProvider, production idle_tick, медианы; прежний
+        # комментарий «~2.4%» НЕ подтверждён для этих условий (завышение ~4x;
+        # не экстраполируется на другие машины/сцены). Хеш — hashlib.sha256:
+        # стабильный дайджест между процессами/прогонами (builtin hash()
+        # PYTHONHASHSEED-зависим). Контракт сериализации подтверждён зондом
+        # (reports/det2_payload_probe.py): payload = стабильные JSON-типы;
+        # sort_keys=True закрывает зависимость от порядка словарей. Частота
+        # 1/1 НЕ означает полноты инварианта — только сплошную частоту probe.
+        _do_hash = True
+        _digest = lambda v: hashlib.sha256(
+            json.dumps(v, default=str, sort_keys=True).encode("utf-8")
+        ).hexdigest()
+        _hashes_before = {k: _digest(v) for k, v in _data_fields.items()}
+        _ts_hash_before = hashlib.sha256(
+            json.dumps({k: _hashes_before[k] for k in sorted(_hashes_before)}).encode("utf-8")
+        ).hexdigest()
 
         _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
         ctx.tick_mutation = _mutation
 
-        _hashes_after = {k: hash(json.dumps(v, default=str, sort_keys=True)) for k, v in _data_fields.items()} if _do_hash else {}
-        _ts_hash_after = hash(tuple(sorted(_hashes_after.items()))) if _do_hash else 0
+        _hashes_after = {k: _digest(v) for k, v in _data_fields.items()}
+        _ts_hash_after = hashlib.sha256(
+            json.dumps({k: _hashes_after[k] for k in sorted(_hashes_after)}).encode("utf-8")
+        ).hexdigest()
         ctx.tick_state_hash_before = _ts_hash_before
         ctx.tick_state_hash_after = _ts_hash_after
+        # DET-2: машинное свидетельство 1/1 — счётчик тиков с вычисленным
+        # хешем (гейт закрытия DET-2: артефакт живого прогона).
+        self._state_hash_ticks = getattr(self, "_state_hash_ticks", 0) + 1
 
         if _do_hash and _ts_hash_before != _ts_hash_after:
             _mutated_fields = [k for k in _hashes_before if _hashes_before[k] != _hashes_after.get(k)]

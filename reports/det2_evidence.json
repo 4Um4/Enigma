@@ -1,0 +1,8 @@
+{
+  "ticks": 20,
+  "hash_ticks_before": 0,
+  "hash_ticks_after": 20,
+  "delta": 20,
+  "ratio_1of1": true,
+  "note": "probe INV-TEMPORAL-ISOLATION исполнен на каждом тике; 1/1 — частота, НЕ полнота инварианта (вердикт п.3)"
+}
