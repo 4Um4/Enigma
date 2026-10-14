@@ -1917,7 +1917,7 @@ class TickOrchestrator:
         return result
 
     @staticmethod
-    def _DET2_DIGEST_PUBLIC(v) -> str:
+    def _DET2_DIGEST_PUBLIC(v: Any) -> str:
         """DET-2: канонический дайджест payload probe (sha256). Публичное
         имя для тестов; прод-путь использует ту же функцию (счётчик
         _state_hash_ticks — свидетельство 1/1)."""
@@ -2343,9 +2343,12 @@ class TickOrchestrator:
         # sort_keys=True закрывает зависимость от порядка словарей. Частота
         # 1/1 НЕ означает полноты инварианта — только сплошную частоту probe.
         _do_hash = True
-        _digest = lambda v: hashlib.sha256(
-            json.dumps(v, default=str, sort_keys=True).encode("utf-8")
-        ).hexdigest()
+
+        def _digest(v: Any) -> str:
+            return hashlib.sha256(
+                json.dumps(v, default=str, sort_keys=True).encode("utf-8")
+            ).hexdigest()
+
         _hashes_before = {k: _digest(v) for k, v in _data_fields.items()}
         _ts_hash_before = hashlib.sha256(
             json.dumps({k: _hashes_before[k] for k in sorted(_hashes_before)}).encode("utf-8")

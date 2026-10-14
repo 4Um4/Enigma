@@ -17,7 +17,6 @@ MUTATIONS.md: сессия не пишется этим скриптом (ном
 перезапускать.
 """
 
-import re
 import sys
 from pathlib import Path
 

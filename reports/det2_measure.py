@@ -46,9 +46,10 @@ def _tick_data_fields(scene_state, all_npcs_raw):
 def main() -> int:
     print("[DET-2] Измерение стоимости state-checksum (production-путь, MockProvider)")
     # Импорты внутри — чтобы путь был добавлен до app.*
+    from pathlib import Path as _P
+
     from app.core.config import settings
     from app.services.game_loop_builder import build_game_loop
-    from pathlib import Path as _P
 
     data_dir = _P(settings.data_dir)
     print(f"[DET-2] data_dir={data_dir}")

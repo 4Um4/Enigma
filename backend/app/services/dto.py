@@ -119,8 +119,9 @@ class _TickContext:
     # Подсистема 2/3: Сохранение TickMutation для ReplayRecorder и ProbeRunner
     tick_mutation: Optional[Any] = None
     # Подсистема 3: Хеши TickState для Инварианта III (Temporal Isolation)
-    tick_state_hash_before: Optional[int] = None
-    tick_state_hash_after: Optional[int] = None
+    # DET-2: хеши — hex-дайджесты hashlib.sha256 (str), не int (ранний builtin hash())
+    tick_state_hash_before: Optional[str] = None
+    tick_state_hash_after: Optional[str] = None
     # S265: поля, мутированные pipeline (диагностика PROBE_FAIL_PRE, INV-TEMPORAL-ISOLATION)
     tick_state_mutated_fields: Optional[List[str]] = None
     # SOUND_BLEED: кэш data_dir внутри тика (ранее getattr-legacy, теперь явное поле)
