@@ -745,6 +745,7 @@ class TickOrchestrator:
             # Используем Clock протокол (infrastructure metric, §15.2) — не влияет на детерминизм.
             from app.core.clock import get_clock
             _start_perf = get_clock().timestamp()
+            _tick_errored = False  # DET-1: упавший тик не кормит LOD-гистерезис
 
             try:
                 self._run_core_phases(ctx, tick_fully=_tick_fully)
@@ -753,6 +754,7 @@ class TickOrchestrator:
                     f"[TICK_CRASH] campaign={campaign_id} tick={tick_number} loc={_loc_id} error={e}"
                 )
                 logger.error(f"[TICK_ORCH] Ошибка в тике {campaign_id} (loc={_loc_id}): {e}", exc_info=True)
+                _tick_errored = True  # DET-1
                 _err_res = TickResultDTO(status="error", error=str(e), final_scene_state=ctx.scene_state)
                 _tick_results.append(_err_res)
                 if _is_active:
@@ -762,10 +764,14 @@ class TickOrchestrator:
                 # V8.6 FIX: Безопасный доступ к event_bus, даже если тик упал до Фазы 9
                 event_bus.detach_cfrm_bridge()
 
-                # M-24 FIX: Вычисляем реальную длительность тика для LOD throttling.
+                # DET-1: длительность — телеметрия (§15.2); решение лоадера —
+                # по npc_count (детерминированное состояние мира). Упавший тик
+                # (continue выше) НЕ кормит гистерезис: в finally мы не знаем,
+                # жив ли мир — кормить LOD крашом = детерминизм от сбоёв.
                 _duration_ms = (get_clock().timestamp() - _start_perf) * 1000.0
                 _npc_count = len(all_npcs_raw) if all_npcs_raw else 0
-                self._adaptive_loader.record_tick(_duration_ms, _npc_count)
+                if not _tick_errored:
+                    self._adaptive_loader.record_tick(_duration_ms, _npc_count)
 
             # S83.1: TickOrchestrator = единственный владелец результата тика.
             # S193: Epistemic Persistence. Сохраняем убеждения в scene_state перед коммитом.

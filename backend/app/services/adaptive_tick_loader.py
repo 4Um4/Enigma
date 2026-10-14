@@ -11,7 +11,13 @@ logger = logging.getLogger(__name__)
 class AdaptiveTickLoader:
     """Дополнение Б (п. Б.11): Автоматический LOD (Level of Detail) для тика."""
 
-    SLOW_TICK_THRESHOLD_MS = 500
+    # DET-1 (вердикт Мастера III.1; ADR-O-302/§15 Устава): вход лоадера —
+    # детерминированная нагрузка мира (npc_count), НЕ wall-clock. Прежний
+    # вход duration_ms (M-24) делал LOD-решение зависимым от машины/нагрузки
+    # → replay получал другой набор исполняемых фаз = другой мир.
+    # NPC_LOAD_THRESHOLD — CALIBRATION_CANDIDATE (точка старта калибровки;
+    # прецедент ADR-O-383): «мир большой → дальние локации живут физиологией».
+    NPC_LOAD_THRESHOLD = 12  # детерминирован состоянием мира
     LOD_ACTIVATION_SAMPLES = 5
     LOD_DEACTIVATION_SAMPLES = 50
 
@@ -22,9 +28,14 @@ class AdaptiveTickLoader:
         self._lod_active = False
 
     def record_tick(self, duration_ms: float, npc_count: int) -> None:
+        """DET-1: duration_ms — ТОЛЬКО телеметрия (§15.2; лог, не потребляется
+        решениями). Решение — по npc_count (детерминировано состоянием мира).
+        Вызов в finally упавшего тика НЕ кормит гистерезис (детерминизм
+        не зависит от крашей)."""
         self._tick_history.append({'duration': duration_ms, 'npc_count': npc_count})
 
-        if duration_ms > self.SLOW_TICK_THRESHOLD_MS:
+        _overload = npc_count >= self.NPC_LOAD_THRESHOLD
+        if _overload:
             self._consecutive_slow += 1
             self._consecutive_fast = 0
             if self._consecutive_slow >= self.LOD_ACTIVATION_SAMPLES and not self._lod_active:
