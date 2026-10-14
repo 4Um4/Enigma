@@ -12,6 +12,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+# ME-1.2/1.3: склад чертежей (конвенция корня — та же, что у data.npc_data
+# ниже: лаунчер ставит map_editor первым в sys.path)
+from assets.asset_store import AssetStore, AssetStoreError
+
 # M1/Phase1: Импортируем NPC-данные из нового модуля (фасад для обратной совместимости).
 # Полный re-export: все потребители (editor_core, property_builder, visual_casting_editor)
 # исторически импортируют NPC-функции отсюда. Не расширять выборочно — только весь блок.
@@ -27,6 +31,25 @@ logger = logging.getLogger(__name__)
 
 TEMPLATE_DIR = Path(__file__).parent / "location_templates"
 CACHE_DIR = Path(__file__).parent / "runtime_cache"
+ASSETS_DIR = Path(__file__).parent / "assets"
+
+# ME-1.3: ключи компактной записи экземпляра (Устав §12.1 — константы, не строки)
+_KEY_BLUEPRINT_ID = "blueprint_id"
+_KEY_OVERRIDES = "overrides"
+_KEY_INITIAL_STATE = "initial_state"
+_KEY_WALL_ID = "wall_id"
+
+# Закрытый реестр ключей overrides (спека §5.1; name — переименование экземпляра)
+_INSTANCE_OVERRIDE_KEYS = frozenset(
+    {
+        "variant",
+        "color",
+        "name",
+        "semantics.owner",
+        "semantics.origin",
+        "semantics.history",
+    }
+)
 
 # Типы объектов с настройками по умолчанию
 OBJECT_PRESETS = {
@@ -754,6 +777,9 @@ class DataManager:
         self.base_dir.mkdir(exist_ok=True)
         CACHE_DIR.mkdir(exist_ok=True)
         self.locations: Dict[str, dict] = {}
+        # ME-1.3: реестр экземпляров-ссылок filename -> {obj_id: компактная запись}
+        self._instance_refs: Dict[str, Dict[str, dict]] = {}
+        self._asset_store = self._build_asset_store(None)
         self.load_all()
 
     def set_base_dir(self, path) -> None:
@@ -762,11 +788,38 @@ class DataManager:
 
         self.base_dir = Path(path)
         self.base_dir.mkdir(parents=True, exist_ok=True)
+        # ME-1.3: кампания выводится из макета campaigns/<id>/locations —
+        # от неё зависит, чей каталог уникальных чертежей виден (спека §2)
+        campaign_id = None
+        if self.base_dir.parent.parent.name == "campaigns":
+            campaign_id = self.base_dir.parent.name
+        self._asset_store = self._build_asset_store(campaign_id)
         self.load_all()
+
+    def set_asset_store(self, store: Optional[AssetStore]) -> None:
+        """Явная подмена склада чертежей (тесты; будущий UI-контур Этапа 02)."""
+        self._asset_store = store
+        self.load_all()
+
+    def _build_asset_store(self, campaign_id: Optional[str]) -> Optional[AssetStore]:
+        """Склад чертежей открытой кампании.
+
+        Битый склад отключается громко, но не роняет редактор: локации без
+        экземпляров-ссылок от него не зависят (спека §3); локации со ссылками
+        упадут при загрузке громко и честно — файл на диске не тронут.
+        """
+        try:
+            store = AssetStore(ASSETS_DIR, campaign_id=campaign_id)
+            store.load()
+            return store
+        except AssetStoreError as exc:
+            logger.error("[ME-1.3] Склад чертежей отключён (битые файлы): %s", exc)
+            return None
 
     def load_all(self):
         """Загружает все локации из папки templates"""
         self.locations.clear()
+        self._instance_refs.clear()
         for f in self.base_dir.glob("*.json"):
             try:
                 with open(f, "r", encoding="utf-8") as file:
@@ -805,6 +858,9 @@ class DataManager:
                         },
                     )
                     self._migrate_to_global_coords(data)
+                    # ME-1.3: экземпляры-ссылки разворачиваются ДО проверки —
+                    # валидатор всегда видит полные объекты старой формы
+                    self._resolve_instance_refs(data, f.name)
                     obj_errors = _validate_location_objects(data, f.name)
                     if obj_errors:
                         for err in obj_errors:
@@ -1001,10 +1057,220 @@ class DataManager:
             for err in obj_errors:
                 logger.error(f"[ME-D4] Сохранение заблокировано: {err}")
             return False
+        payload = self._fold_for_save(filename)
         path = self.base_dir / filename
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(self.locations[filename], f, indent=2, ensure_ascii=False)
+            json.dump(payload, f, indent=2, ensure_ascii=False)
         return True
+
+    # === ME-1.3: экземпляры-ссылки (развёртка/свёртка) ===
+
+    def _resolve_instance_refs(self, data: dict, source: str) -> None:
+        """Разворачивает экземпляры-ссылки в полные объекты (в памяти).
+
+        Ссылка = {id, blueprint_id, position, rotation, overrides?,
+        initial_state?, wall_id?}. Ошибки (чертёж не найден, неизвестный ключ)
+        собираются в один громкий перечень и роняют загрузку файла целиком:
+        локация не откроется с молча поломанным предметом, файл на диске цел.
+        """
+        refs: Dict[str, dict] = {}
+        errors: List[str] = []
+        resolved_objects: List[dict] = []
+        for idx, raw in enumerate(data.get("objects", [])):
+            if not isinstance(raw, dict) or _KEY_BLUEPRINT_ID not in raw:
+                resolved_objects.append(raw)
+                continue
+            oid = raw.get("id", f"<index {idx}>")
+            one_errors: List[str] = []
+            full = self._resolve_one(raw, one_errors)
+            if full is None:
+                errors.extend(f"{source}: объект {oid}: {e}" for e in one_errors)
+                continue
+            refs[full["id"]] = deepcopy(raw)
+            resolved_objects.append(full)
+        if errors:
+            raise ValueError(
+                "Экземпляры-ссылки не читаются:\n  " + "\n  ".join(errors)
+            )
+        data["objects"] = resolved_objects
+        self._instance_refs[source] = refs
+
+    def _resolve_one(self, ref: dict, errors: List[str]) -> Optional[dict]:
+        """Разворот одной ссылки в полный объект старой формы (спека §5.3)."""
+        bid = ref.get(_KEY_BLUEPRINT_ID)
+        if not isinstance(bid, str) or not bid:
+            errors.append("нет blueprint_id")
+            return None
+        if self._asset_store is None:
+            errors.append(f"чертёж '{bid}' не разрешён: склад чертежей отключён")
+            return None
+        record = self._asset_store.get_blueprint(bid)
+        if record is None:
+            errors.append(f"чертёж '{bid}' не найден на складе")
+            return None
+        bp = record.data
+        otype = bp.get("type")
+        if not isinstance(otype, str) or otype not in OBJECT_PRESETS:
+            errors.append(
+                f"чертёж '{bid}': type '{otype}' не является известным типом"
+            )
+            return None
+        overrides = ref.get(_KEY_OVERRIDES, {})
+        if not isinstance(overrides, dict):
+            errors.append("overrides обязан быть JSON-объектом")
+            return None
+        for key in overrides:
+            if key not in _INSTANCE_OVERRIDE_KEYS:
+                errors.append(
+                    f"неизвестный ключ overrides '{key}' (реестр — спека §5.1)"
+                )
+                return None
+        initial = ref.get(_KEY_INITIAL_STATE, {})
+        if not isinstance(initial, dict):
+            errors.append("initial_state обязан быть JSON-объектом")
+            return None
+        allowed_initial = self._initial_state_keys(bp)
+        for key in initial:
+            if key not in allowed_initial:
+                errors.append(
+                    f"initial_state: ключ '{key}' не объявлен компонентами чертежа"
+                )
+                return None
+        geometry = bp.get("geometry", {})
+        size = geometry.get("size")
+        if not isinstance(size, dict) or "w" not in size or "h" not in size:
+            errors.append(f"чертёж '{bid}': geometry.size без w/h")
+            return None
+        physics = bp.get("physics", {})
+        passability = physics.get("passability")
+        if not isinstance(passability, dict):
+            errors.append(f"чертёж '{bid}': physics.passability отсутствует")
+            return None
+        obj_id = ref.get("id")
+        if not isinstance(obj_id, str) or not obj_id:
+            errors.append("экземпляр без id")
+            return None
+        position = ref.get("position")
+        if (
+            not isinstance(position, dict)
+            or "x" not in position
+            or "y" not in position
+        ):
+            errors.append("position без x/y")
+            return None
+        ref_props = ref.get("properties")
+        if isinstance(ref_props, dict) and _KEY_WALL_ID in ref_props:
+            errors.append("wall_id экземпляра живёт в корне, не в properties")
+            return None
+        props = self._project_properties(bp)
+        for key, value in initial.items():
+            props[key] = deepcopy(value)
+        appearance = bp.get("appearance", {})
+        obj = {
+            "id": obj_id,
+            "name": overrides.get("name") or bp.get("label") or bid,
+            "type": otype,
+            "position": deepcopy(position),
+            "size": {
+                "w": size.get("w"),
+                "h": size.get("h"),
+                "d": size.get("d", 1.0),
+            },
+            "rotation": deepcopy(ref.get("rotation", 0)),
+            "passability": deepcopy(passability),
+            "cover": physics.get("cover", 0.0),
+            "color": overrides.get("color") or appearance.get("color", "#888888"),
+            "show_name": appearance.get("show_name", False),
+            "properties": props,
+        }
+        if ref.get(_KEY_WALL_ID):
+            obj[_KEY_WALL_ID] = ref[_KEY_WALL_ID]
+            props[_KEY_WALL_ID] = ref[_KEY_WALL_ID]
+        return obj
+
+    @staticmethod
+    def _initial_state_keys(bp: dict) -> set:
+        """Ключи initial_state, объявленные чертежом (спека §5.2)."""
+        keys = {"durability"}
+        for comp in bp.get("function", {}).get("components", []):
+            ctype = comp.get("type")
+            if ctype == "opener":
+                keys.add("open")
+            elif ctype == "lockable":
+                keys.add("locked")
+            elif ctype == "storage":
+                keys.add("contents")
+            elif ctype == "destructible":
+                keys.add("damage")
+        return keys
+
+    @staticmethod
+    def _project_properties(bp: dict) -> dict:
+        """Легаси-проекция слоёв чертежа в properties (спека §4.4 → §5.3)."""
+        props: dict = {}
+        for comp in bp.get("function", {}).get("components", []):
+            ctype = comp.get("type")
+            if ctype == "opener":
+                props["open"] = comp.get("default_open", True)
+            elif ctype == "lockable":
+                props["locked"] = comp.get("default_locked", False)
+        physics = bp.get("physics", {})
+        if "durability" in physics:
+            props["durability"] = physics["durability"]
+        vt = (
+            bp.get("semantics", {})
+            .get("perceivability", {})
+            .get("visibility_through")
+        )
+        if vt is not None:
+            props["visibility_through"] = vt
+        return props
+
+    def _fold_for_save(self, filename: str) -> dict:
+        """Свёртка экземпляров в компактную запись при сохранении (решение А).
+
+        Ссылка пишется только если разворот её кандидата совпадает с текущим
+        объектом в памяти (самопроверка round-trip); изменение вне position/
+        rotation/overrides/initial_state — объект уходит с чертежа и пишется
+        целиком, с громкой записью в лог.
+        """
+        data = self.locations[filename]
+        refs = self._instance_refs.get(filename, {})
+        if not refs:
+            return data
+        payload = dict(data)
+        disk_objects: List[dict] = []
+        for obj in data.get("objects", []):
+            ref = refs.get(obj.get("id"))
+            if ref is None:
+                disk_objects.append(obj)
+                continue
+            candidate = {
+                "id": obj["id"],
+                _KEY_BLUEPRINT_ID: ref[_KEY_BLUEPRINT_ID],
+                "position": deepcopy(obj.get("position", {})),
+                "rotation": deepcopy(obj.get("rotation", 0)),
+            }
+            for key in (_KEY_OVERRIDES, _KEY_INITIAL_STATE):
+                if ref.get(key):
+                    candidate[key] = deepcopy(ref[key])
+            if obj.get(_KEY_WALL_ID):
+                candidate[_KEY_WALL_ID] = deepcopy(obj[_KEY_WALL_ID])
+            probe_errors: List[str] = []
+            probe = self._resolve_one(candidate, probe_errors)
+            if probe is not None and probe == obj:
+                disk_objects.append(candidate)
+            else:
+                logger.info(
+                    "[ME-1.3] объект %s (%s) уходит с чертежа '%s': изменён "
+                    "вне overrides/initial_state — пишется целиком",
+                    obj.get("id"),
+                    obj.get("type"),
+                    ref[_KEY_BLUEPRINT_ID],
+                )
+                disk_objects.append(obj)
+        payload["objects"] = disk_objects
+        return payload
 
     def save_all(self):
         """Сохраняет все локации"""
@@ -1019,6 +1285,7 @@ class DataManager:
         if path.exists():
             path.unlink()
         del self.locations[filename]
+        self._instance_refs.pop(filename, None)
         return True
 
     # === Управление комнатами ===
@@ -1338,6 +1605,18 @@ class DataManager:
         loc = self.locations[filename]
         obj = deepcopy(data)
         obj["id"] = self._next_id(loc["objects"], "obj_")
+        if _KEY_BLUEPRINT_ID in obj:
+            # ME-1.3: вставка экземпляра-ссылки — разворачиваем и регистрируем
+            # ссылку под новым id (позиция уже смещена вызывающим)
+            one_errors: List[str] = []
+            full = self._resolve_one(obj, one_errors)
+            if full is None:
+                raise ValueError(
+                    f"add_object_full: экземпляр не разворачивается: {one_errors}"
+                )
+            self._instance_refs.setdefault(filename, {})[full["id"]] = obj
+            loc["objects"].append(full)
+            return full["id"]
         loc["objects"].append(obj)
         return obj["id"]
 
@@ -1347,6 +1626,7 @@ class DataManager:
         for i, obj in enumerate(loc["objects"]):
             if obj.get("id") == obj_id:
                 loc["objects"].pop(i)
+                self._instance_refs.get(filename, {}).pop(obj_id, None)
                 return True
         return False
 
