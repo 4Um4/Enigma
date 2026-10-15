@@ -69,6 +69,9 @@ class InvariantResult:
     passed: bool
     message: str
     suspect_files: List[str]
+    # IPT-1.1 (ТЗ АУДИТ-01): честный пропуск ≠ успех. passed сохранён для
+    # обратной совместимости; skipped=True обязан идти с причиной в message.
+    skipped: bool = False
 
 
 class TestWorld:
@@ -126,6 +129,50 @@ class TestWorld:
         return self.last_result.get("world_snapshot") or {}
 
 
+def _attach_live_spatial_registry() -> None:
+    """IPT-1.2 (ТЗ АУДИТ-01): живой вход для CARDINALITY-тройки.
+
+    Прод-загрузчик (SpatialRegistry.find_artifact) ищет артефакт как плоский
+    файл backend/data/campaigns/<id>.json / data/campaigns/<id>.json, куда его
+    никто не пишет: писатель (Map Editor, spatial_registry_builder.py) кладёт
+    артефакт в frontend/map_editor/campaigns/<id>/compiled/. Контракт путей
+    разошёлся (находка сессии → реестр §7.11). В тестовом процессе направляем
+    поиск к каноническому артефакту кампании: карта — из данных игры
+    (директива Мастера), ничего не копируем, прод-файлы не трогаем, реестр
+    строится штатным загрузчиком (from_artifact + mtime-кеш) — подмены
+    объекта нет. Нет артефакта (чистый чекаут) — патч не применяется,
+    инварианты честно уйдут в ПРОПУСК (fail-safe, IRON RIVER-семантика).
+    """
+    from app.services.spatial.spatial_registry import SpatialRegistry
+
+    # PATH-D1 закрыт в прод (find_artifact знает путь Map Editor): если
+    # прод-загрузчик находит артефакт сам — редирект НЕ ставится. Иначе
+    # тестовый обход маскировал бы регрессию прод-пути: IPT обязан
+    # показать ПРОПУСК, если find_artifact сломается снова.
+    if SpatialRegistry.find_artifact("Open_road") is not None:
+        print("[IPT-1.2] прод-путь find_artifact находит артефакт сам — редирект не нужен")
+        return
+
+    _root = Path(__file__).resolve().parents[2]
+    _campaigns_dir = _root / "frontend" / "map_editor" / "campaigns"
+    _artifact = _campaigns_dir / "Open_road" / "compiled" / "spatial_registry.json"
+
+    if not _artifact.exists():
+        print("[IPT-1.2] Артефакт кампании не найден — CARDINALITY-инварианты уйдут в ПРОПУСК")
+        return
+
+    _orig_find = SpatialRegistry.find_artifact.__func__
+
+    def _find_artifact_with_editor_path(cls, campaign_id: str):
+        _canonical = _campaigns_dir / campaign_id / "compiled" / "spatial_registry.json"
+        if _canonical.exists():
+            return _canonical.resolve()
+        return _orig_find(cls, campaign_id)
+
+    SpatialRegistry.find_artifact = classmethod(_find_artifact_with_editor_path)
+    print("[IPT-1.2] SpatialRegistry направлен на канонический артефакт Map Editor (in-process, прод не тронут)")
+
+
 def _bootstrap_minimal_world() -> TestWorld:
     """Поднимает GameLoop с реальными данными кампании, но изолированной saves_dir."""
     from app.core.config import settings
@@ -137,6 +184,11 @@ def _bootstrap_minimal_world() -> TestWorld:
 
     # data_dir — берём из настроек, чтобы путь всегда указывал на backend/data
     data_dir = Path(settings.data_dir)
+
+    # IPT-1.2: живой SpatialRegistry — до build_game_loop, чтобы весь контур
+    # (GameLoop-глобальный тик, TickOrchestrator, CARDINALITY-инварианты)
+    # видел мир из ≥2 локаций. Закон §14.1 проверяется по существу.
+    _attach_live_spatial_registry()
 
     game_loop = build_game_loop(data_dir)
 
@@ -1527,11 +1579,11 @@ def inv_scene_entity_isolation(world: TestWorld) -> InvariantResult:
         
         _reg = SpatialRegistry.get_or_load(world.campaign_id)
         if not _reg:
-            return InvariantResult("INV-NPC-CARDINALITY", "CRITICAL", True, "SpatialRegistry не загружен.", [])
+            return InvariantResult("INV-NPC-CARDINALITY", "CRITICAL", True, "ПРОПУСК: SpatialRegistry не загружен — вход (реестр локаций) отсутствует.", [], skipped=True)
         
         _all_locs = _reg.get_all_location_ids() or []
         if len(_all_locs) < 2:
-            return InvariantResult("INV-NPC-CARDINALITY", "CRITICAL", True, "Тест пропущен (требуется >1 локации).", [])
+            return InvariantResult("INV-NPC-CARDINALITY", "CRITICAL", True, "ПРОПУСК: в кампании <2 локаций — проверка изоляции NPC требует ≥2.", [], skipped=True)
         
         # S1-FIX: Используем текущее состояние мира, а не вызываем idle_tick внутри инварианта.
         _violations = []
@@ -1576,7 +1628,7 @@ def inv_replay_determinism(world: TestWorld) -> InvariantResult:
         _orch = getattr(world.game_loop, "_tick_orch", None)
         _recorder = getattr(_orch, "_replay_recorder", None) if _orch else None
         if not _recorder:
-            return InvariantResult("INV-REPLAY-DETERMINISM", "WARNING", True, "ReplayRecorder not attached, skipping.", [])
+            return InvariantResult("INV-REPLAY-DETERMINISM", "WARNING", True, "ПРОПУСК: ReplayRecorder не подключён к оркестратору — вход отсутствует.", [], skipped=True)
         
         # Прогоняем 1 тик для проверки записи
         world.idle_tick()
@@ -1601,7 +1653,7 @@ def inv_replay_determinism(world: TestWorld) -> InvariantResult:
         )
     except Exception as e:
         return InvariantResult(
-            "INV-REPLAY-DETERMINISM", "WARNING", True, f"Replay test skipped due to: {e}", []
+            "INV-REPLAY-DETERMINISM", "WARNING", True, f"ПРОПУСК: replay-инфраструктура недоступна: {e}", [], skipped=True
         )
 
 def inv_save_load_integrity(world: TestWorld) -> InvariantResult:
@@ -1839,11 +1891,11 @@ def inv_event_cardinality(world: TestWorld) -> InvariantResult:
         
         _reg = SpatialRegistry.get_or_load(world.campaign_id)
         if not _reg:
-            return InvariantResult("INV-EVENT-CARDINALITY", "CRITICAL", True, "SpatialRegistry не загружен.", [])
+            return InvariantResult("INV-EVENT-CARDINALITY", "CRITICAL", True, "ПРОПУСК: SpatialRegistry не загружен — вход (реестр локаций) отсутствует.", [], skipped=True)
         
         _all_locs = _reg.get_all_location_ids() or []
         if len(_all_locs) < 2:
-            return InvariantResult("INV-EVENT-CARDINALITY", "CRITICAL", True, "Тест пропущен (требуется >1 локации).", [])
+            return InvariantResult("INV-EVENT-CARDINALITY", "CRITICAL", True, "ПРОПУСК: в кампании <2 локаций — проверка дублей событий требует ≥2.", [], skipped=True)
         
         # Подменяем EventBus для подсчёта публикаций
         _bus = world.game_loop._tick_orch._get_event_bus()
@@ -1983,16 +2035,19 @@ def inv_tick_cardinality(world: TestWorld) -> InvariantResult:
         # Получаем список всех локаций в кампании
         _reg = SpatialRegistry.get_or_load(world.campaign_id)
         if not _reg:
-            # IRON RIVER-урок: артефакт compiled/spatial_registry.json не
-            # существует и НЕ ИМЕЕТ генератора в дереве (grep-факт: единственный
-            # потребитель — сам загрузчик). Skip-семантика брата
-            # INV-NPC-CARDINALITY (:1367): инвариант без входа пропускается
-            # (True), а не краснеет вечно. Появится writer артефакта —
-            # skip заменится проверкой.
+            # IRON RIVER-семантика (уточнено IPT-1.2): писатель артефакта в
+            # дереве ЕСТЬ — Map Editor (spatial_registry_builder.py) пишет в
+            # frontend/map_editor/campaigns/<id>/compiled/, но прод-загрузчик
+            # ищет плоский файл backend/data/campaigns/<id>.json — контракт
+            # путей разошёлся (находка сессии, реестр §7.11). IPT-1.2 в
+            # тестовом процессе направляет поиск к каноническому артефакту;
+            # эта ветка — fail-safe для сред без скомпилированной карты:
+            # честный пропуск вместо вечного красного.
             return InvariantResult(
                 "INV-TICK-CARDINALITY", "CRITICAL", True,
-                "SpatialRegistry не загружен (артефакт отсутствует, writer'а в дереве нет) — тест пропущен.",
-                ["backend/app/services/spatial/spatial_registry.py"]
+                "ПРОПУСК: SpatialRegistry не загружен — вход (реестр локаций) отсутствует.",
+                ["backend/app/services/spatial/spatial_registry.py"],
+                skipped=True,
             )
         
         _all_locs = _reg.get_all_location_ids()
@@ -2001,30 +2056,42 @@ def inv_tick_cardinality(world: TestWorld) -> InvariantResult:
         if _n_locs <= 1:
             return InvariantResult(
                 "INV-TICK-CARDINALITY", "CRITICAL", True,
-                f"Тест пропущен (требуется >1 локации, найдено {_n_locs}).",
-                []
+                f"ПРОПУСК: в кампании <2 локаций (найдено {_n_locs}) — проверка §14.1 требует ≥2.",
+                [],
+                skipped=True,
             )
 
-        # Подменяем TaskScheduler, чтобы избежать падения ThreadPoolExecutor'а LLM
+        # Подменяем TaskScheduler, чтобы избежать падения ThreadPoolExecutor'а LLM.
+        # IPT-1.2: стаб обязан покрывать ВЕСЬ интерфейс, который тик вызывает у
+        # планировщика (ADR-O-365/O-399: drain_commitment_outbox,
+        # drain_task_worker_outbox, get_recent_dialogues, execute_pending);
+        # неполный стаб = ложный красный «нет метода» (пойман оживлением входа).
         class _NoOpScheduler:
             def execute_pending(self, *args, **kwargs): pass
             def execute_pending_tasks(self, *args, **kwargs): pass
             def drain(self, *args, **kwargs): pass
             def drain_commitment_outbox(self, *args, **kwargs): pass
+            def drain_task_worker_outbox(self, *args, **kwargs): pass
             def schedule_task(self, *args, **kwargs): pass
             def get_recent_dialogues(self, *args, **kwargs): return []
+        _orig_scheduler = world.game_loop._task_scheduler
         world.game_loop._task_scheduler = _NoOpScheduler()
 
         # Фиксируем время ДО тика
         time_before = world.game_time_seconds
-        
-        # Выполняем ровно 1 idle_tick
-        world.idle_tick()
-        
+
+        # Выполняем ровно 1 idle_tick; стаб живёт ТОЛЬКО внутри этого тика —
+        # невосстановленная подмена протекала в последующие инварианты
+        # (INV-COMMIT-CARDINALITY падал «наследственным» красным).
+        try:
+            world.idle_tick()
+        finally:
+            world.game_loop._task_scheduler = _orig_scheduler
+
         # Фиксируем время ПОСЛЕ тика
         time_after = world.game_time_seconds
-        
-        # Вычисляем фактический сдвиг
+
+        # Вычисляем фактичес сдвиг
         actual_dt = time_after - time_before
         expected_dt = float(GAME_TICK_INTERVAL_SECONDS)
         
@@ -2399,7 +2466,10 @@ def run_invariants() -> int:
         _print_result(result)
 
     print("\n" + "=" * 60)
-    passed = sum(1 for r in results if r.passed)
+    # IPT-1.1 (ТЗ АУДИТ-01): пропуск не успех — passed только по реально
+    # проверенным; skipped печатается поимённо ниже. Exit code не меняется.
+    passed = sum(1 for r in results if r.passed and not r.skipped)
+    skipped = sum(1 for r in results if r.skipped)
     failed = sum(1 for r in results if not r.passed)
     critical_failed = sum(1 for r in results if not r.passed and r.severity == "CRITICAL")
 
@@ -2415,18 +2485,26 @@ def run_invariants() -> int:
 
             _reaper_post = _reap2(dry_run=False)
             print(
-                f"ИТОГО: {passed} passed / {failed} failed "
+                f"ИТОГО: {passed} passed / {skipped} skipped / {failed} failed "
                 f"({critical_failed} CRITICAL) | [KILLER_SPIRIT] убито="
                 f"{len(_reaper_post.get('killed', []))}, пощажено="
                 f"{len(_reaper_post.get('spared', []))}"
             )
         else:
-            print(f"ИТОГО: {passed} passed / {failed} failed ({critical_failed} CRITICAL)")
+            print(f"ИТОГО: {passed} passed / {skipped} skipped / {failed} failed ({critical_failed} CRITICAL)")
     except Exception as _reaper2_exc:  # noqa: BLE001 — канальный отказ
         print(
-            f"ИТОГО: {passed} passed / {failed} failed ({critical_failed} CRITICAL) "
+            f"ИТОГО: {passed} passed / {skipped} skipped / {failed} failed ({critical_failed} CRITICAL) "
             f"| [KILLER_SPIRIT] FAULT: {_reaper2_exc!r}"
         )
+
+    # IPT-1.1 (ТЗ АУДИТ-01): поимённый перечень пропусков — печатается всегда,
+    # чтобы «зелёный» итог не мог спрятать непроверенные инварианты.
+    if skipped > 0:
+        print(f"\n🟠 ПРОПУЩЕННЫЕ ИНВАРИАНТЫ ({skipped}) — вход отсутствует, проверка НЕ выполнена:")
+        for r in results:
+            if r.skipped:
+                print(f"  - {r.invariant_id}: {r.message}")
 
     if failed > 0:
         print("\n🔴 КРИТИЧНЫЕ НАРУШЕНИЯ:")
@@ -2437,12 +2515,23 @@ def run_invariants() -> int:
                     print(f"      → {f}")
         return 1
 
-    print("\n✅ ВСЕ ИНВАРИАНТЫ ПРОЙДЕНЫ — игра жива.")
+    # IPT-1.1: финальная строка честна — при наличии пропусков не
+    # притворяется всеобъемлюще зелёной.
+    if skipped > 0:
+        print(f"\n🟠 БЕЗ ПРОВАЛОВ, НО {skipped} ИНВАРИАНТОВ ПРОПУЩЕНО — см. перечень выше.")
+    else:
+        print("\n✅ ВСЕ ИНВАРИАНТЫ ПРОЙДЕНЫ — игра жива.")
     return 0
 
 
 def _print_result(r: InvariantResult) -> None:
-    icon = "✅" if r.passed else ("🔴" if r.severity == "CRITICAL" else "🟡")
+    # IPT-1.1: пропуск — отдельный значок 🟠: не зелёный и не красный.
+    if r.skipped:
+        icon = "🟠"
+    elif r.passed:
+        icon = "✅"
+    else:
+        icon = "🔴" if r.severity == "CRITICAL" else "🟡"
     print(f"\n{icon} {r.invariant_id} [{r.severity}]")
     if r.message:
         print(f"   {r.message}")

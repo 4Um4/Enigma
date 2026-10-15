@@ -339,8 +339,12 @@ class SceneStateManager:
                 except (AttributeError, TypeError) as e:
                     logger.warning(f"[LOAD] error reading recog_keys: {e}")
         else:
+            # COV-D59 (В4): version-aware no-port fallback — v1 scenes-layout и
+            # легаси v0 единым правилом (мёртвый путь обязан быть корректным).
+            from app.services.state.save_migrations import extract_scene_payload
+
             data = self._read_campaign_json(campaign_id)
-            scene = data.get("scene_state")
+            scene = extract_scene_payload(data, location_id or None)
         if not scene:
             return None
         # P0 FIX (S71): SceneState Contract — reject non-dict.
@@ -453,8 +457,12 @@ class SceneStateManager:
                     f"[SCENE_REHYDRATE] NEW dict id={id(scene)} from persistence caller={_caller_info} trav_keys={list(scene.get('active_traversals', {}).keys())[:5]}"
                 )
         else:
+            # COV-D59 (В4): version-aware no-port fallback — v1 scenes-layout и
+            # легаси v0 единым правилом (мёртвый путь обязан быть корректным).
+            from app.services.state.save_migrations import extract_scene_payload
+
             data = self._read_campaign_json(campaign_id)
-            scene = data.get("scene_state")
+            scene = extract_scene_payload(data, location_id or None)
         if not scene:
             return None
         # P0 FIX (S71): SceneState Contract — reject non-dict.

@@ -140,6 +140,9 @@ class CampaignLoadResponse(BaseModel):
     world_id: str
     status: str
     loaded_files: List[str]
+    # ADR-O-426 Шаг 2 (COV-D59, вердикт В7): None = загрузка/миграция успешны;
+    # текст = машинно различимый честный отказ (исходник сохранён).
+    load_refusal_reason: str | None = None
 
 
 class SessionInterfaceState(BaseModel):

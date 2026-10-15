@@ -37,7 +37,8 @@ from app.services.game_loop_builder import build_game_loop
 CAMPAIGN = "Open_road"
 TORNIN = "tavern_keeper_tornin"
 MAX_TICKS = 18
-REPORT = BACKEND_ROOT / "reports" / "s330_probe3_fork_abc.txt"
+# Пакет 4 (ТЗ АУДИТ-01): протоколы зондов — в reports/probes/
+REPORT = BACKEND_ROOT / "reports" / "probes" / "s330_probe3_fork_abc.txt"
 _BUF = io.StringIO()
 
 

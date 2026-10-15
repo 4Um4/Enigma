@@ -12,6 +12,8 @@ path: /project/backend/tests/sandbox/SUPERBOX/scenarios/relocation_causal_bridge
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from tests.gameplay.harness import TavernGameplayHarness
 
 _C = "Open_road"
@@ -55,7 +57,11 @@ def main() -> int:
     _svc.addHandler(_col)
     # Полный лог в файл: DEBUG-строки (MOVEMENT_TRACE/BORKO_TRACE/GATE_B1_5)
     # нужны целиком, печать первых 25 маркеров обрезает картину.
-    _fh = _logging.FileHandler("movement_debug.log", mode="w", encoding="utf-8")
+    # Пакет 4 (ТЗ АУДИТ-01): диагностический лог — в reports/probes/,
+    # не в корне backend/ (гигиена доказательного слоя).
+    _probes_dir = Path(__file__).resolve().parents[4] / "reports" / "probes"
+    _probes_dir.mkdir(parents=True, exist_ok=True)
+    _fh = _logging.FileHandler(_probes_dir / "movement_debug.log", mode="w", encoding="utf-8")
     _fh.setLevel(_logging.DEBUG)
     _fh.setFormatter(_logging.Formatter("%(levelname)s|%(message)s"))
     _svc.addHandler(_fh)

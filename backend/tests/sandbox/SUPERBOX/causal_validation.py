@@ -22,7 +22,8 @@ from app.core.config import settings
 from app.models.schemas import ChatTurnRequest, ModelProvider, ModelSelection, PlayerAction
 from app.services.game_loop_builder import build_game_loop
 
-LOG_FILE = "causal_validation.log"
+# Пакет 4 (ТЗ АУДИТ-01): диагностический лог — в reports/probes/, не в корне backend/
+LOG_FILE = str(Path(__file__).resolve().parents[3] / "reports" / "probes" / "causal_validation.log")
 
 
 class CausalValidator:

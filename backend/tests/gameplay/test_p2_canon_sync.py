@@ -50,6 +50,11 @@ def test_p2_runtime_holders_have_memories(harness):
         )
 
 
+# Пакет 2 (ТЗ АУДИТ-01): известный RED по вердикту Мастера FR-11.2 — канон
+# guard_borko вместо legacy (затирает 3 origin-воспоминания Борко); гейт
+# дорабатывает владелец CCH-4. XPASS после починки = сигнал §9.13-2:
+# снять xfail → регресс §9.9 → запись §10.
+@pytest.mark.xfail(strict=False, reason="ROADMAP-вердикт Мастера FR-11.2: канон guard_borko вместо legacy; владелец CCH-4")
 def test_p2_provenance_origin_vs_seeded(harness):
     """Q1=MAP: 16 фактов несут origin-конфиги (event_type != secret_origin),
     сеялка заполняет ровно 9 пробелов. Дублей нет по построению (дедуп)."""

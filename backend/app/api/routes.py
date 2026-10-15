@@ -1221,9 +1221,12 @@ def get_npcs(campaign_id: str, game_loop: Any = Depends(get_game_loop)) -> dict:
             cs_path = game_loop.saves_dir / campaign_id / "campaign_state.json"
             if cs_path.exists():
                 cs = json.loads(cs_path.read_text(encoding="utf-8-sig"))
-                current_location = cs.get("scene_state", {}).get(
-                    "location_id"
-                ) or cs.get("metadata", {}).get("current_location")
+                # COV-D59 (В4): version-aware читатель — v1 scenes-layout и
+                # легаси v0 единым правилом; fallback metadata.current_location
+                # (SSOT локации, routes:1053).
+                from app.services.state.save_migrations import resolve_current_location
+
+                current_location = resolve_current_location(cs)
         except Exception as e:
             logger.warning(f"[ROUTES] Ошибка чтения current_location: {e}")
 

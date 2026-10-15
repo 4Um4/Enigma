@@ -132,6 +132,22 @@ class SpatialRegistry:
         candidate_alt = (project_root / "data" / "campaigns" / f"{campaign_id}.json").resolve()
         if candidate_alt.exists():
             return candidate_alt
+        # PATH-D1 (ТЗ АУДИТ-01, реестр §7.11): писатель артефакта — Map Editor
+        # (spatial_registry_builder.py) — кладёт его в campaigns/<id>/compiled/.
+        # Канонический путь добавлен к кандидатам: без него прод-загрузчик
+        # слеп к реестру (глобальный тик по локациям и Spatial Oracle
+        # молча отключены; находка аудита 2026-10-15, подтверждена live-прогоном).
+        candidate_editor = (
+            project_root
+            / "frontend"
+            / "map_editor"
+            / "campaigns"
+            / campaign_id
+            / "compiled"
+            / "spatial_registry.json"
+        ).resolve()
+        if candidate_editor.exists():
+            return candidate_editor
         return None
 
     @classmethod

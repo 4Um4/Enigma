@@ -37,7 +37,8 @@ from app.services.game_loop_builder import build_game_loop
 CAMPAIGN = "Open_road"
 TORNIN = "tavern_keeper_tornin"
 MAX_TICKS = 25
-REPORT = BACKEND_ROOT / "reports" / "s330_probe1_gate_trace.txt"
+# Пакет 4 (ТЗ АУДИТ-01): протоколы зондов — в reports/probes/
+REPORT = BACKEND_ROOT / "reports" / "probes" / "s330_probe1_gate_trace.txt"
 _MARKERS = ("GATE_B1_COLLAPSE", "GATE_B1_5", "reason=SAME_NODE",
             "reason=PLAN_REJECTED", "ARBITER_GATE_2", "GATE_B1_ACCEPT",
             "reason=SUCCESS", "NOT_FOUND", "COLLAPSE: npc")

@@ -374,7 +374,7 @@
 | Р-2 | **Межагентный канал выражения/восприятия состояний** | Ц6, Ц10; области F/H | `integration.py:563` [C] |
 | Р-3 | **Write-only кластер вербализации** (recalled_facts, suppressed_secrets, narrative_hints; speech_style; front_description; stm_buffer вообще без писателя) | Ц4; дешёвое оживление | `npc_tick_pipeline.py:1550-1552` [C] |
 | Р-4 | **Потеря speech_act/subject в input-слое** (до DialogueRequest не доезжают) | Ц5 groundwork | трасса `phase_1_input.py:650-651` → `communication.py:91-107` [C] |
-| Р-5 | **Противоречие убеждений не разрешается** (polarity-записи сосуществуют; читается polarity=True); латентная мина: `resolve()` не фильтрует polarity вообще (`epistemic_context_resolver.py:52-109`) | Ц5 | [C] + probe_run2.txt:515 (slow-path с polarity:false отбрасывается — предиката is_not нет) |
+| Р-5 | **Противоречие убеждений не разрешается** (polarity-записи сосуществуют; читается polarity=True); латентная мина: `resolve()` не фильтрует polarity вообще (`epistemic_context_resolver.py:52-109`) | Ц5 | [C] + backend/reports/probes/probe_run2.txt:515 (slow-path с polarity:false отбрасывается — предиката is_not нет) |
 | Р-6 | **Извлечение content-claim из обычной речи фактически не существует** (fast-path ATTACK/THREATEN; slow-path схема stole/attacked/helped/asserts, `asserts` не конвертируется) | Ц5 | `intent_compressor.py:915-923`, `llm_compressor_client.py:366` [C] |
 | Р-7 | **Писателей у половины тегов эмоций нет**; unknown-теги молча → NEUTRAL | область B; строки 107/110/120 | `npc_state.py:1189-1201` [C] |
 | Р-8 | **Поведенческий читатель черт покрывает 3 из ~20** (suspicious/grateful/aggressive); резонансные черты без читателей | область A; 3.3 | `decision_hub.py:1734-1759` [C] |

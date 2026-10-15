@@ -4,7 +4,7 @@ DEGOD Phase3B: владелец жизненного цикла кампании
 Все операции — публичные API владельцев состояния (seam-волна 3B.0); порядок reset 1→12 = контракт.
 Коммит атомарный (SSM.commit); EPOCH-FINAL не трогается.
 Назначение: владелец жизненного цикла кампании — create/reset/load/migrate + campaign-level persistence (DEGOD Phase3B extraction).
-Зависимости: app.models.world_state_diff (лениво), app.services.state.world_diff_applicator (лениво), app.services.state.save_format_detector (лениво), app.models.schemas.CampaignLoadResponse
+Зависимости: app.models.world_state_diff (лениво), app.services.state.world_diff_applicator (лениво), app.services.state.save_format_detector (лениво; inventory), app.services.state.save_migrations (детект-и-мигрировать, COV-D59), app.models.schemas.CampaignLoadResponse
 Основные сущности: CampaignLifecycle
 """
 
@@ -106,17 +106,40 @@ class CampaignLifecycle:
         loaded: dict = {"status": "not_found", "files": {}}
         self._campaign_world_index[campaign_id] = world_id
 
-        # Дополнение Б (п. Б.12): Детектор старых сейвов
-        try:
-            from app.services.state.save_format_detector import detect_legacy_saves
-            _legacy_campaigns = detect_legacy_saves(self._saves_dir)
-            if campaign_id in _legacy_campaigns:
-                logger.warning(f"[SAVE_MIGRATION] Обнаружен сейв старого формата для кампании '{campaign_id}'. Удаление...")
-                _old_save_file = self._saves_dir / campaign_id / "campaign_state.json"
-                if _old_save_file.exists():
-                    _old_save_file.unlink()
-        except Exception as _migr_err:
-            logger.error(f"[SAVE_MIGRATION] Ошибка при удалении старого сейва: {_migr_err}")
+        # COV-D59 / ADR-O-426 Шаг 2 (вердикты Мастера В1-В8): «детект-и-
+        # удалить» заменён на «детект-и-мигрировать». Удаление сейва запрещено:
+        # MIGRABLE -> верифицированная конвертация (.pre-migration.bak, В6);
+        # UNMIGRABLE -> честный отказ, файл не тронут (В3/В7).
+        from app.services.state.save_migrations import (
+            STATUS_MIGRATED,
+            STATUS_REFUSED,
+            migrate_save_file_if_needed,
+        )
+
+        _migration = migrate_save_file_if_needed(
+            self._saves_dir / campaign_id / "campaign_state.json"
+        )
+        if _migration.status == STATUS_REFUSED:
+            # В7: машинно различимый отказ; событие campaign_loaded не пишем —
+            # загрузки не было (история кампании не лжёт).
+            logger.error(
+                f"[SAVE_MIGRATION] Отказ загрузки '{campaign_id}': {_migration.reason}"
+            )
+            self.memory_manager.persist_campaign_event(
+                campaign_id,
+                event="campaign_load_refused",
+                world_id=world_id,
+                data={"reason": _migration.reason},
+            )
+            return CampaignLoadResponse(
+                campaign_id=campaign_id,
+                world_id=world_id,
+                status=STATUS_REFUSED,
+                loaded_files=[],
+                load_refusal_reason=_migration.refusal_text,
+            )
+        if _migration.status == STATUS_MIGRATED:
+            loaded = {"status": STATUS_MIGRATED, "files": {}}
         for filename, payload in loaded.get("files", {}).items():
             self.memory_manager.persist_world_canon(
                 world_id,

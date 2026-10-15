@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
 from app.services.state.persistence_port import PersistencePort
+from app.services.state.save_format_detector import SAVE_SCHEMA_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,13 @@ class JsonPersistenceAdapter(PersistencePort):
             if "scenes" not in data:
                 data["scenes"] = {}
 
+            # ADR-O-426 (COV-D59): писатель — авторитет формата: каждый
+            # write-path штампует версию (безверсионные файлы не плодятся);
+            # остаток легаси-ключа scene_state (stale по определению) убираем —
+            # штамп поверх легаси-ключа давал бы INCONSISTENT_V1.
+            data.pop("scene_state", None)
             data["scenes"][location_id] = scene_state
+            data["schema_version"] = SAVE_SCHEMA_VERSION
 
             with open(campaign_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
