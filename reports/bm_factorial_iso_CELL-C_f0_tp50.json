@@ -1,0 +1,202 @@
+{
+  "cell": "CELL-C_f0_tp50",
+  "rep": 1,
+  "artifacts": {
+    "head": "08a594808cefa149a51583a1040318d184e14cf1",
+    "sha256": {
+      "isolation": "3e9bde545d5f32d05270bbac790a4ef945b8c8d312938d281df5c12ed2ca7c94",
+      "factorial": "07093f9db7d36336a56bceceb71b42da1419f0ce8e9a86555b0384623c317af1",
+      "preset": "eeeeb60476bfb3cf546a641d3fd36b9aeb7f6c8b7bb901f6e57cf54e1a66769f"
+    }
+  },
+  "metrics": {
+    "y1_window": -0.635616,
+    "y1_masked": null,
+    "y2_share": 0.0,
+    "mask_ticks": 0,
+    "ticks_scored": 29,
+    "empty_ticks": [],
+    "gaps_per_tick": [
+      {
+        "tick": 2,
+        "gap": -0.74815
+      },
+      {
+        "tick": 3,
+        "gap": -0.549867
+      },
+      {
+        "tick": 4,
+        "gap": -0.6251
+      },
+      {
+        "tick": 5,
+        "gap": -0.625333
+      },
+      {
+        "tick": 6,
+        "gap": -0.520167
+      },
+      {
+        "tick": 7,
+        "gap": -0.6523
+      },
+      {
+        "tick": 8,
+        "gap": -0.7629
+      },
+      {
+        "tick": 9,
+        "gap": -0.73305
+      },
+      {
+        "tick": 10,
+        "gap": -0.69005
+      },
+      {
+        "tick": 11,
+        "gap": -0.539167
+      },
+      {
+        "tick": 12,
+        "gap": -0.8121
+      },
+      {
+        "tick": 13,
+        "gap": -0.80575
+      },
+      {
+        "tick": 14,
+        "gap": -0.537467
+      },
+      {
+        "tick": 15,
+        "gap": -0.643133
+      },
+      {
+        "tick": 16,
+        "gap": -0.613033
+      },
+      {
+        "tick": 17,
+        "gap": -0.629067
+      },
+      {
+        "tick": 18,
+        "gap": -0.590367
+      },
+      {
+        "tick": 19,
+        "gap": -0.6346
+      },
+      {
+        "tick": 20,
+        "gap": -0.519433
+      },
+      {
+        "tick": 21,
+        "gap": -0.584133
+      },
+      {
+        "tick": 22,
+        "gap": -0.636833
+      },
+      {
+        "tick": 23,
+        "gap": -0.616467
+      },
+      {
+        "tick": 24,
+        "gap": -0.608567
+      },
+      {
+        "tick": 25,
+        "gap": -0.5787
+      },
+      {
+        "tick": 26,
+        "gap": -0.668167
+      },
+      {
+        "tick": 27,
+        "gap": -0.597833
+      },
+      {
+        "tick": 28,
+        "gap": -0.643933
+      },
+      {
+        "tick": 29,
+        "gap": -0.666533
+      },
+      {
+        "tick": 30,
+        "gap": -0.600667
+      }
+    ],
+    "intent_seq": [
+      "change_role",
+      "change_role",
+      "request_service",
+      "request_service",
+      "request_service",
+      "request_service",
+      "request_service",
+      "seek_ally",
+      "seek_ally",
+      "seek_ally",
+      "request_service",
+      "change_role",
+      "change_role",
+      "request_service",
+      "request_service",
+      "request_service",
+      "request_service",
+      "request_service",
+      "request_service",
+      "request_service",
+      "request_service",
+      "request_service",
+      "request_service",
+      "request_service",
+      "request_service",
+      "request_service",
+      "request_service",
+      "request_service",
+      "request_service",
+      "request_service"
+    ],
+    "mask_seq": [
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+      "none"
+    ]
+  }
+}

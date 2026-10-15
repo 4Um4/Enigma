@@ -1,0 +1,1983 @@
+{
+  "spec": "E-BM1 v1.0.1: канонический контраст — общее покрытое окно клеток (common_window); v1.0-метрики окна 2..30 сохранены как диагностические",
+  "status": "OK",
+  "artifacts": {
+    "head": "08a594808cefa149a51583a1040318d184e14cf1",
+    "python": "3.13.14",
+    "env": {
+      "COGNITION_DIAG": null,
+      "R2_DIAG": null,
+      "N18_EXP": null
+    },
+    "sha256": {
+      "scenario": "07093f9db7d36336a56bceceb71b42da1419f0ce8e9a86555b0384623c317af1",
+      "CELL-A_f0_tm60": "ad7716170900ef70165ed475e49dbe5135bb950f73cc4fd391f0b0c04bfe8593",
+      "CELL-B_f70_tm60": "a99a0b77fb950b5d96e8a5394bca7b5302cf3711366e71cd8f4acb49025959d1",
+      "CELL-C_f0_tp50": "eeeeb60476bfb3cf546a641d3fd36b9aeb7f6c8b7bb901f6e57cf54e1a66769f",
+      "CELL-D_f70_tp50": "c6e67a52c016ce2cae932aaea2a6523b48fafe552d72982ac13f496765980d78"
+    },
+    "donor_sha256": "2ed5a7dd9825fff69dcff9c0fe9718d200be65f62a749c6febf254c838704cb5"
+  },
+  "cells": {
+    "CELL-A_f0_tm60": {
+      "y1_window": -0.313899,
+      "y1_masked": null,
+      "y2_share": 0.0,
+      "mask_ticks": 0,
+      "ticks_scored": 29,
+      "empty_ticks": [],
+      "gaps_per_tick": [
+        {
+          "tick": 2,
+          "gap": -0.31275
+        },
+        {
+          "tick": 3,
+          "gap": -0.2176
+        },
+        {
+          "tick": 4,
+          "gap": -0.292833
+        },
+        {
+          "tick": 5,
+          "gap": -0.293067
+        },
+        {
+          "tick": 6,
+          "gap": -0.1879
+        },
+        {
+          "tick": 7,
+          "gap": -0.320033
+        },
+        {
+          "tick": 8,
+          "gap": -0.3275
+        },
+        {
+          "tick": 9,
+          "gap": -0.32265
+        },
+        {
+          "tick": 10,
+          "gap": -0.25465
+        },
+        {
+          "tick": 11,
+          "gap": -0.2069
+        },
+        {
+          "tick": 12,
+          "gap": -0.3767
+        },
+        {
+          "tick": 13,
+          "gap": -0.37035
+        },
+        {
+          "tick": 14,
+          "gap": -0.221867
+        },
+        {
+          "tick": 15,
+          "gap": -0.36065
+        },
+        {
+          "tick": 16,
+          "gap": -0.30715
+        },
+        {
+          "tick": 17,
+          "gap": -0.3706
+        },
+        {
+          "tick": 18,
+          "gap": -0.2581
+        },
+        {
+          "tick": 19,
+          "gap": -0.3375
+        },
+        {
+          "tick": 20,
+          "gap": -0.2928
+        },
+        {
+          "tick": 21,
+          "gap": -0.3182
+        },
+        {
+          "tick": 22,
+          "gap": -0.4032
+        },
+        {
+          "tick": 23,
+          "gap": -0.4226
+        },
+        {
+          "tick": 24,
+          "gap": -0.40235
+        },
+        {
+          "tick": 25,
+          "gap": -0.2651
+        },
+        {
+          "tick": 26,
+          "gap": -0.4436
+        },
+        {
+          "tick": 27,
+          "gap": -0.35725
+        },
+        {
+          "tick": 28,
+          "gap": -0.275667
+        },
+        {
+          "tick": 29,
+          "gap": -0.36145
+        },
+        {
+          "tick": 30,
+          "gap": -0.22205
+        }
+      ],
+      "scores_raw": [
+        {
+          "intimidate": -0.5401,
+          "flee": 0.0275,
+          "attack": -0.6089,
+          "help": 0.0993,
+          "report": -0.0397,
+          "trade": -0.0045,
+          "observe": 0.044,
+          "seek_ally": 0.285,
+          "change_role": 0.407,
+          "idle": 0.0959
+        },
+        {
+          "intimidate": -0.3599,
+          "flee": 0.1671,
+          "attack": -0.5245,
+          "help": -0.2461,
+          "report": -0.2477,
+          "trade": -0.2168,
+          "observe": -0.0858,
+          "seek_ally": -0.0909,
+          "change_role": 0.1853,
+          "idle": -0.1731
+        },
+        {
+          "talk": -0.1204,
+          "warn": -0.1044,
+          "intimidate": -0.3565,
+          "flee": 0.1182,
+          "attack": -0.5895,
+          "help": -0.1616,
+          "report": -0.2316,
+          "trade": -0.1662,
+          "observe": -0.0914,
+          "approach": -0.2194,
+          "seek_ally": 0.0201,
+          "offer_job": 0.3765,
+          "request_service": 0.439,
+          "spread_rumor": 0.1579,
+          "call_for_help": -0.1296,
+          "change_role": 0.2445,
+          "idle": -0.1858
+        },
+        {
+          "talk": 0.0406,
+          "warn": -0.1648,
+          "intimidate": -0.3966,
+          "flee": 0.0761,
+          "attack": -0.5445,
+          "help": -0.1369,
+          "report": -0.1747,
+          "trade": -0.1212,
+          "observe": -0.0171,
+          "approach": -0.1908,
+          "seek_ally": -0.0064,
+          "offer_job": 0.3829,
+          "request_service": 0.4455,
+          "spread_rumor": 0.2865,
+          "call_for_help": -0.1096,
+          "change_role": 0.0757,
+          "idle": -0.2509
+        },
+        {
+          "talk": 0.0242,
+          "warn": -0.1236,
+          "intimidate": -0.4498,
+          "flee": 0.0199,
+          "attack": -0.6131,
+          "help": -0.179,
+          "report": -0.2523,
+          "trade": -0.1012,
+          "observe": -0.0933,
+          "approach": -0.1486,
+          "seek_ally": 0.0267,
+          "offer_job": 0.3601,
+          "request_service": 0.4314,
+          "spread_rumor": 0.1968,
+          "call_for_help": 0.0007,
+          "change_role": 0.1463,
+          "idle": -0.2382
+        },
+        {
+          "talk": -0.0926,
+          "warn": -0.1078,
+          "intimidate": -0.5238,
+          "flee": 0.0902,
+          "attack": -0.4783,
+          "help": -0.3134,
+          "report": -0.2295,
+          "trade": -0.2878,
+          "observe": -0.1504,
+          "approach": -0.2447,
+          "seek_ally": -0.0078,
+          "offer_job": 0.3626,
+          "request_service": 0.5461,
+          "spread_rumor": 0.2873,
+          "call_for_help": -0.0061,
+          "change_role": 0.0241,
+          "idle": -0.3032
+        },
+        {
+          "talk": -0.0526,
+          "warn": -0.1471,
+          "intimidate": -0.5516,
+          "flee": 0.0694,
+          "attack": -0.5697,
+          "help": -0.3062,
+          "report": -0.2985,
+          "trade": -0.1987,
+          "observe": -0.0657,
+          "approach": -0.1649,
+          "seek_ally": 0.0063,
+          "offer_job": 0.285,
+          "request_service": 0.6244,
+          "spread_rumor": 0.1925,
+          "call_for_help": -0.1071,
+          "change_role": -0.0017,
+          "idle": -0.19
+        },
+        {
+          "intimidate": -0.399,
+          "flee": 0.1564,
+          "attack": -0.4359,
+          "help": -0.1114,
+          "report": -0.2122,
+          "trade": -0.0505,
+          "observe": 0.0237,
+          "seek_ally": 0.1185,
+          "change_role": 0.0809,
+          "idle": -0.2036
+        },
+        {
+          "intimidate": -0.3392,
+          "flee": 0.2155,
+          "attack": -0.458,
+          "help": -0.2513,
+          "report": -0.2459,
+          "trade": -0.1452,
+          "observe": -0.0896,
+          "seek_ally": 0.0323,
+          "change_role": 0.2163,
+          "idle": -0.0623
+        },
+        {
+          "intimidate": -0.3318,
+          "flee": -0.004,
+          "attack": -0.5176,
+          "help": -0.2727,
+          "report": -0.3024,
+          "trade": -0.1197,
+          "observe": -0.1506,
+          "seek_ally": 0.0178,
+          "change_role": 0.1923,
+          "idle": -0.1895
+        },
+        {
+          "talk": -0.0397,
+          "warn": -0.0527,
+          "intimidate": -0.4099,
+          "flee": 0.03,
+          "attack": -0.4394,
+          "help": -0.3267,
+          "report": -0.1687,
+          "trade": -0.1882,
+          "observe": -0.0138,
+          "approach": -0.2815,
+          "seek_ally": -0.1192,
+          "offer_job": 0.3795,
+          "request_service": 0.4174,
+          "spread_rumor": 0.1525,
+          "call_for_help": -0.0425,
+          "change_role": 0.1341,
+          "idle": -0.2278
+        },
+        {
+          "intimidate": -0.2537,
+          "flee": 0.1146,
+          "attack": -0.4588,
+          "help": -0.1019,
+          "report": -0.0735,
+          "trade": -0.1979,
+          "observe": 0.1031,
+          "seek_ally": 0.0079,
+          "change_role": 0.1991,
+          "idle": -0.0622
+        },
+        {
+          "intimidate": -0.4643,
+          "flee": 0.0041,
+          "attack": -0.5637,
+          "help": -0.2686,
+          "report": -0.3064,
+          "trade": -0.1381,
+          "observe": 0.0048,
+          "seek_ally": 0.0355,
+          "change_role": 0.1418,
+          "idle": -0.2921
+        },
+        {
+          "talk": 0.0066,
+          "warn": -0.1146,
+          "intimidate": -0.3498,
+          "flee": 0.0839,
+          "attack": -0.3984,
+          "help": -0.3164,
+          "report": -0.2255,
+          "trade": -0.0103,
+          "observe": -0.0871,
+          "approach": -0.2141,
+          "seek_ally": -0.1033,
+          "offer_job": 0.4037,
+          "request_service": 0.4608,
+          "spread_rumor": 0.2811,
+          "call_for_help": -0.008,
+          "change_role": 0.1049,
+          "idle": -0.1167
+        },
+        {
+          "intimidate": -0.4243,
+          "flee": 0.2495,
+          "attack": -0.4685,
+          "help": -0.2225,
+          "report": -0.1354,
+          "trade": 0.0831,
+          "observe": 0.0664,
+          "seek_ally": 0.0954,
+          "change_role": 0.1692,
+          "idle": -0.2379
+        },
+        {
+          "intimidate": -0.391,
+          "flee": 0.2218,
+          "attack": -0.4774,
+          "help": -0.4349,
+          "report": -0.1562,
+          "trade": 0.0653,
+          "observe": -0.0615,
+          "seek_ally": 0.0124,
+          "change_role": 0.1346,
+          "idle": -0.1926
+        },
+        {
+          "intimidate": -0.4631,
+          "flee": 0.3043,
+          "attack": -0.5406,
+          "help": -0.3747,
+          "report": -0.1098,
+          "trade": -0.009,
+          "observe": -0.0506,
+          "seek_ally": -0.0963,
+          "change_role": 0.1229,
+          "idle": -0.2119
+        },
+        {
+          "talk": 0.1522,
+          "warn": -0.0217,
+          "intimidate": -0.4674,
+          "flee": 0.2705,
+          "attack": -0.4381,
+          "help": -0.3289,
+          "report": -0.2156,
+          "trade": -0.016,
+          "observe": -0.0119,
+          "approach": -0.0774,
+          "seek_ally": -0.0268,
+          "offer_job": 0.3643,
+          "request_service": 0.4869,
+          "spread_rumor": 0.2205,
+          "call_for_help": 0.0323,
+          "change_role": 0.0935,
+          "idle": -0.2932
+        },
+        {
+          "intimidate": -0.414,
+          "flee": 0.1493,
+          "attack": -0.4208,
+          "help": -0.3708,
+          "report": -0.0755,
+          "trade": 0.0764,
+          "observe": 0.0626,
+          "seek_ally": 0.0872,
+          "change_role": 0.1776,
+          "idle": -0.2224
+        },
+        {
+          "intimidate": -0.4316,
+          "flee": 0.0531,
+          "attack": -0.4572,
+          "help": -0.426,
+          "report": -0.1616,
+          "trade": -0.0394,
+          "observe": -0.1449,
+          "seek_ally": -0.0308,
+          "change_role": 0.117,
+          "idle": -0.1583
+        },
+        {
+          "talk": 0.0503,
+          "warn": -0.15,
+          "intimidate": -0.3253,
+          "flee": 0.0847,
+          "attack": -0.5535,
+          "help": -0.4715,
+          "report": -0.1748,
+          "trade": 0.1082,
+          "observe": 0.0237,
+          "approach": -0.1933,
+          "seek_ally": 0.0504,
+          "offer_job": 0.3158,
+          "request_service": 0.4319,
+          "spread_rumor": 0.365,
+          "call_for_help": 0.0849,
+          "change_role": 0.1254,
+          "idle": -0.1482
+        },
+        {
+          "intimidate": -0.3565,
+          "flee": 0.1464,
+          "attack": -0.4766,
+          "help": -0.2208,
+          "report": -0.1323,
+          "trade": 0.0486,
+          "observe": 0.0641,
+          "seek_ally": 0.0612,
+          "change_role": 0.1124,
+          "idle": -0.0908
+        },
+        {
+          "intimidate": -0.4192,
+          "flee": 0.0273,
+          "attack": -0.5865,
+          "help": -0.2588,
+          "report": -0.2364,
+          "trade": -0.1393,
+          "observe": -0.0037,
+          "seek_ally": -0.0742,
+          "change_role": 0.2107,
+          "idle": -0.1568
+        },
+        {
+          "intimidate": -0.3698,
+          "flee": -0.0147,
+          "attack": -0.6211,
+          "help": -0.1988,
+          "report": -0.1874,
+          "trade": -0.2481,
+          "observe": -0.0397,
+          "seek_ally": -0.1017,
+          "change_role": 0.1036,
+          "idle": -0.1465
+        },
+        {
+          "talk": -0.0889,
+          "warn": -0.108,
+          "intimidate": -0.4939,
+          "flee": 0.0708,
+          "attack": -0.5718,
+          "help": -0.174,
+          "report": -0.1369,
+          "trade": -0.0904,
+          "observe": -0.0401,
+          "approach": -0.1468,
+          "seek_ally": -0.0982,
+          "offer_job": 0.3552,
+          "request_service": 0.366,
+          "spread_rumor": 0.3127,
+          "call_for_help": -0.0921,
+          "change_role": 0.1432,
+          "idle": -0.2494
+        },
+        {
+          "intimidate": -0.3626,
+          "flee": 0.1559,
+          "attack": -0.5381,
+          "help": -0.1828,
+          "report": -0.0891,
+          "trade": -0.06,
+          "observe": 0.1191,
+          "seek_ally": 0.0729,
+          "change_role": 0.1668,
+          "idle": -0.1326
+        },
+        {
+          "intimidate": -0.4724,
+          "flee": -0.0092,
+          "attack": -0.6263,
+          "help": -0.2279,
+          "report": -0.1846,
+          "trade": -0.1384,
+          "observe": -0.1239,
+          "seek_ally": -0.0855,
+          "change_role": 0.23,
+          "idle": -0.2603
+        },
+        {
+          "talk": -0.0228,
+          "warn": -0.1199,
+          "intimidate": -0.518,
+          "flee": 0.0553,
+          "attack": -0.5712,
+          "help": -0.3044,
+          "report": -0.1661,
+          "trade": -0.2826,
+          "observe": -0.0431,
+          "approach": -0.2628,
+          "seek_ally": -0.1056,
+          "offer_job": 0.3574,
+          "request_service": 0.282,
+          "spread_rumor": 0.2401,
+          "call_for_help": -0.1152,
+          "change_role": 0.199,
+          "idle": -0.3162
+        },
+        {
+          "intimidate": -0.343,
+          "flee": 0.2646,
+          "attack": -0.5161,
+          "help": -0.1173,
+          "report": -0.136,
+          "trade": -0.1434,
+          "observe": -0.0248,
+          "seek_ally": 0.1097,
+          "change_role": 0.104,
+          "idle": -0.1114
+        },
+        {
+          "intimidate": -0.4447,
+          "flee": 0.0931,
+          "attack": -0.4105,
+          "help": -0.3271,
+          "report": -0.1493,
+          "trade": 0.1957,
+          "observe": -0.1245,
+          "seek_ally": 0.0406,
+          "change_role": 0.0893,
+          "idle": -0.2866
+        }
+      ]
+    },
+    "CELL-B_f70_tm60": {
+      "y1_window": -0.187031,
+      "y1_masked": -0.187031,
+      "y2_share": 0.0,
+      "mask_ticks": 29,
+      "ticks_scored": 14,
+      "empty_ticks": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "gaps_per_tick": [
+        {
+          "tick": 2,
+          "gap": -0.17875
+        },
+        {
+          "tick": 3,
+          "gap": 0.020733
+        },
+        {
+          "tick": 4,
+          "gap": -0.068
+        },
+        {
+          "tick": 5,
+          "gap": -0.0809
+        },
+        {
+          "tick": 6,
+          "gap": 0.011533
+        },
+        {
+          "tick": 7,
+          "gap": -0.133233
+        },
+        {
+          "tick": 8,
+          "gap": -0.3187
+        },
+        {
+          "tick": 9,
+          "gap": -0.3079
+        },
+        {
+          "tick": 10,
+          "gap": -0.2866
+        },
+        {
+          "tick": 11,
+          "gap": -0.071567
+        },
+        {
+          "tick": 12,
+          "gap": -0.4465
+        },
+        {
+          "tick": 13,
+          "gap": -0.46115
+        },
+        {
+          "tick": 14,
+          "gap": -0.095867
+        },
+        {
+          "tick": 15,
+          "gap": -0.201533
+        }
+      ],
+      "scores_raw": [
+        {
+          "intimidate": -0.5401,
+          "flee": 0.0275,
+          "attack": -0.6089,
+          "help": 0.0993,
+          "report": -0.0397,
+          "trade": -0.0045,
+          "observe": 0.044,
+          "seek_ally": 0.285,
+          "change_role": 0.407,
+          "idle": 0.0959
+        },
+        {
+          "intimidate": -0.1667,
+          "flee": 0.184,
+          "attack": -0.3314,
+          "help": -0.2713,
+          "report": -0.266,
+          "trade": -0.2627,
+          "observe": 0.5124,
+          "seek_ally": -0.2368,
+          "change_role": -0.0538,
+          "idle": -0.653
+        },
+        {
+          "talk": -0.5142,
+          "warn": 0.0041,
+          "intimidate": -0.117,
+          "flee": 0.1831,
+          "attack": -0.35,
+          "help": -0.1395,
+          "report": -0.2026,
+          "trade": -0.1648,
+          "observe": 0.6096,
+          "approach": -0.1203,
+          "seek_ally": -0.0786,
+          "offer_job": -0.0154,
+          "request_service": 0.0471,
+          "spread_rumor": 0.0592,
+          "call_for_help": -0.2282,
+          "change_role": -0.0753,
+          "idle": -0.6205
+        },
+        {
+          "talk": -0.3722,
+          "warn": -0.0727,
+          "intimidate": -0.1747,
+          "flee": 0.1249,
+          "attack": -0.3226,
+          "help": -0.1315,
+          "report": -0.1624,
+          "trade": -0.1365,
+          "observe": 0.7109,
+          "approach": -0.1086,
+          "seek_ally": -0.1218,
+          "offer_job": -0.0258,
+          "request_service": -0.0532,
+          "spread_rumor": 0.171,
+          "call_for_help": -0.2251,
+          "change_role": -0.1329,
+          "idle": -0.7047
+        },
+        {
+          "talk": -0.3886,
+          "warn": -0.0315,
+          "intimidate": -0.2279,
+          "flee": 0.0687,
+          "attack": -0.3911,
+          "help": -0.1736,
+          "report": -0.2401,
+          "trade": -0.1166,
+          "observe": 0.6727,
+          "approach": -0.0664,
+          "seek_ally": -0.0887,
+          "offer_job": -0.0486,
+          "request_service": -0.1053,
+          "spread_rumor": 0.0814,
+          "call_for_help": -0.1147,
+          "change_role": -0.0623,
+          "idle": -0.6919
+        },
+        {
+          "talk": -0.5054,
+          "warn": -0.0157,
+          "intimidate": -0.3019,
+          "flee": 0.1391,
+          "attack": -0.2564,
+          "help": -0.3081,
+          "report": -0.2173,
+          "trade": -0.3032,
+          "observe": 0.6537,
+          "approach": -0.1624,
+          "seek_ally": -0.1232,
+          "offer_job": -0.0461,
+          "request_service": -0.0286,
+          "spread_rumor": 0.1719,
+          "call_for_help": -0.1215,
+          "change_role": -0.1844,
+          "idle": -0.7569
+        },
+        {
+          "talk": -0.4654,
+          "warn": -0.055,
+          "intimidate": -0.3297,
+          "flee": 0.1183,
+          "attack": -0.3478,
+          "help": -0.3009,
+          "report": -0.2863,
+          "trade": -0.2141,
+          "observe": 0.7763,
+          "approach": -0.0826,
+          "seek_ally": -0.1091,
+          "offer_job": -0.1237,
+          "request_service": 0.0118,
+          "spread_rumor": 0.0771,
+          "call_for_help": -0.2226,
+          "change_role": -0.2103,
+          "idle": -0.6437
+        },
+        {
+          "intimidate": -0.299,
+          "flee": 0.0833,
+          "attack": -0.336,
+          "help": -0.2281,
+          "report": -0.3219,
+          "trade": -0.1879,
+          "observe": 0.7817,
+          "seek_ally": -0.1189,
+          "change_role": -0.2497,
+          "idle": -0.7793
+        },
+        {
+          "intimidate": -0.1973,
+          "flee": 0.1844,
+          "attack": -0.3161,
+          "help": -0.326,
+          "report": -0.3137,
+          "trade": -0.2406,
+          "observe": 0.7484,
+          "seek_ally": -0.1631,
+          "change_role": -0.0723,
+          "idle": -0.646
+        },
+        {
+          "intimidate": -0.1595,
+          "flee": -0.0031,
+          "attack": -0.3453,
+          "help": -0.3161,
+          "report": -0.3389,
+          "trade": -0.1839,
+          "observe": 0.7626,
+          "seek_ally": -0.1464,
+          "change_role": -0.1551,
+          "idle": -0.6942
+        },
+        {
+          "talk": -0.5036,
+          "warn": -0.0089,
+          "intimidate": -0.2375,
+          "flee": 0.0309,
+          "attack": -0.2671,
+          "help": -0.3701,
+          "report": -0.2052,
+          "trade": -0.2523,
+          "observe": 0.9374,
+          "approach": -0.248,
+          "seek_ally": -0.2834,
+          "offer_job": -0.078,
+          "request_service": -0.0401,
+          "spread_rumor": -0.0117,
+          "call_for_help": -0.2067,
+          "change_role": -0.2512,
+          "idle": -0.7326
+        },
+        {
+          "intimidate": -0.1873,
+          "flee": 0.0094,
+          "attack": -0.3925,
+          "help": -0.2513,
+          "report": -0.216,
+          "trade": -0.368,
+          "observe": 0.9862,
+          "seek_ally": -0.2623,
+          "change_role": -0.1643,
+          "idle": -0.673
+        },
+        {
+          "intimidate": -0.3172,
+          "flee": -0.0191,
+          "attack": -0.4166,
+          "help": -0.3366,
+          "report": -0.3676,
+          "trade": -0.2269,
+          "observe": 1.0117,
+          "seek_ally": -0.1533,
+          "change_role": -0.2301,
+          "idle": -0.8232
+        },
+        {
+          "talk": -0.5235,
+          "warn": -0.1351,
+          "intimidate": -0.2427,
+          "flee": 0.0207,
+          "attack": -0.2913,
+          "help": -0.4245,
+          "report": -0.3266,
+          "trade": -0.139,
+          "observe": 0.8797,
+          "approach": -0.2452,
+          "seek_ally": -0.3321,
+          "offer_job": -0.1184,
+          "request_service": -0.0613,
+          "spread_rumor": 0.0523,
+          "call_for_help": -0.2367,
+          "change_role": -0.2171,
+          "idle": -0.7377
+        },
+        {
+          "talk": -0.4539,
+          "warn": -0.1557,
+          "intimidate": -0.3672,
+          "flee": 0.1364,
+          "attack": -0.4114,
+          "help": -0.3805,
+          "report": -0.2865,
+          "trade": -0.0956,
+          "observe": 0.9832,
+          "approach": -0.1347,
+          "seek_ally": -0.1834,
+          "offer_job": -0.172,
+          "request_service": -0.0155,
+          "spread_rumor": 0.0942,
+          "call_for_help": -0.3248,
+          "change_role": -0.2028,
+          "idle": -0.859
+        },
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+    "CELL-C_f0_tp50": {
+      "y1_window": -0.635616,
+      "y1_masked": null,
+      "y2_share": 0.0,
+      "mask_ticks": 0,
+      "ticks_scored": 29,
+      "empty_ticks": [],
+      "gaps_per_tick": [
+        {
+          "tick": 2,
+          "gap": -0.74815
+        },
+        {
+          "tick": 3,
+          "gap": -0.549867
+        },
+        {
+          "tick": 4,
+          "gap": -0.6251
+        },
+        {
+          "tick": 5,
+          "gap": -0.625333
+        },
+        {
+          "tick": 6,
+          "gap": -0.520167
+        },
+        {
+          "tick": 7,
+          "gap": -0.6523
+        },
+        {
+          "tick": 8,
+          "gap": -0.7629
+        },
+        {
+          "tick": 9,
+          "gap": -0.73305
+        },
+        {
+          "tick": 10,
+          "gap": -0.69005
+        },
+        {
+          "tick": 11,
+          "gap": -0.539167
+        },
+        {
+          "tick": 12,
+          "gap": -0.8121
+        },
+        {
+          "tick": 13,
+          "gap": -0.80575
+        },
+        {
+          "tick": 14,
+          "gap": -0.537467
+        },
+        {
+          "tick": 15,
+          "gap": -0.643133
+        },
+        {
+          "tick": 16,
+          "gap": -0.613033
+        },
+        {
+          "tick": 17,
+          "gap": -0.629067
+        },
+        {
+          "tick": 18,
+          "gap": -0.590367
+        },
+        {
+          "tick": 19,
+          "gap": -0.6346
+        },
+        {
+          "tick": 20,
+          "gap": -0.519433
+        },
+        {
+          "tick": 21,
+          "gap": -0.584133
+        },
+        {
+          "tick": 22,
+          "gap": -0.636833
+        },
+        {
+          "tick": 23,
+          "gap": -0.616467
+        },
+        {
+          "tick": 24,
+          "gap": -0.608567
+        },
+        {
+          "tick": 25,
+          "gap": -0.5787
+        },
+        {
+          "tick": 26,
+          "gap": -0.668167
+        },
+        {
+          "tick": 27,
+          "gap": -0.597833
+        },
+        {
+          "tick": 28,
+          "gap": -0.643933
+        },
+        {
+          "tick": 29,
+          "gap": -0.666533
+        },
+        {
+          "tick": 30,
+          "gap": -0.600667
+        }
+      ],
+      "scores_raw": [
+        {
+          "intimidate": -0.5401,
+          "flee": 0.0275,
+          "attack": -0.6089,
+          "help": 0.0993,
+          "report": -0.0397,
+          "trade": -0.0045,
+          "observe": 0.044,
+          "seek_ally": 0.285,
+          "change_role": 0.407,
+          "idle": 0.0959
+        },
+        {
+          "intimidate": -0.6807,
+          "flee": -0.1079,
+          "attack": -0.7445,
+          "help": 0.0839,
+          "report": 0.0823,
+          "trade": 0.1132,
+          "observe": -0.0858,
+          "seek_ally": 0.2391,
+          "change_role": 0.5153,
+          "idle": 0.1569
+        },
+        {
+          "talk": 0.2096,
+          "warn": 0.0996,
+          "intimidate": -0.6773,
+          "flee": -0.1568,
+          "attack": -0.8095,
+          "help": 0.1684,
+          "report": 0.0984,
+          "trade": 0.1638,
+          "observe": -0.0914,
+          "approach": 0.1106,
+          "seek_ally": 0.3501,
+          "offer_job": 0.7065,
+          "request_service": 0.769,
+          "spread_rumor": 0.1939,
+          "call_for_help": 0.2004,
+          "change_role": 0.5745,
+          "idle": 0.1442
+        },
+        {
+          "talk": 0.3706,
+          "warn": 0.0392,
+          "intimidate": -0.7174,
+          "flee": -0.1989,
+          "attack": -0.7645,
+          "help": 0.1931,
+          "report": 0.1553,
+          "trade": 0.2088,
+          "observe": -0.0171,
+          "approach": 0.1392,
+          "seek_ally": 0.3236,
+          "offer_job": 0.7129,
+          "request_service": 0.7755,
+          "spread_rumor": 0.3225,
+          "call_for_help": 0.2204,
+          "change_role": 0.4057,
+          "idle": 0.0791
+        },
+        {
+          "talk": 0.3542,
+          "warn": 0.0804,
+          "intimidate": -0.7706,
+          "flee": -0.2551,
+          "attack": -0.8331,
+          "help": 0.151,
+          "report": 0.0777,
+          "trade": 0.2288,
+          "observe": -0.0933,
+          "approach": 0.1814,
+          "seek_ally": 0.3567,
+          "offer_job": 0.6901,
+          "request_service": 0.7614,
+          "spread_rumor": 0.2328,
+          "call_for_help": 0.3307,
+          "change_role": 0.4763,
+          "idle": 0.0918
+        },
+        {
+          "talk": 0.2374,
+          "warn": 0.0962,
+          "intimidate": -0.8446,
+          "flee": -0.1848,
+          "attack": -0.6983,
+          "help": 0.0166,
+          "report": 0.1005,
+          "trade": 0.0422,
+          "observe": -0.1504,
+          "approach": 0.0853,
+          "seek_ally": 0.3222,
+          "offer_job": 0.6926,
+          "request_service": 0.8761,
+          "spread_rumor": 0.3233,
+          "call_for_help": 0.3239,
+          "change_role": 0.3541,
+          "idle": 0.0268
+        },
+        {
+          "talk": 0.2774,
+          "warn": 0.0569,
+          "intimidate": -0.8724,
+          "flee": -0.2056,
+          "attack": -0.7897,
+          "help": 0.0238,
+          "report": 0.0315,
+          "trade": 0.1313,
+          "observe": -0.0657,
+          "approach": 0.1651,
+          "seek_ally": 0.3363,
+          "offer_job": 0.615,
+          "request_service": 0.9544,
+          "spread_rumor": 0.2285,
+          "call_for_help": 0.2229,
+          "change_role": 0.3283,
+          "idle": 0.14
+        },
+        {
+          "intimidate": -0.7198,
+          "flee": -0.1186,
+          "attack": -0.6559,
+          "help": 0.2186,
+          "report": 0.1178,
+          "trade": 0.2795,
+          "observe": 0.0237,
+          "seek_ally": 0.4485,
+          "change_role": 0.4109,
+          "idle": 0.1264
+        },
+        {
+          "intimidate": -0.66,
+          "flee": -0.0595,
+          "attack": -0.678,
+          "help": 0.0787,
+          "report": 0.0841,
+          "trade": 0.1848,
+          "observe": -0.0896,
+          "seek_ally": 0.4123,
+          "change_role": 0.5463,
+          "idle": 0.2177
+        },
+        {
+          "intimidate": -0.6206,
+          "flee": -0.247,
+          "attack": -0.7056,
+          "help": 0.0893,
+          "report": 0.0596,
+          "trade": 0.2423,
+          "observe": -0.1186,
+          "seek_ally": 0.4678,
+          "change_role": 0.4643,
+          "idle": 0.1725
+        },
+        {
+          "talk": 0.3223,
+          "warn": 0.1833,
+          "intimidate": -0.6987,
+          "flee": -0.213,
+          "attack": -0.6274,
+          "help": 0.0353,
+          "report": 0.1933,
+          "trade": 0.1738,
+          "observe": 0.0182,
+          "approach": 0.0805,
+          "seek_ally": 0.3688,
+          "offer_job": 0.7415,
+          "request_service": 0.7794,
+          "spread_rumor": 0.2205,
+          "call_for_help": 0.3195,
+          "change_role": 0.3681,
+          "idle": 0.1342
+        },
+        {
+          "intimidate": -0.5745,
+          "flee": -0.1604,
+          "attack": -0.6788,
+          "help": 0.2281,
+          "report": 0.2565,
+          "trade": 0.1321,
+          "observe": 0.1031,
+          "seek_ally": 0.3379,
+          "change_role": 0.5291,
+          "idle": 0.2678
+        },
+        {
+          "intimidate": -0.7851,
+          "flee": -0.2709,
+          "attack": -0.7837,
+          "help": 0.0614,
+          "report": 0.0236,
+          "trade": 0.1919,
+          "observe": 0.0048,
+          "seek_ally": 0.3655,
+          "change_role": 0.4718,
+          "idle": 0.0379
+        },
+        {
+          "talk": 0.2886,
+          "warn": 0.0414,
+          "intimidate": -0.7186,
+          "flee": -0.2391,
+          "attack": -0.6664,
+          "help": -0.0344,
+          "report": 0.0565,
+          "trade": 0.2717,
+          "observe": -0.1351,
+          "approach": 0.0679,
+          "seek_ally": 0.1787,
+          "offer_job": 0.6857,
+          "request_service": 0.7428,
+          "spread_rumor": 0.2691,
+          "call_for_help": 0.274,
+          "change_role": 0.5149,
+          "idle": 0.1153
+        },
+        {
+          "talk": 0.3662,
+          "warn": 0.0289,
+          "intimidate": -0.8351,
+          "flee": -0.1155,
+          "attack": -0.7785,
+          "help": 0.0175,
+          "report": 0.1046,
+          "trade": 0.3231,
+          "observe": -0.0236,
+          "approach": 0.1864,
+          "seek_ally": 0.3354,
+          "offer_job": 0.64,
+          "request_service": 0.8865,
+          "spread_rumor": 0.319,
+          "call_for_help": 0.194,
+          "change_role": 0.4092,
+          "idle": 0.0021
+        },
+        {
+          "talk": 0.4386,
+          "warn": 0.0846,
+          "intimidate": -0.7598,
+          "flee": -0.1514,
+          "attack": -0.7454,
+          "help": -0.1529,
+          "report": 0.1258,
+          "trade": 0.3473,
+          "observe": -0.1095,
+          "approach": 0.1102,
+          "seek_ally": 0.2944,
+          "offer_job": 0.606,
+          "request_service": 0.7756,
+          "spread_rumor": 0.3446,
+          "call_for_help": 0.354,
+          "change_role": 0.4166,
+          "idle": 0.0894
+        },
+        {
+          "talk": 0.3325,
+          "warn": 0.0573,
+          "intimidate": -0.8319,
+          "flee": -0.1073,
+          "attack": -0.8086,
+          "help": -0.0927,
+          "report": 0.1722,
+          "trade": 0.273,
+          "observe": -0.0986,
+          "approach": 0.1272,
+          "seek_ally": 0.1857,
+          "offer_job": 0.6764,
+          "request_service": 0.8614,
+          "spread_rumor": 0.3569,
+          "call_for_help": 0.224,
+          "change_role": 0.4049,
+          "idle": 0.0701
+        },
+        {
+          "talk": 0.4342,
+          "warn": 0.1343,
+          "intimidate": -0.8362,
+          "flee": -0.185,
+          "attack": -0.7061,
+          "help": -0.0469,
+          "report": 0.0664,
+          "trade": 0.266,
+          "observe": -0.0599,
+          "approach": 0.2046,
+          "seek_ally": 0.2552,
+          "offer_job": 0.6463,
+          "request_service": 0.9794,
+          "spread_rumor": 0.2085,
+          "call_for_help": 0.3143,
+          "change_role": 0.3755,
+          "idle": -0.0112
+        },
+        {
+          "talk": 0.437,
+          "warn": 0.079,
+          "intimidate": -0.8633,
+          "flee": -0.2542,
+          "attack": -0.7693,
+          "help": -0.1693,
+          "report": 0.126,
+          "trade": 0.2779,
+          "observe": -0.0659,
+          "approach": 0.1993,
+          "seek_ally": 0.2887,
+          "offer_job": 0.6764,
+          "request_service": 0.8585,
+          "spread_rumor": 0.2607,
+          "call_for_help": 0.1604,
+          "change_role": 0.3791,
+          "idle": -0.0209
+        },
+        {
+          "talk": 0.2249,
+          "warn": 0.123,
+          "intimidate": -0.7919,
+          "flee": -0.2614,
+          "attack": -0.7167,
+          "help": 0.0545,
+          "report": 0.1289,
+          "trade": 0.0686,
+          "observe": -0.1844,
+          "approach": 0.061,
+          "seek_ally": 0.2597,
+          "offer_job": 0.6462,
+          "request_service": 1.0375,
+          "spread_rumor": 0.2526,
+          "call_for_help": 0.2908,
+          "change_role": 0.311,
+          "idle": 0.1322
+        },
+        {
+          "talk": 0.1503,
+          "warn": -0.0335,
+          "intimidate": -0.7336,
+          "flee": -0.2778,
+          "attack": -0.861,
+          "help": -0.039,
+          "report": 0.0677,
+          "trade": 0.1682,
+          "observe": -0.0638,
+          "approach": 0.0492,
+          "seek_ally": 0.2929,
+          "offer_job": 0.5583,
+          "request_service": 0.9984,
+          "spread_rumor": 0.3135,
+          "call_for_help": 0.3274,
+          "change_role": 0.3679,
+          "idle": 0.0378
+        },
+        {
+          "talk": 0.1835,
+          "warn": -0.0498,
+          "intimidate": -0.8293,
+          "flee": -0.2806,
+          "attack": -0.8486,
+          "help": 0.1472,
+          "report": 0.0457,
+          "trade": 0.0441,
+          "observe": -0.0879,
+          "approach": 0.0522,
+          "seek_ally": 0.2392,
+          "offer_job": 0.6785,
+          "request_service": 1.1,
+          "spread_rumor": 0.1926,
+          "call_for_help": 0.2688,
+          "change_role": 0.2904,
+          "idle": 0.0872
+        },
+        {
+          "talk": 0.154,
+          "warn": -0.0354,
+          "intimidate": -0.844,
+          "flee": -0.3517,
+          "attack": -0.9105,
+          "help": -0.0328,
+          "report": -0.0104,
+          "trade": 0.0867,
+          "observe": -0.1077,
+          "approach": 0.1189,
+          "seek_ally": 0.1518,
+          "offer_job": 0.5481,
+          "request_service": 0.9504,
+          "spread_rumor": 0.2428,
+          "call_for_help": 0.1601,
+          "change_role": 0.4367,
+          "idle": 0.0132
+        },
+        {
+          "talk": 0.1345,
+          "warn": -0.0157,
+          "intimidate": -0.7626,
+          "flee": -0.3617,
+          "attack": -0.9131,
+          "help": 0.0592,
+          "report": 0.0706,
+          "trade": 0.0099,
+          "observe": -0.1117,
+          "approach": -0.0352,
+          "seek_ally": 0.1563,
+          "offer_job": 0.7108,
+          "request_service": 1.1081,
+          "spread_rumor": 0.2534,
+          "call_for_help": 0.1895,
+          "change_role": 0.2656,
+          "idle": 0.1115
+        },
+        {
+          "talk": 0.1211,
+          "warn": -0.024,
+          "intimidate": -0.9347,
+          "flee": -0.3242,
+          "attack": -0.9118,
+          "help": 0.036,
+          "report": 0.0731,
+          "trade": 0.1196,
+          "observe": -0.1601,
+          "approach": 0.0632,
+          "seek_ally": 0.1118,
+          "offer_job": 0.5652,
+          "request_service": 1.052,
+          "spread_rumor": 0.2287,
+          "call_for_help": 0.1179,
+          "change_role": 0.3532,
+          "idle": -0.0954
+        },
+        {
+          "talk": 0.1934,
+          "warn": -0.0531,
+          "intimidate": -0.8594,
+          "flee": -0.2951,
+          "attack": -0.9341,
+          "help": -0.0288,
+          "report": 0.0649,
+          "trade": 0.094,
+          "observe": -0.0569,
+          "approach": -0.0181,
+          "seek_ally": 0.2269,
+          "offer_job": 0.5729,
+          "request_service": 1.1908,
+          "spread_rumor": 0.2368,
+          "call_for_help": 0.2251,
+          "change_role": 0.3208,
+          "idle": 0.0214
+        },
+        {
+          "talk": 0.2921,
+          "warn": 0.0839,
+          "intimidate": -0.8732,
+          "flee": -0.3642,
+          "attack": -0.9263,
+          "help": -0.1059,
+          "report": 0.0654,
+          "trade": 0.1856,
+          "observe": -0.2039,
+          "approach": -0.0133,
+          "seek_ally": 0.1645,
+          "offer_job": 0.673,
+          "request_service": 1.093,
+          "spread_rumor": 0.2555,
+          "call_for_help": 0.1534,
+          "change_role": 0.384,
+          "idle": -0.0103
+        },
+        {
+          "talk": 0.3432,
+          "warn": 0.0121,
+          "intimidate": -0.9108,
+          "flee": -0.2917,
+          "attack": -0.8632,
+          "help": -0.1904,
+          "report": 0.0919,
+          "trade": 0.0774,
+          "observe": -0.1151,
+          "approach": -0.0048,
+          "seek_ally": 0.1524,
+          "offer_job": 0.6154,
+          "request_service": 1.016,
+          "spread_rumor": 0.2041,
+          "call_for_help": 0.1428,
+          "change_role": 0.323,
+          "idle": -0.0582
+        },
+        {
+          "talk": 0.3821,
+          "warn": -0.0238,
+          "intimidate": -0.8398,
+          "flee": -0.1864,
+          "attack": -0.9121,
+          "help": -0.1233,
+          "report": 0.018,
+          "trade": 0.1406,
+          "observe": -0.2008,
+          "approach": 0.1517,
+          "seek_ally": 0.2637,
+          "offer_job": 0.5351,
+          "request_service": 1.0805,
+          "spread_rumor": 0.2815,
+          "call_for_help": 0.2691,
+          "change_role": 0.258,
+          "idle": 0.0426
+        },
+        {
+          "talk": 0.4152,
+          "warn": -0.0719,
+          "intimidate": -0.8857,
+          "flee": -0.3581,
+          "attack": -0.7507,
+          "help": -0.1653,
+          "report": 0.0605,
+          "trade": 0.4895,
+          "observe": -0.2447,
+          "approach": -0.0066,
+          "seek_ally": 0.2504,
+          "offer_job": 0.5371,
+          "request_service": 1.0732,
+          "spread_rumor": 0.2306,
+          "call_for_help": 0.2207,
+          "change_role": 0.2991,
+          "idle": -0.0768
+        }
+      ]
+    },
+    "CELL-D_f70_tp50": {
+      "y1_window": -1.765876,
+      "y1_masked": null,
+      "y2_share": 0.0,
+      "mask_ticks": 0,
+      "ticks_scored": 14,
+      "empty_ticks": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "gaps_per_tick": [
+        {
+          "tick": 2,
+          "gap": -1.96015
+        },
+        {
+          "tick": 3,
+          "gap": -1.381967
+        },
+        {
+          "tick": 4,
+          "gap": -1.477333
+        },
+        {
+          "tick": 5,
+          "gap": -1.490233
+        },
+        {
+          "tick": 6,
+          "gap": -1.397733
+        },
+        {
+          "tick": 7,
+          "gap": -1.542533
+        },
+        {
+          "tick": 8,
+          "gap": -2.11725
+        },
+        {
+          "tick": 9,
+          "gap": -2.1064
+        },
+        {
+          "tick": 10,
+          "gap": -2.09355
+        },
+        {
+          "tick": 11,
+          "gap": -1.4875
+        },
+        {
+          "tick": 12,
+          "gap": -2.2536
+        },
+        {
+          "tick": 13,
+          "gap": -2.27475
+        },
+        {
+          "tick": 14,
+          "gap": -1.5168
+        },
+        {
+          "tick": 15,
+          "gap": -1.622467
+        }
+      ],
+      "scores_raw": [
+        {
+          "intimidate": -0.5401,
+          "flee": 0.0275,
+          "attack": -0.6089,
+          "help": 0.0993,
+          "report": -0.0397,
+          "trade": -0.0045,
+          "observe": 0.044,
+          "seek_ally": 0.285,
+          "change_role": 0.407,
+          "idle": 0.0959
+        },
+        {
+          "intimidate": -1.8334,
+          "flee": 0.3471,
+          "attack": -1.8972,
+          "help": -0.2866,
+          "report": -0.2882,
+          "trade": -0.2573,
+          "observe": 0.4033,
+          "seek_ally": -0.1314,
+          "change_role": 0.1448,
+          "idle": -0.2136
+        },
+        {
+          "talk": -0.1153,
+          "warn": -0.2253,
+          "intimidate": -1.7923,
+          "flee": 0.3462,
+          "attack": -1.9245,
+          "help": -0.1565,
+          "report": -0.2265,
+          "trade": -0.1611,
+          "observe": 0.4998,
+          "approach": 0.1007,
+          "seek_ally": 0.0252,
+          "offer_job": 0.3816,
+          "request_service": 0.4441,
+          "spread_rumor": -0.131,
+          "call_for_help": -0.1245,
+          "change_role": 0.1216,
+          "idle": -0.1807
+        },
+        {
+          "talk": 0.0272,
+          "warn": -0.3042,
+          "intimidate": -1.8588,
+          "flee": 0.2881,
+          "attack": -1.9059,
+          "help": -0.1503,
+          "report": -0.1881,
+          "trade": -0.1346,
+          "observe": 0.6002,
+          "approach": 0.1108,
+          "seek_ally": -0.0198,
+          "offer_job": 0.3695,
+          "request_service": 0.3421,
+          "spread_rumor": -0.0209,
+          "call_for_help": -0.123,
+          "change_role": 0.0623,
+          "idle": -0.2643
+        },
+        {
+          "talk": 0.0108,
+          "warn": -0.263,
+          "intimidate": -1.912,
+          "flee": 0.2319,
+          "attack": -1.9745,
+          "help": -0.1924,
+          "report": -0.2657,
+          "trade": -0.1146,
+          "observe": 0.562,
+          "approach": 0.153,
+          "seek_ally": 0.0133,
+          "offer_job": 0.3467,
+          "request_service": 0.29,
+          "spread_rumor": -0.1106,
+          "call_for_help": -0.0127,
+          "change_role": 0.1329,
+          "idle": -0.2516
+        },
+        {
+          "talk": -0.106,
+          "warn": -0.2472,
+          "intimidate": -1.986,
+          "flee": 0.3022,
+          "attack": -1.8397,
+          "help": -0.3268,
+          "report": -0.2429,
+          "trade": -0.3012,
+          "observe": 0.5429,
+          "approach": 0.0569,
+          "seek_ally": -0.0212,
+          "offer_job": 0.3492,
+          "request_service": 0.3667,
+          "spread_rumor": -0.0201,
+          "call_for_help": -0.0195,
+          "change_role": 0.0107,
+          "idle": -0.3166
+        },
+        {
+          "talk": -0.066,
+          "warn": -0.2865,
+          "intimidate": -2.0138,
+          "flee": 0.2814,
+          "attack": -1.9311,
+          "help": -0.3196,
+          "report": -0.3119,
+          "trade": -0.2121,
+          "observe": 0.6656,
+          "approach": 0.1367,
+          "seek_ally": -0.0071,
+          "offer_job": 0.2716,
+          "request_service": 0.407,
+          "spread_rumor": -0.1149,
+          "call_for_help": -0.1205,
+          "change_role": -0.0151,
+          "idle": -0.2034
+        },
+        {
+          "intimidate": -1.9832,
+          "flee": 0.2464,
+          "attack": -1.9193,
+          "help": -0.2468,
+          "report": -0.3476,
+          "trade": -0.1859,
+          "observe": 0.671,
+          "seek_ally": -0.0169,
+          "change_role": -0.0545,
+          "idle": -0.339
+        },
+        {
+          "intimidate": -1.8814,
+          "flee": 0.3475,
+          "attack": -1.8994,
+          "help": -0.3447,
+          "report": -0.3393,
+          "trade": -0.2386,
+          "observe": 0.6377,
+          "seek_ally": -0.0611,
+          "change_role": 0.1229,
+          "idle": -0.2057
+        },
+        {
+          "intimidate": -1.8523,
+          "flee": 0.16,
+          "attack": -1.9373,
+          "help": -0.3366,
+          "report": -0.3663,
+          "trade": -0.1836,
+          "observe": 0.6509,
+          "seek_ally": -0.0461,
+          "change_role": 0.0384,
+          "idle": -0.2534
+        },
+        {
+          "talk": -0.1036,
+          "warn": -0.2426,
+          "intimidate": -1.9304,
+          "flee": 0.194,
+          "attack": -1.8591,
+          "help": -0.3906,
+          "report": -0.2326,
+          "trade": -0.2521,
+          "observe": 0.8257,
+          "approach": -0.0304,
+          "seek_ally": -0.1831,
+          "offer_job": 0.3156,
+          "request_service": 0.3535,
+          "spread_rumor": -0.2054,
+          "call_for_help": -0.1064,
+          "change_role": -0.0578,
+          "idle": -0.2917
+        },
+        {
+          "intimidate": -1.8802,
+          "flee": 0.1726,
+          "attack": -1.9845,
+          "help": -0.2718,
+          "report": -0.2434,
+          "trade": -0.3678,
+          "observe": 0.8746,
+          "seek_ally": -0.162,
+          "change_role": 0.0292,
+          "idle": -0.2321
+        },
+        {
+          "intimidate": -2.0167,
+          "flee": 0.1441,
+          "attack": -2.0153,
+          "help": -0.3584,
+          "report": -0.3962,
+          "trade": -0.2279,
+          "observe": 0.8994,
+          "seek_ally": -0.0543,
+          "change_role": -0.038,
+          "idle": -0.3819
+        },
+        {
+          "talk": -0.1232,
+          "warn": -0.3704,
+          "intimidate": -1.9422,
+          "flee": 0.1839,
+          "attack": -1.89,
+          "help": -0.4462,
+          "report": -0.3553,
+          "trade": -0.1401,
+          "observe": 0.7675,
+          "approach": -0.0289,
+          "seek_ally": -0.2331,
+          "offer_job": 0.2739,
+          "request_service": 0.331,
+          "spread_rumor": -0.1427,
+          "call_for_help": -0.1378,
+          "change_role": -0.0249,
+          "idle": -0.2965
+        },
+        {
+          "talk": -0.0536,
+          "warn": -0.3909,
+          "intimidate": -2.0667,
+          "flee": 0.2995,
+          "attack": -2.0101,
+          "help": -0.4023,
+          "report": -0.3152,
+          "trade": -0.0967,
+          "observe": 0.871,
+          "approach": 0.0816,
+          "seek_ally": -0.0844,
+          "offer_job": 0.2202,
+          "request_service": 0.3767,
+          "spread_rumor": -0.1008,
+          "call_for_help": -0.2258,
+          "change_role": -0.0106,
+          "idle": -0.4177
+        },
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {}
+      ]
+    }
+  },
+  "determinism": {
+    "CELL-A_f0_tm60": true,
+    "CELL-B_f70_tm60": true,
+    "CELL-C_f0_tp50": true,
+    "CELL-D_f70_tp50": true
+  },
+  "mask_semantics": {
+    "A_f0_tm60_no_mask": true,
+    "B_f70_tm60_masked": true,
+    "C_f0_tp50_no_mask": true,
+    "D_f70_tp50_no_mask": true
+  },
+  "interaction": {
+    "y1_window": 1.257128,
+    "y2_share": 0.0,
+    "y1_common": 1.20891,
+    "y2_common": 0.0
+  },
+  "common_window": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "y1_common": {
+    "CELL-A_f0_tm60": -0.290389,
+    "CELL-B_f70_tm60": -0.187031,
+    "CELL-C_f0_tp50": -0.660324,
+    "CELL-D_f70_tp50": -1.765876
+  },
+  "y2_common": {
+    "CELL-A_f0_tm60": 0.0,
+    "CELL-B_f70_tm60": 0.0,
+    "CELL-C_f0_tp50": 0.0,
+    "CELL-D_f70_tp50": 0.0
+  },
+  "cells_config": {
+    "CELL-A_f0_tm60": {
+      "preset": "config/calibration/test_presets/golden_fear_f0.yaml",
+      "fear": 0.0,
+      "trust": -60.0
+    },
+    "CELL-B_f70_tm60": {
+      "preset": "config/calibration/test_presets/golden_fear_f70.yaml",
+      "fear": 70.0,
+      "trust": -60.0
+    },
+    "CELL-C_f0_tp50": {
+      "preset": "config/calibration/test_presets/golden_fear_f0_trustp50.yaml",
+      "fear": 0.0,
+      "trust": 50.0
+    },
+    "CELL-D_f70_tp50": {
+      "preset": "config/calibration/test_presets/golden_fear_f70_trustp50.yaml",
+      "fear": 70.0,
+      "trust": 50.0
+    }
+  },
+  "interpretation": {
+    "delta_int_status": "наблюдаемый факториальный контраст скоров при выбранной метрике и окне; НЕ доказанный размер эффекта маски (страх/доверие действуют в немасочных каналах, их взаимодействие может быть нелинейным)",
+    "score_coverage": "empty_ticks = ограничение покрытия измерения, НЕ остановка поведения: intent-последовательности полные (30 тиков), скоровое окно короче; причина отсутствия скоров не идентифицирована (кандидат: релокация/транзит носителя)",
+    "bd_caveat": "B==D — совпадение трасс в двух РАЗНЫХ конфигурациях (маска при trust=-60 vs без маски при trust=+50): наблюдение неразличимости, НЕ причинное доказательство no-op; причинный контраст = парный прогон одной клетки маска on/off (B'-протокол)",
+    "contrast": "D_int = [Y(70,-60) - Y(70,+50)] - [Y(0,-60) - Y(0,+50)]",
+    "meaning": "взаимодействие при заданных условиях; НЕ чистый причинный эффект маски (SPEC §8: немасочные fear-каналы логируются, но не устраняются)",
+    "tiers": "Y1 — диагностическая (скоры); Y2 — поведенческая (победитель); смешение ярусов запрещено (SPEC §3)"
+  }
+}
