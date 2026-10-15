@@ -1,0 +1,10 @@
+meta:
+  preset_id: golden_fear_f70_trustp50
+  description: E-BM1 factorial cell (fear 70, trust +50) - non-mask control isolating non-mask fear channels
+npc_overrides:
+  merchant_goran:
+    psyche:
+      willpower: 60.0
+    social:
+      fear: 70.0
+      trust: 50.0

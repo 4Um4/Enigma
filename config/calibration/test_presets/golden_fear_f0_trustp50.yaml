@@ -1,0 +1,10 @@
+meta:
+  preset_id: golden_fear_f0_trustp50
+  description: E-BM1 factorial cell (fear 0, trust +50) - non-mask control, positive-trust column
+npc_overrides:
+  merchant_goran:
+    psyche:
+      willpower: 60.0
+    social:
+      fear: 0.0
+      trust: 50.0
