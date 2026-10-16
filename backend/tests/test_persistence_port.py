@@ -134,3 +134,46 @@ class TestSceneStateManagerCommit:
         assert result == 2
         # commit() добавил сцену в кэш под ключом "default", поэтому atomic_commit_all вызывается
         mock_port.atomic_commit_all.assert_called_once()
+
+class TestSaveVersioningContract:
+    """COV-D59 / ADR-O-426 Шаг 2 (вердикт В5): версия, содержимое, metadata,
+    обратная совместимость v0-ридера — раздельные проверки, не подгонка."""
+
+    def test_save_scene_at_stamps_version(self, tmp_path):
+        adapter = JsonPersistenceAdapter(tmp_path)
+        adapter.save_scene_at("c", "tavern", {"location_id": "tavern", "x": 1})
+        import json
+        data = json.loads((tmp_path / "saves" / "c" / "campaign_state.json").read_text(encoding="utf-8"))
+        assert data["schema_version"] == 1
+        assert data["scenes"]["tavern"]["x"] == 1
+
+    def test_save_scene_at_drops_legacy_key(self, tmp_path):
+        adapter = JsonPersistenceAdapter(tmp_path)
+        state_file = tmp_path / "saves" / "c" / "campaign_state.json"
+        state_file.parent.mkdir(parents=True)
+        import json
+        state_file.write_text(json.dumps({"scene_state": {"location_id": "old", "stale": True}}), encoding="utf-8")
+        adapter.save_scene_at("c", "tavern", {"location_id": "tavern"})
+        data = json.loads(state_file.read_text(encoding="utf-8"))
+        assert "scene_state" not in data
+        assert data["scenes"]["tavern"]["location_id"] == "tavern"
+        assert data["schema_version"] == 1
+
+    def test_save_scene_at_preserves_metadata(self, tmp_path):
+        adapter = JsonPersistenceAdapter(tmp_path)
+        state_file = tmp_path / "saves" / "c" / "campaign_state.json"
+        state_file.parent.mkdir(parents=True)
+        import json
+        state_file.write_text(json.dumps({"metadata": {"current_location": "tavern"}}), encoding="utf-8")
+        adapter.save_scene_at("c", "tavern", {"location_id": "tavern"})
+        data = json.loads(state_file.read_text(encoding="utf-8"))
+        assert data["metadata"] == {"current_location": "tavern"}
+
+    def test_v0_reader_compat(self, tmp_path):
+        from app.services.state.save_migrations import extract_scene_payload
+        adapter = JsonPersistenceAdapter(tmp_path)
+        adapter.save_scene_at("c", "tavern", {"location_id": "tavern", "x": 1})
+        import json
+        data = json.loads((tmp_path / "saves" / "c" / "campaign_state.json").read_text(encoding="utf-8"))
+        scene = extract_scene_payload(data, "tavern")
+        assert scene is not None and scene["x"] == 1
