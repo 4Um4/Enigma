@@ -1,0 +1,305 @@
+{
+  "spec": "E-BM1 A' offline (вердикт П4а): без нового рантайма и фабрикации",
+  "source_artifacts": {
+    "factorial": {
+      "path": "reports\\bm_factorial_ebm1.json",
+      "sha256": "68f66037ccf8c96ebbe2646c3bc88ae62920b3bf02d8d11c83ec613eceafd952"
+    },
+    "iso": [
+      {
+        "path": "reports\\bm_factorial_iso_CELL-A_f0_tm60.json",
+        "sha256": "695bec9c3936c5ddeb8e934efe92ebcad6283f609ba7bc78c5aedff27c098a88"
+      },
+      {
+        "path": "reports\\bm_factorial_iso_CELL-B_f70_tm60.json",
+        "sha256": "9832efcd4c126bc522e2753f1f432d3bafdcf888840f8bda39ff10ca3cc1c28a"
+      },
+      {
+        "path": "reports\\bm_factorial_iso_CELL-C_f0_tp50.json",
+        "sha256": "6b6cc006f70f37a814bee9d2a46474572a97acfa59eac2ac3f590bfbe397987b"
+      },
+      {
+        "path": "reports\\bm_factorial_iso_CELL-D_f70_tp50.json",
+        "sha256": "08433c2b38dc6977aee92f324e58a7ee6cb6389102d2c12ebb1c780051a09892"
+      }
+    ]
+  },
+  "common_window": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "chain_audit": [
+    {
+      "stage": 1,
+      "name": "base components",
+      "status": "NOT_CAPTURED",
+      "note": "per-tick base не сохранён (DIAG покрывает только attack/flee)"
+    },
+    {
+      "stage": 2,
+      "name": "mask multiplier",
+      "status": "STATIC_KNOWN",
+      "note": "0.155/1.21 при intensity=0.7; CONSUME-unit; вклад не сохранён"
+    },
+    {
+      "stage": 3,
+      "name": "noise draw",
+      "status": "NOT_CAPTURED",
+      "note": "амплитуда ±0.10 статична; реализация не сохранена"
+    },
+    {
+      "stage": 4,
+      "name": "inertia/exhaustion",
+      "status": "NOT_CAPTURED",
+      "note": ""
+    },
+    {
+      "stage": 5,
+      "name": "clamp [-2,3]",
+      "status": "STATIC_KNOWN",
+      "note": "decision_hub:1134"
+    },
+    {
+      "stage": 6,
+      "name": "PHYSICS_OF_POWER",
+      "status": "NOT_CAPTURED",
+      "note": ""
+    },
+    {
+      "stage": 7,
+      "name": "apply_modifiers (9)",
+      "status": "NOT_CAPTURED",
+      "note": ""
+    },
+    {
+      "stage": 8,
+      "name": "reflex constraints",
+      "status": "NOT_CAPTURED",
+      "note": ""
+    },
+    {
+      "stage": 9,
+      "name": "feasibility (O-R2)",
+      "status": "NOT_CAPTURED",
+      "note": ""
+    },
+    {
+      "stage": 10,
+      "name": "commitment bonus/cost",
+      "status": "NOT_CAPTURED",
+      "note": ""
+    },
+    {
+      "stage": 11,
+      "name": "argmax winner",
+      "status": "CAPTURED",
+      "note": "intent_seq в iso-артефактах (30 тиков)"
+    },
+    {
+      "stage": 12,
+      "name": "hysteresis gate",
+      "status": "NOT_CAPTURED",
+      "note": "исход наблюдаем через intent_seq"
+    },
+    {
+      "stage": 13,
+      "name": "final scores",
+      "status": "CAPTURED",
+      "note": "scores_raw; fear-70 клетки до тика 15 (empty_ticks)"
+    }
+  ],
+  "cells": {
+    "CELL-A_f0_tm60": {
+      "y1_common": -0.290389,
+      "inversion_ticks": [],
+      "per_intent_common": {
+        "attack": {
+          "mean": -0.504279,
+          "present_ticks": 14
+        },
+        "intimidate": {
+          "mean": -0.400729,
+          "present_ticks": 14
+        },
+        "warn": {
+          "mean": -0.116429,
+          "present_ticks": 7
+        },
+        "observe": {
+          "mean": -0.0462,
+          "present_ticks": 14
+        },
+        "talk": {
+          "mean": -0.033414,
+          "present_ticks": 7
+        },
+        "idle": {
+          "mean": -0.195236,
+          "present_ticks": 14
+        }
+      },
+      "empty_ticks": []
+    },
+    "CELL-B_f70_tm60": {
+      "y1_common": -0.187031,
+      "inversion_ticks": [
+        3,
+        6
+      ],
+      "per_intent_common": {
+        "attack": {
+          "mean": -0.341114,
+          "present_ticks": 14
+        },
+        "intimidate": {
+          "mean": -0.237543,
+          "present_ticks": 14
+        },
+        "warn": {
+          "mean": -0.058813,
+          "present_ticks": 8
+        },
+        "observe": {
+          "mean": 0.787607,
+          "present_ticks": 14
+        },
+        "talk": {
+          "mean": -0.46585,
+          "present_ticks": 8
+        },
+        "idle": {
+          "mean": -0.715407,
+          "present_ticks": 14
+        }
+      },
+      "empty_ticks": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ]
+    },
+    "CELL-C_f0_tp50": {
+      "y1_common": -0.660324,
+      "inversion_ticks": [],
+      "per_intent_common": {
+        "attack": {
+          "mean": -0.729564,
+          "present_ticks": 14
+        },
+        "intimidate": {
+          "mean": -0.726814,
+          "present_ticks": 14
+        },
+        "warn": {
+          "mean": 0.078238,
+          "present_ticks": 8
+        },
+        "observe": {
+          "mean": -0.051486,
+          "present_ticks": 14
+        },
+        "talk": {
+          "mean": 0.303287,
+          "present_ticks": 8
+        },
+        "idle": {
+          "mean": 0.122336,
+          "present_ticks": 14
+        }
+      },
+      "empty_ticks": []
+    },
+    "CELL-D_f70_tp50": {
+      "y1_common": -1.765876,
+      "inversion_ticks": [],
+      "per_intent_common": {
+        "attack": {
+          "mean": -1.927707,
+          "present_ticks": 14
+        },
+        "intimidate": {
+          "mean": -1.924957,
+          "present_ticks": 14
+        },
+        "warn": {
+          "mean": -0.291262,
+          "present_ticks": 8
+        },
+        "observe": {
+          "mean": 0.676543,
+          "present_ticks": 14
+        },
+        "talk": {
+          "mean": -0.066213,
+          "present_ticks": 8
+        },
+        "idle": {
+          "mean": -0.274871,
+          "present_ticks": 14
+        }
+      },
+      "empty_ticks": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ]
+    }
+  },
+  "b_minus_a_per_intent_common": {
+    "attack": 0.163165,
+    "intimidate": 0.163186,
+    "warn": 0.057616,
+    "observe": 0.833807,
+    "talk": -0.432436,
+    "idle": -0.520171
+  },
+  "b_minus_a_caveat": "наблюдательный контраст: конфаунд страха не устранён (B отличается от A и маской, и fear)",
+  "computability_verdict": {
+    "per_tick_counterfactual": "НЕ вычислим офлайн: требует per-tick base и вклад маски (components_trace не захвачен этапом B1)",
+    "established_offline": [
+      "финальный уровень: классовая инверсия в B (inversion_ticks) при её отсутствии в A/C/D",
+      "пер-интентная структура лифта B-vs-A (наблюдательно)"
+    ],
+    "h1_requirement": "захват components_trace (per intent per tick, целевой NPC) расширением execute-тапа в H1-харнессе — координационное окно"
+  },
+  "applicability": {
+    "E4": "числа собраны в registry-blind/R-эра условиях; кросс-эра сравнения условны",
+    "tier_rule": "скоровые наблюдения не равны поведенческим выводам; intent-ярус = intent_seq (iso-артефакты)"
+  }
+}

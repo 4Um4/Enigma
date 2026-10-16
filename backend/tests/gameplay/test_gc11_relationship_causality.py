@@ -107,7 +107,10 @@ def harness():
     _ensure_llm()
     _h = TavernGameplayHarness(seed=42)
     _h.new_game()
-    _v2_rel._campaign = "Open_road"
+    # Пакет 3 (чистка): _v2_rel._campaign = "Open_road" удалён — мёртвое
+    # присваивание атрибута функции (Pylance reportFunctionMemberAccess).
+    # _campaign-хак умер вместе с прежним доступом memory_manager._relations;
+    # _v2_rel читает через harness.read_trust (модульная константа _CAMPAIGN).
     yield _h
     _h.dispose()
 
