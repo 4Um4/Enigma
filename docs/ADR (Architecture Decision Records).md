@@ -828,3 +828,9 @@ ADR-409 [FIX] **BehaviorMask Delivery Closure — три WARA-разрыва к�
 ❌ Taboo: 0-sentinel applied_at_day; кластер без вердикта Мастера; подгонка множителей ради зелёного B12; вторая точка проекции в фазе (V2).
 Status: ACTIVE (прогоны r4–r7; гейты регрессии OK; IPT 52/52; ruff чист)
 Files: backend/app/services/phases/decision.py, backend/app/models/npc_state.py, backend/app/services/npc/npc_loader.py, backend/tests/sandbox/SUPERBOX/scenarios/behavior_mask_closure_test.py, config/calibration/test_presets/golden_collapse_broken.yaml
+
+ADR-O-427 [INFRA] **Artifact Path SSOT — find_artifact + путь писателя** (S353)
+Суть: аудит АУДИТ-01 (находка PATH-D1, санкция Мастера) зафиксировал расхождение пути поиска и пути записи артефактов доказательного слоя: find_artifact искал не там, куда пишет writer; после гигиены П4 (54 файла → reports/probes/) такое расхождение теряет артефакты («записан — не найден»). Лечение: единый SSOT-путь — find_artifact и writer обязаны читать одну каноническую константу; запись и поиск не могут разойтись. Границы вердикт-контракта ADR-O-399 проверены археологией (ACTIVE/CLOSED S270) — не нарушены: точек дренажа/менеджеров/шин не добавлено.
+❌ Taboo: хардкод пути в точке вызова; второй источник правды о расположении артефактов; «фикс» обходом всего дерева вместо SSOT; перенос файлов без обновления SSOT; молчаливый fallback на старый путь.
+Status: ACTIVE (S353: PATH-D1 закрыт; гейты — MUTATIONS S353)
+Files: `backend/app/services/spatial/spatial_registry.py`

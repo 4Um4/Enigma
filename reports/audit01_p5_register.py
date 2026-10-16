@@ -22,7 +22,7 @@
   G2 слоты свободны (×0): «ADR-O-427» (атлас); «### 7.12.» (roadmap);
      IPT-D1/PATH-D1/STALE-D1/INFRA-D1/HYG-D1/GC-DIALOGUE-01/АУДИТ-01 (roadmap)
   G3 чужое не тронуто: «| EPI-D» = 14 до и после (реестр §7.11 read-only)
-  G4 MUTATIONS: «Записей: 235» ×1; S353 содержит обе цели R4; после — обе замены
+  G4 MUTATIONS: «Записей: 236» ×1; S353 содержит обе цели R4; после — обе замены
   G5 PATH_D1_FILES заполнен (файлы фикса PATH-D1 из git diff, шаг 0 ранбука)
   G6 EOL (CRLF/LF) и BOM сохранены (UTF-8, побайтово, кроме целевых вставок)
 
@@ -37,7 +37,7 @@ MUT = "docs/MUTATIONS.md"
 
 # ── ЗАПОЛНИ (шаг 0 ранбука): только файлы фикса PATH-D1 из git diff, например:
 # PATH_D1_FILES = "`backend/app/...py`, `backend/app/...py`"
-PATH_D1_FILES = ""
+PATH_D1_FILES = "`backend/app/services/spatial/spatial_registry.py`"
 
 SEC712 = """### 7.12. АУДИТ-01 (реестр находок аудита доказательного слоя «Честный IPT», 2026-10-15/16; аудит на коде V.0.5.4.3.6, исполнение — S353)
 
@@ -61,7 +61,7 @@ JOURNAL_ROW = ("| 2026-10-16 | Б: S353 ТЗ АУДИТ-01 (Пакеты 1–5: 
                "STEP2 trust None→2.49, intent seek_ally→seek_ally); O-399 ACTIVE/CLOSED S270 (IMPACT+дренаж+SUPERBOX живы); "
                "ruff 0; сьют 2447/33/8/0 и IPT 53/0/0 ×2 — в сессии | — ; GC-DIALOGUE-01 — релея §7.12 |")
 
-ADR427 = """`ADR-O-427` [INFRA] **Artifact Path SSOT — find_artifact + путь писателя** (S353)
+ADR427 = """ADR-O-427 [INFRA] **Artifact Path SSOT — find_artifact + путь писателя** (S353)
 Суть: аудит АУДИТ-01 (находка PATH-D1, санкция Мастера) зафиксировал расхождение пути поиска и пути записи артефактов доказательного слоя: find_artifact искал не там, куда пишет writer; после гигиены П4 (54 файла → reports/probes/) такое расхождение теряет артефакты («записан — не найден»). Лечение: единый SSOT-путь — find_artifact и writer обязаны читать одну каноническую константу; запись и поиск не могут разойтись. Границы вердикт-контракта ADR-O-399 проверены археологией (ACTIVE/CLOSED S270) — не нарушены: точек дренажа/менеджеров/шин не добавлено.
 ❌ Taboo: хардкод пути в точке вызова; второй источник правды о расположении артефактов; «фикс» обходом всего дерева вместо SSOT; перенос файлов без обновления SSOT; молчаливый fallback на старый путь.
 Status: ACTIVE (S353: PATH-D1 закрыт; гейты — MUTATIONS S353)
@@ -95,7 +95,7 @@ def gate(ok, name):
 
 
 def count(lines, pred):
-    return sum(1 for l in lines if pred(l))
+    return sum(1 for ln in lines if pred(ln))
 
 
 def main():
@@ -113,27 +113,27 @@ def main():
 
     print("== Гейты (все до первой записи) ==")
     ok = True
-    ok &= gate(count(rlines, lambda l: bare(l).startswith("## 8. MASTER TODO")) == 1,
+    ok &= gate(count(rlines, lambda ln: bare(ln).startswith("## 8. MASTER TODO")) == 1,
                "G1 roadmap: «## 8. MASTER TODO» ×1")
-    ok &= gate(count(rlines, lambda l: bare(l).startswith("> Архивные строки журнала")) == 1,
+    ok &= gate(count(rlines, lambda ln: bare(ln).startswith("> Архивные строки журнала")) == 1,
                "G1 roadmap: «> Архивные строки журнала» ×1")
-    ok &= gate(count(alines, lambda l: bare(l).startswith("`ADR-O-426")) == 1,
-               "G1 атлас: «`ADR-O-426» ×1")
-    ok &= gate(count(mlines, lambda l: bare(l).startswith("- **S353**")) == 1,
+    ok &= gate(count(alines, lambda ln: bare(ln).startswith("ADR-O-426")) == 1,
+               "G1 атлас: «ADR-O-426» ×1")
+    ok &= gate(count(mlines, lambda ln: bare(ln).startswith("- **S353**")) == 1,
                "G1 MUTATIONS: «- **S353**» ×1")
-    ok &= gate(count(alines, lambda l: "ADR-O-427" in l) == 0,
+    ok &= gate(count(alines, lambda ln: "ADR-O-427" in ln) == 0,
                "G2 атлас: «ADR-O-427» ×0 (номер свободен)")
-    ok &= gate(count(rlines, lambda l: bare(l).startswith("### 7.12.")) == 0,
+    ok &= gate(count(rlines, lambda ln: bare(ln).startswith("### 7.12.")) == 0,
                "G2 roadmap: «### 7.12.» ×0 (слот свободен)")
     for pat in ("IPT-D1", "PATH-D1", "STALE-D1", "INFRA-D1", "HYG-D1",
                 "GC-DIALOGUE-01", "АУДИТ-01"):
-        ok &= gate(count(rlines, lambda l, p=pat: p in l) == 0,
+        ok &= gate(count(rlines, lambda ln, p=pat: p in ln) == 0,
                    "G2 roadmap: «%s» ×0 (дублей нет)" % pat)
-    ok &= gate(count(rlines, lambda l: bare(l).startswith("| EPI-D")) == 14,
+    ok &= gate(count(rlines, lambda ln: bare(ln).startswith("| EPI-D")) == 14,
                "G3 roadmap: «| EPI-D» = 14 (реестр §7.11 read-only)")
-    ok &= gate(count(mlines, lambda l: "Записей: 235" in l) == 1,
-               "G4 MUTATIONS: «Записей: 235» ×1")
-    s353 = next((l for l in mlines if bare(l).startswith("- **S353**")), "")
+    ok &= gate(count(mlines, lambda ln: "Записей: 236" in ln) == 1,
+               "G4 MUTATIONS: «Записей: 236» ×1")
+    s353 = next((ln for ln in mlines if bare(ln).startswith("- **S353**")), "")
     ok &= gate("(мини-ADR), STALE-D1" in s353 and "находки → roadmap §7.11" in s353,
                "G4 S353: обе цели R4 на месте")
     if mode == "--apply":
@@ -147,16 +147,16 @@ def main():
 
     # ---- правки в памяти (диск ещё не тронут) ----
     # R2: реестр §7.12 перед «## 8. MASTER TODO»
-    i8 = next(i for i, l in enumerate(rlines) if bare(l).startswith("## 8. MASTER TODO"))
+    i8 = next(i for i, ln in enumerate(rlines) if bare(ln).startswith("## 8. MASTER TODO"))
     ins_sec = [s + reol for s in SEC712.split("\n")] + ["" + reol, "---" + reol, "" + reol]
     new_r = rlines[:i8] + ins_sec + rlines[i8:]
     # R3: строка §10 перед «> Архивные строки журнала»
-    ij = next(i for i, l in enumerate(new_r)
-              if bare(l).startswith("> Архивные строки журнала"))
+    ij = next(i for i, ln in enumerate(new_r)
+              if bare(ln).startswith("> Архивные строки журнала"))
     new_r = new_r[:ij] + [JOURNAL_ROW + reol] + new_r[ij:]
 
     # R1: мини-ADR ADR-O-427 после блока O-426
-    i426 = next(i for i, l in enumerate(alines) if bare(l).startswith("`ADR-O-426"))
+    i426 = next(i for i, ln in enumerate(alines) if bare(ln).startswith("ADR-O-426"))
     j = len(alines)
     for k in range(i426 + 1, len(alines)):
         b = bare(alines[k])
@@ -179,18 +179,18 @@ def main():
 
     # R4: две замены в строке S353
     new_m = []
-    for l in mlines:
-        if bare(l).startswith("- **S353**"):
-            l = l.replace("(мини-ADR), STALE-D1", "(мини-ADR ADR-O-427), STALE-D1")
-            l = l.replace("находки → roadmap §7.11", "находки → roadmap §7.12")
-        new_m.append(l)
-    s353n = next(l for l in new_m if bare(l).startswith("- **S353**"))
+    for ln in mlines:
+        if bare(ln).startswith("- **S353**"):
+            ln = ln.replace("(мини-ADR), STALE-D1", "(мини-ADR ADR-O-427), STALE-D1")
+            ln = ln.replace("находки → roadmap §7.11", "находки → roadmap §7.12")
+        new_m.append(ln)
+    s353n = next(ln for ln in new_m if bare(ln).startswith("- **S353**"))
 
     ok2 = True
     ok2 &= gate("(мини-ADR ADR-O-427), STALE-D1" in s353n
                 and "находки → roadmap §7.12" in s353n,
                 "G4' R4 применён к S353 (в памяти)")
-    ok2 &= gate(count(new_r, lambda l: bare(l).startswith("| EPI-D")) == 14,
+    ok2 &= gate(count(new_r, lambda ln: bare(ln).startswith("| EPI-D")) == 14,
                 "G3' после правок: «| EPI-D» = 14 (EPI-D не тронут)")
 
     print("\n== Превью ==")
@@ -221,12 +221,12 @@ def stamp_hash(h):
         sys.exit(1)
     mb, _eol, mlines = read_lines(MUT)
     out, n = [], 0
-    for l in mlines:
-        if bare(l).startswith("- **S353**") and "· ✅ · находки → roadmap §7.12" in l:
-            l = l.replace("· ✅ · находки → roadmap §7.12",
+    for ln in mlines:
+        if bare(ln).startswith("- **S353**") and "· ✅ · находки → roadmap §7.12" in ln:
+            ln = ln.replace("· ✅ · находки → roadmap §7.12",
                           "· ✅ · ADR-O-427; коммиты " + h + " · находки → roadmap §7.12")
             n += 1
-        out.append(l)
+        out.append(ln)
     if n != 1:
         print("ABORT: целей штампа %d (ожидалась 1) — сперва выполни --apply" % n)
         sys.exit(1)
