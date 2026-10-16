@@ -17,40 +17,10 @@ CAMPAIGNS_DIR = Path(__file__).parent / "campaigns"
 TEMPLATE_DIR = Path(__file__).parent / "location_templates"
 
 
-# === ME-D1: схема meta campaign.json — ключи-константы (§12.1) и fail-loud валидатор ===
-_KEY_NAME = "name"
-_KEY_DESCRIPTION = "description"
-_KEY_CREATED_AT = "created_at"
-_KEY_MODIFIED_AT = "modified_at"
-_META_REQUIRED_KEYS = (_KEY_NAME, _KEY_DESCRIPTION, _KEY_CREATED_AT, _KEY_MODIFIED_AT)
 
 
-def _validate_campaign_meta(data: object, source: str) -> dict:
-    """Fail-loud валидация meta кампании (ME-D1).
 
-    Тело локации в campaign.json — валидный JSON с ЧУЖОЙ схемой: json.load
-    его пропускает, except не срабатывает, порча маскируется и вечно
-    перезаписывается _update_modified. Требование roadmap: «валидация схемы
-    на записи и на чтении», принцип §0.4 — громкая ошибка, не тихая подстановка.
-    """
-    if not isinstance(data, dict):
-        raise ValueError(
-            f"{source}: campaign.json должен быть JSON-объектом, "
-            f"получен {type(data).__name__}"
-        )
-    missing = [k for k in _META_REQUIRED_KEYS if k not in data]
-    if missing:
-        raise ValueError(
-            f"{source}: campaign.json не является meta кампании — "
-            f"отсутствуют поля {missing} (похоже на тело локации?)"
-        )
-    for key in _META_REQUIRED_KEYS:
-        if not isinstance(data[key], str):
-            raise ValueError(
-                f"{source}: поле '{key}' должно быть строкой, "
-                f"получен {type(data[key]).__name__}"
-            )
-    return data
+
 
 
 class CampaignManager:

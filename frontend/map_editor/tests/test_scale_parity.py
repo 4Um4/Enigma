@@ -12,12 +12,14 @@
     origin+size файла; (3) каждому игровому препятствию — объект файла
     с ТОЧНО теми же размерами и позицией по единственной разрешённой
     формуле «центр → левый верх». Стены (игра режет их проёмами, но не
-    растягивает) — v1.1, после чтения _split_wall_by_openings.
+    растягивает) — включено: test_walls_split_not_stretched (сегменты лежат
+    на линиях исходных стен, суммарная длина не растёт).
 """
 
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -91,3 +93,64 @@ def test_obstacles_exact_sizes(name: str, data: dict) -> None:
         assert ob["h"] == h, f"{name}/{ob['id']}: h {ob['h']} != файл {h}"
         assert ob["x"] == float(src["position"]["x"]) - w / 2
         assert ob["y"] == float(src["position"]["y"]) - h / 2
+
+
+def _on_segment(
+    px: float,
+    py: float,
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+    eps: float = 1e-6,
+) -> bool:
+    """Точка лежит на отрезке (коллинеарна и внутри), допуск на арифметику."""
+    dx, dy = x2 - x1, y2 - y1
+    length = math.hypot(dx, dy)
+    if length < eps:
+        return math.hypot(px - x1, py - y1) <= eps
+    cross = abs((px - x1) * dy - (py - y1) * dx) / length
+    if cross > eps:
+        return False
+    t = ((px - x1) * dx + (py - y1) * dy) / (length * length)
+    return -eps <= t <= 1.0 + eps
+
+
+@pytest.mark.parametrize("name,data", _LOCATIONS, ids=_IDS)
+def test_walls_split_not_stretched(name: str, data: dict) -> None:
+    """Стены: игра режет проёмы, но не растягивает и не сдвигает.
+
+    Каждый игровой сегмент обязан лежать на линии какой-то исходной стены
+    файла; суммарная длина сегментов не превышает суммарную длину стен
+    файла. Скрытый множитель длины ломает оба условия с адресом.
+    """
+    spatial = _build(name, data)
+    file_walls = [
+        (
+            float(w["x1"]),
+            float(w["y1"]),
+            float(w["x2"]),
+            float(w["y2"]),
+        )
+        for w in data["walls"]
+    ]
+    if not file_walls:
+        assert not spatial.walls
+        return
+    total_file = sum(
+        math.hypot(x2 - x1, y2 - y1) for x1, y1, x2, y2 in file_walls
+    )
+    total_game = sum(
+        math.hypot(s["x2"] - s["x1"], s["y2"] - s["y1"]) for s in spatial.walls
+    )
+    assert total_game <= total_file + 1e-6, (
+        f"{name}: суммарная длина стен в игре ({total_game:.3f}) больше "
+        f"файла ({total_file:.3f}) — скрытое растяжение"
+    )
+    for seg in spatial.walls:
+        ok = any(
+            _on_segment(seg["x1"], seg["y1"], *w)
+            and _on_segment(seg["x2"], seg["y2"], *w)
+            for w in file_walls
+        )
+        assert ok, f"{name}: сегмент {seg} не лежит ни на одной стене файла"

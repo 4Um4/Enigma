@@ -11,13 +11,15 @@
     всех шести живых файлах. Легаси до ME-1.5 ошибкой НЕ считается:
     строка-wall_id у дверей (хак S129), ключ portals, связи узлов на
     несуществующие узлы (живая таверна: «Вход» ссылается на три призрака;
-    чистка данных — вопрос Мастеру, зафиксирован в журнале ME-1.4).
+    чистка данных — вопрос Мастеру, зафиксирован в журнале ME-1.4). Кампании:
+    validate_campaign_meta — перенос из campaign_manager (ME-1.4), одна
+    точка правды на обе схемы.
 
 Зависимости: data_manager — лениво, внутри функции (прямой импорт создал
     бы цикл: data_manager сам импортирует этот модуль для load/save).
     Backend не импортируется (граница фронта, Закон 1.1).
 
-Основные сущности: validate_location, validate_location_top_level.
+Основные сущности: validate_location, validate_location_top_level, validate_campaign_meta.
 """
 
 from __future__ import annotations
@@ -324,3 +326,39 @@ def _check_unique_object_ids(data: dict, source: str) -> list[str]:
             errors.append(f"{source}: объект {oid}: дублирующийся id")
         seen.add(oid)
     return errors
+
+
+# === ME-1.4: схема meta campaign.json (перенос из campaign_manager; исходно ME-D1/S349) ===
+
+_KEY_NAME = "name"
+_KEY_DESCRIPTION = "description"
+_KEY_CREATED_AT = "created_at"
+_KEY_MODIFIED_AT = "modified_at"
+_META_REQUIRED_KEYS = (_KEY_NAME, _KEY_DESCRIPTION, _KEY_CREATED_AT, _KEY_MODIFIED_AT)
+
+
+def validate_campaign_meta(data: object, source: str) -> dict:
+    """Fail-loud валидация meta кампании (ME-D1; логика идентична S349).
+
+    Тело локации в campaign.json — валидный JSON с ЧУЖОЙ схемой: json.load
+    его пропускает, except не срабатывает, порча маскируется и вечно
+    перезаписывается write-gate'ом. Категория 1 (AR-ME-3).
+    """
+    if not isinstance(data, dict):
+        raise ValueError(
+            f"{source}: campaign.json должен быть JSON-объектом, "
+            f"получен {type(data).__name__}"
+        )
+    missing = [k for k in _META_REQUIRED_KEYS if k not in data]
+    if missing:
+        raise ValueError(
+            f"{source}: campaign.json не является meta кампании — "
+            f"отсутствуют поля {missing} (похоже на тело локации?)"
+        )
+    for key in _META_REQUIRED_KEYS:
+        if not isinstance(data[key], str):
+            raise ValueError(
+                f"{source}: поле '{key}' должно быть строкой, "
+                f"получен {type(data[key]).__name__}"
+            )
+    return data
