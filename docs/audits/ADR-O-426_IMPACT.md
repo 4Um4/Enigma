@@ -98,3 +98,16 @@ register_migrations(
 | replay.db | отсутствует | — | skip; файл НЕ создаётся |
 | replay.db | ровно 6 канонических таблиц | sessions, tick_snapshots, interventions, llm_calls, causal_probes, scene_changes | штамп 1 без DDL |
 | replay.db | иное | прочее | отказ; файл не изменяется |
+
+## 9. Шаг 2 (D59): save-версионирование сцен — «детект-и-мигрировать» (исполнено)
+
+Статус: Шаг 2 закрыт — S354; COV-D59 → закрыт; COV-GC-01 GREEN наследуется от Шага 1; COV-GC-02 остаётся открытым до Шага 3/D60. Код: f51cc6ae (вошёл релизным sweep v0.5.4.3.7); тесты: 5d0748ab; pytest 42/42 (снимки 0.54s и 0.49s); док-закрытие: реестр MUTATIONS.md S354 + roadmap (трек COV, §10, §17.8).
+
+Исполнено:
+1. Детектор формата сейва: CURRENT / MIGRABLE (V0_SINGLE | V1_UNSTAMPED) / UNMIGRABLE (NOT_DICT | CORRUPT_JSON | NEWER_VERSION | UNKNOWN_VERSION | UNKNOWN_FORMAT | INVALID_V0 | INVALID_SCENES | INCONSISTENT_V1). SAVE_SCHEMA_VERSION=1; явный schema_version=0 не считается v0 (v0 = отсутствие поля).
+2. Миграция v0 → v1: scene_state → scenes + штамп schema_version. Резерв: .bak из исходных байтов + побайтовая верификация копии; BACKUP_CONFLICT — отказ, не перезапись. Атомарность: tmp + round-trip + os.replace — единственное касание живого файла.
+3. Lifecycle К3: UNMIGRABLE → load_refusal_reason + campaign_load_refused (без лживого campaign_loaded); после успеха — статус migrated.
+4. Писатель К5: save_scene_at штампует v1 и снимает scene_state — новые записи не рождают v0.
+5. Схемы В7: CampaignLoadResponse.load_refusal_reason.
+
+Инцидент доставки (разрешён): код вошёл релизным full-save f51cc6ae без атрибуции; pathspec 311cd784 внёс только тесты под сообщением всей реализации; исправлено guard-амендом 5d0748ab. Хвост док-закрытия (6d01f6a2 — скрипт без применения, применяющий коммит) — roadmap §17.8 (S354).

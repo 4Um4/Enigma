@@ -1,23 +1,35 @@
 ﻿# -*- coding: utf-8 -*-
-"""reports/d59_doc_close.py - S354: доковое закрытие D59 (Шаг 2 COV-1, ADR-O-426).
+"""reports/d59_doc_close.py - S354: доковое закрытие D59 (Шаг 2 COV-1, ADR-O-426). v2.
+
+v2 (после 6d01f6a2): гейт S353-строки чинен - "S353" живёт и в МЕТА ("Записей: 235
+(S353-АУДИТ-01 добавлен; ..."), и в самой записи ("- **S353** ТЗ АУДИТ-01 ..."); v1
+требовал "ровно 1" по подстроке и падал. v2 берёт запись по префиксу "- **S353**",
+S354-строка - в живом формате реестра. Скрипт теперь САМ делает pathspec-коммит
+после успешной записи: [ABORT] => записи нет => коммита нет. 6d01f6a2 внёс только
+скрипт (коммит исполнен пакетом мимо [ABORT]) - хвост протоколируется в §17.8,
+закрытие завершается применяющим коммитом. Без amend, без push.
 
 Одноразовый, fail-before-write: ВСЕ проверки до первой записи; любой сбой = [ABORT],
 exit(1), файлы не тронуты. BOM и переводы строк каждого файла сохраняются как в исходе.
 
 Правки:
   docs/ENIGMA_ROADMAP_v4_7_EPI-updated.md:
-    1) трек COV: «Шаги 2-5 D59/D60/D70/D72» -> «Шаг 2 D59 OK (...) -> Шаги 3-5 ...»
-    2) COV-D59: «| открыт |» -> «закрыт (Шаг 2: ADR-O-426, S354 ...)»
-    3) §10: строка S354 перед «### 10.1.»
-    4) §17.8: запись Шага 2 (состав + инцидент «лживый коммит» + урок) после DET-3 [x] (222bc3d5)
+    1) трек COV: "Шаги 2-5 D59/D60/D70/D72" -> "Шаг 2 D59 OK (...) -> Шаги 3-5 ..."
+    2) COV-D59: "| открыт |" -> "закрыт (Шаг 2: ADR-O-426, S354 ...)"
+    3) §10: строка S354 перед "### 10.1."
+    4) §17.8: запись Шага 2 после DET-3 [x] (222bc3d5): состав + инцидент "лживый
+       коммит" + отклонение + урок + хвост 6d01f6a2
   docs/audits/ADR-O-426_IMPACT.md:
-    5) аппенд «## 9. Шаг 2 (D59) ... (исполнено)»
+    5) аппенд "## 9. Шаг 2 (D59) ... (исполнено)"
   docs/MUTATIONS.md:
-    6) S354 после строки S353; МЕТА «Записей: 235 (» -> «Записей: 236 (S354-... добавлен; »
+    6) "- **S354** ..." после строки "- **S353** ..."; МЕТА "Записей: 235 (" ->
+       "Записей: 236 (S354-COV-D59-док-закрытие добавлен; "
+  затем pathspec-коммит четырёх путей (включая этот скрипт).
 
-Запуск:  python reports/d59_doc_close.py [EPI-док-хеш]
-  Без аргумента EPI-хеш ищется сам: git log -S S353 -- docs/MUTATIONS.md (гейт: ровно 1).
-Откат (до коммита): git checkout -- docs/ENIGMA_ROADMAP_v4_7_EPI-updated.md docs/MUTATIONS.md docs/audits/ADR-O-426_IMPACT.md
+Запуск:  python reports/d59_doc_close.py [--dry] [EPI-док-хеш]
+  --dry - только гейты, без записи и коммита. Без хеша аргументом EPI-хеш ищется сам:
+  git log -S S353 -- docs/MUTATIONS.md (гейт: ровно 1; известно: 9a8d3881).
+Откат (если запись прошла, а коммит нет): git checkout -- docs/ENIGMA_ROADMAP_v4_7_EPI-updated.md docs/MUTATIONS.md docs/audits/ADR-O-426_IMPACT.md - и разбор руками.
 """
 import re
 import subprocess
@@ -30,8 +42,14 @@ MUT = ROOT / "docs" / "MUTATIONS.md"
 IMPACT = ROOT / "docs" / "audits" / "ADR-O-426_IMPACT.md"
 REL = ["docs/ENIGMA_ROADMAP_v4_7_EPI-updated.md", "docs/MUTATIONS.md",
        "docs/audits/ADR-O-426_IMPACT.md"]
+CMT_PATHS = REL + ["reports/d59_doc_close.py"]
 
 CODE, TESTS, LIAR, EPIKOD = "f51cc6ae", "5d0748ab", "311cd784", "5bd4592a"
+
+COMMIT_MSG = ("S354 (применение): трек COV (Шаг 2 D59 ✅); COV-D59 закрыт; §10-строка; "
+              "§17.8 (состав + инцидент + хвост 6d01f6a2); IMPACT §9; MUTATIONS 235→236 "
+              "(S354) — d59_doc_close v2 (фикс гейта S353: МЕТА-строка ≠ запись); "
+              "6d01f6a2 = скрипт без применения ([ABORT] до записи); GC-02 остаётся до D60")
 
 TRACK_OLD = "Шаги 2–5 D59/D60/D70/D72"
 TRACK_NEW = ("Шаг 2 D59 ✅ (детект-и-мигрировать/ADR-O-426, S354; детектор CURRENT/"
@@ -77,8 +95,12 @@ S178_TMPL = ("- [x] **Шаг 2 COV-1 / COV-D59 [закрыт: реализует
              "42/42. Отклонение: amend исполнен до прочтения правила 4 живого реестра "
              "(amend при живых параллельных сессиях запрещён) — на релее Мастера, просится "
              "вердикт. Урок: full-save при незакоммиченном фича-коде = уезд кода в релиз "
-             "без атрибуции (кандидат в правила реестра). EPI-контекст: код ME-1.4 "
-             "5bd4592a, док-коммит EPI %s.")
+             "без атрибуции (кандидат в правила реестра). Хвост доставки док-закрытия: "
+             "6d01f6a2 внёс только сам скрипт — коммит исполнен пакетом без остановки на "
+             "[ABORT], сообщение опередило содержание (мини-рецидив паттерна; "
+             "fail-before-write отработал, файлы не тронуты); закрытие завершено "
+             "применяющим коммитом (скрипт v2 коммитит сам после успешной записи). "
+             "EPI-контекст: код ME-1.4 5bd4592a, док-коммит EPI %s.")
 
 IMPACT_LINES = [
     "## 9. Шаг 2 (D59): save-версионирование сцен — «детект-и-мигрировать» (исполнено)",
@@ -105,13 +127,15 @@ IMPACT_LINES = [
     "",
     "Инцидент доставки (разрешён): код вошёл релизным full-save f51cc6ae без атрибуции; "
     "pathspec 311cd784 внёс только тесты под сообщением всей реализации; исправлено "
-    "guard-амендом 5d0748ab. Полная история и урок — roadmap §17.8 (S354).",
+    "guard-амендом 5d0748ab. Хвост док-закрытия (6d01f6a2 — скрипт без применения, "
+    "применяющий коммит) — roadmap §17.8 (S354).",
 ]
 
-REG_CORE_TMPL = ("COV-D59 / Шаг 2 COV-1 (ADR-O-426): док-закрытие save-версионирования "
-                 "«детект-и-мигрировать»: трек COV (Шаг 2 D59 ✅), COV-D59 закрыт, §10 + "
-                 "§17.8 (инцидент «лживый коммит» разрешён, урок), IMPACT §9; код f51cc6ae "
-                 "(v0.5.4.3.7), тесты 5d0748ab, pytest 42/42; EPI: код 5bd4592a, док %s")
+S354_LINE_TMPL = ("- **S354** COV-1 Шаг 2 (ветка Б; ADR-O-426): док-закрытие "
+                  "save-версионирования «детект-и-мигрировать» — трек COV (Шаг 2 D59 ✅), "
+                  "COV-D59 → закрыт, roadmap §10 + §17.8 (инцидент «лживый коммит» "
+                  "разрешён; урок; хвост 6d01f6a2), IMPACT §9; код f51cc6ae (v0.5.4.3.7), "
+                  "тесты 5d0748ab, pytest 42/42; EPI: код 5bd4592a, док %s")
 
 
 def abort(msg):
@@ -153,8 +177,11 @@ def phase0():
             print("[WARN] коммит %s (%s) отсутствует в объектах — только текст в журнале" % (h, why))
     r = git("status", "--porcelain", "--", *REL)
     if r.returncode != 0 or r.stdout.strip():
-        abort("рабочее дерево грязно по докам (параллельная сессия?):\n" + r.stdout)
-    epi = sys.argv[1] if len(sys.argv) > 1 else ""
+        abort("рабочее дерево грязно по докам (параллельная сессия? или запись прошла, "
+              "а коммит нет — тогда: git diff -- глянуть, закоммитить руками, либо "
+              "git checkout -- этих трёх файлов и перезапуск):\n" + r.stdout)
+    args = [a for a in sys.argv[1:] if a != "--dry"]
+    epi = args[0] if args else ""
     if epi:
         if git("cat-file", "-e", epi + "^{commit}").returncode != 0:
             abort("аргумент-хеш %s не найден в репо" % epi)
@@ -244,21 +271,16 @@ def e6_mut(tx, eol, epi):
     cnt = int(m.group(1))
     if cnt != 235:
         abort("МЕТА «Записей: %d» (ожидалось 235) — дрейф" % cnt)
-    s353 = [l for l in tx.split(eol) if re.search(r"\bS353\b", l)]
+    # v2: запись реестра отличаем от МЕТА по префиксу (v1 падал: "S353" есть в обеих)
+    s353 = [l for l in tx.split(eol) if l.startswith("- **S353**")]
     if len(s353) != 1:
-        cand = [l for l in tx.split(eol) if "S35" in l]
-        abort("S353-строк: %d; S35*-строки:\n%s"
-              % (len(s353), "\n".join(l[:160] for l in cand[:8])))
+        cand = [l for l in tx.split(eol) if "S353" in l]
+        abort("запись «- **S353** …»: %d строк; все S353-строки (МЕТА + запись):\n%s"
+              % (len(s353), "\n".join(l[:160] for l in cand[:6])))
     row = s353[0]
-    print("══ S353-строка (формат-эталон — сверить вставку в git diff):")
+    print("══ S353-запись (формат-эталон):")
     print(row)
-    core = REG_CORE_TMPL % epi
-    if row.lstrip().startswith("|"):
-        s354 = "| S354 | " + core + " | закрыт |"
-    elif row.lstrip().startswith("- "):
-        s354 = "- S354 — " + core
-    else:
-        s354 = "S354 — " + core
+    s354 = S354_LINE_TMPL % epi
     i = tx.find(row)
     tx = tx[:i + len(row)] + eol + s354 + tx[i + len(row):]
     if len(re.findall(r"\bS354\b", tx)) != 1:
@@ -267,7 +289,24 @@ def e6_mut(tx, eol, epi):
     return tx
 
 
+def self_commit():
+    print("[GIT] pathspec-коммит (без amend, без push)...")
+    git("add", "reports/d59_doc_close.py")
+    r = subprocess.run(["git", "commit", "-m", COMMIT_MSG, "--", *CMT_PATHS],
+                       cwd=str(ROOT))
+    if r.returncode != 0:
+        print("[ABORT] коммит не прошёл (hook?); файлы УЖЕ записаны. Ручной повтор:")
+        print('  git commit -m "S354 (применение): ..." -- ' + " ".join(CMT_PATHS))
+        sys.exit(1)
+    st = git("show", "--stat", "HEAD")
+    print(st.stdout)
+    for need in ("ENIGMA_ROADMAP", "MUTATIONS", "IMPACT", "d59_doc_close"):
+        if need not in st.stdout:
+            abort("в HEAD не видно %s — проверь git show --stat HEAD" % need)
+
+
 def main():
+    dry = "--dry" in sys.argv
     epi = phase0()
     rt, rb, reol = read_tx(ROADMAP)
     mt, mb, meol = read_tx(MUT)
@@ -287,17 +326,20 @@ def main():
     it = e5_impact(it, ieol)
     mt = e6_mut(mt, meol, epi)
 
+    if dry:
+        print("[DRY] все гейты зелёные (EPI: %s); записи и коммит НЕ выполнены." % epi)
+        return
+
     write_tx(ROADMAP, rt, rb, reol)
     write_tx(MUT, mt, mb, meol)
     write_tx(IMPACT, it, ib, ieol)
-
     print("[OK] S354 записан: трек COV (Шаг 2 D59 ✅); COV-D59 закрыт; §10-строка; "
-          "§17.8 (состав + инцидент + урок); IMPACT §9; реестр 235→236.")
+          "§17.8 (состав + инцидент + хвост 6d01f6a2); IMPACT §9; реестр 235→236.")
     print("[OK] EPI-док-коммит в записях: %s" % epi)
-    r = git("diff", "--stat", "--", *REL)
-    print(r.stdout)
-    print("Дальше: git diff -- docs/MUTATIONS.md (глазами, формат S354 против S353), "
-          "затем pathspec-коммит — без amend, без push.")
+    self_commit()
+    print(git("log", "--oneline", "-4").stdout)
+    r = git("status", "--porcelain")
+    print("[СТАТУС] " + (r.stdout.strip() or "чисто"))
 
 
 if __name__ == "__main__":
