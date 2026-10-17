@@ -154,32 +154,127 @@ class _ExecuteTap:
     Инструмент AC-2 уровня 3: РЕАЛЬНЫЕ скоры конкурирующих интентов в игровом
     пути (не юнит-формулы). ADR-O-344: idle_tick зовёт execute ровно 1 раз →
     results[t] ↔ тик t. Съём ДО stop() — stop() диспозит game_loop.
+
+    H1a (E-BM1 B'): дополнительный перехват DecisionHub._score_all для захвата
+    components_trace (Dict[str, Dict[str, Any]]) per-tick. Behavior-neutral
+    по контракту: оригинал вызывается с теми же args/kwargs, возвращает тот же
+    результат; перехват не меняет выбор действия.
+
+    Синхронизация: слот создаётся на входе _wrapped (execute), _wrapped_score_all
+    пишет в активный слот по индексу _active_slot_index. Гарантия:
+    components_per_tick[t] ↔ execute call t. Двойной вызов _score_all за один
+    execute — integrity violation (не молча). Исключение в execute — слот
+    остаётся None, результат не добавляется (len(components_per_tick) > len(results)).
     """
 
     def __init__(self, npc_id: str) -> None:
         self.npc_id = npc_id
         self._orig: Any = None
         self.results: List[Any] = []
+        # H1a: перехват _score_all
+        self._orig_score_all: Any = None
+        self._components_trace_per_tick: List[Optional[Dict[str, Dict[str, Any]]]] = []
+        self._active_slot_index: Optional[int] = None
+        self._integrity_violations: List[Dict[str, Any]] = []
+        # Ссылки на wrappers для надёжного сравнения в detach() (по is, не по __name__)
+        self._execute_wrapper: Any = None
+        self._score_all_wrapper: Any = None
 
     def attach(self, game_loop: Any) -> None:
+        """Транзакционная установка: либо оба перехвата, либо ни одного."""
         if game_loop is None:
             return
+
         orch = game_loop._tick_orch
-        self._orig = orch.execute
+        orig_execute = orch.execute
+        from app.services.npc.decision_hub import DecisionHub
+        orig_score_all = DecisionHub._score_all
+
         tap = self
+        # Сброс предыдущих wrapper-ссылок (на случай повторного использования tap)
+        self._execute_wrapper = None
+        self._score_all_wrapper = None
 
         def _wrapped(*a: Any, **k: Any) -> Any:
-            res = tap._orig(*a, **k)
-            tap.results.append(res)
-            return res
+            # Слот создаётся НА ВХОДЕ execute — гарантирует привязку к тику
+            tick_index = len(tap.results)
+            tap._components_trace_per_tick.append(None)
+            tap._active_slot_index = tick_index
+            try:
+                res = tap._orig(*a, **k)
+            except BaseException:
+                # Слот уже существует (None); исключение не подавляем.
+                # results.append НЕ вызывается — длина results не растёт.
+                tap._active_slot_index = None
+                raise
+            else:
+                tap.results.append(res)
+                tap._active_slot_index = None
+                return res
 
-        orch.execute = _wrapped
+        def _wrapped_score_all(dh_self: Any, *a: Any, **k: Any) -> Any:
+            scores, components_trace = tap._orig_score_all(dh_self, *a, **k)
+            # Фильтр по npc_id: state — первый позиционный аргумент (a[0])
+            state = a[0] if a else None
+            npc_id = getattr(state, "npc_id", None) if state else None
+            if npc_id == tap.npc_id and tap._active_slot_index is not None:
+                slot_idx = tap._active_slot_index
+                if tap._components_trace_per_tick[slot_idx] is not None:
+                    tap._integrity_violations.append({
+                        "tick_index": slot_idx,
+                        "reason": "double_score_all_in_one_execute",
+                        "npc_id": npc_id,
+                    })
+                else:
+                    import copy as _copy
+                    tap._components_trace_per_tick[slot_idx] = _copy.deepcopy(components_trace)
+            return scores, components_trace
+
+        # Сохраняем ссылки на wrappers для надёжного сравнения в detach()
+        self._execute_wrapper = _wrapped
+        self._score_all_wrapper = _wrapped_score_all
+
+        # Атомарная установка: оба перехвата или ни одного
+        try:
+            self._orig = orig_execute
+            orch.execute = _wrapped
+            try:
+                self._orig_score_all = orig_score_all
+                DecisionHub._score_all = _wrapped_score_all
+            except BaseException:
+                orch.execute = self._orig
+                self._orig = None
+                raise
+        except BaseException:
+            self._orig_score_all = None
+            self._orig = None
+            self._execute_wrapper = None
+            self._score_all_wrapper = None
+            raise
 
     def detach(self, game_loop: Any) -> None:
-        if game_loop is None or self._orig is None:
+        """Гарантированное восстановление. Проверяет по ссылке (is), что wrapper наш."""
+        if game_loop is None:
             return
-        game_loop._tick_orch.execute = self._orig
-        self._orig = None
+        # Восстановление _score_all (H1a) — проверка по ссылке (is), не по __name__
+        if self._orig_score_all is not None and self._score_all_wrapper is not None:
+            from app.services.npc.decision_hub import DecisionHub
+            current = getattr(DecisionHub, "_score_all", None)
+            # Сравниваем по is — надёжно для closures (имя может совпадать у разных tap)
+            if current is self._score_all_wrapper:
+                DecisionHub._score_all = self._orig_score_all
+            # Если current — НЕ наш wrapper (чужой tap или уже восстановлен),
+            # не перезаписываем (защита от повреждения чужого перехвата).
+            self._orig_score_all = None
+            self._score_all_wrapper = None
+        # Восстановление execute (существующий канал) — проверка по ссылке (is)
+        if self._orig is not None and self._execute_wrapper is not None:
+            orch = game_loop._tick_orch
+            current_exec = getattr(orch, "execute", None)
+            if current_exec is self._execute_wrapper:
+                orch.execute = self._orig
+            self._orig = None
+            self._execute_wrapper = None
 
     def scores_per_tick(self) -> List[Dict[str, float]]:
         out: List[Dict[str, float]] = []
@@ -188,6 +283,23 @@ class _ExecuteTap:
             g = next((c for c in ctxs if c.get("npc_id") == self.npc_id), {})
             out.append(dict(g.get("scores_trace", {}) or {}))
         return out
+
+    def components_per_tick(self) -> List[Optional[Dict[str, Dict[str, Any]]]]:
+        """H1a: components_trace per-tick для целевого NPC.
+
+        Возвращает список длиной = число вызовов execute().
+        Каждый элемент:
+        - dict {intent: {component: value}} если _score_all вызывался для NPC
+        - None если _score_all не вызывался (early exit, исключение, не наш NPC)
+
+        Гарантия: components_per_tick[t] ↔ execute call t (привязка к слоту).
+        Длина ≥ длины results (при исключении в execute слот есть, результата нет).
+        """
+        return list(self._components_trace_per_tick)
+
+    def integrity_violations(self) -> List[Dict[str, Any]]:
+        """H1a: список нарушений инвариантов (двойной вызов _score_all и т.п.)."""
+        return list(self._integrity_violations)
 
 
 class _RelStoreStub:
@@ -274,11 +386,34 @@ def _run_leg(run_id: str, preset_path: str, instrumented: bool) -> Tuple[Dict[st
         "mask_in_dump": "behavior_mask" in json.dumps(fin, ensure_ascii=False),
         "psyche_willpower": psyche.get("willpower", None),
         "intent_final": fin.get("intent", None),
-        # AC-2 ур.3: скоры по тикам; rel-слой — вход-траектория (форма снимка
-        # не предполагается — пишем как есть, анализ данными)
+        # AC-2 ур.3: скоры по тикам; rel-слой — вход-траектория.
+        # D-5 fix (E-BM1 B'): V2RelationshipBackend.get_all() возвращает directed-ключи
+        # формата "source→target" (не {source: {target: ...}}). Старое чтение
+        # snap.get(_NPC) всегда возвращало None — capture-слепота, не дефект системы.
+        # Новый формат: per-tick dict с двумя directed-парами + schema_version.
+        # None для пары = пара отсутствует в V2 RAM (Vacuum); не путать с нулём.
+        # Исторические артефакты B' (result_raw_off/on.json) сохраняют старый формат.
         "scores_per_tick": (etap.scores_per_tick() if etap is not None else []),
+        # H1a (E-BM1 B'): components_trace per-tick через перехват _score_all.
+        # None для тиков без вызова _score_all (early exit: dead/unconscious/explain).
+        # schema_version=1: dict {intent: {component: value}}.
+        "components_trace_schema_version": 1,
+        "components_per_tick": (etap.components_per_tick() if etap is not None else []),
+        "components_trace_integrity_violations": (etap.integrity_violations() if etap is not None else []),
+        "rel_goran_schema_version": 2,
         "rel_goran_per_tick": [
-            (snap.get(_NPC) if isinstance(snap, dict) else None)
+            {
+                "goran_to_player": (
+                    dict(snap[f"{_NPC}→player"])
+                    if isinstance(snap, dict) and isinstance(snap.get(f"{_NPC}→player"), dict)
+                    else None
+                ),
+                "player_to_goran": (
+                    dict(snap[f"player→{_NPC}"])
+                    if isinstance(snap, dict) and isinstance(snap.get(f"player→{_NPC}"), dict)
+                    else None
+                ),
+            }
             for snap in (getattr(result, "rel_captures", None) or [])
         ],
         "mask_per_tick": mask_per_tick,

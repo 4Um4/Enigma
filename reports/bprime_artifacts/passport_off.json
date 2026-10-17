@@ -1,0 +1,20 @@
+{
+  "tag": "leg-off",
+  "captured_at": "2026-10-17T12:09:19+0700",
+  "head": "351c74dbe2654d4fdbdd4c12ecbfe8161150e879",
+  "status_porcelain": "M docs/MUTATIONS.md\n M \"docs/Почти Актуальные TZ/TZ_CCH-01_Character_Chronicle.md\"\n M \"docs/Почти Актуальные TZ/«Замыкание игровой петли» (Loop Closure).md\"\n M \"docs/Правила Фикса БАГОВ.md\"\n M \"docs/РЕЖИМ РАБОТЫ.md\"",
+  "diff_hash": "c4b2b999aa0a4ad34c02f5bc731a67e638152b2331a3a8a85059ffecc3aff81a",
+  "untracked_significant_roots": [],
+  "runtime_manifest": {
+    "python": "3.13.14 (tags/v3.13.14:fd17997, Jun 10 2026, 13:03:48) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "win32",
+    "argv0": "backend\\tests\\sandbox\\SUPERBOX\\scenarios\\bm_bprime_framework.py"
+  },
+  "input_sha256": {
+    "backend/tests/sandbox/SUPERBOX/scenarios/bm_factorial_test.py": "07093f9db7d36336a56bceceb71b42da1419f0ce8e9a86555b0384623c317af1",
+    "backend/tests/sandbox/SUPERBOX/scenarios/bm_factorial_isolation.py": "3e9bde545d5f32d05270bbac790a4ef945b8c8d312938d281df5c12ed2ca7c94",
+    "backend/tests/sandbox/SUPERBOX/scenarios/bm_aprime_offline.py": "15d53041e90929168ccf9abdda352c0f635d4d537c3b7490b819a7d757b05b8f",
+    "config/calibration/test_presets/golden_fear_f70.yaml": "a99a0b77fb950b5d96e8a5394bca7b5302cf3711366e71cd8f4acb49025959d1",
+    "backend/app/services/npc/decision_hub.py": "01a0fac849f3cd4d57392e6c8bfff9da137c7bf3e87e0f6be5d30f4e652cf81a"
+  }
+}

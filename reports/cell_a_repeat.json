@@ -1,0 +1,160 @@
+{
+  "started_at": "2026-10-18T02:29:50+0700",
+  "campaign": "Open_road",
+  "preset": "config/calibration/test_presets/golden_fear_f0.yaml",
+  "expected_ticks": 30,
+  "expected_chunks": [
+    "city_gate",
+    "market_square",
+    "tavern"
+  ],
+  "expected_mask_ticks": 0,
+  "pre_flight": {
+    "checks": [
+      {
+        "id": "spatial_registry_artifact_found",
+        "status": "PASS",
+        "details": "path=C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\frontend\\map_editor\\campaigns\\Open_road\\compiled\\spatial_registry.json"
+      },
+      {
+        "id": "preset_exists",
+        "status": "PASS",
+        "details": "path=C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\config\\calibration\\test_presets\\golden_fear_f0.yaml"
+      },
+      {
+        "id": "git_head_available",
+        "status": "PASS",
+        "details": "HEAD=e7d0245f607f... branch=V.0.5.4.3.7_тесты_1"
+      },
+      {
+        "id": "donor_exists",
+        "status": "PASS",
+        "details": "path=C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\sandbox\\SUPERBOX\\scenarios\\behavior_mask_closure_test.py"
+      }
+    ],
+    "context": {
+      "spatial_registry_path": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\frontend\\map_editor\\campaigns\\Open_road\\compiled\\spatial_registry.json",
+      "spatial_registry_sha256": "84F2402DBF840157F9CE61EBB753D0EDB255F680A30274B618801AD02D347BA9",
+      "spatial_registry_bytes": 1451,
+      "preset_path": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\config\\calibration\\test_presets\\golden_fear_f0.yaml",
+      "preset_sha256": "AD7716170900EF70165ED475E49DBE5135BB950F73CC4FD391F0B0C04BFE8593",
+      "preset_bytes": 214,
+      "git_head": "e7d0245f607fb210c77e7fb3209ef47aab8347c3",
+      "git_branch": "V.0.5.4.3.7_тесты_1",
+      "donor_sha256": "CEC5909466A6B191DE64DC4DBCA46B7CD0F740A1C7FA8FFBE40BECAFBE8B3436",
+      "donor_bytes": 66786
+    }
+  },
+  "runtime_registry": {
+    "checks": [
+      {
+        "id": "find_artifact_returns_path",
+        "status": "PASS",
+        "details": "path=C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\frontend\\map_editor\\campaigns\\Open_road\\compiled\\spatial_registry.json"
+      },
+      {
+        "id": "get_or_load_returns_registry",
+        "status": "PASS",
+        "details": "registry loaded"
+      },
+      {
+        "id": "chunks_count_is_3",
+        "status": "PASS",
+        "details": "count=3 chunks=['city_gate', 'market_square', 'tavern']"
+      },
+      {
+        "id": "chunks_match_expected",
+        "status": "PASS",
+        "details": "expected=['city_gate', 'market_square', 'tavern'] actual=['city_gate', 'market_square', 'tavern']"
+      },
+      {
+        "id": "get_all_location_ids_available",
+        "status": "PASS",
+        "details": "locations=['city_gate', 'market_square', 'tavern']"
+      }
+    ],
+    "context": {
+      "cache_invalidated_before_checks": true,
+      "chunks": [
+        "city_gate",
+        "market_square",
+        "tavern"
+      ],
+      "chunks_count": 3,
+      "all_location_ids": [
+        "city_gate",
+        "market_square",
+        "tavern"
+      ],
+      "cache_invalidated_before_run": true
+    }
+  },
+  "run": {
+    "error": null,
+    "intent_final": "idle"
+  },
+  "post_run": {
+    "checks": [
+      {
+        "id": "scores_per_tick_length",
+        "status": "PASS",
+        "details": "length=30 (expected >= 1)"
+      },
+      {
+        "id": "mask_ticks_is_zero",
+        "status": "PASS",
+        "details": "mask_ticks_present=0 (expected 0)"
+      },
+      {
+        "id": "intent_final_captured",
+        "status": "PASS",
+        "details": "intent_final=idle"
+      },
+      {
+        "id": "spatial_registry_loaded_in_runtime",
+        "status": "PASS",
+        "details": "logs_count=4 first=[SPATIAL_REGISTRY] Loaded and cached for campaign=Open_road (3 chunks, mtime=179"
+      },
+      {
+        "id": "spatial_oracle_logged",
+        "status": "FAIL",
+        "details": "logs_count=0 (no Oracle corrections — may be expected if no player coords)"
+      }
+    ],
+    "context": {
+      "scores_per_tick_length": 30,
+      "mask_ticks_present": 0,
+      "mask_per_tick_length": 30,
+      "intent_final": "idle",
+      "spatial_registry_logs": [
+        {
+          "timestamp": "2026-10-17T19:29:50.644529Z",
+          "level": "INFO",
+          "logger": "app.services.spatial.spatial_registry",
+          "message": "[SPATIAL_REGISTRY] Loaded and cached for campaign=Open_road (3 chunks, mtime=1792074013.1577773)"
+        },
+        {
+          "timestamp": "2026-10-17T19:29:50.644529Z",
+          "level": "INFO",
+          "logger": "app.services.spatial.spatial_registry",
+          "message": "[SPATIAL_REGISTRY] Loaded and cached for campaign=Open_road (3 chunks, mtime=1792074013.1577773)"
+        },
+        {
+          "timestamp": "2026-10-17T19:29:51.170556Z",
+          "level": "INFO",
+          "logger": "app.services.spatial.spatial_registry",
+          "message": "[SPATIAL_REGISTRY] Loaded and cached for campaign=Open_road (3 chunks, mtime=1792074013.1577773)"
+        }
+      ],
+      "spatial_oracle_logs": []
+    }
+  },
+  "summary": {
+    "pass": 13,
+    "fail": 1,
+    "overall": "PASS_WITH_NOTE"
+  },
+  "failures": [],
+  "oracle_only_fail": true,
+  "finished_at": "2026-10-18T02:29:54+0700"
+}

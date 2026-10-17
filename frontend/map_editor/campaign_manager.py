@@ -13,6 +13,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+from schema_validator import (
+    _KEY_CREATED_AT,
+    _KEY_DESCRIPTION,
+    _KEY_MODIFIED_AT,
+    _KEY_NAME,
+    validate_campaign_meta,
+)
+
 CAMPAIGNS_DIR = Path(__file__).parent / "campaigns"
 TEMPLATE_DIR = Path(__file__).parent / "location_templates"
 
@@ -54,7 +62,7 @@ class CampaignManager:
                 continue
             try:
                 with open(meta_file, "r", encoding="utf-8") as f:
-                    data = _validate_campaign_meta(json.load(f), str(meta_file))
+                    data = validate_campaign_meta(json.load(f), str(meta_file))
                 loc_dir = d / "locations"
                 loc_count = len(list(loc_dir.glob("*.json"))) if loc_dir.exists() else 0
                 result.append(
@@ -95,7 +103,7 @@ class CampaignManager:
         now = datetime.now().isoformat()
         campaign_dir.mkdir(parents=True)
         (campaign_dir / "locations").mkdir()
-        meta = _validate_campaign_meta(
+        meta = validate_campaign_meta(
             {
                 _KEY_NAME: name[:70],
                 _KEY_DESCRIPTION: description[:70],
@@ -121,7 +129,7 @@ class CampaignManager:
             return False, f"campaign.json не найден в {campaign_dir}"
         try:
             with open(meta_file, "r", encoding="utf-8") as f:
-                self.campaign_data = _validate_campaign_meta(
+                self.campaign_data = validate_campaign_meta(
                     json.load(f), str(meta_file)
                 )
         except Exception as e:
@@ -228,7 +236,7 @@ class CampaignManager:
             return
         meta_file = self.campaign_path / "campaign.json"
         if meta_file.exists():
-            _validate_campaign_meta(self.campaign_data, str(meta_file))
+            validate_campaign_meta(self.campaign_data, str(meta_file))
             self.campaign_data[_KEY_MODIFIED_AT] = datetime.now().isoformat()
             with open(meta_file, "w", encoding="utf-8") as f:
                 json.dump(self.campaign_data, f, indent=2, ensure_ascii=False)

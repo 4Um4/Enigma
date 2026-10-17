@@ -1,0 +1,98 @@
+{
+  "checked_at": "2026-10-18T00:54:47+0700",
+  "artifacts_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\reports\\bprime_artifacts",
+  "checks": [
+    {
+      "id": "files_present",
+      "status": "PASS",
+      "details": "all 7 files present"
+    },
+    {
+      "id": "closure_sha256",
+      "status": "FAIL",
+      "details": "CLOSURE.md not found: C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\reports\\bprime_artifacts\\CLOSURE.md"
+    },
+    {
+      "id": "passports_compatible",
+      "status": "PASS",
+      "details": "COMPATIBLE"
+    },
+    {
+      "id": "passport_fields_match",
+      "status": "PASS",
+      "details": "head=351c74dbe265..., diff_hash=c4b2b999aa0a..., input_sha256 keys match (5 files)"
+    },
+    {
+      "id": "preset_sha256_match",
+      "status": "PASS",
+      "details": "preset_sha256=a99a0b77fb950b5d... (identical)"
+    },
+    {
+      "id": "window_canonical",
+      "status": "PASS",
+      "details": "window=[2..15] in both legs (14 ticks)"
+    },
+    {
+      "id": "mask_ticks_positive",
+      "status": "PASS",
+      "details": "mask_ticks: on=29, off=29 (both > 0)"
+    },
+    {
+      "id": "mask_ticks_symmetric",
+      "status": "PASS",
+      "details": "mask_ticks symmetric: 29 == 29"
+    },
+    {
+      "id": "coverage_vs_b1",
+      "status": "WARN",
+      "details": "coverage drift (pre-excluded from decisive criteria): warn: on=8 off=6 (B1=8); talk: on=8 off=6 (B1=8)"
+    },
+    {
+      "id": "per_intent_self_consistent",
+      "status": "PASS",
+      "details": "all 6 intents self-consistent (tol=1e-06)"
+    }
+  ],
+  "info": {
+    "window_captured_in_passport": false,
+    "empty_ticks_on": [
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30
+    ],
+    "empty_ticks_off": [],
+    "intent_seq_asymmetry": {
+      "dominant_on": "observe",
+      "dominant_off": "flee",
+      "note": "expected divergence (t2 = intervention point; ON=observe-dominant, OFF=flee-dominant)"
+    },
+    "limitations": [
+      "window_confirmed not captured in passports (CLI arg lost; window field computed from code constant WINDOW=list(range(2,16)))",
+      "empty_ticks ON=[16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30] outside window 2..15 (O-2; ON stopped scoring after tick 15)",
+      "intent_seq asymmetry expected (divergence point at t2)"
+    ]
+  },
+  "limitations": [
+    "window_confirmed not captured in passports (CLI arg lost; window field computed from code constant WINDOW=list(range(2,16)))",
+    "empty_ticks ON=[16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30] outside window 2..15 (O-2; ON stopped scoring after tick 15)",
+    "intent_seq asymmetry expected (divergence point at t2)"
+  ],
+  "summary": {
+    "pass": 8,
+    "warn": 1,
+    "fail": 1,
+    "overall": "FAIL"
+  }
+}

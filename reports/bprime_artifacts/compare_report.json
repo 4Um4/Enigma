@@ -1,0 +1,96 @@
+{
+  "verdict_passports": "COMPATIBLE",
+  "preregistration": {
+    "cell": "CELL-B_f70_tm60",
+    "source": "N4-таблица per_intent_common (reports/bm_aprime_offline.json), верификация: scripts/n4_verify.py",
+    "mask_off_mean_prediction": {
+      "attack": -1.702422,
+      "intimidate": -1.598872,
+      "warn": -0.485929,
+      "observe": 0.681829,
+      "talk": -0.402914,
+      "idle": -0.592443
+    },
+    "on_off_contrast_prediction": {
+      "attack": 1.361308,
+      "intimidate": 1.361329,
+      "warn": 0.427116,
+      "observe": 0.105778,
+      "talk": -0.062936,
+      "idle": -0.122964
+    },
+    "tolerance": 0.1,
+    "y1_direction": "y1(ON) - y1(OFF) ожидается сильно положительным (порядка +1.0..+1.3, из Δ_int=+1.209)",
+    "formulation": "результат формулируется как причинный эффект ПОТРЕБЛЕНИЯ МНОЖИТЕЛЯ маски (decision_hub:1116), не «полного эффекта маски»: контур deformation (600-628) идентичен в обеих ногах (N7e).",
+    "assumptions": [
+      "эра не взаимодействует с трактом потребления маски (оба плеча в одной эре)",
+      "сид/пресет клетки битово совпадают с B1 (иначе ON не обязан воспроизвести B)"
+    ],
+    "outcome_branches": {
+      "B1": "ON == B1(B) численно, |OFF-(A+F)|<=tol, |(ON-OFF)-PRED|<=tol: причинный эффект потребления множителя подтверждён; реконструкция N4 закрыта каузально (клетка/эра).",
+      "B2": "ON != B1(B) (сдвиг эры/базовой линии), НО |(ON-OFF)-PRED|<=tol: причинный контраст внутри эры подтверждён; абсолютные сравнения с B1 — условные (эра).",
+      "B3": "|(ON-OFF)-PRED|>tol по attack/intimidate при остальных в допуске: остаточная асимметрия больше предсказанной -> components_trace (H1; туда же willpower — живой Д-4).",
+      "B4": "ON ~ OFF (контраст ~ 0 по всем интентам): инъекция НЕ сработала (мёртвый путь класса Д-8) -> НЕТ выводов о маске; дефект фреймворка.",
+      "B5": "паспорты INCOMPATIBLE: ноги некомпаративны -> блокировка результата, повтор при стабильном дереве."
+    }
+  },
+  "mask_ticks": {
+    "on": 29,
+    "off": 29
+  },
+  "coverage_drift": [
+    "warn: on=8 off=6 (B1=8)",
+    "talk: on=8 off=6 (B1=8)"
+  ],
+  "contrasts": {
+    "attack": {
+      "on": -0.341114,
+      "off": -1.948779,
+      "observed_contrast": 1.6076650000000001,
+      "predicted": 1.361308,
+      "deviation": 0.24635700000000016,
+      "within_tol": false
+    },
+    "intimidate": {
+      "on": -0.237543,
+      "off": -1.845229,
+      "observed_contrast": 1.607686,
+      "predicted": 1.361329,
+      "deviation": 0.24635699999999994,
+      "within_tol": false
+    },
+    "warn": {
+      "on": -0.058813,
+      "off": -0.537467,
+      "observed_contrast": 0.478654,
+      "predicted": 0.427116,
+      "deviation": 0.05153800000000003,
+      "within_tol": true
+    },
+    "observe": {
+      "on": 0.787607,
+      "off": 0.522986,
+      "observed_contrast": 0.264621,
+      "predicted": 0.105778,
+      "deviation": 0.158843,
+      "within_tol": false
+    },
+    "talk": {
+      "on": -0.46585,
+      "off": -0.4807,
+      "observed_contrast": 0.01485000000000003,
+      "predicted": -0.062936,
+      "deviation": 0.07778600000000004,
+      "within_tol": true
+    },
+    "idle": {
+      "on": -0.715407,
+      "off": -0.662764,
+      "observed_contrast": -0.052642999999999995,
+      "predicted": -0.122964,
+      "deviation": 0.07032100000000001,
+      "within_tol": true
+    }
+  },
+  "branch_assignment": "B3 (промах по attack/intimidate -> components_trace) + coverage-drift (эра-чувствительность: см. ветку B2)"
+}

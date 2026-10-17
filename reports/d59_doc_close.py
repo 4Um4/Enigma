@@ -187,7 +187,7 @@ def phase0():
             abort("аргумент-хеш %s не найден в репо" % epi)
     else:
         r = git("log", "-S", "S353", "--format=%h %s", "--", "docs/MUTATIONS.md")
-        rows = [l for l in r.stdout.splitlines() if l.strip()]
+        rows = [ln for ln in r.stdout.splitlines() if ln.strip()]
         if len(rows) != 1:
             abort("авто-поиск EPI-док-коммита дал %d строк(и) — передай хеш аргументом:\n%s"
                   % (len(rows), r.stdout))
@@ -199,9 +199,9 @@ def phase0():
 def e1_track(tx, eol):
     n = tx.count(TRACK_OLD)
     if n != 1:
-        cand = [l for l in tx.split(eol) if "D59" in l and "D72" in l]
+        cand = [ln for ln in tx.split(eol) if "D59" in ln and "D72" in ln]
         abort("якорь трека COV «%s»: %d вхожд.; строки D59+D72:\n%s"
-              % (TRACK_OLD, n, "\n".join(l[:160] for l in cand[:6])))
+              % (TRACK_OLD, n, "\n".join(ln[:160] for ln in cand[:6])))
     i = tx.find(TRACK_OLD)
     ls = tx.rfind("\n", 0, i) + 1
     le = tx.find("\n", i)
@@ -212,7 +212,7 @@ def e1_track(tx, eol):
 
 
 def e2_defect(tx, eol):
-    rows = [l for l in tx.split(eol) if l.startswith("| COV-D59 |")]
+    rows = [ln for ln in tx.split(eol) if ln.startswith("| COV-D59 |")]
     if len(rows) != 1:
         ids = sorted(set(re.findall(r"\| (COV-D\d+) \|", tx)))
         abort("COV-D59-строк: %d; ID в таблице дефектов: %s" % (len(rows), ", ".join(ids)))
@@ -237,9 +237,9 @@ def e4_s178(tx, eol, epi):
     a = ("- [x] **DET-3 [закрыт: реализуется→проверено]** ✅ Crash-recovery Фазы 10 "
          "(код-коммит 222bc3d5")
     if tx.count(a) != 1:
-        loose = [l for l in tx.split(eol) if "222bc3d5" in l]
+        loose = [ln for ln in tx.split(eol) if "222bc3d5" in ln]
         abort("якорь §17.8 DET-3[x] (222bc3d5): %d вхожд.; 222bc3d5-строки:\n%s"
-              % (tx.count(a), "\n".join(l[:120] for l in loose[:4])))
+              % (tx.count(a), "\n".join(ln[:120] for ln in loose[:4])))
     i = tx.find(a)
     j = tx.find("\n", i)
     ins = (j + 1) if j != -1 else len(tx)
@@ -272,11 +272,11 @@ def e6_mut(tx, eol, epi):
     if cnt != 235:
         abort("МЕТА «Записей: %d» (ожидалось 235) — дрейф" % cnt)
     # v2: запись реестра отличаем от МЕТА по префиксу (v1 падал: "S353" есть в обеих)
-    s353 = [l for l in tx.split(eol) if l.startswith("- **S353**")]
+    s353 = [ln for ln in tx.split(eol) if ln.startswith("- **S353**")]
     if len(s353) != 1:
-        cand = [l for l in tx.split(eol) if "S353" in l]
+        cand = [ln for ln in tx.split(eol) if "S353" in ln]
         abort("запись «- **S353** …»: %d строк; все S353-строки (МЕТА + запись):\n%s"
-              % (len(s353), "\n".join(l[:160] for l in cand[:6])))
+              % (len(s353), "\n".join(ln[:160] for ln in cand[:6])))
     row = s353[0]
     print("══ S353-запись (формат-эталон):")
     print(row)
@@ -314,7 +314,7 @@ def main():
 
     if re.search(r"\bS354\b", rt) or "Шаг 2 D59 ✅" in rt:
         abort("roadmap уже содержит S354 / «Шаг 2 D59 ✅» — повторное применение?")
-    if any("закрыт" in l for l in rt.split(reol) if l.startswith("| COV-D59 |")):
+    if any("закрыт" in ln for ln in rt.split(reol) if ln.startswith("| COV-D59 |")):
         abort("COV-D59 уже закрыт — повторное применение?")
     if "## 9." in it or re.search(r"\bS354\b", it):
         abort("IMPACT уже содержит §9/S354 — повторное применение?")

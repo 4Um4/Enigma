@@ -1,0 +1,255 @@
+{
+  "leg": "off",
+  "cell": "CELL-B_f70_tm60",
+  "preset": "config/calibration/test_presets/golden_fear_f70.yaml",
+  "preset_sha256": "a99a0b77fb950b5d96e8a5394bca7b5302cf3711366e71cd8f4acb49025959d1",
+  "metrics": {
+    "y1_window": -1.607767,
+    "y1_masked": -1.607767,
+    "y2_share": 0.0,
+    "mask_ticks": 29,
+    "ticks_scored": 29,
+    "empty_ticks": [],
+    "gaps_per_tick": [
+      {
+        "tick": 2,
+        "gap": -1.52475
+      },
+      {
+        "tick": 3,
+        "gap": -1.2239
+      },
+      {
+        "tick": 4,
+        "gap": -1.85715
+      },
+      {
+        "tick": 5,
+        "gap": -1.88775
+      },
+      {
+        "tick": 6,
+        "gap": -1.2026
+      },
+      {
+        "tick": 7,
+        "gap": -1.334733
+      },
+      {
+        "tick": 8,
+        "gap": -1.84955
+      },
+      {
+        "tick": 9,
+        "gap": -1.2507
+      },
+      {
+        "tick": 10,
+        "gap": -1.7767
+      },
+      {
+        "tick": 11,
+        "gap": -1.2216
+      },
+      {
+        "tick": 12,
+        "gap": -1.89875
+      },
+      {
+        "tick": 13,
+        "gap": -1.8924
+      },
+      {
+        "tick": 14,
+        "gap": -1.2199
+      },
+      {
+        "tick": 15,
+        "gap": -1.8827
+      },
+      {
+        "tick": 16,
+        "gap": -1.8292
+      },
+      {
+        "tick": 17,
+        "gap": -1.3115
+      },
+      {
+        "tick": 18,
+        "gap": -1.82225
+      },
+      {
+        "tick": 19,
+        "gap": -1.317033
+      },
+      {
+        "tick": 20,
+        "gap": -1.81485
+      },
+      {
+        "tick": 21,
+        "gap": -1.266567
+      },
+      {
+        "tick": 22,
+        "gap": -1.92525
+      },
+      {
+        "tick": 23,
+        "gap": -1.2989
+      },
+      {
+        "tick": 24,
+        "gap": -1.9244
+      },
+      {
+        "tick": 25,
+        "gap": -1.88215
+      },
+      {
+        "tick": 26,
+        "gap": -1.3506
+      },
+      {
+        "tick": 27,
+        "gap": -1.8793
+      },
+      {
+        "tick": 28,
+        "gap": -1.887
+      },
+      {
+        "tick": 29,
+        "gap": -1.348967
+      },
+      {
+        "tick": 30,
+        "gap": -1.7441
+      }
+    ],
+    "intent_seq": [
+      "change_role",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee",
+      "flee"
+    ],
+    "mask_seq": [
+      "none",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission"
+    ]
+  },
+  "window": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "per_intent_common": {
+    "attack": {
+      "mean": -1.948779,
+      "present_ticks": 14
+    },
+    "intimidate": {
+      "mean": -1.845229,
+      "present_ticks": 14
+    },
+    "warn": {
+      "mean": -0.537467,
+      "present_ticks": 6
+    },
+    "observe": {
+      "mean": 0.522986,
+      "present_ticks": 14
+    },
+    "talk": {
+      "mean": -0.4807,
+      "present_ticks": 6
+    },
+    "idle": {
+      "mean": -0.662764,
+      "present_ticks": 14
+    }
+  },
+  "present_ticks": {
+    "attack": 14,
+    "intimidate": 14,
+    "warn": 6,
+    "observe": 14,
+    "talk": 6,
+    "idle": 14
+  },
+  "present_ticks_b1_reference": {
+    "attack": 14,
+    "intimidate": 14,
+    "warn": 8,
+    "observe": 14,
+    "talk": 8,
+    "idle": 14
+  },
+  "present_ticks_match_b1": false
+}
