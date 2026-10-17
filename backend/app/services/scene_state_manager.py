@@ -375,6 +375,16 @@ class SceneStateManager:
 
     def _state_file(self, campaign_id: str) -> Path:
         """Возвращает путь к campaign_state.json в saves/. Мигрирует из campaigns/ при первом доступе."""
+        # GUARD (S355-кандидат): мок/мусор не должен становиться путём на диске.
+        if not isinstance(campaign_id, str) or not campaign_id.strip():
+            raise ValueError(
+                f"[SSM-GUARD] campaign_id должен быть непустой строкой, "
+                f"получен {type(campaign_id).__name__}: {campaign_id!r:.80}"
+            )
+        if Path(campaign_id).name != campaign_id or campaign_id in {".", ".."}:
+            raise ValueError(
+                f"[SSM-GUARD] campaign_id не должен быть путём: {campaign_id!r:.80}"
+            )
         saves_path = self._saves_dir / campaign_id / "campaign_state.json"
         if saves_path.exists():
             return saves_path

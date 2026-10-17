@@ -83,6 +83,11 @@ def test_boundary_traversal_emits_transition_scene_change():
     # Минимальный _TickContext
     ctx = MagicMock()
     ctx.scene_state = scene_state
+    # S355-кандидат: анти-утечка — явные атрибуты вместо auto-child'ов
+    # (mock.tick_snapshot.campaign_id становился путём на диске).
+    ctx.campaign_id = "test_campaign"   # tracked-фикстура, есть на любом чекауте
+    ctx.tick_number = 10                # совпадает с scene_state["tick"]
+    ctx.tick_snapshot = None            # явно нет снапшота → чистый fallback build_snapshot
 
     orch._process_traversals(ctx)
 
