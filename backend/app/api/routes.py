@@ -34,6 +34,7 @@ from app.models.schemas import (
 from app.services.campaign_state_service import get_campaign_state_service
 from app.services.character_service import CharacterService
 from app.services.combat_service import CombatService
+from app.services.game_loop.campaign_lifecycle import CampaignResetError
 from app.services.game_loop_accessor import get_game_loop
 from app.services.llm.health import check_llm_health
 from app.services.llm.provider_manager import get_model_pool
@@ -1374,15 +1375,34 @@ class NewGameRequest(BaseModel):
 
 @router.post("/game/new/{campaign_id}")
 def new_game(campaign_id: str, request: NewGameRequest, game_loop: Any = Depends(get_game_loop)) -> dict:
-    """ADR-O-146: New Game = сброс runtime мира к чистому static."""
-    return cast(
-        dict,
-        game_loop.new_game(
-            campaign_id=campaign_id,
-            continuity_mode=request.continuity_mode,
-            source_campaign_id=request.source_campaign_id
-        ),
-    )
+    """ADR-O-146: New Game = сброс runtime мира к чистому static.
+
+    COV-D60 / ADR-O-426 Шаг 3: громкий отказ сброса переводится в машиночитаемый
+    HTTP-ответ (500, dict-detail: error/campaign_id/step/detail; прецедент В7).
+    """
+    try:
+        return cast(
+            dict,
+            game_loop.new_game(
+                campaign_id=campaign_id,
+                continuity_mode=request.continuity_mode,
+                source_campaign_id=request.source_campaign_id
+            ),
+        )
+    except CampaignResetError as exc:
+        # COV-D60 / ADR-O-426 Шаг 3: честный перевод громкого отказа сброса
+        # в машиночитаемый HTTP-ответ (прецедент В7). 500, не 503/412:
+        # сброс — доменная операция, отказ серверный. Тихая подмена
+        # ({"reset": true} поверх полусброса) запрещена ADR-O-426.
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "campaign_reset_failed",
+                "campaign_id": exc.campaign_id,
+                "step": exc.step,
+                "detail": exc.detail,
+            },
+        ) from exc
 
 
 @router.post("/game/{campaign_id}/scene_state")

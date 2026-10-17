@@ -21,6 +21,26 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class CampaignResetError(RuntimeError):
+    """COV-D60 / ADR-O-426 Шаг 3: громкий отказ сброса кампании (fail-loud).
+
+    Раньше reset_campaign глотал отказы шагов (try/except + warning) и всегда
+    возвращал {"reset": True} — кампания могла остаться полусброшенной молча
+    (тихая подмена состояния — табу ADR-O-426). Теперь: немедленное прерывание
+    (мир остаётся консистентно-старым, ребилд поверх полусброса запрещён) +
+    машиночитаемый отказ (прецедент В7): campaign_id, step, detail.
+    """
+
+    def __init__(self, campaign_id: str, step: str, detail: str) -> None:
+        self.campaign_id = campaign_id
+        self.step = step
+        self.detail = detail
+        super().__init__(
+            f"campaign_reset_failed: campaign_id={campaign_id!r} "
+            f"step={step!r} detail={detail!r}"
+        )
+
+
 class CampaignLifecycle:
     def __init__(
         self,
@@ -189,6 +209,12 @@ class CampaignLifecycle:
         Оставляет: characters.json, character_profiles.json (выбор персонажа)
 
         Returns: {"reset": True, "campaign_id": str, "files_removed": [str]}
+        Raises: CampaignResetError — немедленный громкий отказ шага сброса
+            (COV-D60 / ADR-O-426 Шаг 3; step-ids: sqlite_persistence, json_files,
+            relationships, crystallized_beliefs, player_session, life_engine_npc,
+            scene_reinit, current_location_seed, body_topology, atomic_commit,
+            memory_manager, temporal_engine, avatar_session, npc_runtime_caches,
+            mvp_controller_init).
         """
         from app.models.world_continuity import WorldContinuityMode
         if continuity_mode is None:
@@ -206,6 +232,7 @@ class CampaignLifecycle:
                 logger.info(f"[NEW_GAME] SQLite cleared for '{campaign_id}'")
         except Exception as e:
             logger.warning(f"[NEW_GAME] SQLite cleanup failed: {e}")
+            raise CampaignResetError(campaign_id, "sqlite_persistence", str(e)) from e
 
         # === 2. ОЧИСТКА JSON ФАЙЛОВ в saves/<campaign_id>/ ===
         runtime_files = [
@@ -228,7 +255,7 @@ class CampaignLifecycle:
                     fpath.unlink()
                 except Exception as e:
                     logger.error(f"[NEW_GAME] Atomic commit: Failed to remove {fpath}: {e}")
-                    continue
+                    raise CampaignResetError(campaign_id, "json_files", f"unlink failed: {fpath}") from e
                 removed.append(fname)
                 logger.info(f"[NEW_GAME] Removed: {fpath}")
 
@@ -238,6 +265,7 @@ class CampaignLifecycle:
             removed.append("relationships")
         except Exception as e:
             logger.warning(f"[NEW_GAME] RelationshipStore reset failed: {e}")
+            raise CampaignResetError(campaign_id, "relationships", str(e)) from e
 
         # === 3b. СБРОС УБЕЖДЕНИЙ L2.5 (FIX-RC3 / P3: old memories = 0) ===
         # enigma_memory.db не чистился NEW_GAME: убеждения прошлых сессий
@@ -250,6 +278,7 @@ class CampaignLifecycle:
                 logger.info(f"[NEW_GAME] BeliefStore cleared for '{campaign_id}'")
         except Exception as e:
             logger.warning(f"[NEW_GAME] BeliefStore reset failed: {e}")
+            raise CampaignResetError(campaign_id, "crystallized_beliefs", str(e)) from e
 
         # === 4. СБРОС СЕССИИ ===
         try:
@@ -259,6 +288,7 @@ class CampaignLifecycle:
             player_session_service._delete_session_from_disk(campaign_id)
         except Exception as e:
             logger.warning(f"[NEW_GAME] Session reset failed: {e}")
+            raise CampaignResetError(campaign_id, "player_session", str(e)) from e
 
         # === 5. СБРОС + ПЕРЕИНИЦИАЛИЗАЦИЯ NPC (healthy body_state) ===
         # КОРЕНЬ БАГА: раньше только чистили кэш → NPC грузились без body_state
@@ -269,6 +299,7 @@ class CampaignLifecycle:
             _npcs_for_commit = engine.reset_campaign(campaign_id) or []
         except Exception as e:
             logger.warning(f"[NEW_GAME] LifeEngine NPC reset failed: {e}")
+            raise CampaignResetError(campaign_id, "life_engine_npc", str(e)) from e
 
         # === 5.1 WORLD CONTINUITY (P7-13) ===
         # Если режим CONTINUOUS, применяем WorldStateDiff из source-кампании к чистым NPC до коммита
@@ -307,8 +338,17 @@ class CampaignLifecycle:
                         )
             except Exception as _seed_err:
                 logger.warning(f"[NEW_GAME] current_location seed failed: {_seed_err}")
+                raise CampaignResetError(
+                    campaign_id, "current_location_seed", str(_seed_err)
+                ) from _seed_err
+        except CampaignResetError:
+            # COV-D60 (П1-18): уже классифицированный отказ (current_location_seed)
+            # проходит наверх как есть: переупаковка в scene_reinit заставляла бы
+            # step-поле машиночитаемого отказа лгать (ADR-O-426, В7).
+            raise
         except Exception as e:
             logger.warning(f"[NEW_GAME] Scene reinit failed: {e}")
+            raise CampaignResetError(campaign_id, "scene_reinit", str(e)) from e
 
         # === 6.5 F3 (S292): топология тела рождается вместе со сценой ===
         # Было: player_body_topology=None из scene_factory → idle-тики до
@@ -329,6 +369,7 @@ class CampaignLifecycle:
                 logger.info("[NEW_GAME] player_body_topology initialized at scene birth (F3)")
         except Exception as _topo_err:
             logger.warning(f"[NEW_GAME] topology init failed: {_topo_err}")
+            raise CampaignResetError(campaign_id, "body_topology", str(_topo_err)) from _topo_err
 
         # === 7. АТОМАРНЫЙ КОММИТ (scene + npcs) ===
         # BUG-AUDIT-13: Сохраняем сцену и NPC в одной транзакции, чтобы избежать рассинхрона.
@@ -344,16 +385,21 @@ class CampaignLifecycle:
                 logger.info(f"[NEW_GAME] Atomic commit OK for {campaign_id}")
             except Exception as e:
                 logger.error(f"[NEW_GAME] Atomic commit FAILED for {campaign_id}: {e}")
+                raise CampaignResetError(campaign_id, "atomic_commit", str(e)) from e
 
         # === 7. СБРОС LRU-КЭША загрузчика ===
         if hasattr(self._load_npcs, "cache_clear"):
             self._load_npcs.cache_clear()
 
         # === 9. СБРОС MemoryManager (narrative_cache + dialogue sessions) ===
+        # COV-D60: явная инициализация — фикс латентного NameError в секции 12
+        # (раньше отказ здесь глотался, имя оставалось несвязанным).
+        _mem_reset: Optional[dict] = None
         try:
             _mem_reset = self.memory_manager.reset_campaign_state(campaign_id)
         except Exception as e:
             logger.warning(f"[NEW_GAME] MemoryManager reset failed: {e}")
+            raise CampaignResetError(campaign_id, "memory_manager", str(e)) from e
 
         # === 10. СБРОС TemporalEngine (tick=0 + удаление world_tick.json) ===
         try:
@@ -362,6 +408,7 @@ class CampaignLifecycle:
             removed.append("world_tick.json")
         except Exception as e:
             logger.warning(f"[NEW_GAME] TemporalEngine reset failed: {e}")
+            raise CampaignResetError(campaign_id, "temporal_engine", str(e)) from e
 
         # === 11. СБРОС СЕССИИ АВАТАРА (player body_state из предыдущей игры) ===
         try:
@@ -371,6 +418,7 @@ class CampaignLifecycle:
                 removed.append("player_avatar.json")
         except Exception as e:
             logger.warning(f"[NEW_GAME] Avatar session reset failed: {e}")
+            raise CampaignResetError(campaign_id, "avatar_session", str(e)) from e
 
         # === 12. СБРОС ПАМЯТИ NPC (narrative_cache + campaign history) ===
         try:
@@ -378,10 +426,14 @@ class CampaignLifecycle:
             _cleared_npcs = self._get_life_engine().clear_runtime_caches(campaign_id)
         except Exception as e:
             logger.warning(f"[NEW_GAME] Memory reset failed: {e}")
+            raise CampaignResetError(campaign_id, "npc_runtime_caches", str(e)) from e
 
         # === 12. ОЧИСТКА SQLITE ПАМЯТИ (старые воспоминания) ===
-        removed.append(f"sqlite:memories({_mem_reset['sqlite_rows']})")
-        logger.info(f"[NEW_GAME] SQLite memories cleared: {_mem_reset['sqlite_rows']} rows")
+        # COV-D60: гвард биндинга — раньше при несвязанном _mem_reset этот
+        # блок давал NameError ВНЕ try (криптический крах после полного свипа).
+        if _mem_reset is not None:
+            removed.append(f"sqlite:memories({_mem_reset['sqlite_rows']})")
+            logger.info(f"[NEW_GAME] SQLite memories cleared: {_mem_reset['sqlite_rows']} rows")
 
         # P-MVP-1: Инициализация эпистемического фасада для новой кампании
         if self.mvp_controller:
@@ -390,6 +442,7 @@ class CampaignLifecycle:
                 logger.info(f"[NEW_GAME] MVP controller initialized for '{campaign_id}'")
             except Exception as e:
                 logger.error(f"[NEW_GAME] MVP controller init failed: {e}")
+                raise CampaignResetError(campaign_id, "mvp_controller_init", str(e)) from e
 
         logger.info(
             f"[NEW_GAME] Campaign '{campaign_id}' fully reset. Removed: {removed}"
