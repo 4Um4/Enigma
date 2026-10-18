@@ -357,7 +357,19 @@ def run_npc_orchestration(
                     )
                 )
 
-        if _l1_events:
+        _ue_l1_ir = getattr(shared_context, "intent_resolution", None)  # noqa: ENIGMA002
+        _ue_l1_params = getattr(getattr(_ue_l1_ir, "original_intent", None), "parameters", None)  # noqa: ENIGMA002
+        _ue_l1_readiness = getattr(_ue_l1_params, "intent_readiness", "RESOLVED")  # noqa: ENIGMA002
+        if _l1_events and _ue_l1_readiness != "RESOLVED":
+            logger.warning(
+                "[UE-GATE-L1] L1-фиксация директивы подавлена "
+                "(intent_readiness=%s): sem=%s target=%s tick=%s — попытка ≠ событие",
+                _ue_l1_readiness,
+                _sem_action,
+                _target_id,
+                _tick,
+            )
+        if _l1_events and _ue_l1_readiness == "RESOLVED":
             try:
                 tick_orchestrator.l1_chronicle.bind_campaign(campaign_id)
                 tick_orchestrator.l1_chronicle.commit_tick_buffer(_l1_events, _tick)
