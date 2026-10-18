@@ -133,7 +133,7 @@ def main() -> int:
                 print(f"  {i + 1}: {ln.rstrip()}")
         return 2
     if len(commits) > 1 and args.line is None:
-        print(f"[UE-L1-PATCH] commit-блоков несколько — укажи --line N:")
+        print("[UE-L1-PATCH] commit-блоков несколько — укажи --line N:")
         for i in commits:
             print(f"  {i + 1}: {lines[i].rstrip()}")
         return 2
@@ -159,7 +159,7 @@ def main() -> int:
         return 2
 
     new_header = f'{indent}if _l1_events and {GUARD} == "RESOLVED":' + (f" {tail}" if tail else "")
-    guard = [l + eol for l in _guard_lines(indent)]
+    guard = [ln + eol for ln in _guard_lines(indent)]
 
     print(f"[UE-L1-PATCH] цель: {path}")
     print(f"[UE-L1-PATCH] commit-блок: стр. {idx + 1}; функция начинается: стр. {def_idx + 1}")
@@ -182,8 +182,8 @@ def main() -> int:
     new_lines = lines[:idx] + guard + [new_header + eol] + lines[idx + 1 :]
 
     print("===== unified diff =====")
-    old_show = [l.rstrip() for l in lines[a:b]]
-    new_show = [l.rstrip() for l in new_lines[a : b + ng]]
+    old_show = [ln.rstrip() for ln in lines[a:b]]
+    new_show = [ln.rstrip() for ln in new_lines[a : b + ng]]
     for dl in difflib.unified_diff(
         old_show, new_show, fromfile=f"{path.name} (БЫЛО)", tofile=f"{path.name} (СТАЛО)", lineterm=""
     ):

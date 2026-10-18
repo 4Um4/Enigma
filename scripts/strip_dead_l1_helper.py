@@ -127,8 +127,8 @@ def main() -> int:
     print()
     print("===== unified diff =====")
     for dl in difflib.unified_diff(
-        [l.rstrip() for l in lines[a:b]],
-        [l.rstrip() for l in new_lines[a : b - len(block)]],
+        [ln.rstrip() for ln in lines[a:b]],
+        [ln.rstrip() for ln in new_lines[a : b - len(block)]],
         fromfile=f"{path.name} (БЫЛО)",
         tofile=f"{path.name} (СТАЛО)",
         lineterm="",
