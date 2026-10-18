@@ -77,3 +77,60 @@ H-b (влияние незамороженного WIP) — RETRACTED (forensics
 ## 10. Передача преемнику
 
 Дуга B′ закрыта. Порядок работ (вердикт Мастера): bm_window_check.py v2 → D-5 → H1a → вопрос A → C′ design → доклад. Ключевой запрет: не превращать установленный эффект потребления множителя в утверждение, что уже найден полный механизм поведения маски.
+
+## 11. Обновление: повтор 005 — полная причинная цепочка (CONFIRMED)
+
+> **Вердикт Мастера (2026-10-18):** Дуга B′ закрыта как экспериментально подтверждённая причинная цепочка.
+> Канал обратной связи подтверждён в сценарии B′: маска → действие → событие мира → память → риск → следующее решение.
+
+### 11.1 Полная причинная цепочка (доказана в повторе 005, изолированный worktree)
+
+t2: mask-off (инъекция base *= 1.0)
+  -> attack score не подавлен
+  -> flee выигрывает
+  -> Goran выбирает flee
+  -> MovementEngine двигает Goran
+  -> Публикуется событие world_tick (actor=merchant_goran, target=player, importance=0.8)
+  -> MemoryManager.apply() добавляет в Working Memory
+
+t2 (Фаза 5): decision.py -> get_weights_for_decision
+  -> recent_pressure = sum(importance) = 0.8 (от world_tick)
+  -> npc_tick_pipeline обновляет state.relationship_cache
+
+t3: DecisionHub._score_components
+  -> compute_objective_risk: recent_pressure=0.8 -> base_risk += 0.3
+  -> risk_penalty = -fear * risk * 1.25 - 0.6 = -1.3981 (было -1.1227)
+  -> base_before_mask = -1.8681 (было -1.5927)
+  -> Контраст base_before_mask (ON-OFF) = +0.2651
+  -> Итоговый score расхождение: attack ON -0.35 vs OFF -1.9696
+
+### 11.2 Что доказано
+
+1. B3 воспроизводим: CONFIRMED (повтор 005: контрасты побайтово идентичны)
+2. Локальный эффект маски на t2: CONFIRMED (base_after_mask +1.3458)
+3. Closed-loop обратная связь на t3: CONFIRMED (base_before_mask +0.2651)
+4. Канал = risk_penalty: CONFIRMED (+0.2651 = risk_penalty delta)
+5. recent_pressure — источник: CONFIRMED (0.0 -> 0.8 в OFF, 0.0 -> 0.0 в ON)
+6. Событие world_tick (actor=Goran, target=player, importance=0.8): CONFIRMED
+7. Отношения Goran->player (trust/fear) — канал: REFUTED (статичны)
+
+### 11.3 Оговорка B5
+
+Историческая пара воспроизведена по ручному сравнению артефактов; формальная проверка --compare заблокирована несовпадением diff_hash, связанным с untracked тестовыми файлами в worktree.
+
+### 11.4 Оговорка о границах причинного вывода
+
+Цепочка подтверждена в сценарии B′. Формулировка: «канал обратной связи подтверждён в сценарии B′», а не «вся система BehaviorMask полностью доказана».
+
+### 11.5 Статус гипотез (финальный)
+
+- H-a (замкнутый контур): CONFIRMED
+- H-b (влияние WIP): RETRACTED
+
+### 11.6 Инструментирование (нейтральное)
+
+- D-5: rel_goran_per_tick
+- H1a: components_per_tick
+- H1b-mini: base_before/after_mask
+- H1b-mini2: fear, drives, risk inputs (strings, neutral)
+- H1b-mini3: pressure events (list, neutral)

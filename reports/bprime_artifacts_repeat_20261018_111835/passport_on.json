@@ -1,0 +1,20 @@
+{
+  "tag": "leg-on",
+  "captured_at": "2026-10-18T11:18:43+0700",
+  "head": "2d2fea081f93928a0abf0860f2fc09da5f0d1c43",
+  "status_porcelain": "D reports/bprime_artifacts/compare_report.json\n?? reports/bprime_artifacts_historical/",
+  "diff_hash": "989fd25edff96c749c4d011a8294ef03354500ed5bafca1465966fbcf3e1c2c5",
+  "untracked_significant_roots": [],
+  "runtime_manifest": {
+    "python": "3.13.14 (tags/v3.13.14:fd17997, Jun 10 2026, 13:03:48) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "win32",
+    "argv0": "backend/tests/sandbox/SUPERBOX/scenarios/bm_bprime_framework.py"
+  },
+  "input_sha256": {
+    "backend/tests/sandbox/SUPERBOX/scenarios/bm_factorial_test.py": "07093f9db7d36336a56bceceb71b42da1419f0ce8e9a86555b0384623c317af1",
+    "backend/tests/sandbox/SUPERBOX/scenarios/bm_factorial_isolation.py": "3e9bde545d5f32d05270bbac790a4ef945b8c8d312938d281df5c12ed2ca7c94",
+    "backend/tests/sandbox/SUPERBOX/scenarios/bm_aprime_offline.py": "15d53041e90929168ccf9abdda352c0f635d4d537c3b7490b819a7d757b05b8f",
+    "config/calibration/test_presets/golden_fear_f70.yaml": "a99a0b77fb950b5d96e8a5394bca7b5302cf3711366e71cd8f4acb49025959d1",
+    "backend/app/services/npc/decision_hub.py": "01a0fac849f3cd4d57392e6c8bfff9da137c7bf3e87e0f6be5d30f4e652cf81a"
+  }
+}

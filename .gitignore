@@ -70,3 +70,7 @@ eatlog_out*.txt arch_out*.txt mypy_*.txt ctx_diag.txt diff_out.txt TODO.md Math_
 
 data/replay.db
 data/logs/
+
+# Runtime-состояние процессов и резервные копии редакторов (не коммитятся)
+*.pid
+*.bak*

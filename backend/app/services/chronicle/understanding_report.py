@@ -1,4 +1,4 @@
-"""path: backend/app/services/chronicle/understanding_report.py
+﻿"""path: backend/app/services/chronicle/understanding_report.py
 Назначение: отчёт «поняла / не поняла» по каждому пункту биографии (вердикт
             Мастера: Все.md = канон -> сеялка -> игра показывает понимание).
             Парсит нумерованные пункты из author_text каждого NPC, считает
@@ -7,15 +7,19 @@
             Как и лампочка (trait_gap_detector), это честная первичная
             оценка, не приговор: финальное слово за Мастером. Никаких
             авто-действий по записям.
+            Встройка: routes_chronicle GET /{campaign}/understanding —
+            по следам trait-gaps (тот же контракт docs_by_npc -> отчёт).
 Зависимости: stdlib (вход — ChronicleDocument-подобные документы:
              author_text: str; entries с entry_id/kind/payload)
-Основные сущности: parse_items, build_report, render_markdown, render_json"""
+Основные сущности: parse_items, docs_from_dir, build_report,
+                   render_markdown, render_json"""
 
 from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict, Iterator, List, Set
+from pathlib import Path
+from typing import Any, Dict, Iterator, List, Set, Tuple
 
 # ----------------------------- НАСТРОЙКИ ---------------------------------
 
@@ -62,6 +66,53 @@ def parse_items(author_text: str) -> List[Dict[str, Any]]:
     return items
 
 
+# --------------------- ЧТЕНИЕ ДОКУМЕНТОВ ИЗ КАТАЛОГА ----------------------
+
+
+def docs_from_dir(base: Any) -> Tuple[Dict[str, Any], List[str]]:
+    """Каталог json-документов хроники -> ({npc_id: doc}, [проблемы]).
+
+    Понимает и черновики (saves/<campaign>/chronicle_drafts), и канон
+    (config/npc/chronicles) — форма документа одна. Оборонительно:
+    utf-8-sig (BOM от PowerShell), битые файлы не роняют отчёт,
+    а попадают в проблемы. npc_id: chronicle_id -> npc_ref -> имя файла.
+    Записи: ключ entries, иначе llm_draft/draft, иначе самый длинный
+    список словарей (прецедент corpus_understanding.load_doc).
+    """
+    base_path = Path(base)
+    docs: Dict[str, Any] = {}
+    problems: List[str] = []
+    if not base_path.is_dir():
+        return docs, [f"каталог не найден: {base_path}"]
+    for path in sorted(base_path.glob("*.json")):
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8-sig"))
+        except Exception as exc:  # битый json не должен ронять отчёт
+            problems.append(f"{path.name}: не читается ({exc})")
+            continue
+        if not isinstance(doc, dict):
+            problems.append(f"{path.name}: не словарь — пропущен")
+            continue
+        entries = doc.get("entries")
+        if not isinstance(entries, list) or not entries:
+            for key in ("llm_draft", "draft"):
+                val = doc.get(key)
+                if isinstance(val, list) and val:
+                    doc = {**doc, "entries": val}
+                    break
+            else:
+                candidates = [
+                    v for v in doc.values()
+                    if isinstance(v, list) and v
+                    and all(isinstance(e, dict) for e in v)
+                ]
+                if candidates:
+                    doc = {**doc, "entries": max(candidates, key=len)}
+        npc = doc.get("chronicle_id") or doc.get("npc_ref") or path.stem
+        docs[str(npc)] = doc
+    return docs, problems
+
+
 # --------------------------- ТЕКСТ ЗАПИСЕЙ --------------------------------
 
 
@@ -88,7 +139,7 @@ def _entry_blob(entry: Any) -> str:
 
 
 def _kind_name(entry: Any) -> str:
-    k = getattr(entry, "kind", None)  # noqa: ENIGMA002
+    k = getattr(entry, "kind", None)
     if k is None and isinstance(entry, dict):
         k = entry.get("kind")
     if k is None:
@@ -97,7 +148,7 @@ def _kind_name(entry: Any) -> str:
 
 
 def _entry_id(entry: Any) -> str:
-    eid = getattr(entry, "entry_id", None)  # noqa: ENIGMA002
+    eid = getattr(entry, "entry_id", None)
     if eid is None and isinstance(entry, dict):
         eid = entry.get("entry_id", "")
     return str(eid or "")
@@ -130,10 +181,10 @@ def build_report(docs_by_npc: Dict[str, Any], campaign: str) -> Dict[str, Any]:
     totals = {"items": 0, "ok": 0, "part": 0, "miss": 0}
     for npc in sorted(docs_by_npc):
         doc = docs_by_npc[npc]
-        author_text = getattr(doc, "author_text", None)  # noqa: ENIGMA002
+        author_text = getattr(doc, "author_text", None)
         if author_text is None and isinstance(doc, dict):
             author_text = doc.get("author_text", "")
-        raw_entries = getattr(doc, "entries", None)  # noqa: ENIGMA002
+        raw_entries = getattr(doc, "entries", None)
         if raw_entries is None and isinstance(doc, dict):
             raw_entries = doc.get("entries", [])
         entries = list(raw_entries or [])
@@ -237,6 +288,12 @@ def render_markdown(rep: Dict[str, Any]) -> str:
                 else:
                     lines.append(f"- **п.{r['n']}** {r['text']} (0 записей)")
             lines.append("")
+    if rep.get("problems"):
+        lines.append("## Проблемы чтения")
+        lines.append("")
+        for p in rep["problems"]:
+            lines.append(f"- {p}")
+        lines.append("")
     lines.append(f"_{rep['note']}_")
     return "\n".join(lines)
 

@@ -1,0 +1,211 @@
+{
+  "leg": "off",
+  "cell": "CELL-B_f70_tm60",
+  "preset": "config/calibration/test_presets/golden_fear_f70.yaml",
+  "preset_sha256": "a99a0b77fb950b5d96e8a5394bca7b5302cf3711366e71cd8f4acb49025959d1",
+  "metrics": {
+    "y1_window": -0.409351,
+    "y1_masked": -0.409351,
+    "y2_share": 0.655172,
+    "mask_ticks": 29,
+    "ticks_scored": 14,
+    "empty_ticks": [
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30
+    ],
+    "gaps_per_tick": [
+      {
+        "tick": 2,
+        "gap": -1.4544
+      },
+      {
+        "tick": 3,
+        "gap": -0.652
+      },
+      {
+        "tick": 4,
+        "gap": -0.6547
+      },
+      {
+        "tick": 5,
+        "gap": -0.689967
+      },
+      {
+        "tick": 6,
+        "gap": -0.664367
+      },
+      {
+        "tick": 7,
+        "gap": -0.698767
+      },
+      {
+        "tick": 8,
+        "gap": -1.08195
+      },
+      {
+        "tick": 9,
+        "gap": -0.2131
+      },
+      {
+        "tick": 10,
+        "gap": 0.0504
+      },
+      {
+        "tick": 11,
+        "gap": 0.0756
+      },
+      {
+        "tick": 12,
+        "gap": 0.0504
+      },
+      {
+        "tick": 13,
+        "gap": 0.0754
+      },
+      {
+        "tick": 14,
+        "gap": 0.062267
+      },
+      {
+        "tick": 15,
+        "gap": 0.064267
+      }
+    ],
+    "intent_seq": [
+      "change_role",
+      "flee",
+      "spread_rumor",
+      "spread_rumor",
+      "spread_rumor",
+      "spread_rumor",
+      "spread_rumor",
+      "flee",
+      "flee",
+      "flee",
+      "spread_rumor",
+      "intimidate",
+      "intimidate",
+      "intimidate",
+      "intimidate",
+      "intimidate",
+      "intimidate",
+      "intimidate",
+      "intimidate",
+      "intimidate",
+      "intimidate",
+      "intimidate",
+      "intimidate",
+      "intimidate",
+      "intimidate",
+      "intimidate",
+      "intimidate",
+      "intimidate",
+      "intimidate",
+      "intimidate"
+    ],
+    "mask_seq": [
+      "none",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission"
+    ]
+  },
+  "window": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "per_intent_common": {
+    "attack": {
+      "mean": 2.309871,
+      "present_ticks": 14
+    },
+    "intimidate": {
+      "mean": 2.427436,
+      "present_ticks": 14
+    },
+    "warn": {
+      "mean": 3.065,
+      "present_ticks": 8
+    },
+    "observe": {
+      "mean": 2.947429,
+      "present_ticks": 14
+    },
+    "talk": {
+      "mean": 2.9675,
+      "present_ticks": 8
+    },
+    "idle": {
+      "mean": 2.889843,
+      "present_ticks": 14
+    }
+  },
+  "present_ticks": {
+    "attack": 14,
+    "intimidate": 14,
+    "warn": 8,
+    "observe": 14,
+    "talk": 8,
+    "idle": 14
+  },
+  "present_ticks_b1_reference": {
+    "attack": 14,
+    "intimidate": 14,
+    "warn": 8,
+    "observe": 14,
+    "talk": 8,
+    "idle": 14
+  },
+  "present_ticks_match_b1": true
+}

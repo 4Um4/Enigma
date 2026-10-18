@@ -23,7 +23,8 @@ _TEXT = (220, 220, 220)
 _ACCENT = (180, 160, 90)
 _PANEL = (28, 28, 36)
 _HINT1 = "Enter: читать целиком · колесо: прокрутка истории · мышь/↑↓: персонаж · клик: выбрать · TAB: лента⇄история · F1/F2: понять"
-_HINT2 = "Ctrl+G: понять всё+карта · F9: утвердить · F4: чистый черновик · Ctrl+O: загрузить · Ctrl+D: карта разрывов · Ctrl+S: сводка · ESC: выход"
+_HINT2 = "Ctrl+G: понять всё+карта · F9: утвердить · F4: чистый черновик · Ctrl+O: загрузить · Ctrl+D: карта разрывов · Ctrl+U: отчёт понимания · Ctrl+S: сводка · ESC: выход"
+
 
 
 _OPTION_BY_KEY = {
@@ -117,10 +118,10 @@ class ChronicleEditorCore:
         if key == pygame.K_ESCAPE:
             self.exit_requested = True
         elif key == pygame.K_DOWN:
-            self._npc_idx = (self._npc_idx + 1) % len(self._npcs)
+            self._npc_idx = (self._npc_idx + 1) % len(self._npcs) if self._npcs else 0
             self._reload()
         elif key == pygame.K_UP:
-            self._npc_idx = (self._npc_idx - 1) % len(self._npcs)
+            self._npc_idx = (self._npc_idx - 1) % len(self._npcs) if self._npcs else 0
             self._reload()
         elif key == pygame.K_F1:
             self._decompose_ordinal(self._frag_ord if not self._view_history else self._frag_index_by_number(self._frag_ord + 1) - 1 if False else self._frag_ord)
@@ -134,6 +135,8 @@ class ChronicleEditorCore:
             self._import_history()
         elif key == pygame.K_d and pygame.key.get_pressed()[pygame.K_LCTRL]:
             self._export_gaps()
+        elif key == pygame.K_u and pygame.key.get_pressed()[pygame.K_LCTRL]:
+            self._export_understanding()
         elif key == pygame.K_g and pygame.key.get_pressed()[pygame.K_LCTRL]:
             self._understand_everything()
         elif key == pygame.K_F4:
@@ -141,6 +144,8 @@ class ChronicleEditorCore:
         elif key == pygame.K_TAB:
             self._view_history = not self._view_history
             self._status = "ИСТОРИЯ (твой текст)" if self._view_history else "ЛЕНТА (разборы)"
+            if self._view_history:
+                self._refresh_understanding()
         elif key == pygame.K_RETURN:
             self._open_detail()
         elif key == pygame.K_c:
@@ -223,6 +228,32 @@ class ChronicleEditorCore:
         with open(path, "w", encoding="utf-8") as f:
             f.write(data.get("text", ""))
         self._status = f"Карта разрывов: {path} ({data.get('count', 0)} слов)"
+
+    def _export_understanding(self) -> None:
+        """Ctrl+U: отчёт «поняла / не поняла» по каждому пункту автора (CCH-4.5)."""
+        from tkinter import filedialog
+
+        fmt = "json" if self._ask_format() else "md"
+        data = self._api.understanding(self._campaign, fmt)
+        if not data or data.get("status") != "OK":
+            self._status = (data or {}).get("empty_reason") or "Отчёт недоступен (сервер?)"
+            return
+        path = filedialog.asksaveasfilename(
+            title="Сохранить отчёт понимания",
+            defaultextension=f".{fmt}",
+            filetypes=[(fmt.upper(), f"*.{fmt}"), ("Все файлы", "*.*")],
+            initialfile=f"understanding_{self._campaign}.{fmt}",
+        )
+        if not path:
+            self._status = "Сохранение отменено"
+            return
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(data.get("text", ""))
+        totals = (data.get("report") or {}).get("totals") or {}
+        self._status = (
+            f"Отчёт понимания: {path} (пунктов {totals.get('items', '?')}, "
+            f"понято {totals.get('percent', '?')}%)"
+        )
 
     @staticmethod
     def _resolve_npc_by_title(title: str, roster: list) -> Optional[str]:
@@ -387,6 +418,11 @@ class ChronicleEditorCore:
             self._status = "PUT черновика не прошёл (сервер?)"
 
     def _new_clean_draft(self) -> None:
+        if not self._npcs:
+            print('[CHRONICLE] F4 skipped: NPC list empty - backend alive?')
+            return
+        if self._npc_idx >= len(self._npcs):
+            self._npc_idx = 0
         """F4: чистый черновик (урок Люси: старые прогоны смешались с новым
         текстом). Бэкап author_text в <npc>.bak.txt рядом — слово автора
         не теряется (FR-1.5); подтверждение — обязательное."""
@@ -426,6 +462,25 @@ class ChronicleEditorCore:
         else:
             self._status = "PUT не прошёл (сервер?)"
 
+    def _refresh_understanding(self) -> None:
+        """Вердикты ✓/~/× у пунктов ИСТОРИИ: один GET на всю кампанию
+        (движок understanding_report на сервере, без LLM — быстро).
+        Сбой сети или EMPTY не роняют панель — просто без вердиктов."""
+        self._und = {}
+        data = self._api.understanding(self._campaign, "json")
+        if not isinstance(data, dict):
+            return  # сервер :8000 спит — ИСТОРИЯ работает без вердиктов
+        if data.get("status") != "OK":
+            why = str(data.get("empty_reason") or "")[:100]
+            if why:
+                self._status = f"Вердиктов нет: {why}"
+            return
+        for block in (data.get("report") or {}).get("per_npc", []):
+            self._und[str(block.get("npc", ""))] = {
+                r.get("n"): r.get("status")
+                for r in block.get("records", [])
+                if r.get("n") is not None
+            }
     def _ask_format(self) -> bool:
         import tkinter as tk
         from tkinter import messagebox
@@ -472,6 +527,8 @@ class ChronicleEditorCore:
         if res.get("status") == "OK":
             self._items = list(res.get("items", []))
             self._status = f"{_label}: понял {len(self._items)} записей"
+            if self._view_history:
+                self._refresh_understanding()
         else:
             self._status = f"НЕ разобрано: {res.get('error', '')[:80]}"
 
@@ -500,11 +557,19 @@ class ChronicleEditorCore:
         self._reload()
 
     def _canonize(self) -> None:
-        """FR-10.x (T-CCH-04): канонизация; 422 → русский блок с fix_hint."""
+        """FR-10.x (T-CCH-04): канонизация; 422 → русский блок с fix_hint.
+        BLOCK 9 (лечение Г2): сперва акт автора «принять разложение» —
+        LLM_DRAFT → AUTHOR_CONFIRMED во всём черновике (перевод по докстрингу
+        canonize делает фронт ДО вызова; иначе 422 — запрет 1, ADR-O-420)."""
         npc = self._npcs[self._npc_idx]
+        confirmed = self._api.confirm_author_entries(self._campaign, npc)
+        if confirmed < 0:
+            self._status = "ЧЕРНОВИК НЕДОСТУПЕН (сервер?) — канонизация не запускалась"
+            return
         res = self._api.canonize(self._campaign, npc)
         if res.get("status") == "OK":
-            self._status = f"КАНОНИЗИРОВАНО (v{res.get('canonical_version')})"
+            extra = f"; подтверждено: {confirmed}" if confirmed else ""
+            self._status = f"КАНОНИЗИРОВАНО (v{res.get('canonical_version')}{extra})"
         else:
             self._status = f"БЛОК (Save=Contract): {res.get('detail', '')[:110]}"
 
@@ -617,7 +682,9 @@ class ChronicleEditorCore:
                 num, txt = _frs[i]
                 label = f"{num}." if num is not None else "·"
                 color = _ACCENT if i == self._frag_ord else _TEXT
-                surface.blit(self._font.render(f"{label} {txt[:58]}", True, color), (280, 100 + _row * 22))
+                _st = (getattr(self, "_und", {}).get(self._npcs[self._npc_idx]) or {}).get(num) if num is not None else None
+                _v = {"OK": "✓", "PART": "~", "MISS": "×"}.get(_st, "")
+                surface.blit(self._font.render(f"{label}{_v} {txt[:57]}", True, color), (280, 100 + _row * 22))
             if len(_frs) > 22:
                 _pct = int(100 * (self._hist_scroll + 22) / len(_frs))
                 surface.blit(self._font.render(f"▼ {self._hist_scroll + 1}–{min(self._hist_scroll + 22, len(_frs))} из {len(_frs)} ({_pct}%) — колесо мыши", True, (120, 120, 120)), (280, 645))

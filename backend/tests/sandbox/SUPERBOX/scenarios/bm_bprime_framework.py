@@ -32,6 +32,8 @@ E-BM1 / B'-ПРОТОКОЛ: парный причинный контраст м
   --compare              Паспорты -> совместимость -> контрасты -> ветка B1..B5.
 
 Запуск из КОРНЯ репозитория. Пререгистрацию менять ПОСЛЕ просмотра данных запрещено.
+
+Запуск: python backend\tests\\sandbox\\SUPERBOX\\scenarios\bm_bprime_framework.py
 """
 
 from __future__ import annotations
@@ -72,15 +74,94 @@ LEG_RUNNER = {
     "donor_module": "bm_factorial_test",   # импорт патчит _SCORE_LEGS донора (execute-tap)
 }
 
-# Якорь инъекции (N5d): 1116 "base *= mask_mod" — ЕДИНСТВЕННАЯ строка потребления маски
-# во всём decision_hub.py; лежит ДО ветвления по типам (1164-1191) -> патч нейтрален к типу.
-# Контур deformation (600-628) питается от compute_behavior_modifiers (N7e), НЕ от маски ->
-# в обеих ногах идентичен; контраст изолирует именно потребление множителя.
-MASK_OFF_PATCH = {
+# H1b-mini (E-BM1 B'): in-memory patch для захвата base до/после mask.
+# In-memory patch: объединяет OFF-инъекцию и H1b-mini захват (замена MASK_OFF_PATCH).
+# mode="on": base *= mask_mod (применяется), mask_application_enabled=True
+# mode="off": base *= 1.0 (инъекция), mask_application_enabled=False
+# Якорь: 4-строчный блок в decision_hub.py _score_all (N5d, ~строки 1114-1117).
+H1B_MINI_PATCH = {
     "enabled": True,
     "file": "backend/app/services/npc/decision_hub.py",
-    "line_pattern": r"(?m)^([ \t]*)base \*= mask_mod[ \t]*$",   # ровно 1 совпадение (строка 1116 на N5d)
-    "replacement": r"\1base *= 1.0  # E-BM1 B-prime mask-off (in-memory)",
+    "old_block": (
+        "            mask_mod = self._behavior_mask_modifier(intent_str, state)\n"
+        "            if mask_mod != 1.0:\n"
+        "                base *= mask_mod\n"
+        "                components[\"mask\"] = round(mask_mod, 3)\n"
+    ),
+    "on_block": (
+        "            mask_mod = self._behavior_mask_modifier(intent_str, state)\n"
+        "            _h1b_base_before = base\n"
+        "            if mask_mod != 1.0:\n"
+        "                base *= mask_mod\n"
+        "                components[\"mask\"] = round(mask_mod, 3)\n"
+        "            components[\"_h1b_base_before_mask\"] = round(_h1b_base_before, 4)\n"
+        "            components[\"_h1b_mask_mod\"] = round(mask_mod, 4)\n"
+        "            components[\"_h1b_base_after_mask\"] = round(base, 4)\n"
+        "            components[\"_h1b_mask_application_enabled\"] = True\n"
+    ),
+    "off_block": (
+        "            mask_mod = self._behavior_mask_modifier(intent_str, state)\n"
+        "            _h1b_base_before = base\n"
+        "            if mask_mod != 1.0:\n"
+        "                base *= 1.0  # E-BM1 B-prime mask-off (in-memory)\n"
+        "                components[\"mask\"] = round(mask_mod, 3)\n"
+        "            components[\"_h1b_base_before_mask\"] = round(_h1b_base_before, 4)\n"
+        "            components[\"_h1b_mask_mod\"] = round(mask_mod, 4)\n"
+        "            components[\"_h1b_base_after_mask\"] = round(base, 4)\n"
+        "            components[\"_h1b_mask_application_enabled\"] = False\n"
+    ),
+    # H1b-mini2: захват входов risk_penalty (без повторного вычисления)
+    "old_block_2": (
+        "        return {\n"
+        "            \"drive\": round(drive_score, 4),\n"
+        "            \"emotion\": round(emotion_mod, 4),\n"
+        "            \"relationship\": round(rel_mod, 4),\n"
+        "            \"risk_penalty\": risk_penalty,\n"
+    ),
+    "new_block_2": (
+        "        return {\n"
+        "            \"drive\": round(drive_score, 4),\n"
+        "            \"emotion\": round(emotion_mod, 4),\n"
+        "            \"relationship\": round(rel_mod, 4),\n"
+        "            \"risk_penalty\": risk_penalty,\n"
+        "            # H1b-mini2: входы risk_penalty (строки — не входят в sum)\n"
+        "            \"_h1b2_fear_rel\": f\"{round(fear, 4)}\",\n"
+        "            \"_h1b2_drives_fear\": f\"{round(drives.get('fear', 0.0), 4)}\" if drives else None,\n"
+        "            \"_h1b2_drives_control\": f\"{round(drives.get('control', 0.0), 4)}\" if drives else None,\n"
+        "            \"_h1b2_perceived_risk\": f\"{round(risk, 4)}\",\n"
+        "            \"_h1b2_event_distance\": f\"{getattr(event, 'distance', None)}\",\n"
+        "            \"_h1b2_event_witness_count\": f\"{getattr(event, 'witness_count', None)}\",\n"
+        "            \"_h1b2_event_success\": f\"{getattr(event, 'success', None)}\",\n"
+        "            \"_h1b2_event_visible_threat_markers\": f\"{list(getattr(event, 'visible_threat_markers', []))}\",\n"
+        "            \"_h1b2_event_scene_flags\": f\"{list(getattr(event, 'scene_flags', set())) if hasattr(event, 'scene_flags') else None}\",\n"
+        "            \"_h1b2_recent_pressure\": f\"{(state.relationship_cache.get('player', {}) if isinstance(getattr(state, 'relationship_cache', None), dict) else {}).get('recent_pressure', None)}\",\n"
+        "            \"_h1b3_pressure_events\": (state.relationship_cache.get('player', {}) if isinstance(getattr(state, 'relationship_cache', None), dict) else {}).get('_h1b3_pressure_events', []),\n"
+    ),
+    "file_3": "backend/app/services/memory/memory_manager.py",
+    "old_block_3": (
+        "            graph_weights[tid] = {\n"
+        "                \"trust\": rel.get(\"trust\", 0.0),\n"
+        "                \"fear\": rel.get(\"fear\", 0.0),\n"
+        "                \"debt\": rel.get(\"debt\", 0.0),\n"
+        "                \"recent_pressure\": min(recent_pressure, 100.0),\n"
+        "            }\n"
+    ),
+    "new_block_3": (
+        "            _h1b3_pe = []\n"
+        "            for e in recent:\n"
+        "                if isinstance(e, dict):\n"
+        "                    if e.get(\"actor\") == tid or e.get(\"target\") == tid:\n"
+        "                        _h1b3_pe.append({\"type\": e.get(\"type\") or e.get(\"event_type\"), \"actor\": e.get(\"actor\"), \"target\": e.get(\"target\"), \"importance\": e.get(\"importance\", 0.0)})\n"
+        "                elif (hasattr(e, \"target_id\") and e.target_id == tid) or (hasattr(e, \"actor_id\") and e.actor_id == tid):\n"
+        "                        _h1b3_pe.append({\"type\": getattr(e, \"event_type\", None), \"actor\": getattr(e, \"actor_id\", None), \"target\": getattr(e, \"target_id\", None), \"importance\": getattr(e, \"importance\", 0.0)})\n"
+        "            graph_weights[tid] = {\n"
+        "                \"trust\": rel.get(\"trust\", 0.0),\n"
+        "                \"fear\": rel.get(\"fear\", 0.0),\n"
+        "                \"debt\": rel.get(\"debt\", 0.0),\n"
+        "                \"recent_pressure\": min(recent_pressure, 100.0),\n"
+        "                \"_h1b3_pressure_events\": _h1b3_pe,\n"
+        "            }\n"
+    ),
 }
 
 
@@ -104,43 +185,78 @@ def discover_anchor_lines(hub: Path) -> dict:
     return out
 
 
-def install_mask_off_in_memory() -> str:
-    """In-memory mask-off (strategy C): ровно 1 совпадение line_pattern -> replacement;
-    exec пропатченного исходника в namespace НАСТОЯЩЕГО модуля (держатели ссылки видят патч).
-    На диск ничего не пишется."""
-    if not MASK_OFF_PATCH["enabled"]:
-        raise SystemExit("[BLOCK] MASK_OFF_PATCH не финализирован.")
-    hub = REPO_ROOT / MASK_OFF_PATCH["file"]
+def install_h1b_mini_capture(mode: str) -> str:
+    """In-memory H1b-mini patch: захват base до/после mask + OFF-инъекция.
+
+    mode="on": base *= mask_mod (применяется), mask_application_enabled=True
+    mode="off": base *= 1.0 (инъекция), mask_application_enabled=False
+
+    Обе ноги: захват _h1b_base_before_mask, _h1b_mask_mod, _h1b_base_after_mask.
+    mask_application_enabled — из режима (ON/OFF), не из diff.
+
+    Production-код на диске не меняется. exec в namespace модуля."""
+    if not H1B_MINI_PATCH["enabled"]:
+        raise SystemExit("[BLOCK] H1B_MINI_PATCH не финализирован.")
+    if mode not in ("on", "off"):
+        raise SystemExit(f"[FAIL] mode должен быть 'on' или 'off', получил {mode!r}")
+
+    hub = REPO_ROOT / H1B_MINI_PATCH["file"]
     src = hub.read_text(encoding="utf-8")
-    matches = list(re.finditer(MASK_OFF_PATCH["line_pattern"], src))
-    if len(matches) != 1:
-        lines = [src[: m.start()].count("\n") + 1 for m in matches]
+    old_block = H1B_MINI_PATCH["old_block"]
+    new_block = H1B_MINI_PATCH["on_block"] if mode == "on" else H1B_MINI_PATCH["off_block"]
+
+    occurrences = src.count(old_block)
+    if occurrences != 1:
         raise SystemExit(
-            f"[FAIL] line_pattern дал {len(matches)} совпадений (ожидалось ровно 1), строки {lines}. "
-            "Якорь сдвинулся (decision_hub рефакторили?) — обновить паттерн ДО прогона.")
-    patched_src, n_sub = re.subn(MASK_OFF_PATCH["line_pattern"], MASK_OFF_PATCH["replacement"],
-                                  src, count=1)
-    if n_sub != 1:
-        raise SystemExit("[FAIL] Замена не применилась — остановиться и разобраться.")
-    # P1/D-1: имя = КАНОНИЧЕСКОЕ имя цепочки (C5a: from app.services.npc.decision_hub import ...
-    # на уровне функций; C5d: цепочка ленива — на момент инъекции модуля нет в sys.modules).
-    # Старый walk давал 'backend.app.*' — чужой объект: патч ложился в него, а цепочка
-    # лениво создавала СВОЙ непатченный модуль -> OFF тихо шёл с маской -> ложный B4 (Д-8).
-    # relative_to fail-loud: если файл уйдёт из backend/, остановка, не тихий обход.
+            f"[FAIL] old_block дал {occurrences} совпадений (ожидалось ровно 1). "
+            "Якорь сдвинулся (decision_hub рефакторили?) — обновить old_block ДО прогона.")
+
+    patched_src = src.replace(old_block, new_block, 1)
+
+    # H1b-mini2: второй блок — захват входов risk_penalty
+    old_block_2 = H1B_MINI_PATCH["old_block_2"]
+    new_block_2 = H1B_MINI_PATCH["new_block_2"]
+    occ2 = patched_src.count(old_block_2)
+    if occ2 != 1:
+        raise SystemExit(
+            f"[FAIL] old_block_2 дал {occ2} совпадений (ожидалось ровно 1). "
+            "Якорь return-блока _score_components сдвинулся — обновить old_block_2."
+        )
+    patched_src = patched_src.replace(old_block_2, new_block_2, 1)
+
+    # H1b-mini3: третий блок — захват pressure events из get_weights_for_decision
+    # Патчит memory_manager.py (отдельный файл от decision_hub.py)
+    mm_file = REPO_ROOT / H1B_MINI_PATCH["file_3"]
+    mm_src = mm_file.read_text(encoding="utf-8")
+    old_block_3 = H1B_MINI_PATCH["old_block_3"]
+    new_block_3 = H1B_MINI_PATCH["new_block_3"]
+    occ3 = mm_src.count(old_block_3)
+    if occ3 != 1:
+        raise SystemExit(
+            f"[FAIL] old_block_3 дал {occ3} совпадений (ожидалось ровно 1). "
+            "Якорь get_weights_for_decision return сдвинулся — обновить old_block_3."
+        )
+    patched_mm_src = mm_src.replace(old_block_3, new_block_3, 1)
+
+    # P1/D-1: каноническое имя цепочки (ленивые импорты, walk-имена НЕ работают)
     dotted = ".".join(hub.relative_to(REPO_ROOT / "backend").with_suffix("").parts)
-    # D-1: argv[0] лежит в scenarios/, пакет backend оттуда не разрешим;
-    # репо-корень уже вычислен (REPO_ROOT) — ставим в sys.path ДО импорта.
     if str(REPO_ROOT) not in sys.path:
         sys.path.insert(0, str(REPO_ROOT))
     mod = importlib.import_module(dotted)
-    m0 = matches[0]
-    old_line = src[m0.start(): src.find("\n", m0.start())]
-    exec(compile(patched_src, f"{hub} (in-memory mask-off)", "exec"), mod.__dict__)
-    return ("mask-off in-memory patch:\n"
-            f"  file: {hub}\n  module: {dotted}\n"
-            f"  - {old_line.strip()}\n"
-            f"  + {MASK_OFF_PATCH['replacement'].strip()}\n"
-            "  режим: только потребление множителя; состояние маски (тип/intensity) не тронуто")
+    exec(compile(patched_src, f"{hub} (in-memory h1b-mini {mode})", "exec"), mod.__dict__)
+
+    # H1b-mini3: применить патч к memory_manager.py
+    mm_dotted = ".".join(mm_file.relative_to(REPO_ROOT / "backend").with_suffix("").parts)
+    mm_mod = importlib.import_module(mm_dotted)
+    exec(compile(patched_mm_src, f"{mm_file} (in-memory h1b-mini3)", "exec"), mm_mod.__dict__)
+
+    return (
+        f"h1b-mini in-memory patch ({mode}):\n"
+        f"  file: {hub}\n  module: {dotted}\n"
+        f"  mode: {mode} → mask_application_enabled={'True' if mode == 'on' else 'False'}\n"
+        f"  capture: _h1b_base_before_mask, _h1b_mask_mod, _h1b_base_after_mask, _h1b_mask_application_enabled\n"
+        f"  off-injection: {'applied (base *= 1.0)' if mode == 'off' else 'not applied (base *= mask_mod)'}"
+    )
 
 
 def _git(args: list) -> str:
@@ -280,15 +396,23 @@ def mode_check() -> int:
     print(f"[INFO] кандидатов строки потребления ('*' + hint): {len(anchors['consumption'])}")
     for n, l in anchors["consumption"][:40]:
         print(f"   {n}: {l}")
-    if MASK_OFF_PATCH["enabled"]:
-        src = (REPO_ROOT / MASK_OFF_PATCH["file"]).read_text(encoding="utf-8", errors="replace")
-        n = len(list(re.finditer(MASK_OFF_PATCH["line_pattern"], src)))
-        state = "OK" if n == 1 else "FAIL"
-        print(f"[{state}] MASK_OFF_PATCH: line_pattern даёт {n} совпадений (нужно ровно 1)")
-        if n != 1:
-            print("        -> якорь сдвинулся; обновить line_pattern ДО прогона; --leg off не запускать.")
+    if H1B_MINI_PATCH["enabled"]:
+        src = (REPO_ROOT / H1B_MINI_PATCH["file"]).read_text(encoding="utf-8", errors="replace")
+        n1 = src.count(H1B_MINI_PATCH["old_block"])
+        n2 = src.count(H1B_MINI_PATCH["old_block_2"])
+        s1 = "OK" if n1 == 1 else "FAIL"
+        s2 = "OK" if n2 == 1 else "FAIL"
+        print(f"[{s1}] H1B_MINI_PATCH: old_block даёт {n1} совпадений (нужно ровно 1)")
+        print(f"[{s2}] H1B_MINI_PATCH: old_block_2 даёт {n2} совпадений (нужно ровно 1)")
+        # H1b-mini3: memory_manager.py — отдельный файл
+        mm_src = (REPO_ROOT / H1B_MINI_PATCH["file_3"]).read_text(encoding="utf-8", errors="replace")
+        n3 = mm_src.count(H1B_MINI_PATCH["old_block_3"])
+        s3 = "OK" if n3 == 1 else "FAIL"
+        print(f"[{s3}] H1B_MINI_PATCH: old_block_3 (memory_manager) даёт {n3} совпадений (нужно ровно 1)")
+        if n1 != 1 or n2 != 1 or n3 != 1:
+            print("        -> якорь сдвинулся; обновить old_block / old_block_2 / old_block_3 ДО прогона; --leg не запускать.")
     else:
-        print("[BLOCK] MASK_OFF_PATCH не финализирован.")
+        print("[BLOCK] H1B_MINI_PATCH не финализирован.")
     print(f"[OK] LEG_RUNNER: клетка {LEG_RUNNER['cell_key']}, пресет {LEG_RUNNER['preset_rel']}; "
           "нога = ядро донора in-process, патч до импорта цепочки (паттерн bm_factorial_isolation.py).")
     aprime = here / "bm_aprime_offline.py"
@@ -321,7 +445,9 @@ def mode_leg(mode: str, window_confirmed: str) -> int:
         if p not in sys.path:
             sys.path.insert(0, p)
     if mode == "off":
-        print(install_mask_off_in_memory())
+        print(install_h1b_mini_capture("off"))
+    else:
+        print(install_h1b_mini_capture("on"))
     # Импорт цепочки раннера — ПОСЛЕ патча (патч действует в памяти ЭТОГО процесса).
     import bm_factorial_test as _f  # noqa: E402
     key = LEG_RUNNER["cell_key"]

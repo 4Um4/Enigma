@@ -168,6 +168,58 @@ async def trait_gaps_export(campaign_id: str, format: str = "md") -> Dict[str, A
     )
     return {"status": "OK", "format": format, "count": rep["total"], "text": text}
 
+# ── CCH-4.5: отчёт понимания «поняла / не поняла» по каждому пункту ────────
+router = chronicle_router
+
+@router.get("/chronicle/{campaign}/understanding")
+def get_understanding(campaign: str, source: str = "drafts",
+                      format: str = "md") -> dict:
+    """Каждый пункт author_text -> поняла/частично/не поняла.
+
+    Конверт как у trait-gaps/beliefs-export: status/text/count.
+    Полный отчёт — в поле report (per_npc records с matched — вердикты
+    по пунктам; пригодится панели ИСТОРИЯ). source=drafts — LLM-черновики
+    сейва; source=canon — то, что реально увидит сеялка после F9.
+    """
+    from app.core.config import BASE_DIR
+    from app.services.chronicle.understanding_report import (
+        build_report,
+        docs_from_dir,
+        render_json,
+        render_markdown,
+    )
+
+    if source == "canon":
+        base = BASE_DIR / "config" / "npc" / "chronicles"
+    else:
+        base = BASE_DIR / "saves" / campaign / "chronicle_drafts"
+    docs, problems = docs_from_dir(base)
+    if not docs:
+        return {
+            "status": "EMPTY",
+            "campaign": campaign,
+            "source": source,
+            "problems": problems,
+            "empty_reason": (
+                "Канон пуст: сеялке пока нечего грузить — пункты ещё "
+                "не приняты в канон (F9)."
+                if source == "canon"
+                else "Черновики не найдены: сохрани авторский текст и "
+                "прогони разбор (Ctrl+G) хотя бы для одного NPC."
+            ),
+        }
+    rep = build_report(docs, campaign)
+    if problems:
+        rep["problems"] = problems
+    rep["source"] = source
+    text = render_markdown(rep) if format != "json" else render_json(rep)
+    return {
+        "status": "OK",
+        "text": text,
+        "count": rep["totals"]["items"],
+        "report": rep,
+    }
+
 
 @chronicle_router.post("/chronicle/{campaign_id}/{npc_id}/decompose")
 async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeRequest) -> Dict[str, Any]:

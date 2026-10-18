@@ -1,0 +1,211 @@
+{
+  "leg": "on",
+  "cell": "CELL-B_f70_tm60",
+  "preset": "config/calibration/test_presets/golden_fear_f70.yaml",
+  "preset_sha256": "a99a0b77fb950b5d96e8a5394bca7b5302cf3711366e71cd8f4acb49025959d1",
+  "metrics": {
+    "y1_window": -2.61301,
+    "y1_masked": -2.61301,
+    "y2_share": 0.0,
+    "mask_ticks": 29,
+    "ticks_scored": 14,
+    "empty_ticks": [
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30
+    ],
+    "gaps_per_tick": [
+      {
+        "tick": 2,
+        "gap": -2.5689
+      },
+      {
+        "tick": 3,
+        "gap": -2.509
+      },
+      {
+        "tick": 4,
+        "gap": -2.574933
+      },
+      {
+        "tick": 5,
+        "gap": -2.603933
+      },
+      {
+        "tick": 6,
+        "gap": -2.521133
+      },
+      {
+        "tick": 7,
+        "gap": -2.6284
+      },
+      {
+        "tick": 8,
+        "gap": -2.6548
+      },
+      {
+        "tick": 9,
+        "gap": -2.66565
+      },
+      {
+        "tick": 10,
+        "gap": -2.6476
+      },
+      {
+        "tick": 11,
+        "gap": -2.534067
+      },
+      {
+        "tick": 12,
+        "gap": -2.70565
+      },
+      {
+        "tick": 13,
+        "gap": -2.7166
+      },
+      {
+        "tick": 14,
+        "gap": -2.590133
+      },
+      {
+        "tick": 15,
+        "gap": -2.661333
+      }
+    ],
+    "intent_seq": [
+      "change_role",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe",
+      "observe"
+    ],
+    "mask_seq": [
+      "none",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission",
+      "fake_submission"
+    ]
+  },
+  "window": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "per_intent_common": {
+    "attack": {
+      "mean": 0.073607,
+      "present_ticks": 14
+    },
+    "intimidate": {
+      "mean": 0.177143,
+      "present_ticks": 14
+    },
+    "warn": {
+      "mean": 0.355975,
+      "present_ticks": 8
+    },
+    "observe": {
+      "mean": 3.047143,
+      "present_ticks": 14
+    },
+    "talk": {
+      "mean": 2.77235,
+      "present_ticks": 8
+    },
+    "idle": {
+      "mean": 2.521907,
+      "present_ticks": 14
+    }
+  },
+  "present_ticks": {
+    "attack": 14,
+    "intimidate": 14,
+    "warn": 8,
+    "observe": 14,
+    "talk": 8,
+    "idle": 14
+  },
+  "present_ticks_b1_reference": {
+    "attack": 14,
+    "intimidate": 14,
+    "warn": 8,
+    "observe": 14,
+    "talk": 8,
+    "idle": 14
+  },
+  "present_ticks_match_b1": true
+}

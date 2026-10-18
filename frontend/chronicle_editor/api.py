@@ -52,6 +52,17 @@ class ChronicleApi:
         except BackendError:
             return None
 
+    def understanding(self, campaign: str, format: str,
+                       source: str = "drafts") -> Optional[Dict[str, Any]]:
+        """CCH-4.5: отчёт «поняла / не поняла» по каждому пункту автора
+        (source=drafts — черновики; source=canon — что увидит сеялка)."""
+        try:
+            return self._http.get(
+                f"/api/chronicle/{campaign}/understanding"
+                f"?format={format}&source={source}")
+        except BackendError:
+            return None
+
     def get_draft(self, campaign: str, npc_id: str) -> Optional[Dict[str, Any]]:
         try:
             data = self._http.get(f"/api/chronicle/{campaign}/{npc_id}/draft")
@@ -89,6 +100,27 @@ class ChronicleApi:
         if not changed:
             return False
         return self.save_draft(campaign, npc_id, doc)
+
+    def confirm_author_entries(self, campaign: str, npc_id: str) -> int:
+        """BLOCK 9 / FR-10.1: акт автора «принять разложение» — перевести все
+        LLM_DRAFT записи черновика в AUTHOR_CONFIRMED ДО canonize (перевод
+        делает фронт — см. докстринг эндпоинта; иначе store даёт 422, запрет 1
+        ADR-O-420). confidence убирается: «AUTHOR_* не хранит confidence —
+        канон не гипотеза» (domain __post_init__). Прецедент read-modify-write:
+        resolve_question. Возврат: число переведённых записей; -1 — черновик
+        или сервер недоступны."""
+        doc = self.get_draft(campaign, npc_id)
+        if not doc:
+            return -1
+        confirmed = 0
+        for e in doc.get("entries") or []:
+            if e.get("provenance") == "LLM_DRAFT":
+                e["provenance"] = "AUTHOR_CONFIRMED"
+                e.pop("confidence", None)
+                confirmed += 1
+        if confirmed and not self.save_draft(campaign, npc_id, doc):
+            return -1
+        return confirmed
 
     def canonize(self, campaign: str, npc_id: str) -> Dict[str, Any]:
         """FR-10.1: «Принять как канон». 422 = блок «Save = Contract» (T-CCH-04)."""
