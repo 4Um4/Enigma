@@ -68,7 +68,12 @@ def validate_all_schemas(game_loop: Any = None) -> List[str]:
                 from app.services.events.event_types import EventType
 
                 _bus = get_event_bus()
-                subs = getattr(_bus, "_subscribers", {}).get(EventType.TICK_COMPLETED, [])  # noqa: ENIGMA002
+                # Поле называется _handlers (event_bus.py:50), НЕ _subscribers.
+                # Ключ — строковое значение enum: EventType.TICK_COMPLETED.value.
+                # Пустой default — валидное состояние (нет шины/хэндлеров);
+                # отсутствие подписчиков ниже отражается в errors явно (не silent).
+                _handlers = getattr(_bus, "_handlers", {})  # noqa: ENIGMA002
+                subs = _handlers.get(EventType.TICK_COMPLETED.value, [])  # noqa: ENIGMA002
                 if len(subs) == 0:
                     errors.append("No subscribers for TICK_COMPLETED — M-03/N2 regression")
             except Exception as e:

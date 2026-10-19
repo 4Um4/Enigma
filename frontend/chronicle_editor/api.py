@@ -86,17 +86,44 @@ class ChronicleApi:
         selected_value: Optional[str] = None,
     ) -> bool:
         """FR-3.1 (T-CCH-03): резолюция вопроса в draft (4-опции + свободный ввод
-        через selected_value). Писатель — автор в UI (запрет 2)."""
+        через selected_value). Писатель — автор в UI (запрет 2).
+        Сначала пробует backend endpoint /resolve; если недоступен —
+        локальный путь (читает draft, убирает вопрос из open_questions,
+        сохраняет через save_draft)."""
+        # Путь 1: backend endpoint (канонический)
+        try:
+            body = {
+                "campaign_id": campaign,
+                "npc_id": npc_id,
+                "question_id": question_id,
+                "selected_option": selected_option,
+                "selected_value": selected_value,
+            }
+            resp = self._http.post(
+                f"/api/chronicle/{campaign}/{npc_id}/resolve", body
+            )
+            return resp.get("status") == "OK"
+        except Exception:
+            pass  # fallback на локальный путь
+        # Путь 2: локальный (если backend endpoint недоступен)
         doc = self.get_draft(campaign, npc_id)
         if not doc:
             return False
         changed = False
         for e in doc.get("entries") or []:
+            _remaining = []
             for q in e.get("open_questions") or []:
                 if q.get("question_id") == question_id:
-                    q["selected_option"] = selected_option
-                    q["selected_value"] = selected_value
+                    _resolved = e.setdefault("_resolved_questions", [])
+                    _resolved.append({
+                        "question_id": question_id,
+                        "selected_option": selected_option,
+                        "selected_value": selected_value,
+                    })
                     changed = True
+                else:
+                    _remaining.append(q)
+            e["open_questions"] = _remaining
         if not changed:
             return False
         return self.save_draft(campaign, npc_id, doc)

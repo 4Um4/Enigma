@@ -49,7 +49,9 @@ class ReadinessService:
 
         # ── Обязательное ядро ─────────────────────────────────────
         # 1. Startup Gate
-        gate_result = getattr(app_state, "startup_gate", None) if app_state else None
+        # Отсутствие атрибута (lifespan не запущен) — валидное состояние:
+        # ниже отражается status="missing" в явном отчёте (не silent failure).
+        gate_result = getattr(app_state, "startup_gate", None) if app_state else None  # noqa: ENIGMA001, ENIGMA002
         if gate_result is None:
             checks.append(
                 ReadinessCheck(
@@ -81,7 +83,8 @@ class ReadinessService:
             core_ok = False
 
         # 2. Game Loop
-        game_loop = getattr(app_state, "game_loop", None) if app_state else None
+        # Та же граница честности: отсутствие → status="missing" в отчёте.
+        game_loop = getattr(app_state, "game_loop", None) if app_state else None  # noqa: ENIGMA001, ENIGMA002
         if game_loop is not None:
             checks.append(
                 ReadinessCheck(
@@ -105,7 +108,7 @@ class ReadinessService:
         # LLM Router / Pool / Server / VRAM — опциональные; их деградация
         # не делает score=0 (смешивание запрещено). Только обязательное
         # ядро определяет readiness сервера обслуживать запросы.
-        startup_status = getattr(app_state, "startup_status", {}) if app_state else {}
+        startup_status = getattr(app_state, "startup_status", {}) if app_state else {}  # noqa: ENIGMA002
 
         # 3. LLM Router
         llm_router_ok = self._is_router_initialized()
@@ -218,8 +221,9 @@ class ReadinessService:
             from app.services.llm.provider_manager import get_model_pool
 
             pool = get_model_pool()
-            # pool.models: Dict[str, Any]
-            models = getattr(pool, "models", {})
+            # pool.models: Dict[str, Any]; пустой default — валидное состояние
+            # (пул без моделей → count=0 → partial в явном отчёте, не silent).
+            models = getattr(pool, "models", {})  # noqa: ENIGMA002
             return len(models) if models else 0
         except Exception as e:
             logger.debug("[READINESS] Model Pool probe failed: %s", e)

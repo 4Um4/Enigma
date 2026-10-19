@@ -23,7 +23,7 @@ from app.services.chronicle.chronicle_store import (
     document_from_dict,
     document_to_dict,
 )
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 chronicle_router = APIRouter()
@@ -107,7 +107,6 @@ async def beliefs_export(campaign_id: str, format: str = "md") -> Dict[str, Any]
 
     from app.services.chronicle import belief_export
     from app.services.npc.npc_loader import list_individual_ids
-    from fastapi import HTTPException
 
     if format not in ("md", "json"):
         raise HTTPException(status_code=422, detail="format: только md|json")
@@ -140,7 +139,6 @@ async def trait_gaps_export(campaign_id: str, format: str = "md") -> Dict[str, A
     (записи + Портреты + Мечты) против словаря онтологии. Частоты, соседи,
     статусы. md|json. Файл пишет фронт."""
     from app.services.chronicle import trait_gap_detector
-    from fastapi import HTTPException
 
     if format not in ("md", "json"):
         raise HTTPException(status_code=422, detail="format: только md|json")
@@ -335,3 +333,85 @@ async def canonize_chronicle(campaign_id: str, npc_id: str, req: CanonizeRequest
         # «Save = Contract»: LLM_DRAFT / открытые вопросы / dangling — блок с fix_hint
         raise HTTPException(status_code=422, detail=str(e)) from e
     return {"status": "OK", "path": str(path), "canonical_version": canonical.canonical_version}
+
+
+class ResolveRequest(BaseModel):
+    campaign_id: str = Field(..., min_length=1)
+    npc_id: str = Field(..., min_length=1)
+    question_id: str = Field(..., min_length=1)
+    selected_option: str
+    selected_value: Optional[str] = None
+
+
+@chronicle_router.post("/chronicle/{campaign_id}/{npc_id}/resolve")
+async def resolve_question(campaign_id: str, npc_id: str, req: ResolveRequest) -> Dict[str, Any]:
+    """FR-3.1: резолюция открытого вопроса в draft. Убирает вопрос из
+    open_questions записи (иначе _next_open_question найдёт его снова).
+    История резолюции сохраняется в _resolved_questions (для аудита)."""
+    from dataclasses import replace as _replace
+    store = _get_store()
+    doc = store.load_draft(campaign_id, npc_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail=f"Черновик {npc_id} не найден в {campaign_id}")
+    new_entries = []
+    changed = False
+    for e in doc.entries:
+        if any(q.question_id == req.question_id for q in e.open_questions):
+            _remaining = tuple(q for q in e.open_questions if q.question_id != req.question_id)
+            _resolved_old = e.payload.get("_resolved_questions", [])
+            _resolved_new = list(_resolved_old) + [{
+                "question_id": req.question_id,
+                "selected_option": req.selected_option,
+                "selected_value": req.selected_value,
+            }]
+            _new_payload = {**e.payload, "_resolved_questions": _resolved_new}
+            e = _replace(e, open_questions=_remaining, payload=_new_payload)
+            changed = True
+        new_entries.append(e)
+    if not changed:
+        raise HTTPException(status_code=404, detail=f"Вопрос {req.question_id} не найден в open_questions")
+    new_doc = _replace(doc, entries=tuple(new_entries))
+    store.save_draft(new_doc, campaign_id)
+    return {"status": "OK", "resolved": req.question_id}
+
+# ── CCH-5: экспорт-проекции канон-хроник ─────────────────────────────────────
+# Артефакты аудита в config/npc/chronicles/_projections/. НЕ источник истины
+# для рантайма (npc_loader/chronicle_seeder не читают проекции). Канон —
+# единственный SSOT. Атомарная публикация через поколение + current.json (A3).
+# EXPLICIT: секретность — только payload['is_secret'] is True на kind=EVENT.
+
+@chronicle_router.post("/chronicle/{campaign_id}/export-projections")
+async def export_projections(campaign_id: str) -> Dict[str, Any]:
+    """CCH-5 (ADR-O-420): публикация трёх проекций канон-хроник в форматы
+    старых систем: origin_events / village_relations / truth_state.
+
+    Возвращает:
+      - status: OK | EMPTY | BLOCKED
+      - generation_id: ID нового поколения (None при EMPTY/BLOCKED)
+      - files: какие файлы опубликованы
+      - truth_state_status: OK | EMPTY
+      - diagnostics: счётчики и списки пропусков/блокировок
+      - errors: структурно повреждённые ссылки (при BLOCKED)
+
+    BLOCKED — структурно повреждённые ссылки (dangling origin_ref, unknown
+    participants); поколение не публикуется, старый current.json действующий.
+    EMPTY — нет канонов вообще или нет секретных EVENT (truth_state-файл
+    не создаётся).
+    """
+    from app.services.chronicle.chronicle_projections import export_all_projections
+    return export_all_projections(campaign_id)
+
+
+@chronicle_router.get("/chronicle/projections/current")
+async def get_current_projection() -> Dict[str, Any]:
+    """Текущее активное поколение проекций (для аудита/тестов). None если
+    никогда не публиковалось. Read-only — не запускает публикацию."""
+    from app.services.chronicle.chronicle_projections import (
+        list_generations,
+        read_current_pointer,
+    )
+    current = read_current_pointer()
+    return {
+        "current": current,
+        "generations": list_generations(),
+    }
