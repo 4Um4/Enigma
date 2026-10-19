@@ -518,8 +518,11 @@ def system_requirements(game_loop: Any = Depends(get_game_loop)) -> dict:
 
 
 @router.get("/status/readiness", response_model=ReadinessReport)
-def readiness_status() -> ReadinessReport:
-    return readiness_service.report()
+def readiness_status(request: Request) -> ReadinessReport:
+    # ADR-O-426 D70: readiness читает реальное состояние startup gate
+    # из app.state ( опубликовано lifespan: startup_gate, startup_status,
+    # game_loop). Без аргумента = minimal fallback (lifespan не запущен).
+    return readiness_service.report(request.app.state)
 
 
 @router.post("/campaign/load", response_model=CampaignLoadResponse)

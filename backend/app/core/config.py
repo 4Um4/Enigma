@@ -194,6 +194,12 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def ensure_log_dir(self) -> "Settings":
         self.log_dir.mkdir(parents=True, exist_ok=True)
+        # ADR-O-426 D70 / Вердикт В1: диагностика неизвестных AIDM_ env vars.
+        # extra="ignore" глотает опечатки молча; мы логируем WARNING —
+        # НЕ блокирующий (legacy .env могут содержать устаревшие vars),
+        # но и не молчащий. Решение блокировать/нет принимает старт-гейт
+        # (app.core.startup_gate) — он же повторяет проверку для полноты.
+        _log_unknown_aidm_env(self)
         return self
 
     def __init__(self, **kwargs: Any) -> None:
@@ -294,6 +300,70 @@ class ErrorInterpreter:
         exc = RuntimeError("Simulated startup error")
         self.log_exception(exc)
         raise exc
+
+
+def _log_unknown_aidm_env(settings_instance: "Settings") -> None:
+    """ADR-O-426 D70 / Вердикт В1: логирует неизвестные AIDM_ env vars.
+
+    Pydantic extra='ignore' глотает опечатки молча (COV-D70). Здесь мы
+    читаем os.environ и .env и логируем WARNING для любого AIDM_-префикса,
+    не входящего в поля Settings (включая ModelConfig — общий env_prefix).
+
+    НЕ блокирующий: старые .env могут содержать legacy-переменные. Решение
+    блокировать принимает старт-гейт (с повторной проверкой для полноты).
+    """
+    import logging as _log
+    import os as _os
+    from pathlib import Path as _Path
+
+    _logger = _log.getLogger(__name__)
+    known_upper: set[str] = set()
+    for name in Settings.model_fields.keys():
+        known_upper.add(name.upper())
+    from app.core.config import ModelConfig  # noqa: PLC0415
+    for name in ModelConfig.model_fields.keys():
+        known_upper.add(name.upper())
+
+    seen: set[str] = set()
+
+    # 1. os.environ — переменные процесса
+    # known_upper хранит имена БЕЗ префикса (API_PORT, не AIDM_API_PORT);
+    # срезаем AIDM_ перед сравнением.
+    for key in sorted(_os.environ.keys()):
+        if (
+            key.startswith("AIDM_")
+            and key[5:].upper() not in known_upper
+            and key not in seen
+        ):
+            seen.add(key)
+            _logger.warning(
+                "[CONFIG] Unknown AIDM_ env variable in process: %s "
+                "(not in Settings — will be ignored by pydantic extra='ignore')",
+                key,
+            )
+
+    # 2. .env file (если есть в CWD)
+    env_path = _Path(".env")
+    if env_path.exists():
+        try:
+            for line in env_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line.startswith("#") or "=" not in line:
+                    continue
+                key = line.split("=", 1)[0].strip()
+                if (
+                    key.startswith("AIDM_")
+                    and key[5:].upper() not in known_upper
+                    and key not in seen
+                ):
+                    seen.add(key)
+                    _logger.warning(
+                        "[CONFIG] Unknown AIDM_ variable in .env: %s "
+                        "(not in Settings — will be ignored by pydantic extra='ignore')",
+                        key,
+                    )
+        except OSError as e:
+            _logger.warning("[CONFIG] .env read error: %s", e)
 
 
 settings = Settings()

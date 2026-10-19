@@ -160,22 +160,67 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except Exception as e:
         logger.warning(f"[STARTUP] ModelPool debug failed: {e}")
 
-    # 5. GameLoop — единственный инстанс, живёт в app.state
-    try:
-        app.state.game_loop = build_game_loop(DATA_DIR)
-        print("✓ GameLoop initialized (app.state)")
+    # 5. GameLoop (обязательное ядро) — единая блокирующая сборка
+    #    с гейтом ADR-O-426 D70: build_game_loop → startup_gate.
+    #    Любой провал → cleanup + raise до yield → uvicorn exit non-zero.
+    #    Необязательные интеграции (LLM/ModelPool/VRAM) остаются выше —
+    #    их отказ не блокирует ядро, а только деградирует readiness.
+    from app.core.startup_gate import (
+        StartupValidationError,
+        get_known_config_fields,
+        run_startup_gate,
+    )
 
-        # ENIGMA SELF-HEALING (Level 5): Startup Schema Validation (Passive Audit)
-        from app.core.schema_validator import validate_all_schemas
-        try:
-            validate_all_schemas(app.state.game_loop)
-            print("✓ Schema validation passed (NPCs, TruthState, EventBus)")
-        except Exception as e:
-            print(f"⚠️ Schema validation warning: {e}")
+    _game_loop = None
+    try:
+        _game_loop = build_game_loop(DATA_DIR)
+        print("✓ GameLoop initialized")
+
+        # Startup Gate (ADR-O-426 Шаг 4 / D70): config → migrations → schema.
+        # Миграции (Шаг 1 wiring, вердикт В3) — единый путь в рантайме;
+        # стампинг живых БД — отдельный протокол первичной классификации,
+        # обычный запуск его не обходит.
+        _gate_result = run_startup_gate(
+            known_config_fields=get_known_config_fields(),
+            game_loop=_game_loop,
+        )
+        app.state.startup_gate = _gate_result
+        print(
+            f"✓ Startup gate passed (migrations: {len(_gate_result.migrations)}, "
+            f"config warnings: {len(_gate_result.config_warnings)})"
+        )
+
+        app.state.game_loop = _game_loop
+        _game_loop = None  # ownership передан app.state
+    except StartupValidationError as e:
+        # Блокирующий провал ядра — cleanup уже созданных ресурсов,
+        # uvicorn не принимает соединения (raise до yield).
+        logger.error(f"[STARTUP] Startup gate FAILED: step={e.step}")
+        for err in e.errors:
+            logger.error(f"[STARTUP]   - {err}")
+        print(f"✗ Startup gate failed (step={e.step}): {e.detail}")
+        if _game_loop is not None:
+            try:
+                _game_loop.dispose()
+            except Exception as dispose_err:
+                logger.warning(f"[STARTUP] dispose on fail crashed: {dispose_err}")
+        app.state.game_loop = None
+        app.state.startup_gate = None
+        raise  # uvicorn увидит RuntimeError → non-zero exit
     except Exception as e:
-        logger.error(f"[STARTUP] GameLoop failed: {e}")
-        print(f"✗ GameLoop error: {e}")
-        app.state.game_loop = None  # explicit — guard в accessor
+        # Любой другой провал build_game_loop / gate wiring — тоже fail-loud:
+        # ранее глотали и оставляли game_loop=None, что позволяло uvicorn
+        # обслуживать запросы с мёртвым ядром (COV-D70).
+        logger.error(f"[STARTUP] GameLoop/gate crashed: {e}", exc_info=True)
+        print(f"✗ GameLoop/gate error: {e}")
+        if _game_loop is not None:
+            try:
+                _game_loop.dispose()
+            except Exception as dispose_err:
+                logger.warning(f"[STARTUP] dispose on fail crashed: {dispose_err}")
+        app.state.game_loop = None
+        app.state.startup_gate = None
+        raise
 
     # === БЫСТРЫЙ СТАРТ ЗАВЕРШЁН — сервер готов принимать соединения ===
     # Медленные операции (llama-server, health check) запускаются в фоне.
