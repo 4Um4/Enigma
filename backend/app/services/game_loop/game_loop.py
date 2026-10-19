@@ -242,6 +242,32 @@ class GameLoop:
             # вне зоны изоляции/удаления DriftLab. wiring записи не тронут.
             _replay_db_path = Path(settings.replay_store_path)
             _replay_store = ReplayStore(_replay_db_path)
+            # D72 (ADR-O-426 §1 II.Д): консервативный replay-бюджет.
+            # Auto-prune только при явном включении (keep_last > 0);
+            # default 0 = OFF — до подтверждения пути/активности ReplayStore
+            # ничего не удаляется. Pinned-сессии ADR-O-351 защищены ВСЕГДА.
+            # Prune ДО start_session: новая сессия не учитывается в keep_last
+            # (после prune остаётся keep_last unpinned + новая = keep_last+1).
+            # Replay = optional (вердикт В2 D70): prune failure не блокирует
+            # ядро — логируем warning и продолжаем без recorder.
+            if settings.replay_budget_keep_last > 0:
+                try:
+                    _pruned = _replay_store.prune_old_sessions(
+                        keep_last=settings.replay_budget_keep_last
+                    )
+                    if _pruned:
+                        logger.info(
+                            f"[GAME_LOOP] Replay budget: pruned "
+                            f"{len(_pruned)} old unpinned session(s) "
+                            f"(keep_last={settings.replay_budget_keep_last}, "
+                            f"pinned protected by ADR-O-351)"
+                        )
+                except Exception as _prune_err:
+                    logger.warning(
+                        f"[GAME_LOOP] Replay budget prune failed "
+                        f"(keep_last={settings.replay_budget_keep_last}): "
+                        f"{_prune_err}"
+                    )
             _session_id = _replay_store.start_session(
                 campaign_id="Open_road",
                 commit_hash="dev"

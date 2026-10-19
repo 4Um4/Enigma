@@ -46,6 +46,10 @@ VALID_VERDICTS = {
 }
 PYDANTIC_SETTINGS_CLASS = "Settings"
 PYDANTIC_STRING_FLAGS = {"replay_mode", "environment"}
+# Pydantic int-флаги (COV-0): числовые ручки с вердиктом (CALIBRATION /
+# ROLLOUT-PENDING). int-поля без записи здесь = не флаг (не собираются
+# сканером; прецедент min_ram_gb/npc_load_threshold — обычные настройки).
+PYDANTIC_INT_FLAGS = {"replay_budget_keep_last"}
 
 _TRUTHY = {"1", "true", "yes", "on"}
 _DOC_RE = re.compile(r"default\s+(ON|OFF)", re.IGNORECASE)
@@ -181,6 +185,7 @@ def scan_file(py: Path) -> Tuple[Dict[str, List[FlagSite]], Dict[str, str]]:
                         and (
                             isinstance(stmt.value.value, bool)
                             or stmt.target.id in PYDANTIC_STRING_FLAGS
+                            or stmt.target.id in PYDANTIC_INT_FLAGS
                         )
                     ):
                         nm = stmt.target.id

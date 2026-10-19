@@ -340,6 +340,14 @@ flags:
     adr: ADR-O-351
     owner: B
     note: "runtime-производная replay_mode (game_loop форсирует True); ручной env не предусмотрен"
+  replay_budget_keep_last:
+    type: pydantic
+    read_mode: pydantic
+    default: "0"
+    verdict: ROLLOUT-PENDING
+    adr: ADR-O-426
+    owner: B
+    note: "D72 replay-бюджет; default 0 = OFF (вердикт II.Д — до подтверждения пути/активности ReplayStore ничего не удаляется); активация (>0) — отдельный вердикт Мастера; pinned ADR-O-351 защищены ВСЕГДА"
 
   # ── BURY (кандидаты удаления — удаление отдельным шагом) ────────────────
   ENIGMA_RC8_STATE:

@@ -68,6 +68,13 @@ class Settings(BaseSettings):
     # Вне data_dir: DriftLab изолирует и УНИЧТОЖАЕТ temp data_dir —
     # сессии обязаны переживать прогон. Parent-каталог создаёт ReplayStore.
     replay_store_path: str = str(BASE_DIR / "reports" / "replay_sessions" / "replay.db")
+    # D72 (ADR-O-426 §1 II.Д): консервативный replay-бюджет.
+    # Кол-во последних unpinned-сессий, которые ReplayStore обязан хранить.
+    # Default 0 = OFF — до подтверждения пути/активности ReplayStore
+    # ничего не удаляется (вердикт II.Д). Pinned-сессии ADR-O-351 защищены
+    # ВСЕГДА. Активация (>0) — отдельный вердикт Мастера, не часть D72.
+    # Валидация в GameLoop: prune вызывается только при keep_last > 0.
+    replay_budget_keep_last: int = 0
 
     llama_cpp_server_executable: str = str(
         BASE_DIR / "Models LLM" / "llama" / "llama-server.exe"

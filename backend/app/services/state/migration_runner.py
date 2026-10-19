@@ -478,6 +478,26 @@ _REPLAY_SPEC_V1 = MigrationSpec(
     apply=_make_apply(_REPLAY_V1_STATEMENTS),
 )
 
+# replay v2: D72 (ADR-O-426 §1 II.Д) — replay-бюджет.
+# sessions.pinned BOOLEAN NOT NULL DEFAULT 0 (защита живых A/B-сессий
+# ADR-O-351 от авто-ротации); 2 индекса для O(log N) prune:
+# idx_sessions_started_at (сортировка старых unpinned к удалению) +
+# idx_sessions_pinned_started (фильтр pinned за один index seek).
+# ADD COLUMN с DEFAULT — легален в одной транзакции (II.2).
+_REPLAY_V2_STATEMENTS: tuple[str, ...] = (
+    "ALTER TABLE sessions ADD COLUMN pinned BOOLEAN NOT NULL DEFAULT 0",
+    "CREATE INDEX IF NOT EXISTS idx_sessions_started_at ON sessions(started_at DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_sessions_pinned_started ON sessions(pinned, started_at)",
+)
+_REPLAY_SPEC_V2 = MigrationSpec(
+    store_id="replay",
+    from_version=1,
+    to_version=2,
+    owner="COV-1/Б",
+    description="D72: sessions.pinned + 2 индекса (replay-бюджет)",
+    apply=_make_apply(_REPLAY_V2_STATEMENTS),
+)
+
 
 def _resolve_memory_path() -> Path:
     from app.core.config import settings  # лениво: без import-сайд-эффектов
@@ -519,7 +539,7 @@ _BUILTIN_REGISTRY: dict[str, StoreRegistration] = {
             store_id="replay",
             path_resolver=_resolve_replay_path,
             bootstrap_classifier=_classify_replay,
-            migrations=(_REPLAY_SPEC_V1,),
+            migrations=(_REPLAY_SPEC_V1, _REPLAY_SPEC_V2),
         ),
     )
 }

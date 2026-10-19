@@ -259,6 +259,140 @@ class ReplayStore:
             logger.error(f"[REPLAY_STORE] Failed to get LLM call: {e}")
             return None
 
+    # ═══════════════════ D72: replay-бюджет (ADR-O-426 §1 II.Д) ═══════════════════
+    # Консервативный контракт: методы существуют и тестируются (показывают,
+    # что удаление возможно и правильно), но AUTO-prune по умолчанию OFF
+    # (settings.replay_budget_keep_last=0). Активация — отдельный вердикт
+    # Мастера. Pinned-сессии ADR-O-351 защищены ВСЕГДА (проверяется тестом).
+
+    def list_sessions(
+        self, limit: int = 100, offset: int = 0
+    ) -> list[dict[str, Any]]:
+        """Возвращает сессии, отсортированные по started_at DESC.
+
+        Поля: session_id, campaign_id, commit_hash, started_at, pinned.
+        """
+        with self._lock:
+            rows = self.conn.execute(
+                """SELECT session_id, campaign_id, commit_hash,
+                          started_at, pinned
+                   FROM sessions
+                   ORDER BY started_at DESC
+                   LIMIT ? OFFSET ?""",
+                (limit, offset),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def count_sessions(self) -> int:
+        """Полное число сессий (pinned + unpinned)."""
+        with self._lock:
+            row = self.conn.execute("SELECT COUNT(*) FROM sessions").fetchone()
+        return int(row[0]) if row else 0
+
+    def pin_session(self, session_id: str) -> bool:
+        """Защищает сессию от prune_old_sessions (ADR-O-351).
+
+        Returns: True если row изменён (s стала pinned); False если уже
+        была pinned или не существует. Idempotent.
+        """
+        with self._lock:
+            cur = self.conn.execute(
+                "UPDATE sessions SET pinned = 1 WHERE session_id = ? AND pinned = 0",
+                (session_id,),
+            )
+            self.conn.commit()
+            return cur.rowcount > 0
+
+    def unpin_session(self, session_id: str) -> bool:
+        """Снимает pinned-защиту. Idempotent. Returns True если row изменён."""
+        with self._lock:
+            cur = self.conn.execute(
+                "UPDATE sessions SET pinned = 0 WHERE session_id = ? AND pinned = 1",
+                (session_id,),
+            )
+            self.conn.commit()
+            return cur.rowcount > 0
+
+    def prune_old_sessions(
+        self, keep_last: int, dry_run: bool = False
+    ) -> list[str]:
+        """D72: удаляет unpinned-сессии сверх keep_last (по started_at DESC).
+
+        Pinned-сессии ADR-O-351 защищены ВСЕГДА — они не учитываются в
+        keep_last и не удаляются ни при каких условиях.
+
+        Семантика keep_last:
+        - <0: невалидно, raise ValueError.
+        - 0: удалить ВСЕ unpinned (валидный явный вызов "только pinned");
+          в settings.replay_budget_keep_last=0 = OFF — GameLoop НЕ вызывает
+          prune вовсе (см. game_loop.py wiring).
+        - >0: оставить keep_last свежих unpinned + все pinned.
+
+        Атомарность: одна транзакция (BEGIN IMMEDIATE ... COMMIT). При
+        любом исключении — полный ROLLBACK, ни одна сессия не удалена.
+        FK без CASCADE: ручное удаление 5 зависимых таблиц для каждой
+        сессии (tick_snapshots, interventions, llm_calls, causal_probes,
+        scene_changes). Возвращает список удалённых session_id.
+
+        dry_run=True: возвращает список session_id для удаления БЕЗ
+        фактического удаления (для observation и тестов).
+        """
+        if keep_last < 0:
+            raise ValueError(
+                f"keep_last must be >= 0, got {keep_last}"
+            )
+        with self._lock:
+            # Кандидаты на удаление: unpinned, отсортированные от старых к
+            # новым, начиная с позиции keep_last. LIMIT -1 = все строки
+            # после OFFSET (SQLite-идиома).
+            candidates = [
+                str(r[0])
+                for r in self.conn.execute(
+                    """SELECT session_id FROM sessions
+                       WHERE pinned = 0
+                       ORDER BY started_at DESC
+                       LIMIT -1 OFFSET ?""",
+                    (keep_last,),
+                ).fetchall()
+            ]
+            if dry_run or not candidates:
+                return candidates
+            if not self.conn.in_transaction:
+                self.conn.execute("BEGIN IMMEDIATE")
+            try:
+                for sid in candidates:
+                    # Ручной порядок удаления зависимостей (FK без CASCADE):
+                    # 5 зависимых таблиц + sessions — последней.
+                    self.conn.execute(
+                        "DELETE FROM scene_changes WHERE session_id = ?",
+                        (sid,),
+                    )
+                    self.conn.execute(
+                        "DELETE FROM causal_probes WHERE session_id = ?",
+                        (sid,),
+                    )
+                    self.conn.execute(
+                        "DELETE FROM llm_calls WHERE session_id = ?",
+                        (sid,),
+                    )
+                    self.conn.execute(
+                        "DELETE FROM interventions WHERE session_id = ?",
+                        (sid,),
+                    )
+                    self.conn.execute(
+                        "DELETE FROM tick_snapshots WHERE session_id = ?",
+                        (sid,),
+                    )
+                    self.conn.execute(
+                        "DELETE FROM sessions WHERE session_id = ?",
+                        (sid,),
+                    )
+                self.conn.commit()
+                return candidates
+            except Exception:
+                self.conn.rollback()
+                raise
+
     def close(self) -> None:
         """Закрывает соединение с БД."""
         if self.conn:

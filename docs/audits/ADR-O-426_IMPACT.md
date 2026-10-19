@@ -1,4 +1,4 @@
-﻿ADR-O-426 [STANDARD] **IMPACT**
+ADR-O-426 [STANDARD] **IMPACT**
 
 > Детальный аудит одного ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`.
 > Эпоха: COV-1, Шаг 1 (ядро D58; гейт COV-GC-01). Основания-вердикты Мастера: эскиз v2 (Ф1–Ф9); Step-1 packet GO; линтер реестра обязателен; стампинг живых БД в Шаге 1 (протокол 8 условий); политика легаси-версий II.А–Г; детерминизм-приоритеты III/IV (закреплены roadmap §17.8, DET-1…DET-7).
@@ -152,3 +152,63 @@ register_migrations(
 S1 частичная публикация (Шаг 1 → Шаг 4): wiring MigrationRunner в production startup исполнен; релей ветви А для подключения event_memories миграции (NL-1/MEM-1) через register_migrations.
 
 Шаг 5 D72 (replay-бюджет) — следующий; вход живой: replay.db ~436 МБ по замеру Шага 1.
+
+## 12. Шаг 5 D72 — replay-бюджет (S360, ветка Б)
+
+> Вердикт II.Д (консервативный): N-последних unpinned-сессий + pinned-защита живых A/B (ADR-O-351); до подтверждения пути/активности ReplayStore ничего не удаляется. Default `replay_budget_keep_last=0` = OFF — активация (>0) отдельным вердиктом Мастера.
+
+### Changed Domains
+
+- Replay-хранилище: миграция v1→v2 — `sessions.pinned BOOLEAN NOT NULL DEFAULT 0` + 2 индекса (`idx_sessions_started_at`, `idx_sessions_pinned_started`) для O(log N) prune.
+- API ReplayStore: 5 новых методов (`list_sessions`, `count_sessions`, `pin_session`, `unpin_session`, `prune_old_sessions`).
+- GameLoop wiring: auto-prune при `keep_last > 0`, до `start_session` (новая сессия не учитывается в keep_last).
+- Flag registry: `PYDANTIC_INT_FLAGS` — расширение lint_flags для int-флагов (ранее только bool + PYDANTIC_STRING_FLAGS).
+- Behavioral-neutral по построению: default 0 = OFF — ничего не удаляется; тик-латентность не затронута (prune вне тика, при старте).
+
+### Downstream Consumers
+
+- ReplayPlayer (ADR-O-351): `list_sessions` для выбора сессии воспроизведения; `pin_session` для защиты A/B-сессий от авто-ротации.
+- GameLoop: `prune_old_sessions` при старте (если keep_last > 0).
+- DriftLaboratory: `pin_session` для защиты канон-сессий A/B-тестов.
+- S1 (ветвь А): не зависит — D72 не трогает схему event_memories.
+
+### Runtime Impact
+
+- Старт: при keep_last=0 (default) — 0 (prune не вызывается); при keep_last>0 — O(N) DELETE для устаревших unpinned (одна транзакция).
+- Тик: 0 (prune вне тика).
+- Диск: при активации (>0) — удаление устаревших сессий + их 5 зависимых таблиц; pinned остаются ВСЕГДА.
+
+### Sandbox Tests
+
+- `backend/tests/micro/test_d72_replay_budget.py` — 17 тестов:
+  - T-D72-migrate (3): v2 migration через `_REPLAY_SPEC_V2.apply` (runner's apply path, не raw SQL) — pinned column + 2 индекса.
+  - T-D72-list/count (2): API list_sessions DESC + count_sessions.
+  - T-D72-pin/unpin (2): idempotent + nonexistent → False.
+  - T-D72-prune (6): basic, pinned-protected, keep_zero, dry_run, negative_raises, FK-cleanup ALL 5 tables.
+  - T-D72-atomic (1): conn-proxy injects OperationalError на 8-м execute — ROLLBACK восстанавливает сессии И все 5 зависимых таблиц.
+  - T-D72-wiring (3): keep_last=0 → prune не вызывается; keep_last>0 → prune вызывается; static guard через __file__-relative path.
+- Combined: 93/93 (D58+D59+D60+D70+D72) — без регрессий.
+
+### Pinned-Protection Contract (ADR-O-351)
+
+- `pin_session(session_id)` → `pinned=1` — защищена от prune ВСЕГДА.
+- `unpin_session(session_id)` → `pinned=0` — снимает защиту.
+- `prune_old_sessions(keep_last)` — pinned не учитываются в keep_last и не удаляются ни при каких условиях (даже keep_last=0).
+- ADR-O-351: живые A/B-сессии DriftLaboratory обязаны переживать auto-prune — pin/unpin явный API для защиты.
+
+### Atomicity Contract
+
+- `prune_old_sessions` — одна транзакция (BEGIN IMMEDIATE ... COMMIT/ROLLBACK).
+- При исключении в середине — ROLLBACK, ни одна сессия и ни одна зависимая строка не удалены.
+- FK без CASCADE: ручное удаление 5 зависимых таблиц для каждой сессии (scene_changes, causal_probes, llm_calls, interventions, tick_snapshots) + sessions — последней.
+- Тест T-D72-atomic: conn-proxy (sqlite3.Connection.execute read-only в CPython — нельзя monkey-patch напрямую) инжектит OperationalError на 8-м execute — ROLLBACK восстанавливает ВСЁ.
+
+### Rollback (runbook)
+
+1. Код: `git revert <commit>` — миграция v2 идемпотентна (ALTER ADD COLUMN + CREATE INDEX IF NOT EXISTS).
+2. Данные: pinned-сессии не затронуты; unpinned, удалённые prune — восстановлению не подлежат (нет бэкапа replay-сессий; по вердикту II.Д — default OFF, ничего не удаляется).
+3. При активации (>0) — перед запуском prune рекомендуется экспорт `list_sessions()` в JSON для возможности ручного отката.
+
+### S1 Publication (полная)
+
+Шаг 1 (MigrationRunner) + Шаг 4 (wiring в startup_gate) + Шаг 5 (replay-бюджет) — все исполнены. S1 полная публикация: релей ветви А для подключения event_memories (NL-1/MEM-1) через `register_migrations` (S1-контракт Ф9 ADR-O-426). Ветвь А подключает свои миграции поверх раннера, сам раннер не редактируется (табу).
