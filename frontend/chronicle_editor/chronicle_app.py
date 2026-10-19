@@ -22,8 +22,10 @@ _BG = (18, 18, 23)
 _TEXT = (220, 220, 220)
 _ACCENT = (180, 160, 90)
 _PANEL = (28, 28, 36)
+_HIGHLIGHT = (200, 180, 50)  # жёлтый фон выбранного пункта / строки вопроса
+_HIGHLIGHT_TEXT = (20, 20, 20)  # тёмный текст на жёлтом фоне (контраст)
 _HINT1 = "Enter: читать целиком · колесо: прокрутка истории · мышь/↑↓: персонаж · клик: выбрать · TAB: лента⇄история · F1/F2: понять"
-_HINT2 = "Ctrl+G: понять всё+карта · F9: утвердить · F4: чистый черновик · Ctrl+O: загрузить · Ctrl+D: карта разрывов · Ctrl+U: отчёт понимания · Ctrl+S: сводка · ESC: выход"
+_HINT2 = "Ctrl+G: понять всё+карта · F9: утвердить · Shift+F9: утвердить ВСЕ черновики · F4: чистый черновик · Ctrl+O: загрузить · Ctrl+D: карта разрывов · Ctrl+U: отчёт понимания · Ctrl+S: сводка · ESC: выход"
 
 
 
@@ -72,6 +74,8 @@ class ChronicleEditorCore:
         self._view_history = False  # TAB: ЛЕНТА (разборы) ⇄ ИСТОРИЯ (пункты автора)
         self._detail: tuple | None = None  # Enter: чтение выбранного ЦЕЛИКОМ
         self._hist_scroll = 0  # прокрутка истории (колесо; урок Борко: 24-й пункт вне клика)
+        self._lenta_scroll = 0  # прокрутка ЛЕНТЫ (записи разборов)
+        self._hover_idx: int | None = None  # индекс записи под курсором (для tooltip)
         self._load_roster()
 
     # ── Данные ────────────────────────────────────────────────────────────
@@ -95,16 +99,30 @@ class ChronicleEditorCore:
         self._doc = self._api.get_draft(self._campaign, npc)
         self._items = []
         self._hist_scroll = 0
+        self._lenta_scroll = 0
         self._status = f"{npc}: {'draft загружен' if self._doc else 'черновика нет'}"
 
     # ── Ввод (клавиатура + мышь; UX-вердикт: редактор обязан понимать мышь) ─
 
     def handle_event(self, event: pygame.event.Event) -> None:
-        if event.type == pygame.MOUSEWHEEL and self._view_history:
-            _frs = self._history_fragments()
-            _max_scroll = max(0, len(_frs) - 22)
-            self._hist_scroll = max(0, min(self._hist_scroll - event.y, _max_scroll))
+        if event.type == pygame.MOUSEWHEEL:
+            if self._view_history:
+                _frs = self._history_fragments()
+                _max_scroll = max(0, len(_frs) - 22)
+                self._hist_scroll = max(0, min(self._hist_scroll - event.y, _max_scroll))
+            else:
+                # ЛЕНТА — листаем записи разборов
+                _entries = (self._doc or {}).get("entries") or []
+                _max_lenta = max(0, len(_entries) - 25)
+                self._lenta_scroll = max(0, min(self._lenta_scroll - event.y, _max_lenta))
             return
+        if event.type == pygame.MOUSEMOTION and not self._view_history:
+            # Tooltip в ЛЕНТЕ: запоминаем индекс записи под курсором
+            x, y = event.pos
+            if 280 <= x <= 890 and 100 <= y <= 100 + 25 * 22:
+                self._hover_idx = (y - 100) // 22
+            else:
+                self._hover_idx = None
         if self._detail is not None:
             if event.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN):
                 self._detail = None
@@ -127,6 +145,8 @@ class ChronicleEditorCore:
             self._decompose_ordinal(self._frag_ord if not self._view_history else self._frag_index_by_number(self._frag_ord + 1) - 1 if False else self._frag_ord)
         elif key == pygame.K_F2:
             self._decompose_ordinal(self._frag_ord + 1)
+        elif key == pygame.K_F9 and pygame.key.get_pressed()[pygame.K_LSHIFT]:
+            self._canonize_all_drafts()
         elif key == pygame.K_F9:
             self._canonize()
         elif key == pygame.K_s and pygame.key.get_pressed()[pygame.K_LCTRL]:
@@ -150,11 +170,11 @@ class ChronicleEditorCore:
             self._open_detail()
         elif key == pygame.K_c:
             self._current_q = self._next_open_question()
-            self._status = (
-                f"Вопрос в карточке: {self._current_q.get('question_id')}"
-                if self._current_q
-                else "Открытых вопросов нет"
-            )
+            if self._current_q:
+                _q = self._current_q.get("q", {})
+                self._status = f"Вопрос в карточке: {_q.get('question_id')}"
+            else:
+                self._status = "Открытых вопросов нет"
         elif key in _OPTION_BY_KEY:
             if self._current_q is None:
                 self._status = "Сначала C — взять открытый вопрос"
@@ -166,16 +186,22 @@ class ChronicleEditorCore:
         if 20 <= x <= 260 and 100 <= y <= 100 + len(self._npcs) * 26:
             self._npc_idx = (y - 100) // 26
             self._reload()
-        elif 300 <= x <= 520 and 100 <= y <= 100 + 22 * 22:
-            self._frag_ord = (y - 100) // 22 + self._hist_scroll
-            if self._view_history and self._frag_ord >= len(self._history_fragments()):
-                return
+        elif 280 <= x <= 890 and 100 <= y <= 100 + 25 * 22:
+            # Клик в ЛЕНТЕ/ИСТОРИИ — с учётом прокрутки
             if self._view_history:
+                self._frag_ord = (y - 100) // 22 + self._hist_scroll
+                if self._frag_ord >= len(self._history_fragments()):
+                    return
                 frs = self._history_fragments()
                 num = frs[self._frag_ord][0] if self._frag_ord < len(frs) else None
                 self._status = f"Пункт {num if num is not None else self._frag_ord + 1} выбран (Enter — читать, F1 — понять)"
             else:
-                self._status = f"Выбран фрагмент #{self._frag_ord} (F1 — понять)"
+                # ЛЕНТА — выбор записи разбора
+                _entries = (self._doc or {}).get("entries") or []
+                _idx = (y - 100) // 22 + self._lenta_scroll
+                if 0 <= _idx < len(_entries):
+                    _e = _entries[_idx]
+                    self._status = f"Запись {_idx + 1}: {self._kind_ru(_e.get('kind',''))} — {self._entry_text(_e)[:50]}"
         elif 300 <= x <= 520 and 700 <= y <= 730:
             self._decompose_ordinal(self._frag_ord)
         elif 900 <= x <= 1120 and 700 <= y <= 730:
@@ -535,11 +561,12 @@ class ChronicleEditorCore:
     def _resolve_current_question(self, option: str) -> None:
         """FR-3.1: карточка 4-опций. LEAVE_WHITE_SPOT — всегда доступен (П3);
         SELECT_EXISTING_NPC берёт значение из списка NPC (слева), CREATE_NEW_NPC
-        и UNKNOWN_PERSON — имя-хинт из вопроса; полный ввод — позже (Шаг E)."""
-        q = self._current_q
-        if q is None:
+        и UNKNOWN_PERSON — имя-хинт из вопроса; полный ввод — позже (Шаг E).
+        _current_q — dict {'entry_id': str, 'q': <сам вопрос>} или None."""
+        if self._current_q is None:
             self._status = "Нет открытого вопроса"
             return
+        q = self._current_q.get("q", {})
         value = None
         if option == "SELECT_EXISTING_NPC":
             value = self._npcs[self._npc_idx]
@@ -573,11 +600,47 @@ class ChronicleEditorCore:
         else:
             self._status = f"БЛОК (Save=Contract): {res.get('detail', '')[:110]}"
 
+    def _canonize_all_drafts(self) -> None:
+        """UX-CCH-FIX-1: Shift+F9 — канонизация ВСЕХ черновиков ростера
+        одним действием. Цикл по self._roster, фильтр chronicle=='draft';
+        для каждого — та же пара что у _canonize: confirm_author_entries →
+        canonize (прецедент S340). Пропускает canon/none (не пытается
+        канонизировать уже каноническое или отсутствующее). Сбор результатов
+        в self._status; после цикла — _load_roster для обновления боковой
+        панели (статусы draft → canon)."""
+        drafts = [r for r in self._roster if r.get("chronicle") == "draft"]
+        if not drafts:
+            self._status = "Shift+F9: черновиков нет — канонизировать нечего"
+            return
+        ok, blocked, errors = 0, 0, 0
+        for r in drafts:
+            npc_id = r.get("npc_id", "")
+            if not npc_id:
+                continue
+            confirmed = self._api.confirm_author_entries(self._campaign, npc_id)
+            if confirmed < 0:
+                errors += 1
+                continue
+            res = self._api.canonize(self._campaign, npc_id)
+            if res.get("status") == "OK":
+                ok += 1
+            elif res.get("status") == "BLOCKED":
+                blocked += 1
+            else:
+                errors += 1
+        self._status = (
+            f"Shift+F9: канонизировано {ok}/{len(drafts)}"
+            f" (блоков: {blocked}, ошибок: {errors})"
+        )
+        self._load_roster()
+
     def _next_open_question(self):
-        """Навигатор вопросов: первый открытый вопрос draft-документа."""
+        """Навигатор вопросов: первый открытый вопрос draft-документа.
+        Возвращает dict с ключами 'entry_id' и 'q' (сам вопрос) или None.
+        entry_id нужен для подсветки строки в ЛЕНТЕ."""
         for e in (self._doc or {}).get("entries") or []:
             for q in e.get("open_questions") or []:
-                return q
+                return {"entry_id": e.get("entry_id", ""), "q": q}
         return None
 
     # ── Человекочитаемые подписи (пустые строки ленты — дефект: у каждого
@@ -670,8 +733,14 @@ class ChronicleEditorCore:
         pygame.draw.rect(surface, _PANEL, (10, 90, 250, len(self._npcs) * 26 + 20))
         surface.blit(self._font_big.render("ХРОНИКИ", True, _ACCENT), (20, 55))
         for i, npc in enumerate(self._npcs):
-            color = _ACCENT if i == self._npc_idx else _TEXT
-            surface.blit(self._font.render(npc, True, color), (20, 100 + i * 26))
+            _y = 100 + i * 26
+            if i == self._npc_idx:
+                # Жёлтый фон под выбранным NPC (высота 22 = шаг 26 − 4 запаса)
+                pygame.draw.rect(surface, _HIGHLIGHT, (12, _y, 246, 22))
+                color = _HIGHLIGHT_TEXT
+            else:
+                color = _TEXT
+            surface.blit(self._font.render(npc, True, color), (20, _y))
         # Центр: ЛЕНТА (разборы) ⇄ ИСТОРИЯ (пункты автора) — TAB
         pygame.draw.rect(surface, _PANEL, (270, 90, 620, 560))
         mode_title = "ИСТОРИЯ (твой текст — TAB: лента)" if self._view_history else "ЛЕНТА (разборы — TAB: история)"
@@ -689,11 +758,53 @@ class ChronicleEditorCore:
                 _pct = int(100 * (self._hist_scroll + 22) / len(_frs))
                 surface.blit(self._font.render(f"▼ {self._hist_scroll + 1}–{min(self._hist_scroll + 22, len(_frs))} из {len(_frs)} ({_pct}%) — колесо мыши", True, (120, 120, 120)), (280, 645))
         elif self._doc:
-            for i, e in enumerate((self._doc.get("entries") or [])[:25]):
+            # entry_id текущего вопроса — для подсветки
+            _q_entry_id = ""
+            if self._current_q and isinstance(self._current_q, dict):
+                _q_entry_id = self._current_q.get("entry_id", "")
+            elif self._current_q is None:
+                _nq = self._next_open_question()
+                if _nq:
+                    _q_entry_id = _nq.get("entry_id", "")
+            _entries = (self._doc.get("entries") or [])
+            _scroll = self._lenta_scroll
+            for _row, _i in enumerate(range(_scroll, min(_scroll + 25, len(_entries)))):
+                e = _entries[_i]
                 age = e.get("historical_age")
                 marker = f"[{age}]" if age is not None else "[?]"
-                line = f"{marker} {self._kind_ru(e.get('kind',''))}: {self._entry_text(e)[:60]}"
-                surface.blit(self._font.render(line, True, _TEXT), (280, 100 + i * 22))
+                _txt_full = self._entry_text(e)
+                line = f"{marker} {self._kind_ru(e.get('kind',''))}: {_txt_full[:60]}"
+                _y = 100 + _row * 22
+                # Подсветка жёлтым строки с открытым вопросом
+                if _q_entry_id and e.get("entry_id", "") == _q_entry_id:
+                    pygame.draw.rect(surface, _HIGHLIGHT, (272, _y, 616, 20))
+                    surface.blit(self._font.render(line, True, _HIGHLIGHT_TEXT), (280, _y))
+                else:
+                    surface.blit(self._font.render(line, True, _TEXT), (280, _y))
+            # Счётчик прокрутки ЛЕНТЫ
+            if len(_entries) > 25:
+                _pct_l = int(100 * (self._lenta_scroll + 25) / len(_entries))
+                surface.blit(
+                    self._font.render(
+                        f"▼ {self._lenta_scroll + 1}–{min(self._lenta_scroll + 25, len(_entries))} из {len(_entries)} ({_pct_l}%) — колесо мыши",
+                        True, (120, 120, 120),
+                    ), (280, 645)
+                )
+            # Tooltip: полный текст записи под курсором
+            if self._hover_idx is not None and 0 <= self._hover_idx < 25:
+                _hi = self._lenta_scroll + self._hover_idx
+                if 0 <= _hi < len(_entries):
+                    _full = self._entry_text(_entries[_hi])
+                    if len(_full) > 60:
+                        _lines = self._wrap(_full, 60)[:4]
+                        _box_h = 20 + len(_lines) * 20
+                        _ty = 100 + self._hover_idx * 22 - 20
+                        if _ty < 100:
+                            _ty = 100
+                        pygame.draw.rect(surface, (40, 40, 50), (272, _ty, 616, _box_h))
+                        pygame.draw.rect(surface, _HIGHLIGHT, (272, _ty, 616, _box_h), 1)
+                        for _li, _ln in enumerate(_lines):
+                            surface.blit(self._font.render(_ln, True, _TEXT), (280, _ty + 4 + _li * 20))
         # Правая панель: Разбор
         pygame.draw.rect(surface, _PANEL, (900, 90, 370, 560))
         surface.blit(self._font_big.render("ЧТО ПОНЯЛ ENIGMA", True, _ACCENT), (910, 55))
@@ -723,14 +834,17 @@ class ChronicleEditorCore:
         surface.blit(self._font.render("F9: Утвердить как правду", True, _ACCENT), (910, 696))
         # Нижняя зона: статус → вопрос → подсказка (2 строки, без обрезки)
         surface.blit(self._font.render(self._status[:130], True, _TEXT), (20, 726))
-        q = self._current_q or self._next_open_question()
-        if q:
+        _cq = self._current_q or self._next_open_question()
+        if _cq:
             _npc = self._npcs[self._npc_idx] if self._npcs else "?"
+            _q = _cq.get("q", _cq) if isinstance(_cq, dict) else _cq
             qline = (
-                f"❓ {_npc}, {self._current_label()}: «…{q.get('target_span','')[:40]}…» — кто это? "
+                f"❓ {_npc}, {self._current_label()}: «…{_q.get('target_span','')[:40]}…» — кто это? "
                 "1:из списка · 2:новый · 3:массовка · 4:пятно"
             )
-            surface.blit(self._font.render(qline[:150], True, _ACCENT), (20, 746))
+            # Жёлтый фон под строкой вопроса (привлечение внимания)
+            pygame.draw.rect(surface, _HIGHLIGHT, (10, 742, 1280, 28))
+            surface.blit(self._font.render(qline[:150], True, _HIGHLIGHT_TEXT), (20, 746))
         else:
             surface.blit(
                 self._font.render(
