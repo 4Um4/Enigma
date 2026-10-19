@@ -1,4 +1,4 @@
-ADR-O-426 [STANDARD] **IMPACT**
+﻿ADR-O-426 [STANDARD] **IMPACT**
 
 > Детальный аудит одного ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`.
 > Эпоха: COV-1, Шаг 1 (ядро D58; гейт COV-GC-01). Основания-вердикты Мастера: эскиз v2 (Ф1–Ф9); Step-1 packet GO; линтер реестра обязателен; стампинг живых БД в Шаге 1 (протокол 8 условий); политика легаси-версий II.А–Г; детерминизм-приоритеты III/IV (закреплены roadmap §17.8, DET-1…DET-7).
@@ -126,3 +126,29 @@ register_migrations(
 Тесты (backend/tests/micro/test_d60_reset_fail_loud.py, 14): TestHappyPath 3 — порядок 13 операций владельцев (пин контракта O-403), files_removed состав + board_state.json удаляется/characters.json выживает, гвард _mem_reset None; TestImmediateInterrupt 6 — немедленность sqlite_persistence (rec==[]), json_files (monkeypatch Path.unlink, файл не тронут), atomic_commit прерван до memory/mvp, NameError-регрессия memory_manager, scene_reinit, passthrough current_location_seed; TestMachineReadable 3 — поля/точное str-сообщение, __bases__==(RuntimeError,), все 15 step-id в inspect.getsource(reset_campaign); TestRouteTranslation 2 — 500 + точный dict-detail + __cause__ instanceof, happy path насквозь.
 
 Вне скоупа (косметика, релей Мастеру): мислейбл «Atomic commit:» в логе шага 2; дубль нумерации шагов 7/12; _current_campaign_id выставляется до reset (домен GameLoop); узел CampaignLifecycle отсутствует в YAML-топологии; дубли constraints в ARCHITECTURE_FLOW_GENERATED; комментарий пути сессий (файл saves/<cid>.json, обещано saves/<cid>/session.json); _load_sessions_from_disk читает все .json в saves/.
+
+## 11. Шаг 4 (D70): fail-loud старт-гейт — «довести или громко остановиться» (исполнено)
+
+Статус: Шаг 4 закрыт — S358; COV-D70 → закрыт; COV-GC-02/D70 — единый блокирующий гейт старта. Код: 54b86b8d (7 файлов, +865/−69); тесты: 20/20 (0.53s); ruff 0; compileall 0; IPT — свой код GREEN (startup_gate ушёл из INV-SILENT-FAILURE после правки _check_schema; релей ветви А: chronicle_projections.py:158,650 — чужая зона, не трогал). Док-закрытие: MUTATIONS S358 + roadmap (трек COV, §7.10, §9.3f, §17.8, §0.2 фронтир, §1.3 git rm ТЗ D70) + атлас Status O-426 + Письмо №8 в ЗАВЕЩАНИЕ.
+
+Исполнено (по вердиктам В1/В2/В3 + уточнения 1–6):
+
+1. **Единый блокирующий гейт** app/core/startup_gate.py (новый, 257 строк): StartupValidationError(step, errors, detail) — машиночитаемая ошибка (контракт В7, как CampaignResetError у D60); StartupGateResult для app.state (readiness API); run_startup_gate() — стадии config → migrations → schema (порядок по уточнению 1: schema требует game_loop, поэтому строится после build_game_loop в lifespan). Блокирующие стадии поднимают StartupValidationError; lifespan ловит и переводит в uvicorn fatal (raise до yield → non-zero exit).
+
+2. **В1 — диагностика unknown env** (не блокирующий): extra='ignore' сохранён (legacy .env); _log_unknown_aidm_env() в config.py + _check_config_unknown_env() в startup_gate — оба читают os.environ и .env, логируют WARNING для любого AIDM_* не из Settings (включая ModelConfig). Prefix-aware: срез AIDM_ перед сравнением с known_upper (баг первых тестов — пойман и исправлен). Блокирующими остаются только ошибки значений обязательных настроек (Pydantic ловит сам).
+
+3. **В3 — production wiring MigrationRunner**: run_startup_migrations(make_backup=True) вызывается в _check_migrations() старт-гейта — единый путь миграций в рантайме. Стампинг живых БД (первичная классификация COV-1) — отдельный протокол (IMPACT §7, 8 условий); обычный запуск не обходит dry-run / отчёт / явное подтверждение. MigrationError → блокирующий.
+
+4. **schema_validator.py refactor**: validate_all_schemas() возвращает List[str] (раньше логировала как non-blocking warning — COV-D70); решение блокировать принимает старт-гейт.
+
+5. **main.py lifespan refactor**: единая блокирующая сборка build_game_loop → run_startup_gate; cleanup-on-fail (dispose вызывается при провале); StartupValidationError → raise до yield → uvicorn non-zero exit. Необязательные интеграции (LLM Router, ModelPool, VRAMMonitor) — остаются try/except с warning (не ядро; уточнение 3).
+
+6. **readiness.py refactor** (В2): убран устаревший хардкод про Electron/Tauri/векторные БД. Отчёт читает app.state.startup_gate + startup_status + game_loop. Ядро = Startup Gate + Game Loop только (вердикт В2); опциональные интеграции (LLM Router/Pool/Server/VRAM) — partial при деградации, не делают score=0. Контракт S176 сохранён: 6 checks, score_percent: float, status ∈ {done, partial, missing}. /status/readiness — DI Request → app.state.
+
+7. **Тесты** (уточнение 5): tests/micro/test_d70_startup_gate.py — 20 тестов: TestStartupValidationError (3), TestConfigEnvWarnings (4 — env+.env, unknown/known, prefix), TestMigrationsStage (2 — success/MigrationError), TestSchemaStage (2 — ok/crash), TestRunStartupGate (5 — happy/migration failure raises/schema failure raises/config warnings don't block/stage order migrations-before-schema), TestStartupGateResultAsDict (1), TestReadinessIntegration (2 — gate ok→score 100, failed→0), TestCleanupOnFail (1 — dispose called). 20/20 GREEN (0.53s).
+
+Гейты: ruff 0; compileall 0; pytest 20/20; IPT — свой код GREEN. Релей ветви А: chronicle_projections.py:158,650 (untracked, 2 except: pass — INV-SILENT-FAILURE; чужая зона §R.2, не трогал).
+
+S1 частичная публикация (Шаг 1 → Шаг 4): wiring MigrationRunner в production startup исполнен; релей ветви А для подключения event_memories миграции (NL-1/MEM-1) через register_migrations.
+
+Шаг 5 D72 (replay-бюджет) — следующий; вход живой: replay.db ~436 МБ по замеру Шага 1.
