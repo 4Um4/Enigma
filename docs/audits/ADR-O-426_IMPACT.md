@@ -212,3 +212,67 @@ S1 частичная публикация (Шаг 1 → Шаг 4): wiring Migra
 ### S1 Publication (полная)
 
 Шаг 1 (MigrationRunner) + Шаг 4 (wiring в startup_gate) + Шаг 5 (replay-бюджет) — все исполнены. S1 полная публикация: релей ветви А для подключения event_memories (NL-1/MEM-1) через `register_migrations` (S1-контракт Ф9 ADR-O-426). Ветвь А подключает свои миграции поверх раннера, сам раннер не редактируется (табу).
+
+
+## 13. PRE-FLIGHT цикл оживления ROLLOUT-PENDING-флагов (S362, ветка Б)
+
+> Вердикт Мастера (2026-10-19): разрешение на rollout готовых игровых вертикалей с запретом массового включения. GO на rollout НЕ равно немедленное ON в проде — это разрешение провести контролируемую активацию, сравнить ON/OFF и проверить откат.
+
+### Audit Scope
+
+Read-only аудит 16 чужих ROLLOUT-PENDING-флагов (мой replay_budget_keep_last вне цикла — II.д вердикт остаётся). Базлайн: IPT 53/0/0 CRITICAL=0 (HEAD 746d55d9); Anti-Race чист (чужой WIP зоны А — chronicle_projections.py, routes_chronicle.py, chronicle_editor/*, understanding_silver_wolf.md — не тронут).
+
+### Вердикт Мастера по каждому флагу
+
+| Флаг | Вердикт | Решение |
+|---|---|---|
+| ARBITER_ENFORCEMENT | GO-1 | Включать в пакете с S203_4_ARBITER_INTERRUPT |
+| S203_4_ARBITER_INTERRUPT | GO-1 | Только вместе с ARBITER_ENFORCEMENT |
+| S203_4_OWNERSHIP_MIRRORS | GO-1 условный | Каскад; отдельно доказать корректность зеркал и outbox |
+| RELATIONSHIP_DYNAMICS_ENABLED | GO-2 | Независимый rollout; проверять время, потребности, фрустрацию |
+| LLM_RESILIENCE_V1 | GO-1 | Отдельный технический rollout; проверять конкурентные запросы |
+| W3_G2_ENABLED | GO-1 | Можно проверять независимо |
+| W3_G3_ENABLED | GO-2 условный | Механизм готов; перед F5 нужен GC-08 spawn_world_object либо эквивалентный штатный сценарий |
+| DESIRES_ENABLED | GO-2 | Только вместе с ACTIVITY_LIFECYCLE_ENABLED |
+| ACTIVITY_LIFECYCLE_ENABLED | GO-2 | Только вместе с DESIRES_ENABLED; сначала согласовать ветки A/B |
+| TRAVERSAL_OWNERSHIP_ENFORCEMENT | HOLD | Установить, поглощён ли флаг инвариантом ADR-130.1 |
+| COGNITION_V0 | HOLD | Не трогать до координации с активной работой А |
+| WORK_ENABLED | BLOCKED | До закрытия пищевого цикла COV-3/COV-D1 |
+| RELATIONSHIP_EVENTS_ENABLED | BLOCKED | До закрытия RE-D2 и демонстрации поведенческого эффекта |
+| BC1_ENABLED | BLOCKED | До готовности BC-2 |
+| enforce_system_requirements | DEFER | Оставить релизному контуру COV-9 |
+| W3_SHADOW_ENABLED | RECLASSIFY | Перенести в KEEP-LOG, если археология подтвердит отсутствие игровой семантики |
+| replay_budget_keep_last | OFF | Вне этого цикла; не менять до отдельного подтверждения пути и активности ReplayStore |
+
+### Пять rollout-пакетов (рекомендованная очередность Мастера)
+
+1. **Техническая надёжность и диагностика** — LLM_RESILIENCE_V1 + W3_SHADOW_ENABLED после переклассификации в KEEP-LOG.
+2. **Динамика внутреннего состояния NPC** — RELATIONSHIP_DYNAMICS_ENABLED (проверять рост потребности, влияние на состояние, восстановление после события, отсутствие скачков при пробуждении).
+3. **Воля и выбор объектов** — W3_G2_ENABLED (доказать, что сведения о доступности оружия доходят до решения) затем W3_G3_ENABLED после закрытия GC-08 для F5 либо подтверждения альтернативного сценария (доказать, что намерение приводит к действию, изменению мира и событию).
+4. **Арбитраж намерений и владение поведением** — ARBITER_ENFORCEMENT + S203_4_ARBITER_INTERRUPT + S203_4_OWNERSHIP_MIRRORS (только после подтверждения реального условия активации и независимых гарантий outbox; проверить конфликты, приоритеты, терминальные состояния, соответствие зеркал источнику).
+5. **Полная вертикаль желание-деятельность-исход** — DESIRES_ENABLED + ACTIVITY_LIFECYCLE_ENABLED (только после согласования веток A/B; проверить EAT, WORK, SOCIAL по отдельности).
+
+### Три доработки, разрешённые археологией S362
+
+1. **S203_4_OWNERSHIP_MIRRORS — точный runtime-гейт** (НЕ из названия пакета). Археология: commitment_registry.py:334,406,462,484,530 — 5 сайтов mirror_task_terminal через drain_commitment_outbox (task_scheduler.py:205). Точный гейт: `if not (COMMITMENT_REGISTRY_ENABLED and S203_4_OWNERSHIP_MIRRORS): return  # no-op`. COMMITMENT_REGISTRY_ENABLED — уже ROLLOUT-ON (born-True c4b75107). Значит: зеркала активируются своим собственным флагом поверх уже-включённого реестра, каскад с арбитражем НЕ требуется. Зеркала = mirror_task_terminal() — терминальные зеркала task-исполнителя через outbox (single-writer: воркеры НИКОГДА не пишут реестр; sync-применение — drain_commitment_outbox).
+
+2. **TRAVERSAL_OWNERSHIP_ENFORCEMENT — НЕ поглощён ADR-130.1.** Археология: 3 живых site-readerа: tick_orchestrator.py:1319 (CROSS_LOCATION_TRANSFER), movement_engine.py:244 (INTERRUPT_PRIORITY_SUPERSEDE), movement_engine.py:523 (CROSS_LOCATION_MATERIALIZE). ADR-130.1 (в scene_state_manager.py) — только блокирует перезапись status="MOVING" в apply_changes. TRAVERSAL_OWNERSHIP_ENFORCEMENT — честное атомарное прерывание с reason + записью в commitment_history. Closure S186/S203.3, следующее поколение после legacy pop+mirror. PRE-FLIGHT уточнил: НЕ висячий, отдельная вертикаль. Вердикт о включении — за Мастером в отдельном раунде.
+
+3. **W3_SHADOW_ENABLED RECLASSIFY в KEEP-LOG подтверждена.** Археология: docstring affordance_shadow.py вербатим: НОЛЬ decision-input, НОЛЬ mutation, НОЛЬ writers, НОЛЬ events. Метрики G1-discovery-тени (наблюдаемость, не каузал). OFF = (0, ShadowMetrics()) no-op. Чистая наблюдательность, не игровая семантика. RECLASSIFY из ROLLOUT-PENDING в KEEP-LOG исполнена s361_p1_flags.py. Доктрина S344: HOLD/BURY/KEEP-LOG по природе контура, не по имени пакета.
+
+### Правила приёмки rollout-цикла (вердикт Мастера §4)
+
+Каждый пакет проходит один и тот же цикл: 1) зафиксировать HEAD, базовые тесты и исходное поведение при OFF. 2) Включить только согласованные флаги через предусмотренный конфигурационный механизм. 3) Запустить целевые micro-тесты, соответствующий SUPERBOX и полный обязательный набор проектных проверок. 4) Провести F5-сценарий: наблюдаемое действие NPC, изменение мира, последствие и сохранение причинной цепочки. 5) Выполнить OFF-rollback и проверить, что прежнее поведение восстановилось. 6) Только после этого зафиксировать итог: ROLLOUT-ON, дальнейший HOLD или возврат в OFF — согласно принятой процедуре реестра.
+
+**Особенно важно:** не менять default и статус в реестре раньше завершения принятого rollout-цикла. Само изменение env-переменной в эксперименте не означает, что флаг принят для постоянной конфигурации.
+
+### Rollback (runbook)
+
+PRE-FLIGHT — read-only аудит; рантайм не тронут. Единственное изменение данных — правка flags.yaml (W3_SHADOW_ENABLED RECLASSIFY): 1) git revert <commit> — возвращает W3_SHADOW_ENABLED в ROLLOUT-PENDING. 2) Никаких миграций БД; никаких изменений кода. 3) Все остальные флаги остаются ROLLOUT-PENDING — rollback не требуется.
+
+### Статус
+
+- COV-1 (Шаги 1–5) — закрыт целиком (S360).
+- COV-1.5 (PRE-FLIGHT цикл) — закрыт (S362, read-only аудит; W3_SHADOW RECLASSIFY исполнена).
+- Rollout-цикл — открыт; флаги Группы A остаются ROLLOUT-PENDING до завершения каждого пакета.
+- Блокеры (Группа C) — остаются действующими: WORK_ENABLED, RELATIONSHIP_EVENTS_ENABLED, BC1_ENABLED.

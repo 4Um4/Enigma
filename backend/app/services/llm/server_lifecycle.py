@@ -184,6 +184,7 @@ def _spawn_llama_server() -> dict:
         "-ngl", str(settings.effective_gpu_layers),
         "-c", str(settings.ctx_size),
         "-t", str(settings.threads),
+        "--jinja",
     ]
     _stderr_path = (
         Path(__file__).resolve().parents[3] / "logs" / "llama_server_stderr.log"

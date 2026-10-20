@@ -122,9 +122,10 @@ flags:
     type: env
     read_mode: call
     default: ""
-    verdict: ROLLOUT-PENDING
-    adr: W-track
+    verdict: KEEP-LOG
+    adr: ADR-O-376 (G1 shadow)
     owner: B
+    note: "S362 PRE-FLIGHT (RECLASSIFY): docstring подтверждает — НОЛЬ decision-input, НОЛЬ mutation, НОЛЬ writers, НОЛЬ events; метрики G1-discovery-тени (наблюдаемость, не каузал); OFF = (0, ShadowMetrics()) no-op; чистая наблюдательность, не игровая семантика. RECLASSIFY по доктрине S344."
   LLM_RESILIENCE_V1:
     type: env
     read_mode: call

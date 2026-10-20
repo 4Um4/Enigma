@@ -66,7 +66,10 @@ class LlamaCppCompressorClient:
             ],
             "temperature": 0.0,
             "seed": _seed,
-            "response_format": {"type": "json_object"} # Принудительный JSON Mode
+            "response_format": {"type": "json_object"}, # Принудительный JSON Mode
+            # Qwen3.5-9B (thinking-модель): отключаем thinking-блок для JSON-режима.
+            # Для Qwen2.5-7B (без thinking) — no-op: chat template игнорирует kwargs.
+            "chat_template_kwargs": {"enable_thinking": False},
         }
 
         # content связан до try: JSONDecodeError-обработчик читает его легально

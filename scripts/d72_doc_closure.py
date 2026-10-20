@@ -4,12 +4,11 @@ path: scripts/d72_doc_closure.py
 Назначение: док-закрытие D72 (COV-1 Шаг 5, S360, ветка Б).
   8 правок в 6 файлах: MUTATIONS, roadmap (4 зоны), атлас, IMPACT, ЗАВЕЩАНИЕ.
   Anti-Race: чужие строки не трогаются; правки — точные замены БЫЛО/СТАЛО.
-Зависимости: pathlib, datetime.
+Зависимости: pathlib, sys.
 Запуск (из корня): python scripts/d72_doc_closure.py
 """
 from __future__ import annotations
 
-import datetime as _dt
 import sys
 from pathlib import Path
 

@@ -43,7 +43,7 @@ class ModelConfig(BaseSettings):
 
 class Settings(BaseSettings):
     app_name: str = "Enigma — Dark Fantasy RPG"
-    default_model: str = "qwen_7b_q4"
+    default_model: str = "qwen_3_5_9b"
     world_tick_minutes: int = 15
     data_dir: str = str((BASE_DIR / "backend" / "data").resolve())
     saves_dir: str = str(BASE_DIR / "saves")
@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     )
     llama_cpp_executable: str = str(BASE_DIR / "Models LLM" / "llama" / "llama-cli.exe")
     llama_cpp_model_path: str = str(
-        BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf"
+        BASE_DIR / "Models LLM" / "Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-IQ3_M.gguf"
     )
 
     # Единый источник истины для API и LLM портов
@@ -168,19 +168,22 @@ class Settings(BaseSettings):
     llama_cpp_n_keep: int = 800
 
     # ─────────────────────────────────────────────────────────────────
-    # Единственная модель проекта
+    # Модели проекта (baseline Qwen2.5-7B + новая Qwen3.5-9B IQ3_M)
     # ─────────────────────────────────────────────────────────────────
     model_qwen_7b_path: str = str(
         BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf"
     )
+    model_qwen_3_5_9b_path: str = str(
+        BASE_DIR / "Models LLM" / "Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-IQ3_M.gguf"
+    )
 
     # Agent → Model mapping (все агенты → одна модель)
     agent_model_map: Dict[str, str] = {
-        "dm": "qwen_7b",
-        "npc": "qwen_7b",
-        "rules": "qwen_7b",
-        "memory": "qwen_7b",
-        "world": "qwen_7b",
+        "dm": "qwen_3_5_9b",
+        "npc": "qwen_3_5_9b",
+        "rules": "qwen_3_5_9b",
+        "memory": "qwen_3_5_9b",
+        "world": "qwen_3_5_9b",
     }
 
     available_models: Dict[str, ModelConfig] = {}
@@ -224,6 +227,18 @@ class Settings(BaseSettings):
                 path=self.model_qwen_7b_path,
                 display_name="Qwen2.5-7B-Instruct-abliterated Q4_K_M",
                 vram_mb=5000,
+                context_size=8192,
+                temperature=0.9,
+                top_p=0.9,
+                repeat_penalty=1.12,
+                n_keep=800,
+                provider_type="llama_cpp",
+            ),
+            "qwen_3_5_9b": ModelConfig(
+                name="qwen_3_5_9b",
+                path=self.model_qwen_3_5_9b_path,
+                display_name="Qwen3.5-9B The-Defiant-Fable-Uncnr-Heretic-NEO-MAX IQ3_M",
+                vram_mb=7100,
                 context_size=8192,
                 temperature=0.9,
                 top_p=0.9,

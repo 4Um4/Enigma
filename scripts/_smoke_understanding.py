@@ -1,4 +1,5 @@
 ﻿import importlib.util
+
 spec = importlib.util.spec_from_file_location(
     "understanding_report",
     r"backend\app\services\chronicle\understanding_report.py")

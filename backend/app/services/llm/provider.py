@@ -181,14 +181,14 @@ class Capability(str, Enum):
 
 # Mapping: capability → model key (единственная модель)
 CAPABILITY_MODEL_PREFERENCES: dict["Capability", list[str]] = {
-    Capability.NARRATIVE: ["qwen_7b"],
-    Capability.DIALOGUE: ["qwen_7b"],
-    Capability.DIALOGUE_GENERATION: ["qwen_7b"],
-    Capability.WORLD_SIMULATION: ["qwen_7b"],
-    Capability.RULES_REASONING: ["qwen_7b"],
-    Capability.MEMORY_SUMMARIZATION: ["qwen_7b"],
-    Capability.FACT_EXTRACTION: ["qwen_7b"],
-    Capability.STRATEGY: ["qwen_7b"],
-    Capability.FAST: ["qwen_7b"],
-    Capability.GENERAL: ["qwen_7b"],
+    Capability.NARRATIVE: ["qwen_3_5_9b"],
+    Capability.DIALOGUE: ["qwen_3_5_9b"],
+    Capability.DIALOGUE_GENERATION: ["qwen_3_5_9b"],
+    Capability.WORLD_SIMULATION: ["qwen_3_5_9b"],
+    Capability.RULES_REASONING: ["qwen_3_5_9b"],
+    Capability.MEMORY_SUMMARIZATION: ["qwen_3_5_9b"],
+    Capability.FACT_EXTRACTION: ["qwen_3_5_9b"],
+    Capability.STRATEGY: ["qwen_3_5_9b"],
+    Capability.FAST: ["qwen_3_5_9b"],
+    Capability.GENERAL: ["qwen_3_5_9b"],
 }

@@ -118,6 +118,7 @@ def start_llama_server() -> bool:
         str(settings.ctx_size),
         "-t",
         str(settings.threads),
+        "--jinja",
     ]
     
     _stderr_path = _BACKEND_DIR / "logs" / "llama_server_stderr.log"

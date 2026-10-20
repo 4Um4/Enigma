@@ -1,6 +1,6 @@
 ai_model:
-  model: qwen_7b
-  path: Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf
+  model: qwen_3_5_9b
+  path: Models LLM\Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-IQ3_M.gguf
 audio:
   volume: 80
 content:
