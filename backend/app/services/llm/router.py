@@ -85,6 +85,12 @@ def _init_registry() -> dict[str, ModelConfig]:
         if _qwen_cfg
         else ProviderType.LLAMA_CPP
     )
+    _yandex_cfg = settings.available_models.get("yandexgpt_8b")
+    _yandex_pt = (
+        ProviderType(getattr(_yandex_cfg, "provider_type", "llama_cpp"))
+        if _yandex_cfg
+        else ProviderType.LLAMA_CPP
+    )
     return {
         "qwen_7b": ModelConfig(
             key="qwen_7b",
@@ -104,6 +110,28 @@ def _init_registry() -> dict[str, ModelConfig]:
                 Capability.FAST,
             ],
             vram_mb=5000,
+            context_size=8192,
+            temperature=0.9,
+            repeat_penalty=1.12,
+        ),
+        "yandexgpt_8b": ModelConfig(
+            key="yandexgpt_8b",
+            name="yandexgpt_8b",
+            provider_type=_yandex_pt,
+            path=settings.model_yandexgpt_8b_path,
+            capabilities=[
+                Capability.NARRATIVE,
+                Capability.DIALOGUE,
+                Capability.DIALOGUE_GENERATION,
+                Capability.RULES_REASONING,
+                Capability.WORLD_SIMULATION,
+                Capability.MEMORY_SUMMARIZATION,
+                Capability.FACT_EXTRACTION,
+                Capability.STRATEGY,
+                Capability.GENERAL,
+                Capability.FAST,
+            ],
+            vram_mb=6600,
             context_size=8192,
             temperature=0.9,
             repeat_penalty=1.12,
