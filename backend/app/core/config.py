@@ -43,7 +43,7 @@ class ModelConfig(BaseSettings):
 
 class Settings(BaseSettings):
     app_name: str = "Enigma — Dark Fantasy RPG"
-    default_model: str = "qwen_3_5_9b"
+    default_model: str = "yandexgpt_8b"
     world_tick_minutes: int = 15
     data_dir: str = str((BASE_DIR / "backend" / "data").resolve())
     saves_dir: str = str(BASE_DIR / "saves")
@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     )
     llama_cpp_executable: str = str(BASE_DIR / "Models LLM" / "llama" / "llama-cli.exe")
     llama_cpp_model_path: str = str(
-        BASE_DIR / "Models LLM" / "Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-IQ3_M.gguf"
+        BASE_DIR / "Models LLM" / "YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf"
     )
 
     # Единый источник истины для API и LLM портов
@@ -176,14 +176,17 @@ class Settings(BaseSettings):
     model_qwen_3_5_9b_path: str = str(
         BASE_DIR / "Models LLM" / "Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-IQ3_M.gguf"
     )
+    model_yandexgpt_8b_path: str = str(
+        BASE_DIR / "Models LLM" / "YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf"
+    )
 
     # Agent → Model mapping (все агенты → одна модель)
     agent_model_map: Dict[str, str] = {
-        "dm": "qwen_3_5_9b",
-        "npc": "qwen_3_5_9b",
-        "rules": "qwen_3_5_9b",
-        "memory": "qwen_3_5_9b",
-        "world": "qwen_3_5_9b",
+        "dm": "yandexgpt_8b",
+        "npc": "yandexgpt_8b",
+        "rules": "yandexgpt_8b",
+        "memory": "yandexgpt_8b",
+        "world": "yandexgpt_8b",
     }
 
     available_models: Dict[str, ModelConfig] = {}
@@ -239,6 +242,18 @@ class Settings(BaseSettings):
                 path=self.model_qwen_3_5_9b_path,
                 display_name="Qwen3.5-9B The-Defiant-Fable-Uncnr-Heretic-NEO-MAX IQ3_M",
                 vram_mb=7100,
+                context_size=8192,
+                temperature=0.9,
+                top_p=0.9,
+                repeat_penalty=1.12,
+                n_keep=800,
+                provider_type="llama_cpp",
+            ),
+            "yandexgpt_8b": ModelConfig(
+                name="yandexgpt_8b",
+                path=self.model_yandexgpt_8b_path,
+                display_name="YandexGPT-5-Lite-8B-instruct Q4_K_M",
+                vram_mb=6600,
                 context_size=8192,
                 temperature=0.9,
                 top_p=0.9,

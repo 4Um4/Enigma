@@ -1,6 +1,6 @@
 ai_model:
-  model: qwen_3_5_9b
-  path: Models LLM\Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-IQ3_M.gguf
+  model: yandexgpt_8b
+  path: Models LLM\YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf
 audio:
   volume: 80
 content:
