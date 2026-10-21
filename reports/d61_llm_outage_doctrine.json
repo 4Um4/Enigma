@@ -1,183 +1,13 @@
 {
-  "started": "2026-10-12 18:50:13",
+  "started": "2026-10-21 21:55:11",
   "checks": [
     {
       "name": "p0_llm_online",
-      "ok": true,
-      "detail": "health не отвечает после самоподъёма"
-    },
-    {
-      "name": "p0_router_initialized",
-      "ok": true,
-      "detail": ""
-    },
-    {
-      "name": "p0_status_online",
-      "ok": true,
-      "detail": "payload={'status': 'online', 'reason': ''}"
-    },
-    {
-      "name": "g1_world_ticks",
-      "ok": true,
-      "detail": "ran=5"
-    },
-    {
-      "name": "g2_inflight_honest_failure",
-      "ok": true,
-      "detail": "inflight={'ok': False, 'exc': 'RuntimeError', 'msg': 'Все модели пула недоступны для capability=Capability.NARRATIVE'}"
-    },
-    {
-      "name": "g2_pool_backoff_proven",
-      "ok": true,
-      "detail": "pool_status={'degraded': True, 'models': {'qwen_7b': {'backoff_until': 1791806144.033826, 'active': True}}}"
-    },
-    {
-      "name": "g2_status_outage",
-      "ok": true,
-      "detail": "payload={'status': 'outage', 'reason': 'pool backoff доказан (до 1791806144)'}"
-    },
-    {
-      "name": "g2_pause_immediate",
-      "ok": true,
-      "detail": "paused=True modal=OUTAGE"
-    },
-    {
-      "name": "g2_no_debounce_path",
-      "ok": true,
-      "detail": "unconfirmed=0"
-    },
-    {
-      "name": "g2_idle_frozen",
-      "ok": true,
-      "detail": "ticks_during_pause=0"
-    },
-    {
-      "name": "g2_run_turn_no_fake_narrative",
-      "ok": true,
-      "detail": "rr={'dm': 'Движок не ответил — мир ждёт.'}"
-    },
-    {
-      "name": "g4_restart_success",
-      "ok": true,
-      "detail": "modal=SUCCESS reason="
-    },
-    {
-      "name": "g4_backoff_reset",
-      "ok": true,
-      "detail": "pool_status={'degraded': False, 'models': {}}"
-    },
-    {
-      "name": "g4_status_online",
-      "ok": true,
-      "detail": "payload={'status': 'online', 'reason': ''}"
-    },
-    {
-      "name": "g4_pause_holds_after_success",
-      "ok": true,
-      "detail": "ticks=0 paused=True"
-    },
-    {
-      "name": "g4_resume_ticks_flow",
-      "ok": true,
-      "detail": "ticks=3 paused=False"
-    },
-    {
-      "name": "g4_reply_end_to_end",
-      "ok": true,
-      "detail": "len=234"
-    },
-    {
-      "name": "g4_run_turn_e2e",
-      "ok": true,
-      "detail": "rr=ok"
-    },
-    {
-      "name": "g5_outage_reproven",
-      "ok": true,
-      "detail": "fail={'ok': False, 'exc': 'RuntimeError'}"
-    },
-    {
-      "name": "g5_pause_before_retry",
-      "ok": true,
-      "detail": "payload={'status': 'outage', 'reason': 'pool backoff доказан (до 1791806179)'}"
-    },
-    {
-      "name": "g5_failed_with_reason",
-      "ok": true,
-      "detail": "modal=FAILED reason=exe_missing — C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\Models LLM\\llama\\llama_server_d61_sabotage_missing.exe"
-    },
-    {
-      "name": "g5_pause_persists",
-      "ok": true,
-      "detail": "paused=True"
-    },
-    {
-      "name": "g5_retry_fails_again",
-      "ok": true,
-      "detail": "modal=FAILED"
-    },
-    {
-      "name": "g5_recovery_after_restore",
-      "ok": true,
-      "detail": "res={'restarted': True, 'reason': 'ok', 'detail': 'модель загружена и готова'}"
-    },
-    {
-      "name": "g6_unconfirmed_status",
-      "ok": true,
-      "detail": "payload={'status': 'unconfirmed', 'reason': 'health offline: ::1: TimeoutError'}"
-    },
-    {
-      "name": "g6_debounce_first_probe",
-      "ok": true,
-      "detail": "paused=False"
-    },
-    {
-      "name": "g6_debounce_second_probe",
-      "ok": true,
-      "detail": "paused=True modal=OUTAGE"
-    },
-    {
-      "name": "g6_watcher_live_debounce",
-      "ok": true,
-      "detail": "paused=True unconfirmed=2"
-    },
-    {
-      "name": "g7_modal_renders_all_states",
-      "ok": true,
-      "detail": ""
-    },
-    {
-      "name": "g7_button_map",
-      "ok": true,
-      "detail": ""
-    },
-    {
-      "name": "g7_rising_edge_hold_is_not_click",
-      "ok": true,
-      "detail": "hold=None"
-    },
-    {
-      "name": "g8_final_server_healthy",
-      "ok": true,
-      "detail": "res={'restarted': True, 'reason': 'ok', 'detail': 'модель загружена и готова'}"
+      "ok": false,
+      "detail": "start_llama_server вернул False"
     }
   ],
-  "obs": {
-    "p0_stabilize_sec": 0.5,
-    "g1_game_time": {
-      "before": null,
-      "after": null
-    },
-    "g2_server_stop": "stopped",
-    "g2_run_turn": {
-      "dm": "Движок не ответил — мир ждёт."
-    },
-    "g4_run_turn": {
-      "dm_len": 123
-    },
-    "g5_server_stop": "stopped",
-    "g6_server_stop": "stopped"
-  },
+  "obs": {},
   "boundary": [
     "HTTP-транспорт фронта не гоняется: gateway-адаптер зеркалит тело роута /llm/outage",
     "pygame-кадр game_screen (event-loop, утечка ESC/кликов) — ручной чеклист Мастера",
@@ -187,7 +17,7 @@
     "atexit server_lifecycle остановит lifecycle-spawned сервер при выходе",
     "gateway: health-проба 127.0.0.1:port/health (1с, без DNS) вместо check_llm_health — тайминг дебаунса; прод-латентность дебаунса = 1 медленная проба на TTL кэша"
   ],
-  "finished": "2026-10-12 18:51:49",
-  "green": 32,
-  "red": 0
+  "finished": "2026-10-21 22:01:21",
+  "green": 0,
+  "red": 1
 }
