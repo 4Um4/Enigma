@@ -36,6 +36,9 @@ SCAN_DIRS = [
     "docs/",
 ]
 
+# Директории, исключаемые из сканирования (архивные исторические снимки)
+EXCLUDE_DIRS = ["Архив"]  # directory names to exclude (platform-independent via Path.parts)
+
 # Корень проекта для резолва относительных путей
 PROJECT_ROOT = Path(__file__).parent.parent
 
@@ -158,6 +161,8 @@ def run() -> int:
         if not dir_path.exists():
             continue
         for md_file in dir_path.rglob("*.md"):
+            if any(exc in md_file.parts for exc in EXCLUDE_DIRS):
+                continue
             all_refs.extend(find_refs(md_file))
 
     print(f"[DOC_DRIFT] Scanned {len(all_refs)} references across "
