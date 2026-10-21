@@ -1,0 +1,84 @@
+{
+  "probe_name": "INV-SC-1-8-SPATIAL-COHERENCE",
+  "preset": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\config\\calibration\\test_presets\\golden_social_z0.yaml",
+  "ticks_run": 53,
+  "total_sc_failures": 0,
+  "failures": [],
+  "dashboard": {
+    "total_ticks_recorded": 53,
+    "total_failed_probes": 0,
+    "top_violators": [],
+    "recent_history": [
+      {
+        "tick_id": 26,
+        "passed": 9,
+        "failed": 0,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "tick_id": 26,
+        "passed": 9,
+        "failed": 0,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "tick_id": 27,
+        "passed": 9,
+        "failed": 0,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "tick_id": 27,
+        "passed": 9,
+        "failed": 0,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "tick_id": 28,
+        "passed": 9,
+        "failed": 0,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "tick_id": 28,
+        "passed": 9,
+        "failed": 0,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "tick_id": 29,
+        "passed": 9,
+        "failed": 0,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "tick_id": 29,
+        "passed": 9,
+        "failed": 0,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "tick_id": 30,
+        "passed": 9,
+        "failed": 0,
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "tick_id": 30,
+        "passed": 9,
+        "failed": 0,
+        "errors": [],
+        "warnings": []
+      }
+    ]
+  }
+}
