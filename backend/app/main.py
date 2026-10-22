@@ -25,6 +25,14 @@ os.environ["no_proxy"] = "localhost,127.0.0.1"
 # явный env извне сохраняет право переопределения.
 os.environ.setdefault("D8P_ENABLED", "1")
 
+# LLM_RESILIENCE_V1 (S364 ROLLOUT-ON): приоритетная очередь worker-ветки
+# (ADR-O-425, D62) — canonical FIFO + ambient cap=8 + deadline 300с;
+# queue совместима с D61 доктриной обязательной LLM (d61_llm_outage_doctrine
+# GREEN 32/0 EXIT=0 с env=1, S364); OFF-rollback чист (IPT 53/0/0).
+# setdefault — явный env извне сохраняет право переопределения (OFF через
+# LLM_RESILIENCE_V1="" ).
+os.environ.setdefault("LLM_RESILIENCE_V1", "1")
+
 import asyncio
 import logging
 from collections.abc import AsyncIterator

@@ -130,10 +130,11 @@ flags:
     type: env
     read_mode: call
     default: ""
-    verdict: ROLLOUT-PENDING
+    effective_default: "1"
+    verdict: ROLLOUT-ON
     adr: ADR-O-425
     owner: B
-    note: "D62 очередь + D61 доктрина обязательной LLM; устанавливать до первого запроса процесса; ON = отдельная приёмка Мастера (доктрина live только после вердикта ON)"
+    note: "модульный default OFF; main.py setdefault -> прод ON (S364 ROLLOUT-ON: rollout-cycle GREEN — d61 32/0 env=1, OFF-rollback 53/0/0); override через LLM_RESILIENCE_V1=''"
   WORK_ENABLED:
     type: env
     read_mode: call
