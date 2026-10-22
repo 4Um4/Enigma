@@ -181,14 +181,14 @@ class Capability(str, Enum):
 
 # Mapping: capability → model key (единственная модель)
 CAPABILITY_MODEL_PREFERENCES: dict["Capability", list[str]] = {
-    Capability.NARRATIVE: ["yandexgpt_8b"],
-    Capability.DIALOGUE: ["yandexgpt_8b"],
-    Capability.DIALOGUE_GENERATION: ["yandexgpt_8b"],
-    Capability.WORLD_SIMULATION: ["yandexgpt_8b"],
-    Capability.RULES_REASONING: ["yandexgpt_8b"],
-    Capability.MEMORY_SUMMARIZATION: ["yandexgpt_8b"],
-    Capability.FACT_EXTRACTION: ["yandexgpt_8b"],
-    Capability.STRATEGY: ["yandexgpt_8b"],
-    Capability.FAST: ["yandexgpt_8b"],
-    Capability.GENERAL: ["yandexgpt_8b"],
+    Capability.NARRATIVE: ["qwen_7b"],
+    Capability.DIALOGUE: ["qwen_7b"],
+    Capability.DIALOGUE_GENERATION: ["qwen_7b"],
+    Capability.WORLD_SIMULATION: ["qwen_7b"],
+    Capability.RULES_REASONING: ["qwen_7b"],
+    Capability.MEMORY_SUMMARIZATION: ["qwen_7b"],
+    Capability.FACT_EXTRACTION: ["qwen_7b"],
+    Capability.STRATEGY: ["qwen_7b"],
+    Capability.FAST: ["qwen_7b"],
+    Capability.GENERAL: ["qwen_7b"],
 }

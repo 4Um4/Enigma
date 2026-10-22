@@ -43,7 +43,7 @@ class ModelConfig(BaseSettings):
 
 class Settings(BaseSettings):
     app_name: str = "Enigma — Dark Fantasy RPG"
-    default_model: str = "yandexgpt_8b"
+    default_model: str = "qwen_7b"
     world_tick_minutes: int = 15
     data_dir: str = str((BASE_DIR / "backend" / "data").resolve())
     saves_dir: str = str(BASE_DIR / "saves")
@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     )
     llama_cpp_executable: str = str(BASE_DIR / "Models LLM" / "llama" / "llama-cli.exe")
     llama_cpp_model_path: str = str(
-        BASE_DIR / "Models LLM" / "YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf"
+        BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q6_K.gguf"
     )
 
     # Единый источник истины для API и LLM портов
@@ -171,7 +171,7 @@ class Settings(BaseSettings):
     # Модели проекта (baseline Qwen2.5-7B + новая Qwen3.5-9B IQ3_M)
     # ─────────────────────────────────────────────────────────────────
     model_qwen_7b_path: str = str(
-        BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf"
+        BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q6_K.gguf"
     )
     model_qwen_3_5_9b_path: str = str(
         BASE_DIR / "Models LLM" / "Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-IQ3_M.gguf"
@@ -182,11 +182,11 @@ class Settings(BaseSettings):
 
     # Agent → Model mapping (все агенты → одна модель)
     agent_model_map: Dict[str, str] = {
-        "dm": "yandexgpt_8b",
-        "npc": "yandexgpt_8b",
-        "rules": "yandexgpt_8b",
-        "memory": "yandexgpt_8b",
-        "world": "yandexgpt_8b",
+        "dm": "qwen_7b",
+        "npc": "qwen_7b",
+        "rules": "qwen_7b",
+        "memory": "qwen_7b",
+        "world": "qwen_7b",
     }
 
     available_models: Dict[str, ModelConfig] = {}

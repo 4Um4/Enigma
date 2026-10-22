@@ -1,6 +1,6 @@
 ai_model:
-  model: yandexgpt_8b
-  path: Models LLM\YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf
+  model: qwen_7b
+  path: Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q6_K.gguf
 audio:
   volume: 80
 content:
