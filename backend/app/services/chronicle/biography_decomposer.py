@@ -127,6 +127,7 @@ class BiographyDecomposer:
                 return DecomposeResult.success(items, anchors)
             except DecompositionError as e:
                 last_error = str(e)
+                logger.warning(f"[CHRONICLE_DECOMPOSER] DecompositionError (attempt {attempt}): {e}")
                 continue  # ровно один retry (FR-2.2)
             except RuntimeError as e:
                 # L4: отказ пула виден на warn-уровне. «Пул занят» — возмущение

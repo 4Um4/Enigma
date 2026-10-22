@@ -84,9 +84,11 @@ class ChronicleDecompositionNormalizer:
             try:
                 kind = EntryKind(kind_raw)
             except ValueError:
-                raise DecompositionError(
-                    f"items[{idx}]: kind '{kind_raw}' вне реестра {sorted(k.value for k in EntryKind)}"
-                ) from None
+                # Graceful degradation: модель путает kind с ClarificationOption
+                # (SELECT_EXISTING_NPC и т.п.) — пропускаем item, не убиваем декомпозицию.
+                # Прецедент: строка 162 (мусорные опции тоже пропускаются с warning).
+                logger.warning("normalize[%s]: неизвестный kind '%s' — item пропущен", idx, kind_raw)
+                continue
             payload = it.get("draft_payload", {})
             if not isinstance(payload, dict):
                 raise DecompositionError(f"items[{idx}]: draft_payload не dict")
