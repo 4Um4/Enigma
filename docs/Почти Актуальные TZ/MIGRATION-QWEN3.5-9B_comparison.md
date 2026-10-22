@@ -105,3 +105,65 @@
 | 10 | Qwen3-14B-Abliterated Q3_K_S | 6.7% | 5.66s | 176 | ❌ (OOM) |
 | 11 | Saiga-Llama3-8B (model-q4_K) | 6.7% | 4.07s | 1413 | ❌ (JSON-loop) |
 
+
+## CCH DECOMPOSE TEST — честный тест на FACT_EXTRACTION (S363)
+
+> **Методология тестирования (фиксация для будущих моделей):**
+> 
+> **Цель:** выбрать модель для CCH-декомпозитора (FACT_EXTRACTION — разбор биографий в JSON).
+> 
+> **Тестовая инфраструктура:**
+> - **Промпт:** `backend/prompts/chronicle_decompose_system.txt` (реальный production-промпт)
+> - **Нормализатор:** `ChronicleDecompositionNormalizer` (реальный production-код, без патчей)
+> - **Тестовые фрагменты:** 3 фрагмента биографий разной сложности (simple/medium/complex)
+> - **Параметры:** `temperature=0.0`, `max_tokens=2048`, `response_format={type: json_object}`
+> - **Спавнер:** `llama-server --jinja --ctx-size 8192 --n-gpu-layers 99 --port 8181`
+> 
+> **Метрики:**
+> - **Valid items** — сколько записей прошло нормализатор (больше = лучше)
+> - **Errors** — сколько фрагментов упали в DecompositionError (меньше = лучше)
+> - **Latency** — среднее время ответа на фрагмент (меньше = лучше)
+> - **VRAM free** — свободная VRAM после загрузки модели (больше = лучше)
+> 
+> **Критерий выбора:** Valid items > 0 И Errors = 0 И Latency < 30s И VRAM free > 500 MiB
+> 
+> **Скрипт:** `scripts/probe_cch_decompose.py` (запуск: `python scripts/probe_cch_decompose.py`)
+> 
+> **Как использовать для новых моделей:**
+> 1. Положить `.gguf` в `Models LLM/`
+> 2. Запустить `python scripts/probe_cch_decompose.py`
+> 3. Сравнить с таблицей ниже
+> 4. Если новая модель даёт больше valid items при 0 errors и приемлемой latency — кандидат на миграцию
+
+### Результаты CCH-теста (9 моделей, 3 фрагмента каждая)
+
+| # | Модель | Квант | Размер (GB) | Valid items | Errors | Avg latency (s) | VRAM free (MiB) | Вердикт |
+|---|---|---|---|---|---|---|---|---|
+| 1 | saiga_nemo_12b | Q3_K_M | 5.67 | 20 | 0 | 10.41 | 392 | ✅ (максимум items, но VRAM критично) |
+| 2 | **Qwen2.5-7B-Instruct-abliterated-v2** | **Q6_K** | **5.82** | **19** | **0** | **5.17** | **1165** | ✅ **ПОБЕДИТЕЛЬ (лучший баланс)** |
+| 3 | gemma-3-12b-it | Q4_K_M | 6.80 | 18 | 0 | 25.34 | 97 | ⚠️ (медленно, VRAM критично) |
+| 4 | saiga_nemo_12b | Q4_0 | 6.59 | 17 | 0 | 17.02 | 222 | ⚠️ (медленно, VRAM критично) |
+| 5 | Qwen2.5-7B-Instruct-abliterated-v2 | Q4_K_M | 4.36 | 14 | 0 | 3.35 | 2518 | ✅ (бывший baseline, самый быстрый) |
+| 6 | YandexGPT-5-Lite-8B-instruct | Q4_K_M | 4.58 | 9 | 1 | 7.02 | 1774 | ❌ (мало items, 1 ошибка) |
+| 7 | Huihui-GLM-4.6V-Flash-abliterated | Q4_K_M | 5.74 | 8 | 1 | 20.68 | 1279 | ❌ (мало items, медленно) |
+| 8 | saiga_yandexgpt_8b | Q4_K_M | 4.59 | 4 | 2 | 8.32 | 1774 | ❌ (очень мало items, 2 ошибки) |
+| 9 | model-q4_K (Saiga-Llama3-8B) | Q4_K | 4.58 | 0 | 3 | 6.11 | 1760 | ❌ (полный провал) |
+
+### Детали по фрагментам
+
+**Победитель — Qwen2.5-7B Q6_K (5.82 GB):**
+- simple: OK (items валидны)
+- medium: OK (items валидны)
+- complex: OK (items валидны, некоторые мусорные options отброшены warning-ом, не ошибка)
+- +36% валидных записей vs Q4_K_M baseline (19 vs 14)
+- Тот же Qwen2.5-7B, но 6-bit вместо 4-bit — лучше следует JSON-схеме
+
+### Сравнение двух тестов
+
+| Модель | semantic_probe (intent) | CCH decompose (FACT_EXTRACTION) | Лучший для |
+|---|---|---|---|
+| YandexGPT-5-Lite-8B Q4_K_M | 66.7-70.0% (1st) | 9 items, 1 error (6th) | intent_compressor |
+| Qwen2.5-7B Q6_K | не тестировался | 19 items, 0 errors (2nd) | CCH-декомпозитор |
+| Qwen2.5-7B Q4_K_M | 56.7% (baseline) | 14 items, 0 errors (5th) | бывший baseline |
+
+**Вывод:** разные LLM-задачи требуют разных моделей. YandexGPT лучше понимает свободный русский текст (intent), но хуже следует сложным JSON-схемам (FACT_EXTRACTION). Qwen2.5-7B Q6_K — лучший баланс для CCH.
