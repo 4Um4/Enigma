@@ -1,3 +1,12 @@
 ai_model:
   model: qwen_7b
   path: Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q6_K.gguf
+content:
+  individual:
+    profanity_level: 2
+    sexual_content_level: 2
+    taboo_practices_level: 2
+    violence_level: 2
+  last_changed_reason: migration
+  last_changed_tick: 0
+  preset: null

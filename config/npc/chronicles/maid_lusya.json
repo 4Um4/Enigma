@@ -1342,6 +1342,6 @@
   "canonical": true,
   "canonical_version": 1,
   "created_by_tick_source": null,
-  "game_start_age": null,
+  "game_start_age": 14,
   "event_groups": []
 }
