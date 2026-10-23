@@ -45,6 +45,7 @@ import json
 import re
 import subprocess
 import sys
+import types
 import time
 from pathlib import Path
 
@@ -370,7 +371,24 @@ PRE_REGISTERED = {
 }
 
 
-def _per_intent_common(rec: dict):
+_H1B_PATCH_REGISTRY: dict[str, types.ModuleType] = {}
+
+
+def _register_h1b_patch(module_name: str, module: types.ModuleType) -> None:
+    _H1B_PATCH_REGISTRY[module_name] = module
+
+
+def _restore_h1b_patches() -> None:
+    for module_name, module in list(_H1B_PATCH_REGISTRY.items()):
+        if module is not None:
+            try:
+                importlib.reload(module)
+            except Exception:
+                pass
+    _H1B_PATCH_REGISTRY.clear()
+
+
+
     """Пер-интентные средние общего окна — РЕЮЗ bm_aprime_offline._per_intent (N7c).
 
     Та же функция, что произвела числа A'/пререгистрации -> ноль риска трансляции.

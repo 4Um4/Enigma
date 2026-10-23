@@ -43,7 +43,7 @@ class ModelConfig(BaseSettings):
 
 class Settings(BaseSettings):
     app_name: str = "Enigma — Dark Fantasy RPG"
-    default_model: str = "yandexgpt_8b"
+    default_model: str = "qwen_7b"
     world_tick_minutes: int = 15
     data_dir: str = str((BASE_DIR / "backend" / "data").resolve())
     saves_dir: str = str(BASE_DIR / "saves")
@@ -182,11 +182,11 @@ class Settings(BaseSettings):
 
     # Agent → Model mapping (все агенты → одна модель)
     agent_model_map: Dict[str, str] = {
-        "dm": "yandexgpt_8b",
-        "npc": "yandexgpt_8b",
-        "rules": "yandexgpt_8b",
-        "memory": "yandexgpt_8b",
-        "world": "yandexgpt_8b",
+        "dm": "qwen_7b",
+        "npc": "qwen_7b",
+        "rules": "qwen_7b",
+        "memory": "qwen_7b",
+        "world": "qwen_7b",
     }
 
     available_models: Dict[str, ModelConfig] = {}
