@@ -310,6 +310,32 @@ class CanonizeRequest(BaseModel):
     campaign_id: str = Field(..., min_length=1)
 
 
+@chronicle_router.post("/chronicle/{campaign_id}/{npc_id}/confirm-author-entries")
+async def confirm_author_entries(campaign_id: str, npc_id: str) -> Dict[str, Any]:
+    """S365: LLM_DRAFT -> AUTHOR_CONFIRMED для всех записей draft.
+    Вызывается фронтом ДО canonize (T-CCH-04). Без него канон-валидатор
+    падает с запретом 1 (LLM_DRAFT в каноне)."""
+    from dataclasses import replace as _replace
+    from app.domain.chronicle import EntryProvenance
+    store = _get_store()
+    doc = store.load_draft(campaign_id, npc_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail=f"Черновик {npc_id} не найден в {campaign_id}")
+    new_entries = []
+    confirmed = 0
+    for e in doc.entries:
+        if e.provenance is EntryProvenance.LLM_DRAFT:
+            e = _replace(e, provenance=EntryProvenance.AUTHOR_CONFIRMED, confidence=None)
+            confirmed += 1
+        new_entries.append(e)
+    new_doc = _replace(doc, entries=tuple(new_entries))
+    store.save_draft(new_doc, campaign_id)
+    return {"status": "OK", "confirmed": confirmed}
+
+
+class CanonizeRequest(BaseModel):
+    campaign_id: str = Field(..., min_length=1)
+
 @chronicle_router.post("/chronicle/{campaign_id}/{npc_id}/canonize")
 async def canonize_chronicle(campaign_id: str, npc_id: str, req: CanonizeRequest) -> Dict[str, Any]:
     """FR-10.1/10.2 (CCH-3): перевод draft → канон. Единственный путь

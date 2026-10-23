@@ -1,0 +1,1782 @@
+{
+  "schema_version": 1,
+  "chronicle_id": "tavern_keeper_tornin",
+  "npc_ref": "tavern_keeper_tornin",
+  "author_text": "Торнин Серебряная Луна: человек\n\n1. Хозяин таверны.\n2. Бывший солдат, отстранён от службы из-за травмы ноги — прихрамывает на левую.\n3. На момент игры ему 45 лет.\n4. В 28 лет получил травму ноги, упав с лестницы у крепостной стены при штурме крепости.\n5. Тогда же, из старого разговора с товарищами, решил купить таверну: они шутили во время службы, что приходили бы к нему выпить в ней.\n6. Но уже два года спустя он понял, что таверна не приносит дохода на её содержание, и связался с гильдией воров.\n7. Гильдия выделила ему неприличную сумму за договорённость построить подземный лаз в его трактире и за его молчание об этом.\n8. До 32 лет всё шло относительно хорошо, но старые сослуживцы постепенно перестали к нему приходить. Новых близких связей он не завёл, не считая собственных посетителей.\n9. В то же время Гильдия развернула ситуацию на 180°: ему стали угрожать, контролировать его жизнь и требовать вернуть с процентами всё, что когда-то дали, — иначе просто убьют.\n10. Всё это привело его к алкоголизму. Торнин всё больше спивался, посетители отворачивались, и его мечта постепенно обернулась статусом притона и злачного места, куда порядочным людям лучше не заходить.\n11. В 40 лет Гильдия отправила к нему служанку Люсю: велели позаботиться о девочке, предоставить кров и работу — раз он не может в полной мере выплачивать долги.\n12. Но девочка ещё сильнее ударила по его финансам, а понимание, что её скорее всего прислали следить, не припрятал ли он чего от гильдии, сделало его отношение к ней крайне недоброжелательным.\n13. Стресс доканал его однажды: в пьяной драке недалеко от таверны он получил шрам на щеке и убил двоих, зарезав кухонным ножом. Убитые были не случайные посетители — то были «собиратели» гильдии, пришедшие в тот вечер за очередной платой по долгу. Гильдия своих покойников страже не сдаёт: дело закрыли тихо, через Борко, которому приказали «драки не было». А недостачу и смерть двоих своих гильдия вписала в долг Торнину — потому долг и вырос так резко, без объяснений.\n14. Вернувшись в таверну после драки, он увидел, что Люся разбила кружку, — посчитал это недобрым знаком («стража идёт, жизнь кончена») и в этот вечер не просто избил Люсю, но долго пинал её ногами, а потом бросил на её кровать, как мешок с картофелем, и вырубился на своей.\n15. На следующий день ничего не произошло, как будто ничего и не было; только Люся ещё неделю не вставала с кровати.\n16. Гильдия сказала, что долг возрос ещё больше и что, если девочка умрёт, это будет считаться нападением на саму гильдию. Торнин неделю сам кормил и выхаживал её — и понял, что Гильдия надавила и на стражу, а значит, его жизнь ещё меньше принадлежит ему.\n17. Две недели назад, до событий игры, Торнин попросил кузнеца Орма выковать ему тайно полуторный меч.\n18. Торнин на грани: он собирается убить Люсю — видит в ней источник своих бед, — а вместе с ней как можно большее число членов гильдии, прежде чем убьют его самого.\n19. Но где-то внутри он понимает, что это самообман: даже когда меч будет выкован, он побоится им воспользоваться. Уйти не может — остаётся работать, пить и выплачивать долги. А теперь меч стал новой петлёй: если им не воспользоваться, надо от него избавиться, потому что, узнай Гильдия, что заказ от Торнина, от него незамедлительно избавятся.\n20. С Ормом они старые собутыльники и товарищи, но это не значит, что Орму можно доверять: такой пьяница, как этот гном, продаст Торнина за бутылку. Все остальные для него клиенты. Борко — продажный стражник, ещё более подозрительный, чем Люся, но вне контекста гильдии каждый несёт свою роль, и при драках или спорных случаях Торнин сразу обращается к Борко — тем более что оба связаны с гильдией.\n21. Психика Торнина за годы алкоголизма приобрела двойственную структуру. Одна его часть — бывший солдат, мужчина, который шутил с товарищами о таверне и мечтал о простой жизни. Эта часть ненавидит себя за то, что он бьёт девочку, за то, что убил двоих и не сдался страже, за то, что продал себя Гильдии за лаз под полом. Другая часть — та, что пьёт, та, что бьёт, та, что смотрит на Люсю и видит в ней причину всех бед, потому что так проще, чем видеть причину в себе. Эти две части не разговаривают друг с другом. Они существуют параллельно, сменяясь в зависимости от того, сколько Торнин выпил и сколько дней прошло с последнего удара.\n22. Разбитая кружка не была причиной. Разбитая кружка была тем, что психика Торнина выбрала, чтобы не сойти с ума в ту ночь. Он убил двоих людей. Он это понимал. И если бы он позволил себе понять это полностью — он бы повесился на собственной стойке. Тогда он бил не Люсю — он избивал себя. Мозг зацепился за кружку. Кружка — это стража идёт. Кружка — это знак. Кружка — это повод выплеснуть ужас на того, кто слабее и не может ответить. На следующий день ничего не произошло, и Торнин не сошёл с ума. Он просто продолжил пить. А Люся неделю не вставала. И это нормально в его голове. Потому что в его голове это не он её избил. Это кружка виновата.\n23. Заказ меча не был планом. Не был расчётом. Не был решением. Торнин напился до состояния, когда обе части его психики кричат одновременно, подошёл к Орму и сказал: выкуй мне меч. Это был суицидальный акт, замаскированный под действие. Часть его хотела, чтобы Гильдия узнала и пришла за ним. Часть хотела, чтобы меч был готов и он наконец что-то сделал. Но обе эти части не хотели жить. Заказ меча — импульсивная ошибка пьяного человека, который ищет повод умереть, не называя это самоубийством. И теперь, трезвея, он понимает, что создал себе новую петлю на шее и не знает, как из неё вылезти.\n24. Реакция на предложение Тени. Когда Тень изложил своё «прощение долгов за помощь с кузнецом», Торнин не сказал ни да, ни нет. Налил обоим, выслушал до конца, ответил: «Я подумаю». Трезвая половина в ужасе: Орм — собутыльник, а хоронить товарища по стойке — это уже не клетка, это могила. Пьяная половина хочет одного: проснуться когда-нибудь без долга. С той ночи эти двое внутри него спорят каждую смену, и исход спора зависит от того, сколько он выпьет перед тем, как Тень спросит снова.\n25. Часы, которых он не видит. Полуторник — не подкова: Орму нужно ещё две-три недели. «Ночь, когда он решится», назначена Торниным на день, который наступит позже «большого дела» гильдии. Он не знает, что часы сцены тикают быстрее его плана: сначала через его подвал пройдёт Гросбух — и только потом будет готова сталь, в которой он видит своё спасение.\n26. Как понять, кто сегодня за стойкой. Трезвый Торнин протирает стойку строевыми ровными движениями, рука не дрогнет, кружки стоят по линейке. Пьяный гоняет полотенце по одному и тому же месту по кругу; хромота к закрытию заметнее. Солдат в нём не умер — даже запойный, он по привычке встречает рассвет на ногах, и это в нём самое страшное: армия подготовила его к осаде, а не к жизни в кредит.\n27. Голос и мелочи. Короткие рубленые фразы с хрипотцой; за стойкой «твоё слово — закон»; злится — может грубо послать, перейдя на солдатский мат. Свою монету называет «медь» — как и Орм: два старейших человека сцены разменивают жизнь одинаковыми словами. От звона бьющейся посуды вздрагивает — каждый раз (п.22; см. также дело Люси, п.17).\n\n---",
+  "entries": [
+    {
+      "entry_id": "4a427c9c16c50bb82687c6eb9219d6ef",
+      "kind": "PORTRET",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "человек",
+        "traits": []
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 0
+    },
+    {
+      "entry_id": "34203997a7ea7be51c182491d5f9f568",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Хозяин таверны.",
+        "effect_kind": "residence",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 100
+    },
+    {
+      "entry_id": "446913a43729f5a87ddfa3a8dd578f7f",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "отстранена от службы из-за травмы ноги",
+        "effect_kind": "trauma",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 200
+    },
+    {
+      "entry_id": "2c80bd5f1ac72f29ceec9659d6f537d9",
+      "kind": "PORTRET",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "На момент игры ему 45 лет.",
+        "traits": []
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 300
+    },
+    {
+      "entry_id": "a39d11e16631f139b0a79ac202c2872e",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "упала с лестницы у крепостной стены при штурме крепости",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 400
+    },
+    {
+      "entry_id": "92b2fee4f1083a42ee36be0204425f89",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "решено купить таверну",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 500
+    },
+    {
+      "entry_id": "31888c53537521c89d0b15857430c3cc",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "понял, что таверна не приносит дохода на её содержание",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 600
+    },
+    {
+      "entry_id": "dd07649966bdf23e4bc8d574ebb73abf",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "гильдия выделила ему неприличную сумму",
+        "effect_kind": "gain",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 700
+    },
+    {
+      "entry_id": "afd7c07a08402e09beb88bb02146d5f8",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "старые сослуживцы перестали приходить",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 800
+    },
+    {
+      "entry_id": "c24309793a47bea3c1f503e77c0d6a51",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "он не завёл новых близких связей",
+        "effect_kind": "loss",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 801
+    },
+    {
+      "entry_id": "5c51828322d8a1c47d13b643c1667bde",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "ему стали угрожать, контролировать его жизнь и требовать вернуть с процентами всё, что когда-то дали",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 900
+    },
+    {
+      "entry_id": "6e42dd8f6e97a42486c44c09126bc101",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "привело к алкоголизму",
+        "effect_kind": "trauma",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1000
+    },
+    {
+      "entry_id": "b9d586f1d971f8ddad190333ab55098c",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "В 40 лет Гильдия отправила к нему служанку Люсю: велели позаботиться о девочке, предоставить кров и работу — раз он не может в полной мере выплачивать долги.",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1100
+    },
+    {
+      "entry_id": "865533551eba1e6b03d3e997ee6acc09",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "ударила по его финансам",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1200
+    },
+    {
+      "entry_id": "5dcc0cd20a62c8a9542fc76adc7a8bfb",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "его отношение к ней стало крайне недоброжелательным",
+        "effect_kind": "loss",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1201
+    },
+    {
+      "entry_id": "3dcd5a784d38de49cb0eec0bb04fcbc8",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "отношение было недоброжелательным",
+        "target_hint": "девочка",
+        "nature": "inimical",
+        "valence": "negative"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1202
+    },
+    {
+      "entry_id": "39e9e8b20197d91281509a7fcb8e9ca7",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "ее прислали следить за ним",
+        "target_hint": "гильдия",
+        "nature": "dependence",
+        "valence": "negative"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1203
+    },
+    {
+      "entry_id": "3c4d83027e205e23966ce13212e78b86",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "в пьяной драке недалеко от таверны он получил шрам на щеке и убил двоих, зарезав кухонным ножом",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1300
+    },
+    {
+      "entry_id": "a30444a198eab336e49abd4d0727cd31",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "дело закрыли тихо, через Борко, которому приказали «драки не было».",
+        "effect_kind": "loss",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1301
+    },
+    {
+      "entry_id": "808c4a0435e92b7845c86f1e8db12100",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "долг и вырос так резко, без объяснений.",
+        "effect_kind": "gain",
+        "target_hint": "должник"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1302
+    },
+    {
+      "entry_id": "6014f1b80c7d4910ac251a095c85dfbc",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "вернулся в таверну после драки",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1400
+    },
+    {
+      "entry_id": "c1cdab1508d961ef9f0602588a8b4686",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "посчитал это недобрым знаком («стража идёт, жизнь кончена»)",
+        "effect_kind": "belief_seed",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1401
+    },
+    {
+      "entry_id": "01c0597d9dd0eb360f27e3d17b370d36",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "не просто избил Люсю, но долго пинал её ногами",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1402
+    },
+    {
+      "entry_id": "fb6e9865eba33a10d9bd7bbbb9995cc7",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "бросил на её кровать, как мешок с картофелем",
+        "effect_kind": "state",
+        "target_hint": "Люся"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1403
+    },
+    {
+      "entry_id": "acd5563d7bb7ec39ed1e62ee0631e5af",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "вырубился на своей кровати",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1404
+    },
+    {
+      "entry_id": "0f301ee74b2b47381b40d72a2a29af96",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Люся ещё неделю не вставала с кровати.",
+        "effect_kind": "loss",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1500
+    },
+    {
+      "entry_id": "81221deea393e282dfd6b9b5a6e735c0",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "долг возрос ещё больше",
+        "effect_kind": "loss",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1600
+    },
+    {
+      "entry_id": "e080db6de085033cf6a084f8d26a9406",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "если девочка умрёт, это будет считаться нападением на саму гильдию",
+        "effect_kind": "threatened_attack",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1601
+    },
+    {
+      "entry_id": "41b7c5505c6de2969a898317e0732008",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Торнин неделю сам кормил и выхаживал её",
+        "effect_kind": "care",
+        "target_hint": "девочка"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1602
+    },
+    {
+      "entry_id": "842bc6214e684120f3ea493386a96423",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "понял, что Гильдия надавила и на стражу",
+        "effect_kind": "realization",
+        "target_hint": "стражу"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1603
+    },
+    {
+      "entry_id": "24b5cd30a5c84e737dd156a4df25aef0",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "его жизнь ещё меньше принадлежит ему",
+        "effect_kind": "loss_of_control",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1604
+    },
+    {
+      "entry_id": "4c70a131d6e883950634810ab0aba9e9",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Торнин попросил кузнеца Орма выковать ему тайно полуторный меч.",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1700
+    },
+    {
+      "entry_id": "21e723766d4537495fec279702e48bc8",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Торнин собирается убить Люсю и других членов гильдии.",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1800
+    },
+    {
+      "entry_id": "c44b34047786b3fe29dc2c6949ebe5bd",
+      "kind": "BELIEF_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "но где-то внутри он понимает, что это самообман: даже когда меч будет выкован, он побоится им воспользоваться"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1900
+    },
+    {
+      "entry_id": "d307d3841a5ad4c31e7053abf18911b3",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "остается работать, пить и выплачивать долги",
+        "effect_kind": "loss",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1901
+    },
+    {
+      "entry_id": "c748660489c6412c515f452a03329cda",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "побоится",
+        "evidence": "даже когда меч будет выкован, он побоится им воспользоваться"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1902
+    },
+    {
+      "entry_id": "81ad23f75a2f3896827efd1a93cc9f79",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "не может уйти",
+        "effect_kind": "residence",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1903
+    },
+    {
+      "entry_id": "fdb791dd1d2b0ba51d78c6fc32643aea",
+      "kind": "BELIEF_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "узнай Гильдия, что заказ от Торнина, от него незамедлительно избавятся"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1904
+    },
+    {
+      "entry_id": "a07c4bf56d2bb3d4b027f0bba4906bab",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "надо от него избавиться",
+        "evidence": "если им не воспользоваться, надо от него избавиться"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1905
+    },
+    {
+      "entry_id": "7ea5427c716b7ec0e8c11d94f3ea2521",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "старые собутыльники и товарищи",
+        "target_hint": "Орм",
+        "nature": "依赖",
+        "valence": "neutral"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2000
+    },
+    {
+      "entry_id": "d426d25b891f01f9687267a33ddad3fd",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "не доверяет",
+        "target_hint": "Орму",
+        "nature": "不信任",
+        "valence": "negative"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2001
+    },
+    {
+      "entry_id": "bb5b372bbf5a9b03af9dac5376eea2e9",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "пьяница",
+        "evidence": "такой пьяница, как этот гном"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2002
+    },
+    {
+      "entry_id": "a6c4281d2773b6ba577ffaae97c4a39f",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "продаст Торнина за бутылку",
+        "target_hint": "Орму",
+        "nature": "交易",
+        "valence": "negative"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2003
+    },
+    {
+      "entry_id": "bd63d3a323f4677b31173cc7e7c238b8",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "продажный",
+        "evidence": "Борко — продажный стражник"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2004
+    },
+    {
+      "entry_id": "9305a7b0805786b88c999bd98d5543c9",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "более подозрительный, чем Люся",
+        "target_hint": "Борко",
+        "nature": "怀疑",
+        "valence": "negative"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2005
+    },
+    {
+      "entry_id": "09b23b83dc8988d22df5df12d0858ff4",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "вне контекста гильдии каждый несёт свою роль",
+        "evidence": "все остальные для него клиенты"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2006
+    },
+    {
+      "entry_id": "59260cc9f697db7e437e3760ed675daf",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "обращается к Борко при драках или спорных случаях",
+        "target_hint": "Торнин",
+        "nature": "求助",
+        "valence": "neutral"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2007
+    },
+    {
+      "entry_id": "a7c9d1477abb2f423217077be462199e",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "связаны с гильдией",
+        "target_hint": "Борко и Торнин",
+        "nature": "联系",
+        "valence": "neutral"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2008
+    },
+    {
+      "entry_id": "375e7f43054fd10ac0433cff5f46643f",
+      "kind": "PORTRET",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "Психика Торнина за годы алкоголизма приобрела двойственную структуру.",
+        "traits": []
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2100
+    },
+    {
+      "entry_id": "ea9b63caf1ad4a094608c237030c8005",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "бывший солдат",
+        "evidence": "одна его часть — бывший солдат"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2101
+    },
+    {
+      "entry_id": "c463925f7febbc8781ecbf66f55dacf9",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "мужчина, который шутил с товарищами о таверне и мечтал о простой жизни",
+        "evidence": "одна его часть — мужчина, который шутил с товарищами о таверне и мечтал о простой жизни"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2102
+    },
+    {
+      "entry_id": "ba28c0e1a73999e824c3a9d00b971292",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "ненавидит себя",
+        "evidence": "эта часть ненавидит себя за то, что он бьёт девочку"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2103
+    },
+    {
+      "entry_id": "e09853a7b82949a4f83265f19150c7fa",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "ненавидит себя",
+        "evidence": "эта часть ненавидит себя за то, что убил двоих и не сдался страже"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2104
+    },
+    {
+      "entry_id": "ec62e3adbf353f6e90379b2d78861993",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "ненавидит себя",
+        "evidence": "эта часть ненавидит себя за то, что продал себя Гильдии за лаз под полом"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2105
+    },
+    {
+      "entry_id": "1b358ce28a481276076a476f65258e23",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "пьёт",
+        "evidence": "другая часть — та, что пьёт"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2106
+    },
+    {
+      "entry_id": "4c1b9bdff9d05eb1654d76e6e8b000d6",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "бьёт",
+        "evidence": "другая часть — та, что бьёт"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2107
+    },
+    {
+      "entry_id": "cd4989eb4f55cb3bbec66dfc3bbbf4c7",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "смотрит на Люсю и видит в ней причину всех бед",
+        "evidence": "другая часть — та, что смотрит на Люсю и видит в ней причину всех бед"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2108
+    },
+    {
+      "entry_id": "a7545495cc17bd04a450fefb2f1e1c5c",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "проще, чем видеть причину в себе",
+        "evidence": "другая часть — та, что смотрит на Люсю и видит в ней причину всех бед, потому что так проще, чем видеть причину в себе"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2109
+    },
+    {
+      "entry_id": "47a38fb2d4be673c2173d02f894bc497",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "эти две части не разговаривают друг с другом.",
+        "effect_kind": "conflict",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2110
+    },
+    {
+      "entry_id": "95ea450eea00f38c12df53dd1364d7b1",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "они существуют параллельно, сменяясь в зависимости от того, сколько Торнин выпил и сколько дней прошло с последнего удара.",
+        "effect_kind": "state",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2111
+    },
+    {
+      "entry_id": "58dce4f318f4c7e6b6b7b7a105837765",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Заказ меча",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2300
+    },
+    {
+      "entry_id": "617f2b407fbf0a74ea1b587fe57e0f7d",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Торнин не ответил на предложение Тени о прощении долгов за помощь с кузнецом.",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2400
+    },
+    {
+      "entry_id": "2c263b6336a24f4f5e668190f0b6670d",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "подумает",
+        "evidence": "Я подумаю"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2401
+    },
+    {
+      "entry_id": "a56b56daf6541e3c3e5fdb9c0ac8cd31",
+      "kind": "BELIEF_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "Орм — собутыльник, а хоронить товарища по стойке — это уже не клетка, это могила."
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2402
+    },
+    {
+      "entry_id": "3c0ab318bf6d1660d72d847474327895",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Внутри Торнина спорят две части его сознания.",
+        "effect_kind": "conflict",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2403
+    },
+    {
+      "entry_id": "cc546ea7744634267db166e5c67f98bd",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "спорят каждую смену",
+        "evidence": "спорят каждую смену"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2404
+    },
+    {
+      "entry_id": "b59b10a9837ff53480c211bb3e5093e2",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Исход спора зависит от количества выпитого Торниным перед тем, как Тень снова спросит.",
+        "effect_kind": "condition",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2405
+    },
+    {
+      "entry_id": "2c8ac6d25db78d50fe6ab7147c86c976",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Орму нужно ещё две-три недели.",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2500
+    },
+    {
+      "entry_id": "f5f213024cd001109ecdd2eba4ac81ed",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Ночь, когда он решится",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2501
+    },
+    {
+      "entry_id": "93895f795971da729ffa2941dc27b5ac",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Торниным на день, который наступит позже «большого дела» гильдии.",
+        "target_hint": "Торнин",
+        "nature": "planned meeting",
+        "valence": "positive"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2502
+    },
+    {
+      "entry_id": "517c35d776dfaca53d42b76904f161c9",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "через его подвал пройдёт Гросбух",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2503
+    },
+    {
+      "entry_id": "ea252de771705224f6359a51f97d30e3",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "будет готова сталь, в которой он видит своё спасение.",
+        "effect_kind": "gain",
+        "target_hint": "сталь"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2504
+    },
+    {
+      "entry_id": "7542d9fa6214a4fe667a97b7320143d4",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "часы сцены тикают быстрее его плана",
+        "effect_kind": "loss",
+        "target_hint": null,
+        "_resolved_questions": [
+          {
+            "question_id": "q1",
+            "selected_option": "LEAVE_WHITE_SPOT",
+            "selected_value": null
+          }
+        ]
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2505
+    },
+    {
+      "entry_id": "285b14e3baf9ae7640a2c0c1b6c8c6cc",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "строгость",
+        "evidence": "Трезвый Торнин протирает стойку строевыми ровными движениями, рука не дрогнет, кружки стоят по линейке."
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2600
+    },
+    {
+      "entry_id": "b2f896e591aafe473a9516193d338f7f",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "хромота",
+        "evidence": "Пьяный гоняет полотенце по одному и тому же месту по кругу; хромота к закрытию заметнее."
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2601
+    },
+    {
+      "entry_id": "51136a7854f7430d19938a80011fdc36",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "привычка встречать рассвет на ногах",
+        "evidence": "Солдат в нём не умер — даже запойный, он по привычке встречает рассвет на ногах,"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2602
+    },
+    {
+      "entry_id": "598be78712ed3b85377956d1c3ca3b58",
+      "kind": "BELIEF_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "армия подготовила его к осаде, а не к жизни в кредит."
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2603
+    },
+    {
+      "entry_id": "03c8e7a49a59e1db2d8c7b149e4d5313",
+      "kind": "PORTRET",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "Голос и мелочи. Короткие рубленые фразы с хрипотцой; за стойкой «твоё слово — закон»; злится — может грубо послать, перейдя на солдатский мат. Свою монету называет «медь» — как и Орм: два старейших человека сцены разменивают жизнь одинаковыми словами.",
+        "traits": [
+          "хриплый голос",
+          "короткие фразы",
+          "законодательная роль",
+          "легко злится",
+          "использует грубые выражения",
+          "знает мат"
+        ]
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2700
+    }
+  ],
+  "white_spots": [],
+  "canonical": true,
+  "canonical_version": 1,
+  "created_by_tick_source": null,
+  "game_start_age": null,
+  "event_groups": []
+}

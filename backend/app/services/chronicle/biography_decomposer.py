@@ -34,7 +34,13 @@ logger = logging.getLogger(__name__)
 
 # Детерминированный препарсинг возрастных якорей (FR-1.2/FR-2.x, Fast Path)
 _AGE_ANCHOR: Final[re.Pattern] = re.compile(
-    r"\[\s*(\d{1,3})\s*лет\s*\]|в\s+(\d{1,3})\s*лет|с\s+(\d{1,3})\s*лет", re.IGNORECASE
+    r"\[\s*(\d{1,3})\s*лет\s*\]|"            # [8 лет]
+    r"в\s+(\d{1,3})\s*лет|"                  # в 14 лет
+    r"с\s+(\d{1,3})\s*лет|"                  # с 12 лет
+    r"к\s+(\d{1,3})\s*годам|"                # к 23 годам (S365)
+    r"в\s+(\d{1,3})\s*год(а|у)?\b|"          # в 24 года / в 24 год / в 24 (S365)
+    r"\bв\s+(\d{1,3})\b(?=\s+(?:он|она|они|застал|пошёл|пошла|начал|начала))",  # «В 24 застал» (S365)
+    re.IGNORECASE
 )
 
 
@@ -84,9 +90,15 @@ class BiographyDecomposer:
         return anchors
 
     def build_user_prompt(self, fragment: str, age_anchors: List[int]) -> str:
-        """Детерминированный user-промпт (переиспользуется тестами)."""
-        hints = f"Возрастные якоря фрагмента: {age_anchors}." if age_anchors else "Возрастных якорей не найдено."
-        return f"{hints}\n\nФРАГМЕНТ:\n{fragment.strip()}"
+        """Детерминированный user-промпт (переиспользуется тестами).
+        S365: hint «не найдено» не протекает в prompt — иначе LLM повторяет
+        его в summary (урок guard_borko: «Возрастных якорей не найдено. В 24
+        застал…» попало в summary как CoT-утечка)."""
+        if age_anchors:
+            hints = f"Возрастные якоря фрагмента: {age_anchors}.\n\n"
+        else:
+            hints = ""
+        return f"{hints}ФРАГМЕНТ:\n{fragment.strip()}"
 
     async def decompose(self, chronicle_id: str, fragment_ord: int, fragment: str) -> DecomposeResult:
         """
