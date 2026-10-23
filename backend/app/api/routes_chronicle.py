@@ -306,10 +306,6 @@ async def put_draft(campaign_id: str, npc_id: str, body: Dict[str, Any]) -> Dict
     return {"status": "OK", "path": str(path)}
 
 
-class CanonizeRequest(BaseModel):
-    campaign_id: str = Field(..., min_length=1)
-
-
 @chronicle_router.post("/chronicle/{campaign_id}/{npc_id}/confirm-author-entries")
 async def confirm_author_entries(campaign_id: str, npc_id: str) -> Dict[str, Any]:
     """S365: LLM_DRAFT -> AUTHOR_CONFIRMED для всех записей draft.
