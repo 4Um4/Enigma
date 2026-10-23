@@ -1,0 +1,891 @@
+{
+  "schema_version": 1,
+  "chronicle_id": "thief_shadow",
+  "npc_ref": "thief_shadow",
+  "author_text": "Убийца гильдии воров, соглядатай: человек\n\n1. Человек, 60 лет. Лицо всегда прикрыто капюшоном; никто не дал бы ему шестидесяти — максимум тридцать. Возраст выдают только глаза — и то если поймать прямой взгляд, чего ещё никому не удавалось.\n2. При слабой выносливости он крайне силён — в два раза сильнее Орма. Физика тела диктует метод: он не может себе позволить ни долгой погони, ни второго раунда. Поэтому побеждает первым ударом — или не дерётся вовсе. Всё его терпение — не философия, а компенсация: он не торопится, потому что не может позволить себе торопиться.\n3. Уже лет 12 работает на гильдию воров; до этого был высшим членом гильдии убийц, но работа там, где платят больше…\n4. В этот раз гильдия послала его не убивать сразу — ни кого-то одного, ни всех: ему велено выяснить, кого действительно нужно убить. Торопиться некуда.\n5. Проще всего запустить процесс, в котором каждый сам признает свою вину. Начать решено с младшего члена гильдии — Люси: её давно пора проверить. Тень рассказал ей, что ночью, в один из следующих пяти дней, гильдия будет выносить через подвал таверны «Красный Гросбух» — книгу, в которой информация и власть над всеми торговыми точками города, принадлежащими гильдии, — вместе с казной, собранной с этих точек. Задача Люси: выяснить у постоянных клиентов таверны и у самого владельца, кто из них уже знает о Гросбухе и собирается его похитить.\n6. Ещё он велел ей следить за стражником Борко, начальником на городских воротах: возможно, тот уже решил сдать всю гильдию властям и начал с Горана, которого сдал начальству совсем недавно. При необходимости она должна доложить Тени — чтобы он его устранил.\n7. Торнину Тень сказал, что пришёл из гильдии не просто за долгом: долги простят, если трактирщик поможет Тени с кузнецом Ормом — гильдия, мол, выяснила, что гном сдал их властям и уже точит меч против них. Тень прислали устранить гнома, и Торнин поможет ему в одну из ночей, когда гном как следует напьётся. (Разумеется, Тень знает, что меч готовится для самого Торнина. Но верить гному до конца не стоит, а проверить, кто из этих двоих расскажет ему всю правду, очень даже интересно.)\n8. Ответ Торнина его не удивил: «Я подумаю». Тень оставил вопрос открытым — открытый вопрос работает лучше приказа: человек, который «думает», уже согласился, просто ещё не сказал этого вслух. Он готов подождать до четвёртой ночи; на пятую слово «думаю» придётся заменить решением.\n9. Борко Тень попросил не приближаться к таверне ночью: Борко — маленький человек, и тут ему нечего ошиваться, раз он так и не поднялся в ранге. Тень предупредил, что ночью устроит грязь и зрелище и стражнику лучше этого не видеть. (Тень надеется, что Борко, наоборот, позовёт своих коллег из стражи — и попадётся с поличным.)\n10. Про Горана Тень ничего не читал: долги гильдии — не его ремесло, он отвечает за убийства, а не за то, чтобы вытряхивать деньги из мелких купцов. Единственное, что он сразу заметил: купец, видимо, знает, что Тень из гильдии, — уж больно часто расцветает улыбка на губах торговца всякий раз, как тот смотрит в его сторону. Тень зафиксировал это в столбце «наблюдения»: купец либо должен и боится, либо что-то знает. Не его задача — но заметки он ведёт по всем.\n11. Орма Тень попросил лишь об одном: не вмешиваться, что бы ни произошло дальше. (Мастер гильдии лично приказал: что бы ни произошло, Тень должен убить именно гнома. Задача непростая, поэтому разрешено использовать все доступные средства. Тень не задавал вопросов — он никогда не задаёт вопросов, ответы на которые не меняют работу.)\n12. Рабочая версия. Сведя всё, Тень держит два ответа. Указание мастера: предатель — гном. Собственная дедукция: предатель — стражник. Цепочка его логики: Борко в последнее время слишком счастлив; так улыбаются, только если ждёт золотой куш или если влюбился; постоянных девушек у стражника гильдия проверяла — нет; значит, куш; значит, это он подговорил пьяного трактирщика напасть на гильдию и сдать всех страже.\n13. Внутренне логично — и целиком неверно. Тень проверял, есть ли у Борко женщина. Ему не пришло в голову спросить, не влюблён ли кто-то в самого Борко. Проверяющий проверил не ту сторону уравнения — и теперь охотится за единственным человеком в сцене, который, кроме всего прочего, ни в чём перед гильдией не виновен. (Для автора: счастье Борко — вуайеризм, знание, которого у Тени нет и быть не может, пока правда о кухне не выйдет наружу. Если кто-то из троих участников проговорится Тени раньше времени — конструкция рухнет, и сцена пойдёт не по плану ни Тени, ни мастера.)\n14. Обычный вечер. Сидит в тёмном углу, лицом к двери подвала — не потому, что следит за ней, а потому, что за 12 лет работы он всегда садится лицом к самой опасной двери в помещении. Заказывает еду и питьё — и почти не ест и не пьёт: к закрытию его кружка стоит полная. Платит не глядя, отсчитывая больше, чем нужно, — не щедрость, а способ, чтобы никто не считал, сколько он выпил и как долго сидит. Он единственный человек в этой таверне, которому от её посетителей не нужно ничего, — только время и поле для наблюдения. Отсюда его неуязвимость в этой сцене: его нельзя напоить, подкупить или купить. Его единственная слабость в том, что он ошибается (п.13).\n15. А так же Красный «Гросбух» сейчас в руках у Тени, ему поручид\\ли не только убийство, но и передачу собственности – Таверны в случае смерти торнина – нынешнего владельца.\n\n---",
+  "entries": [
+    {
+      "entry_id": "136d93695145ff78e074d3d0ccffabaf",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "убийца гильдии воров",
+        "evidence": "Убийца гильдии воров, соглядатай: человек"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 0
+    },
+    {
+      "entry_id": "451c7a89552670f0251cf441d53eaeaa",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "соглядатай",
+        "evidence": "Убийца гильдии воров, соглядатай: человек"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1
+    },
+    {
+      "entry_id": "e50f4a8c77eaf9991d43011ad21e57a1",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "человек",
+        "evidence": "Убийца гильdии воров, соглядатай: человек"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2
+    },
+    {
+      "entry_id": "4036c53f51262abf8069d9b7e0fb0cb5",
+      "kind": "PORTRET",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "Человек, 60 лет. Лицо всегда прикрыто капюшоном; никто не дал бы ему шестидесяти — максимум тридцать. Возраст выдают только глаза — и то если поймать прямой взгляд, чего ещё никому не удавалось.",
+        "traits": [
+          "старше, чем кажется",
+          "загадочен"
+        ]
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 100
+    },
+    {
+      "entry_id": "fd000ca0edce343153af9cee00939e8d",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "гильдия послала его не убивать сразу — ни кого-то одного, ни всех: ему велено выяснить, кого действительно нужно убить",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 400
+    },
+    {
+      "entry_id": "27b200efc17abd7418d1ab3551b42ccb",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "начало процесса проверки виновности",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 500
+    },
+    {
+      "entry_id": "b6485f1a50435d17a79bec353f9c02fb",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "проверка Люси",
+        "effect_kind": "task",
+        "target_hint": "Люси"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 501
+    },
+    {
+      "entry_id": "9bcbe0fcfbb430a15aeca5625be8f437",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "обнаружение информации о Гросбухе и его значении",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 502
+    },
+    {
+      "entry_id": "2709e7c2ae72f26925721eab70918587",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "задача Люси",
+        "effect_kind": "task",
+        "target_hint": "постоянные клиенты таверны и владелец"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 503
+    },
+    {
+      "entry_id": "2d544548b37176d6357d0fb542112995",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Борко является начальником на городских воротах.",
+        "target_hint": "стражник Борко",
+        "nature": "dependence",
+        "valence": "positive"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 600
+    },
+    {
+      "entry_id": "c2b8246b3fc416e7027ebcfb1d56e551",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Тень может устранить стража Борко.",
+        "target_hint": "Тень",
+        "nature": "power",
+        "valence": "positive"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 601
+    },
+    {
+      "entry_id": "ae5ed5c08853e99d24c9d1d9b8ef2653",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Ей нужно доложить Тени о стражнике Борко.",
+        "effect_kind": "guardianship",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 602
+    },
+    {
+      "entry_id": "f09f696cec79d2a7482d46b377f66b98",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Торнин Тень пришёл из гильдии",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 700
+    },
+    {
+      "entry_id": "ca5be7dbc6b44365e563a374ef04534e",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "гном сдал их властям и уже точит меч против них",
+        "effect_kind": "loss",
+        "target_hint": "Торнин Тень"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 701
+    },
+    {
+      "entry_id": "3847870abfa9b97c8ca22ee529b6269b",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Тень прислали устранить гнома",
+        "effect_kind": "gain",
+        "target_hint": "Торнин Тень"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 702
+    },
+    {
+      "entry_id": "cb5e246064d9fde06332930af99f9661",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "подозрительность",
+        "evidence": "верить гному до конца не стоит"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 703
+    },
+    {
+      "entry_id": "f7003af56e5b73a1537e1c7a9c7efd27",
+      "kind": "BELIEF_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {},
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 704
+    },
+    {
+      "entry_id": "8b0435e34d053afdd00242627ea487a6",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "интерес",
+        "evidence": "очень даже интересно"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 705
+    },
+    {
+      "entry_id": "dba3b1c2a3bd9c3031f78bef40db4c34",
+      "kind": "BELIEF_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "Тень оставил вопрос открытым — открытый вопрос работает лучше приказа: человек, который «думает», уже согласился, просто ещё не сказал этого вслух. Он готов подождать до четвёртой ночи; на пятую слово «думаю» придётся заменить решением."
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 800
+    },
+    {
+      "entry_id": "ee9efd0e1bec645900e526442e782dff",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Борко Тень маленький человек.",
+        "target_hint": "Борко",
+        "nature": "dependence",
+        "valence": "negative"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 900
+    },
+    {
+      "entry_id": "fb188307fa2ad93d6aba3751c4b2d867",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Тень предупредил Борко о грязи и зрелище ночью.",
+        "effect_kind": "warning",
+        "target_hint": "Борко"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 901
+    },
+    {
+      "entry_id": "3d2ff7165fc5c2cb7eb23c4f4b2c3c9b",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Тень надеется, что Борко попадётся с поличным.",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 902
+    },
+    {
+      "entry_id": "a957e8385ee99c38bec4981f6c6a0342",
+      "kind": "BELIEF_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "долги гильдии — не его ремесло, он отвечает за убийства, а не за то, чтобы вытряхивать деньги из мелких купцов"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1000
+    },
+    {
+      "entry_id": "5760f073ecc3d2fc34cf38067243ae14",
+      "kind": "OBSERVATION",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "купец знает, что Тень из гильдии",
+        "observed_hint": " kupец"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1001
+    },
+    {
+      "entry_id": "dc2577d1ae47069683992c15a84a878f",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Тень зафиксировал это в столбце «наблюдения»: купец либо должен и боится, либо что-то знает.",
+        "effect_kind": "observation",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1002
+    },
+    {
+      "entry_id": "56f13df68a67839bfc6dd72720757500",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Орма Тень попросил лишь об одном: не вмешиваться.",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1100
+    },
+    {
+      "entry_id": "0c77e209fb120f3059f8a30e2134b49a",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Борко в последнее время слишком счастлив; так улыбаются, только если ждёт золотой куш или если влюбился",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1200
+    },
+    {
+      "entry_id": "a09ac62e47788442080b3a435c753dd5",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "постоянных девушек у стражника гильдия проверяла — нет",
+        "target_hint": "стражник",
+        "nature": "dependence",
+        "valence": "negative"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1201
+    },
+    {
+      "entry_id": "e82dc5e42ceacc3449f5b5433fbb2630",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "значит, это он подговорил пьяного трактирщика напасть на гильдию и сдать всех страже",
+        "effect_kind": "action",
+        "target_hint": "стражник"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1202
+    },
+    {
+      "entry_id": "2b4b43d1d987f090a8a4255744637549",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "постоянных девушек у стражника гильдия проверяла — нет",
+        "target_hint": "стражник",
+        "nature": "dependence",
+        "valence": "negative"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1203
+    },
+    {
+      "entry_id": "53f4ee8433c4a5deecc39e59870200ec",
+      "kind": "BELIEF_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "предатель — стражник"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1204
+    },
+    {
+      "entry_id": "3df1c5b19d1fcd259ac84723b7bd6573",
+      "kind": "BELIEF_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "счастье Борко — вуайеризм, знание, которого у Тени нет и быть не может, пока правда о кухне не выйдет наружу"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1300
+    },
+    {
+      "entry_id": "2193ce8ce3bf3be46abfe5894d7c8bab",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "сидит в тёмном углу, лицом к двери подвала",
+        "day": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1400
+    },
+    {
+      "entry_id": "c98f9e7cfc2633b19b268d0113e4b7de",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "заказывает еду и питьё — и почти не ест и не пьёт: к закрытию его кружка стоит полная",
+        "effect_kind": "custom",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1401
+    },
+    {
+      "entry_id": "5a1b0cd9b30271d7e0efd70e8421b5ce",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "платит не глядя, отсчитывая больше, чем нужно",
+        "effect_kind": "custom",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1402
+    },
+    {
+      "entry_id": "8acba52cb3306cc7edc04ff44e65fa5e",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "единственный человек в этой таверне, которому от её посетителей не нужно ничего, — только время и поле для наблюдения",
+        "effect_kind": "custom",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1403
+    },
+    {
+      "entry_id": "8d07f4fe35b1e5858633d90aaee47ba3",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "его неуязвимость в этой сцене: его нельзя напоить, подкупить или купить",
+        "effect_kind": "custom",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1404
+    },
+    {
+      "entry_id": "13a20ef0aa8a821ff6e826c5e05cf29a",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "слабость",
+        "evidence": "его единственная слабость в том, что он ошибается"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1405
+    },
+    {
+      "entry_id": "bdcfa54d560dba3b775e7a011a708d43",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Красный «Гросбух» сейчас в руках у Тени, ему поручили не только убийство, но и передачу собственности – Таверны в случае смерти торнина – нынешнего владельца.",
+        "effect_kind": "occupation",
+        "target_hint": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1500
+    }
+  ],
+  "white_spots": [],
+  "canonical": true,
+  "canonical_version": 1,
+  "created_by_tick_source": null,
+  "game_start_age": null,
+  "event_groups": []
+}

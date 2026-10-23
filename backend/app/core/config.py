@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     )
     llama_cpp_executable: str = str(BASE_DIR / "Models LLM" / "llama" / "llama-cli.exe")
     llama_cpp_model_path: str = str(
-        BASE_DIR / "Models LLM" / "YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf"
+        BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q6_K.gguf"
     )
 
     # Единый источник истины для API и LLM портов
@@ -177,7 +177,7 @@ class Settings(BaseSettings):
         BASE_DIR / "Models LLM" / "Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-IQ3_M.gguf"
     )
     model_yandexgpt_8b_path: str = str(
-        BASE_DIR / "Models LLM" / "YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf"
+        BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q6_K.gguf"
     )
 
     # Agent → Model mapping (все агенты → одна модель)

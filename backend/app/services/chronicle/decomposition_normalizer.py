@@ -103,7 +103,14 @@ class ChronicleDecompositionNormalizer:
             question_raw = it.get("question")
             # Явный if вместо тернарника (§1.1)
             if question_raw is not None:
-                question = ChronicleDecompositionNormalizer._normalize_question(question_raw, idx)
+                try:
+                    question = ChronicleDecompositionNormalizer._normalize_question(question_raw, idx)
+                except DecompositionError as qe:
+                    # S365: bad question (пустой question_id, пустые options) НЕ убивает item.
+                    # Урок прогона: LLM иногда фантазирует вопрос без question_id — это
+                    # не повод терять весь факт. Логируем, выбрасываем вопрос.
+                    logger.warning("normalize[%s]: вопрос невалиден (%s) — отброшен, item сохранён", idx, qe)
+                    question = None
             else:
                 question = None
             # Мембрана неточной связи (INV-LLM-NOT-SSOT): маркер в target_hint/
