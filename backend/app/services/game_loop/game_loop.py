@@ -1927,12 +1927,17 @@ class GameLoop:
             # Sprint P9: Проброс ObservedFactsBundle для UI и DM
             observed_facts=_resp_facts,
             llm_degraded=bool(dm_result.get("llm_degraded", False)),
-            journal_entry_id=self.memory_manager.persist_dm_response(
-                req.campaign_id,
-                world_id=req.world_id,
-                location=req.location,
-                actions=[a.model_dump() for a in req.actions],
-                dm_text=dm_result.get("dm_response", ""),
+            # D1 fix (GC-01): degraded path must NOT persist fallback as journal entry.
+            # _dm_degraded is set above (@1668) from dm_result.get("llm_degraded").
+            journal_entry_id=(
+                "" if _dm_degraded
+                else self.memory_manager.persist_dm_response(
+                    req.campaign_id,
+                    world_id=req.world_id,
+                    location=req.location,
+                    actions=[a.model_dump() for a in req.actions],
+                    dm_text=dm_result.get("dm_response", ""),
+                )
             ),
             traces=traces,
         )

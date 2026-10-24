@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import Any, Final, List, Mapping
+from typing import Any, Final, List, Mapping, Optional
 
 from app.domain.chronicle import (
     ClarificationOption,
@@ -46,6 +46,51 @@ _VAGUE_RELATION_MARKERS: Final[tuple] = (
     "человек со стороны",
 )
 
+# S367: identity-resolution options. LEAVE_WHITE_SPOT присутствует в каждом
+# вопросе (инвариант ClarificationQuestion.__post_init__), поэтому подпроверка
+# identity-options сейчас вакуумно True — защитная на будущие типы вопросов с
+# другими опциями. Эффективная логика — exact target_span==hint.
+_IDENTITY_OPTIONS: Final[frozenset] = frozenset({
+    ClarificationOption.SELECT_EXISTING_NPC,
+    ClarificationOption.CREATE_NEW_NPC,
+    ClarificationOption.UNKNOWN_PERSON,
+    ClarificationOption.LEAVE_WHITE_SPOT,
+})
+
+
+def _matches_roster_exact(hint: Any, roster: Mapping[str, str]) -> bool:
+    """S367: exact case-insensitive match hint против roster display names + ids.
+    Type-guarded: non-str hint/name/id -> False (НЕ mismatch, а skip).
+    Exact (не fuzzy, не падежная морфология) — заявленное ограничение."""
+    if not isinstance(hint, str):
+        return False
+    h = hint.strip().lower()
+    if not h:
+        return False
+    for npc_id, name in roster.items():
+        if isinstance(name, str) and h == name.strip().lower():
+            return True
+        if isinstance(npc_id, str) and h == npc_id.strip().lower():
+            return True
+    return False
+
+
+def _is_identity_question_for(question: Any, hint: Any) -> bool:
+    """S367: True если question уже спрашивает об идентичности hint-сущности.
+    Подпроверка identity-options сейчас вакуумно True (LEAVE_WHITE_SPOT-инвариант);
+    защитная на будущие не-identity типы. Эффективная логика — exact span==hint.
+    ОГРАНИЧЕНИЕ: инфлектированный/форматный span от LLM не совпадёт -> возможен
+    дубль-вопрос (не катастрофично — автор резолвит оба)."""
+    if question is None:
+        return False
+    opts = getattr(question, "options", None) or ()
+    if not any(o in _IDENTITY_OPTIONS for o in opts):
+        return False
+    span = getattr(question, "target_span", None)
+    if not isinstance(span, str) or not isinstance(hint, str):
+        return False
+    return span.strip().lower() == hint.strip().lower()
+
 
 class DecompositionError(ValueError):
     """Невалидный ответ LLM-декомпозитора. Retry-политика — вызывающий (API)."""
@@ -55,7 +100,13 @@ class ChronicleDecompositionNormalizer:
     """Чистый трансформер: str|dict → BiographyDecomposition. Без LLM, без I/O."""
 
     @staticmethod
-    def normalize(raw: Any, *, chronicle_id: str, fragment_ord: int) -> List[DecompositionItem]:
+    def normalize(
+        raw: Any,
+        *,
+        chronicle_id: str,
+        fragment_ord: int,
+        roster: Optional[Mapping[str, str]] = None,
+    ) -> List[DecompositionItem]:
         """
         Возвращает список DecompositionItem. Бросает DecompositionError:
         - non-JSON / пустой ответ;
@@ -131,6 +182,38 @@ class ChronicleDecompositionNormalizer:
                         ClarificationOption.LEAVE_WHITE_SPOT,
                     ),
                 )
+            # S367: roster backstop — contract-gated, type-guarded.
+            # Только RELATIONSHIP.target_hint (всегда NPC) и EFFECT.target_hint
+            # при non-null (контракт "null|<имя>"). name_hint=place, observed_hint=
+            # "имя/явление", about_hint=тема — НЕ обрабатываются (LLM rule 3).
+            # roster=None -> backstop отключён (backward-compat).
+            # Exact target_span==hint — ЗАЯВЛЕННОЕ ОГРАНИЧЕНИЕ (не fuzzy):
+            # инфлектированный span от LLM может дать дубль-вопрос — не катастрофично.
+            if roster is not None:
+                hint = None
+                if kind is EntryKind.RELATIONSHIP:
+                    hint = payload.get("target_hint")
+                elif kind is EntryKind.EFFECT:
+                    h = payload.get("target_hint")
+                    if isinstance(h, str) and h.strip():
+                        hint = h
+                if (
+                    isinstance(hint, str)
+                    and hint.strip()
+                    and not _matches_roster_exact(hint, roster)
+                    and not _is_identity_question_for(question, hint)
+                ):
+                    conf = min(float(conf), 0.4)
+                    question = ClarificationQuestion(
+                        question_id=f"roster_mismatch_{idx}",
+                        target_span=hint,
+                        options=(
+                            ClarificationOption.SELECT_EXISTING_NPC,
+                            ClarificationOption.CREATE_NEW_NPC,
+                            ClarificationOption.UNKNOWN_PERSON,
+                            ClarificationOption.LEAVE_WHITE_SPOT,
+                        ),
+                    )
             needs_conf = bool(it.get("needs_confirmation") or question is not None)
             items.append(
                 DecompositionItem(

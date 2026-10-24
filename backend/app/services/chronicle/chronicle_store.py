@@ -51,6 +51,23 @@ _KEY_NPC_REF = "npc_ref"
 _KEY_AUTHOR_TEXT = "author_text"
 _KEY_ENTRIES = "entries"
 _KEY_WHITE_SPOTS = "white_spots"
+# S366: ключи сериализации для npc_beliefs и cause_candidates.
+_KEY_NPC_BELIEFS = "npc_beliefs"
+_KEY_CANDIDATES = "cause_candidates"
+# Под-ключи NpcCausalBelief:
+_KEY_BELIEVER = "believer_id"
+_KEY_EFFECT_ENTRY = "effect_entry_id"
+_KEY_ALLEGED_CAUSE = "alleged_cause_entry_id"
+_KEY_ALLEGED_KIND = "alleged_cause_kind"
+_KEY_GROUNDING = "grounding"
+# Под-ключи CauseCandidate:
+_KEY_CAND_ID = "candidate_id"
+_KEY_CAND_EFFECT = "effect_entry_id"
+_KEY_CAND_CAND = "candidate_entry_id"
+_KEY_CAND_KIND = "candidate_kind"
+_KEY_CAND_BASIS = "basis"
+_KEY_CAND_RATIONALE = "rationale"
+_KEY_CAND_STATUS = "status"
 _KEY_CANONICAL = "canonical"
 _KEY_CANONICAL_VERSION = "canonical_version"
 _KEY_CREATED_BY = "created_by_tick_source"
@@ -143,6 +160,59 @@ def _cause_from(data: Dict[str, Any]) -> CauseRef:
 
 def _cause_to(cause: CauseRef) -> Dict[str, Any]:
     return {_KEY_CAUSE_KIND: cause.cause_kind.value, _KEY_ORIGIN_REF: cause.origin_ref}
+
+
+def _belief_to(b: "NpcCausalBelief") -> Dict[str, Any]:
+    """Сериализация NpcCausalBelief. provenance/confidence — по контракту ChronicleEntry."""
+    return {
+        _KEY_BELIEVER: b.believer_id,
+        _KEY_EFFECT_ENTRY: b.effect_entry_id,
+        _KEY_ALLEGED_CAUSE: b.alleged_cause_entry_id,
+        _KEY_ALLEGED_KIND: b.alleged_cause_kind.value,
+        _KEY_GROUNDING: b.grounding.value,
+        _KEY_PROVENANCE: b.provenance.value,
+        _KEY_CONFIDENCE: b.confidence,
+    }
+
+
+def _belief_from(data: Dict[str, Any]) -> "NpcCausalBelief":
+    """Десериализация NpcCausalBelief. fail-loud: обязательные поля — KeyError если нет.
+    Backward compat: если grounding/provenance/confidence отсутствуют — используем defaults."""
+    return NpcCausalBelief(
+        believer_id=data[_KEY_BELIEVER],
+        effect_entry_id=data[_KEY_EFFECT_ENTRY],
+        alleged_cause_entry_id=data[_KEY_ALLEGED_CAUSE],
+        alleged_cause_kind=_enum(CauseKind, data[_KEY_ALLEGED_KIND], _KEY_NPC_BELIEFS),
+        grounding=_enum(BeliefGrounding, data.get(_KEY_GROUNDING, "UNVERIFIED"), _KEY_NPC_BELIEFS),
+        provenance=_enum(EntryProvenance, data.get(_KEY_PROVENANCE, "LLM_DRAFT"), _KEY_NPC_BELIEFS),
+        confidence=data.get(_KEY_CONFIDENCE),
+    )
+
+
+def _candidate_to(c: "CauseCandidate") -> Dict[str, Any]:
+    """Сериализация CauseCandidate."""
+    return {
+        _KEY_CAND_ID: c.candidate_id,
+        _KEY_CAND_EFFECT: c.effect_entry_id,
+        _KEY_CAND_CAND: c.candidate_entry_id,
+        _KEY_CAND_KIND: c.candidate_kind.value,
+        _KEY_CAND_BASIS: c.basis.value,
+        _KEY_CAND_RATIONALE: c.rationale,
+        _KEY_CAND_STATUS: c.status.value,
+    }
+
+
+def _candidate_from(data: Dict[str, Any]) -> "CauseCandidate":
+    """Десериализация CauseCandidate. fail-loud на обязательных полях."""
+    return CauseCandidate(
+        candidate_id=data[_KEY_CAND_ID],
+        effect_entry_id=data[_KEY_CAND_EFFECT],
+        candidate_entry_id=data[_KEY_CAND_CAND],
+        candidate_kind=_enum(CauseKind, data[_KEY_CAND_KIND], _KEY_CANDIDATES),
+        basis=_enum(CandidateBasis, data[_KEY_CAND_BASIS], _KEY_CANDIDATES),
+        rationale=data[_KEY_CAND_RATIONALE],
+        status=_enum(CandidateStatus, data.get(_KEY_CAND_STATUS, "PENDING"), _KEY_CANDIDATES),
+    )
 
 
 def _question_from(data: Dict[str, Any]) -> ClarificationQuestion:
@@ -241,6 +311,9 @@ def document_to_dict(doc: ChronicleDocument) -> Dict[str, Any]:
         _KEY_AUTHOR_TEXT: doc.author_text,
         _KEY_ENTRIES: [_entry_to(e) for e in doc.entries],
         _KEY_WHITE_SPOTS: [_white_spot_to(ws) for ws in doc.white_spots],
+        # S366: сериализация новых полей (пустой tuple → пустой список в JSON).
+        _KEY_NPC_BELIEFS: [_belief_to(b) for b in doc.npc_beliefs],
+        _KEY_CANDIDATES: [_candidate_to(c) for c in doc.cause_candidates],
         _KEY_CANONICAL: doc.canonical,
         _KEY_CANONICAL_VERSION: doc.canonical_version,
         _KEY_CREATED_BY: doc.created_by_tick_source,
@@ -259,6 +332,9 @@ def document_from_dict(data: Dict[str, Any]) -> ChronicleDocument:
         author_text=data.get(_KEY_AUTHOR_TEXT, ""),
         entries=tuple(_entry_from(e) for e in data.get(_KEY_ENTRIES, ())),
         white_spots=tuple(_white_spot_from(ws) for ws in data.get(_KEY_WHITE_SPOTS, ())),
+        # S366: десериализация новых полей. .get(key, ()) → backward compat.
+        npc_beliefs=tuple(_belief_from(b) for b in data.get(_KEY_NPC_BELIEFS, ())),
+        cause_candidates=tuple(_candidate_from(c) for c in data.get(_KEY_CANDIDATES, ())),
         canonical=data.get(_KEY_CANONICAL, False),
         canonical_version=data.get(_KEY_CANONICAL_VERSION, 0),
         created_by_tick_source=data.get(_KEY_CREATED_BY),
@@ -282,6 +358,8 @@ def validate_document(doc: ChronicleDocument, *, require_canonical_clean: bool) 
         for c in e.causes:
             if c.origin_ref is not None and c.origin_ref not in entry_ids and c.origin_ref not in ws_ids:
                 raise ValueError(f"{e.entry_id}: dangling cause origin_ref '{c.origin_ref}'")
+        # S366 восстановлено: require_canonical_clean и _validate_knowledge_entry
+        # были сломаны ADD5 (стали телом for c in doc.cause_candidates). Возвращены в for e.
         if require_canonical_clean:
             if e.provenance is EntryProvenance.LLM_DRAFT:
                 raise ValueError(f"Запрет 1 (INV-LLM-NOT-SSOT): LLM_DRAFT '{e.entry_id}' в каноне {doc.chronicle_id}")
@@ -290,6 +368,20 @@ def validate_document(doc: ChronicleDocument, *, require_canonical_clean: bool) 
                     raise ValueError(f"Канон '{e.entry_id}': открытый вопрос '{q.question_id}' без резолюции автора")
         if e.kind is EntryKind.KNOWLEDGE_LINK:
             _validate_knowledge_entry(doc, e, entry_ids)
+
+    # S366: валидация dangling для NPC-убеждений и кандидатов.
+    # Все ссылки должны указывать на entry_id в пределах ТЕКУЩЕГО документа.
+    # Вне for e — выполняется один раз на документ.
+    for b in doc.npc_beliefs:
+        if b.effect_entry_id not in entry_ids:
+            raise ValueError(f"dangling npc_belief: effect_entry_id '{b.effect_entry_id}' (believer={b.believer_id})")
+        if b.alleged_cause_entry_id not in entry_ids:
+            raise ValueError(f"dangling npc_belief: alleged_cause_entry_id '{b.alleged_cause_entry_id}' (believer={b.believer_id})")
+    for c in doc.cause_candidates:
+        if c.effect_entry_id not in entry_ids:
+            raise ValueError(f"dangling candidate: effect_entry_id '{c.effect_entry_id}' (id={c.candidate_id})")
+        if c.candidate_entry_id not in entry_ids:
+            raise ValueError(f"dangling candidate: candidate_entry_id '{c.candidate_entry_id}' (id={c.candidate_id})")
 
 
 def _validate_knowledge_entry(doc: ChronicleDocument, entry: ChronicleEntry, entry_ids: set) -> None:

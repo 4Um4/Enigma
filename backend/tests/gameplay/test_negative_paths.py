@@ -4,7 +4,7 @@ GC-01: Негативные пути.
 Test C — Принудительный отказ DM + полный честный контракт:
   llm_degraded=True, npc_reactions=[], world_changes=[], journal="",
   dm_response — маркер деградации (не реплика NPC),
-  npc_positions стабильны (REST не тик и не телепортирует).
+  npc_positions: identity+location инварианты (ADR-O-201/377; см. c6).
 
 Test D — Контролируемый успешный провайдер (не ослаблять до dm_response!=""):
   llm_degraded=False (главный дискриминатор против Test C),
@@ -17,11 +17,11 @@ Test E — Malformed intervention: публичный контракт idle_tick
   e3: foreign source → silent no-op (no exception).
   Stale-windup НЕ включать — незакрытый остаток с конкретным следующим шагом.
 
-xfailed (production-дефект DM_agent AttributeError, открытие №5 в отчёте GC-01):
-  c1/c2/c4/c6/d2 — честный degraded-путь НЕ достигается из-за краша
-  dm_agent._build_contract@292 (world_epoch.py:351 self._epoch=generator),
-  game_loop использует ResponseValidator._fallback('empty') вместо
-  ветки llm_degraded=True (game_loop.py:1655-1660).
+Diag: предыдущие xfail-маркеры атрибутировали сбои как AttributeError
+  'generator.state' в world_epoch.py:351. Изолированный прогон TestC
+  AttributeError не воспроизводит — атрибуция ложная. Маркеры удалены
+  для получения реальных traceback'ов и установления контрактов
+  (c1/c2/c4/c6/d2). Order-dependent-эффект проверяется прогоном B->C.
 """
 from __future__ import annotations
 
@@ -38,17 +38,7 @@ from tests.gameplay.harness import TavernGameplayHarness
 # xfail reason-константы (triple-quoted — безопасно содержат вложенные кавычки)
 # ============================================================================
 
-_XFAIL_DM_AGENT_CRASH = """DM_agent AttributeError: 'generator' object has no attribute 'state'
-(world_epoch.py:351 — self._epoch is generator, lacks .state).
-Crash в dm_agent._build_contract@292 ломает run_agent_safe — возвращает {}
-(error=None), game_loop НЕ заходит в degraded-ветку (game_loop.py:1655-1660).
-Game uses ResponseValidator._fallback('empty') → dm_response='Ничего не произошло.',
-npc_reactions=['Тень: Ничего не произошло.'], journal_entry_id=UUID, llm_degraded=False.
-Production-дефект зафиксирован в отчёте GC-01 как открытие №5."""
 
-_XFAIL_PHASE9_NO_SNAPSHOT = """Phase 9 не строит world_snapshot при краше dm_agent
-(AttributeError 'generator.state' world_epoch.py:351 — тот же production-дефект,
-см. _XFAIL_DM_AGENT_CRASH). world_snapshot=None в ChatTurnResponse."""
 
 
 # ============================================================================
@@ -82,8 +72,10 @@ class TestCForcedDmFailure:
       - settings.llama_cpp_server_executable → nonexistent path (spawn fails)
       - pool.unload_all() → force _load_model на следующем запросе
 
-    xfailed (c1/c2/c4/c6): production-дефект DM_agent AttributeError ломает
-    честный degraded-путь. См. _XFAIL_DM_AGENT_CRASH.
+    Контракты проверяются напрямую; xfail-маркеры сняты (Блок №58).
+    D1 fixed в Блоке №64 (game_loop.py:1930 guard). D2: абсолютная
+    стабильность позиций противоречила ADR-O-377 (3) — c6 ревизован
+    на identity+location инварианты (Блок №68), гейты откатаны.
     """
 
     @pytest.fixture
@@ -102,7 +94,6 @@ class TestCForcedDmFailure:
             settings.llama_cpp_server_executable = orig_exec
             pool.unload_all()
 
-    @pytest.mark.xfail(strict=True, reason=_XFAIL_DM_AGENT_CRASH)
     def test_c1_llm_degraded_true_on_failure(self, force_llm_dead):
         """Главный ассерт: llm_degraded=True при отказе DM."""
         h = TavernGameplayHarness(seed=42, location="tavern")
@@ -117,7 +108,6 @@ class TestCForcedDmFailure:
         finally:
             h.dispose()
 
-    @pytest.mark.xfail(strict=True, reason=_XFAIL_DM_AGENT_CRASH)
     def test_c2_npc_reactions_empty(self, force_llm_dead):
         """Честный контракт: npc_reactions=[] — никто не говорит (RCE-атрибуция)."""
         h = TavernGameplayHarness(seed=42, location="tavern")
@@ -142,7 +132,6 @@ class TestCForcedDmFailure:
         finally:
             h.dispose()
 
-    @pytest.mark.xfail(strict=True, reason=_XFAIL_DM_AGENT_CRASH)
     def test_c4_journal_entry_id_empty(self, force_llm_dead):
         """Fallback не персистится: journal_entry_id="" (не атрибуцируется в STM)."""
         h = TavernGameplayHarness(seed=42, location="tavern")
@@ -169,9 +158,22 @@ class TestCForcedDmFailure:
         finally:
             h.dispose()
 
-    @pytest.mark.xfail(strict=True, reason=_XFAIL_DM_AGENT_CRASH)
     def test_c6_npc_positions_stable_no_teleport(self, force_llm_dead):
-        """REST не тик и не телепортирует: npc_positions стабильны."""
+        """REST не телепортирует: identity + location инварианты NPC.
+
+        ADR-O-377 (3): LLM-деградация не останавливает быстрые следствия —
+        npc_positions МОГУТ меняться в ходе player_action (исполнение
+        запланированных задач, traversal interpolation). Абсолютная
+        стабильность — ошибочное ожидание (снято в Блоке №68).
+
+        Инварианты (ADR-O-201):
+          1. Identity: множество NPC стабильно (спавн/деспавн вне
+             initialize_scene запрещён).
+          2. Location: ни один NPC не меняет location_id за один ход
+             (межлокационный переход требует boundary traversal, E18).
+        Внутрилокационные смены graph-узла легальны (movement engine —
+        единственный writer позиций, MotionPlan + E10 teleport check).
+        """
         h = TavernGameplayHarness(seed=42, location="tavern")
         try:
             h.new_game()
@@ -179,8 +181,21 @@ class TestCForcedDmFailure:
             before = h.get_scene_fresh().get("npc_positions", {})
             h.player_action("Действие")
             after = h.get_scene_fresh().get("npc_positions", {})
-            assert before == after, (
-                f"positions changed: before={before}, after={after}"
+            # Инвариант 1: identity (ADR-O-201 — спавн/деспавн вне
+            # initialize_scene запрещён)
+            assert set(before.keys()) == set(after.keys()), (
+                f"npc identity changed: before={sorted(before.keys())}, "
+                f"after={sorted(after.keys())}"
+            )
+            # Инвариант 2: location (ADR-O-201 E18 — межлокационный переход
+            # требует boundary traversal, не мгновенный телепорт)
+            _teleported = {
+                nid: (before[nid].get("location_id"), after[nid].get("location_id"))
+                for nid in before
+                if before[nid].get("location_id") != after[nid].get("location_id")
+            }
+            assert not _teleported, (
+                f"cross-location teleport detected: {_teleported}"
             )
         finally:
             h.dispose()
@@ -195,28 +210,59 @@ class TestDControlledMockProvider:
 
     @pytest.fixture
     def controlled_mock_provider(self):
-        """Мутация pool config + environment, restore в finally."""
-        pool = _get_model_pool()
-        cfg = pool._model_configs.get("qwen_7b")
-        if cfg is None:
-            pytest.skip("qwen_7b not registered in pool._model_configs")
-        orig_pt = cfg.provider_type
-        orig_env = settings.environment
-        try:
-            cfg.provider_type = ProviderType.MOCK
-            settings.environment = "development"
-            pool.unload_all()
-            yield
-        finally:
-            cfg.provider_type = orig_pt
-            settings.environment = orig_env
-            pool.unload_all()
+        """MOCK activation controller. Pattern: h.new_game() FIRST, then activate().
+
+        Previously the fixture mutated cfg.provider_type BEFORE h.new_game(),
+        but build_game_loop() → initialize_router() → initialize_model_pool()
+        re-registers qwen_7b with default provider_type, overwriting MOCK.
+
+        Fix: Controller pattern — caller invokes activate() AFTER h.new_game().
+        """
+        class _Controller:
+            def __init__(self):
+                self._cfg = None
+                self._orig_pt = None
+                self._orig_env = None
+                self._active = False
+
+            def activate(self):
+                pool = _get_model_pool()
+                # Set MOCK on ALL model configs — router picks capability model
+                # dynamically (e.g. yandexgpt_8b for NARRATIVE, qwen_3_5_9b fallback).
+                # Setting MOCK only on qwen_7b misses the actually-used models.
+                self._cfgs = list(pool._model_configs.values())
+                if not self._cfgs:
+                    pytest.skip(
+                        "no model configs registered in pool after h.new_game()"
+                    )
+                self._orig_pts = [c.provider_type for c in self._cfgs]
+                self._orig_env = settings.environment
+                for c in self._cfgs:
+                    c.provider_type = ProviderType.MOCK
+                settings.environment = "development"
+                pool.unload_all()
+                self._active = True
+
+            def restore(self):
+                if not self._active:
+                    return
+                pool = _get_model_pool()
+                for c, orig_pt in zip(self._cfgs, self._orig_pts):
+                    c.provider_type = orig_pt
+                settings.environment = self._orig_env
+                pool.unload_all()
+                self._active = False
+
+        ctrl = _Controller()
+        yield ctrl
+        ctrl.restore()
 
     def test_d1_llm_degraded_false_with_mock(self, controlled_mock_provider):
         """Главный дискриминатор: llm_degraded=False при MockProvider."""
         h = TavernGameplayHarness(seed=42, location="tavern")
         try:
             h.new_game()
+            controlled_mock_provider.activate()
             response = h.player_action("Осмотреть таверну")
             assert response is not None, "player_action returned None"
             assert response.llm_degraded is False, (
@@ -224,14 +270,15 @@ class TestDControlledMockProvider:
                 f"dm_response={getattr(response, 'dm_response', None)!r}"
             )
         finally:
+            controlled_mock_provider.restore()
             h.dispose()
 
-    @pytest.mark.xfail(strict=True, reason=_XFAIL_PHASE9_NO_SNAPSHOT)
     def test_d2_world_snapshot_present(self, controlled_mock_provider):
         """Структурный контракт: world_snapshot присутствует в ответе."""
         h = TavernGameplayHarness(seed=42, location="tavern")
         try:
             h.new_game()
+            controlled_mock_provider.activate()
             response = h.player_action("Осмотреть таверну")
             ws = getattr(response, "world_snapshot", None)
             assert ws is not None, (
@@ -239,6 +286,7 @@ class TestDControlledMockProvider:
                 f"attrs: {[a for a in dir(response) if not a.startswith('_')]}"
             )
         finally:
+            controlled_mock_provider.restore()
             h.dispose()
 
     def test_d3_dm_response_non_empty_str(self, controlled_mock_provider):
@@ -246,12 +294,14 @@ class TestDControlledMockProvider:
         h = TavernGameplayHarness(seed=42, location="tavern")
         try:
             h.new_game()
+            controlled_mock_provider.activate()
             response = h.player_action("Осмотреть таверну")
             dm = response.dm_response
             assert isinstance(dm, str), f"dm_response not str: {type(dm)}"
             assert len(dm) > 0, "dm_response empty under MOCK provider"
             print(f"\n[Mock diagnostic] dm_response={dm!r}")
         finally:
+            controlled_mock_provider.restore()
             h.dispose()
 
 
@@ -299,7 +349,7 @@ class TestEMalformedIntervention:
                 tick=0,
             )
             try:
-                gl.idle_tick(interventions=[interv])
+                gl.idle_tick(h.campaign_id, interventions=[interv])
             except TypeError as e:
                 pytest.skip(
                     f"idle_tick signature requires more params: {e}. "

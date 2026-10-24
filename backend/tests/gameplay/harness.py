@@ -103,6 +103,11 @@ class TavernGameplayHarness:
         self._subscribed = False
         self._last_tick_scene: Optional[dict] = None
 
+    @property
+    def campaign_id(self) -> str:
+        """Public read-only accessor for the harness campaign id (D4 fix)."""
+        return _CAMPAIGN
+
     def new_game(self) -> None:
         """Собирает production runtime через build_game_loop; temp-saves изоляция."""
         from app.core.config import settings

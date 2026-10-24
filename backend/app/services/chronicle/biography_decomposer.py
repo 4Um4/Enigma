@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Final, List, Optional
+from typing import Any, Dict, Final, List, Optional
 
 from app.domain.chronicle import (
     BiographyDecomposition,
@@ -31,6 +31,15 @@ from app.services.chronicle.decomposition_normalizer import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _default_roster_provider() -> Dict[str, str]:
+    """S367: lazy default roster source — npc_loader.get_display_names.
+    Единственный источник истины; per-call fetch (config правится вне тик-сессии).
+    Ленивый импорт (цикл-безопасно)."""
+    from app.services.npc.npc_loader import get_display_names
+    return get_display_names()
+
 
 # Детерминированный препарсинг возрастных якорей (FR-1.2/FR-2.x, Fast Path)
 _AGE_ANCHOR: Final[re.Pattern] = re.compile(
@@ -67,10 +76,17 @@ class BiographyDecomposer:
 
     PROMPT_FILE = "backend/prompts/chronicle_decompose_system.txt"
 
-    def __init__(self, router: Optional[Any] = None) -> None:
+    def __init__(
+        self,
+        router: Optional[Any] = None,
+        roster_provider: Optional[Any] = None,
+    ) -> None:
         # Router инъекцией (тестируемость); ленивая загрузка — как у DM.
+        # S367: roster_provider — callable () -> Dict[str, str]; None -> lazy
+        # get_display_names (единственный источник истины, npc_loader).
         self._router = router
         self._system_prompt: Optional[str] = None
+        self._roster_provider = roster_provider
 
     def _ensure_prompt(self) -> str:
         if self._system_prompt is None:
@@ -89,16 +105,34 @@ class BiographyDecomposer:
                 anchors.append(n)
         return anchors
 
-    def build_user_prompt(self, fragment: str, age_anchors: List[int]) -> str:
+    def build_user_prompt(
+        self,
+        fragment: str,
+        age_anchors: List[int],
+        roster: Optional[Dict[str, str]] = None,
+    ) -> str:
         """Детерминированный user-промпт (переиспользуется тестами).
         S365: hint «не найдено» не протекает в prompt — иначе LLM повторяет
         его в summary (урок guard_borko: «Возрастных якорей не найдено. В 24
-        застал…» попало в summary как CoT-утечка)."""
+        застал…» попало в summary как CoT-утечка).
+        S367: roster (опц.) — снимок известных NPC (id->display_name) из
+        npc_loader.get_display_names. roster=None -> блок отсутствует
+        (backward-compat: s365 test_cot_leak_blocked вызывает с 2 аргументами)."""
         if age_anchors:
             hints = f"Возрастные якоря фрагмента: {age_anchors}.\n\n"
         else:
             hints = ""
-        return f"{hints}ФРАГМЕНТ:\n{fragment.strip()}"
+        if roster:
+            names = ", ".join(sorted(str(v) for v in roster.values() if isinstance(v, str)))
+            roster_block = (
+                "ИЗВЕСТНЫЕ NPC (roster): " + names + ".\n"
+                "Если target_hint не сопоставляется ОДНОЗНАЧНО ни с одним именем выше — "
+                "задай ClarificationQuestion (SELECT_EXISTING_NPC/CREATE_NEW_NPC/"
+                "UNKNOWN_PERSON/LEAVE_WHITE_SPOT).\n\n"
+            )
+        else:
+            roster_block = ""
+        return f"{hints}{roster_block}ФРАГМЕНТ:\n{fragment.strip()}"
 
     async def decompose(self, chronicle_id: str, fragment_ord: int, fragment: str) -> DecomposeResult:
         """
@@ -108,7 +142,8 @@ class BiographyDecomposer:
         if not fragment.strip():
             return DecomposeResult.failure("Пустой фрагмент")
         anchors = self.extract_age_anchors(fragment)
-        user_prompt = self.build_user_prompt(fragment, anchors)
+        roster = (self._roster_provider or _default_roster_provider)()
+        user_prompt = self.build_user_prompt(fragment, anchors, roster)
         from app.services.llm.router import ModelRouter  # ленивый (цикл-безопасно)
 
         router = self._router or ModelRouter()
@@ -134,7 +169,7 @@ class BiographyDecomposer:
                     system_prompt=system_prompt,
                 )
                 items = ChronicleDecompositionNormalizer.normalize(
-                    raw, chronicle_id=chronicle_id, fragment_ord=fragment_ord
+                    raw, chronicle_id=chronicle_id, fragment_ord=fragment_ord, roster=roster
                 )
                 return DecomposeResult.success(items, anchors)
             except DecompositionError as e:
