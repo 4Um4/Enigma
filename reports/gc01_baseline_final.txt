@@ -1,0 +1,69 @@
+=====================================================================
+GC-01 — Вертикальный срез: негативные пути — ФИНАЛЬНЫЙ БАЗЛАЙН
+Дата: 2026-10-24 · Блоки №55-№69
+=====================================================================
+
+1. ОБЛАСТЬ
+   - backend/tests/gameplay/test_negative_paths.py — 12 тестов
+     (c1-c6 forced DM failure, d1-d3 controlled mock, e1-e3 interventions)
+   - backend/tests/gameplay/test_gc01_vertical_slice.py — TestA (9) + TestB (3)
+
+2. ДЕФЕКТЫ И ИСХОДЫ
+   D1 (c4)  game_loop.py:1930 — persist_dm_response() вызывался безусловно
+            в degraded-пути => journal получал UUID при отсутствии LLM.
+            FIX (Блок №64): journal_entry_id = "" if _dm_degraded else ...
+            Статус: FIXED, c4 PASS.
+
+   D2 (c6)  NPC-тик во время player_action (npc_orchestration.py ~@218).
+            Первичный production-gate (Блоки №65-67) ОТКАТАН (Блок №68):
+            ADR-O-407 (APPROVED-BY-MASTER) — time-gate «реализация —
+            отдельная сессия»; premature gate ломал d2 (world_snapshot
+            dependency) и противоречил ADR-O-377(3) — деградация без
+            интеллекта не останавливает быстрые следствия.
+            c6 РЕВИЗОВАН (Блок №68): абсолютная стабильность позиций
+            заменена на identity + location инварианты (ADR-O-201):
+              (1) множество NPC стабильно (спавн/деспавн запрещён);
+              (2) ни один NPC не меняет location_id за один ход
+                  (межлокационный переход требует boundary traversal).
+            Внутрилокационные смены graph-узла легальны (movement engine —
+            единственный writer позиций, E10 teleport check).
+            Статус: TEST-CONTRACT REVISED, c6 PASS.
+
+   D3 (d1-d3) fixture controlled_mock_provider: MOCK ставился ДО
+            h.new_game() => initialize_router() перезаписывал cfg; кроме
+            того MOCK ставился только qwen_7b, а роутер реально использует
+            yandexgpt_8b (primary) / qwen_3_5_9b (fallback).
+            FIX (Блоки №64-65): Controller-pattern — activate() ПОСЛЕ
+            new_game(), MOCK на ВСЕ pool._model_configs.values().
+            Статус: FIXED, d1-d3 PASS.
+
+   D4 (e1-e3) gl.idle_tick(interventions=...) без campaign_id.
+            FIX (Блок №64): сигнатура idle_tick(campaign_id, ...) @1123 —
+            тесты вызывают gl.idle_tick(h.campaign_id, interventions=[...]).
+            Статус: FIXED, e1-e3 PASS.
+
+   D5       stale ref _XFAIL_DM_AGENT_CRASH в class docstring — удалён
+            (Блок №64). Статус: HYGIENE DONE.
+
+3. ФИНАЛЬНЫЕ РЕЗУЛЬТАТЫ (Блок №68)
+   d2 isolated                    : 1 passed (2.5s)
+   c6 isolated (новые инварианты) : 1 passed (22.0s)
+   test_negative_paths.py FULL    : 12 passed, 1 warning (81.4s)
+   test_gc01_vertical_slice.py    : 12 passed, 1 warning (192.1s)
+   merged 24 tests (одна сессия)  : см. reports/gc01_merged_v1.txt (Блок №69)
+   xfail-маркеры                  : 0 (все 5 сняты в Блоке №58, возврата нет)
+
+4. ПРОДАКШН-DIFF (итог)
+   backend/app/services/game_loop/game_loop.py — ТОЛЬКО D1 guard.
+   Гейты Блоков №65-67 в npc_orchestration.py / npc_tick_pipeline.py
+   откатаны до индексного состояния (git diff пуст, Блок №68 шаг 68b).
+
+5. АРТЕФАКТЫ
+   reports/gc01_runA-E.txt (pre-fix), gc01_c6_v3.txt, gc01_full_v3.txt,
+   gc01_AB_v2.txt, gc01_merged_v1.txt, gc01_baseline_final.txt
+
+6. ОСТАТОЧНЫЕ РИСКИ (вне скоупа GC-01, после commit)
+   R1. SeederError maid_lusya (исх. #2)
+   R2. RE-D2 deadlock (исх. #3)
+   R3. await restart_llama_server (исх. #4)
+   R4. ADR-O-407 time-gate — корневой фикс D2, отдельная сессия
