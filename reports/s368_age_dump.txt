@@ -1,0 +1,35 @@
+=== S368 AGE DUMP ===
+[CWD] C:\DDD\Codex\VSC_Enigma\Enigma
+[LLM] сервер уже поднят: http://localhost:8181
+[ROUTER] initialize_router() ok
+[ANCHORS] [8]
+[USER_PROMPT] len=482
+[USER_PROMPT_BEGIN]
+Возрастные якоря фрагмента: [8].
+
+ИЗВЕСТНЫЕ NPC (roster): Кузнец Орм, Купец Горан, Люся, Стражник Борко, Тень, Торнин Серебряная Луна.
+Если target_hint не сопоставляется ОДНОЗНАЧНО ни с одним именем выше — задай ClarificationQuestion (SELECT_EXISTING_NPC/CREATE_NEW_NPC/UNKNOWN_PERSON/LEAVE_WHITE_SPOT).
+
+ФРАГМЕНТ:
+В 8 лет Люся осталась без родителей. Её взял к себе трактирщик Торнин — дальний родственник матери. С тех пор Люся живёт в трактире Торнина и работает там официанткой.
+[USER_PROMPT_END]
+[SYSTEM_PROMPT] via _ensure_prompt() len=4248
+[SPY] normalizer обёрнут, ждём сырой ответ
+[RAW_LLM_BEGIN]
+{"items": [{"kind": "EVENT", "draft_payload": {"summary": "осталась без родителей", "day": null}, "confidence": 1.0, "needs_confirmation": false, "question": null}, {"kind": "RELATIONSHIP", "draft_payload": {"summary": "дальний родственник матери", "target_hint": "Торнин Серебряная Луна", "nature": "родство", "valence": "positive"}, "confidence": 1.0, "needs_confirmation": false, "question": null}, {"kind": "EFFECT", "draft_payload": {"summary": "живёт в трактире Торнина и работает там официанткой", "effect_kind": "residence", "target_hint": "трактирщик Торнин"}, "confidence": 1.0, "needs_confirmation": false, "question": null}]}
+[RAW_LLM_END]
+[RESULT] ok=True error=None age_anchors=[8]
+[ITEM 0] kind=EVENT needs=False conf=1.0
+  payload_keys=['day', 'summary']
+  age=None day=None historical_age=None -> route_age=8
+  payload_full={"summary": "осталась без родителей", "day": null}
+[ITEM 1] kind=RELATIONSHIP needs=True conf=0.4
+  payload_keys=['nature', 'summary', 'target_hint', 'valence']
+  age=None day=None historical_age=None -> route_age=None
+  payload_full={"summary": "дальний родственник матери", "target_hint": "Торнин Серебряная Луна", "nature": "родство", "valence": "positive"}
+[ITEM 2] kind=EFFECT needs=True conf=0.4
+  payload_keys=['effect_kind', 'summary', 'target_hint']
+  age=None day=None historical_age=None -> route_age=None
+  payload_full={"summary": "живёт в трактире Торнина и работает там официанткой", "effect_kind": "residence", "target_hint": "трактирщик Торнин"}
+[S368_METRIC] items=3 with_age_int=1
+=== END S368 AGE DUMP ===
