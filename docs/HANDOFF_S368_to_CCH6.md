@@ -78,5 +78,35 @@
 - `_VAGUE_RELATION_MARKERS` — закрытый реестр (ADR-O-420), расширение = ревизия ADR.
 - Источник истины — данные + контракт, не предположение о модели.
 
+## 7b. S371 — LLM JSON Robustness (PLANNED, awaiting decision)
+
+**Статус:** ⏳ PLANNED — ROADMAP ONLY. Записан в roadmap:291 и MUTATIONS:369 (коммит `ac066549`). Не реализован.
+
+**Контекст для приёмника:** обнаружено в полном прогоне S368 (`reports/s368_full_run.txt`) — 6 из 126 фрагментов (4.76%) упали с `DecompositionError: Expecting ',' delimiter` в `decomposition_normalizer.normalize()`. Это ~5% потерь декомпозиции — накопительный технический долг.
+
+**Этапы (записаны в roadmap, не реализованы):**
+- S371.0 — воспроизводимая диагностика (blocker для остальных)
+- S371.1 — проверка лимита `max_tokens` (2048 vs 4096, один фактор)
+- S371.2 — безопасный JSON repair (запрет наивной коррекции скобок/кавычек)
+- S371.3 — `json_schema`/GBNF constrained generation (gated by live-server probe)
+- S371.4 — `partial_errors` контракт (критерий WhiteSpot vs отклонение)
+- S371.5 — prompt/retry (после установления причин)
+
+**Вход в S371.0 (для приёмника):**
+- Корпус: `reports/s368_full_run.txt` (126 фрагментов, 6 failures)
+- 6 failed fragments: goran[1,9,14], lusya[8], orm[19], shadow[8,10], tornin[13]
+- Модель: Qwen2.5-7B Q6_K (fallback, не qwen_3_5_9b — см. §7-хвост 1)
+- Параметры: temperature=0.0, max_tokens=2048, response_format=json_object
+- Каждую из 6 ошибок классифицировать: truncation? trailing comma? escape? Unicode? unknown?
+
+**Принципы (из задания Мастера):** один фактор за эксперимент · фиксированный корпус · никакого regex-парсинга JSON · не менять каноническую схему · не менять модель · не объединять интервенции.
+
+**Зависимости:** dep: CCH-S368 (baseline-корпус готов); dep: ADR-O-420 (контракт CCH-2 — не трогать без ADR-ревизии). rel: S365, S367, S368, S369.
+
+**Вопрос для отдельного сообщения Мастеру (по правилу развилок):** стартовать S371.0 сейчас (вариант α — не инвазивно, только чтение + классификация 6 ошибок), держать PLANNED (β — приоритет CCH-6), или параллельно с CCH-6 (γ). Моя рекомендация — α.
+
+---
+
 ## 8. IPT baseline
 53 passed / 0 failed / 0 CRITICAL — зелёный (после применения патча S368).
+
