@@ -55,16 +55,20 @@ _AGE_ANCHOR: Final[re.Pattern] = re.compile(
 
 @dataclass(frozen=True)
 class DecomposeResult:
-    """Результат разбора: items или честная ошибка (без молчаливых фолбэков)."""
+    """Результат разбора: items или честная ошибка (без молчаливых фолбэков).
+
+    S371.0: raw_response сохраняется при failure для диагностики JSON-ошибок
+    (классификация truncation/unicode/quote/escape/unknown)."""
 
     ok: bool
     items: List[DecompositionItem]
     error: Optional[str] = None
     age_anchors: Optional[List[int]] = None
+    raw_response: Optional[str] = None  # S371.0: сырой ответ LLM при failure (диагностика)
 
     @staticmethod
-    def failure(error: str) -> "DecomposeResult":
-        return DecomposeResult(ok=False, items=[], error=error)
+    def failure(error: str, raw_response: Optional[str] = None) -> "DecomposeResult":
+        return DecomposeResult(ok=False, items=[], error=error, raw_response=raw_response)
 
     @staticmethod
     def success(items: List[DecompositionItem], age_anchors: List[int]) -> "DecomposeResult":
@@ -174,6 +178,7 @@ class BiographyDecomposer:
                 return DecomposeResult.success(items, anchors)
             except DecompositionError as e:
                 last_error = str(e)
+                last_raw = raw if 'raw' in locals() else None  # S371.0: сохранить сырой ответ для диагностики
                 continue  # ровно один retry (FR-2.2)
             except RuntimeError as e:
                 # L4: отказ пула виден на warn-уровне. «Пул занят» — возмущение
@@ -190,7 +195,10 @@ class BiographyDecomposer:
                     continue  # тот же attempt, счётчик пул-ретраев отдельный
                 logger.error(f"[CHRONICLE_DECOMPOSER] LLM-пул недоступен после ожидания: {e}")
                 return DecomposeResult.failure(f"LLM-пул недоступен: {e}")
-        return DecomposeResult.failure(f"Декомпозиция не удалась после retry: {last_error}")
+        return DecomposeResult.failure(
+            f"Декомпозиция не удалась после retry: {last_error}",
+            raw_response=last_raw if 'last_raw' in locals() else None,
+        )
 
     def to_transient(self, chronicle_id: str, fragment_ord: int, result: DecomposeResult) -> BiographyDecomposition:
         """Transient-объект для UI (не персистится; не канон)."""

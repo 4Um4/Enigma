@@ -167,6 +167,10 @@ class SceneStateManager:
         self._tick_campaign_id: str | None = None
         # Дополнение Б (п. Б.6.1): Словарь сцен вместо одиночного слота
         self._tick_scenes: dict[str, dict] = {}
+        # R4/GATE-9A D2: abort marker. See mark_tick_aborted / unlock_tick.
+        # Reset at fresh acquire (lock_for_tick/lock_all_for_tick/adopt) and
+        # at end of unlock_tick guard body (both branches, via finally).
+        self._tick_aborted: bool = False
 
     # ── Tick-Scoped Identity API (ADR-SCENE-LOCK) ──────────────────────
 
@@ -182,6 +186,7 @@ class SceneStateManager:
             self._tick_locked = True
             self._tick_campaign_id = campaign_id
             self._tick_scenes[location_id] = scene
+            self._tick_aborted = False  # R4/GATE-9A D2: reset at fresh acquire
             try:
                 _recog = scene.get("player_recognition", {})
                 logger.debug(f"[LOCK] campaign={campaign_id} recog_keys={list(_recog.keys())}")
@@ -196,6 +201,7 @@ class SceneStateManager:
         self._tick_locked = True
         self._tick_campaign_id = campaign_id
         self._tick_scenes = {}
+        self._tick_aborted = False  # R4/GATE-9A D2: reset at fresh acquire
         for _loc_id in location_ids:
             scene = self.get_scene_state_uncached(campaign_id, _loc_id)
             if scene is not None:
@@ -212,6 +218,31 @@ class SceneStateManager:
         self._tick_locked = True
         self._tick_campaign_id = campaign_id
         self._tick_scenes[location_id] = scene_state
+        self._tick_aborted = False  # R4/GATE-9A D2: reset at fresh acquire
+
+    def mark_tick_aborted(self, campaign_id: str) -> None:
+        """R4/GATE-9A D2: помечает текущий тик как аварийный.
+
+        Контракт:
+        - Эффективен ТОЛЬКО при подтверждённом владении: lock удержан
+          И _tick_campaign_id == campaign_id. Использует тот же guard,
+          что и unlock_tick @238. Если вызывающий код не владеет тиком —
+          silent no-op, чужое состояние НЕ затрагивается.
+        - В последующем unlock_tick(campaign_id) пропускаются:
+          atomic_commit_all, _sync_relationship_directed,
+          _confirm_v2_migration. Persistence остаётся в pre-tick.
+        - _tick_scenes НЕ очищается (мост SSE может читать); следующий
+          fresh lock_for_tick загрузит pre-tick сцену из persistence
+          (in-memory rollback через замену слота).
+
+        Сброс маркера:
+        - при fresh acquire (lock_for_tick/lock_all_for_tick/adopt)
+        - в конце тела guard unlock_tick (обе ветки: persist и skip),
+          через finally — гарантированно даже при исключении.
+        """
+        if self._tick_locked and self._tick_campaign_id == campaign_id:
+            self._tick_aborted = True
+        # else: silent no-op — caller не владеет текущим тиком
 
     def is_tick_locked_for(self, campaign_id: str) -> bool:
         """Публичный predicate: тик-лок принадлежит этой кампании?
@@ -232,36 +263,58 @@ class SceneStateManager:
         return True
 
     def unlock_tick(self, campaign_id: str) -> None:
-        """Разблокирует тик. Персистит кэш.
+        """Разблокирует тик. Персистит кэш (если тик НЕ помечен aborted).
+
         ADR-SCENE-LOCK: НЕ очищаем _tick_scene сразу — bridge может читать его
-        в SSE-потоке после unlock. Кэш живёт до следующего lock_for_tick()."""
+        в SSE-потоке после unlock. Кэш живёт до следующего lock_for_tick().
+
+        R4/GATE-9A D2: если mark_tick_aborted(campaign_id) был вызван
+        legitimate владельцем, atomic_commit_all / _sync_relationship_directed
+        / _confirm_v2_migration пропускаются — persistence остаётся в pre-tick.
+        Guard владения сохранён — только legitimate owner снимает блокировку;
+        аварийная ветка меняет только решение о persist, не сам факт снятия.
+        Маркер _tick_aborted сбрасывается через finally — гарантированно, даже
+        при исключении в atomic_commit_all (блокер Мастера).
+        """
         if self._tick_locked and self._tick_campaign_id == campaign_id:
+            # Guard владения сохранён — только legitimate owner снимает блокировку.
             # СНИМАЕМ LOCK ДО save — иначе guard в save_scene_state() сделает return!
             self._tick_locked = False
-            # S1-FIX (INV-COMMIT-CARDINALITY): 1 атомарный коммит для всех локаций.
-            _valid_scenes = {k: v for k, v in self._tick_scenes.items() if v is not None}
-            if self._persistence and _valid_scenes:
-                # M1b.4.2: directed-поддерево обязано быть идентичным во всех
-                # локациях кампании (отношения переживают смену локации) —
-                # синхронизация ДО транзакции, консистентность — транзакцией.
-                self._sync_relationship_directed(_valid_scenes)
-                self._persistence.atomic_commit_all(
-                    campaign_id=campaign_id,
-                    all_scenes=_valid_scenes,
-                )
-                # M1b.4.2: маркер .migrated только ПОСЛЕ успешного коммита
-                # (ратифицировано: истина cutover — сохранённый v2, не маркер)
-                self._confirm_v2_migration(campaign_id)
-            # Диагностика: round-trip проверка — пережил ли traversal save→load?
-            if self._persistence and self._tick_scenes:
-                # Проверяем первую попавшуюся сцену из кэша
-                _verify = self._persistence.load_scene(campaign_id)
-                _trav_after = (
-                    list(_verify.get("active_traversals", {}).keys())
-                    if _verify
-                    else "LOAD_FAILED"
-                )
-                logger.debug(f"[UNLOCK_TRACE] AFTER LOAD: traversals={_trav_after}")
+            try:
+                if not self._tick_aborted:
+                    # Нормальный путь — штатный persist.
+                    # S1-FIX (INV-COMMIT-CARDINALITY): 1 атомарный коммит для всех локаций.
+                    _valid_scenes = {k: v for k, v in self._tick_scenes.items() if v is not None}
+                    if self._persistence and _valid_scenes:
+                        # M1b.4.2: directed-поддерево обязано быть идентичным во всех
+                        # локациях кампании (отношения переживают смену локации) —
+                        # синхронизация ДО транзакции, консистентность — транзакцией.
+                        self._sync_relationship_directed(_valid_scenes)
+                        self._persistence.atomic_commit_all(
+                            campaign_id=campaign_id,
+                            all_scenes=_valid_scenes,
+                        )
+                        # M1b.4.2: маркер .migrated только ПОСЛЕ успешного коммита
+                        # (ратифицировано: истина cutover — сохранённый v2, не маркер)
+                        self._confirm_v2_migration(campaign_id)
+                    # Диагностика: round-trip проверка — пережил ли traversal save→load?
+                    if self._persistence and self._tick_scenes:
+                        # Проверяем первую попавшуюся сцену из кэша
+                        _verify = self._persistence.load_scene(campaign_id)
+                        _trav_after = (
+                            list(_verify.get("active_traversals", {}).keys())
+                            if _verify
+                            else "LOAD_FAILED"
+                        )
+                        logger.debug(f"[UNLOCK_TRACE] AFTER LOAD: traversals={_trav_after}")
+                # else: тик помечен aborted — пропускаем persist и round-trip verify.
+                # _tick_scenes остаётся в памяти (SSE bridge может читать); следующий
+                # fresh lock_for_tick загрузит pre-tick сцену из persistence.
+            finally:
+                # R4/GATE-9A D2: всегда сбрасываем маркер аварии в конце
+                # жизненного цикла (обе ветки: persist и skip), даже при
+                # исключении в atomic_commit_all (блокер Мастера).
+                self._tick_aborted = False
             # НЕ очищаем _tick_scenes! Bridge может читать их в SSE-потоке.
             # Кэш будет заменён при следующем lock_for_tick().
 

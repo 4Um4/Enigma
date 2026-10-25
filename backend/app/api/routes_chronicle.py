@@ -238,7 +238,12 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
     порядковый), дубли невозможны по построению). Мост «разбор → лампочка»."""
     result = await _get_decomposer().decompose(req.npc_id, req.fragment_ord, req.fragment)
     if not result.ok:
-        return {"status": "NOT_DECOMPOSED", "error": result.error, "age_anchors": result.age_anchors or []}
+        return {
+            "status": "NOT_DECOMPOSED",
+            "error": result.error,
+            "age_anchors": result.age_anchors or [],
+            "raw_response": result.raw_response,  # S371.0: для диагностики JSON-ошибок
+        }
     # ── Merge в draft (S345: мост transient → persistent) ──────────────────
     from app.domain.chronicle import (
         ChronicleDocument,
