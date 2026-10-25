@@ -1249,6 +1249,23 @@ class GameScreen:
                                         "attention_weight": _narr.get("attention_weight", 0.0),
                                     }
                                     logger.info(f"[BUBBLE_INJECT] speaker={_spk_id} clarity={_narr.get('auditory_clarity', 1.0):.1f} text={_dlg_text[:30]}...")
+
+                # LC-IMPL-2 (§15): телеграф Ступени А — событие мира
+                # доезжает до клиента. Канал events = {cause, target, value}
+                # (LC-01 / ADR-O-421); строго read-only (§15.4-8). Событие
+                # уже произошло в симуляции; проекция — наблюдаемая суть.
+                # UI-индикатор (церемония Б) — отдельная задача LC-IMPL-3.
+                _idle_events = _tick_data.get("events") or []
+                if _idle_events:
+                    for _evt in _idle_events:
+                        _cause = _evt.get("cause", "unknown")
+                        _target = _evt.get("target", "unknown")
+                        _value = _evt.get("value", "")
+                        _target_name = _npc_name_map.get(_target, _target)
+                        logger.info(
+                            f"[TELEGRAPH] cause={_cause} "
+                            f"target={_target_name} value={_value}"
+                        )
             if _new_positions:
                 import copy
 
