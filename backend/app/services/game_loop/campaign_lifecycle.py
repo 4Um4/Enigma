@@ -176,6 +176,23 @@ class CampaignLifecycle:
                 "status": loaded["status"],
             },
         )
+        # COV-D61 fix / GC-02 vertical slice (S373): симметрия load_campaign
+        # к reset_campaign:441. Без init_campaign mvp_controller.action_compiler
+        # оставался с _campaign_id=None → WriteGate.apply в HELP/BLACKMAIL/ACCUSE
+        # не вызывался (if self._write_gate and self._campaign_id:) → trust-дельты
+        # дропались на полпути к V2-RAM (RE-D2-класс: зелёная архитектура пишет
+        # нулевую игровую реальность). Graceful degradation: load_campaign не
+        # падает из-за MVP (мёртвый mvp_controller = понижение, не краш ядра).
+        if self.mvp_controller:
+            try:
+                self.mvp_controller.init_campaign(campaign_id)
+                logger.info(
+                    f"[LOAD_CAMPAIGN] MVP controller initialized for '{campaign_id}'"
+                )
+            except Exception as e:
+                logger.error(
+                    f"[LOAD_CAMPAIGN] MVP controller init failed: {e}"
+                )
         return CampaignLoadResponse(
             campaign_id=campaign_id,
             world_id=world_id,
