@@ -13,31 +13,28 @@ from __future__ import annotations
 
 import logging
 from dataclasses import replace
+from dataclasses import replace as _dc_replace
 from typing import Any, Dict, Optional
 
 from app.core.config import BASE_DIR
-from app.domain.chronicle import SCHEMA_VERSION
-from app.services.chronicle.biography_decomposer import BiographyDecomposer
-from app.services.chronicle.causal_linker import CausalLinker, LinkResult
 from app.domain.chronicle import (
+    SCHEMA_VERSION,
     BeliefGrounding,
-    CandidateBasis,
     CandidateStatus,
-    CauseCandidate,
     CauseKind,
     CauseRef,
-    NpcCausalBelief,
     EntryProvenance,
-    make_candidate_id,
+    NpcCausalBelief,
     make_belief_id,
 )
-from dataclasses import replace as _dc_replace
+from app.services.chronicle.biography_decomposer import BiographyDecomposer
+from app.services.chronicle.causal_linker import CausalLinker, LinkResult
 from app.services.chronicle.chronicle_store import (
     ChronicleStore,
     document_from_dict,
     document_to_dict,
 )
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 chronicle_router = APIRouter()
@@ -345,6 +342,7 @@ async def confirm_author_entries(campaign_id: str, npc_id: str) -> Dict[str, Any
     Вызывается фронтом ДО canonize (T-CCH-04). Без него канон-валидатор
     падает с запретом 1 (LLM_DRAFT в каноне)."""
     from dataclasses import replace as _replace
+
     from app.domain.chronicle import EntryProvenance
     store = _get_store()
     doc = store.load_draft(campaign_id, npc_id)
@@ -402,38 +400,287 @@ class ResolveRequest(BaseModel):
 async def resolve_question(campaign_id: str, npc_id: str, req: ResolveRequest) -> Dict[str, Any]:
     """FR-3.1: резолюция открытого вопроса в draft. Убирает вопрос из
     open_questions записи (иначе _next_open_question найдёт его снова).
+
+    S369: для каждой опции выполняет контрактуальную перелинковку EntityRef:
+    - LEAVE_WHITE_SPOT → создать WhiteSpot (idempotent) + перелинк на WHITE_SPOT
+    - SELECT_EXISTING_NPC → перелинк на RESOLVED с npc_id=selected_value
+    - UNKNOWN_PERSON → перелинк на UNKNOWN_PERSON с name_hint=target_span
+    - CREATE_NEW_NPC → перелинк на UNKNOWN_PERSON (placeholder, warning)
     История резолюции сохраняется в _resolved_questions (для аудита)."""
     from dataclasses import replace as _replace
+
+    from app.domain.chronicle import (
+        ClarificationOption,
+        EntityRef,
+        EntityRefKind,
+        WhiteSpot,
+        WhiteSpotResolutionState,
+    )
+
     store = _get_store()
     doc = store.load_draft(campaign_id, npc_id)
     if doc is None:
         raise HTTPException(status_code=404, detail=f"Черновик {npc_id} не найден в {campaign_id}")
-    new_entries = []
-    changed = False
-    for e in doc.entries:
-        if any(q.question_id == req.question_id for q in e.open_questions):
-            _remaining = tuple(q for q in e.open_questions if q.question_id != req.question_id)
-            _resolved_old = e.payload.get("_resolved_questions", [])
-            _resolved_new = list(_resolved_old) + [{
-                "question_id": req.question_id,
-                "selected_option": req.selected_option,
-                "selected_value": req.selected_value,
-            }]
-            _new_payload = {**e.payload, "_resolved_questions": _resolved_new}
-            e = _replace(e, open_questions=_remaining, payload=_new_payload)
-            changed = True
-        new_entries.append(e)
-    if not changed:
+
+    # Валидация опции
+    try:
+        opt = ClarificationOption(req.selected_option)
+    except ValueError:
+        raise HTTPException(status_code=422, detail=f"Неизвестная опция: {req.selected_option}")
+
+    # SELECT_EXISTING_NPC требует selected_value (npc_id)
+    if opt is ClarificationOption.SELECT_EXISTING_NPC and not req.selected_value:
+        raise HTTPException(
+            status_code=422, detail="SELECT_EXISTING_NPC требует selected_value (npc_id)"
+        )
+
+    # Найти entry с этим question + сам question
+    target_entry_idx: Optional[int] = None
+    target_question = None
+    for i, e in enumerate(doc.entries):
+        for q in e.open_questions:
+            if q.question_id == req.question_id:
+                target_entry_idx = i
+                target_question = q
+                break
+        if target_entry_idx is not None:
+            break
+
+    if target_entry_idx is None or target_question is None:
         raise HTTPException(status_code=404, detail=f"Вопрос {req.question_id} не найден в open_questions")
-    new_doc = _replace(doc, entries=tuple(new_entries))
+
+    target_span = target_question.target_span
+    target_entry = doc.entries[target_entry_idx]
+
+    # Найти какой EntityRef перелинковать (по name_hint == target_span)
+    def _match(ref: Optional[EntityRef]) -> bool:
+        return ref is not None and ref.name_hint == target_span and target_span != ""
+
+    matches_subject = _match(target_entry.subject_id)
+    matches_object = _match(target_entry.object_id)
+    if matches_subject and matches_object:
+        logger.warning(
+            "resolve_question[%s]: target_span='%s' совпал и с subject_id, и с object_id "
+            "в entry %s — выбираю subject_id",
+            req.question_id, target_span, target_entry.entry_id,
+        )
+
+    # Создать WhiteSpot для LEAVE_WHITE_SPOT (idempotent — не дублировать)
+    new_white_spots = list(doc.white_spots)
+    if opt is ClarificationOption.LEAVE_WHITE_SPOT:
+        if not any(ws.white_spot_id == req.question_id for ws in new_white_spots):
+            new_ws = WhiteSpot(
+                white_spot_id=req.question_id,
+                label=target_span,
+                context_hint=f"resolved via /resolve (entry={target_entry.entry_id})",
+                resolution_state=WhiteSpotResolutionState.OPEN,
+                created_from_entry=target_entry.entry_id,
+            )
+            new_white_spots.append(new_ws)
+
+    # Перелинковка EntityRef под выбранную опцию
+    def _relink(ref: Optional[EntityRef]) -> Optional[EntityRef]:
+        if ref is None or not _match(ref):
+            return ref
+        if opt is ClarificationOption.LEAVE_WHITE_SPOT:
+            return EntityRef(
+                ref_kind=EntityRefKind.WHITE_SPOT,
+                white_spot_id=req.question_id,
+                name_hint=ref.name_hint,
+            )
+        if opt is ClarificationOption.SELECT_EXISTING_NPC:
+            return EntityRef(
+                ref_kind=EntityRefKind.RESOLVED,
+                npc_id=req.selected_value,
+                name_hint=ref.name_hint,
+            )
+        if opt is ClarificationOption.UNKNOWN_PERSON:
+            return EntityRef(
+                ref_kind=EntityRefKind.UNKNOWN_PERSON,
+                name_hint=ref.name_hint or target_span,
+            )
+        # CREATE_NEW_NPC — создание NPC вне скоупа /resolve; placeholder
+        logger.warning(
+            "resolve_question[%s]: CREATE_NEW_NPC selected_value='%s' — "
+            "создание NPC вне скоупа, перелинковка на UNKNOWN_PERSON (placeholder)",
+            req.question_id, req.selected_value,
+        )
+        return EntityRef(
+            ref_kind=EntityRefKind.UNKNOWN_PERSON,
+            name_hint=req.selected_value or ref.name_hint or target_span,
+        )
+
+    # Применить к target entry + убрать question + audit-запись
+    new_entries = list(doc.entries)
+    e = target_entry
+    new_subject = _relink(e.subject_id) if matches_subject else e.subject_id
+    new_object = _relink(e.object_id) if matches_object else e.object_id
+
+    _remaining = tuple(q for q in e.open_questions if q.question_id != req.question_id)
+    _resolved_old = e.payload.get("_resolved_questions", [])
+    _resolved_new = list(_resolved_old) + [{
+        "question_id": req.question_id,
+        "selected_option": req.selected_option,
+        "selected_value": req.selected_value,
+    }]
+    _new_payload = {**e.payload, "_resolved_questions": _resolved_new}
+
+    e = _replace(
+        e,
+        subject_id=new_subject,
+        object_id=new_object,
+        open_questions=_remaining,
+        payload=_new_payload,
+    )
+    new_entries[target_entry_idx] = e
+
+    new_doc = _replace(doc, entries=tuple(new_entries), white_spots=tuple(new_white_spots))
     store.save_draft(new_doc, campaign_id)
-    return {"status": "OK", "resolved": req.question_id}
+    return {
+        "status": "OK",
+        "resolved": req.question_id,
+        "white_spots_count": len(new_white_spots),
+        "selected_option": req.selected_option,
+    }
 
 # ── CCH-5: экспорт-проекции канон-хроник ─────────────────────────────────────
 # Артефакты аудита в config/npc/chronicles/_projections/. НЕ источник истины
 # для рантайма (npc_loader/chronicle_seeder не читают проекции). Канон —
 # единственный SSOT. Атомарная публикация через поколение + current.json (A3).
 # EXPLICIT: секретность — только payload['is_secret'] is True на kind=EVENT.
+
+@chronicle_router.get("/chronicle/{campaign_id}/{npc_id}/debug")
+async def get_character_debug(campaign_id: str, npc_id: str, request: Request) -> Dict[str, Any]:
+    """CCH-4 Character Debugger (FR-9.x, ADR-O-420): read-only окно Workbench layer 4.
+
+    «СЕЙЧАС» — snapshot runtime NPCState: causal_ledger (последние 20),
+    body_state, stress, will_state, life_project_state, intent, drives_base,
+    behavior_mask, affective_load.
+    «ИСТОЧНИКИ» — канон-entries (с subject/object/cause), white_spots,
+    npc_beliefs, cause_candidates.
+
+    4 состояния данных (дополнение Мастера 2026-10-25):
+    - KNOWN — данные присутствуют и непусты
+    - NOT_AUTHORED — поле есть в схеме, но в каноне отсутствует (автор не заполнил)
+    - NOT_LOADED — runtime NPCState не найден (campaign/NPC не загружен)
+    - INIT_ERROR — runtime NPCState повреждён (body_state=None и т.п.)
+
+    Read-only: не мутирует состояние. Запрет 10 ADR-O-420.
+    Изоляция от HUD: данные НЕ входят в WorldSnapshotDTO (запрет 7 ADR-O-420).
+    """
+    from app.services.game_loop_accessor import get_game_loop
+
+    response: Dict[str, Any] = {
+        "campaign_id": campaign_id,
+        "npc_id": npc_id,
+        "now": {},
+        "sources": {},
+        "states": {},
+    }
+
+    # ── СЕЙЧАС — runtime NPCState ───────────────────────────────────────────
+    loop = None
+    try:
+        loop = get_game_loop(request)
+    except RuntimeError:
+        response["states"]["runtime"] = "NOT_LOADED"
+        response["now"] = None
+    else:
+        all_npcs = loop._load_npcs_with_runtime(campaign_id)
+        npc_dict: Optional[Dict[str, Any]] = None
+        for n in all_npcs:
+            if n.get("id") == npc_id or n.get("npc_id") == npc_id:
+                npc_dict = n
+                break
+
+        if npc_dict is None:
+            response["states"]["runtime"] = "NOT_LOADED"
+            response["now"] = None
+        else:
+            body_state = npc_dict.get("body_state")
+            if body_state is None or (isinstance(body_state, dict) and body_state.get("disabled")):
+                runtime_state = "INIT_ERROR"
+            else:
+                runtime_state = "KNOWN"
+            response["states"]["runtime"] = runtime_state
+
+            psyche = npc_dict.get("psyche", {})
+            ledger_raw = npc_dict.get("causal_ledger", [])
+            response["now"] = {
+                "npc_id": npc_id,
+                "name": npc_dict.get("name", ""),
+                "current_role": npc_dict.get("current_role", "unknown"),
+                "stress": psyche.get("stress", 0.0),
+                "will_state": psyche.get("state", "free"),
+                "affective_load": psyche.get("affective_load", 0.0),
+                "life_project_state": npc_dict.get("life_project_state", "ACTIVE"),
+                "intent": npc_dict.get("intent"),
+                "intent_target": npc_dict.get("intent_target"),
+                "drives_base": psyche.get("drives_base", {}),
+                "behavior_mask": npc_dict.get("behavior_mask", {}),
+                "body_state": body_state,
+                "causal_ledger_last_20": ledger_raw[-20:] if ledger_raw else [],
+                "ledger_size": len(ledger_raw),
+            }
+
+    # ── ИСТОЧНИКИ — канон-хроника ──────────────────────────────────────────
+    store = _get_store()
+    canon_doc = store.load_canonical(npc_id)
+    if canon_doc is None:
+        response["states"]["chronicle"] = "NOT_AUTHORED"
+        response["sources"] = None
+    else:
+        response["states"]["chronicle"] = "KNOWN"
+        response["sources"] = {
+            "chronicle_id": canon_doc.chronicle_id,
+            "canonical_version": canon_doc.canonical_version,
+            "game_start_age": canon_doc.game_start_age,
+            "entries": [
+                {
+                    "entry_id": e.entry_id,
+                    "kind": e.kind.value,
+                    "subject_id": (
+                        {
+                            "ref_kind": e.subject_id.ref_kind.value,
+                            "npc_id": e.subject_id.npc_id,
+                            "white_spot_id": e.subject_id.white_spot_id,
+                            "name_hint": e.subject_id.name_hint,
+                        } if e.subject_id else None
+                    ),
+                    "object_id": (
+                        {
+                            "ref_kind": e.object_id.ref_kind.value,
+                            "npc_id": e.object_id.npc_id,
+                            "white_spot_id": e.object_id.white_spot_id,
+                            "name_hint": e.object_id.name_hint,
+                        } if e.object_id else None
+                    ),
+                    "historical_age": e.historical_age,
+                    "kind_value": e.kind.value,
+                    "causes": [
+                        {"cause_kind": c.cause_kind.value, "origin_ref": c.origin_ref}
+                        for c in e.causes
+                    ],
+                    "provenance": e.provenance.value,
+                }
+                for e in canon_doc.entries
+            ],
+            "white_spots": [
+                {
+                    "white_spot_id": ws.white_spot_id,
+                    "label": ws.label,
+                    "resolution_state": ws.resolution_state.value,
+                    "resolution_ref": ws.resolution_ref,
+                    "created_from_entry": ws.created_from_entry,
+                }
+                for ws in canon_doc.white_spots
+            ],
+            "npc_beliefs_count": len(canon_doc.npc_beliefs),
+            "cause_candidates_count": len(canon_doc.cause_candidates),
+        }
+
+    return response
+
 
 @chronicle_router.post("/chronicle/{campaign_id}/export-projections")
 async def export_projections(campaign_id: str) -> Dict[str, Any]:
