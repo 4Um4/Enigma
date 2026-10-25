@@ -1708,7 +1708,7 @@ GC-20 — Temporal Recovery → Future Behavior:
 - [ ] **GC-24 — LLM failure isolation.** LLM задерживается/падает/отменяется. WorldTick не зависает, bounded worker освобождается, быстрый мир живёт, LLM-originated proposal не становится SSOT. Отдельно покрыть путь отмены `abort_generation` (AUD-D3).
 - [ ] **GC-25 — Chronicle causal trace.** Для реальной истории Chronicle показывает минимум: `что произошло → что изменилось → почему → что изменилось в будущем поведении`. Chronicle читает trace/state и не мутирует их.
 - [ ] **GC-26 — NPC Inspector explanation.** Для текущего решения NPC: provenance-путь от доступных affordances/constraints через relevant memory/belief/expectation/relationship/body pressure к выбранному действию. LLM — не источник объяснения причинности.
-- [ ] **GC-27 — Player-visible consequence.** Цепочка, которую engine считает успешной, имеет наблюдаемый результат в реальном frontend: изменение положения/объекта/действия/диалога/отношения или иной presentation effect. Renderer — pure consumer.
+- [x] **GC-27 — Player-visible consequence.** Цепочка, которую engine считает успешной, имеет наблюдаемый результат в реальном frontend: изменение положения/объекта/действия/диалога/отношения или иной presentation effect. Renderer — pure consumer. ✅ S375: L3+L4 3/3 GREEN (NPC_MOVED event / npc_positions update / NPCPositionDTO формат для renderer); production-path работает без фиксов; GC-спринт Б3 завершён (GC-01 risk R4 + GC-02 + GC-27).
 - [ ] **GC-28 — Full Tavern Living World.** 6 NPC, player, world objects, relationships, secrets, body pressures, ambient observations. Минимум 200 тиков. Несколько независимых причинных цепочек, не сливающихся в одну глобальную реакцию. Завершение без silent-fail, с сохранением причинной истории.
 - [ ] **GC-29 — Humor perception vertical.** Expectation → incongruent event → valid resolution → amusement. Same event without resolution — non-humorous.
 - [ ] **GC-30 — Same event, different NPC.** Identical event → amusement / confusion / neutrality / offense / threat — объяснимо их expectation, appraisal, relationship, knowledge, current state.
@@ -2006,7 +2006,7 @@ Feature считается **CLOSED** только если:
 | GC-24 | LLM | failure isolation/cancel | TaskScheduler → provider | GC-24 | NEG-06 | GC-21 | indirect | [ ] | [ ] | |
 | GC-25 | Observability | causal Chronicle | trace → projector | GC-25 | NEG-09 | GC-20/21 | да | [ ] | [ ] | |
 | GC-26 | Debugging | NPC Inspector | runtime trace/state | GC-26 | NEG-09 | GC-20/21 | да | [ ] | [ ] | |
-| GC-27 | Frontend | consequence reaches renderer | API → PresentationProjector → renderer | GC-27 | NEG-09 | GC-20/21 | да | [ ] | [ ] | |
+| GC-27 | Frontend | consequence reaches renderer | API → PresentationProjector → renderer | GC-27 | NEG-09 | GC-20/21 | да | ✅ S375 | [x] | L3+L4 3/3 GREEN: NPC movement → NPC_MOVED event → WorldSnapshotDTO.npc_positions (Dict[str, NPCPositionDTO]) → frontend renderer; production-path работает (LifeEngine → MovementEngine → WorldSnapshotBuilder); GC-спринт Б3 завершён |
 | GC-28 | MVP | full living tavern | all production layers | GC-28 | all | required | да | [ ] | [ ] | |
 | GC-29 | Humor | expectation → incongruity → resolution → appraisal | perception → predictive/appraisal | GC-29 | NEG-11 | GC-40 | да | [ ] | [ ] | |
 | GC-30 | Humor | individual appraisal | perception + personality/state/relationship | GC-30 | NEG-13 | GC-40 | да | [ ] | [ ] | |
