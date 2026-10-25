@@ -2378,6 +2378,51 @@ def inv_sqlite_registry(_ctx=None):
         )
 
 
+def inv_player_turn_time_gate(_ctx=None) -> InvariantResult:
+    """ADR-O-407 (APPROVED-BY-MASTER): idle_tick НЕ вызывает execute() пока
+    player_turn_in_flight (гейт продвижения мирового времени привязан к
+    player-turn commitment, не к LLM-вызову — подготовка мультиплеера).
+    Контракт: 4 точки патча в game_loop.py — объявление поля + add в run_turn
+    try + discard в finally + early-return в idle_tick.
+    AST-чек (без запуска симуляции — behavior-neutral)."""
+    try:
+        from pathlib import Path
+
+        gl_path = Path("backend/app/services/game_loop/game_loop.py")
+        src = gl_path.read_text(encoding="utf-8")
+        checks = {
+            "field_decl": "self._player_turn_in_flight: set[str] = set()" in src,
+            "run_turn_add": "self._player_turn_in_flight.add(req.campaign_id)" in src,
+            "finally_discard": "self._player_turn_in_flight.discard(req.campaign_id)" in src,
+            "idle_early_return": "in self._player_turn_in_flight" in src,
+        }
+        missing = [k for k, v in checks.items() if not v]
+        if not missing:
+            return InvariantResult(
+                "INV-PLAYER-TURN-TIME-GATE",
+                "CRITICAL",
+                True,
+                "Контракт ADR-O-407 присутствует (4 точки: field/add/discard/early-return).",
+                [],
+            )
+        return InvariantResult(
+            "INV-PLAYER-TURN-TIME-GATE",
+            "CRITICAL",
+            False,
+            f"Нарушения контракта ADR-O-407 (4 точки): отсутствуют {missing}. "
+            f"Ядро TickOrchestrator не тронуто; гейт — на уровне game_loop.",
+            ["backend/app/services/game_loop/game_loop.py"],
+        )
+    except Exception as e:
+        return InvariantResult(
+            "INV-PLAYER-TURN-TIME-GATE",
+            "CRITICAL",
+            False,
+            f"Ошибка проверки контракта: {e}",
+            ["backend/app/services/game_loop/game_loop.py"],
+        )
+
+
 INVARIANTS: List[Callable] = [
     inv_re_cache_allowlist,  # ADR-O-415: freeze-поверхность relationship_cache (M1b.3.7)
     inv_flag_registry,  # COV-0: флаг-реестр (COV-D73 -> COV-GC-04)
@@ -2432,6 +2477,7 @@ INVARIANTS: List[Callable] = [
     inv_event_identity,
     inv_n18_source,
     inv_consumer_gap_orphan,
+    inv_player_turn_time_gate,  # ADR-O-407: player_turn_in_flight time-gate
 ]
 
 

@@ -371,6 +371,13 @@ class GameLoop:
         from app.services.world.time_skip_executor import TimeSkipExecutor
         self._time_skip = TimeSkipExecutor(self._tick_orch)
         self._skip_locks: Dict[str, threading.Lock] = {}  # Real locks per campaign
+        # ADR-O-407 (APPROVED-BY-MASTER, реализация): player-turn time-gate.
+        # Пока ход игрока in-flight (dispatch → resolve/abort), idle_tick НЕ
+        # вызывает execute() — мировое время не растёт. Семантика F12/workbench
+        # паузы, не global LLM-pause (подготовка мультиплеера). Set per-campaign
+        # — идиома булева флага (прецедент _skip_locks:373). Anti-Race:
+        # ядро TickOrchestrator не тронуто (ADR-O-344 в силе).
+        self._player_turn_in_flight: set[str] = set()
         # DEGOD Phase3B: CampaignLifecycle — владелец жизненного цикла кампании
         from app.services.game_loop.campaign_lifecycle import CampaignLifecycle
 
@@ -1061,6 +1068,12 @@ class GameLoop:
                 "world_snapshot": _ws,
                 "events": result.stops,
             }
+        except Exception:
+            # R4/GATE-9A D2: помечаем тик как аварийный (legitimate owner)
+            # перед тем, как finally снимет блокировку. unlock_tick пропустит
+            # atomic_commit_all — persistence остаётся в pre-tick.
+            self.scene_manager.mark_tick_aborted(campaign_id)
+            raise
         finally:
             # BUG-FB-002 FIX: Снимаем блокировку scene_manager, иначе ядро зависнет навсегда.
             self.scene_manager.unlock_tick(campaign_id)
@@ -1139,6 +1152,23 @@ class GameLoop:
         from app.services.game_loop.scene_init import ensure_scene_initialized
 
         _prepped_scene = ensure_scene_initialized(self, campaign_id)
+
+        # ADR-O-407: player-turn time-gate. Пока ход in-flight, idle_tick
+        # НЕ вызывает execute() — мировое время не растёт (корень П.4:
+        # «мир съедает полдня за реплику»). Возвращает честный статус;
+        # фронтенд-поллер видит его и не рисует «мир движется». NPC-NPC
+        # диалоги продолжают материализоваться через TaskScheduler в
+        # run_turn (ADR-O-313) — НЕ паузится. Anti-Race: ядро не тронуто.
+        if campaign_id in self._player_turn_in_flight:
+            logger.debug(
+                f"[IDLE_TICK] ADR-O-407: skip — player turn in-flight "
+                f"(campaign={campaign_id})"
+            )
+            return {
+                "status": "player_turn_in_flight",
+                "npc_positions": {},
+            }
+
         # S-146 FIX: Поддержка принудительного тика для конкретной локации (для тестов)
         _active_loc = location_id or (_prepped_scene.get("location_id", "") if _prepped_scene else DEFAULT_LOCATION_ID)
         if not _active_loc:
@@ -1225,256 +1255,267 @@ class GameLoop:
 
         # Шаг 2: LOCK всех локаций (Дополнение Б, п. Б.6.1)
         self.scene_manager.lock_all_for_tick(campaign_id, _location_ids)
-
-        # F3 (S292): heal топологии ВНУТРИ lock-фазы. Снаружи lock
-        # save_scene_state пишет на диск, но тик читает _tick_scenes-кэш,
-        # куда lock положил pre-heal копию — heal до lock не доезжал до
-        # снапшота (INV-SNAPSHOT-TOPOLOGY красный при зелёном диске).
-        # Здесь: tick-кэш — единственная истина тика; heal мутит её
-        # напрямую; персист — штатный unlock_tick.
-        from app.services.game_loop.scene_init import _ensure_player_topology
-        _scene = self.scene_manager.get_scene_state(campaign_id, _active_loc)
-        if _scene is None:
-            return {"status": "no_scene", "npc_positions": {}}
-        if not _scene.get("player_body_topology"):
-            _ensure_player_topology(loop=self, campaign_id=campaign_id, scene_state=_scene)
-            logger.info("[IDLE_TICK] player_body_topology healed in-tick (F3)")
-
-        # Spatial Oracle корректирует локацию только для активной сцены
         try:
-            from app.services.campaign_state_service import get_campaign_state_service
-            _campaign_svc = get_campaign_state_service()
-            _cs = _campaign_svc.get_campaign_state(campaign_id) if _campaign_svc else None  # noqa: ENIGMA001
-            if _cs:
-                _saved_wx = _cs.metadata.get("player_world_x")
-                _saved_wy = _cs.metadata.get("player_world_y")
-                if _saved_wx is not None and _saved_wy is not None:
-                    from app.services.spatial.spatial_registry import SpatialRegistry
-                    _registry = SpatialRegistry.get_or_load(campaign_id)
-                    if _registry is not None:
-                        _actual_chunks = _registry.find_chunks(_saved_wx, _saved_wy)
-                        if _actual_chunks:
-                            _oracle_loc = _actual_chunks[0].location_id
-                            if _oracle_loc != _active_loc:
-                                logger.info(f"[SPATIAL_ORACLE_IDLE] location_id corrected: {_active_loc} → {_oracle_loc}")
-                                _active_loc = _oracle_loc
-                                _scene["location_id"] = _oracle_loc
-        except Exception as e:
-            logger.warning(f"[SPATIAL_ORACLE_IDLE] Oracle lookup failed: {e}")
 
-        # ADR-048: GameLoop собирает SpatialService для активной локации
-        _spatial_svc = None
-        if _active_loc:
-            from app.services.spatial.spatial_factory import SpatialFactory
+            # F3 (S292): heal топологии ВНУТРИ lock-фазы. Снаружи lock
+            # save_scene_state пишет на диск, но тик читает _tick_scenes-кэш,
+            # куда lock положил pre-heal копию — heal до lock не доезжал до
+            # снапшота (INV-SNAPSHOT-TOPOLOGY красный при зелёном диске).
+            # Здесь: tick-кэш — единственная истина тика; heal мутит её
+            # напрямую; персист — штатный unlock_tick.
+            from app.services.game_loop.scene_init import _ensure_player_topology
+            _scene = self.scene_manager.get_scene_state(campaign_id, _active_loc)
+            if _scene is None:
+                return {"status": "no_scene", "npc_positions": {}}
+            if not _scene.get("player_body_topology"):
+                _ensure_player_topology(loop=self, campaign_id=campaign_id, scene_state=_scene)
+                logger.info("[IDLE_TICK] player_body_topology healed in-tick (F3)")
+
+            # Spatial Oracle корректирует локацию только для активной сцены
             try:
-                _spatial_svc = SpatialFactory.build_for_campaign(campaign_id=campaign_id, location_id=_active_loc, scene_state=_scene)
-                from app.services.spatial.spatial_query_service import SpatialQueryService
-                self._current_spatial_query = SpatialQueryService(npc_positions=_scene.get("npc_positions", {}), scene_state=_scene)
+                from app.services.campaign_state_service import get_campaign_state_service
+                _campaign_svc = get_campaign_state_service()
+                _cs = _campaign_svc.get_campaign_state(campaign_id) if _campaign_svc else None  # noqa: ENIGMA001
+                if _cs:
+                    _saved_wx = _cs.metadata.get("player_world_x")
+                    _saved_wy = _cs.metadata.get("player_world_y")
+                    if _saved_wx is not None and _saved_wy is not None:
+                        from app.services.spatial.spatial_registry import SpatialRegistry
+                        _registry = SpatialRegistry.get_or_load(campaign_id)
+                        if _registry is not None:
+                            _actual_chunks = _registry.find_chunks(_saved_wx, _saved_wy)
+                            if _actual_chunks:
+                                _oracle_loc = _actual_chunks[0].location_id
+                                if _oracle_loc != _active_loc:
+                                    logger.info(f"[SPATIAL_ORACLE_IDLE] location_id corrected: {_active_loc} → {_oracle_loc}")
+                                    _active_loc = _oracle_loc
+                                    _scene["location_id"] = _oracle_loc
             except Exception as e:
-                logger.warning(f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}")
-                self._current_spatial_query = None
+                logger.warning(f"[SPATIAL_ORACLE_IDLE] Oracle lookup failed: {e}")
 
-        _player_eco_profile = self._svc.get_or_create_economic_profiles(campaign_id).get("player")
+            # ADR-048: GameLoop собирает SpatialService для активной локации
+            _spatial_svc = None
+            if _active_loc:
+                from app.services.spatial.spatial_factory import SpatialFactory
+                try:
+                    _spatial_svc = SpatialFactory.build_for_campaign(campaign_id=campaign_id, location_id=_active_loc, scene_state=_scene)
+                    from app.services.spatial.spatial_query_service import SpatialQueryService
+                    self._current_spatial_query = SpatialQueryService(npc_positions=_scene.get("npc_positions", {}), scene_state=_scene)
+                except Exception as e:
+                    logger.warning(f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}")
+                    self._current_spatial_query = None
 
-        # S259 (redesign v1, вердикт Мастера): fresh per-tick idle-контекст.
-        # γ-3 REVERTED/CAUSAL — персистентный объект протекал через границу
-        # тика; взамен СВЕЖИЙ SimpleNamespace каждый idle-тик, долгоживут
-        # только SSOT-ссылки. Поля = спек варианта №1: scene_state = текущая
-        # сцена (семантика tick_utils-фоллбэка), spatial_query = текущий тик
-        # (R4/R5), relationship_store = SSOT-ссылка (R1), campaign_id (гейт
-        # подписчика: даже легаси-строка shared_context.campaign_id валидна).
-        # Конец тика → объект умирает. Никакого накопления атрибутов.
-        from types import SimpleNamespace as _SNS
+            _player_eco_profile = self._svc.get_or_create_economic_profiles(campaign_id).get("player")
 
-        _idle_ctx = _SNS(
-            scene_state=_scene,
-            spatial_query=getattr(self, "_current_spatial_query", None),  # noqa: ENIGMA002
-            relationship_store=getattr(self, "_rel_store", None),  # noqa: ENIGMA002
-            campaign_id=campaign_id,
-        )
+            # S259 (redesign v1, вердикт Мастера): fresh per-tick idle-контекст.
+            # γ-3 REVERTED/CAUSAL — персистентный объект протекал через границу
+            # тика; взамен СВЕЖИЙ SimpleNamespace каждый idle-тик, долгоживут
+            # только SSOT-ссылки. Поля = спек варианта №1: scene_state = текущая
+            # сцена (семантика tick_utils-фоллбэка), spatial_query = текущий тик
+            # (R4/R5), relationship_store = SSOT-ссылка (R1), campaign_id (гейт
+            # подписчика: даже легаси-строка shared_context.campaign_id валидна).
+            # Конец тика → объект умирает. Никакого накопления атрибутов.
+            from types import SimpleNamespace as _SNS
 
-        # AUDIT-003 §3.3: контекст NPC для idle-тика — тот же паттерн сборки, что и путь игрока
-        from app.services.events.event_bus import get_event_bus
-        from app.services.npc.npc_tick_contracts import NpcTickServices
-
-        _npc_svc = NpcTickServices(
-            memory_manager=self.memory_manager,
-            relationship_store=self.memory_manager._relationships,
-            social_engine=self._svc.get_social_engine(campaign_id),
-            reputation_engine=self._svc.get_reputation_engine(),
-            economic_profiles=self._svc.get_or_create_economic_profiles(campaign_id),
-            event_bus=get_event_bus(),
-            spatial_service=_spatial_svc,
-            spatial_query=getattr(self, "_current_spatial_query", None),  # noqa: ENIGMA002
-            crystallized_belief_store=getattr(  # noqa: ENIGMA002
-                getattr(self, "_tick_orch", None),  # noqa: ENIGMA002
-                "crystallized_belief_store",
-                None,
-            ),
-        )
-        # ADR-O-420 (LC-IMPL-1): наблюдательное окно проекции idle-событий.
-        # Подписка ТОЛЬКО на v1-словарь; handler только захватывает (§11 —
-        # наблюдение не создаёт причинность); демонтаж в finally — окно не
-        # переживает execute, синглтон шины не течёт. Флаг OFF = окно не
-        # открывается вовсе (no-op; Control-чистота — SUPERBOX LC-GC-01).
-        from app.services.game_loop.idle_event_projection import (
-            IdleEventTap,
-            idle_events_projection_enabled,
-            project_idle_events,
-        )
-
-        _idle_tap: Optional[IdleEventTap] = None
-        if idle_events_projection_enabled():
-            _idle_tap = IdleEventTap()
-            _idle_tap.subscribe(get_event_bus())
-        try:
-            result = self._tick_orch.execute(
-                campaign_id=campaign_id,
+            _idle_ctx = _SNS(
                 scene_state=_scene,
-                tick_number=_scene.get("tick", 0) + 1,  # ADR-O-344: Оркестратор владеет инкрементом
-                spatial_service=_spatial_svc,
-                shared_context=_idle_ctx,  # noqa: ENIGMA002
-                active_location_id=_active_loc,
-                location_ids=_location_ids,
-                eco_profile=_player_eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
-                # AVID-1 FIX: S113-контракт «явная передача NPC (включая аватара)»
-                # выполнялся только в REST-пути (:1422); idle-путь не передавал
-                # список → оркестратор (синхронизация позиций :327, S198-pipeline)
-                # работал без аватара → idle-мир (CFL/восприятие NPC/соцполе)
-                # был слеп к игроку между ходами. Источник = тот же production-метод
-                # инъекции ADR-030, что и REST: _load_npcs_with_runtime (:822,
-                # кэш→фильтр→сессия→sheet→player_dict; транзит, не персист).
-                all_npcs_raw=self._load_npcs_with_runtime(campaign_id),
-                mvp_controller=self.mvp_controller,  # ENIGMA SELF-HEALING: For probes
-                interventions=interventions,  # M1: Внедрение событий игрока
-                npc_services=_npc_svc,  # AUDIT-003 §3.3
+                spatial_query=getattr(self, "_current_spatial_query", None),  # noqa: ENIGMA002
+                relationship_store=getattr(self, "_rel_store", None),  # noqa: ENIGMA002
+                campaign_id=campaign_id,
             )
-        finally:
-            if _idle_tap is not None:
-                _idle_tap.unsubscribe()
 
-        # S313: idle-путь возвращает только TickResultDTO (TickPlayerResultDTO —
-        # REST/turn-контур); cast фиксирует инвариант пути для mypy.
-        result = cast("TickResultDTO", result)
+            # AUDIT-003 §3.3: контекст NPC для idle-тика — тот же паттерн сборки, что и путь игрока
+            from app.services.events.event_bus import get_event_bus
+            from app.services.npc.npc_tick_contracts import NpcTickServices
 
-        # Коммит результатов оркестратора (если ядро не сделало это само)
-        if result and result.final_scene_state is not None:
+            _npc_svc = NpcTickServices(
+                memory_manager=self.memory_manager,
+                relationship_store=self.memory_manager._relationships,
+                social_engine=self._svc.get_social_engine(campaign_id),
+                reputation_engine=self._svc.get_reputation_engine(),
+                economic_profiles=self._svc.get_or_create_economic_profiles(campaign_id),
+                event_bus=get_event_bus(),
+                spatial_service=_spatial_svc,
+                spatial_query=getattr(self, "_current_spatial_query", None),  # noqa: ENIGMA002
+                crystallized_belief_store=getattr(  # noqa: ENIGMA002
+                    getattr(self, "_tick_orch", None),  # noqa: ENIGMA002
+                    "crystallized_belief_store",
+                    None,
+                ),
+            )
+            # ADR-O-420 (LC-IMPL-1): наблюдательное окно проекции idle-событий.
+            # Подписка ТОЛЬКО на v1-словарь; handler только захватывает (§11 —
+            # наблюдение не создаёт причинность); демонтаж в finally — окно не
+            # переживает execute, синглтон шины не течёт. Флаг OFF = окно не
+            # открывается вовсе (no-op; Control-чистота — SUPERBOX LC-GC-01).
+            from app.services.game_loop.idle_event_projection import (
+                IdleEventTap,
+                idle_events_projection_enabled,
+                project_idle_events,
+            )
 
-            # S193: Epistemic Persistence. Сохраняем убеждения в scene_state перед коммитом.
-            if result.status == "ok" and hasattr(self._tick_orch, '_epistemic_store') and self._tick_orch._epistemic_store:
-                result.final_scene_state["epistemic_records"] = self._tick_orch._epistemic_store.to_dict()
-            self.scene_manager.commit_tick_result(campaign_id, result.final_scene_state)
-
-        # S186 FIX: Обновляем HOT кэш LifeEngine после idle_tick.
-        # Мержим результат с существующим кэшем, чтобы не стереть NPC из других локаций.
-        if result and result.all_npcs_raw:
-            _engine = self._get_life_engine()
-            if _engine:
-                _cached_npcs = _engine.get_npc_states(campaign_id) or []
-                _updated_npcs = {n.get("npc_id", n.get("id")): n for n in _cached_npcs}
-                for n in result.all_npcs_raw:
-                    _nid = n.get("npc_id", n.get("id"))
-                    if _nid:
-                        _updated_npcs[_nid] = n
-                _engine.update_cache(campaign_id, list(_updated_npcs.values()))
-
-        if result is None:
-            # S313: cast — типизация, не рантайм; ядро легально возвращает None ("no_scene")
-            return {"status": "no_scene", "npc_positions": {}}  # type: ignore[unreachable]
-
-        # BUG-PERC-001 / BUG-CORE-006 FIX: GameLoop больше не перезаписывает perception.
-        # Фаза 9 (integration.py) уже собрала корректный API DTO с observed_facts
-        # и передала его в WorldSnapshotBuilder.build(), где прошла конвертацию.
-        # Повторная проекция здесь приводила к потере observed_facts и структуры DTO.
-
-        # S83.1 FIX: Ядро больше не вызывает commit_tick_result.
-        # Дополнение Б: Мы уже закоммитили результат внутри цикла.
-        # ДИАГНОСТИКА: Читаем из authoritative source (scene_manager._tick_scenes),
-        # а не из устаревшей ссылки _scene (execute работает с deepcopy).
-        _auth_scene = self.scene_manager._tick_scenes.get(_active_loc) if self.scene_manager else None  # noqa: ENIGMA001
-        if _auth_scene is None:
-            _auth_scene = result.final_scene_state or _scene
-        _trav_after = (
-            list(_auth_scene.get("active_traversals", {}).keys())
-            if _auth_scene
-            else list(_scene.get("active_traversals", {}).keys())
-        )
-        logger.debug(
-            f"[IDLE_TRACE] AFTER tick={_scene.get('tick')} traversals={_trav_after} source={'tick_scene' if _auth_scene else 'stale_ref'}"
-        )
-
-        # ADR-O-313: Execution Framework. Материализация отложенных задач (LLM и др.)
-        # Работаем с _auth_scene (_tick_scene), чтобы мутации подписчиков EventBus
-        # (напр. SocialInputProjector) попали в финальный unlock_tick.
-        # S262 (idle-немота, корень): гейт «pending_tasks в сцене» — рудимент
-        # BUG-CORE-010 (задачи переехали в DialogueQueue, поле сцены пусто) →
-        # idle-мир НИКОГДА не дренажировал очередь: интенты рождались каждый
-        # тик, очередь капилась на 20, реплики — лотерея worker-таймингов
-        # (25/3/0/0 замеров S262). Фикс: безусловный вызов — execute_pending
-        # сам идемпотентен (внутри process_tasks: пусто → честный return),
-        # а dequeue-очередь живёт в синглтоне scheduler'а. Pacing-гейт
-        # SpeechScheduler остаётся честным тормозом (2 тика/спикер).
-        if _auth_scene:
-            self._get_task_scheduler().execute_pending(_auth_scene, campaign_id)
-
-        # S203.4 (ADR-O-365, D-2): БЕЗУСЛОВНЫЙ sync-дренаж outbox — тихие тики
-        # (без pending_tasks) не создают backlog терминалов; окно до unlock_tick (F24).
-        if _auth_scene:
-            self._get_task_scheduler().drain_commitment_outbox(_auth_scene)
-        # M17 этап 2: tentative-распознавания адресатов подслушанных обращений
-        if getattr(self, "_npc_dialogue_subscriber", None):  # noqa: ENIGMA002
-            self._npc_dialogue_subscriber.drain_pending_recognition(_auth_scene)
-        # ADR-O-399 (точка (б)): безусловный deterministic commit артефактов
-        # воркера — тихие тики не создают backlog (симметрия F23);
-        # pending_tasks == 0 не блокирует дренаж готовых артефактов.
-        if _auth_scene:
-            self._get_task_scheduler().drain_task_worker_outbox(_auth_scene)
-        # M17: pending наполняется публикациями NPC_SPOKE (выше) — применяем
-        # СРАЗУ после них, иначе tentative/confirmed доезжают на цикл позже.
-        if getattr(self, "_npc_dialogue_subscriber", None):  # noqa: ENIGMA002
-            self._npc_dialogue_subscriber.drain_pending_recognition(_auth_scene)
-
-        # Конвертация WorldSnapshotDTO → dict для фронтенда
-        from dataclasses import asdict
-
-        _ws: dict | None = None
-        _npc_pos_dict: dict = {}
-        if result.world_snapshot is not None:
-            _ws = asdict(result.world_snapshot)
-            # A2-FIX: npc_positions уже Dict[str, NPCPositionDTO] (canonical). Адаптер удалён.
-            _npc_pos_dict = _ws.get("npc_positions", {})
-            # UUID → строка для JSON-совместимости
-            if _ws.get("last_event_id") is not None:
-                _ws["last_event_id"] = str(_ws["last_event_id"])
-
-            # ADR-O-313: Внедряем кэш реплик для Speech Bubbles (UI)
+            _idle_tap: Optional[IdleEventTap] = None
+            if idle_events_projection_enabled():
+                _idle_tap = IdleEventTap()
+                _idle_tap.subscribe(get_event_bus())
             try:
-                _recent_d = self._get_task_scheduler().get_recent_dialogues(_scene.get("game_time_seconds", 0.0))
-                logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
-                from app.domain.presentation import PerceptionContext
-                from app.services.integration.legacy_dialogue_adapter import LegacyDialogueAdapter
-                _npc_pos = _scene.get("npc_positions", {})
-                _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
-                _sp_positions = {nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0)) for nid, d in _npc_pos.items() if nid != "player"}
-                _ctx = PerceptionContext(
-                    player_position=(_p_pos_data.get("x", 0.0), _p_pos_data.get("y", 0.0)),
-                    speaker_positions=_sp_positions
+                result = self._tick_orch.execute(
+                    campaign_id=campaign_id,
+                    scene_state=_scene,
+                    tick_number=_scene.get("tick", 0) + 1,  # ADR-O-344: Оркестратор владеет инкрементом
+                    spatial_service=_spatial_svc,
+                    shared_context=_idle_ctx,  # noqa: ENIGMA002
+                    active_location_id=_active_loc,
+                    location_ids=_location_ids,
+                    eco_profile=_player_eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
+                    # AVID-1 FIX: S113-контракт «явная передача NPC (включая аватара)»
+                    # выполнялся только в REST-пути (:1422); idle-путь не передавал
+                    # список → оркестратор (синхронизация позиций :327, S198-pipeline)
+                    # работал без аватара → idle-мир (CFL/восприятие NPC/соцполе)
+                    # был слеп к игроку между ходами. Источник = тот же production-метод
+                    # инъекции ADR-030, что и REST: _load_npcs_with_runtime (:822,
+                    # кэш→фильтр→сессия→sheet→player_dict; транзит, не персист).
+                    all_npcs_raw=self._load_npcs_with_runtime(campaign_id),
+                    mvp_controller=self.mvp_controller,  # ENIGMA SELF-HEALING: For probes
+                    interventions=interventions,  # M1: Внедрение событий игрока
+                    npc_services=_npc_svc,  # AUDIT-003 §3.3
                 )
-                _narratives = self._narrative_projector.project(_recent_d, _ctx)
-                _ws["perceived_narratives"] = [asdict(n) for n in _narratives]
-                _ws["recent_dialogues"] = [asdict(d) for d in LegacyDialogueAdapter.to_legacy_dto(_narratives)]
-            except Exception as e:
-                logger.warning(f"[IDLE_TICK_WS] Failed to get recent dialogues: {e}")
+            finally:
+                if _idle_tap is not None:
+                    _idle_tap.unsubscribe()
 
-            # S128 FIX: Инъекция dialog_journal (SSOT из AvatarService) для синхронизации UI в idle_tick
-            # Фаза 2 PresentationProjection: проекция поверх SSOT AvatarService
-            # (второго хранилища нет — чистая функция, ADR-O-404)
-            from app.services.integration.journal_presentation import project_journal
-            _ws["dialog_journal"] = project_journal(self.avatar_service.get_journal(campaign_id))
+            # S313: idle-путь возвращает только TickResultDTO (TickPlayerResultDTO —
+            # REST/turn-контур); cast фиксирует инвариант пути для mypy.
+            result = cast("TickResultDTO", result)
 
-        # S83.1: UNLOCK — единственная точка persist для idle_tick.
-        # commit_tick_result() уже обновил _tick_scene результатом тика.
-        # unlock_tick сохраняет его на диск.
+            # Коммит результатов оркестратора (если ядро не сделало это само)
+            if result and result.final_scene_state is not None:
+
+                # S193: Epistemic Persistence. Сохраняем убеждения в scene_state перед коммитом.
+                if result.status == "ok" and hasattr(self._tick_orch, '_epistemic_store') and self._tick_orch._epistemic_store:
+                    result.final_scene_state["epistemic_records"] = self._tick_orch._epistemic_store.to_dict()
+                self.scene_manager.commit_tick_result(campaign_id, result.final_scene_state)
+
+            # S186 FIX: Обновляем HOT кэш LifeEngine после idle_tick.
+            # Мержим результат с существующим кэшем, чтобы не стереть NPC из других локаций.
+            if result and result.all_npcs_raw:
+                _engine = self._get_life_engine()
+                if _engine:
+                    _cached_npcs = _engine.get_npc_states(campaign_id) or []
+                    _updated_npcs = {n.get("npc_id", n.get("id")): n for n in _cached_npcs}
+                    for n in result.all_npcs_raw:
+                        _nid = n.get("npc_id", n.get("id"))
+                        if _nid:
+                            _updated_npcs[_nid] = n
+                    _engine.update_cache(campaign_id, list(_updated_npcs.values()))
+
+            if result is None:
+                # S313: cast — типизация, не рантайм; ядро легально возвращает None ("no_scene")
+                return {"status": "no_scene", "npc_positions": {}}  # type: ignore[unreachable]
+
+            # BUG-PERC-001 / BUG-CORE-006 FIX: GameLoop больше не перезаписывает perception.
+            # Фаза 9 (integration.py) уже собрала корректный API DTO с observed_facts
+            # и передала его в WorldSnapshotBuilder.build(), где прошла конвертацию.
+            # Повторная проекция здесь приводила к потере observed_facts и структуры DTO.
+
+            # S83.1 FIX: Ядро больше не вызывает commit_tick_result.
+            # Дополнение Б: Мы уже закоммитили результат внутри цикла.
+            # ДИАГНОСТИКА: Читаем из authoritative source (scene_manager._tick_scenes),
+            # а не из устаревшей ссылки _scene (execute работает с deepcopy).
+            _auth_scene = self.scene_manager._tick_scenes.get(_active_loc) if self.scene_manager else None  # noqa: ENIGMA001
+            if _auth_scene is None:
+                _auth_scene = result.final_scene_state or _scene
+            _trav_after = (
+                list(_auth_scene.get("active_traversals", {}).keys())
+                if _auth_scene
+                else list(_scene.get("active_traversals", {}).keys())
+            )
+            logger.debug(
+                f"[IDLE_TRACE] AFTER tick={_scene.get('tick')} traversals={_trav_after} source={'tick_scene' if _auth_scene else 'stale_ref'}"
+            )
+
+            # ADR-O-313: Execution Framework. Материализация отложенных задач (LLM и др.)
+            # Работаем с _auth_scene (_tick_scene), чтобы мутации подписчиков EventBus
+            # (напр. SocialInputProjector) попали в финальный unlock_tick.
+            # S262 (idle-немота, корень): гейт «pending_tasks в сцене» — рудимент
+            # BUG-CORE-010 (задачи переехали в DialogueQueue, поле сцены пусто) →
+            # idle-мир НИКОГДА не дренажировал очередь: интенты рождались каждый
+            # тик, очередь капилась на 20, реплики — лотерея worker-таймингов
+            # (25/3/0/0 замеров S262). Фикс: безусловный вызов — execute_pending
+            # сам идемпотентен (внутри process_tasks: пусто → честный return),
+            # а dequeue-очередь живёт в синглтоне scheduler'а. Pacing-гейт
+            # SpeechScheduler остаётся честным тормозом (2 тика/спикер).
+            if _auth_scene:
+                self._get_task_scheduler().execute_pending(_auth_scene, campaign_id)
+
+            # S203.4 (ADR-O-365, D-2): БЕЗУСЛОВНЫЙ sync-дренаж outbox — тихие тики
+            # (без pending_tasks) не создают backlog терминалов; окно до unlock_tick (F24).
+            if _auth_scene:
+                self._get_task_scheduler().drain_commitment_outbox(_auth_scene)
+            # M17 этап 2: tentative-распознавания адресатов подслушанных обращений
+            if getattr(self, "_npc_dialogue_subscriber", None):  # noqa: ENIGMA002
+                self._npc_dialogue_subscriber.drain_pending_recognition(_auth_scene)
+            # ADR-O-399 (точка (б)): безусловный deterministic commit артефактов
+            # воркера — тихие тики не создают backlog (симметрия F23);
+            # pending_tasks == 0 не блокирует дренаж готовых артефактов.
+            if _auth_scene:
+                self._get_task_scheduler().drain_task_worker_outbox(_auth_scene)
+            # M17: pending наполняется публикациями NPC_SPOKE (выше) — применяем
+            # СРАЗУ после них, иначе tentative/confirmed доезжают на цикл позже.
+            if getattr(self, "_npc_dialogue_subscriber", None):  # noqa: ENIGMA002
+                self._npc_dialogue_subscriber.drain_pending_recognition(_auth_scene)
+
+            # Конвертация WorldSnapshotDTO → dict для фронтенда
+            from dataclasses import asdict
+
+            _ws: dict | None = None
+            _npc_pos_dict: dict = {}
+            if result.world_snapshot is not None:
+                _ws = asdict(result.world_snapshot)
+                # A2-FIX: npc_positions уже Dict[str, NPCPositionDTO] (canonical). Адаптер удалён.
+                _npc_pos_dict = _ws.get("npc_positions", {})
+                # UUID → строка для JSON-совместимости
+                if _ws.get("last_event_id") is not None:
+                    _ws["last_event_id"] = str(_ws["last_event_id"])
+
+                # ADR-O-313: Внедряем кэш реплик для Speech Bubbles (UI)
+                try:
+                    _recent_d = self._get_task_scheduler().get_recent_dialogues(_scene.get("game_time_seconds", 0.0))
+                    logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
+                    from app.domain.presentation import PerceptionContext
+                    from app.services.integration.legacy_dialogue_adapter import LegacyDialogueAdapter
+                    _npc_pos = _scene.get("npc_positions", {})
+                    _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
+                    _sp_positions = {nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0)) for nid, d in _npc_pos.items() if nid != "player"}
+                    _ctx = PerceptionContext(
+                        player_position=(_p_pos_data.get("x", 0.0), _p_pos_data.get("y", 0.0)),
+                        speaker_positions=_sp_positions
+                    )
+                    _narratives = self._narrative_projector.project(_recent_d, _ctx)
+                    _ws["perceived_narratives"] = [asdict(n) for n in _narratives]
+                    _ws["recent_dialogues"] = [asdict(d) for d in LegacyDialogueAdapter.to_legacy_dto(_narratives)]
+                except Exception as e:
+                    logger.warning(f"[IDLE_TICK_WS] Failed to get recent dialogues: {e}")
+
+                # S128 FIX: Инъекция dialog_journal (SSOT из AvatarService) для синхронизации UI в idle_tick
+                # Фаза 2 PresentationProjection: проекция поверх SSOT AvatarService
+                # (второго хранилища нет — чистая функция, ADR-O-404)
+                from app.services.integration.journal_presentation import project_journal
+                _ws["dialog_journal"] = project_journal(self.avatar_service.get_journal(campaign_id))
+
+            # S83.1: UNLOCK — единственная точка persist для idle_tick.
+            # commit_tick_result() уже обновил _tick_scene результатом тика.
+            # unlock_tick сохраняет его на диск.
+        except Exception:
+            # R4/GATE-9A D2: mark tick as aborted; unlock_tick in finally
+            # will skip atomic_commit_all — persistence stays in pre-tick.
+            self.scene_manager.mark_tick_aborted(campaign_id)
+            raise
+        finally:
+            # S83.1: UNLOCK — единственная точка persist для idle_tick.
+            # commit_tick_result() уже обновил _tick_scene результатом тика.
+            # unlock_tick сохраняет его на диск (если тик НЕ помечен aborted).
+            self.scene_manager.unlock_tick(campaign_id)
         self.scene_manager.unlock_tick(campaign_id)
 
         # ADR-O-420 (LC-IMPL-1): наблюдаемая проекция захваченных idle-событий.
@@ -1515,313 +1556,331 @@ class GameLoop:
         _is_session_start_rest = req.campaign_id not in self._session_started_campaigns
         if _is_session_start_rest:
             self._session_started_campaigns.add(req.campaign_id)
-        state = await self._turn_pipeline.execute(
-            req.actions,
-            req.campaign_id,
-            req.world_id,
-            req.location,
-            is_session_start=_is_session_start_rest,
-            player_position=req.player_position,
-        )
-
-        # Death Guard: если pipeline вернул ранний ChatTurnResponse (игрок мёртв)
-        from app.models.schemas import ChatTurnResponse as _CTR
-
-        if isinstance(state, _CTR):
-            return state
-
-        # G1 Intent Projection: observation-only снимок понимания. Объект
-        # frozen и создан ДО WillpowerGate — чтение здесь = снимок «до».
-        from app.services.game_loop.phase_1_input import build_intent_projection
-        _intent_projection = (
-            build_intent_projection(state.shared_context.intent_resolution)  # noqa: ENIGMA001
-            if state.shared_context
-            else None
-        )
-
-        # ADR-TZ08-8: Explicit snapshot step для PerceptionProjector
-        # S122 FIX: Берём свежий all_npcs_raw из результата тика, а не из старого кэша.
-        if state.shared_context:
-            state.shared_context.all_npcs_raw = self._resolve_npcs_snapshot(req.campaign_id)
-            # BUG-DLG-003 FIX: Проброс снимка NPC для DM-агента (Block 4.7: Контекст NPC).
-            # Без этого DM LLM не получает описания NPC и генерит пустой нарратив.
-            state.shared_context.all_npcs_raw_snapshot = state.shared_context.all_npcs_raw
-
-        if state.shared_context and state.shared_context.scene_state:
-            _perception = self._project_perception(
-                req.campaign_id,
-                state.shared_context.scene_state,
-                state.shared_context.all_npcs_raw,
-            )
-            if _perception:
-                state.shared_context.player_perception = _perception
-
-        # Sprint P9: Проброс observed_facts в shared_context для DM-агента
-        if hasattr(state, "observed_facts") and state.shared_context:
-            state.shared_context.observed_facts = state.observed_facts
-
-        # Sprint P9: Проброс observed_facts в DM-агент через world_result
-        _dm_world_result = {
-            "world_events": state.world_tick_meta.get("events", []),
-            "observed_facts": getattr(state, "observed_facts", []),  # noqa: ENIGMA002
-        }
-
-        dm_result = await run_agent_safe(
-            "dm",
-            self.dm_agent,
-            (
-                req.location,
+        try:
+            # ADR-O-407: помечаем ход как in-flight — idle_tick в окне
+            # dispatch → resolve не будет вызывать execute(). Clear в finally
+            # (покрывает success/FAILED/timeout-abort — ADR-O-364 переиспользуется).
+            self._player_turn_in_flight.add(req.campaign_id)
+            state = await self._turn_pipeline.execute(
                 req.actions,
-                state.rules_result,
-                state.npc_result,
-                _dm_world_result,
-                False,
-                state.shared_context,
-            ),
-            {},
-        )
-        # ADR-113: LLM Failure — честная ошибка + попытка рестарта
-        if isinstance(dm_result, dict) and dm_result.get("error"):
-            _err_msg = dm_result.get("human_msg", "LLM сервер недоступен")
-            logger.error(f"[DM_RESULT] LLM FAILED: {_err_msg}")
+                req.campaign_id,
+                req.world_id,
+                req.location,
+                is_session_start=_is_session_start_rest,
+                player_position=req.player_position,
+            )
 
-            def _dm_unavailable_response() -> ChatTurnResponse:
-                """LLM недоступен: честная ошибка игроку + последний известный снапшот.
-                Контракт ChatTurnResponse (обязательные поля) соблюдён.
-                UX-FB (Тай): llm_degraded=True — фронт поднимает модалку-предложение
-                рестарта (D61); техдетали (_err_msg) — только в dialogue_log, не игроку.
-                Путь короткий (return до основного хука) — логируем здесь."""
-                try:
-                    from app.services.game_loop.dialogue_log import log_turn
+            # Death Guard: если pipeline вернул ранний ChatTurnResponse (игрок мёртв)
+            from app.models.schemas import ChatTurnResponse as _CTR
 
-                    _uir = getattr(state.shared_context, "intent_resolution", None)  # noqa: ENIGMA002
-                    _uip = getattr(getattr(_uir, "original_intent", None), "parameters", None)  # noqa: ENIGMA002
-                    log_turn(
-                        campaign_id=req.campaign_id,
-                        location=req.location,
-                        player_text=(req.actions[0].action if req.actions else ""),
+            if isinstance(state, _CTR):
+                return state
+
+            # G1 Intent Projection: observation-only снимок понимания. Объект
+            # frozen и создан ДО WillpowerGate — чтение здесь = снимок «до».
+            from app.services.game_loop.phase_1_input import build_intent_projection
+            _intent_projection = (
+                build_intent_projection(state.shared_context.intent_resolution)  # noqa: ENIGMA001
+                if state.shared_context
+                else None
+            )
+
+            # ADR-TZ08-8: Explicit snapshot step для PerceptionProjector
+            # S122 FIX: Берём свежий all_npcs_raw из результата тика, а не из старого кэша.
+            if state.shared_context:
+                state.shared_context.all_npcs_raw = self._resolve_npcs_snapshot(req.campaign_id)
+                # BUG-DLG-003 FIX: Проброс снимка NPC для DM-агента (Block 4.7: Контекст NPC).
+                # Без этого DM LLM не получает описания NPC и генерит пустой нарратив.
+                state.shared_context.all_npcs_raw_snapshot = state.shared_context.all_npcs_raw
+
+            if state.shared_context and state.shared_context.scene_state:
+                _perception = self._project_perception(
+                    req.campaign_id,
+                    state.shared_context.scene_state,
+                    state.shared_context.all_npcs_raw,
+                )
+                if _perception:
+                    state.shared_context.player_perception = _perception
+
+            # Sprint P9: Проброс observed_facts в shared_context для DM-агента
+            if hasattr(state, "observed_facts") and state.shared_context:
+                state.shared_context.observed_facts = state.observed_facts
+
+            # Sprint P9: Проброс observed_facts в DM-агент через world_result
+            _dm_world_result = {
+                "world_events": state.world_tick_meta.get("events", []),
+                "observed_facts": getattr(state, "observed_facts", []),  # noqa: ENIGMA002
+            }
+
+            dm_result = await run_agent_safe(
+                "dm",
+                self.dm_agent,
+                (
+                    req.location,
+                    req.actions,
+                    state.rules_result,
+                    state.npc_result,
+                    _dm_world_result,
+                    False,
+                    state.shared_context,
+                ),
+                {},
+            )
+            # ADR-113: LLM Failure — честная ошибка + попытка рестарта
+            if isinstance(dm_result, dict) and dm_result.get("error"):
+                _err_msg = dm_result.get("human_msg", "LLM сервер недоступен")
+                logger.error(f"[DM_RESULT] LLM FAILED: {_err_msg}")
+
+                def _dm_unavailable_response() -> ChatTurnResponse:
+                    """LLM недоступен: честная ошибка игроку + последний известный снапшот.
+                    Контракт ChatTurnResponse (обязательные поля) соблюдён.
+                    UX-FB (Тай): llm_degraded=True — фронт поднимает модалку-предложение
+                    рестарта (D61); техдетали (_err_msg) — только в dialogue_log, не игроку.
+                    Путь короткий (return до основного хука) — логируем здесь."""
+                    try:
+                        from app.services.game_loop.dialogue_log import log_turn
+
+                        _uir = getattr(state.shared_context, "intent_resolution", None)  # noqa: ENIGMA002
+                        _uip = getattr(getattr(_uir, "original_intent", None), "parameters", None)  # noqa: ENIGMA002
+                        log_turn(
+                            campaign_id=req.campaign_id,
+                            location=req.location,
+                            player_text=(req.actions[0].action if req.actions else ""),
+                            dm_response="[СИСТЕМА] Движок не ответил — мир ждёт.",
+                            npc_reactions=[],
+                            understanding={
+                                "semantic_action": getattr(_uip, "semantic_action", None),  # noqa: ENIGMA002
+                                "target_id": getattr(_uip, "target_id", None),  # noqa: ENIGMA002
+                                "intent_readiness": getattr(_uip, "intent_readiness", None),  # noqa: ENIGMA002
+                                "acts": [a.get("type") for a in (getattr(_uip, "semantic_acts", None) or [])],  # noqa: ENIGMA002
+                                "llm_degraded": True,
+                                "llm_degraded_reason": str(_err_msg)[:200],
+                            },
+                        )
+                    except Exception as _dlg_log_err:  # noqa: ENIGMA002
+                        logger.warning(f"[DIALOGUE_LOG] hook failed: {_dlg_log_err}")
+                    return ChatTurnResponse(
                         dm_response="[СИСТЕМА] Движок не ответил — мир ждёт.",
                         npc_reactions=[],
-                        understanding={
-                            "semantic_action": getattr(_uip, "semantic_action", None),  # noqa: ENIGMA002
-                            "target_id": getattr(_uip, "target_id", None),  # noqa: ENIGMA002
-                            "intent_readiness": getattr(_uip, "intent_readiness", None),  # noqa: ENIGMA002
-                            "acts": [a.get("type") for a in (getattr(_uip, "semantic_acts", None) or [])],  # noqa: ENIGMA002
-                            "llm_degraded": True,
-                            "llm_degraded_reason": str(_err_msg)[:200],
-                        },
+                        world_changes=[],
+                        journal_entry_id="",
+                        traces=[],
+                        world_snapshot=state.shared_context.world_snapshot or {},
+                        will_conflict_data=None,
+                        player_intent_projection=_intent_projection,
+                        llm_degraded=True,
                     )
-                except Exception as _dlg_log_err:  # noqa: ENIGMA002
-                    logger.warning(f"[DIALOGUE_LOG] hook failed: {_dlg_log_err}")
-                return ChatTurnResponse(
-                    dm_response="[СИСТЕМА] Движок не ответил — мир ждёт.",
-                    npc_reactions=[],
-                    world_changes=[],
-                    journal_entry_id="",
-                    traces=[],
-                    world_snapshot=state.shared_context.world_snapshot or {},
-                    will_conflict_data=None,
-                    player_intent_projection=_intent_projection,
-                    llm_degraded=True,
-                )
-            # Recovery: пробуем перезапустить llama-server и повторить запрос
-            try:
-                from app.services.llm.server_lifecycle import restart_llama_server as _restart_llama_server
+                # Recovery: пробуем перезапустить llama-server и повторить запрос
+                try:
+                    from app.services.llm.server_lifecycle import restart_llama_server as _restart_llama_server
 
-                if _restart_llama_server():
-                    logger.info("[DM_RESULT] LLM рестартнул — повторяем запрос")
-                    # DEGOD-fix: _run_dm никогда не существовал (мёртвый остаток
-                    # до-рефакторингного API). Retry повторяет основной вызов
-                    # run_agent_safe с теми же аргументами (дублирование кортежа —
-                    # Tech Debt Note: синхронизировать при правке DM-вызова выше).
-                    dm_result = await run_agent_safe(
-                        "dm",
-                        self.dm_agent,
-                        (
-                            req.location,
-                            req.actions,
-                            state.rules_result,
-                            state.npc_result,
-                            _dm_world_result,
-                            False,
-                            state.shared_context,
-                        ),
-                        {},
-                    )
-                    if not (isinstance(dm_result, dict) and dm_result.get("error")):
-                        # Рестарт помог — продолжаем нормальный путь
-                        pass
+                    if _restart_llama_server():
+                        logger.info("[DM_RESULT] LLM рестартнул — повторяем запрос")
+                        # DEGOD-fix: _run_dm никогда не существовал (мёртвый остаток
+                        # до-рефакторингного API). Retry повторяет основной вызов
+                        # run_agent_safe с теми же аргументами (дублирование кортежа —
+                        # Tech Debt Note: синхронизировать при правке DM-вызова выше).
+                        dm_result = await run_agent_safe(
+                            "dm",
+                            self.dm_agent,
+                            (
+                                req.location,
+                                req.actions,
+                                state.rules_result,
+                                state.npc_result,
+                                _dm_world_result,
+                                False,
+                                state.shared_context,
+                            ),
+                            {},
+                        )
+                        if not (isinstance(dm_result, dict) and dm_result.get("error")):
+                            # Рестарт помог — продолжаем нормальный путь
+                            pass
+                        else:
+                            return _dm_unavailable_response()
                     else:
                         return _dm_unavailable_response()
-                else:
+                except ImportError as e:
+                    logger.warning(f"LLM ImportError: {e}")
                     return _dm_unavailable_response()
-            except ImportError as e:
-                logger.warning(f"LLM ImportError: {e}")
-                return _dm_unavailable_response()
-        logger.debug(f"[DM_RESULT] type={type(dm_result).__name__}")
+            logger.debug(f"[DM_RESULT] type={type(dm_result).__name__}")
 
-        # RCE: Reality Commit Extractor — извлекаем npc_reactions из DM-нарратива
-        # Инвариант: ни один LLM-выход не считается состоянием мира, пока не прошёл RCE-коммит
-        # UX-FB (Тай): фоллбэк деградации — НЕ реплика NPC: RCE-атрибуция и
-        # STM-запись запрещены (сбой ≠ речь; имя адресата не утекает в префикс,
-        # мир не «запоминает» фоллбэк как сказанное NPC)
-        _dm_degraded = bool(isinstance(dm_result, dict) and dm_result.get("llm_degraded"))
-        if isinstance(dm_result, dict) and dm_result.get("dm_response") and not _dm_degraded:
-            from app.services.memory.rce import extract_speech_events
+            # RCE: Reality Commit Extractor — извлекаем npc_reactions из DM-нарратива
+            # Инвариант: ни один LLM-выход не считается состоянием мира, пока не прошёл RCE-коммит
+            # UX-FB (Тай): фоллбэк деградации — НЕ реплика NPC: RCE-атрибуция и
+            # STM-запись запрещены (сбой ≠ речь; имя адресата не утекает в префикс,
+            # мир не «запоминает» фоллбэк как сказанное NPC)
+            _dm_degraded = bool(isinstance(dm_result, dict) and dm_result.get("llm_degraded"))
+            if isinstance(dm_result, dict) and dm_result.get("dm_response") and not _dm_degraded:
+                from app.services.memory.rce import extract_speech_events
 
-            _anr_rce = getattr(state.shared_context, "all_npcs_raw_snapshot", None)  # noqa: ENIGMA002
-            # Fallback: загружаем NPC из рантайма, если snapshot пуст
-            if not _anr_rce:
-                try:
-                    _anr_rce = self._load_npcs_with_runtime(req.campaign_id)
-                except Exception:
-                    _anr_rce = []
-            _target_id = getattr(state.shared_context, "player_target_id", None)  # noqa: ENIGMA002
-            _player_name = req.actions[0].player_name if req.actions else None  # noqa: ENIGMA001
-            _rce_reactions = extract_speech_events(
-                dm_text=dm_result.get("dm_response", ""),
-                target_npc_id=_target_id,
-                all_npcs_raw=_anr_rce,
-                player_name=_player_name,
-            )
-
-            if _rce_reactions:
-                # Инжектим извлечённые реакции обратно в dm_result для downstream
-                dm_result["npc_reactions"] = _rce_reactions
-                # Записываем в STM — теперь мир помнит, что NPC говорил
-                try:
-                    from app.services.memory.working_memory_tick import (
-                        write_npc_reactions_to_memory,
-                    )
-
-                    write_npc_reactions_to_memory(
-                        self.memory_manager,
-                        _rce_reactions,
-                        _anr_rce if isinstance(_anr_rce, (dict, list)) else {},
-                        req.campaign_id,
-                    )
-                except Exception as _rce_err:
-                    logger.warning(f"[RCE] STM write failed: {_rce_err}")
-
-        # R2.1: NarrativeExtractor R2.2.8 — синхронный путь (REST)
-        try:
-            from app.services.scene.narrative_extractor import get_extractor
-
-            dm_text = dm_result.get("dm_response", "")
-            scene_state = state.shared_context.scene_state or {}
-            if dm_text and scene_state:
-                current_tick = self.get_current_tick(req.campaign_id)
-                extraction = get_extractor().extract(dm_text, scene_state, current_tick)
-                if (
-                    extraction.new_objects
-                    or extraction.new_events
-                    or extraction.updated_states
-                ):
-                    self.scene_manager.apply_narrative_extractions(
-                        req.campaign_id, scene_state, extraction
-                    )
-                    if current_tick % 50 == 0:
-                        self.scene_manager.prune_dynamic_objects(
-                            req.campaign_id, scene_state, current_tick
-                        )
-        except Exception as e:
-            logger.warning(f"[R2.1] NarrativeExtractor REST error: {e}")
-
-        # N-02 FIX: time.monotonic() для корректного elapsed_ms во время replay.
-        elapsed_ms = int(time.monotonic() * 1000 - state.start_ms)
-        traces = self._build_traces(state, dm_result, elapsed_ms)
-
-        # NEW-8 FIX: Устанавливаем player_recognition ДО commit_tick_result,
-        # чтобы deepcopy внутри commit_tick_result захватил confidence=1.0.
-        _target_id = getattr(state.shared_context, "player_target_id", None) if state.shared_context else None  # noqa: ENIGMA001, ENIGMA002
-        # M17 (вердикт Мастера): имя раскрывается ТОЛЬКО фактическим
-        # вербальным обращением. Целеполагание (клик «подойти к X», движение)
-        # ставит player_target_id, но имя не подтверждает.
-        _verbal = getattr(state.shared_context, "action_type", "") in (  # noqa: ENIGMA002
-            "dialogue", "blackmail", "bribe", "accuse"
-        )
-        # DIAG-M17 (Часть VIII.5, ВРЕМЕННЫЙ): почему confirmed не рождается.
-        print(f"[DIAG-M17] action_type={getattr(state.shared_context, 'action_type', None)!r} "  # noqa: ENIGMA002
-              f"target_id={_target_id!r} verbal={_verbal}")
-        if (
-            _target_id and _verbal
-            and hasattr(state, "shared_context") and state.shared_context and state.shared_context.scene_state
-        ):
-            _recog_map = state.shared_context.scene_state.setdefault("player_recognition", {})
-            _recog_entry = _recog_map.setdefault(_target_id, {"confidence": 0.0})
-            _recog_entry["confidence"] = 1.0
-            # M17: явный статус — имя подтверждено прямым диалогом.
-            # builder читает status: tentative → «Имя (?)» независимо от порога.
-            _recog_entry["status"] = "confirmed"
-            logger.info(f"[RECOG_MEMORY] Dialogue trigger (Pre-Commit): NPC {_target_id} confidence=1.0")
-
-        # S128 FIX: Обязательный commit_tick_result после _run_pipeline.
-        # Без этого unlock_tick сохраняет старый _tick_scene, затирая мутации ядра (player_recognition).
-        if hasattr(state, "shared_context") and state.shared_context and state.shared_context.scene_state:
-            self.scene_manager.commit_tick_result(req.campaign_id, state.shared_context.scene_state)
-
-        # PROBE 9.7 FIX (Фаза A, итерация «Пункт 5»): ADR-O-313 — материализация
-        # отложенных задач в REST-пути. Idle-путь разбирает pending_tasks после
-        # commit (см. idle:1245); run_turn не разбирал никогда → NPC_SPOKE не
-        # публиковался, речь NPC не становилась памятью («0 строк npc_spoke»),
-        # canonical-очередь копилась (DLG_QUEUE OVERFLOW, Н-56). Зеркало
-        # idle-прецедента: авторитетная сцена = _tick_scenes[location_id]
-        # (deepcopy от commit_tick_result), чтобы мутации task_scheduler и
-        # подписчиков EventBus попали в финальный unlock_tick, а не потерялись
-        # в устаревшей ссылке shared_context.scene_state.
-        # WOUNDS-TZ FIX: _auth_scene объявляется ДО ветки — иначе при пустом
-        # shared_context ниже был NameError, а при непустом — передача None.
-        _auth_scene: dict | None = None
-        if state.shared_context and state.shared_context.scene_state:
-            _turn_scene = state.shared_context.scene_state
-            if self.scene_manager:
-                _loc_key = _turn_scene.get("location_id", "default")
-                _auth_scene = self.scene_manager._tick_scenes.get(_loc_key)  # noqa: ENIGMA001
-            if _auth_scene is None:
-                _auth_scene = _turn_scene
-            # Fast-path (warn/spread_rumor/steal) публикует NPC_SPOKE синхронно —
-            # реплики видны в recent_dialogues этого же хода; LLM-задачи уходят
-            # на executor-пул, REST не блокируется (ADR-O-343/O-364).
-            if _auth_scene.get("pending_tasks"):
-                self._get_task_scheduler().execute_pending(_auth_scene, req.campaign_id)
-            # S203.4 (ADR-O-365, D-2): безусловный дренаж outbox до unlock (F24),
-            # терминалы прошлого цикла применяются даже при пустой очереди.
-            self._get_task_scheduler().drain_commitment_outbox(_auth_scene)
-        # M17 этап 2: tentative-распознавания адресатов подслушанных обращений
-        if getattr(self, "_npc_dialogue_subscriber", None) and _auth_scene is not None:  # noqa: ENIGMA002
-            self._npc_dialogue_subscriber.drain_pending_recognition(_auth_scene)
-
-        # BUG-FB-030 FIX: Используем world_snapshot, собранный ядром в Phase 9, вместо Force Merge
-        _ws_dict = None
-        _npc_pos_dict = None
-        if state.shared_context and state.shared_context.world_snapshot:
-            from dataclasses import asdict
-            _ws_dict = asdict(state.shared_context.world_snapshot)
-            _npc_pos_dict = _ws_dict.get("npc_positions", {})
-            # ADR-O-313: Внедряем кэш реплик для Speech Bubbles (UI)
-            try:
-                _scene = state.shared_context.scene_state or {}
-                _recent_d = self._get_task_scheduler().get_recent_dialogues(_scene.get("game_time_seconds", 0.0))
-                logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
-                from app.domain.presentation import PerceptionContext
-                from app.services.integration.legacy_dialogue_adapter import LegacyDialogueAdapter
-                _npc_pos = _scene.get("npc_positions", {})
-                _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
-                _sp_positions = {nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0)) for nid, d in _npc_pos.items() if nid != "player"}
-                _ctx = PerceptionContext(
-                    player_position=(_p_pos_data.get("x", 0.0), _p_pos_data.get("y", 0.0)),
-                    speaker_positions=_sp_positions
+                _anr_rce = getattr(state.shared_context, "all_npcs_raw_snapshot", None)  # noqa: ENIGMA002
+                # Fallback: загружаем NPC из рантайма, если snapshot пуст
+                if not _anr_rce:
+                    try:
+                        _anr_rce = self._load_npcs_with_runtime(req.campaign_id)
+                    except Exception:
+                        _anr_rce = []
+                _target_id = getattr(state.shared_context, "player_target_id", None)  # noqa: ENIGMA002
+                _player_name = req.actions[0].player_name if req.actions else None  # noqa: ENIGMA001
+                _rce_reactions = extract_speech_events(
+                    dm_text=dm_result.get("dm_response", ""),
+                    target_npc_id=_target_id,
+                    all_npcs_raw=_anr_rce,
+                    player_name=_player_name,
                 )
-                _narratives = self._narrative_projector.project(_recent_d, _ctx)
-                _ws_dict["perceived_narratives"] = [asdict(n) for n in _narratives]
-                _ws_dict["recent_dialogues"] = [asdict(d) for d in LegacyDialogueAdapter.to_legacy_dto(_narratives)]
-            except Exception as e:
-                logger.warning(f"[IDLE_TICK_WS] Failed to get recent dialogues: {e}")
-            # Фаза 2 PresentationProjection: проекция поверх SSOT (ADR-O-404)
-            from app.services.integration.journal_presentation import project_journal
-            _ws_dict["dialog_journal"] = project_journal(self.avatar_service.get_journal(req.campaign_id))
 
-        # ADR-SCENE-LOCK: Разблокируем тик — финальный персист кэша.
+                if _rce_reactions:
+                    # Инжектим извлечённые реакции обратно в dm_result для downstream
+                    dm_result["npc_reactions"] = _rce_reactions
+                    # Записываем в STM — теперь мир помнит, что NPC говорил
+                    try:
+                        from app.services.memory.working_memory_tick import (
+                            write_npc_reactions_to_memory,
+                        )
+
+                        write_npc_reactions_to_memory(
+                            self.memory_manager,
+                            _rce_reactions,
+                            _anr_rce if isinstance(_anr_rce, (dict, list)) else {},
+                            req.campaign_id,
+                        )
+                    except Exception as _rce_err:
+                        logger.warning(f"[RCE] STM write failed: {_rce_err}")
+
+            # R2.1: NarrativeExtractor R2.2.8 — синхронный путь (REST)
+            try:
+                from app.services.scene.narrative_extractor import get_extractor
+
+                dm_text = dm_result.get("dm_response", "")
+                scene_state = state.shared_context.scene_state or {}
+                if dm_text and scene_state:
+                    current_tick = self.get_current_tick(req.campaign_id)
+                    extraction = get_extractor().extract(dm_text, scene_state, current_tick)
+                    if (
+                        extraction.new_objects
+                        or extraction.new_events
+                        or extraction.updated_states
+                    ):
+                        self.scene_manager.apply_narrative_extractions(
+                            req.campaign_id, scene_state, extraction
+                        )
+                        if current_tick % 50 == 0:
+                            self.scene_manager.prune_dynamic_objects(
+                                req.campaign_id, scene_state, current_tick
+                            )
+            except Exception as e:
+                logger.warning(f"[R2.1] NarrativeExtractor REST error: {e}")
+
+            # N-02 FIX: time.monotonic() для корректного elapsed_ms во время replay.
+            elapsed_ms = int(time.monotonic() * 1000 - state.start_ms)
+            traces = self._build_traces(state, dm_result, elapsed_ms)
+
+            # NEW-8 FIX: Устанавливаем player_recognition ДО commit_tick_result,
+            # чтобы deepcopy внутри commit_tick_result захватил confidence=1.0.
+            _target_id = getattr(state.shared_context, "player_target_id", None) if state.shared_context else None  # noqa: ENIGMA001, ENIGMA002
+            # M17 (вердикт Мастера): имя раскрывается ТОЛЬКО фактическим
+            # вербальным обращением. Целеполагание (клик «подойти к X», движение)
+            # ставит player_target_id, но имя не подтверждает.
+            _verbal = getattr(state.shared_context, "action_type", "") in (  # noqa: ENIGMA002
+                "dialogue", "blackmail", "bribe", "accuse"
+            )
+            # DIAG-M17 (Часть VIII.5, ВРЕМЕННЫЙ): почему confirmed не рождается.
+            print(f"[DIAG-M17] action_type={getattr(state.shared_context, 'action_type', None)!r} "  # noqa: ENIGMA002
+                  f"target_id={_target_id!r} verbal={_verbal}")
+            if (
+                _target_id and _verbal
+                and hasattr(state, "shared_context") and state.shared_context and state.shared_context.scene_state
+            ):
+                _recog_map = state.shared_context.scene_state.setdefault("player_recognition", {})
+                _recog_entry = _recog_map.setdefault(_target_id, {"confidence": 0.0})
+                _recog_entry["confidence"] = 1.0
+                # M17: явный статус — имя подтверждено прямым диалогом.
+                # builder читает status: tentative → «Имя (?)» независимо от порога.
+                _recog_entry["status"] = "confirmed"
+                logger.info(f"[RECOG_MEMORY] Dialogue trigger (Pre-Commit): NPC {_target_id} confidence=1.0")
+
+            # S128 FIX: Обязательный commit_tick_result после _run_pipeline.
+            # Без этого unlock_tick сохраняет старый _tick_scene, затирая мутации ядра (player_recognition).
+            if hasattr(state, "shared_context") and state.shared_context and state.shared_context.scene_state:
+                self.scene_manager.commit_tick_result(req.campaign_id, state.shared_context.scene_state)
+
+            # PROBE 9.7 FIX (Фаза A, итерация «Пункт 5»): ADR-O-313 — материализация
+            # отложенных задач в REST-пути. Idle-путь разбирает pending_tasks после
+            # commit (см. idle:1245); run_turn не разбирал никогда → NPC_SPOKE не
+            # публиковался, речь NPC не становилась памятью («0 строк npc_spoke»),
+            # canonical-очередь копилась (DLG_QUEUE OVERFLOW, Н-56). Зеркало
+            # idle-прецедента: авторитетная сцена = _tick_scenes[location_id]
+            # (deepcopy от commit_tick_result), чтобы мутации task_scheduler и
+            # подписчиков EventBus попали в финальный unlock_tick, а не потерялись
+            # в устаревшей ссылке shared_context.scene_state.
+            # WOUNDS-TZ FIX: _auth_scene объявляется ДО ветки — иначе при пустом
+            # shared_context ниже был NameError, а при непустом — передача None.
+            _auth_scene: dict | None = None
+            if state.shared_context and state.shared_context.scene_state:
+                _turn_scene = state.shared_context.scene_state
+                if self.scene_manager:
+                    _loc_key = _turn_scene.get("location_id", "default")
+                    _auth_scene = self.scene_manager._tick_scenes.get(_loc_key)  # noqa: ENIGMA001
+                if _auth_scene is None:
+                    _auth_scene = _turn_scene
+                # Fast-path (warn/spread_rumor/steal) публикует NPC_SPOKE синхронно —
+                # реплики видны в recent_dialogues этого же хода; LLM-задачи уходят
+                # на executor-пул, REST не блокируется (ADR-O-343/O-364).
+                if _auth_scene.get("pending_tasks"):
+                    self._get_task_scheduler().execute_pending(_auth_scene, req.campaign_id)
+                # S203.4 (ADR-O-365, D-2): безусловный дренаж outbox до unlock (F24),
+                # терминалы прошлого цикла применяются даже при пустой очереди.
+                self._get_task_scheduler().drain_commitment_outbox(_auth_scene)
+            # M17 этап 2: tentative-распознавания адресатов подслушанных обращений
+            if getattr(self, "_npc_dialogue_subscriber", None) and _auth_scene is not None:  # noqa: ENIGMA002
+                self._npc_dialogue_subscriber.drain_pending_recognition(_auth_scene)
+
+            # BUG-FB-030 FIX: Используем world_snapshot, собранный ядром в Phase 9, вместо Force Merge
+            _ws_dict = None
+            _npc_pos_dict = None
+            if state.shared_context and state.shared_context.world_snapshot:
+                from dataclasses import asdict
+                _ws_dict = asdict(state.shared_context.world_snapshot)
+                _npc_pos_dict = _ws_dict.get("npc_positions", {})
+                # ADR-O-313: Внедряем кэш реплик для Speech Bubbles (UI)
+                try:
+                    _scene = state.shared_context.scene_state or {}
+                    _recent_d = self._get_task_scheduler().get_recent_dialogues(_scene.get("game_time_seconds", 0.0))
+                    logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
+                    from app.domain.presentation import PerceptionContext
+                    from app.services.integration.legacy_dialogue_adapter import LegacyDialogueAdapter
+                    _npc_pos = _scene.get("npc_positions", {})
+                    _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
+                    _sp_positions = {nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0)) for nid, d in _npc_pos.items() if nid != "player"}
+                    _ctx = PerceptionContext(
+                        player_position=(_p_pos_data.get("x", 0.0), _p_pos_data.get("y", 0.0)),
+                        speaker_positions=_sp_positions
+                    )
+                    _narratives = self._narrative_projector.project(_recent_d, _ctx)
+                    _ws_dict["perceived_narratives"] = [asdict(n) for n in _narratives]
+                    _ws_dict["recent_dialogues"] = [asdict(d) for d in LegacyDialogueAdapter.to_legacy_dto(_narratives)]
+                except Exception as e:
+                    logger.warning(f"[IDLE_TICK_WS] Failed to get recent dialogues: {e}")
+                # Фаза 2 PresentationProjection: проекция поверх SSOT (ADR-O-404)
+                from app.services.integration.journal_presentation import project_journal
+                _ws_dict["dialog_journal"] = project_journal(self.avatar_service.get_journal(req.campaign_id))
+
+            # ADR-SCENE-LOCK: Разблокируем тик — финальный персист кэша.
+        except Exception:
+            # R4/GATE-9A D2: mark tick as aborted; unlock_tick in finally
+            # will skip atomic_commit_all — persistence stays in pre-tick.
+            self.scene_manager.mark_tick_aborted(req.campaign_id)
+            raise
+        finally:
+            # ADR-O-407: clear time-gate — covers success/FAILED/timeout-abort
+            # (ADR-O-364 reuse; вечный фриз невозможен). discard — идемпотентен
+            # (safe при отсутствии в сете).
+            self._player_turn_in_flight.discard(req.campaign_id)
+            # ADR-SCENE-LOCK: Разблокируем тик — финальный персист кэша
+            # (если тик НЕ помечен aborted).
+            self.scene_manager.unlock_tick(req.campaign_id)
         self.scene_manager.unlock_tick(req.campaign_id)
 
         # ADR-JOURNAL: Логирование реплик в буфер аватара (SSOT)

@@ -653,7 +653,7 @@ Files (full: ADR-O-406_IMPACT.md): `backend/app/domain/control_source.py`, `back
 `ADR-O-407` [ONTO] **PLAYER TURN COMMITMENT — Time Gate Semantics** (S292-наследник)
 Суть: пока не исполнено обязательство хода игрока, мировое время не продвигается: idle-контур не вызывает TickOrchestrator.execute() → Фаза 0.5 не тикает. Гейт — свойство EXECUTION MODEL игрока, НЕ существования LLM-вызова (табу: формулировать паузу через «ждёт LLM» — при мультиплеере 10000 players глобальная LLM-пауза абсурдна). Для single-player MVP семантически совпадает с паузой на время генерации ответа судьи хода; архитектурно готовит per-player временные контуры. Онтологическая чистота: ADR-O-344 не тронут (оркестратор остаётся владельцем времени — гейт решает, вызывать ли execute); ADR-TZ08-1 не тронут (флаг живёт в game_loop); ADR-002 переформулирован, не нарушен (время не останавливается ВНУТРИ исполняемых тиков); реплей цел (окно паузы не порождает событий). Ограничение фриза: per-task timeout + _abort_generation (O-364) уже существуют; abort → честная ошибка хода (ADR-113). Scope: ТОЛЬКО ход игрока; материализация NPC-реплик (ADR-O-313) остаётся в живом мировом времени.
 ❌ Taboo: гейт через наличие LLM-вызова; глобальный pause «система ждёт LLM»; продвижение времени game_loop'ом; пауза материализации NPC-диалогов; новый источник времени.
-Status: APPROVED-BY-MASTER (рекомендация (а) принята; реализация — отдельная сессия: флаг player_turn_in_flight в game_loop по образцу workbench_paused, инвариант INV-PLAYER-TURN-TIME-GATE)
+Status: IMPLEMENTED (S373, ветвь Б): player_turn_in_flight time-gate замкнут; game_loop.py 4 точки патча; IPT INV-PLAYER-TURN-TIME-GATE GREEN; образец workbench_paused в IMPACT — IMPACT-погрешность (не существовал), реальный паттерн _get_skip_lock
 Files: `backend/app/services/game_loop/game_loop.py` (будущий гейт; IMPACT создать при реализации)
 
 `ADR-O-408` [ONTO] **Canonical Attention→Action Integration — Evidence & Boundaries** (S304; ⚠️ namespace: ONTO, ≠ ADR-408 [FIX] S297; историческая запись — не runtime-контракт)
@@ -770,6 +770,50 @@ tests/micro/test_chronicle_consistency.py
 
 
 
+
+### ADR-O-429: R4 / D2 — Abort Marker + Skip Persist on Exception (Tick-Scoped Identity)
+
+**Статус:** ACCEPTED (вердикт Мастера Тая, 2026-10-25) | **Сессия:** S372 | **Связанные законы:** L2 (Runtime Purity), L4 (Atomic Persist)
+
+**Контекст:**
+R4 (отдельная ревизия, не roadmap-трек) — исследование контракта acquisition/release тик-сцены через read-only археологию (C44/C45/C41-pre). Установленные факты:
+- `get_scene_state` возвращает прямую ссылку на `_tick_scenes[v]` во время тика (F41.14).
+- `apply_changes` мутирует переданный `scene_state` in-place через `apply_change` (F41.16).
+- `_sync_relationship_directed` в `unlock_tick` мутирует contents `_tick_scenes[v]` in-place (F41.6).
+- F2 = ОПРОВЕРГНУТ: найден конкретный механизм мутации через общие ссылки.
+
+Вердикт C45: ветка «безопасность аварийного release доказана» недостижима (8а/8в/8г/8д нарушены, 8е=НЕДОСТИЖИМО, 8ж→блокирующий вопрос GATE-9A).
+
+**Решение (D2 — выбран Мастером на GATE-9A):**
+На аварийном пути release (exception в execute) `unlock_tick` НЕ выполняет `atomic_commit_all` — persistence остаётся в pre-tick. Нормальный путь сохраняется (atomic_commit_all вызывается как раньше).
+
+**Реализация:**
+1. `scene_state_manager.py`:
+   - Новое поле `_tick_aborted: bool = False` в `__init__`.
+   - Новый метод `mark_tick_aborted(campaign_id)` — устанавливает маркер ТОЛЬКО при подтверждённом владении (guard `if self._tick_locked and self._tick_campaign_id == campaign_id`; иначе silent no-op).
+   - `lock_for_tick`/`lock_all_for_tick`/`adopt_scene_for_tick` — сброс маркера при fresh acquire.
+   - `unlock_tick` — persist обёрнут в `if not self._tick_aborted:`; маркер сбрасывается в `finally` (блокер Мастера: гарантированно даже при исключении в `atomic_commit_all`).
+2. `game_loop.py`:
+   - `skip_time` — добавлен `except Exception: mark_tick_aborted + raise` перед существующим `finally:`.
+   - `idle_tick` — тело `[lock_all+1 .. unlock-1]` обёрнуто в `try/except/finally` (250 строк, +4 indent); `unlock_tick` перенесён в `finally`.
+   - `run_turn` — тело `[execute .. unlock-1]` обёрнуто в `try/except/finally` (307 строк, +4 indent, v3 fix: включает execute call).
+
+**Контракт безопасности:**
+- **Откатывается:** `atomic_commit_all` не вызывается из `unlock_tick` при abort → persistence остаётся в pre-tick.
+- **Остаётся в памяти:** `_tick_scenes[v]` мутированный объект (SSE bridge может читать); `_tick_locked=False`; следующий fresh `lock_for_tick` загружает pre-tick сцену из persistence.
+- **Не входит в гарантию:** `world_scheduler.maybe_tick` (async), `MemoryManager` записи, `TaskScheduler`, `life_engine` NPC states, `AvatarService`/`BodyTopologyService` — отдельные подсистемы.
+
+**Границы применимости (нюанс за рамками закрытия):**
+Проверка №7 PAT ×8 подтверждает, что `atomic_commit_all` не вызывается ИЗ `unlock_tick` на аварийном пути. Это НЕ доказывает, что другие компоненты не пишут частичное состояние ДО вызова `unlock_tick` (например, `save_scene_state` @1219 в `idle_tick` — нормальный pre-tick persist вне D2 контракта).
+
+**Тесты (PAT ×8, 37/37 PASS):**
+- SSM unit: 7/7; Exception paths: 6/6; Существующие: 31/31 (Tavern + Probe 97 + GC-01).
+
+**Backup paths:** `app/services/scene_state_manager.py.r4_backup`, `app/services/game_loop/game_loop.py.r4_backup`
+
+**Артефакты R4:** `download/R4_plan_v3.10.md`, `download/R4_C44_artifact.md`, `download/R4_C45_artifact.md`, `download/R4_C41pre_artifact.md`, `download/R4_GATE-9A_artifact.md`, `worklog.md`.
+
+---
 
 ## 🧬 EQUIVALENCE VALIDATOR (Drift Measurement)
 
