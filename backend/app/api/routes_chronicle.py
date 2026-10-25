@@ -248,6 +248,7 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
         ChronicleEntry,
         EntityRef,
         EntityRefKind,
+        EntryKind,
         EntryProvenance,
         make_entry_id,
     )
@@ -265,6 +266,24 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
         _age_value = None
         if isinstance(_age, int):
             _age_value = _age
+
+        # §S368: детерминированный fallback. Контракт (chronicle_decompose_system.txt:39)
+        # требует age=атрибут СОБЫТИЯ. Если LLM не проставила age явно (регулярно
+        # наблюдается в дампе s368_age_dump.txt при anchors=[8] и age=None в payload),
+        # а препарсер извлёк ровно один якорь и в декомпозиции ровно одно EVENT —
+        # якорь принадлежит этому событию (фраза «В N лет <событие>»).
+        # Множественность якорей или событий → неопределённость, не выдумываем
+        # (§ENIGMA-003). Не применяется к RELATIONSHIP/EFFECT (контракт: age только
+        # для событий). Не использует day/строки — отдельная дыра, не S368.
+        if (
+            _age_value is None
+            and _it.kind is EntryKind.EVENT
+            and result.age_anchors
+            and len(result.age_anchors) == 1
+        ):
+            _event_count = sum(1 for x in result.items if x.kind is EntryKind.EVENT)
+            if _event_count == 1:
+                _age_value = result.age_anchors[0]
         new_entries.append(
             ChronicleEntry(
                 entry_id=_eid,
