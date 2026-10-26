@@ -453,6 +453,7 @@ async def resolve_question(campaign_id: str, npc_id: str, req: ResolveRequest) -
 
     if target_entry_idx is None or target_question is None:
         raise HTTPException(status_code=404, detail=f"Вопрос {req.question_id} не найден в open_questions")
+    assert target_entry_idx is not None
 
     target_span = target_question.target_span
     target_entry = doc.entries[target_entry_idx]
@@ -484,8 +485,8 @@ async def resolve_question(campaign_id: str, npc_id: str, req: ResolveRequest) -
             new_white_spots.append(new_ws)
 
     # Перелинковка EntityRef под выбранную опцию
-    def _relink(ref: Optional[EntityRef]) -> Optional[EntityRef]:
-        if ref is None or not _match(ref):
+    def _relink(ref: EntityRef) -> EntityRef:
+        if not _match(ref):
             return ref
         if opt is ClarificationOption.LEAVE_WHITE_SPOT:
             return EntityRef(
