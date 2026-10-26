@@ -2388,7 +2388,8 @@ def inv_player_turn_time_gate(_ctx=None) -> InvariantResult:
     try:
         from pathlib import Path
 
-        gl_path = Path("backend/app/services/game_loop/game_loop.py")
+        # S373 FIX: путь от __file__ (IPT.py в backend/tests/), не от cwd
+        gl_path = Path(__file__).resolve().parent.parent / "app" / "services" / "game_loop" / "game_loop.py"
         src = gl_path.read_text(encoding="utf-8")
         checks = {
             "field_decl": "self._player_turn_in_flight: set[str] = set()" in src,

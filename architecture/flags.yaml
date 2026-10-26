@@ -130,10 +130,10 @@ flags:
     type: env
     read_mode: call
     default: ""
-    verdict: ROLLOUT-PENDING
+    verdict: ROLLOUT-ON
     adr: ADR-O-425
     owner: B
-    note: "D62 очередь + D61 доктрина обязательной LLM; устанавливать до первого запроса процесса; ON = отдельная приёмка Мастера (доктрина live только после вердикта ON)"
+    note: "D62 очередь + D61 доктрина обязательной LLM; S377 rollout-цикл завершён: 27/27 ON + 1/1 OFF-rollback + IPT 54/0/0 оба пути; inv_player_turn_time_gate path fix (__file__-relative, S373 fix); ROLLOUT-ON вердикт Мастера"
   WORK_ENABLED:
     type: env
     read_mode: call
