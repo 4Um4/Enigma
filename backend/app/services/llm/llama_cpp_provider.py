@@ -176,6 +176,12 @@ class LlamaCppProvider(StreamingLlmProvider):
             "n_keep": params.n_keep,
             "seed": _seed,
         }
+        # S371.3-pre: response_format передаётся в payload (mirror H-14 FIX из openai_compatible_provider:90-91).
+        # Без этого llama-server работает в free-form режиме — мелкие модели могут остановиться
+        # без финального `}`, и json.loads падает на EOF "Expecting ',' delimiter".
+        # Контракт: только server-mode /v1/chat/completions; streaming/CLI (payload 367/479) не трогаем.
+        if params.response_format:
+            payload["response_format"] = params.response_format
 
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(

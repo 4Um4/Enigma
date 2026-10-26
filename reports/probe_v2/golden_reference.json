@@ -1,0 +1,68 @@
+{
+  "_meta": {
+    "description": "Golden reference для probe_v2_cch_canonize.py. Ожидаемые факты для метрик M5 (fact_recall), M6 (hallucination_rate), M7 (question_quality).",
+    "version": "1.0",
+    "date_created": "2026-10-26",
+    "how_to_use": "expected_facts — короткие фразы (1-5 слов), которые ДОЛЖНЫ появиться в ответе модели. forbidden_hallucinations — фразы, которых НЕ должно быть (типичные выдумки). expected_question_target_span — только для C1/C3: target_span вопроса, который модель ДОЛЖНА задать."
+  },
+  "A1_simple_event": {
+    "expected_facts": ["люся", "8 лет", "сирота", "торнин", "приютил"],
+    "forbidden_hallucinations": ["убили", "разбойники", "болезнь", "пожар", "торнин был её отцом"],
+    "expected_question_target_span": null
+  },
+  "A2_simple_location": {
+    "expected_facts": ["торнин", "таверна", "серебряный волк", "двадцать лет"],
+    "forbidden_hallucinations": ["таверна на окраине леса", "торнин построил таверну сам", "таверна досталась по наследству"],
+    "expected_question_target_span": null
+  },
+  "A3_simple_relationship": {
+    "expected_facts": ["борко", "торнин", "вышибала", "работает"],
+    "forbidden_hallucinations": ["борко ненавидит торнина", "борко давно работает", "борко получает жалованье"],
+    "expected_question_target_span": null
+  },
+  "A4_simple_observation": {
+    "expected_facts": ["люся", "видела", "борко", "дерётся", "пьяные"],
+    "forbidden_hallucinations": ["люся испугалась", "борко проиграл драку", "пьяные напали на люсю"],
+    "expected_question_target_span": null
+  },
+  "B1_chain_event_effect": {
+    "expected_facts": ["горан", "кузнец", "отец", "металлом", "пятнадцать", "ушёл", "наёмник"],
+    "forbidden_hallucinations": ["горан ненавидел отца", "отец был жестоким", "горан стал разбойником", "горан уехал в столицу"],
+    "expected_question_target_span": null
+  },
+  "B2_hidden_trauma_secret": {
+    "expected_facts": ["тень", "мать", "отец", "умерла", "роды", "алиса", "голос"],
+    "forbidden_hallucinations": ["мать бросила тень", "отец убил мать", "тень узнала правду от цыган"],
+    "expected_question_target_span": null
+  },
+  "B3_knowledge_link": {
+    "expected_facts": ["12 лет", "люся", "торнин", "пьяный", "убили", "разбойники", "деревня"],
+    "forbidden_hallucinations": ["торнин сам убил родителей", "люся запомнила лицо убийцы", "убийца был незнакомцем из города"],
+    "expected_question_target_span": null
+  },
+  "B4_desire_seed": {
+    "expected_facts": ["люся", "мечтает", "юг", "море", "снег", "медяки", "печь", "три года"],
+    "forbidden_hallucinations": ["люся уже бегала на юг", "люся рассказала о мечте горану", "у неё уже сто медяков"],
+    "expected_question_target_span": null
+  },
+  "C1_ambiguous_entity": {
+    "expected_facts": ["незнакомец", "чёрный", "торнин", "шёпот", "побледнел", "погреб", "три дня"],
+    "forbidden_hallucinations": ["незнакомец был магом", "незнакомец был убийцей", "торнин отдал ему деньги", "незнакомец вернулся на следующую неделю"],
+    "expected_question_target_span": "незнакомец"
+  },
+  "C2_portret_traits_beliefs": {
+    "expected_facts": ["горан", "злится", "волки", "овцы", "третий путь", "люся"],
+    "forbidden_hallucinations": ["горан убил волка", "горан ненавидит люсю", "горан уже нашёл третий путь"],
+    "expected_question_target_span": null
+  },
+  "C3_multi_relationships": {
+    "expected_facts": ["люся", "торнин", "борко", "боится", "любит", "ненавидит", "спас", "виселица"],
+    "forbidden_hallucinations": ["люся хочет убить торнина", "борко сбежал из таверны", "борко и люся стали друзьями"],
+    "expected_question_target_span": null
+  },
+  "C4_long_temporal_switch": {
+    "expected_facts": ["двадцать лет", "торнин", "молодой", "трезвый", "жена", "таверна", "будущее", "воспаление", "умерла", "не строит"],
+    "forbidden_hallucinations": ["жена бросила торнина", "торнин построил вторую таверну", "торнин стал монахом"],
+    "expected_question_target_span": null
+  }
+}

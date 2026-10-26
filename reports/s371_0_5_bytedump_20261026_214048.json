@@ -1,0 +1,108 @@
+{
+  "timestamp": "20261026_214048",
+  "source_artifact": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\reports\\s371_diagnostic_20261026_205540.json",
+  "fails_analyzed": 7,
+  "class_counts": {
+    "TRUNCATION": 7
+  },
+  "results": [
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 8,
+      "max_tokens": 2048,
+      "class": "TRUNCATION",
+      "detail": "Expecting ',' delimiter",
+      "pos": 1279,
+      "char_at_pos": "<EOF>",
+      "char_class": "EOF (truncation)",
+      "context_repr": "'on\": false, \"question\": null}]'",
+      "context_visible": "on\": false, \"question\": null}]",
+      "ends_clean": true,
+      "length": 1279
+    },
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 13,
+      "max_tokens": 2048,
+      "class": "TRUNCATION",
+      "detail": "Expecting ',' delimiter",
+      "pos": 736,
+      "char_at_pos": "<EOF>",
+      "char_class": "EOF (truncation)",
+      "context_repr": "'on\": false, \"question\": null}]'",
+      "context_visible": "on\": false, \"question\": null}]",
+      "ends_clean": true,
+      "length": 736
+    },
+    {
+      "npc_id": "blacksmith_orm",
+      "fragment_ord": 18,
+      "max_tokens": 2048,
+      "class": "TRUNCATION",
+      "detail": "Expecting ',' delimiter",
+      "pos": 1148,
+      "char_at_pos": "<EOF>",
+      "char_class": "EOF (truncation)",
+      "context_repr": "'on\": false, \"question\": null}]'",
+      "context_visible": "on\": false, \"question\": null}]",
+      "ends_clean": true,
+      "length": 1148
+    },
+    {
+      "npc_id": "thief_shadow",
+      "fragment_ord": 7,
+      "max_tokens": 2048,
+      "class": "TRUNCATION",
+      "detail": "Expecting ',' delimiter",
+      "pos": 1123,
+      "char_at_pos": "<EOF>",
+      "char_class": "EOF (truncation)",
+      "context_repr": "'on\": false, \"question\": null}]'",
+      "context_visible": "on\": false, \"question\": null}]",
+      "ends_clean": true,
+      "length": 1123
+    },
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 13,
+      "max_tokens": 4096,
+      "class": "TRUNCATION",
+      "detail": "Expecting ',' delimiter",
+      "pos": 736,
+      "char_at_pos": "<EOF>",
+      "char_class": "EOF (truncation)",
+      "context_repr": "'on\": false, \"question\": null}]'",
+      "context_visible": "on\": false, \"question\": null}]",
+      "ends_clean": true,
+      "length": 736
+    },
+    {
+      "npc_id": "blacksmith_orm",
+      "fragment_ord": 18,
+      "max_tokens": 4096,
+      "class": "TRUNCATION",
+      "detail": "Expecting ',' delimiter",
+      "pos": 1148,
+      "char_at_pos": "<EOF>",
+      "char_class": "EOF (truncation)",
+      "context_repr": "'on\": false, \"question\": null}]'",
+      "context_visible": "on\": false, \"question\": null}]",
+      "ends_clean": true,
+      "length": 1148
+    },
+    {
+      "npc_id": "thief_shadow",
+      "fragment_ord": 7,
+      "max_tokens": 4096,
+      "class": "TRUNCATION",
+      "detail": "Expecting ',' delimiter",
+      "pos": 1123,
+      "char_at_pos": "<EOF>",
+      "char_class": "EOF (truncation)",
+      "context_repr": "'on\": false, \"question\": null}]'",
+      "context_visible": "on\": false, \"question\": null}]",
+      "ends_clean": true,
+      "length": 1123
+    }
+  ]
+}

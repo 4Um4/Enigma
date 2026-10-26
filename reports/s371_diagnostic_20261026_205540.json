@@ -1,0 +1,158 @@
+{
+  "timestamp": "20261026_205540",
+  "fragments_count": 7,
+  "results_2048": [
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 8,
+      "max_tokens": 2048,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: JSON-парсинг: Expecting ',' delimiter: line 1 column 1279 (char 1278); фрагмент: '{\"items\": [{\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"К жене и детям питает только тёплые чувства.\", \"traits\": '",
+      "raw_response": "{\"items\": [{\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"К жене и детям питает только тёплые чувства.\", \"traits\": [\"тёплые чувства\"]}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"готов при необходимости уехать на юг без них\", \"effect_kind\": \"residence\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Жена сама работает на мельнице — сможет прокормить обоих детей\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"которых он уже пристроил помощниками торговцев на рыночной площади\", \"effect_kind\": \"occupation\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"готов при необходимости уехать на юг\", \"evidence\": \"готов при необходимости уехать на юг без них\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"BELIEF_SEED\", \"draft::payload\": {\"statement\": \"Начать всё заново, подняться ещё выше и завести новую семью на юге он всегда готов.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]",
+      "items_count": 0,
+      "latency_ms": 15127.129793167114
+    },
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 13,
+      "max_tokens": 2048,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: JSON-парсинг: Expecting ',' delimiter: line 1 column 736 (char 735); фрагмент: '{\"items\": [{\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"дети устроены — он сам говорит именно это слово: «пристроил»'",
+      "raw_response": "{\"items\": [{\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"дети устроены — он сам говорит именно это слово: «пристроил».\", \"effect_kind\": \"gain\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"подготовка собственного отъезда\", \"evidence\": \"это не забота об их будущем — это подготовка собственного отъезда.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"любит их той частью сердца, которая не мешает собирать чемодан\", \"evidence\": \"он любит их той частью сердца, которая не мешает собирать чемодан.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]",
+      "items_count": 0,
+      "latency_ms": 10572.608470916748
+    },
+    {
+      "npc_id": "maid_lusya",
+      "fragment_ord": 7,
+      "max_tokens": 2048,
+      "ok": true,
+      "error": null,
+      "raw_response": null,
+      "items_count": 2,
+      "latency_ms": 4041.7213439941406
+    },
+    {
+      "npc_id": "blacksmith_orm",
+      "fragment_ord": 18,
+      "max_tokens": 2048,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: JSON-парсинг: Expecting ',' delimiter: line 1 column 1148 (char 1147); фрагмент: '{\"items\": [{\"kind\": \"LOCATION\", \"draft_payload\": {\"summary\": \"Крыша.\", \"name_hint\": null}, \"confidence\": 1.0, \"needs_con'",
+      "raw_response": "{\"items\": [{\"kind\": \"LOCATION\", \"draft_payload\": {\"summary\": \"Крыша.\", \"name_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"принадлежащая Торнину и оплаченная молчанием и починкой утвари.\", \"effect_kind\": \"residence\", \"target_hint\": \"Торнин\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"угроза Борко «посажу и сдам Торнину» бьёт не по самолюбию, а по крыше.\", \"effect_kind\": \"loss\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Орм это знает — и это единственное, что делает его хоть немного осторожнее.\", \"target_hint\": \"Борко\", \"nature\": \"dependence\", \"valence\": \"negative\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"BELIEF_SEED\", \"draft_payload\": {\"statement\": \"его мечта о собственной кузне (п.14) — не про статус, а про то, чтобы наконец никому не быть должным за место, где стоишь.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]",
+      "items_count": 0,
+      "latency_ms": 13251.710414886475
+    },
+    {
+      "npc_id": "thief_shadow",
+      "fragment_ord": 7,
+      "max_tokens": 2048,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: JSON-парсинг: Expecting ',' delimiter: line 1 column 1123 (char 1122); фрагмент: '{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнину Тень сказал, что пришёл из гильдии не просто за долго'",
+      "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнину Тень сказал, что пришёл из гильдии не просто за долгом: долги простят, если трактирщик поможет Тени с кузнецом Ормом — гильдия, мол, выяснила, что гном сдал их властям и уже точит меч против них.\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Тень прислали устранить гнома\", \"effect_kind\": \"gain\", \"target_hint\": \"гном\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"подозрительность\", \"evidence\": \"верить гному до конца не стоит\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"BELIEF_SEED\", \"draft_payload\": {\"statement\": \"Тень знает, что меч готовится для самого Торнина.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"интерес\", \"evidence\": \"а проверить, кто из этих двоих расскажет ему всю правду, очень даже интересно.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]",
+      "items_count": 0,
+      "latency_ms": 17333.80389213562
+    },
+    {
+      "npc_id": "thief_shadow",
+      "fragment_ord": 9,
+      "max_tokens": 2048,
+      "ok": true,
+      "error": null,
+      "raw_response": null,
+      "items_count": 1,
+      "latency_ms": 9107.661008834839
+    },
+    {
+      "npc_id": "tavern_keeper_tornin",
+      "fragment_ord": 12,
+      "max_tokens": 2048,
+      "ok": true,
+      "error": null,
+      "raw_response": null,
+      "items_count": 4,
+      "latency_ms": 11845.838785171509
+    }
+  ],
+  "results_4096": [
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 8,
+      "max_tokens": 4096,
+      "ok": true,
+      "error": null,
+      "raw_response": null,
+      "items_count": 6,
+      "latency_ms": 14674.455642700195
+    },
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 13,
+      "max_tokens": 4096,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: JSON-парсинг: Expecting ',' delimiter: line 1 column 736 (char 735); фрагмент: '{\"items\": [{\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"дети устроены — он сам говорит именно это слово: «пристроил»'",
+      "raw_response": "{\"items\": [{\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"дети устроены — он сам говорит именно это слово: «пристроил».\", \"effect_kind\": \"gain\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"подготовка собственного отъезда\", \"evidence\": \"это не забота об их будущем — это подготовка собственного отъезда.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"любит их той частью сердца, которая не мешает собирать чемодан\", \"evidence\": \"он любит их той частью сердца, которая не мешает собирать чемодан.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]",
+      "items_count": 0,
+      "latency_ms": 10533.23769569397
+    },
+    {
+      "npc_id": "maid_lusya",
+      "fragment_ord": 7,
+      "max_tokens": 4096,
+      "ok": true,
+      "error": null,
+      "raw_response": null,
+      "items_count": 2,
+      "latency_ms": 4028.606414794922
+    },
+    {
+      "npc_id": "blacksmith_orm",
+      "fragment_ord": 18,
+      "max_tokens": 4096,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: JSON-парсинг: Expecting ',' delimiter: line 1 column 1148 (char 1147); фрагмент: '{\"items\": [{\"kind\": \"LOCATION\", \"draft_payload\": {\"summary\": \"Крыша.\", \"name_hint\": null}, \"confidence\": 1.0, \"needs_con'",
+      "raw_response": "{\"items\": [{\"kind\": \"LOCATION\", \"draft_payload\": {\"summary\": \"Крыша.\", \"name_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"принадлежащая Торнину и оплаченная молчанием и починкой утвари.\", \"effect_kind\": \"residence\", \"target_hint\": \"Торнин\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"угроза Борко «посажу и сдам Торнину» бьёт не по самолюбию, а по крыше.\", \"effect_kind\": \"loss\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Орм это знает — и это единственное, что делает его хоть немного осторожнее.\", \"target_hint\": \"Борко\", \"nature\": \"dependence\", \"valence\": \"negative\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"BELIEF_SEED\", \"draft_payload\": {\"statement\": \"его мечта о собственной кузне (п.14) — не про статус, а про то, чтобы наконец никому не быть должным за место, где стоишь.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]",
+      "items_count": 0,
+      "latency_ms": 13210.929870605469
+    },
+    {
+      "npc_id": "thief_shadow",
+      "fragment_ord": 7,
+      "max_tokens": 4096,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: JSON-парсинг: Expecting ',' delimiter: line 1 column 1123 (char 1122); фрагмент: '{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнину Тень сказал, что пришёл из гильдии не просто за долго'",
+      "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнину Тень сказал, что пришёл из гильдии не просто за долгом: долги простят, если трактирщик поможет Тени с кузнецом Ормом — гильдия, мол, выяснила, что гном сдал их властям и уже точит меч против них.\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Тень прислали устранить гнома\", \"effect_kind\": \"gain\", \"target_hint\": \"гном\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"подозрительность\", \"evidence\": \"верить гному до конца не стоит\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"BELIEF_SEED\", \"draft_payload\": {\"statement\": \"Тень знает, что меч готовится для самого Торнина.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"интерес\", \"evidence\": \"а проверить, кто из этих двоих расскажет ему всю правду, очень даже интересно.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]",
+      "items_count": 0,
+      "latency_ms": 17379.093647003174
+    },
+    {
+      "npc_id": "thief_shadow",
+      "fragment_ord": 9,
+      "max_tokens": 4096,
+      "ok": true,
+      "error": null,
+      "raw_response": null,
+      "items_count": 1,
+      "latency_ms": 9024.142503738403
+    },
+    {
+      "npc_id": "tavern_keeper_tornin",
+      "fragment_ord": 12,
+      "max_tokens": 4096,
+      "ok": true,
+      "error": null,
+      "raw_response": null,
+      "items_count": 4,
+      "latency_ms": 11799.992799758911
+    }
+  ],
+  "summary": {
+    "max_tokens_2048": {
+      "ok": 3,
+      "fail": 4
+    },
+    "max_tokens_4096": {
+      "ok": 4,
+      "fail": 3
+    }
+  }
+}

@@ -132,6 +132,12 @@ def _load_fragment_text(npc_id: str, fragment_ord: int) -> Optional[str]:
 
 async def main() -> int:
     from app.services.chronicle.biography_decomposer import BiographyDecomposer
+    from app.services.llm.provider_manager import initialize_model_pool
+
+    # S371.2: прямая инициализация ModelPool (backend не нужен; LLM-сервер на :8181 жив)
+    print("[S371.2] Инициализация ModelPool...")
+    init_results = initialize_model_pool()
+    print(f"[S371.2] ModelPool init: {init_results}")
 
     fragments_meta = _load_fragments_from_s368()
     if not fragments_meta:

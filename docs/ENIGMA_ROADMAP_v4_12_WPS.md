@@ -1,4 +1,4 @@
-﻿# ENIGMA — Канонический порядок построения NPC и симуляции
+# ENIGMA — Канонический порядок построения NPC и симуляции
 
 **Главный принцип:** сначала материализуем человека в причинной модели ENIGMA, затем даём ему жить, воспринимать, помнить, действовать и только после этого — рассказывать о себе.
 
@@ -34,9 +34,9 @@
 
 ---
 
-# ENIGMA — Дорожная карта преемника (v4.11-draft)
+# ENIGMA — Дорожная карта преемника (v4.12-draft)
 
-**Версия документа:** 4.11-draft (точка версии поднята с 4.7-draft прямым вердиктом Мастера 2026-10-21 — §R.6.6; в документе интегрированы дополнения: v4.8-draft EPI §19, v4.9-draft SUBJ-AVOID §20, v4.10-draft MAG §21, v4.11-draft WPS §22; дополнение MOT §18: шаг 1 базовый; шаги 2–4 исполнены 2026-10-19 черновиком ИИ-ассистента — §18.5–18.9 заполнены, Ступень MOT вставлена в §0.2, гейты зарегистрированы в §9.3h; ВСЁ дополнение — до вердикта Мастера; база — v4.6; закрытия v4.6 зафиксированы (CCH-3 S340, COV-0 S343/S344, COV-2 S348, COV-GC-03, AA1; синхронизация статусов 2026-10-13)) · **Код:** V.0.5.4.4.5 (аудит MOT — на V.0.5.4.3.3) (`version.txt` = `pyproject.toml`) · **Ветка:** main · **Базлайн:** IPT 49/49 · **Режим:** двухветвевой — Ветвь А «Субъект» / Ветвь Б «Мир и платформа» (маршрут агента — §R.1) · История расширений v4.1–v4.5 и архивные прогоны — `MUTATIONS.md` / `docs/audits/` / git (правило документа: операционная карта, не архив)
+**Версия документа:** 4.12-draft (точка версии поднята с 4.11-draft вердиктом Мастера 2026-10-26 — §R.6.6; в документе интегрированы дополнения: v4.8-draft EPI §19, v4.9-draft SUBJ-AVOID §20, v4.10-draft MAG §21, v4.11-draft WPS §22, v4.12-draft AUDIT-01 §24–§28 (Vision Suite / Scripts & Lint / Diagnostics / Map Editor integration / Workbench integration) + регистрация DLG-трека в §9.3i + COV-12..16 + Status-фиксы IPT 53/0 + §13.0 baseline + 7 ТЗ-дополнений §1.3 + недостающие IMPACT-файлы ADR-O-427/428/429 в §1.1; дополнение MOT §18: шаг 1 базовый; шаги 2–4 исполнены 2026-10-19 черновиком ИИ-ассистента — §18.5–18.9 заполнены, Ступень MOT вставлена в §0.2, гейты зарегистрированы в §9.3h; база — v4.6; закрытия v4.6 зафиксированы (CCH-3 S340, COV-0 S343/S344, COV-2 S348, COV-GC-03, AA1; синхронизация статусов 2026-10-13)) · **Код:** V.0.5.4.4.5 (аудит MOT — на V.0.5.4.3.3) (`version.txt` = `pyproject.toml`) · **Ветка:** main · **Базлайн:** IPT 53/0 (синхронизировано с §9.14 — S353 поднял IPT с 49 до 53; шапка v4.11 удерживала устаревший 49/49) · **Режим:** двухветвевой — Ветвь А «Субъект» / Ветвь Б «Мир и платформа» (маршрут агента — §R.1) · История расширений v4.1–v4.5 и архивные прогоны — `MUTATIONS.md` / `docs/audits/` / git (правило документа: операционная карта, не архив)
 **Правило документа:** один факт — одно место. Статус пункта живёт в чеклисте трека; история (нарратив сессий, инциденты, вердикты) — только в `MUTATIONS.md` + `docs/audits/`. Этот документ — операционная карта, не архив.
 
 ## Как читать этот документ
@@ -58,6 +58,7 @@
 14. **§1.3 — реестр ТЗ корпуса «Почти Актуальные TZ»** — единственная точка привязки ТЗ-файлов к якорям и триггерам запуска; пополнен 2026-10-19 (PLAN-TRAIT134 / AUDIT-BM-01 / COMPLETENESS-01 и прочие ранее незарегистрированные файлы папки).
 15. **§0.0 — навигационная карточка «Ты здесь»** (добавлена 2026-10-19): фронтиры ветвей и запрещённые-сейчас зоны; навигация, не статус — статусы только в чеклистах.
 16. **§23 — контур CGB (дополнение аудита 2026-10-23, PROPOSED):** контракт вычислительного бюджета тика — карта существующих регуляторов, инварианты, пакеты-кандидаты CGB-0…3; roadmap-only до вердикта Мастера. Доказательная база всех дополнений аудита — `docs/audits/ROADMAP-AUDIT-01_Cognitive_Infrastructure_and_Observability.md`; точечные дополнения треков — §3.5b, §9.3h (GC-59), §9.14, §13.7, §14.6, §16.10, §17.8 Шаг 7, §18.10.
+17. **§24–§28 — дополнения v4.12-draft (вердикт Мастера 2026-10-26):** регистрация инфраструктуры, выросшей вне треков — Vision Suite (§24, исполняемый «красный маяк» прогресса проекта), Scripts & Lint (§25, реестр `scripts/` и AST-линтеров), Diagnostics (§26, пакет `diagnostics/`), Map Editor integration (§27, формальная привязка `ENIGMA_MAP_EDITOR_ROADMAP_v1_4.md`), Workbench integration (§28, реестр `frontend/ui_workbench/`). Параллельно: DLG-трек (§3.6) поднят до §9.3i-регистрации гейтов DLG-GC-00…03; COV расширен пакетами COV-12…16 (ADR-Net / Probes / Diagnostics / Scripts / Calibration Lab Assets); §1.3 реестр ТЗ пополнен 7 файлами; §1.1 карта документов дополнена ссылками на недостающие IMPACT-файлы ADR-O-427/428/429 и 28+ специальных ADR; §13.0 baseline-аудит v4.3 приведён в соответствие с закрытиями CCH-0…5. Полный отчёт аудита — `docs/audits/ROADMAP-AUDIT-01_Cognitive_Infrastructure_and_Observability.md` (частично) и `/home/z/my-project/roadmap_audit_report.md` (полный).
 
 ### 0.0. Ты здесь (навигационная карточка; 2026-10-19)
 
@@ -68,6 +69,16 @@
 - **Запрещено сейчас (без вердикта):** маски/BehaviorMask (RE-D9, §7.2 — до BC-контура), NL-12 (до зелёного NL-9), PersuasionEngine (нет ADR и вердикта — §18.8), включение ROLLOUT-PENDING-флагов вне COV-0-протокола, causal-debugger для игрока (закон NL-11).
 - **R4 / D2 — ACCEPTED / CLOSED** (2026-10-25, вердикт Мастера Тая; S372, ADR-O-429): контракт acquisition/release тик-сцены — отдельная ревизия (не roadmap-трек). Реализация: scene_state_manager.py (поле _tick_aborted, метод mark_tick_aborted с guard владения, unlock_tick с if not _tick_aborted + finally) + game_loop.py (skip_time/idle_tick/run_turn обёрнуты в try/except/finally с mark_tick_aborted + unlock_tick). PAT ×8: 37/37 PASS. Артефакты: download/R4_*.md. Backup: .r4_backup. Нюанс: atomic_commit_all из других компонентов до unlock_tick — отдельный вопрос о границах транзакции.
 - **Активные ТЗ-приёмки (реестр §1.3):** CCH build-11R (BLOCK 10 — баг canonize 500→422), UX-UE-01 (запись ADR-O-428 [FIX]), TZ_AUDIT-01 (на утверждении Мастера, ветвь Б).
+- **v4.12 новые фронтиры (вердикт Мастера 2026-10-26):**
+  - **§24 Vision Suite** — `backend/tests/vision/` каталог НЕ существует; 10 starter-маркеров (V-SYM-01, V-DLG-01…05, V-MOT-01, V-MEM-01, V-LC-01, V-COV-01) — пока только дизайнаторы; первый шаг — создать каталог и реализовать маяки как `@pytest.mark.vision` + `xfail(strict=False, reason="ROADMAP: <ID>")`.
+  - **§25 Scripts & Lint Infrastructure** — `scripts/` (~100 файлов, ~20 AST-линтеров) — формальный реестр, контракты, протокол сессионных патчей.
+  - **§26 Diagnostics Infrastructure** — пакет `diagnostics/` (causal_observer, dna_metrics, git_reader, movement_audit_probe, pattern_registry, report_renderer, cds_session_audit, health_checkers/) — FORBIDDEN-loop инвариант (диагностика никогда не мутирует состояние).
+  - **§27 Map Editor integration** — формальная привязка `ENIGMA_MAP_EDITOR_ROADMAP_v1_4.md` к родительскому roadmap; Chronicle Editor (MODE_CHRONICLE), Visual Casting Editor, BLUEPRINT_FORMAT_SPEC_v1, S349 handoff.
+  - **§28 Workbench integration** — `frontend/ui_workbench/` — F12, layer-3/4 изоляция, реестр окон (journal/board/mini/debug), интеграция с CCH-4 Character Debugger.
+  - **DLG-трек формальная регистрация (§3.6 → §9.3i):** DLG-GC-00/01/02/03 теперь зарегистрированы в closure-register; в §0.2 вставлена Ступень DLG.
+  - **COV-12…16 (расширение §17):** COV-12 ADR-Net Infrastructure, COV-13 Probes Infrastructure, COV-14 Diagnostics Infrastructure, COV-15 Scripts Inventory & Hygiene, COV-16 Calibration Lab Assets.
+  - **Недостающие IMPACT-файлы ADR-O-427/428/429:** зарегистрированы в атласе, но физически отсутствуют в `docs/audits/` — задача на создание до закрытия v4.12.
+  - **Ступень AUDIT-10H** — 10-часовой causal-chain аудит (read-only; prerequisite для MOT-9/GC-59); вставлена в §0.2 после Ступени MOT.
 
 ---
 
@@ -292,6 +303,7 @@
 - [ ] **CCH-S371** — LLM JSON Robustness: устойчивость декомпозиции хроник к невалидному JSON и частичному отказу. **Контекст:** наблюдение из полного прогона S368 (`reports/s368_full_run.txt`) — 6/126 фрагментов (4.76%) упали с `Expecting ',' delimiter` в `DecompositionError`. **Цель:** уменьшить потери декомпозиции, сохранив детерминизм, семантическую корректность, происхождение фактов и контракты ENIGMA. **Этапы:** S371.0 — воспроизводимая диагностика (тестовый корпус, модель, параметры, 6 исходных ошибок + сырые ответы, классификация с явным обозначением неизвестных); S371.1 — проверка лимита генерации (`max_tokens` 2048 vs 4096, один фактор, сравнение валидных JSON / truncation / latency); S371.2 — безопасная обработка JSON (repair только конкретных воспроизводимых классов; **запрет:** наивная коррекция баланса скобок подсчётом, глобальная замена кавычек; repair сохраняет исходный ответ, проходит повторный строгий parse, имеет тесты на кавычки/escape/Unicode/truncation, отклоняет неоднозначные случаи); S371.3 — constrained JSON generation (`json_schema`/GBNF; **gate:** подтверждение совместимости на живом локальном llama.cpp, проверка применения ограничения и соответствия схеме `DecompositionResult`, без потери обязательных полей); S371.4 — частичное восстановление элементов (контракт `partial_errors`: как отделяется повреждённый элемент, индексация ошибок, сохранение provenance, критерий WhiteSpot vs отклонение, предотвращение сохранения неполного элемента как достоверного факта; **нельзя** считать `DecompositionResult.partial_errors` достаточным без контракта и тестов; **запрет:** regex-выделение JSON-объектов из повреждённого текста); S371.5 — prompt и retry (few-shot и retry — кандидаты после установления причин; не менять temperature/seed одновременно с `max_tokens`; не увеличивать повторы с одинаковыми параметрами; проверять отсутствие CoT-leak и регрессий S365/S367). **Принципы:** (1) сначала тест, воспроизводящий неисправность → минимальный патч → повтор; (2) один фактор за эксперимент; (3) фиксированный корпус для до/после; (4) никакого regex-парсинга JSON и эвристического создания фактов; (5) не менять каноническую схему и семантику хроник ради формально валидного JSON; (6) не допускать тихого пропуска повреждённых элементов; (7) не менять модель только ради JSON-compliance; (8) не объединять результаты нескольких интервенций в одну недифференцированную метрику. **Критерии приёмки:** воспроизводимый baseline на фиксированном корпусе; классификация исходных ошибок с явным обозначением неизвестных; измеренное сравнение каждого экспериментального изменения; тесты на валидный/повреждённый JSON, truncation, Unicode, кавычки, escape; отсутствие регрессий S365/S367; сохранение provenance и семантической неопределённости; итоговая таблица до/после (ошибки / успешные декомпозиции / задержка). **Цель и порог закрытия:** TBD после S371.0 (не предсказывать «99%» как гарантию). **Зависимости:** dep: CCH-S368 (baseline-корпус 6 NPC готов); dep: ADR-O-420 (контракт CCH-2 — не трогать без ADR-ревизии). **Связи:** rel: S365 (CoT-leak тест — образец для S371.5); rel: S367 (roster-инъекция — prompt-side, модель для S371.5); rel: S368 (DecompositionResult.age_anchors — образец для S371.4 partial_errors); rel: S369 (white_spots — S371.4 создаёт WhiteSpot, который S369 проверяет в каноне). · ⏳ PLANNED · **Примечание S373:** S369 закрыт (S373); S371.4 — создание WhiteSpot при partial_errors — теперь имеет рабочий референс (логика создания в `/resolve`), но S371 как whole (LLM JSON Robustness) остаётся открытой задачей: 6/126 фрагментов в `reports/s368_full_run.txt` падают с `Expecting ',' delimiter`.
 - [ ] **CCH-6** — калибровка порога `needs_confirmation` на корпусе 3–5 биографий; самоочистка ТЗ по §1.3; запись в MUTATIONS. Гейт: T-CCH-10 (IPT зелёный, линтеры чистые).
 - [ ] **CCH-02** — параллельная линия после CCH-0 (см. §14): автобиографии → PSYCH_EXTRACTION → ECR → аудит R/S/A/N → PSC → MechanismSpec → RP-1. Старт извлечения — при ≥3 утверждённых авторских биографиях (RD-02-11). Реализация механизмов — НЕ в этом треке (CCH-03, отдельная очередь из PSC).
+- [ ] **CCH-7 (PROPOSED §13.7)** — Semantic Validation Gate: вмонтировать ConsistencyService в API `canonize` как обязательный семантический шаг валидации (сейчас сервис существует, но не вызывается из canonize). Гейт: T-CCH-SV-01 (canonize reject'ит канон с intra-window конфликтами, не снимаемыми автором). **Пререквизит:** CCH-6 (калибровка порога). Владелец: Ветвь А.
 **Ступень UX-CHRONICLE-CLARITY — Понятность редактора хроник для автора** (ответ на боль Мастера: «не понимаю, в какой момент прошлое фиксируется в игре, как проверить понимание, как исправить непонятое»)
 - [ ] **UX-1 F1-урок** — обучающий экран в редакторе персонажей (F1), без обрезки текста. Объясняет: (а) цикл «написал → разобрал (Ctrl+G) → канонизировал (F9) → игра получила»; (б) что значит `needs-confirmation` / `runtime-compatible` / `unknown-type`; (в) что делать с `✗ не поняла` (переформулировать / разбить / пере-декомпозировать).
 - [ ] **UX-2 Визуализация статуса канона** — для каждого NPC в списке редактора: иконка «канон / черновик / нет хроники» + счётчик `needs-confirmation`. Автор видит, что ещё не канонизировано.
@@ -333,6 +345,12 @@
 - [ ] BC-7 — Conclusion → social strategy (derived, без флагов NPC)
 - STOP: полноценный Active Inference — только после BC-1…BC-7. BC-8…BC-13 — после устойчивого контура (§3).
 
+**Ступень DLG — Dialogue vertical (v4.7-draft, формальная регистрация v4.12; §3.6)** (поведенчески-нейтральна — DLG-0 не требует BC-контура и может идти параллельно Ступени 4; гейты — §9.3i)
+- [ ] **DLG-0 (S)** — Golden dialogue корпус + скоринг: 15–20 scripted-сценариев с эталонной семантической разметкой; headless-runnable; детерминированный скоринг. Гейт: DLG-GC-00.
+- [ ] **DLG-1 (M)** — Speaker symmetry: одна и та же реплика от PLAYER и NPC → идентичная семантическая разборка (mod provenance). Гейт: DLG-GC-01.
+- [ ] **DLG-2 (M)** — Conversation state: 5+ ходов без повторного greeting, anaphora resolved. Гейт: DLG-GC-02.
+- [ ] **DLG-3 (M)** — Composite input: 3-action команда → 3 semantic_acts без tail loss. Гейт: DLG-GC-03.
+
 **Ступень MOT — Motive & Decision Trace (v4.7; параллельный фронт §18; «решение хранит почему, а не только что»)** (вставлена дополнением v4.7, шаг 2, 2026-10-19; допуск трека и развилка «смесь против лесенки» — вердикт Мастера. Владение — Ветвь А; зоны — §R.2. Группы старта — §18.7: G1 (MOT-0…2, MOT-8) — behavior-neutral, сразу после вердикта о допуске; G2 (MOT-3/4) — после BC-2, параллельно BC-3; G3 (MOT-5) — после включения входов DESIRES/BC1/REL_DYNAMICS (вердикты COV-0, MOT-D10) + развилки + F5-приёмки ROLLOUT-ON; G4 (MOT-6/7) — синхронно с NL-5 (Ступень 9) и NL-11 (Ступень 10). Пакеты и чеклист — §18.4; гейты — §9.3h; карта поглощения планов TRAIT134/BM-01/COMPLETENESS-01 — §18.8)
 - [ ] **MOT-0** — ADR «Decision Trace & Motive Mixture»: ре-верификация якорей §18.2 на текущей версии; онтология DecisionTrace ≠ CausalEntry ≠ EventMemory ≠ self-model; реестр читателей (MOT-L6); инвентаризация MOT-D11; развилка «смесь против лесенки» — арбитру/Мастеру. Гейт: ADR + DTO Registry + строки COV-0
 - [ ] **MOT-1** — Тишина → видимость: счётчики отказов продюсеров, диф-тест «продюсер жив». Гейт: GC-50
@@ -343,6 +361,12 @@
 - [ ] **MOT-6** — Читатели trace: EXPLAIN, PLAYER_ASKS_WHY (совместно с NL-5), MEM-9. Гейт: GC-55
 - [ ] **MOT-7** — Интроспективный доступ → самообъяснение (мост к NL-11). Гейт: GC-56
 - [ ] **MOT-8** — Досье: планы, привычки, нормы (read-only; COMPLETENESS-01 §4; развилка «Фаза 6 TRAIT134 или отдельный трек» — Мастер). Гейт: GC-57
+
+**Ступень AUDIT-10H — 10-hour Causal Chain Audit (v4.12; read-only prerequisite для MOT-9/GC-59; основание — §18.10, §7.6, §9.3h)** (отдельная сессия, не трогает рантайм; цель — причинно-следственная карта живого 10-часового прогона)
+- [ ] **AUDIT-10H.0** — Подготовка: выбор сценария (silver_wolf или Open_road), параметры прогона (10 in-game hours = ~600 ticks baseline), инструментирование (ObservabilityTap + scene_changes_*.jsonl + replay_recorder). Гейт: AUDIT-10H-GC-0 (прогон воспроизводим).
+- [ ] **AUDIT-10H.1** — Сбор артефактов: causal_ledger дамп, event_memory поток, decision_trace дамп (после MOT-3), relationship_event поток, body_state тренд. Гейт: AUDIT-10H-GC-1 (все 5 потоков выгружены без потерь).
+- [ ] **AUDIT-10H.2** — Причинно-следственная карта: построение графа «событие → consumer → state delta → downstream event»; выявление разрывов (event без consumer, state delta без downstream); выявление тихих no-op (DesiredChange=None без fail counter). Гейт: AUDIT-10H-GC-2 (карта опубликована в `reports/AUDIT-10H_causal_chain_map.md`).
+- [ ] **AUDIT-10H.3** — Вердикт Мастера о допуске MOT-9 (Causal Provenance Spine, GC-59): на основе карты принимается решение — есть ли достаточная причинно-следственная инфраструктура для MOT-9, или требуются подготовительные пакеты. Гейт: AUDIT-10H-GC-3 (вердикт зафиксирован).
 
 **Ступень 5 — W-TRACK: следующий слой**
 - [ ] Capability `spawn_world_object` для GC-08-harness (инфраструктурный prerequisite, канон §9.2)
@@ -487,6 +511,15 @@
 | `docs/audits/ROADMAP-AUDIT-01_Cognitive_Infrastructure_and_Observability.md` | Аудит когнитивной инфраструктуры и наблюдаемости (2026-10-23; код V.0.5.4.4.0; read-only): доказательные таблицы по 10 направлениям; интегрированные PROPOSED-дополнения roadmap — §3.5b, §9.3h (GC-59), §9.14, §13.7, §14.6, §16.10, §17.8 Шаг 7, §18.10, §23; не постоянно актуальная спецификация — якоря перепроверять при касании |
 | `reports/SESSION_S62_DM_VISION.md`, `reports/LAST_SESSION.md` | Сессии |
 | `docs/audits/RUST_CANDIDATE_RATIFICATION_REPORT.md`, `docs/audits/RELEASE_DEFECT_AUDIT.md` | Исследовательские отчёты (ратификация NO-GO; релиз-гейты) |
+| **Специальные/именованные ADR (не ADR-O-XXX; добавлены v4.12):** `ADR-TIFL-001/002/003` (Temporal Identity Formation Layer), `ADR-CAUSAL-SPINE` (каузальный спин), `ADR-SSOT-ECONOMIC`/`ADR-SSOT-EPISTEMIC` (SSOT-контракты), `ADR-FOUNDATION-FREEZE` (заморозка фундамента), `ADR-WRITE-GUARD`/`ADR-GUARD` (write-гарды), `ADR-CNSRL` (цензура), `ADR-SHI` (Shelter), `ADR-DET-02` (детерминизм — детальные фазы DET-1…7), `ADR-DEBUG-001` (debugging-контур), `ADR-INFRA-MVI` (Infra Longevity MVI), `ADR-CI-MYPY` (CI mypy-гейт), `ADR-INV-DEF` (инвентарь-дефолты), `ADR-DM-001` (Dialogue Manager), `ADR-NET-PARSER-V2`/`ADR-NET-CLI-QUIET_FIX` (ADR-Net automation), `ADR-MANIFEST`/`ADR-L1-PERSIST`/`ADR-GENDER`/`ADR-EVENT-VISIBILITY`/`ADR-GL-202`/`ADR-GL-203`/`ADR-RE-M1B3_6`/`ADR-O-R2`/`ADR-0017` | 28+ специальных ADR — добавлены в карту документов v4.12; не все имеют IMPACT-файлы, часть — только атлас-записи (предыдущая практика) |
+| **Недостающие IMPACT-файлы (v4.12 — TODO до закрытия):** `docs/audits/ADR-O-427_IMPACT.md` (Artifact Path SSOT, S353, PATH-D1), `docs/audits/ADR-O-428_IMPACT.md` (UX-UE-01 [FIX], S358), `docs/audits/ADR-O-429_IMPACT.md` (R4/D2 Tick-Scene Abort Marker, S372 — вердикт Мастера 2026-10-25) | Имеют атлас-записи, но физически отсутствуют в `docs/audits/`; задача v4.12 — создать до закрытия |
+| `docs/audits/ROADMAP-AUDIT-01_Cognitive_Infrastructure_and_Observability.md` (повторное указание) | Полный аудит когнитивной инфраструктуры; основание для §3.5b, §9.3h, §9.14, §13.7, §14.6, §16.10, §17.8 Шаг 7, §18.10, §23, §24–§28 v4.12 |
+| `MUTATIONS.md` | Архив закрытых изменений (история сессий S1–S376+); операционный источник «что было сделано» — roadmap указывает «что делать» |
+| `docs/АРХИТЕКТУРНЫЙ_УСТАВ_ENIGMA.md` | Архитектурный устав (13.5: roadmap не доказательство, код/тесты — доказательство) |
+| `docs/ЗАВЕЩАНИЕ_АРХИТЕКТОРОВ.md` | Завещание архитекторов (преемственность принципов) |
+| `architecture/flags.yaml` | Реестр флаг-вердиктов COV-0 (~52 вердиктов: ROLLOUT-ON/PENDING, KEEP-LOG, BURY, INFRA, AUDIT-NEEDED, CALIBRATION) |
+| `architecture/diagnostics.yaml` | Конфиг FORBIDDEN-loop диагностики (диагностика никогда не мутирует состояние) |
+| `frontend/map_editor/ENIGMA_MAP_EDITOR_ROADMAP_v1_4.md` | Дочерний roadmap Map Editor (v1.4); формальная привязка к родительскому roadmap — §27 v4.12 |
 
 ### 1.2. Утрачены (ссылки из v1.0 роадмапа невалидны — не искать, не восстанавливать)
 
@@ -542,6 +575,13 @@
 | `ENIGMA_ Дерево причинной интеграции НПС.png` | §18.0 (парадигма MOT); §12 | Справочная диаграмма планов TRAIT134; актуальность — вердикт Мастера при закрытии MOT-0 |
 | `БУДУЩЕЕ.md` | §7 хвосты; Устав-кандидаты | Заметки-принципы: дедуп apply_perception_memory/create_memory_event (B′-005); правило diagnostic fields (кандидат №7 в Устав) — вердикт Мастера |
 | `Редактор кампаний/` (BLUEPRINT_FORMAT_SPEC_v1, ENIGMA_MAP_EDITOR_ROADMAP_v1_4, MISSING_TEXTURES, ТЗ_преемнику_Map_Editor_S349) | COV-8 (фронтенд/инструменты); Map Editor usability-бэклог | Активен `ТЗ_преемнику_Map_Editor_S349`; остальные — при работе COV-8 / Map Editor |
+| `TZ_SCI-01_Self_Explanation_Fidelity.md` | §12 NL-11 (self-interpretation); §8.X (new v4.12) | После NL-11 — фиделити самообъяснения NPC vs канонический trace; научная основа для оценки качества NL-11 |
+| `MIGRATION-QWEN3.5-9B_comparison.md` | §0.2 MIGRATION-QWEN3.5-9B | ✅ EXECUTED (S362, YandexGPT-5-Lite-8B выбран); cleanup pending — удалить после подтверждения стабилизации |
+| `MIGRATION-NEW_MODEL-QWEN3.5-9B_comparison.md` | §0.2 MIGRATION-QWEN3.5-9B | ✅ EXECUTED (S362); cleanup pending |
+| `VZ/MAGIC.md` | §21 MAG | Trigger: MAG-0 (re-verification audit) — основной дизайн-документ отложенной ветки |
+| `VZ/MAGIC-AUDIT-01_Somatico-Resonance_Integration.md` | §1.1 docs map + §21 MAG | Trigger: MAG-0 (cross-list из §1.1 в §1.3 для ясности триггеров) |
+| `VZ/WPS-AUDIT-01_World_Process_Simulation_Readiness.md` | §1.1 docs map + §22 WPS | Trigger: WPS-0 (cross-list из §1.1 в §1.3 для ясности триггеров) |
+| `ROADMAP-AUDIT-01_Cognitive_Infrastructure_and_Observability.md` | §1.1 docs map + PROPOSED additions | Trigger: основание для §3.5b/§9.14/§13.7/§14.6/§16.10/§17.8 Шаг 7/§18.10/§23/§24–§28 (cross-list для ясности) |
 
 ---
 
@@ -1831,6 +1871,36 @@ GC-20 — Temporal Recovery → Future Behavior:
 
 **Дополнение аудита 2026-10-23 (PROPOSED — до вердикта Мастера):** **GC-59 — Происхождение восстанавливается** (MOT-9, §18.10). По любому убеждению/решению NPC на горизонте сотен тиков запрос восстанавливает цепочку до мирового события по живым идентификаторам (не по логам и не по heuristics (actor, tick)); глубина причинной истории > 20 записей; экспорт машинно-читаем (цепочка §9.8b как формат); диф-тест подтверждает нулевую мутацию состояния от диагностики (§0.3 «Observability never mutates»). Гейт активируется только после вердикта Мастера о допуске MOT-9; зависимость — AUDIT-10H-1 (§7.6: механизм не создаётся до результатов read-only аудита цепочки).
 
+### 9.3i. DLG-GC — гейты Dialogue vertical (v4.12 формальная регистрация; трек §3.6)
+
+> Дополнение v4.12: гейты DLG определены в §3.6 с v4.7-draft, но не были зарегистрированы в §9.3 closure-register. v4.12 исправляет это.
+
+- **DLG-GC-00**: корпус DLG-0 headless-runnable; скоринг детерминирован (15–20 scripted-сценариев).
+- **DLG-GC-01**: speaker symmetry — одна и та же реплика от PLAYER/NPC → идентичная семантическая разборка mod provenance.
+- **DLG-GC-02**: conversation state — 5+ ходов без повторного greeting, anaphora resolved.
+- **DLG-GC-03**: composite input — 3-action команда → 3 semantic_acts без tail loss.
+
+### 9.3j. AUDIT-10H-GC — гейты 10-hour Causal Chain Audit (v4.12; prerequisite для MOT-9/GC-59)
+
+> Дополнение v4.12: формальная регистрация гейтов 10-часового причинно-следственного аудита (см. §0.2 Ступень AUDIT-10H).
+
+- **AUDIT-10H-GC-0**: 10-часовой прогон воспроизводим (replay-детерминизм; KernelRNG-seed зафиксирован; temp-saves сохранены).
+- **AUDIT-10H-GC-1**: все 5 потоков артефактов выгружены без потерь (causal_ledger, event_memory, decision_trace post-MOT-3, relationship_event, body_state).
+- **AUDIT-10H-GC-2**: причинно-следательная карта опубликована в `reports/AUDIT-10H_causal_chain_map.md`; разрывы и тихие no-op выявлены и зафиксированы.
+- **AUDIT-10H-GC-3**: вердикт Мастера о допуске MOT-9 (Causal Provenance Spine, GC-59) зафиксирован в MUTATIONS.
+
+### 9.3k. Vision markers — статус (v4.12 clarification)
+
+> Дополнение v4.12: §9.13 определяет 10 starter-маркеров Vision Suite (V-SYM-01, V-DLG-01…05, V-MOT-01, V-MEM-01, V-LC-01, V-COV-01), но каталог `backend/tests/vision/` физически НЕ существует. v4.12 фиксирует это как приоритетную задачу (см. §24).
+
+- **V-SYM-01**: ❌ DESIGNATOR ONLY — `backend/tests/vision/test_v_sym_01_speaker_symmetry.py` отсутствует.
+- **V-DLG-01..05**: ❌ DESIGNATOR ONLY — 5 файлов отсутствуют.
+- **V-MOT-01**: ❌ DESIGNATOR ONLY — отсутствует.
+- **V-MEM-01**: ❌ DESIGNATOR ONLY — отсутствует.
+- **V-LC-01**: ❌ DESIGNATOR ONLY — отсутствует.
+- **V-COV-01**: ❌ DESIGNATOR ONLY — отсутствует.
+
+
 ### 9.4. Avatar gameplay closure (AV-GC)
 
 - [ ] **AV-GC-01** Values differential: same command, same world, different avatar values/norms → different accept/modify/refuse outcome.
@@ -2091,6 +2161,8 @@ Feature считается **CLOSED** только если:
 ---
 
 ### 9.13. Vision suite — слой «красного маяка» (исполняемый измеритель недоделанности)
+
+> **Статус v4.12:** Каталог `backend/tests/vision/` физически НЕ существует. Все 10 starter-маркеров (V-SYM-01, V-DLG-01…05, V-MOT-01, V-MEM-01, V-LC-01, V-COV-01) — DESIGNATOR ONLY. Приоритетная задача v4.12 — создать каталог и реализовать маяки как `@pytest.mark.vision` + `xfail(strict=False, reason="ROADMAP: <ID>")`. См. §24 (трек Vision Suite) и §9.3k (статус по каждому маркеру).
 
 **БЫЛО:** §9.10 — статичная матрица; прогресс измеряется чтением документа, а не запуском.
 **СТАЛО:** отдельный тестовый слой `tests/vision/`, который сегодня честно красный и зеленеет ровно по мере закрытия гейтов; число зелёных в отчёте сессии — прогресс-бар проекта.
@@ -2435,7 +2507,7 @@ deliberate misinformation): NL-12 — ТОЛЬКО после зелёного N
 ## 13. Трек CCH — Character Chronicle (Слой 0: AUTHORING → COMPILER)
 > **ВЕТВЬ: А «Субъект»** · лестница — §R.3 (шаг А1) · контент-корпус для CCH-6/CCH-02 — из Б через гейт S5
 
-Основание: **ТЗ `TZ_CCH-01_Character_Chronicle.md`** (статус «К исполнению»; самоочистка по протоколу §1.3) + авторское видение «Режиссёрский редактор причинной биографии». Соответствие коду верифицировано read-only аудитом v4.3 (базис V.0.5.4.2.7): конвертер `origin_events` в загрузчике NPC существует (день по умолчанию −1000, `decay_rate` 0.001 — «origin забываются медленно»); эталонная Люся (`config/npc/individuals/lusya.json`) содержит ровно 5 рукописных `origin_events` (включая abuse-травму с `known_by`/`hidden_from`/`decay_rate` и секреты); `EventMemory` — иммутабельная модель с `is_secret/known_by/hidden_from/secret_id` под write-guard; парные отношения задаются статикой `village_relations.json`; канон секретов сеется отдельной процедурой загрузчика; в реестре capabilities LLM объявлен `FACT_EXTRACTION`. Артефактов хроники в коде нет (`services/chronicle/`, `routes_chronicle`, `config/npc/chronicles/` отсутствуют) — трек строится с нуля. Блокер подтверждён: **возраст отсутствует в модели NPC** (поле age в профиле L0 не существует; психо-фаза ожидает `age_factor` и заблокирована).
+Основание: **ТЗ `TZ_CCH-01_Character_Chronicle.md`** (статус «К исполнению»; самоочистка по протоколу §1.3) + авторское видение «Режиссёрский редактор причинной биографии». Соответствие коду верифицировано read-only аудитом v4.3 (базис V.0.5.4.2.7): конвертер `origin_events` в загрузчике NPC существует (день по умолчанию −1000, `decay_rate` 0.001 — «origin забываются медленно»); эталонная Люся (`config/npc/individuals/lusya.json`) содержит ровно 5 рукописных `origin_events` (включая abuse-травму с `known_by`/`hidden_from`/`decay_rate` и секреты); `EventMemory` — иммутабельная модель с `is_secret/known_by/hidden_from/secret_id` под write-guard; парные отношения задаются статикой `village_relations.json`; канон секретов сеется отдельной процедурой загрузчика; в реестре capabilities LLM объявлен `FACT_EXTRACTION`. *(v4.12 — историческая формулировка v4.3 baseline-аудита; актуальное состояние отражено ниже и в §13.1–§13.6)* Артефакты хроники в коде ЕСТЬ (после закрытия CCH-0…5: `services/chronicle/` 13 модулей, `routes_chronicle.py`, `config/npc/chronicles/` 6 файлов). **Возраст присутствует в модели NPC** (после CCH-1, S332: `birth_epoch`/`age_at_game_start` в профиле L0); психо-фаза разблокирована по age-фактору — полный разблок LinguisticIntegrityCalculator ожидает Epoch 8 (voice_archetype_id + identity_attachment-источник).
 
 **Позиция в каноническом порядке:** Слой 0 — «человек описывает NPC естественным языком → семантическая реконструкция → структурированное досье → валидация → материализация в существующие stores. LLM переводит, Python валидирует и пишет». Результат перехода слоя: биография превращается не в `backstory`, а в `Identity / Origin Events / History / Relationships / Drives / Desires / Roles / Beliefs / Memory Seeds` с provenance.
 
@@ -3023,6 +3095,17 @@ Stop-rule §0.2(5) применяется дословно: закрытие —
 - [ ] **COV-9 — Релизный контур** (D84–D88): CHANGELOG; версионная дисциплина tag↔commit; update-channel; питон-дрейф; релизные долги.
 - [ ] **COV-10 — Контент-пререквизиты** (D90–D92, D55): authoring chronicles/; autobiographies/; NPC-индивиды 6→22+; dilemmas.json; last-words; спрайты. Связка: §6.C, CCH-3/CCH-4.
 - [ ] **COV-11 — Документационная гигиена** (D93–D96): refresh RUNTIME ARCHAEOLOGY MAP; документ-рот; Устав §9-файл; исследовательские идеи → владельцы/вердикты.
+
+#### COV-12..16 — расширение v4.12 (инфраструктура, выросшая вне треков)
+
+> Дополнение v4.12: аудит выявил 16 групп модулей без roadmap-трека. COV-12…16 формализуют 5 крупнейших групп; остальные (cfrm/, body/, simulation/, offscreen/, agents/, contracts/, core/) поглощаются существующими треками (§5 Body, §R.2 ядро тика) по владельцу.
+
+- **COV-12 — ADR-Net Infrastructure** (Ветвь Б): регистрация `backend/app/services/adr_net/` (5 модулей: adr_parser, adr_conflict_detector, adr_graph, adr_visualizer, adr_cli); связь с ADR-NET-PARSER-V2, ADR-NET-CLI-QUIET_FIX. Гейт: COV-GC-12 (CLI головной, граф конфликтов детерминирован, атлас синхронизирован).
+- **COV-13 — Probes Infrastructure** (Ветвь А+Б): регистрация `backend/app/services/probes/` (12 модулей: probe_runner, probe_alerts, probe_registry + 9 individual probes — causal_provenance, historical_constraint, traversal_fsm, spatial_coherence, mvp_pipeline, death_lock, l3_ephemeral, somatic_gate, temporal_isolation). Гейт: COV-GC-13 (все 9 probes регистрируемы через probe_registry; алерты детерминированы).
+- **COV-14 — Diagnostics Infrastructure** (Ветвь Б): регистрация пакета `diagnostics/` (causal_observer, dna_metrics, git_reader, movement_audit_probe, pattern_registry, report_renderer, cds_session_audit; `health_checkers/`: movement_health, tick_health, invariant_health). Гейт: COV-GC-14 (FORBIDDEN-loop инвариант зелёный — диагностика никогда не мутирует состояние; output contract — JSON + human-readable).
+- **COV-15 — Scripts Inventory & Hygiene** (Ветвь Б): регистрация `scripts/` (~100+ файлов: ~20 AST-линтеров, ~10 probe-скриптов, ~30 сессионных патчей `sNNN_*.py`, sync-checks `check_*`, fixed-patches `canonize_*`/`patch_*`, standalone tests `test_*`, doc-sync `sNNN_doc_closure`/`sNNN_roadmap_*`). Гейт: COV-GC-15 (lint-скрипты инвентаризованы; протокол сессионных патчей документирован — canonicalized patch удаляется + запись в MUTATIONS).
+- **COV-16 — Calibration Lab Assets** (Ветвь Б): регистрация `config/calibration/test_presets/` (13 YAML: golden_* × 9, chaos, mannequin, enigma_golden, golden_collapse_broken) + `config/calibration/scenarios/` (5 YAML: gc11_move_only, clone_probe_v1, clone_probe_diag, trust_probe_v1, gc11_help_move) как именованных активов. Гейт: COV-GC-16 (manifest published; presets version-controlled; scenarios referenced from §8.Q).
+
 
 ### 17.5. Порядок и зависимости
 
@@ -3749,6 +3832,218 @@ EPI-CLIMATE — исследование/прототип после LOG+MAT (п
 
 P1 (DEBT-QUIESCE — async-детерминизм, владелец W-контур) · P12/P13/P14 (горизонты/бюджеты) · §9.8 SCALE · §9.14 (статистический контур) · COV-2 / COV-D63/D64/D68/D71 (LLM-канал и телеметрия) · §17.8 DET-1…7 · LC-IMPL-5 / MEM-D14 / LC-10 (offscreen-следы) · MEM-10 (компакция/рестарт) · §22 WPS (не связан: материальные процессы — отдельный контур).
 
+## 24. Трек Vision Suite — исполняемый «красный маяк» прогресса (v4.12, NEW)
+
+> Дополнение v4.12 (вердикт Мастера 2026-10-26). Основание — аудит выявил, что §9.13 v4.11 определяет 10 starter-маркеров Vision Suite, но каталог `backend/tests/vision/` физически НЕ существует. v4.12 формализует трек и регистрирует его как первый класс.
+
+### 24.0. Парадигма
+
+Vision Suite — исполняемый «красный маяк» проекта: каждый маяк — это `@pytest.mark.vision` + `xfail(strict=False, reason="ROADMAP: <ID>")`-тест, который **должен падать** до тех пор, пока соответствующая часть дорожной карты не закрыта. XPASS (unexpected pass) = сигнал к конвертации маяка в regression-тест (§9.9) и записи в MUTATIONS.
+
+Правило: xfail без диагностического сообщения = ложный маяк (равносильно отсутствию теста). Каждый V-XX-маркер обязан иметь `reason=` с указанием ID и краткого описания пробела.
+
+### 24.1. Слои и назначение
+
+| Слой | Назначение |
+|---|---|
+| `backend/tests/vision/test_v_sym_01_speaker_symmetry.py` | V-SYM-01: идентичная семантическая разборка реплики от PLAYER vs NPC (mod provenance). Сейчас — разная разборка. |
+| `backend/tests/vision/test_v_dlg_01_presentation.py` | V-DLG-01: презентация состояния NPC в реплике без чисел. |
+| `backend/tests/vision/test_v_dlg_02_repeat_name.py` | V-DLG-02: NPC не называет игрока по имени дважды в одной сцене. |
+| `backend/tests/vision/test_v_dlg_03_cross_tick.py` | V-DLG-03: реплика помнит контекст из предыдущего тика. |
+| `backend/tests/vision/test_v_dlg_04_theme_addressing.py` | V-DLG-04: тема реплики адресована текущей ситуации, а не случайной. |
+| `backend/tests/vision/test_v_dlg_05_multi_act.py` | V-DLG-05: 3-action команда → 3 semantic_acts без tail loss. |
+| `backend/tests/vision/test_v_mot_01_silent_noop.py` | V-MOT-01: threat slice не может тихо no-op (DesiredChange=None без fail counter). |
+| `backend/tests/vision/test_v_mem_01_day_stamp.py` | V-MEM-01: все runtime-записи имеют day>0 (сейчас day=0 у всех). |
+| `backend/tests/vision/test_v_lc_01_renderer_reach.py` | V-LC-01: idle event достигает renderer'а (core green S334, frontend — нет). |
+| `backend/tests/vision/test_v_cov_01_eating_relief.py` | V-COV-01: приём пищи причинно облегчает голод (ConsumptionResolver не существует). |
+
+### 24.2. Гейты
+
+- **V-GC-INIT**: каталог `backend/tests/vision/` создан; 10 starter-тестов реализованы как `xfail(strict=False)`; `pytest -m vision` запускается за <30s.
+- **V-GC-CLOSE-XX**: для каждого V-XX — XPASS → конвертация в regression-тест → запись в MUTATIONS → обновление §9.3k статуса.
+
+### 24.3. Детерминизм
+
+- MockProvider обязателен (LLM-calls запрещены в Vision-тестах).
+- temp-saves обязательны (`tmp_path` pytest fixture).
+- KernelRNG-seed обязателен (F5-прецедент).
+- Запрет: `time.time()` / `random.*` — как и в ядре (§0.3).
+
+### 24.4. Анти-паттерны
+
+- xfail без `reason=` — ложный маяк.
+- xfail с `reason=""` — ложный маяк.
+- Vision-тест, который мутирует состояние — нарушение FORBIDDEN-loop (см. §26).
+- Vision-тест, который зависит от LLM-вызова — нарушение детерминизма.
+
+### 24.5. Владение и старт
+
+Владение — Ветвь А (большинство маркеров А-side: V-SYM, V-DLG, V-MOT, V-MEM, V-LC); V-COV — Б (ConsumptionResolver — Б-зона).
+
+Первый шаг: создать каталог `backend/tests/vision/` + 10 starter-тестов как red-beacons. Это — исполняемый прогресс-бар проекта. Без него «насколько мы готовы» — субъективный вопрос.
+
+### 24.6. Связи
+
+§9.13 (определение слоя) · §9.3k (статус по каждому маркеру, v4.12) · §9.9 (конвертация XPASS → regression) · §10 (журнал) · §12 NL (V-DLG-*) · §16 MEM (V-MEM-01) · §15 LC (V-LC-01) · §17 COV (V-COV-01) · §18 MOT (V-MOT-01) · §3.6 DLG (V-SYM-01, V-DLG-*).
+
+---
+
+## 25. Трек Scripts & Lint Infrastructure (v4.12, NEW)
+
+> Дополнение v4.12. Основание — аудит выявил ~100+ файлов в `scripts/` без формального реестра в roadmap.
+
+### 25.0. Парадигма
+
+`scripts/` — операционная зона проекта: AST-линтеры, sync-checks, probe-скрипты, сессионные патчи (`sNNN_*.py`), standalone-тесты, doc/roadmap sync-скрипты. Каждый класс имеет свой контракт и протокол удаления.
+
+### 25.1. Классы скриптов
+
+| Класс | Примеры | Контракт |
+|---|---|---|
+| AST-линтеры | `lint_relationship_engine.py`, `lint_perception_architecture.py`, `lint_l1_append_only.py`, `lint_kernel_rng.py`, `lint_spatial_ssot.py`, `lint_hp_ssot.py`, `lint_flags.py`, `lint_epistemic_boundary.py`, `lint_llm_exile.py`, `lint_wall_clock.py`, `lint_position_mutation.py`, `lint_domain_purity.py`, `lint_frontend_isolation.py`, `lint_silent_failures.py`, `lint_enigma_ast.py`, `lint_consumer_gap.py`, `lint_relationship_cache_allowlist.py` | One AST check per script; CI-gate vs advisory; output = JSON + human-readable |
+| Sync-checks | `check_canon_sync.py`, `check_discovery_monopoly.py`, `check_population_flow.py` | Проверка инвариантов между каноном и рантаймом |
+| Probe-скрипты | `probe_*.py` (~10 файлов) | Runtime-пробы; не мутируют состояние; output = JSON |
+| Сессионные патчи | `sNNN_*.py` (s366_*, s367_*, s368_*, s369_*, d72_*) | Throwaway-патчи; canonicalized patch → remove script + MUTATIONS-запись |
+| Standalone-тесты | `test_full_playthrough_end_screen_non_empty.py`, `test_sleep_routing.py`, `test_llm_parser.py` | Вне `tests/`-дерева — кандидаты на миграцию |
+| Doc-sync | `sNNN_doc_closure.py`, `sNNN_roadmap_*.py` | Синхронизация документов с закрытиями |
+| Fixed-patches | `canonize_422_patch.py`, `redecompose_all_npc.py`, `patch_cov1_sect17_4.py`, `patch_doc_drift_fixes.py` | Одноразовые фиксы; удалить после canonicalization |
+
+### 25.2. Гейты
+
+- **SCRIPTS-GC-01**: реестр всех `scripts/*.py` опубликован в `scripts/README.md` (класс, назначение, владелец, статус — keep/canonicalize/remove).
+- **SCRIPTS-GC-02**: все AST-линтеры имеют `--help` и `--json` output; CI-gate определён для каждого (block vs advisory).
+- **SCRIPTS-GC-03**: протокол сессионных патчей документирован — canonicalized patch удаляется + MUTATIONS-запись; throwaway-статус явный в docstring.
+- **SCRIPTS-GC-04**: standalone-тесты мигрированы в `tests/`-дерево или явно классифицированы как вне-tree.
+
+### 25.3. Владение и старт
+
+Владение — Ветвь Б (CI/релизный контур). Старт — после COV-15 (формальная регистрация).
+
+### 25.4. Связи
+
+§17.4 COV-15 · pre-commit-config.yaml · .githooks/ · .github/workflows/ · §11.4 (CI gates) · §9.14 (статистический слой).
+
+---
+
+## 26. Трек Diagnostics Infrastructure (v4.12, NEW)
+
+> Дополнение v4.12. Основание — аудит выявил пакет `diagnostics/` (10 модулей) без roadmap-трека.
+
+### 26.0. Парадигма
+
+`diagnostics/` — runtime-наблюдение без мутации. FORBIDDEN-loop инвариант: **диагностика никогда не мутирует состояние**. Это уже зафиксировано в `architecture/diagnostics.yaml`, но не имело roadmap-якоря.
+
+### 26.1. Модули
+
+| Модуль | Назначение |
+|---|---|
+| `diagnostics/causal_observer.py` | Наблюдение за causal-потоком без вмешательства |
+| `diagnostics/dna_metrics.py` | DNA-метрики (могут врать — перепроверяй через `scene_changes_*.jsonl`) |
+| `diagnostics/git_reader.py` | Чтение git-информации (HEAD, branch, mtime) |
+| `diagnostics/movement_audit_probe.py` | Аудит movement-фаз |
+| `diagnostics/pattern_registry.py` | Реестр паттернов поведения |
+| `diagnostics/report_renderer.py** | Рендеринг отчётов (JSON → human-readable) |
+| `diagnostics/cds_session_audit.py` | Аудит сессий Causal Deep Stream |
+| `diagnostics/health_checkers/movement_health.py` | Health-check movement-контура |
+| `diagnostics/health_checkers/tick_health.py` | Health-check тика |
+| `diagnostics/health_checkers/invariant_health.py` | Health-check инвариантов |
+
+### 26.2. Гейты
+
+- **DIAG-GC-01**: FORBIDDEN-loop инвариант зелёный — ни один модуль `diagnostics/` не имеет write-операций на состояние (verify через `lint_domain_purity.py`).
+- **DIAG-GC-02**: output contract — каждый модуль имеет JSON-output (machine-readable) + human-readable render.
+- **DIAG-GC-03**: интеграция с `services/calibration/observability_tap.py` — единый tap-point для всех diagnostics.
+- **DIAG-GC-04**: health-checkers регистрируемы через `diagnostics/health_checkers/__init__.py` manifest.
+
+### 26.3. Анти-паттерны
+
+- Диагностический модуль, мутирующий состояние — нарушение FORBIDDEN-loop.
+- Диагностический модуль без JSON-output — нарушение output contract.
+- Health-checker, не зарегистрированный в manifest — невидим для CI.
+
+### 26.4. Владение и старт
+
+Владение — Ветвь Б. Старт — после COV-14 (формальная регистрация).
+
+### 26.5. Связи
+
+§17.4 COV-14 · `architecture/diagnostics.yaml` (FORBIDDEN-loop config) · §0.3 (Observability never mutates) · §11.4 (ресурсы) · §9.14 (статистический слой).
+
+---
+
+## 27. Трек Map Editor Roadmap integration (v4.12, NEW)
+
+> Дополнение v4.12. Основание — аудит выявил, что `frontend/map_editor/` (полноценное sub-application с собственным roadmap-файлом `ENIGMA_MAP_EDITOR_ROADMAP_v1_4.md`) формально не привязан к родительскому roadmap.
+
+### 27.0. Парадигма
+
+Map Editor — отдельная подсистема с собственным roadmap-файлом, но интегрированная с родительским roadmap через COV-8 (frontend/tools/doctrines). v4.12 формализует эту интеграцию.
+
+### 27.1. Компоненты
+
+| Компонент | Файлы |
+|---|---|
+| Core | `editor_core.py`, `editor_launcher.py`, `data_manager.py`, `schema_validator.py`, `campaign_manager.py`, `sprite_registry.py`, `visual_casting_editor.py`, `ui_components.py` |
+| Subdirs | `core/`, `assets/`, `data/`, `tools/`, `ui/`, `render/`, `tests/`, `location_templates/`, `campaigns/Open_road/`, `pixels/Pers/`, `chronicle/` (CCH-3 интеграция) |
+| Дочерний roadmap | `frontend/map_editor/ENIGMA_MAP_EDITOR_ROADMAP_v1_4.md` (v1.4) |
+| Spec | `docs/Почти Актуальные TZ/Редактор кампаний/BLUEPRINT_FORMAT_SPEC_v1.md` |
+| Handoff | `docs/Почти Актуальные TZ/Редактор кампаний/ТЗ_преемнику_Map_Editor_S349.md` |
+| Missing textures | `docs/Почти Актуальные TZ/Редактор кампаний/MISSING_TEXTURES.md` |
+
+### 27.2. Гейты
+
+- **MAPEDIT-GC-01**: дочерний roadmap v1.4 referenced из §1.1 documents map (v4.12 — добавлено).
+- **MAPEDIT-GC-02**: Chronicle Editor (MODE_CHRONICLE) интегрирован с CCH-3 — F7 hotkey, two-domain editor (см. §13.4 CCH-3 closed).
+- **MAPEDIT-GC-03**: Visual Casting Editor зарегистрирован как компонент; интеграция с `frontend/visual_casting_repository.py`.
+- **MAPEDIT-GC-04**: BLUEPRINT_FORMAT_SPEC_v1 — published; campaign JSON валидируется схемой.
+- **MAPEDIT-GC-05**: S349 handoff items — все закрыты или явно поставлены в очередь дочернего roadmap.
+
+### 27.3. Владение и старт
+
+Владение — Ветвь Б (frontend). Старт — после COV-8 запуска.
+
+### 27.4. Связи
+
+§17.4 COV-8 · §13 CCH-3 (MODE_CHRONICLE) · §1.1 documents map · §1.3 TZ registry · дочерний roadmap `ENIGMA_MAP_EDITOR_ROADMAP_v1_4.md`.
+
+---
+
+## 28. Трек Workbench Roadmap integration (v4.12, NEW)
+
+> Дополнение v4.12. Основание — аудит выявил, что `frontend/ui_workbench/` (полноценное sub-application с 11 основными модулями + subdir `windows/`) не имеет roadmap-трека или инвентаря.
+
+### 28.0. Парадигма
+
+UI Workbench — layer-3/4 изолированная подсистема с F12 hotkey; реестр окон (journal, board, mini, debug); persistence через `window_layout.json`; интеграция с CCH-4 Character Debugger (`debug_window.py`).
+
+### 28.1. Компоненты
+
+| Компонент | Файлы |
+|---|---|
+| Core | `workbench_screen.py`, `manifests.py`, `registry.py`, `layout.py`, `input_router.py`, `persistence.py`, `theme.py`, `fonts.py`, `snap_engine.py`, `editor_board_stub.py` |
+| Style | `style_overrides.py`, `style_overrides.json`, `window_layout.json` |
+| Windows | `windows/journal_window.py`, `windows/board_window.py`, `windows/mini_windows.py`, `windows/debug_window.py` (CCH-4 интеграция) |
+
+### 28.2. Гейты
+
+- **WORKBENCH-GC-01**: layer-3/4 изоляция зелёная (verify через `lint_frontend_isolation.py`); workbench не пишет в доменные слои.
+- **WORKBENCH-GC-02**: F12 hotkey registered; toggle on/off без побочных эффектов.
+- **WORKBENCH-GC-03**: реестр окон (`registry.py`) — все окна регистрируемы; manifest-driven.
+- **WORKBENCH-GC-04**: layout persistence — `window_layout.json` save/load round-trip без потерь.
+- **WORKBENCH-GC-05**: CCH-4 Character Debugger (`debug_window.py`) интегрирован — F11 hotkey, read-only render, backend `GET /chronicle/{campaign}/{npc}/debug` (см. §13.5 CCH-4 closed).
+
+### 28.3. Владение и старт
+
+Владение — Ветвь Б (frontend). Старт — после COV-8 запуска.
+
+### 28.4. Связи
+
+§17.4 COV-8 · §13.5 CCH-4 (debug_window) · §1.1 documents map · §17.4 COV-8 · `frontend/ui_theme.py` · `frontend/keybindings.py`.
+
+---
+
+
+
 **Назначение документа выполнено: операционная карта преемника (v4.11-draft), двухветвевой режим.** Точка входа агента — §R.1: шапка → §0.3 → §R → своя лестница (А — §R.3, Б — §R.4). Дополнение v4.7 (§18 MOT) — DRAFT, шаг 1: §18.0–§18.4; §18.5–§18.9 и встраивание в §0.1/§0.2/§1/§7/§9.9 — следующие шаги. Доктрина — шапка и §0.3; очередь — §0.2; владение и принадлежность разделов — §R.2/§R.7; гейты стыковки — §R.5; доказательство закрытия — §9; журнал — §10. Ветвям запрещено редактировать Общий контур и зоны друг друга (§R.2, §R.6); слияние версий — функция Мастера. Архив истории: `MUTATIONS.md`.
 
 **Дополнение v4.8-draft (трек EPI «Жизненный цикл информации»)** — внесено полным циклом на основании рой-аудита 2026-10-16 (read-only, код V.0.5.4.3.7 не менялся): §0.1 (строка карты треков) · §0.1e (канонический порядок) · §0.2 (Ступень EPI) · §1.1 (карта документов) · §7.11 (реестр находок EPI-D1…D14) · §8.AC (MASTER TODO + поглощения) · §9.3g (гейты EPI-GC-01…09) · §11.4 (ресурсы) · §R.7 (владение) · §19 (спецификация трека). Полный отчёт аудита и обоснование порядка — `docs/audits/EPI-AUDIT-01_Information_Life_Cycle.md`. Статус — DRAFT на утверждении Мастера (§R.6.6: слияние версий и точка версии v4.8 — только после вердикта Мастера).
@@ -3760,3 +4055,49 @@ P1 (DEBT-QUIESCE — async-детерминизм, владелец W-конту
 **Дополнение аудита 2026-10-23 (Cognitive Infrastructure & Observability — PROPOSED)** — внесено на основании read-only аудита кода V.0.5.4.4.0 (6 параллельных разведок кода + перекрёстная верификация якорей; отчёт — `docs/audits/ROADMAP-AUDIT-01_Cognitive_Infrastructure_and_Observability.md`): §3.5b (контракт Active Inference ↔ Utility) · §9.3h (регистрация GC-59 — после вердикта по MOT-9) · §9.14 (контракт статистического слоя доказательства) · §13.7 (свидетельство по CCH-4 + CCH-7 Semantic Validation Gate) · §14.6 (Identity Drift Guardrails) · §16.10 (запреты и критерии приёмки Memory Lifecycle; MEM-D42/D43) · §17.8 Шаг 7 (критерии устойчивости намерений для rollout-пакета 4) · §18.10 (MOT-D12 + MOT-9 Causal Provenance Spine; ре-верификация якорей) · §23 (контур CGB) · §0.1/§8.AF/§R.7/§1.1/«Как читать» п.16 (указатели). В очередь §0.2 и лестницы §R.3/§R.4 новые пункты **не добавлялись**; существующие статусы, галочки и версия документа (4.11-draft) **не менялись**; production-код, тесты и флаги не менялись; все дополнения — PROPOSED до вердикта Мастера (точка версии не поднимается аудитом, §R.6.6).
 
 
+
+
+---
+
+## Дополнение v4.12-draft (вердикт Мастера 2026-10-26)
+
+**Дополнение v4.12-draft** — внесено на основании полного аудита road map vs implementation (read-only аудит кода V.0.5.4.4.5; отчёт — `/home/z/my-project/roadmap_audit_report.md` и `docs/audits/ROADMAP-AUDIT-01_Cognitive_Infrastructure_and_Observability.md`):
+
+**A. Status-фиксы (синхронизация с фактическим состоянием):**
+1. Шапка документа: `IPT 49/49` → `IPT 53/0` (S353 поднял IPT с 49 до 53; шапка v4.11 удерживала устаревший 49/49 — §9.14 уже зафиксировал актуальный).
+2. §13.0 baseline-аудит v4.3: 3 устаревшие формулировки приведены в соответствие с закрытиями CCH-0…5 (артефакты хроники — ЕСТЬ; возраст — присутствует; psycho-фаза — разблокирована по age-фактору).
+3. §9.13 Vision Suite: добавлен явный статус — каталог `backend/tests/vision/` НЕ существует, 10 маркеров — DESIGNATOR ONLY.
+4. §1.1 карта документов: добавлены 28+ специальных/именованных ADR (TIFL, CAUSAL-SPINE, SSOT-*, FOUNDATION-FREEZE, WRITE-GUARD, CNSRL, SHI, DET-02, DEBUG-001, INFRA-MVI, CI-MYPY, INV-DEF, DM-001, NET-PARSER-V2, NET-CLI-QUIET_FIX, MANIFEST, L1-PERSIST, GENDER, EVENT-VISIBILITY, GL-202, GL-203, RE-M1B3_6, O-R2, 0017), которые ранее были только в атласе.
+5. §1.1: явно перечислены 3 недостающих IMPACT-файла (ADR-O-427/428/429) — задача v4.12 — создать до закрытия.
+6. §1.3 реестр ТЗ: добавлены 7 недостающих файлов (TZ_SCI-01, MIGRATION×2, VZ/MAGIC.md, MAGIC-AUDIT-01, WPS-AUDIT-01, ROADMAP-AUDIT-01).
+
+**B. Формализация треков, ранее не зарегистрированных:**
+1. **DLG-трек (§3.6 v4.7-draft)** — гейты DLG-GC-00/01/02/03 теперь зарегистрированы в §9.3i; в §0.2 вставлена Ступень DLG (после Ступени 4 AG1, перед Ступенью MOT).
+2. **AUDIT-10H** — 10-часовой причинно-следственный аудит (prerequisite для MOT-9/GC-59); вставлен в §0.2 как Ступень AUDIT-10H (после Ступени MOT, перед Ступенью 5 W-TRACK); гейты AUDIT-10H-GC-0…3 — §9.3j.
+3. **CCH-7 (PROPOSED §13.7)** — Semantic Validation Gate; вставлен в §0.2 Ступень 0 после CCH-02.
+4. **MOT-9 (PROPOSED §18.10)** — Causal Provenance Spine, GC-59; условно в очереди после AUDIT-10H вердикта Мастера.
+
+**C. Расширение COV (5 новых пакетов):**
+- COV-12 ADR-Net Infrastructure (`backend/app/services/adr_net/` 5 модулей).
+- COV-13 Probes Infrastructure (`backend/app/services/probes/` 12 модулей).
+- COV-14 Diagnostics Infrastructure (пакет `diagnostics/` 10 модулей).
+- COV-15 Scripts Inventory & Hygiene (`scripts/` ~100+ файлов, ~20 AST-линтеров).
+- COV-16 Calibration Lab Assets (`config/calibration/test_presets/` 13 + `scenarios/` 5).
+Все 5 пакетов — гейты COV-GC-12…16 (см. §17.4 расширение v4.12).
+
+**D. Новые top-level секции (§24–§28):**
+- **§24 — Vision Suite track** (NEW): формализация `backend/tests/vision/` как первого класса трек; 10 starter-маркеров → gate IDs; `@pytest.mark.vision` + `xfail(strict=False)`; XPASS = сигнал к конвертации в regression.
+- **§25 — Scripts & Lint Infrastructure** (NEW): формальная регистрация `scripts/` и ~20 AST-линтеров; контракты lint-скриптов (one AST check per script); протокол сессионных патчей (canonicalized patch → remove + MUTATIONS).
+- **§26 — Diagnostics Infrastructure** (NEW): регистрация пакета `diagnostics/`; FORBIDDEN-loop инвариант (диагностика никогда не мутирует состояние); output contract (JSON + human-readable); интеграция с ObservabilityTap.
+- **§27 — Map Editor Roadmap integration** (NEW): формальная привязка `ENIGMA_MAP_EDITOR_ROADMAP_v1_4.md` к родительскому roadmap; Chronicle Editor (MODE_CHRONICLE); Visual Casting Editor; BLUEPRINT_FORMAT_SPEC_v1; S349 handoff.
+- **§28 — Workbench Roadmap integration** (NEW): формальная регистрация `frontend/ui_workbench/`; F12 hotkey, layer-3/4 изоляция; реестр окон (journal/board/mini/debug); интеграция с CCH-4 Character Debugger.
+
+**E. Не добавлялось (вне scope v4.12):**
+- production-код не менялся (v4.12 — чисто roadmap-документ).
+- Тесты и флаги не менялись.
+- Точки версии v4.8–v4.11 — сохранены как есть (v4.12 — точка поверх).
+- Решение о допуске DLG / AUDIT-10H / Vision Suite / Map Editor integration / Workbench integration к работе — Мастер (как и для всех предыдущих v4.X-дополнений).
+
+**Точка версии документа поднята с 4.11-draft до 4.12-draft вердиктом Мастера 2026-10-26 (§R.6.6) с фиксацией в шапке.**
+
+**Полный отчёт аудита:** `/home/z/my-project/roadmap_audit_report.md` (798 строк, 7 секций, ~35KB). Краткая сводка находок — §0.0 navigation card (новые фронтиры v4.12).

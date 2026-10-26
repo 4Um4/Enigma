@@ -1,0 +1,158 @@
+{
+  "timestamp": "20261026_203238",
+  "fragments_count": 7,
+  "results_2048": [
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 8,
+      "max_tokens": 2048,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: ",
+      "raw_response": null,
+      "items_count": 0,
+      "latency_ms": 4040.7087802886963
+    },
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 13,
+      "max_tokens": 2048,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: ",
+      "raw_response": null,
+      "items_count": 0,
+      "latency_ms": 4010.242462158203
+    },
+    {
+      "npc_id": "maid_lusya",
+      "fragment_ord": 7,
+      "max_tokens": 2048,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: ",
+      "raw_response": null,
+      "items_count": 0,
+      "latency_ms": 4017.4474716186523
+    },
+    {
+      "npc_id": "blacksmith_orm",
+      "fragment_ord": 18,
+      "max_tokens": 2048,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: ",
+      "raw_response": null,
+      "items_count": 0,
+      "latency_ms": 4006.798028945923
+    },
+    {
+      "npc_id": "thief_shadow",
+      "fragment_ord": 7,
+      "max_tokens": 2048,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: ",
+      "raw_response": null,
+      "items_count": 0,
+      "latency_ms": 4003.4265518188477
+    },
+    {
+      "npc_id": "thief_shadow",
+      "fragment_ord": 9,
+      "max_tokens": 2048,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: ",
+      "raw_response": null,
+      "items_count": 0,
+      "latency_ms": 4020.9219455718994
+    },
+    {
+      "npc_id": "tavern_keeper_tornin",
+      "fragment_ord": 12,
+      "max_tokens": 2048,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: ",
+      "raw_response": null,
+      "items_count": 0,
+      "latency_ms": 4022.376775741577
+    }
+  ],
+  "results_4096": [
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 8,
+      "max_tokens": 4096,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: ",
+      "raw_response": null,
+      "items_count": 0,
+      "latency_ms": 4011.580467224121
+    },
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 13,
+      "max_tokens": 4096,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: ",
+      "raw_response": null,
+      "items_count": 0,
+      "latency_ms": 4019.090175628662
+    },
+    {
+      "npc_id": "maid_lusya",
+      "fragment_ord": 7,
+      "max_tokens": 4096,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: ",
+      "raw_response": null,
+      "items_count": 0,
+      "latency_ms": 4008.9364051818848
+    },
+    {
+      "npc_id": "blacksmith_orm",
+      "fragment_ord": 18,
+      "max_tokens": 4096,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: ",
+      "raw_response": null,
+      "items_count": 0,
+      "latency_ms": 4021.1143493652344
+    },
+    {
+      "npc_id": "thief_shadow",
+      "fragment_ord": 7,
+      "max_tokens": 4096,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: ",
+      "raw_response": null,
+      "items_count": 0,
+      "latency_ms": 4029.191732406616
+    },
+    {
+      "npc_id": "thief_shadow",
+      "fragment_ord": 9,
+      "max_tokens": 4096,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: ",
+      "raw_response": null,
+      "items_count": 0,
+      "latency_ms": 4016.411066055298
+    },
+    {
+      "npc_id": "tavern_keeper_tornin",
+      "fragment_ord": 12,
+      "max_tokens": 4096,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: ",
+      "raw_response": null,
+      "items_count": 0,
+      "latency_ms": 4026.012420654297
+    }
+  ],
+  "summary": {
+    "max_tokens_2048": {
+      "ok": 0,
+      "fail": 7
+    },
+    "max_tokens_4096": {
+      "ok": 0,
+      "fail": 7
+    }
+  }
+}
