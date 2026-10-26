@@ -163,7 +163,7 @@ class BiographyDecomposer:
 
                 params = GenerationParams(
                     temperature=0.0,
-                    max_tokens=2048,
+                    max_tokens=2048,  # S371.1: откат — max_tokens НЕ фактор (7/7 FAIL при 2048 и 4096; ошибки пула, не JSON)
                     response_format={"type": "json_object"},  # доезжает, когда провайдер включит; нормализатор деградирует сам
                 )
                 raw = await router.request(
