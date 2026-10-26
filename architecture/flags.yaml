@@ -78,25 +78,28 @@ flags:
     type: env
     read_mode: import
     default: ""
-    verdict: ROLLOUT-PENDING
+    verdict: ROLLOUT-ON
     adr: ADR-O-363
     owner: master
+    note: "S378 rollout: 155/155 ON+OFF + IPT 54/0/0; cascade with S203_4_ARBITER_INTERRUPT"
   S203_4_ARBITER_INTERRUPT:
     type: env
     read_mode: import
     default: ""
-    verdict: ROLLOUT-PENDING
+    verdict: ROLLOUT-ON
     adr: ADR-O-365
     owner: master
     aliases: ["S203.4_ARBITER_INTERRUPT"]
+    note: "S378 rollout: cascade with ARBITER_ENFORCEMENT (arbiter:134)"
   S203_4_OWNERSHIP_MIRRORS:
     type: env
     read_mode: import
     default: ""
-    verdict: ROLLOUT-PENDING
+    verdict: ROLLOUT-ON
     adr: ADR-O-365
     owner: master
     aliases: ["S203.4_OWNERSHIP_MIRRORS"]
+    note: "S378 rollout: independent gate (registry:334,406,462,484,530); 155/155 ON+OFF"
   TRAVERSAL_OWNERSHIP_ENFORCEMENT:
     type: env
     read_mode: import
