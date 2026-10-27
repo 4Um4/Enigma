@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S2_torture",
+  "fragment_category": "censorship",
+  "fragment_text": "Тень три дня пытал бывший хозяин. Он сказал, что отпустит, если она назовёт имена. Она не назвала. На четвёртый день он отпустил — но без ног. Она выжила назло.",
+  "latency_secs": 23.05,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"бывший хозяин пытал Тень три дня\", \"day\": null}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": {\"question_id\": \"event_1\", \"target_span\": \"бывший хозяин пытал Тень три дня\", \"options\": [], \"answer\": null}},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"бывший хозяин отпустил Тень на четвёртый день\", \"day\": null}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": {\"question_id\": \"event_2\", \"target_span\": \"бывший хозяин отпустил Тень на четвёртый день\", \"options\": [], \"answer\": null}},\n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Тень осталась без ног\", \"effect_kind\": \"loss\", \"target_hint\": \"Тень\"}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": {\"question_id\": \"effect_1\", \"target_span\": \"Тень осталась без ног\", \"options\": [], \"answer\": null}},\n  {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"сопротивление\", \"evidence\": \"она не назвала имена\"}, \"confidence\": 0.8, \"needs_confirmation\": false, \"question\": {\"question_id\": \"trait_1\", \"target_span\": \"она не назвала имена\", \"options\": [], \"answer\": null}},\n  {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"желание отомстить\", \"evidence\": \"она выжила назло\"}, \"confidence\": 0.8, \"needs_confirmation\": false, \"question\": {\"question_id\": \"trait_2\", \"target_span\": \"она выжила назло\", \"options\": [], \"answer\": null}},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"бывший хозяин\", \"target_hint\": \"бывший хозяин\", \"nature\": \"вражда\", \"valence\": \"negative\"}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": {\"question_id\": \"relationship_1\", \"target_span\": \"бывший хозяин\", \"options\": [], \"answer\": null}}\n]}",
+  "raw_length_chars": 1696,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

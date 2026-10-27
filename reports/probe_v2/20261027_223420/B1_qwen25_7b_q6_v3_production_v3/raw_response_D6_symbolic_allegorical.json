@@ -1,0 +1,20 @@
+{
+  "fragment_id": "D6_symbolic_allegorical",
+  "fragment_category": "D",
+  "fragment_text": "Люся — серебряный волк. Не в прямом смысле — она девочка. Но в её повадках что-то от волка: она кусает ногти до крови, она слышит шаги за дверью раньше, чем Борко, она спит свернувшись клубком. Торнин — старый медведь. Он не ворчит без причины, он ворчит, как медведь, которого разбудили зимой.",
+  "latency_secs": 2.74,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Люся — серебряный волк. Не в прямом смысле — она девочка. Но в её повадках что-то от волка: она кусает ногти до крови, она слышит шаги за дверью раньше, чем Борко, она спит свернувшись клубком.\", \"traits\": [\"серебряный волк\", \"кусиет ногти до крови\", \"слышит шаги раньше\", \"спит свернувшись клубком\"]}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Торнин — старый медведь.\", \"traits\": [\"старый медведь\"]}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]}\\ATEGORI",
+  "raw_length_chars": 618,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 2,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

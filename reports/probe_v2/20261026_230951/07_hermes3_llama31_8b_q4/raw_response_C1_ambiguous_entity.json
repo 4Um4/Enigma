@@ -1,0 +1,19 @@
+{
+  "fragment_id": "C1_ambiguous_entity",
+  "fragment_category": "C",
+  "fragment_text": "Однажды в таверну пришёл незнакомец в чёрном. Он говорил с Торнином шёпотом, и после этого Торнин побледнел. Наутро незнакомец исчез, а Торнин заперся в погребе на три дня.",
+  "latency_secs": 2.05,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Пришёл незнакомец в чёрном и поговорил с Торниным шёпотом, после чего Торнин побледнел.\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Незнакомец исчез на следующий день.\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнин заперся в погребе на три дня после визита незнакомца.\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}\n]}",
+  "raw_length_chars": 597,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.8571428571428571,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0
+}

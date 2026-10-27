@@ -1,0 +1,19 @@
+{
+  "fragment_id": "A3_simple_relationship",
+  "fragment_category": "A",
+  "fragment_text": "Борко работает у Торнина вышибалой.",
+  "latency_secs": 3.24,
+  "llm_error": null,
+  "raw_response": "{\n  \"items\": [\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Борко работает у Торнина вышибалой\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"зависимость\",\n        \"valence\": \"neutral\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"\",\n        \"target_span\": \"\",\n        \"options\": [],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"LOCATION\",\n      \"draft_payload\": {\n        \"summary\": \"Борко работает у Торнина\",\n        \"name_hint\": \"Торнин\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"\",\n        \"target_span\": \"\",\n        \"options\": [],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"EFFECT\",\n      \"draft_payload\": {\n        \"summary\": \"Борко работает вышибалой\",\n        \"effect_kind\": \"occupation\",\n        \"target_hint\": \"Борко\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"\",\n        \"target_span\": \"\",\n        \"options\": [],\n        \"answer\": null\n      }\n    }\n  ]\n}",
+  "raw_length_chars": 1148,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.75,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

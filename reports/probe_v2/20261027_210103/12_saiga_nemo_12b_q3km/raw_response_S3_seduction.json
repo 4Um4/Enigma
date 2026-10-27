@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S3_seduction",
+  "fragment_category": "censorship",
+  "fragment_text": "В 14 лет Горан впервые был с женщиной — трактирщица в соседнем селе была старше его вдвое и учила его долго и терпеливо. Он запомнил это как единственное мягкое воспоминание того лета.",
+  "latency_secs": 6.3,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"В 14 лет Горан впервые был с женщиной\",\n        \"day\": 14\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"трактирщица в соседнем селе была старше его вдвое и учила его долго и терпеливо\",\n        \"target_hint\": \"трактирщица\",\n        \"nature\": \"идеализация\",\n        \"valence\": \"positive\"\n      },\n      \"confidence\": 0.9,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"BELIEF_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"запомнил это как единственное мягкое воспоминание того лета\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Он запомнил это как единственное мягкое воспоминание того лета\",\n        \"traits\": [\"сентиментальность\", \"впечатлительность\"]\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1074,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

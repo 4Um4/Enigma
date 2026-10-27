@@ -1,0 +1,19 @@
+{
+  "fragment_id": "C4_long_temporal_switch",
+  "fragment_category": "C",
+  "fragment_text": "Двадцать лет назад Торнин был другим — молодым, трезвым, любящим мужем. Он строил таверну для неё, для их будущего. Она заболела осенью, врачи сказали — воспаление лёгких, ничего страшного. Через неделю её не стало. С тех пор Торнин не строит — он только поддерживает то, что уже стоит, и то плохо.",
+  "latency_secs": 4.83,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Торнин был другим — молодым, трезвым, любящим мужем. Он строил таверну для неё, для их будущего.\", \"traits\": [\"молодой\", \"трезвый\", \"любящий\"]}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Её заболела осень, врачи сказали — воспаление лёгких, ничего страшного.\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Через неделю её не стало.\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"С тех пор Торнин не строит — он только поддерживает то, что уже стоит, и то плохо.\", \"traits\": [\"не молодой\", \"пьянший\", \"не любящий\"]}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Он строил таверну для неё, для их будущего.\", \"target_hint\": \"неё\", \"nature\": \"love\", \"valence\": \"positive\"}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Её смерть стала последствием заболевания.\", \"effect_kind\": \"loss\", \"target_hint\": \"её\"}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"С тех пор Торнин стал другим — не молодым, трезвым, любящим.\", \"effect_kind\": \"trauma\", \"target_hint\": \"Торнин\"}, \"confidence\": 1.0, \"needs_confirmation\": false}\n]}",
+  "raw_length_chars": 1448,
+  "json_valid": true,
+  "raw_items_count": 7,
+  "valid_items": 7,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.5,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

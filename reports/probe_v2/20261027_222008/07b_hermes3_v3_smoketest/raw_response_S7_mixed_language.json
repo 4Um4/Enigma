@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S7_mixed_language",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "Люся нашла записку на столе у Торнина: 'Meet me at midnight. Bring the silver. — K.' Торнин не знает английского. Кто такой 'K'?",
+  "latency_secs": 4.41,
+  "llm_error": null,
+  "raw_response": "{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся находит записку у Торнина с предложением встречи в полночь и требованием принести серебро\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"\",\n        \"target_span\": \"\",\n        \"options\": [],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Люся удивлена, что Торнин не знает английского\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"идеализация\",\n        \"valence\": \"neutral\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"\",\n        \"target_span\": \"\",\n        \"options\": [],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"EFFECT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся пугается загадочного требования 'K'\",\n        \"effect_kind\": \"trauma\",\n        \"target_hint\": null\n      },\n      \"confidence\": 0.8,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"\",\n        \"target_span\": \"\",\n        \"options\": [],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"BELIEF_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"Люся не знает, кто такой 'K'\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"\",\n        \"target_span\": \"\",\n        \"options\": [],\n        \"answer\": null\n      }\n    }\n  ]\n}",
+  "raw_length_chars": 1542,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

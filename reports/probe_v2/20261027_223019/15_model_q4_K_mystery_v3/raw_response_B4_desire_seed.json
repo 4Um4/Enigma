@@ -1,0 +1,22 @@
+{
+  "fragment_id": "B4_desire_seed",
+  "fragment_category": "B",
+  "fragment_text": "Люся мечтает сбежать на юг, к морю, где никогда не видела снега. Она прячет медяки в щель под печью уже три года.",
+  "latency_secs": 1.89,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"DESIRED_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"Люся мечтает сбежать на юг, к морю, где никогда не видела снега.\",\n        \"about_hint\": \"побег на юг\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся прячет медяки в щель под печью уже три года.\",\n        \"day\": null,\n        \"effect_kind\": \"trauma\",\n        \"target_hint\": \"медяки\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    }\n  ]\n}\n```",
+  "raw_length_chars": 579,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items[0]: kind 'DESIRED_SEED' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "schema_conformance": 0.5,
+  "schema_failures": [
+    "unknown_kind:DESIRED_SEED"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.875,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

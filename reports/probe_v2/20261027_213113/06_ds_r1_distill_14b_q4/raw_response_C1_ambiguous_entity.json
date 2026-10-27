@@ -1,0 +1,19 @@
+{
+  "fragment_id": "C1_ambiguous_entity",
+  "fragment_category": "C",
+  "fragment_text": "Однажды в таверну пришёл незнакомец в чёрном. Он говорил с Торнином шёпотом, и после этого Торнин побледнел. Наутро незнакомец исчез, а Торнин заперся в погребе на три дня.",
+  "latency_secs": 73.16,
+  "llm_error": null,
+  "raw_response": "<think>\nAlright, I need to break down the given text fragment into machine-readable records following the specified schema. Let's start by understanding the task and the schema.\n\nThe fragment is: \"Однажды в таверну пришёл незнакомец в чёрном. Он говорил с Торнином шёпотом, и после этого Торнин побледнел. Наутро незнакомец исчез, а Торнин заперся в погребе на три дня.\"\n\nFirst, I'll identify the key elements in the text. There are two main characters: Торнин and a stranger. The events are the stranger arriving at the tavern, their conversation, Torin turning pale, the stranger disappearing the next morning, and Torin locking himself in the cellar for three days.\n\nI'll go through each part step by step.\n\n1. The stranger arrives at the tavern. This is an event. Since there's no specific date, the day is null. Confidence is high, so 1.0.\n\n2. The stranger speaks to Torin in a whisper. This is another event. Again, no specific date, so day is null. High confidence.\n\n3. After the conversation, Torin turns pale. This is an effect on Torin's body. The effect kind is 'trauma' because it's a physical reaction to a stressful event. Target hint is Torin. High confidence.\n\n4. The next morning, the stranger disappears. This is an event. Day is null. High confidence.\n\n5. Torin locks himself in the cellar for three days. This is an event with a specific duration, so day is null. High confidence.\n\nI need to make sure each item is correctly categorized and that the confidence levels are set appropriately. Since all events are clearly described and there's no ambiguity in the text, confidence is 1.0 for each. There are no unknown entities or unclear relationships, so no questions are needed.\n\nNow, I'll structure the JSON accordingly, ensuring each item has the correct kind and draft_payload.\n</think>\n\n```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Незнакомец в чёрном пришёл в таверну\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Незнакомец говорил с Торнином шёпотом\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"EFFECT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин побледнел\",\n        \"effect_kind\": \"trauma\",\n        \"target_hint\": \"Торнин\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Незнакомец исчез наутро\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин заперся в погребе на три дня\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    }\n  ]\n}\n```",
+  "raw_length_chars": 3016,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 5,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.8571428571428571,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0
+}

@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S10_nested_entity_refs",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "Люся помнит, как Торнин рассказывал о своей матери. Мать, по его словам, любила рассказывать о своём деде. Дед, по её словам, был кузнецом. Кузнец, по его словам, выковал тот самый меч. Меч, по семейной легенде, был проклят. Проклятие, по преданию, сбылось.",
+  "latency_secs": 1.81,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"BELIEF_SEED\", \"draft_payload\": {\"statement\": \"Люся помнит, как Торнин рассказывал о своей матери. Мать, по его словам, любила рассказывать о своём деде. Дед, по её словам, был кузнецом. Кузнец, по его словам, выковал тот самый меч. Меч, по семейной легенде, был проклят. Проклятие, по преданию, сбылось.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]}",
+  "raw_length_chars": 395,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 1,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

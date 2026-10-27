@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S11_archaic_russian",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "И прииде Торнин в оный день во град, и узре отроковицу малу, сиротствующу, и сжалися над нею, и взя ю в дом свой. И питаше ю, и одеваше ю, и научи ю грамоте.",
+  "latency_secs": 3.86,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнин взял в дом малую сиротку\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"отроковица была сиротствующая\", \"effect_kind\": \"loss\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"отроковица была питаемая\", \"effect_kind\": \"gain\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"отроковица была одетая\", \"effect_kind\": \"gain\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"отроковица была обучаемая грамоте\", \"effect_kind\": \"gain\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]}",
+  "raw_length_chars": 938,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 5,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

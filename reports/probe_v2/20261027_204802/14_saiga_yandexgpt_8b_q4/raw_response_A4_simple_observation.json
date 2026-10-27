@@ -1,0 +1,22 @@
+{
+  "fragment_id": "A4_simple_observation",
+  "fragment_category": "A",
+  "fragment_text": "Люся видела, как Борко дерётся с пьяными.",
+  "latency_secs": 1.26,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"OBSERVATON\",\n      \"draft_payload\": {\n        \"summary\": \"Люся видела, как Борко дерётся с пьяными.\",\n        \"observing_hint\": \"Люся\",\n        \"observed_hint\": \"Борко дерётся с пьяными\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    }\n  ]\n}\n```",
+  "raw_length_chars": 338,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items[0]: kind 'OBSERVATON' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "schema_conformance": 0.0,
+  "schema_failures": [
+    "unknown_kind:OBSERVATON"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.8,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

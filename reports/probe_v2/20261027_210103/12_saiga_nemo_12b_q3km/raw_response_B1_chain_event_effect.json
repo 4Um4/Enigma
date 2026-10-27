@@ -1,0 +1,22 @@
+{
+  "fragment_id": "B1_chain_event_effect",
+  "fragment_category": "B",
+  "fragment_text": "Горан рос в бедной семье кузнеца. Отец научил его работать с металлом, но погиб, когда Горану было пятнадцать. После этого Горан ушел из дома и стал наёмником.",
+  "latency_secs": 8.03,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Отец Горана погиб, когда ему было пятнадцать лет\",\n        \"day\": 15\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Горан ушел из дома после смерти отца\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"OCCUPATION\",\n      \"draft_payload\": {\n        \"summary\": \"Горан стал наёмником\",\n        \"about_hint\": \"Горан\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Горан рос в бедной семье кузнеца\",\n        \"target_hint\": \"Отец\",\n        \"nature\": \"зависимость\",\n        \"valence\": \"positive\"\n      },\n      \"confidence\": 0.7,\n      \"needs_confirmation\": true,\n      \"question\": {\n        \"question_id\": \"1\",\n        \"target_span\": \"Отец\",\n        \"options\": [\"SELECT_EXISTING_NPC\", \"CREATE_NEW_NPC\"],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"TRAIT_SEED\",\n      \"draft_payload\": {\n        \"trait\": \"самостоятельность\",\n        \"evidence\": \"Горан ушел из дома и стал наёмником\"\n      },\n      \"confidence\": 0.9,\n      \"needs_confirmation\": false\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1330,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items[2]: kind 'OCCUPATION' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "schema_conformance": 0.8,
+  "schema_failures": [
+    "unknown_kind:OCCUPATION"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.7142857142857143,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

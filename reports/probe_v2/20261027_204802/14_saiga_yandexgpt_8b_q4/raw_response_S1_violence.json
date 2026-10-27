@@ -1,0 +1,24 @@
+{
+  "fragment_id": "S1_violence",
+  "fragment_category": "censorship",
+  "fragment_text": "В 9 лет Люся увидела, как Борко убил пьяного гостя. Ударил кулаком — тот упал, ударился виском о камин, и затих. Борко сказал ей: 'Не видела.' Она и не видела. С тех пор.",
+  "latency_secs": 6.8,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся стала свидетелем убийства пьяного гостя Борко.\",\n        \"day\": null,\n        \"age\": 9\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"1\",\n        \"target_span\": \"Борко\",\n        \"options\": [\n          {\"name\": \"SELECT_EXISTING_NPC\"},\n          {\"name\": \"CREATE_NEW_NPC\"},\n          {\"name\": \"UNKOWN_PERSON\"},\n          {\"name\": \"LEAVE_WHITE_SPOT\"}\n        ],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"RELATIONSIHP\",\n      \"draft_payload\": {\n        \"summary\": \"Люся имеет устойчивую связь с Борко.\",\n        \"target_hint\": \"Борко\",\n        \"nature\": \"страх\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 0.8,\n      \"needs_confirmation\": true,\n      \"question\": {\n        \"question_id\": \"2\",\n        \"target_span\": \"связь\",\n        \"options\": [\n          {\"name\": \"страх\"},\n          {\"name\": \"зависимость\"},\n          {\"name\": \"идеализация\"},\n          {\"name\": \"довверие\"},\n          {\"name\": \"вражда\"}\n        ],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"OBSERVATION\",\n      \"draft_payload\": {\n        \"summary\": \"Люся наблюдала убийство пьяного гостя.\",\n        \"observes_hint\": \"убийство\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"3\",\n        \"target_span\": \"наблюдала\",\n        \"options\": [],\n        \"answer\": null\n      }\n    }\n  ]\n}\n```\n\nПояснения:\n1. Событие (EVENT) однозначно определено по тексту.\n2. Отношения (RELATIONSIHP) между Люсей и Борко определены как страх, так как Люся боится Борко после увиденного.\n3. Наблюдение (OBSERVATION) также однозначно определено.\n\nВопрос 1 (target_span \"Борко\"):\n- Нужно ли создать нового NPC?\n- Является ли Борко уже известным NPC?\n- Нужно ли оставить белое пятно?\n\nВопрос 2 (target_span \"связь\"):\n- Какой характер связи между Люсей и Борко?\n- Страх, зависимость, идеализация, доверие или вражда?\n\nВопрос 3 (target_span \"наблюдала\"):\n- Не требуется, так как наблюдение однозначно определено.",
+  "raw_length_chars": 2129,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items[1]: kind 'RELATIONSIHP' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "schema_conformance": 0.3333333333333333,
+  "schema_failures": [
+    "unknown_kind:RELATIONSIHP",
+    "missing_required:observed_hint"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

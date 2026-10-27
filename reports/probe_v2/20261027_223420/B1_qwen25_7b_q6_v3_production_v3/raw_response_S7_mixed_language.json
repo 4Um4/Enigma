@@ -1,0 +1,22 @@
+{
+  "fragment_id": "S7_mixed_language",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "Люся нашла записку на столе у Торнина: 'Meet me at midnight. Bring the silver. — K.' Торнин не знает английского. Кто такой 'K'?",
+  "latency_secs": 2.82,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"OBSERVATION\", \"draft_payload\": {\"summary\": \"Люся нашла записку на столе у Торнина\", \"observed_hint\": \"Торнин\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Торнин не знает английского\", \"target_hint\": \"Торнин\", \"nature\": \"knowledge\", \"valence\": \"positive\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Кто такой 'K'?\", \"effect_kind\": \"unknown\", \"target_hint\": \"K\"}, \"confidence\": 0.7, \"needs_confirmation\": true, \"question\": {\"question_id\": \"unknown_person\", \"target_span\": \"K\", \"options\": [\"CREATE_NEW_NPC\", \"UNKNOWN_PERSON\"], \"answer\": null}}]}",
+  "raw_length_chars": 717,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 0.6666666666666666,
+  "schema_failures": [
+    "bad_effect_kind:unknown"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

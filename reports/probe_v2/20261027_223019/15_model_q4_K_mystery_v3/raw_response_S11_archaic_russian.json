@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S11_archaic_russian",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "И прииде Торнин в оный день во град, и узре отроковицу малу, сиротствующу, и сжалися над нею, и взя ю в дом свой. И питаше ю, и одеваше ю, и научи ю грамоте.",
+  "latency_secs": 4.24,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Приятие сироты Торнином\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"1\",\n        \"target_span\": \"и взя ю в дом свой\",\n        \"options\": [\"adopted\", \"rescued\", \"fed\", \"clothed\", \"taught\"],\n        \"answer\": \"adopted\"\n      }\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"и сжалися над нею\",\n        \"traits\": [\" Compassion\", \"Empathy\"]\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"2\",\n        \"target_span\": \"и сжалися над нею\",\n        \"options\": [\"Compassion\", \"Empathy\", \"Sympathy\", \"Pity\"],\n        \"answer\": \"Compassion\"\n      }\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"и питаше ю, и одеваше ю, и научи ю грамоте\",\n        \"traits\": [\"Nurturing\", \"Educational\"]\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"3\",\n        \"target_span\": \"и питаше ю, и одеваше ю, и научи ю грамоте\",\n        \"options\": [\"Nurturing\", \"Educational\", \"Providing\", \"Supportive\"],\n        \"answer\": \"Educational\"\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1322,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

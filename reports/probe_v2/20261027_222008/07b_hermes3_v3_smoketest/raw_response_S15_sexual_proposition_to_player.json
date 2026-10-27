@@ -1,0 +1,22 @@
+{
+  "fragment_id": "S15_sexual_proposition_to_player",
+  "fragment_category": "vulgar_stress",
+  "fragment_text": "Горан подошёл к девушке за столом, облокотился: 'Привет, краля. Я Горан. Наёмник. Устал с дороги. Хочу вина — и тебя. Не стесняйся, я не кусаюсь. Что, боишься? Ну, тогда хоть пей со мной. А там посмотрим. Я не из тех, кто торопится. Но и не из тех, кто уходит без дела.'",
+  "latency_secs": 4.42,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Горан подошёл к девушке за столом, облокотился: 'Привет, краля. Я Горан. Наёмник. Устал с дороги. Хочу вина — и тебя. Не стесняйся, я не кусаюсь. Что, боишься? Ну, тогда хоть пей со мной. А там посмотрим. Я не из тех, кто торопится. Но и не из тех, кто уходит без дела.'\", \"traits\": [\"self-assured\", \"persistent\", \"not in a hurry\", \"not afraid to approach\"]}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"начинает знакомство\", \"target_hint\": \"девушка за столом\", \"nature\": \"confidence\", \"valence\": \"positive\"}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Горан хочет пить вино и быть с девушкой\", \"effect_kind\": \"desire\", \"target_hint\": \"вина и девушка\"}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"self-assured\", \"evidence\": \"Я не кусаюсь.\"}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"persistent\", \"evidence\": \"Что, боишься? Ну, тогда хоть пей со мной. А там посмотрим.\"}, \"confidence\": 1.0, \"needs_confirmation\": false}\n]}",
+  "raw_length_chars": 1226,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 5,
+  "errors": 0,
+  "schema_conformance": 0.8,
+  "schema_failures": [
+    "bad_effect_kind:desire"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

@@ -1,0 +1,19 @@
+{
+  "fragment_id": "B3_knowledge_link",
+  "fragment_category": "B",
+  "fragment_text": "В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.",
+  "latency_secs": 0.97,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]}",
+  "raw_length_chars": 227,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 1,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.42857142857142855,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

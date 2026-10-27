@@ -1,0 +1,19 @@
+{
+  "fragment_id": "A2_simple_location",
+  "fragment_category": "A",
+  "fragment_text": "Торнин держит таверну 'Серебряный Волк' уже двадцать лет.",
+  "latency_secs": 2.74,
+  "llm_error": null,
+  "raw_response": " ```\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин держит таверну 'Серебряный Волк' уже двадцать лет\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"null\",\n        \"target_span\": \"Торнин держит таверну 'Серебряный Волк' уже двадцать лет\",\n        \"options\": null,\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"LOCATION\",\n      \"draft_payload\": {\n        \"summary\": \"таверна 'Серебряный Волк'\",\n        \"name_hint\": \"Серебряный Волк\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"null\",\n        \"target_span\": \"таверна 'Серебряный Волк'\",\n        \"options\": null,\n        \"answer\": null\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 826,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 2,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 1.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

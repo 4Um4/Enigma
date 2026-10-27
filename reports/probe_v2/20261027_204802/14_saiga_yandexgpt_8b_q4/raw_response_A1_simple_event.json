@@ -1,0 +1,22 @@
+{
+  "fragment_id": "A1_simple_event",
+  "fragment_category": "A",
+  "fragment_text": "В 8 лет Люся осталась сиротой, её приютил Торнин.",
+  "latency_secs": 4.31,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"В 8 лет Люся осталась сиротой\",\n        \"day\": null,\n        \"target_hint\": \"Люся\",\n        \"confidence\": 1.0,\n        \"needs_confirmation\": false,\n        \"question\": {\n          \"question_id\": \"1\",\n          \"target_span\": \"В 8 лет Люся\",\n          \"options\": [\n            {\"label\": \"Люся\"},\n            {\"label\": \"Торнин\"}\n          ],\n          \"answer\": null\n        }\n      }\n    },\n    {\n      \"kind\": \"RELATIONSIHP\",\n      \"draft_payload\": {\n        \"summary\": \"приютил Торнин\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"защита\",\n        \"valence\": \"positive\",\n        \"confidence\": 1.0,\n        \"needs_confirmation\": false,\n        \"question\": {\n          \"question_id\": \"2\",\n          \"target_span\": \"приютил Торнин\",\n          \"options\": [\n            {\"label\": \"защита\"},\n            {\"label\": \"зависимость\"},\n            {\"label\": \"идеализация\"},\n            {\"label\": \"доверие\"},\n            {\"label\": \"вражда\"}\n          ],\n          \"answer\": null\n        }\n      }\n    }\n  ]\n}\n```\n\nИЗВЕСТНЫЕ NPC:\n- Люся\n- Торнин",
+  "raw_length_chars": 1137,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items[1]: kind 'RELATIONSIHP' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "schema_conformance": 0.5,
+  "schema_failures": [
+    "unknown_kind:RELATIONSIHP"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.8,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

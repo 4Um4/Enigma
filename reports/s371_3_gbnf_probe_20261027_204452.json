@@ -1,0 +1,111 @@
+{
+  "timestamp": "20261027_204452",
+  "grammar_file": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\config\\chronicle_decompose.gbnf",
+  "fragments_count": 7,
+  "results": [
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 8,
+      "ok": false,
+      "error": "TimeoutError: timed out",
+      "raw_response": "",
+      "json_parsed": false,
+      "json_error": null,
+      "items_count": 0,
+      "latency_ms": 120220.76082229614,
+      "has_items_key": false,
+      "ends_with_brace": false
+    },
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 13,
+      "ok": true,
+      "error": null,
+      "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"пристроил детей\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"дети стоят на ногах\", \"effect_kind\": \"gain\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"жена стоит на ногах\", \"effect_kind\": \"gain\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"все семейство можно оставить без голодания\", \"effect_kind\": \"gain\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"BELIEF_SEED\", \"draft_payload\": {\"statement\": \"это не забота об их будущем — это подготовка собственного отъезда\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"любит\", \"evidence\": \"он любит их той частью сердца, которая не мешает собирать чемодан\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]}",
+      "json_parsed": true,
+      "json_error": null,
+      "items_count": 6,
+      "latency_ms": 69088.01484107971,
+      "has_items_key": true,
+      "ends_with_brace": true
+    },
+    {
+      "npc_id": "maid_lusya",
+      "fragment_ord": 7,
+      "ok": false,
+      "error": "ConnectionResetError: [WinError 10054] Удаленный хост принудительно разорвал существующее подключение",
+      "raw_response": "",
+      "json_parsed": false,
+      "json_error": null,
+      "items_count": 0,
+      "latency_ms": 990.5514717102051,
+      "has_items_key": false,
+      "ends_with_brace": false
+    },
+    {
+      "npc_id": "blacksmith_orm",
+      "fragment_ord": 18,
+      "ok": false,
+      "error": "URLError: <urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>",
+      "raw_response": "",
+      "json_parsed": false,
+      "json_error": null,
+      "items_count": 0,
+      "latency_ms": 4098.767518997192,
+      "has_items_key": false,
+      "ends_with_brace": false
+    },
+    {
+      "npc_id": "thief_shadow",
+      "fragment_ord": 7,
+      "ok": false,
+      "error": "URLError: <urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>",
+      "raw_response": "",
+      "json_parsed": false,
+      "json_error": null,
+      "items_count": 0,
+      "latency_ms": 4092.2915935516357,
+      "has_items_key": false,
+      "ends_with_brace": false
+    },
+    {
+      "npc_id": "thief_shadow",
+      "fragment_ord": 9,
+      "ok": false,
+      "error": "URLError: <urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>",
+      "raw_response": "",
+      "json_parsed": false,
+      "json_error": null,
+      "items_count": 0,
+      "latency_ms": 4064.98122215271,
+      "has_items_key": false,
+      "ends_with_brace": false
+    },
+    {
+      "npc_id": "tavern_keeper_tornin",
+      "fragment_ord": 12,
+      "ok": false,
+      "error": "URLError: <urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>",
+      "raw_response": "",
+      "json_parsed": false,
+      "json_error": null,
+      "items_count": 0,
+      "latency_ms": 4074.899911880493,
+      "has_items_key": false,
+      "ends_with_brace": false
+    }
+  ],
+  "summary": {
+    "json_parsed_ok": 1,
+    "ends_with_brace": 1,
+    "has_items_key": 1,
+    "full_success": 1,
+    "fail": 6
+  },
+  "baseline_comparison": {
+    "baseline_2048_ok": 3,
+    "baseline_2048_fail": 4,
+    "gbnf_ok": 1,
+    "gbnf_fail": 6
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S6_empty_input",
+  "fragment_category": "edge_case",
+  "fragment_text": "Торнин.",
+  "latency_secs": 0.91,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"неизвестный человек\", \"target_hint\": \"Торнин\", \"nature\": \"неизвестно\", \"valence\": \"neutral\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]}",
+  "raw_length_chars": 227,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 1,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S11_archaic_russian",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "И прииде Торнин в оный день во град, и узре отроковицу малу, сиротствующу, и сжалися над нею, и взя ю в дом свой. И питаше ю, и одеваше ю, и научи ю грамоте.",
+  "latency_secs": 3.32,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнин взял в дом сиротскую девочку, научил грамоте.\", \"day\": null}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": null},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Торнин стал опекуном и учителем сиротской девочки.\", \"target_hint\": \"отроковицу малу\", \"nature\": \"guardianship\", \"valence\": \"positive\"}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": null},\n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Девочке пришлось переехать и стать ученицей Торнина.\", \"effect_kind\": \"residence\", \"target_hint\": \"отроковицу малу\"}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": null},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"И сжалися над нею, и взя ю в дом свой. И питаше ю, и одеваше ю, и научи ю грамоте.\", \"traits\": [\"воспитанный\", \"заботливый\", \"умелый\"]}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": null}\n]}",
+  "raw_length_chars": 954,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

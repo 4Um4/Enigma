@@ -1,0 +1,19 @@
+{
+  "fragment_id": "A3_simple_relationship",
+  "fragment_category": "A",
+  "fragment_text": "Борко работает у Торнина вышибалой.",
+  "latency_secs": 30.26,
+  "llm_error": null,
+  "raw_response": "<think>\nAlright, I need to break down the given fragment into machine-readable records following the specified schema. The fragment is: \"Борко работает у Торнина вышибалой.\"\n\nFirst, I'll identify the key elements in the sentence. There are two people mentioned: Борко and Торнин. The action is that Борко works as a bouncer (вышибалой) for Торнин.\n\nI need to determine the kind of each element. Since this describes a job role, it's a relationship between Борко and Торнин. The nature of this relationship is a professional dependency, so the nature is \"зависимость.\" The valence is positive because it's a job, which is a positive aspect of their relationship.\n\nNext, I'll structure this into the JSON format. The kind is \"RELATIONSHIP.\" The draft_payload includes the summary, target_hint, nature, and valence. Since the names are known, there's no need for a clarification question. The confidence is 1.0 because it's clear.\n\nI should ensure that the JSON is correctly formatted and only includes the necessary fields without any explanations or markdown.\n</think>\n\n```json\n{\"items\": [\n  {\n    \"kind\": \"RELATIONSHIP\",\n    \"draft_payload\": {\n      \"summary\": \"Борко работает у Торнина вышибалой\",\n      \"target_hint\": \"Торнин\",\n      \"nature\": \"зависимость\",\n      \"valence\": \"positive\"\n    },\n    \"confidence\": 1.0,\n    \"needs_confirmation\": false,\n    \"question\": null\n  }\n]}\n```",
+  "raw_length_chars": 1383,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 1,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.75,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

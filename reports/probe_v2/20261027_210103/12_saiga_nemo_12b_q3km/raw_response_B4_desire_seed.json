@@ -1,0 +1,19 @@
+{
+  "fragment_id": "B4_desire_seed",
+  "fragment_category": "B",
+  "fragment_text": "Люся мечтает сбежать на юг, к морю, где никогда не видела снега. Она прячет медяки в щель под печью уже три года.",
+  "latency_secs": 7.24,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"DESIRE_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"мечтает сбежать на юг, к морю, где никогда не видела снега\",\n        \"about_hint\": \"к морю\",\n        \"confidence\": 1.0\n      },\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"начинает копить деньги\",\n        \"day\": null\n      },\n      \"confidence\": 0.7,\n      \"needs_confirmation\": true,\n      \"question\": {\n        \"question_id\": \"start_of_saving\",\n        \"target_span\": \"прячет медяки в щель под печью уже три года\",\n        \"options\": [\n          \"EVENT\",\n          \"STARTED\",\n          \"SAVING\",\n          \"THREE_YEARS_AGO\"\n        ],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"BELIEF_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"мечтает сбежать на юг, к морю, где никогда не видела снега\",\n        \"confidence\": 1.0\n      },\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"она прячет медяки в щель под печью уже три года\",\n        \"traits\": [\"целеустремленная\", \"экономная\", \"планирующая\"]\n      },\n      \"confidence\": 0.9,\n      \"needs_confirmation\": false\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1248,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.75,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

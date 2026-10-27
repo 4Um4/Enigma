@@ -1,0 +1,19 @@
+{
+  "fragment_id": "A2_simple_location",
+  "fragment_category": "A",
+  "fragment_text": "Торнин держит таверну 'Серебряный Волк' уже двадцать лет.",
+  "latency_secs": 25.94,
+  "llm_error": null,
+  "raw_response": "<think>\nAlright, let's tackle this problem. The user has provided a fragment of a biography and wants it decomposed into machine-readable records following specific guidelines. The fragment is: \"Торнин держит таверну 'Серебряный Волк' уже двадцать лет.\"\n\nFirst, I need to identify the kind of this fragment. It's talking about Torin holding a tavern for twenty years, which is an event in his life. So, the kind should be EVENT.\n\nNext, for the draft_payload, the summary should be a concise version of the event. So, \"Torin has been running the tavern 'Silver Wolf' for twenty years\" seems appropriate.\n\nThe day is not specified, so it remains null. Confidence is high because the information is clear, so 1.0. No need for confirmation since it's straightforward.\n\nI should also check if there are any other kinds applicable, but this seems purely an event without any relationships, locations, or effects mentioned beyond the event itself.\n\nSo, the JSON structure will have one item of kind EVENT with the provided details.\n</think>\n\n```json\n{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Torin has been running the tavern 'Silver Wolf' for twenty years\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}\n]}\n```",
+  "raw_length_chars": 1258,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 1,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.75,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

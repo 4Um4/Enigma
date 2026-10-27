@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S10_nested_entity_refs",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "Люся помнит, как Торнин рассказывал о своей матери. Мать, по его словам, любила рассказывать о своём деде. Дед, по её словам, был кузнецом. Кузнец, по его словам, выковал тот самый меч. Меч, по семейной легенде, был проклят. Проклятие, по преданию, сбылось.",
+  "latency_secs": 3.58,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Люся помнит, как Торнин рассказывал о своей матери.\", \"traits\": [\"помнит\", \"рассказывает\"]}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Мать, по его словам, любила рассказывать о своём деде.\", \"traits\": [\"любила рассказывать\"]}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Дед, по его словам, был кузнецом.\", \"traits\": [\"был кузнец\"]}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Кузнец, по его словам, выковал тот самый меч.\", \"traits\": [\"выковал меч\"]}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"BELIEF_SEED\", \"draft_payload\": {\"statement\": \"Меч, по семейной легенде, был проклят.\"}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"BELIEF_SEED\", \"draft_payload\": {\"statement\": \"Проклятие, по преданию, сбылось.\"}, \"confidence\": 1.0, \"needs_confirmation\": false}\n]}",
+  "raw_length_chars": 1042,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

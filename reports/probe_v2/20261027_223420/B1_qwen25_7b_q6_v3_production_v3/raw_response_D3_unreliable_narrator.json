@@ -1,0 +1,22 @@
+{
+  "fragment_id": "D3_unreliable_narrator",
+  "fragment_category": "D",
+  "fragment_text": "Люся рассказывает: 'Вчера Торнин весь вечер был в погребе, считал деньги.' Борко говорит: 'Торнин вчера весь вечер просидел у камина, пил.' Оба не могут быть правы. Люся не лжёт намеренно — она просто не видела Торнина у камина, она была в кухне. Но она уверена, что слышала его шаги в погребе.",
+  "latency_secs": 3.31,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнин весь вечер был в погребе, считал деньги\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнин вчера весь вечер просидел у камина, пил\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Люся уверена, что слышала его шаги в погребе\", \"target_hint\": \"Торнин\", \"nature\": \"доверие\", \"valence\": \"positive\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Люся была в кухне\", \"target_hint\": null, \"nature\": \"location\", \"valence\": \"neutral\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]}",
+  "raw_length_chars": 814,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 0.75,
+  "schema_failures": [
+    "empty_required:target_hint"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

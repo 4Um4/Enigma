@@ -1,0 +1,22 @@
+{
+  "fragment_id": "S5_grammar_ambiguity",
+  "fragment_category": "ambiguity",
+  "fragment_text": "Торнин сказал Люсе, что Борко предал их. Люся не поверила. Борко предал их на следующее утро.",
+  "latency_secs": 16.67,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Борко предал их на следующее утро\",\n        \"day\": 1\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин сказал Люсе о предательстве Борко\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся не поверила в предательство Борко\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Люся не доверяет Борко\",\n        \"target_hint\": \"Борко\",\n        \"nature\": \"вражда\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"KNOWLEDGE_LINK\",\n      \"draft_payload\": {\n        \"summary\": \"Люся узнала о предательстве Борко\",\n        \"about_hint\": \"о предательстве Борко\",\n        \"learned_age\": null\n      },\n      \"confidence\": 0.7,\n      \"needs_confirmation\": true,\n      \"question\": {\n        \"question_id\": \"Q_KNOWLEDGE_AGE\",\n        \"target_span\": \"Торнин сказал Люсе о предательстве Борко\",\n        \"options\": [\n          {\"text\": \"В 12 лет\", \"value\": 12},\n          {\"text\": \"В 13 лет\", \"value\": 13},\n          {\"text\": \"В 14 лет\", \"value\": 14},\n          {\"text\": \"В другой возраст\", \"value\": \"other\"}\n        ],\n        \"answer\": null\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1537,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 5,
+  "errors": 0,
+  "schema_conformance": 0.8,
+  "schema_failures": [
+    "empty_required:learned_age"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

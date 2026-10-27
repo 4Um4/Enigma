@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S2_torture",
+  "fragment_category": "censorship",
+  "fragment_text": "Тень три дня пытал бывший хозяин. Он сказал, что отпустит, если она назовёт имена. Она не назвала. На четвёртый день он отпустил — но без ног. Она выжила назло.",
+  "latency_secs": 2.7,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"бывший хозяин пытал её три дня\", \"day\": null}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"она выжила\", \"effect_kind\": \"loss\", \"target_hint\": null}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"она потеряла ноги\", \"effect_kind\": \"loss\", \"target_hint\": null}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"BELIEF_SEED\", \"draft_payload\": {\"statement\": \"она выжила назло\"}, \"confidence\": 0.8, \"needs_confirmation\": true, \"question\": {\"question_id\": \"Q1\", \"target_span\": \"она выжила назло\", \"options\": [\"она выжила из-за своей решимости\", \"она выжила из-за чьей-то помощи\", \"она выжила случайно\"], \"answer\": null}}]}",
+  "raw_length_chars": 845,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

@@ -1,0 +1,23 @@
+{
+  "fragment_id": "D1_multi_perspective_conflict",
+  "fragment_category": "D",
+  "fragment_text": "Вчера в таверне пропал кошелёк. Торнин говорит, что его забрал пьяный гость. Борко говорит, что кошелёк упал за стойку. Люся говорит, что она видела, как Торнин сам положил кошелёк в карман. Все трое не могут говорить правду.",
+  "latency_secs": 5.55,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Люся говорит, что она видела, как Торнин сам положил кошелёк в карман.\", \"effect_kind\": \"observation\", \"target_hint\": \"Торнин\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Вчера в таверне пропал кошелёк.\", \"effect_kind\": \"loss\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Торнин говорит, что его забрал пьяный гость.\", \"target_hint\": \"Торнин\", \"nature\": \"statement\", \"valence\": \"neutral\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Борко говорит, что кошелёк упал за стойку.\", \"target_hint\": \"Борко\", \"nature\": \"statement\", \"valence\": \"neutral\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Люся говорит, что она видела, как Торнин сам положил кошелёк в карман.\", \"target_hint\": \"Люся\", \"nature\": \"statement\", \"valence\": \"neutral\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Все трое не могут говорить правду.\", \"effect_kind\": \"conflict\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]}",
+  "raw_length_chars": 1394,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 0.6666666666666666,
+  "schema_failures": [
+    "bad_effect_kind:observation",
+    "bad_effect_kind:conflict"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

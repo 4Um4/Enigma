@@ -1,0 +1,21 @@
+{
+  "fragment_id": "C4_long_temporal_switch",
+  "fragment_category": "C",
+  "fragment_text": "Двадцать лет назад Торнин был другим — молодым, трезвым, любящим мужем. Он строил таверну для неё, для их будущего. Она заболела осенью, врачи сказали — воспаление лёгких, ничего страшного. Через неделю её не стало. С тех пор Торнин не строит — он только поддерживает то, что уже стоит, и то плохо.",
+  "latency_secs": 54.44,
+  "llm_error": null,
+  "raw_response": "<think>\nAlright, I need to break down this biography fragment into machine-readable records. Let's see, the fragment is in Russian, so I'll work with that.\n\nFirst, I'll identify the main events and relationships. It starts with \"Двадцать лет назад Торнин был другим — молодым, трезвым, любящим мужем.\" This describes Torin's past state, so that's a PORTRET. His traits are young, sober, loving husband.\n\nNext, \"Он строил таверну для неё, для их будущего.\" This is an EVENT where Torin was building an inn. The target is his wife, so the relationship is positive.\n\nThen, \"Она заболела осенью, врачи сказали — воспаление лёгких, ничего страшного. Через неделю её не стало.\" This is a sad event, her death. It's an EVENT with a negative outcome, affecting Torin.\n\nFinally, \"С тех пор Торнин не строит — он только поддерживает то, что уже стоит, и то плохо.\" This shows a change in Torin's behavior, which is an EFFECT on his actions and mental state.\n\nI need to structure each part into the JSON schema, making sure each has the correct kind and draft_payload. Confidence is high for these entries since they're clear. No need for questions here because everything is straightforward.\n</think>\n\n```json\n{\n  \"items\": [\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Двадцать лет назад Торнин был другим — молодым, трезвым, любящим мужем.\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин строил таверну для неё, для их будущего.\",\n        \"target_hint\": \"Его жена\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Её смерть от воспаления лёгких.\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EFFECT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин перестал строить и плохо поддерживает то, что уже стоит.\",\n        \"effect_kind\": \"trauma\",\n        \"target_hint\": \"Торнин\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    }\n  ]\n}\n```",
+  "raw_length_chars": 2166,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 0.75,
+  "schema_failures": [
+    "missing_required:traits"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.5,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

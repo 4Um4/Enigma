@@ -1,0 +1,19 @@
+{
+  "fragment_id": "C4_long_temporal_switch",
+  "fragment_category": "C",
+  "fragment_text": "Двадцать лет назад Торнин был другим — молодым, трезвым, любящим мужем. Он строил таверну для неё, для их будущего. Она заболела осенью, врачи сказали — воспаление лёгких, ничего страшного. Через неделю её не стало. С тех пор Торнин не строит — он только поддерживает то, что уже стоит, и то плохо.",
+  "latency_secs": 14.19,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнин был молодым, трезвым и любящим мужем\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнин строил таверну для неё, для их будущего\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Она заболела осенью\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Врачи сказали — воспаление лёгких, ничего страшного\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Через неделю её не стало\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Торнин не строит — он только поддерживает то, что уже стоит, и то плохо\", \"effect_kind\": \"loss\", \"target_hint\": \"неё\"}, \"confidence\": 1.0, \"needs_confirmation\": false}\n]}",
+  "raw_length_chars": 996,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.3,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

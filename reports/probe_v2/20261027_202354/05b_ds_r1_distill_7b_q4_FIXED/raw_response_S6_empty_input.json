@@ -1,0 +1,18 @@
+{
+  "fragment_id": "S6_empty_input",
+  "fragment_category": "edge_case",
+  "fragment_text": "Торнин.",
+  "latency_secs": 5.61,
+  "llm_error": null,
+  "raw_response": "<think>\nХорошо, я получил задание разобрать фрагмент биографии на машинно-исполняемые записи. Фрагмент выглядит так: \"Торнин.\" Вижу, что это всего лишь имя персонажа. Согласно схеме ответа, мне нужно предоставить JSON с определенными полями.\n\nПервым делом, определим тип записи. Здесь явно не событие, устойчивое отношение, место или последствие. Это просто имя, поэтому тип будет \"PORTRET\". \n\nДалее, нужно создать JSON с fields: items. В каждом item нужно определить kind, draft_payload, confidence, needs_confirmation, и question. \n\nkind: \"PORTRET\", так как это описание персонажа в целом. \n\ndraft_payload: statement — это полный текст фрагмента, который в данном случае — \"Торнин.\" \n\nconfidence: 1.0, так как я с уверенностью понимаю, что это PORTRET с описанием персонажа.\n\nneeds_confirmation: false, так как у меня есть полная информация, и не требуется дополнительных вопросов.\n\nquestion: не требуется, поэтому null.\n\nТаким образом, структура JSON будет содержать один item с указанными полями.\n</think>\n\n```json\n{\"items\": [{\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Торнин.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": {\"question_id\": \"1\", \"target_span\": \"\", \"options\": [], \"answer\": null}]}}\n```",
+  "raw_length_chars": 1230,
+  "json_valid": false,
+  "json_error": "Expecting ',' delimiter: line 1 column 205 (char 204)",
+  "valid_items": 0,
+  "errors": 1,
+  "schema_conformance": 0.0,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0,
+  "censorship_refusal": false
+}

@@ -1,0 +1,18 @@
+{
+  "fragment_id": "D2_long_temporal_evolution",
+  "fragment_category": "D",
+  "fragment_text": "Торнин в двадцать лет был подающим надежды кузнецом. В тридцать — бросил кузню, открыл таверну. В сорок — таверна процветала, но Торнин пил. В пятьдесят — таверна держится на Борко, Торнин только подписывает бумаги. Что изменило его? Не смерть жены — она умерла, когда ему было тридцать пять. Что-то другое, что он никогда не называет вслух.",
+  "latency_secs": 10.57,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнин в двадцать лет был подающим надежды кузнецом\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"В тридцать — бросил кузню, открыл таверну\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"В сорок — таверна процветала, но Торнин пил\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"В пятьдесят — таверна держится на Борко, Торнин только подписывает бумаги\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Торнин пил\", \"effect_kind\": \"habit\", \"target_hint\": \"Торнин\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"таверна держится на Борко\", \"effect_kind\": \"residence\", \"target_hint\": \"таверна\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"таверна процветала\", \"effect_kind\": \"gain\", \"target_hint\": \"таверна\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Торнин только подписывает бумаги\", \"effect_kind\": \"occupation\", \"target_hint\": \"Торнин\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Торнин пил\", \"target_hint\": \"Торнин\", \"nature\": \"addiction\", \"valence\": \"negative\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"таверна держится на Борко\", \"target_hint\": \"таверна\", \"nature\": \"support\", \"valence\": \"positive\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Не смерть жены — она умерла, когда ему было тридцать пять\", \"effect_kind\": \"loss\", \"target_hint\": \"жена\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Что-то другое, что он никогда не называет вслух\", \"effect_kind\": \"secret\", \"target_hint\": \"Торнин\"}, \"confidence\": 1.0, \"needs_confirmation\": true, \"question\": {\"question_id\": \"1234567890\", \"target_span\": \"Что-то другое, что он никогда не называет вслух\", \"options\": [\"Смерть сына\", \"Развод с женой\", \"Потеря бизнеса\", \"Неизвестно\"], \"answer\": null}}]",
+  "raw_length_chars": 2569,
+  "json_valid": false,
+  "json_error": "Expecting ',' delimiter: line 1 column 2569 (char 2568)",
+  "valid_items": 0,
+  "errors": 1,
+  "schema_conformance": 0.0,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0,
+  "censorship_refusal": false
+}

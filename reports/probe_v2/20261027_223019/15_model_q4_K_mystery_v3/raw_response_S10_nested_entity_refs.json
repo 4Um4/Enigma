@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S10_nested_entity_refs",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "Люся помнит, как Торнин рассказывал о своей матери. Мать, по его словам, любила рассказывать о своём деде. Дед, по её словам, был кузнецом. Кузнец, по его словам, выковал тот самый меч. Меч, по семейной легенде, был проклят. Проклятие, по преданию, сбылось.",
+  "latency_secs": 4.5,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Проклятие сбылось\",\n        \"day\": null\n      },\n      \"confidence\": 0.8,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"1\",\n        \"target_span\": \"Проклятие, по преданию, сбылось\",\n        \"options\": [\"Сбылось\", \"Не сбылось\"],\n        \"answer\": \"Сбылось\"\n      }\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Люся помнит, как Торнин рассказывал о своей матери. Мать, по его словам, любила рассказывать о своём деде. Дед, по её словам, был кузнецом. Кузнец, по его словам, выковал тот самый меч. Меч, по семейной легенде, был проклят.\",\n        \"traits\": [\"помнит\", \"рассказывал\", \"любила рассказывать\", \"был кузнецом\", \"выковал меч\", \"был проклят\"]\n      },\n      \"confidence\": 0.9,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"BELIEF_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"Меч, по семейной легенде, был проклят\"\n      },\n      \"confidence\": 0.7,\n      \"needs_confirmation\": true,\n      \"question\": {\n        \"question_id\": \"2\",\n        \"target_span\": \"Меч, по семейной легенде, был проклят\",\n        \"options\": [\"Проклят\", \"Не проклят\"],\n        \"answer\": null\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1311,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

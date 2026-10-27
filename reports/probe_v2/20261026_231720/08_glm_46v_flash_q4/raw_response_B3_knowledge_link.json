@@ -1,0 +1,19 @@
+{
+  "fragment_id": "B3_knowledge_link",
+  "fragment_category": "B",
+  "fragment_text": "В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.",
+  "latency_secs": 4.92,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни\", \"day\": null}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"KNOWLEDGE_LINK\", \"draft_payload\": {\"summary\": \"Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни\", \"about_hint\": \"о смерти родителей\", \"learned_age\": 12}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Люся узнала от пьяного Торнина...\", \"target_hint\": \"Торнин\", \"nature\": \"доверие\", \"valence\": \"positive\"}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Люся узнала от пьяного Торнина...\", \"target_hint\": \"Торнин\", \"nature\": \"зависимость\", \"valence\": \"positive\"}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни\", \"effect_kind\": \"trauma\", \"target_hint\": \"Люся\"}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": null}]}",
+  "raw_length_chars": 1221,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 5,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.5714285714285714,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

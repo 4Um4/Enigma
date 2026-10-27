@@ -1,0 +1,19 @@
+{
+  "fragment_id": "B3_knowledge_link",
+  "fragment_category": "B",
+  "fragment_text": "В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.",
+  "latency_secs": 17.91,
+  "llm_error": null,
+  "raw_response": "```json\n{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Люся узнала от Торнина, что её родителей убили не разбойники, а кто-то из деревни\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null},\n  {\"kind\": \"KNOWLEDGE_LINK\", \"draft_payload\": {\"summary\": \"Люся узнала от Торнина, что её родителей убили не разбойники, а кто-то из деревни\", \"about_hint\": \"обстоятельства смерти родителей\", \"learned_age\": 12}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Люся узнала информацию от Торнина\", \"target_hint\": \"Торнин\", \"nature\": \"вражда\", \"valence\": \"negative\"}, \"confidence\": 0.7, \"needs_confirmation\": true, \"question\": {\"question_id\": \"REL_TORIN_LUSYA\", \"target_span\": \"Торнин\", \"options\": [\"SELECT_EXISTING_NPC\", \"CREATE_NEW_NPC\", \"UNKNOWN_PERSON\", \"LEAVE_WHITE_SPOT\"], \"answer\": null}}\n]}\n```",
+  "raw_length_chars": 910,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.5714285714285714,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

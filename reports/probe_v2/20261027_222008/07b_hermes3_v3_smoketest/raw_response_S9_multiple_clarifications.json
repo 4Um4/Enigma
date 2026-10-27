@@ -1,0 +1,22 @@
+{
+  "fragment_id": "S9_multiple_clarifications",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "В таверну пришёл незнакомец. Он оставил свёрток. В свёртке — кольцо. Кольцо похоже на обручальное. Но Торнин никогда не был женат. На дне свёртка — записка. В записке — только одно слово: 'Прости'.",
+  "latency_secs": 2.55,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Приходит незнакомец в таверну и оставляет сверток с кольцом и запиской.\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null},\n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Торнин получает сверток, в котором находится кольцо, похожее на обручальное. Также в свертке есть записка с одним словом 'Прости'.\", \"effect_kind\": \"gift\", \"target_hint\": \"Торнин\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Торнин не знает, к кому может быть адресовано кольцо и записка.\", \"target_hint\": \"незнакомец\", \"nature\": \"curiosity\", \"valence\": \"neutral\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}\n]}",
+  "raw_length_chars": 783,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 0.6666666666666666,
+  "schema_failures": [
+    "bad_effect_kind:gift"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

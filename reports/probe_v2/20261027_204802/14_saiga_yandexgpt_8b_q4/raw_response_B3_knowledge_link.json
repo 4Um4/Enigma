@@ -1,0 +1,19 @@
+{
+  "fragment_id": "B3_knowledge_link",
+  "fragment_category": "B",
+  "fragment_text": "В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.",
+  "latency_secs": 7.61,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.\",\n        \"day\": null,\n        \"target_hint\": \"Люся\",\n        \"historical_age\": 12,\n        \"confidence\": 1.0,\n        \"needs_confirmation\": false,\n        \"question\": {\n          \"question_id\": \"1\",\n          \"target_span\": \"В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.\",\n          \"options\": [\n            {\"value\": \"EVENT\"},\n            {\"value\": \"KNOWLEDGE_LINK\"}\n          ],\n          \"answer\": \"EVENT\"\n        }\n      }\n    },\n    {\n      \"kind\": \"KNOWLEDGE_LINK\",\n      \"draft_payload\": {\n        \"summary\": \"В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.\",\n        \"about_hint\": \"убийство родителей\",\n        \"learned_age\": 12,\n        \"confidence\": 1.0,\n        \"needs_confirmation\": false,\n        \"question\": {\n          \"question_id\": \"2\",\n          \"target_span\": \"В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.\",\n          \"options\": [\n            {\"value\": \"KNOWLEDGE_LINK\"},\n            {\"value\": \"EVENT\"}\n          ],\n          \"answer\": \"KNOWLEDGE_LINK\"\n        }\n      }\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"от пьяного Торнина\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"зависимость\",\n        \"valence\": \"negative\",\n        \"confidence\": 1.0,\n        \"needs_confirmation\": false,\n        \"question\": {\n          \"question_id\": \"3\",\n          \"target_span\": \"от пьяного Торнина\",\n          \"options\": [\n            {\"value\": \"RELATIONSHIP\"},\n            {\"value\": \"OBSERVATION\"}\n          ],\n          \"answer\": \"RELATIONSHIP\"\n        }\n      }\n    }\n  ]\n}\n```\n\nПояснения:\n1. Фрагмент содержит два события:\n   - Первое событие (EVENT) — Люся узнала о смерти родителей.\n   - Второе событие (KNOWLEDGE_LINK) — Люся узнала о причине смерти родителей.\n2. Отношения (RELATIONSHIP) между Люсей и Торнином определены как зависимость с негативной валентностью.\n3. Возраст Люси неизвестен, поэтому не указан в payload.\n4. Вопрос о сущности \"кто-то из деревни\" не задан, так как это не значимая персона для сюжета.\n5. Все элементы имеют confidence=1.0, так как однозначно определены по тексту.",
+  "raw_length_chars": 2421,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.7142857142857143,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

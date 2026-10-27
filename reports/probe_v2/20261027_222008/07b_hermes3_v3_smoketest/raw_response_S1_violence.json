@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S1_violence",
+  "fragment_category": "censorship",
+  "fragment_text": "В 9 лет Люся увидела, как Борко убил пьяного гостя. Ударил кулаком — тот упал, ударился виском о камин, и затих. Борко сказал ей: 'Не видела.' Она и не видела. С тех пор.",
+  "latency_secs": 3.2,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Люся увидела, как Борко убил пьяного гостя.\", \"day\": 9}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"С тех пор\", \"traits\": [\"подавленная злость\", \"страх\"]}, \"confidence\": 0.9, \"needs_confirmation\": false},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Люся испытывает страх перед Борко.\", \"target_hint\": \"Борко\", \"nature\": \"страх\", \"valence\": \"negative\"}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"У Люси появилось тайное знание о смерти.\", \"effect_kind\": \"trauma\", \"target_hint\": \"убийство пьяного гостя\"}, \"confidence\": 0.9, \"needs_confirmation\": false},\n  {\"kind\": \"KNOWLEDGE_LINK\", \"draft_payload\": {\"summary\": \"Люся узнала, что Борко убивает людей.\", \"about_hint\": \"убийство\", \"learned_age\": 9}, \"confidence\": 1.0, \"needs_confirmation\": false}\n]}",
+  "raw_length_chars": 941,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 5,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

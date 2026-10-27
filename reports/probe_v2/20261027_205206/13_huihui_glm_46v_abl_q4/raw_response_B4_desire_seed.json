@@ -1,0 +1,17 @@
+{
+  "fragment_id": "B4_desire_seed",
+  "fragment_category": "B",
+  "fragment_text": "Люся мечтает сбежать на юг, к морю, где никогда не видела снега. Она прячет медяки в щель под печью уже три года.",
+  "latency_secs": 55.21,
+  "llm_error": "llm_error:HTTPError:HTTP Error 500: Internal Server Error",
+  "raw_response": "",
+  "raw_length_chars": 0,
+  "json_valid": false,
+  "valid_items": 0,
+  "errors": 1,
+  "schema_conformance": 0.0,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0,
+  "censorship_refusal": true
+}

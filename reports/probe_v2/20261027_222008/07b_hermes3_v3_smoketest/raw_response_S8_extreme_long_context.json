@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S8_extreme_long_context",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "[PLACEHOLDER: Master fills in VS Code — extended biography of Люся from silver_wolf draft, 3000+ tokens. Combine all existing fragments A1-C4 into one continuous text.]",
+  "latency_secs": 4.05,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Люся злится. Злится часто, глухо, изнутри...\", \"traits\": [\"злость\", \"подавленная\"]}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Люся мечтает сбежать от всех проблем на юг...\", \"traits\": [\"мечта\", \"бегство\"]}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Люся чувствует себя в ловушке, не может выбраться...\", \"traits\": [\"ловушка\", \"приспособленность\"]}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Люся пытается сохранять спокойствие, но внутри она разрывается...\", \"traits\": [\"спокойствие\", \"внутренняя борьба\"]}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Люся видит только один выход - изменить себя, стать другим...\", \"traits\": [\"самоизменение\", \"искажение\"]}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Люся боится потерять себя, свою истинную сущность...\", \"traits\": [\"страха\", \"потеря себя\"]}, \"confidence\": 1.0, \"needs_confirmation\": false}\n]}",
+  "raw_length_chars": 1214,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

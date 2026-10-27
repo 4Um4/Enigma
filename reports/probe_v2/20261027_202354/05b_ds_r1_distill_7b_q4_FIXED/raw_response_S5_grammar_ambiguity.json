@@ -1,0 +1,23 @@
+{
+  "fragment_id": "S5_grammar_ambiguity",
+  "fragment_category": "ambiguity",
+  "fragment_text": "Торнин сказал Люсе, что Борко предал их. Люся не поверила. Борко предал их на следующее утро.",
+  "latency_secs": 9.18,
+  "llm_error": null,
+  "raw_response": "<think>\nOkay, so I need to break down this fragment from the character Chronicle into the JSON structure they want. Let me read through the instructions again to make sure I understand what's needed.\n\nThe user provided a text fragment: \"Торнин сказал Люсе, что Борко предал их. Люся не поверила. Борко предал их на следующее утро.\" I need to convert this into the specified JSON format with events, relationships, locations, etc.\n\nFirst, I'll identify the events. The first part is Torin telling Lyse that Borok ate them. That sounds like an event where Torin is making a statement to Lyse. So, an EVENT with kind \"EVENT\", summary as the statement, and day as null since it's not specified.\n\nNext, the event where Borok ate them the next morning. That's another event, so another \"EVENT\" entry with the same summary but a day of 1 (assuming day 1 is the next day).\n\nThen, the relationship between Lyse and the others. She doesn't believe, so maybe a RELATIONSHIP where Lyse has a negative attitude towards the event. But the instructions say RELATIONSHIP should be about the relationship between two people, so perhaps it's more about Lyse's attitude towards the event, but I'm not sure if that fits. Maybe it's better to focus on the events.\n\nLooking at the location, it's not explicitly mentioned, so LOCATION can be null.\n\nFor EFFECT, since Torin told Lyse something, that might be a statement of belief or observation. So EFFECT with kind \"EFFECT\", summary as the statement, and target as Torin.\n\nLastly, the knowledge link where someone informed Lyse about Borok's action. So, KNOWLEDGE_LINK with the statement being the information and the learned age as 1, assuming it happened the next day.\n\nI need to make sure each part is correctly categorized and that the JSON structure follows the given schema. Also, ensure that each item is an object with the correct keys and values, and that the confidence is set appropriately. Since all the information is clear, confidence can be 1.0 for each.\n\nI think that's all. Now, I'll structure the JSON accordingly.\n</think>\n\n```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин сказал Люсе, что Борко предал их.\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": null,\n        \"target_span\": null,\n        \"options\": [],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Борко предал их на следующее утро.\",\n        \"day\": 1\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": null,\n        \"target_span\": null,\n        \"options\": [],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"EFFECT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин сообщил Люсе о действиях Борка.\",\n        \"effect_kind\": \"observation\",\n        \"target_hint\": \"Торнин\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": null,\n        \"target_span\": null,\n        \"options\": [],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"KNOWLEDGE_LINK\",\n      \"draft_payload\": {\n        \"summary\": \"Люся узнала, что Борко предал их.\",\n        \"learned_age\": 1\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 3336,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 0.5,
+  "schema_failures": [
+    "bad_effect_kind:observation",
+    "missing_required:about_hint"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

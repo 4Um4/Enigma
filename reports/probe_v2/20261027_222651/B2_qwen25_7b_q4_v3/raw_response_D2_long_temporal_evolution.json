@@ -1,0 +1,18 @@
+{
+  "fragment_id": "D2_long_temporal_evolution",
+  "fragment_category": "D",
+  "fragment_text": "Торнин в двадцать лет был подающим надежды кузнецом. В тридцать — бросил кузню, открыл таверну. В сорок — таверна процветала, но Торнин пил. В пятьдесят — таверна держится на Борко, Торнин только подписывает бумаги. Что изменило его? Не смерть жены — она умерла, когда ему было тридцать пять. Что-то другое, что он никогда не называет вслух.",
+  "latency_secs": 3.76,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнин в двадцать лет был подающим надежды кузнецом\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"В тридцать — бросил кузню, открыл таверну\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"В сорок — таверна процветала, но Торнин пил\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"В пятьдесят — таверна держится на Борко, Торнин только подписывает бумаги\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Что-то другое, что он никогда не называет вслух\", \"effect_kind\": \"custom\", \"target_hint\": null}, \"confidence\": 0.8, \"needs_confirmation\": true, \"question\": {\"question_id\": \"Q_0001\", \"target_span\": \"Что-то другое, что он никогда не называет вслух\", \"options\": [\"смерть жены\", \"что-то другое\"], \"answer\": null}}]",
+  "raw_length_chars": 1106,
+  "json_valid": false,
+  "json_error": "Expecting ',' delimiter: line 1 column 1106 (char 1105)",
+  "valid_items": 0,
+  "errors": 1,
+  "schema_conformance": 0.0,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0,
+  "censorship_refusal": false
+}

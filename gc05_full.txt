@@ -1,0 +1,716 @@
+﻿python : [CONFIG] Модель 'qwen_3_5_9b' (Qwen3.5-9B The-Defiant-Fable-Uncnr-Heretic-NEO-MAX IQ3_M) не найдена: C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-IQ3_M.gguf
+At line:1 char:1
++ python -m pytest backend/tests/gameplay/test_gc05_production_path_tes ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([CONFIG] Модель...-MAX-IQ3_M.gguf:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+============================= test session starts =============================
+platform win32 -- Python 3.13.14, pytest-8.3.3, pluggy-1.6.0 -- C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: C:\DDD\Codex\VSC_Enigma\Enigma\backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, hypothesis-6.165.0, platformdirs-4.13.0
+collecting ... collected 5 items
+
+backend\tests\gameplay\test_gc05_production_path_testimony.py::TestGC05ProductionPathTestimony::test_K1_control_no_belief_about_harmer [WIRING] DialogueExecutor._router = None (LLM-free)
+[WIRING] _executor_pool = _SyncPool (sync, timing-free)
+[OVERRIDE] guard disposition: report=0.0, intimidate=1.4 (test fixture)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=4 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=5 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=6 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=7 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=8 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=9 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=10 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[K1] maid_lusya beliefs: 0 total
+[K1] maid_lusya belief about thief_shadow from guard_borko: 0
+[K1] INFO: control baseline established
+PASSED
+backend\tests\gameplay\test_gc05_production_path_testimony.py::TestGC05ProductionPathTestimony::test_K2_canonical_grievance_testimony_reaches_listener [WIRING] DialogueExecutor._router = None (LLM-free)
+[WIRING] _executor_pool = _SyncPool (sync, timing-free)
+[OVERRIDE] guard disposition: report=0.0, intimidate=1.4 (test fixture)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[SEED] guard_borko belief: thief_shadow stole unknown conf=0.7
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=4 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=5 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=6 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=3 actors=['merchant_goran', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=7 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=8 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=1 actors=['maid_lusya']
+[DIAG-MV] resolved=1 actors=['maid_lusya']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=9 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=1 actors=['maid_lusya']
+[DIAG-MV] resolved=1 actors=['maid_lusya']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=10 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG_D3] tick=10 INTENT reason=need_driven:hunger=0.80 target=tavern:right_table domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=1 actors=['maid_lusya']
+[DIAG-MV] resolved=1 actors=['maid_lusya']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=11 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=12 INTENT reason=need_driven:shelter_urge=0.88+relocation target=guard_bed domain=IntentDomain.ROUTINE
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=13 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=14 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+
+=== K2 DIAGNOSTIC BEFORE ASSERT ===
+
+[DIAG] guard_borko beliefs: 3
+  prop=stole subj=thief_shadow obj=unknown conf=1.0 source=maid_lusya
+  prop=attacked subj=guard_borko obj=tavern_keeper_tornin conf=0.5 source=guard_borko
+  prop=exits_to subj=tavern:exit_south obj=market_square conf=1.0 source=guard_borko
+[DIAG] guard_borko relationships:
+[DIAG] guard_borko last intent: intimidate
+[DIAG] SPY_SPOKE total: 18 (any speaker)
+  src=guard_borko target=thief_shadow intent=talk has_prop=False
+  src=merchant_goran target=blacksmith_orm intent=talk has_prop=False
+  src=blacksmith_orm target=maid_lusya intent=talk has_prop=False
+  src=guard_borko target=thief_shadow intent=Intent.INTIMIDATE has_prop=False
+  src=guard_borko target=thief_shadow intent=Intent.INTIMIDATE has_prop=False
+  src=maid_lusya target=guard_borko intent=approach has_prop=False
+  src=guard_borko target=thief_shadow intent=Intent.INTIMIDATE has_prop=False
+  src=tavern_keeper_tornin target=thief_shadow intent=approach has_prop=False
+  src=guard_borko target=thief_shadow intent=Intent.INTIMIDATE has_prop=False
+  src=guard_borko target=tavern_keeper_tornin intent=Intent.INTIMIDATE has_prop=False
+  src=maid_lusya target=guard_borko intent=Intent.SPREAD_RUMOR has_prop=False
+  src=guard_borko target=thief_shadow intent=Intent.INTIMIDATE has_prop=False
+  src=guard_borko target=thief_shadow intent=Intent.INTIMIDATE has_prop=False
+  src=blacksmith_orm target=thief_shadow intent=Intent.WARN has_prop=False
+  src=merchant_goran target=thief_shadow intent=Intent.WARN has_prop=False
+  src=blacksmith_orm target=thief_shadow intent=Intent.WARN has_prop=False
+  src=merchant_goran target=thief_shadow intent=Intent.WARN has_prop=False
+  src=merchant_goran target=blacksmith_orm intent=talk has_prop=False
+
+[K2] guard_borko spoke: 8 times
+  intent=talk target=thief_shadow has_proposition=False
+  intent=Intent.INTIMIDATE target=thief_shadow has_proposition=False
+  intent=Intent.INTIMIDATE target=thief_shadow has_proposition=False
+  intent=Intent.INTIMIDATE target=thief_shadow has_proposition=False
+  intent=Intent.INTIMIDATE target=thief_shadow has_proposition=False
+  intent=Intent.INTIMIDATE target=tavern_keeper_tornin has_proposition=False
+  intent=Intent.INTIMIDATE target=thief_shadow has_proposition=False
+  intent=Intent.INTIMIDATE target=thief_shadow has_proposition=False
+[K2] COMMUNICATION_CLAIM from guard_borko: 7
+  pred=stole subj=thief_shadow obj=unknown target=thief_shadow
+  pred=stole subj=thief_shadow obj=unknown target=thief_shadow
+  pred=stole subj=thief_shadow obj=unknown target=thief_shadow
+  pred=stole subj=thief_shadow obj=unknown target=thief_shadow
+  pred=stole subj=thief_shadow obj=unknown target=tavern_keeper_tornin
+  pred=stole subj=thief_shadow obj=unknown target=thief_shadow
+  pred=stole subj=thief_shadow obj=unknown target=thief_shadow
+[K2] maid_lusya beliefs: 3 total
+[K2] target belief: conf=1.0 source=guard_borko prop={'subject_id': 'thief_shadow', 'predicate': 'stole', 'object_id': 'unknown', 'polarity': True}
+[K2] PASS: testimony delivered, belief formed, confidence=1.000
+PASSED
+backend\tests\gameplay\test_gc05_production_path_testimony.py::TestGC05ProductionPathTestimony::test_K3_hostile_listener_belief_attenuated [WIRING] DialogueExecutor._router = None (LLM-free)
+[WIRING] _executor_pool = _SyncPool (sync, timing-free)
+[OVERRIDE] guard disposition: report=0.0, intimidate=1.4 (test fixture)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[SEED] guard_borko belief: thief_shadow stole unknown conf=0.7
+[SEED] maid_lusya->guard_borko: final trust=-50.0703 (target=-50.0)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=4 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=5 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=6 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=7 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['maid_lusya', 'maid_lusya', 'tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=8 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG_D3] tick=8 INTENT reason=need_driven:hunger=0.64 target=tavern:right_table domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=9 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=10 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=11 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=12 INTENT reason=need_driven:shelter_urge=0.88+relocation target=guard_bed domain=IntentDomain.ROUTINE
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=13 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['merchant_goran', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=14 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[K3] maid_lusya beliefs: 2 total
+[K3] target belief: conf=0.0 source=guard_borko
+[K3] PASS: hostile listener -> confidence=0.000
+PASSED
+backend\tests\gameplay\test_gc05_production_path_testimony.py::TestGC05ProductionPathTestimony::test_trust_influences_confidence_K2_vs_K3 [WIRING] DialogueExecutor._router = None (LLM-free)
+[WIRING] _executor_pool = _SyncPool (sync, timing-free)
+[OVERRIDE] guard disposition: report=0.0, intimidate=1.4 (test fixture)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[SEED] guard_borko belief: thief_shadow stole unknown conf=0.7
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=4 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=5 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=6 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=3 actors=['merchant_goran', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=7 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=8 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=1 actors=['maid_lusya']
+[DIAG-MV] resolved=1 actors=['maid_lusya']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=9 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=1 actors=['maid_lusya']
+[DIAG-MV] resolved=1 actors=['maid_lusya']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=10 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG_D3] tick=10 INTENT reason=need_driven:hunger=0.80 target=tavern:right_table domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=1 actors=['maid_lusya']
+[DIAG-MV] resolved=1 actors=['maid_lusya']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=11 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=12 INTENT reason=need_driven:shelter_urge=0.88+relocation target=guard_bed domain=IntentDomain.ROUTINE
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=13 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=14 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[WIRING] DialogueExecutor._router = None (LLM-free)
+[WIRING] _executor_pool = _SyncPool (sync, timing-free)
+[OVERRIDE] guard disposition: report=0.0, intimidate=1.4 (test fixture)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[SEED] guard_borko belief: thief_shadow stole unknown conf=0.7
+[SEED] maid_lusya->guard_borko: final trust=-50.0703 (target=-50.0)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=4 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=5 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=6 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=7 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['maid_lusya', 'maid_lusya', 'tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=8 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG_D3] tick=8 INTENT reason=need_driven:hunger=0.64 target=tavern:right_table domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=9 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=10 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=11 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=12 INTENT reason=need_driven:shelter_urge=0.88+relocation target=guard_bed domain=IntentDomain.ROUTINE
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=13 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['merchant_goran', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=14 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[CMP] K2 belief: {'agent_id': 'maid_lusya', 'proposition': {'subject_id': 'thief_shadow', 'predicate': 'stole', 'object_id': 'unknown', 'polarity': True}, 'confidence': 1.0, 'source_id': 'guard_borko', 'source_claim_id': 'f870cd0d-f614-389b-c9ee-0172ae175e5b', 'first_observed_tick': 3, 'last_updated_tick': 7}
+[CMP] K3 belief: {'agent_id': 'maid_lusya', 'proposition': {'subject_id': 'thief_shadow', 'predicate': 'stole', 'object_id': 'unknown', 'polarity': True}, 'confidence': 0.0, 'source_id': 'guard_borko', 'source_claim_id': 'f870cd0d-f614-389b-c9ee-0172ae175e5b', 'first_observed_tick': 3, 'last_updated_tick': 7}
+[CMP] PASS: trust(listener->source) влияет на confidence: K2(neutral)=1.000 >= K3(hostile)=0.000
+PASSED
+backend\tests\gameplay\test_gc05_production_path_testimony.py::TestGC05ProductionPathTestimony::test_belief_influences_behavior_K2_vs_K1 [WIRING] DialogueExecutor._router = None (LLM-free)
+[WIRING] _executor_pool = _SyncPool (sync, timing-free)
+[OVERRIDE] guard disposition: report=0.0, intimidate=1.4 (test fixture)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=4 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=5 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=6 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=7 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=8 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=9 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=10 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[WIRING] DialogueExecutor._router = None (LLM-free)
+[WIRING] _executor_pool = _SyncPool (sync, timing-free)
+[OVERRIDE] guard disposition: report=0.0, intimidate=1.4 (test fixture)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[SEED] guard_borko belief: thief_shadow stole unknown conf=0.7
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=4 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=5 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=6 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=3 actors=['merchant_goran', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=7 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=8 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=1 actors=['maid_lusya']
+[DIAG-MV] resolved=1 actors=['maid_lusya']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=9 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=1 actors=['maid_lusya']
+[DIAG-MV] resolved=1 actors=['maid_lusya']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=10 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG_D3] tick=10 INTENT reason=need_driven:hunger=0.80 target=tavern:right_table domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=1 actors=['maid_lusya']
+[DIAG-MV] resolved=1 actors=['maid_lusya']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=11 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=12 INTENT reason=need_driven:shelter_urge=0.88+relocation target=guard_bed domain=IntentDomain.ROUTINE
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=13 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=14 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[BEH] K1 maid_lusya intent: seek_ally
+[BEH] K2 maid_lusya intent: seek_ally
+[BEH] K2 maid_lusya has belief from guard_borko: True
+[BEH] INFO: belief присутствует, но intent не изменился. Допустимый результат, но критерий «belief -> behavior» НЕ доказан.
+PASSED
+
+============================== warnings summary ===============================
+tests/gameplay/test_gc05_production_path_testimony.py::TestGC05ProductionPathTestimony::test_K1_control_no_belief_about_harmer
+  C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pydantic\_internal\_config.py:291: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.9/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================== 5 passed, 1 warning in 240.25s (0:04:00) ===================

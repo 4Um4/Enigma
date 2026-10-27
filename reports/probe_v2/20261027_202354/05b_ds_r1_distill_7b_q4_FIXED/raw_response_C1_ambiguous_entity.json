@@ -1,0 +1,19 @@
+{
+  "fragment_id": "C1_ambiguous_entity",
+  "fragment_category": "C",
+  "fragment_text": "Однажды в таверну пришёл незнакомец в чёрном. Он говорил с Торнином шёпотом, и после этого Торнин побледнел. Наутро незнакомец исчез, а Торнин заперся в погребе на три дня.",
+  "latency_secs": 8.09,
+  "llm_error": null,
+  "raw_response": "<think>\nOkay, so I need to break down this fragment from the character's biography and convert it into the specified JSON format. Let me start by reading the fragment carefully.\n\nThe fragment says: \"Однажды в таверну пришёл незнакомец в чёрном. Он говорил с Торнином шёпотом, и после этого Торнин побледнел. Наутро незнакомец исчез, а Торнин заперся в погребе на три дня.\"\n\nFirst, I'll identify the events here. There are two main events: the encounter with the unknown person and the subsequent events involving Torin.\n\n1. The first event is the meeting with the unknown person. The unknown person is in a black hat, talking to Torin. This seems like an EVENT because it's a specific action or occurrence. The summary would be \"Однажды в таверну пришёл незнакомец в чёрном, говорил с Торнином шёпотом.\" The day isn't specified, so day is null.\n\n2. The second event is Torin's reaction and subsequent actions. He became pale, the unknown person left, Torin was buried for three days. The summary here is \"Торнин побледнел, незнакомец исчез, а Торнин заперся в погребе на три дня.\" The day isn't specified here either, so day is null.\n\nI don't see any RELATIONSHIP, LOCATION, EFFECT, OBSERVATION, KNOWLEDGE_LINK, PORTRET, DESIRE_SEED, or BELIEF_SEED in this fragment. It's just two separate events without any additional context.\n\nSo, I'll create two items in the JSON, each with the kind \"EVENT\" and the draft_payload containing the summary and day as null.\n</think>\n\n```json\n{\"items\": [\n  {\n    \"kind\": \"EVENT\",\n    \"draft_payload\": {\n      \"summary\": \"Однажды в таверну пришёл незнакомец в чёрном, говорил с Торнином шёпотом\",\n      \"day\": null\n    }\n  },\n  {\n    \"kind\": \"EVENT\",\n    \"draft_payload\": {\n      \"summary\": \"Торнин побледнел, незнакомец исчез, а Торнин заперся в погребе на три дня\",\n      \"day\": null\n    }\n  }\n]}\n```",
+  "raw_length_chars": 1834,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 2,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.8571428571428571,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0
+}

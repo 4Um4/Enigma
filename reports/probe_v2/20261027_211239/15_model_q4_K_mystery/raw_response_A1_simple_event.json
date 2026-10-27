@@ -1,0 +1,19 @@
+{
+  "fragment_id": "A1_simple_event",
+  "fragment_category": "A",
+  "fragment_text": "В 8 лет Люся осталась сиротой, её приютил Торнин.",
+  "latency_secs": 3.3,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся осталась сиротой в 8 лет\",\n        \"day\": 8\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"event_1\",\n        \"target_span\": \"В 8 лет Люся осталась сиротой\",\n        \"options\": [],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Люся приютил Торнин\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"guardianship\",\n        \"valence\": \"positive\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"relationship_1\",\n        \"target_span\": \"приютил Торнина\",\n        \"options\": [],\n        \"answer\": null\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 827,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 2,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.8,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

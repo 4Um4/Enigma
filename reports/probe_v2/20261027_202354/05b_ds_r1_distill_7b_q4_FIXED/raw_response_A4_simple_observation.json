@@ -1,0 +1,19 @@
+{
+  "fragment_id": "A4_simple_observation",
+  "fragment_category": "A",
+  "fragment_text": "Люся видела, как Борко дерётся с пьяными.",
+  "latency_secs": 27.74,
+  "llm_error": null,
+  "raw_response": "<think>\nOkay, so I need to break down this fragment from the character's biography. The user provided a specific example, and I have to follow the guidelines to create a JSON response. Let me go through each step carefully.\n\nFirst, the fragment is: \"Люся видела, как Борко дерётся с пьяными.\" Translating that, it's \"Luysha saw how Borco drinks heavily.\" \n\nI need to identify the different components: events, relationships, locations, effects, beliefs, observations, knowledge links, traits, portraits, and desires. \n\nLooking at the fragment, it's about Luysha seeing Borco drinking. So, this seems like an event where Borco is drinking. The event is about a person (Borco) drinking, so the kind would be EVENT. The summary would be \"Люся видела, как Борко пьётся.\" The day isn't specified, so day is null.\n\nNext, are there any relationships? The fragment doesn't mention any specific relationships, so RELATIONSHIP isn't present.\n\nFor LOCATION, it's unclear where this happened. The fragment doesn't specify a place, so name_hint would be null.\n\nThe effect is about Borco drinking, which could be a negative effect like trauma or loss. So, effect_kind would be something like trauma, and target_hint would be Borco.\n\nBelief seed isn't present here; it's just a statement about Borco's behavior.\n\nObservation is what Luysha saw, so observed_hint is Borco.\n\nKnowledge link isn't applicable here because there's no statement about Borco learning something.\n\nTrait seed isn't present either; it's just describing Borco's action.\n\nFor the portrait, since it's a description of Borco's action, it's not a direct trait or belief, so PORTRET isn't created here.\n\nLastly, desire seed isn't mentioned.\n\nSo, putting it all together, the JSON should have one item of kind EVENT with the summary, day as null, target_hint as Borco, and confidence. Since the information is clear, confidence is 1.0.\n</think>\n\n```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся видела, как Борко пьётся.\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": null,\n        \"target_span\": null,\n        \"options\": [],\n        \"answer\": null\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 2264,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 1,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.8,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

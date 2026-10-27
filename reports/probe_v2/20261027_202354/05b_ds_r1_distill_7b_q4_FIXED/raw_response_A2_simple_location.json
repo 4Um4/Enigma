@@ -1,0 +1,21 @@
+{
+  "fragment_id": "A2_simple_location",
+  "fragment_category": "A",
+  "fragment_text": "Торнин держит таверну 'Серебряный Волк' уже двадцать лет.",
+  "latency_secs": 6.06,
+  "llm_error": null,
+  "raw_response": "<think>\nOkay, so I need to break down this fragment from the character's bio into machine-readable parts. The fragment is: \"Торнин держит таверну 'Серебряный Волк' уже двадцать лет.\" Let me translate that to understand better. It says, \"Tornin is holding a cask named 'Serybrnyy Vold' for twenty years.\" \n\nFirst, I'll identify the type of each part. The first part is about the person holding something, so that's a PORTRET. The trait here is holding a cask, which is an object, and the name of the cask is \"Серебряный Волк\" or \"Serybrnyy Vold.\" So the trait is \" holding a cask named 'Серебряный Волк'.\"\n\nNext, the age part is \"держит... уже двадцать лет,\" which translates to \"has held... for twenty years.\" This is a KNOWLEDGE_LINK because it's about what the character knows or has experienced. The learned age here is twenty years, so the statement would be \"Торнин knows he has held a cask named 'Серебряный Волк' for twenty years.\"\n\nI don't see any events, relationships, locations, effects, beliefs, observations, or desires in this fragment, so those aren't included. \n\nSo, putting it together, I have one PORTRET with the trait and one KNOWLEDGE_LINK with the learned age.\n</think>\n\n```json\n{\n  \"items\": [\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин держит таверну 'Серебряный Волк'\",\n        \"statement\": \"Торнин knows he holds a cask named 'Серебряный Волк'\",\n        \"traits\": [\"holding a cask named 'Серебряный Волк'\"]\n      }\n    },\n    {\n      \"kind\": \"KNOWLEDGE_LINK\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин knows he has held... for twenty years\",\n        \"statement\": \"Торнин knows he has held a cask named 'Серебряный Волк' for twenty years\",\n        \"learned_age\": 20\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1763,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 2,
+  "errors": 0,
+  "schema_conformance": 0.5,
+  "schema_failures": [
+    "missing_required:about_hint"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.75,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

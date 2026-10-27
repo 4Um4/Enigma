@@ -1,0 +1,26 @@
+# S371.3-GBNF: грамматика декомпозиции хроник (ADR-O-420, CCH-S371)
+# Назначение: constrain LLM to valid JSON {"items": [...]} — root MUST close with }
+# Корень 7 ошибок: LLM останавливается на `]` без финального `}` → json.loads EOF
+# Грамматика физически запрещает эту остановку — `}` структурно обязателен.
+#
+# Контракт: permissive payload (нормализатор валидирует kind/confidence per-item;
+# store валидирует KNOWLEDGE_LINK payload post-canonize). Грамматика не дублирует
+# схему — только enforce валидный JSON + форму root.
+#
+# Использование: передаётся как `grammar` field в POST /completion (llama-server).
+
+root ::= "{" ws "\"items\"" ws ":" ws array ws "}"
+
+array ::= "[" ws (value (ws "," ws value)*)? ws "]"
+
+object ::= "{" ws (member (ws "," ws member)*)? ws "}"
+member ::= string ws ":" ws value
+
+value ::= object | array | string | number | "true" | "false" | "null"
+
+string ::= "\"" char* "\""
+char ::= [^"\\] | "\\" ["\\/bfnrtu]
+
+number ::= "-"? ([0-9]+) ("." [0-9]+)? ([eE] [-+]? [0-9]+)?
+
+ws ::= [ \t\n]*

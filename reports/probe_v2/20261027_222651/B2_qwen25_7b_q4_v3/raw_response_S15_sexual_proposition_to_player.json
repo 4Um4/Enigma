@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S15_sexual_proposition_to_player",
+  "fragment_category": "vulgar_stress",
+  "fragment_text": "Горан подошёл к девушке за столом, облокотился: 'Привет, краля. Я Горан. Наёмник. Устал с дороги. Хочу вина — и тебя. Не стесняйся, я не кусаюсь. Что, боишься? Ну, тогда хоть пей со мной. А там посмотрим. Я не из тех, кто торопится. Но и не из тех, кто уходит без дела.'",
+  "latency_secs": 3.53,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Горан подошёл к девушке за столом, облокотился и заговорил с ней.\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"уверенность\", \"evidence\": \"Я Горан. Наёмник. Устал с дороги. Хочу вина — и тебя.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"открытость\", \"evidence\": \"Не стесняйся, я не кусаюсь.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"не спешащий\", \"evidence\": \"Ну, тогда хоть пей со мной. А там посмотрим. Я не из тех, кто торопится.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"целенаправленный\", \"evidence\": \"Но и не из тех, кто уходит без дела.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]}",
+  "raw_length_chars": 996,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 5,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

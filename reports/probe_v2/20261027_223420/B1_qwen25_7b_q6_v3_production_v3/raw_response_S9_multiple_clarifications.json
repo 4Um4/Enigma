@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S9_multiple_clarifications",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "В таверну пришёл незнакомец. Он оставил свёрток. В свёртке — кольцо. Кольцо похоже на обручальное. Но Торнин никогда не был женат. На дне свёртка — записка. В записке — только одно слово: 'Прости'.",
+  "latency_secs": 4.42,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"на дне свёртка — записка\", \"effect_kind\": \"secret\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"в записке — только одно слово: 'Прости'\", \"effect_kind\": \"secret\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"кольцо похоже на обручальное\", \"effect_kind\": \"custom\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"в таверну пришёл незнакомец\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"он оставил свёрток\", \"effect_kind\": \"gain\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"кольцо в свёртке\", \"effect_kind\": \"gain\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]}",
+  "raw_length_chars": 1121,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

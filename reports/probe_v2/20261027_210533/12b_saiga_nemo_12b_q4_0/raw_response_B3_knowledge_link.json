@@ -1,0 +1,19 @@
+{
+  "fragment_id": "B3_knowledge_link",
+  "fragment_category": "B",
+  "fragment_text": "В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.",
+  "latency_secs": 15.19,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"KNOWLEDGE_LINK\",\n      \"draft_payload\": {\n        \"summary\": \"Люся узнала от пьяного Торнина, что родителей убили не разбойники, а кто-то из деревни\",\n        \"about_hint\": \"о причинах смерти родителей\",\n        \"learned_age\": 12\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"BELIEF_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"Убийцы родителей — кто-то из деревни\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся узнала правду о смерти родителей\",\n        \"day\": 12\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Люся узнает правду от Торнина\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"доверие\",\n        \"valence\": \"positive\"\n      },\n      \"confidence\": 0.7,\n      \"needs_confirmation\": true,\n      \"question\": {\n        \"question_id\": \"Q001\",\n        \"target_span\": \"от пьяного Торнина\",\n        \"options\": [\n          {\n            \"label\": \"Торнин\",\n            \"value\": \"Торнин\"\n          },\n          {\n            \"label\": \"Другой NPC\",\n            \"value\": \"CREATE_NEW_NPC\"\n          },\n          {\n            \"label\": \"Неизвестный персонаж\",\n            \"value\": \"UNKNOWN_PERSON\"\n          }\n        ],\n        \"answer\": null\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1489,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.5714285714285714,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

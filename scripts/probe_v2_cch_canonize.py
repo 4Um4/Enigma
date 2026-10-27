@@ -58,6 +58,13 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 MODELS_DIR_DEFAULT = ROOT / "Models LLM"
 LLAMA_SERVER = ROOT / "Models LLM" / "llama" / "llama-server.exe"
+
+# Fix #1: Conditional enable_thinking suppression.
+# Bug: line 274 unconditionally passed {"enable_thinking": False} for ALL models.
+# For Gemma 3 (and other non-Qwen3) this parameter is not in their chat template
+# and breaks JSON output — confirmed on gemma-3-12b-it-abliterated.q3_k_m (0/18 valid, 122 MiB VRAM).
+# Heuristic: only suppress thinking for Qwen3-family + R1-distill (reasoning models with CoT-leak).
+_MODEL_SUPPRESS_THINKING: bool = False
 PROMPT_FILE = ROOT / "backend" / "prompts" / "chronicle_decompose_system.txt"
 NORMALIZER_PATH = ROOT / "backend" / "app" / "services" / "chronicle" / "decomposition_normalizer.py"
 REPORTS_DIR = ROOT / "reports" / "probe_v2"
@@ -271,7 +278,9 @@ def call_llm(system_prompt: str, user_prompt: str) -> tuple[str, float, str | No
         "temperature": TEMPERATURE,
         "seed": SEED,
         "response_format": {"type": "json_object"},
-        "chat_template_kwargs": {"enable_thinking": False},
+        # Fix #1: chat_template_kwargs only for Qwen3-family + R1-distill (set in run_test).
+        # Unconditional version broke Gemma 3 chat template (json_ok=False on 18/18 fragments).
+        **({"chat_template_kwargs": {"enable_thinking": False}} if _MODEL_SUPPRESS_THINKING else {}),
     }).encode("utf-8")
     req = urllib.request.Request(
         f"{PROBE_URL}/v1/chat/completions",
@@ -314,6 +323,46 @@ def check_censorship_refusal(content: str) -> bool:
 # TEST RUNNER
 # =====================================================================
 
+def _save_raw_response_unsafe(out_dir: Path, frag_id: str, result: dict) -> None:
+    """Fix #3: Unconditional save raw_response to disk.
+    Bug: original save at line 454 was AFTER normalizer (line 376).
+    Early returns at lines 347 (LLM error) and 362 (JSON invalid) skipped the save,
+    making raw_response unreachable for failed models — confirmed on DeepSeek-R1-7B
+    (18/18 errors, 0 raw_response files) and gemma-3-12b-abl Q3 (same)."""
+    try:
+        _p = out_dir / f"raw_response_{frag_id}.json"
+        _p.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception as _e:
+        print(f"[WARN] raw_response save failed for {frag_id}: {_e}", file=sys.stderr)
+
+
+def strip_model_artifacts(raw: str) -> str:
+    """Fix #2: Strip CoT-blocks, markdown fences, preamble from raw LLM output BEFORE json.loads.
+    Bug: line 351 called json.loads(content) directly. R1-distill and Qwen3-thinking
+    output CoT-blocks (..., <|begin_of_thinking|>...<|end_of_thinking|>) BEFORE the JSON.
+    json.loads failed on these — confirmed on DeepSeek-R1-Distill-Qwen-7B (18/18 errors)."""
+    if not raw:
+        return raw
+    # Strip ... (Qwen3 / DeepSeek-R1 style)
+    raw = re.sub(r"<think\b[^>]*>.*?</think>", "", raw, flags=re.DOTALL | re.IGNORECASE)
+    # Strip <reasoning>...</reasoning>
+    raw = re.sub(r"<reasoning\b[^>]*>.*?</reasoning>", "", raw, flags=re.DOTALL | re.IGNORECASE)
+    # Strip <|begin_of_thinking|>...<|end_of_thinking|> (DeepSeek-R1 distill specific)
+    raw = re.sub(r"<\|begin_of_thinking\|>.*?<\|end_of_thinking\|>", "", raw, flags=re.DOTALL)
+    # Strip markdown json fences
+    raw = re.sub(r"```json\s*", "", raw)
+    raw = re.sub(r"```\s*$", "", raw)
+    # Strip preamble before first {
+    first_brace = raw.find("{")
+    if first_brace > 0:
+        raw = raw[first_brace:]
+    # Strip trailing text after last }
+    last_brace = raw.rfind("}")
+    if last_brace >= 0 and last_brace < len(raw) - 1:
+        raw = raw[: last_brace + 1]
+    return raw.strip()
+
+
 def run_one_fragment(
     system_prompt: str,
     frag_id: str,
@@ -344,11 +393,14 @@ def run_one_fragment(
             "hallucination_rate": 0.0, "question_quality": 0.0,
             "censorship_refusal": True,
         })
+        # Fix #3: save BEFORE early return (LLM error path)
+        _save_raw_response_unsafe(out_dir, frag_id, result)
         return result
 
     # M3: JSON валидность
     try:
-        parsed = json.loads(content)
+        # Fix #2: strip CoT/markdown/preamble BEFORE json.loads (R1-distill, Qwen3-thinking)
+        parsed = json.loads(strip_model_artifacts(content))
         result["json_valid"] = True
     except json.JSONDecodeError as e:
         result["json_valid"] = False
@@ -359,6 +411,8 @@ def run_one_fragment(
             "hallucination_rate": 0.0, "question_quality": 0.0,
             "censorship_refusal": check_censorship_refusal(content),
         })
+        # Fix #3: save BEFORE early return (JSON invalid path — R1-distill CoT-leak)
+        _save_raw_response_unsafe(out_dir, frag_id, result)
         return result
 
     items_raw = parsed.get("items", []) if isinstance(parsed, dict) else []
@@ -451,8 +505,8 @@ def run_one_fragment(
         result["question_quality"] = 1.0
         result["golden_missing"] = True
 
-    raw_path = out_dir / f"raw_response_{frag_id}.json"
-    raw_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    # Fix #3: Final save with full result (overwrites early saves at lines 347/362)
+    _save_raw_response_unsafe(out_dir, frag_id, result)
 
     return result
 
@@ -561,6 +615,14 @@ def run_test(model_path: Path, model_id: str, skip_stress: bool) -> dict | None:
     print(f"[TEST] out_dir={out_dir}")
     print(f"[TEST] skip_stress={skip_stress}")
     print(f"{'=' * 70}\n")
+
+    # Fix #1: Set _MODEL_SUPPRESS_THINKING based on model_path.
+    # Heuristic: Qwen3-family + R1-distill are reasoning models that output CoT-blocks.
+    # For non-reasoning models (Gemma 3, Llama 3.1, GLM, etc.) — chat_template_kwargs breaks chat template.
+    global _MODEL_SUPPRESS_THINKING
+    _model_name_lower = model_path.name.lower()
+    _MODEL_SUPPRESS_THINKING = ("qwen3" in _model_name_lower) or ("r1" in _model_name_lower)
+    print(f"[TEST] _MODEL_SUPPRESS_THINKING={_MODEL_SUPPRESS_THINKING} (model_name={_model_name_lower})")
 
     kill_llama_server()
     proc = spawn_server(model_path)

@@ -1,0 +1,22 @@
+{
+  "fragment_id": "S5_grammar_ambiguity",
+  "fragment_category": "ambiguity",
+  "fragment_text": "Торнин сказал Люсе, что Борко предал их. Люся не поверила. Борко предал их на следующее утро.",
+  "latency_secs": 9.99,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Борко предал их\",\n        \"day\": 1\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Люся не поверила словам Торнина\",\n        \"target_hint\": \"Люся\",\n        \"nature\": \"доверие\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 0.8,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"BELIEF_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"Люся не верит в предательство\"\n      },\n      \"confidence\": 0.9,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"KNOWLEDGE_LINK\",\n      \"draft_payload\": {\n        \"summary\": \"Люся узнала о предательстве Борко\",\n        \"about_hint\": \"предательство Борко\",\n        \"learned_age\": null\n      },\n      \"confidence\": 0.7,\n      \"needs_confirmation\": true,\n      \"question\": {\n        \"question_id\": \"1\",\n        \"target_span\": \"узнала о предательстве Борко\",\n        \"options\": [\n          \"узнала в N лет\",\n          \"узнала без указания возраста\"\n        ],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Люся не верит легко и быстро, сомневается в словах других\",\n        \"traits\": [\"недоверчивая\", \"сомневающаяся\"]\n      },\n      \"confidence\": 0.9,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"DESIRE_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"Люся желает, чтобы это не было правдой\",\n        \"about_hint\": \"избежать предательства\"\n      },\n      \"confidence\": 0.8,\n      \"needs_confirmation\": false\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1695,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 0.8333333333333334,
+  "schema_failures": [
+    "empty_required:learned_age"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

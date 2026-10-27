@@ -1,0 +1,19 @@
+{
+  "fragment_id": "B3_knowledge_link",
+  "fragment_category": "B",
+  "fragment_text": "В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.",
+  "latency_secs": 20.33,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": {\"question_id\": \"event_1\", \"target_span\": \"В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни\", \"options\": [], \"answer\": null}},\n  {\"kind\": \"KNOWLEDGE_LINK\", \"draft_payload\": {\"summary\": \"Люся узнала, что её родителей убили не разбойники, а кто-то из деревни\", \"about_hint\": \"убийство родителей\", \"learned_age\": 12}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": {\"question_id\": \"knowledge_link_1\", \"target_span\": \"узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни\", \"options\": [], \"answer\": null}},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Люся узнала информацию от Торнина\", \"target_hint\": \"Торнина\", \"nature\": \"доверие\", \"valence\": \"negative\"}, \"confidence\": 0.8, \"needs_confirmation\": false, \"question\": {\"question_id\": \"relationship_1\", \"target_span\": \"от пьяного Торнина\", \"options\": [], \"answer\": null}},\n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Люся получила информацию о причинах смерти родителей\", \"effect_kind\": \"secret\", \"target_hint\": \"убийство родителей\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": {\"question_id\": \"effect_1\", \"target_span\": \"узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни\", \"options\": [], \"answer\": null}}\n]}",
+  "raw_length_chars": 1547,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.7142857142857143,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

@@ -1,0 +1,19 @@
+{
+  "fragment_id": "A4_simple_observation",
+  "fragment_category": "A",
+  "fragment_text": "Люся видела, как Борко дерётся с пьяными.",
+  "latency_secs": 26.72,
+  "llm_error": null,
+  "raw_response": "<think>\nAlright, I need to break down the given fragment into machine-readable records following the specified schema. The fragment is: \"Люся видела, как Борко дерётся с пьяными.\"\n\nFirst, I'll identify the key elements in the sentence. The main action is that Люся saw Борко fighting with drunk people. \n\nI should create an OBSERVATION kind because it's about what Люся observed. The summary will be \"Люся видела, как Борко дерётся с пьяными.\" The observed_hint is \"Борко\" since that's who she saw.\n\nNext, I need to check if there are any other kinds applicable. There's no event, relationship, location, effect, belief, knowledge link, trait, portret, or desire here. It's purely an observation.\n\nI'll set confidence to 1.0 because it's clear and doesn't need confirmation. No questions are needed since everything is straightforward.\n\nSo, the JSON will have one item of kind OBSERVATION with the appropriate payload.\n</think>\n\n```json\n{\"items\": [\n  {\n    \"kind\": \"OBSERVATION\",\n    \"draft_payload\": {\n      \"summary\": \"Люся видела, как Борко дерётся с пьяными.\",\n      \"observed_hint\": \"Борко\"\n    },\n    \"confidence\": 1.0,\n    \"needs_confirmation\": false,\n    \"question\": null\n  }\n]}\n```",
+  "raw_length_chars": 1190,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 1,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.8,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

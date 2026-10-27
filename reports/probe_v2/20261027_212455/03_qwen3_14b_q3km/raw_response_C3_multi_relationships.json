@@ -1,0 +1,19 @@
+{
+  "fragment_id": "C3_multi_relationships",
+  "fragment_category": "C",
+  "fragment_text": "Люся боится Торнина, но любит его — он единственная семья, которую она помнит. Борко ненавидит Торнина за то, что тот бьёт Люсю, но молчит, потому что Торнин когда-то спас его от виселицы. А Люся, в свою очередь, боится Борко — он слишком большой, слишком молчаливый.",
+  "latency_secs": 15.76,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Люся боится Торнина\", \"target_hint\": \"Торнин\", \"nature\": \"страх\", \"valence\": \"negative\"}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Люся любит Торнина\", \"target_hint\": \"Торнин\", \"nature\": \"любовь\", \"valence\": \"positive\"}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Борко ненавидит Торнина\", \"target_hint\": \"Торнин\", \"nature\": \"вражда\", \"valence\": \"negative\"}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Люся боится Борко\", \"target_hint\": \"Борко\", \"nature\": \"страх\", \"valence\": \"negative\"}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"BELIEF_SEED\", \"draft_payload\": {\"statement\": \"Торнин — единственная семья, которую Люся помнит\"}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"BELIEF_SEED\", \"draft_payload\": {\"statement\": \"Борко молчит, потому что Торнин когда-то спас его от виселицы\"}, \"confidence\": 1.0, \"needs_confirmation\": false}\n]}",
+  "raw_length_chars": 1130,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.875,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

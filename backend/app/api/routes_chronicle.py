@@ -519,8 +519,8 @@ async def resolve_question(campaign_id: str, npc_id: str, req: ResolveRequest) -
     # Применить к target entry + убрать question + audit-запись
     new_entries = list(doc.entries)
     e = target_entry
-    new_subject = _relink(e.subject_id) if matches_subject else e.subject_id
-    new_object = _relink(e.object_id) if matches_object else e.object_id
+    new_subject = _relink(e.subject_id) if (matches_subject and e.subject_id is not None) else e.subject_id
+    new_object = _relink(e.object_id) if (matches_object and e.object_id is not None) else e.object_id
 
     _remaining = tuple(q for q in e.open_questions if q.question_id != req.question_id)
     _resolved_old = e.payload.get("_resolved_questions", [])

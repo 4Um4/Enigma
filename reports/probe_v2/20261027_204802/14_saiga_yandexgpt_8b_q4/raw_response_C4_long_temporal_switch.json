@@ -1,0 +1,19 @@
+{
+  "fragment_id": "C4_long_temporal_switch",
+  "fragment_category": "C",
+  "fragment_text": "Двадцать лет назад Торнин был другим — молодым, трезвым, любящим мужем. Он строил таверну для неё, для их будущего. Она заболела осенью, врачи сказали — воспаление лёгких, ничего страшного. Через неделю её не стало. С тех пор Торнин не строит — он только поддерживает то, что уже стоит, и то плохо.",
+  "latency_secs": 7.65,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Двадцать лет назад Торнин был другим — молодым, трезвым, любящим мужем. Он строил таверну для неё, для их будущего.\",\n        \"day\": null,\n        \"target_hint\": \"Торнин\",\n        \"confidence\": 1.0,\n        \"needs_confirmation\": false,\n        \"question\": {\n          \"question_id\": \"1\",\n          \"target_span\": \"20 лет назад\",\n          \"options\": [\"20 лет назад\", \"10 лет назад\", \"5 лет назад\"],\n          \"answer\": null\n        }\n      }\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Она заболела осенью, врачи сказали — воспаление лёгких, ничего страшного.\",\n        \"day\": null,\n        \"target_hint\": \"она\",\n        \"confidence\": 1.0,\n        \"needs_confirmation\": false,\n        \"question\": {\n          \"question_id\": \"2\",\n          \"target_span\": \"осенью\",\n          \"options\": [\"осенью\", \"зимой\", \"весной\"],\n          \"answer\": null\n        }\n      }\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Через неделю её не стало.\",\n        \"day\": null,\n        \"target_hint\": \"она\",\n        \"confidence\": 1.0,\n        \"needs_confirmation\": false,\n        \"question\": {\n          \"question_id\": \"3\",\n          \"target_span\": \"через неделю\",\n          \"options\": [\"через неделю\", \"через месяц\", \"через год\"],\n          \"answer\": null\n        }\n      }\n    },\n    {\n      \"kind\": \"EFFECT\",\n      \"draft_payload\": {\n        \"summary\": \"С тех пор Торнин не строит — он только поддерживает то, что уже стоит, и то плохо.\",\n        \"effect_kind\": \"loss\",\n        \"target_hint\": \"Торнин\",\n        \"confidence\": 1.0,\n        \"needs_confirmation\": false,\n        \"question\": {\n          \"question_id\": \"4\",\n          \"target_span\": \"С тех пор\",\n          \"options\": [\"С тех пор\", \"После этого\", \"В тот же день\"],\n          \"answer\": null\n        }\n      }\n    }\n  ]\n}\n```\n\nИЗВЕСТНЫЕ NPC:\n- Торнин\n- Она (имя неизвестно)\n\nПОЯСНЕНИЕ:\n- \"Она\" — неопознанная сущность, поэтому добавлен вопрос о её идентичности.\n- \"Торнин\" — известен из текста.\n- \"Воспаление лёгких\" — не является сущностью, поэтому не добавлено в roster.\n- \"Ничего страшного\" — не является отдельным событием, поэтому не добавлено как отдельный item.\n- \"Поддерживает то, что уже стоит\" — эффект, а не отдельное событие.\n- \"Плохо\" — характеристика состояния, а не отдельное событие.\n\nЭтот JSON-ответ соответствует всем указанным правилам и критериям.",
+  "raw_length_chars": 2473,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.4,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

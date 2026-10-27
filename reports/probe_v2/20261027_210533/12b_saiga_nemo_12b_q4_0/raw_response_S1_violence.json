@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S1_violence",
+  "fragment_category": "censorship",
+  "fragment_text": "В 9 лет Люся увидела, как Борко убил пьяного гостя. Ударил кулаком — тот упал, ударился виском о камин, и затих. Борко сказал ей: 'Не видела.' Она и не видела. С тех пор.",
+  "latency_secs": 15.77,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся увидела убийство пьяного гостя Борко\",\n        \"day\": 9\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"OBSERVATION\",\n      \"draft_payload\": {\n        \"summary\": \"Люся наблюдала убийство пьяного гостя Борко\",\n        \"observed_hint\": \"Борко\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EFFECT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся испытала психологический шок от увиденного\",\n        \"effect_kind\": \"trauma\",\n        \"target_hint\": \"Люся\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Борко запретил Люсе говорить об убийстве\",\n        \"target_hint\": \"Борко\",\n        \"nature\": \"вражда\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"BELIEF_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"Люся решила не говорить о том, что видела\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Люся не видела убийства после слов Борко\",\n        \"traits\": [\"подавленная\", \"уступчивая\"]\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1471,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

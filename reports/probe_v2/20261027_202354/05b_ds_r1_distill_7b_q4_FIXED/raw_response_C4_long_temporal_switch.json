@@ -1,0 +1,22 @@
+{
+  "fragment_id": "C4_long_temporal_switch",
+  "fragment_category": "C",
+  "fragment_text": "Двадцать лет назад Торнин был другим — молодым, трезвым, любящим мужем. Он строил таверну для неё, для их будущего. Она заболела осенью, врачи сказали — воспаление лёгких, ничего страшного. Через неделю её не стало. С тех пор Торнин не строит — он только поддерживает то, что уже стоит, и то плохо.",
+  "latency_secs": 11.85,
+  "llm_error": null,
+  "raw_response": "<think>\nOkay, so I need to break down this fragment of the character's biography into machine-readable parts. Let me start by reading the text carefully.\n\nThe text says: \"Двадцать лет назад Торнин был другом — молодым, трезвым, любящим мужем. Он строил таверну для неё, для их будущего. Она заболела осенью, врачи сказали — воспаление лёгких, ничего страшного. Через неделю её не стало. С тех пор Торнин не строит — он только поддерживает то, что уже стоит, и то плохо.\"\n\nFirst, I'll look for events. The part about Torin being a young husband and building a tavern suggests an event. The event is that he was a young, strong husband and built a tavern. The day isn't specified, so day is null. The summary would be something like \"Torin was a young, strong husband and built a tavern.\"\n\nNext, I'll check for relationships. The text mentions his wife getting sick, so there's a relationship between Torin and his wife. The target hint is his wife, and the nature is sickness, which is negative.\n\nThen, looking for locations. The tavern is mentioned, so the location is \"таверна\" (table). The name_hint would be \"таверна.\"\n\nFor effects, Torin stopped building the tavern after his wife's illness. The effect is that he stopped building, which is a negative consequence. The target is his wife's health issues.\n\nBelief seeds are not explicitly mentioned, so I'll skip that. Observation is about his wife getting sick, so observed_hint is \"wife.\"\n\nKnowledge links are not present here. Traits and portraits are also not mentioned. Desires are not discussed either.\n\nSo, putting it all together, I'll create JSON entries for each of these findings, making sure to include the necessary fields with appropriate values.\n</think>\n\n```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин был молодым, трезвым мужем и строил таверну.\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": null,\n        \"target_span\": null,\n        \"options\": [],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин и его жена\",\n        \"target_hint\": \"wife\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": null,\n        \"target_span\": null,\n        \"options\": [],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"LOCATION\",\n      \"draft_payload\": {\n        \"summary\": \"таверна\",\n        \"name_hint\": \"таверна\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": null,\n        \"target_span\": null,\n        \"options\": [],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"EFFECT\",\n      \"draft_payload\": {\n        \"summary\": \"После сickness жены\",\n        \"effect_kind\": \"stop building\",\n        \"target_hint\": \"wife's health issues\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": null,\n        \"target_span\": null,\n        \"options\": [],\n        \"answer\": null\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 3167,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 0.5,
+  "schema_failures": [
+    "missing_required:nature",
+    "bad_effect_kind:stop building"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.6,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

@@ -1,0 +1,22 @@
+{
+  "fragment_id": "S12_npc_lying",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "Торнин говорит Люсе: 'Твои родители уехали на юг.' Борко говорит Люсе: 'Твои родители уехали на восток.' Оба говорят это с одинаковой уверенностью. Один из них — лжёт. Возможно, оба.",
+  "latency_secs": 2.96,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Люсе сказали, что её родители уехали на юг.\", \"effect_kind\": \"loss\", \"target_hint\": \"родители\"}, \"confidence\": 0.8, \"needs_confirmation\": true, \"question\": {\"question_id\": \"Q_0\", \"target_span\": \"Твои родители уехали на юг.\", \"options\": [\"CREATE_NEW_NPC\", \"LEAVE_WHITE_SPOT\"], \"answer\": null}}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Люсе сказали, что её родители уехали на восток.\", \"effect_kind\": \"loss\", \"target_hint\": \"родители\"}, \"confidence\": 0.8, \"needs_confirmation\": true, \"question\": {\"question_id\": \"Q_1\", \"target_span\": \"Твои родители уехали на восток.\", \"options\": [\"CREATE_NEW_NPC\", \"LEAVE_WHITE_SPOT\"], \"answer\": null}}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Люсе лгут.\", \"target_hint\": null, \"nature\": \"inconsistency\", \"valence\": \"negative\"}, \"confidence\": 0.9, \"needs_confirmation\": false}]}",
+  "raw_length_chars": 894,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 0.6666666666666666,
+  "schema_failures": [
+    "empty_required:target_hint"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

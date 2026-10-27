@@ -1,0 +1,19 @@
+{
+  "fragment_id": "C1_ambiguous_entity",
+  "fragment_category": "C",
+  "fragment_text": "Однажды в таверну пришёл незнакомец в чёрном. Он говорил с Торнином шёпотом, и после этого Торнин побледнел. Наутро незнакомец исчез, а Торнин заперся в погребе на три дня.",
+  "latency_secs": 6.78,
+  "llm_error": null,
+  "raw_response": " ```\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Незнакомец в чёрном пришёл в таверну и говорил с Торнином шёпотом.\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"null\",\n        \"target_span\": \"null\",\n        \"options\": [\"null\"],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин побледнел после разговора с незнакомцем.\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"null\",\n        \"target_span\": \"null\",\n        \"options\": [\"null\"],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Незнакомец исчез, а Торнин заперся в погребе на три дня.\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"null\",\n        \"target_span\": \"null\",\n        \"options\": [\"null\"],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Незнакомец говорил с Торнином шёпотом.\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"нейтральное взаимодействие\",\n        \"valence\": \"neutral\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"null\",\n        \"target_span\": \"null\",\n        \"options\": [\"null\"],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"LOCATION\",\n      \"draft_payload\": {\n        \"summary\": \"Таверна\",\n        \"name_hint\": \"таверна\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"null\",\n        \"target_span\": \"null\",\n        \"options\": [\"null\"],\n        \"answer\": null\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1928,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 5,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.8571428571428571,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0
+}

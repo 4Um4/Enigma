@@ -1,0 +1,22 @@
+{
+  "fragment_id": "A2_simple_location",
+  "fragment_category": "A",
+  "fragment_text": "Торнин держит таверну 'Серебряный Волк' уже двадцать лет.",
+  "latency_secs": 8.76,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин начал держать таверну 'Серебряный Волк'\",\n        \"day\": null,\n        \"historic_age\": 20\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"LOCATION\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин держит таверну в месте 'Серебряный Волк'\",\n        \"name_hint\": \"Серебряный Волк\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"OCCUPATION\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин занимается бизнесом\",\n        \"effect_kind\": \"residence\",\n        \"target_hint\": \"Торнин\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    }\n  ]\n}\n```",
+  "raw_length_chars": 769,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items[2]: kind 'OCCUPATION' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "schema_conformance": 0.6666666666666666,
+  "schema_failures": [
+    "unknown_kind:OCCUPATION"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.5,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

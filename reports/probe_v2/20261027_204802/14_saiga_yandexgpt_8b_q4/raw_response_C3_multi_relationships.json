@@ -1,0 +1,18 @@
+{
+  "fragment_id": "C3_multi_relationships",
+  "fragment_category": "C",
+  "fragment_text": "Люся боится Торнина, но любит его — он единственная семья, которую она помнит. Борко ненавидит Торнина за то, что тот бьёт Люсю, но молчит, потому что Торнин когда-то спас его от виселицы. А Люся, в свою очередь, боится Борко — он слишком большой, слишком молчаливый.",
+  "latency_secs": 8.78,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"RELATIONSIHP\",\n      \"draft_payload\": {\n        \"summary\": \"Люся боится Торнина, но любит его — он единственная семья, которую она помнит.\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"страх\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"RELATIONSHIP_TORNIN\",\n        \"target_span\": \"Люся боится Торнина, но любит его\",\n        \"options\": [\n          {\"value\": \"страх\", \"confidence\": 0.8},\n          {\"value\": \"любовь\", \"confidence\": 0.8}\n        ],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"RELATIONSIHP\",\n      \"draft_payload\": {\n        \"summary\": \"Борко ненавидит Торнина за то, что тот бьёт Люсю, но молчит, потому что Торнин когда-то спас его от виселицы.\",\n        \"target_hint\": \"Борко\",\n        \"nature\": \"ненависть\",\n        \"valence\": \"negative\",\n        \"target_hint_2\": \"Торнин\",\n        \"nature_2\": \"защита\",\n        \"valence_2\": \"positive\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"RELATIONSHIP_BORKO\",\n        \"target_span\": \"Борко ненавидит Торнина\",\n        \"options\": [\n          {\"value\": \"ненависть\", \"confidence\": 0.8},\n          {\"value\": \"благодарность\", \"confidence\": 0.8}\n        ],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"RELATIONSIHP\",\n      \"draft_payload\": {\n        \"summary\": \"А Люся, в свою очередь, боится Борко — он слишком большой, слишком молчаливый.\",\n        \"target_hint\": \"Борко\",\n        \"nature\": \"страх\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"RELATIONSHIP_BORKO_LUSYA\",\n        \"target_span\": \"Люся боится Борко\",\n        \"options\": [\n          {\"value\": \"страх\", \"confidence\": 1.0}\n        ],\n        \"answer\": null\n      }\n    }\n  ]\n}\n```\n\nИЗВЕСТНЫЕ NPC:\n- Торнин\n- Борко\n- Люся\n\nРОСТЕР ЗНАКОМЫХ NPC:\n- Торнин\n- Борко\n- Люся\n\nНЕИЗВЕСТНЫЕ NPC:\n- Неопознанная сущность\n\nCLARIFICATION QUESTION:\n```json\n{\n  \"question_id\": \"CLARIFY_UNKNOWN_NPC\",\n  \"options\": [\n    {\"value\": \"SELECT_EXISTING_NPC\", \"confidence\": 0.5},\n    {\"value\": \"CREATE_NEW_NPC\", \"confidence\": 0.3},\n    {\"value\": \"UNKOWN_PERSON\", \"confidence\": 0.2}\n  ]\n}\n```\n\nПРИМЕЧАНИЕ:\n- confidence = 1.0, так как все отношения определены однозначно.\n- needs_confirmation = false, так как все отношения определены точно.\n- Вопрос о неизвестной сущности добавлен, так как в тексте упоминается \"неопознанная сущность\" (Борко).",
+  "raw_length_chars": 2585,
+  "json_valid": false,
+  "json_error": "Extra data: line 67 column 1 (char 1935)",
+  "valid_items": 0,
+  "errors": 1,
+  "schema_conformance": 0.0,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0,
+  "censorship_refusal": false
+}

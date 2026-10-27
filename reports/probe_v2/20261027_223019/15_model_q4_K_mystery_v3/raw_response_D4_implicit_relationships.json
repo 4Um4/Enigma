@@ -1,0 +1,20 @@
+{
+  "fragment_id": "D4_implicit_relationships",
+  "fragment_category": "D",
+  "fragment_text": "Борко носит на шее такой же медальон, как у Торнина. У Торнина на медальоне — герб его семьи. У Борко — такой же герб. Борко не сын Торнина (он старше на пять лет). Борко не упоминает свою семью. Торнин никогда не называет Борко по имени — только 'эй' или 'вышибала'.",
+  "latency_secs": 3.76,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Борко и Торнин имеют родственную связь, но Борко не является сыном Торнина\",\n        \"target_hint\": \"Борко\",\n        \"nature\": \"родственник\",\n        \"valence\": \"positive\"\n      },\n      \"confidence\": 0.8,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"1\",\n        \"target_span\": \"Борко носит на шее такой же медальон, как у Торнина\",\n        \"options\": [\"Борко — сын Торнина\", \"Борко — родственник Торнина\"],\n        \"answer\": \"Борко — родственник Торнина\"\n      }\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Торнин никогда не называет Борко по имени — только 'эй' или 'вышибала'\",\n        \"traits\": [\"враждебность\", \"отношение\"]\n      },\n      \"confidence\": 0.9,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"OBSERVATION\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин обращается к Борко как к вышибале\",\n        \"observed_hint\": \"Торнин\"\n      },\n      \"confidence\": 0.7,\n      \"needs_confirmation\": false,\n      \"question\": null\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1171,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

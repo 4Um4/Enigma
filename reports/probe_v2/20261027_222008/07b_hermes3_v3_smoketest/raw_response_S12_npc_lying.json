@@ -1,0 +1,22 @@
+{
+  "fragment_id": "S12_npc_lying",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "Торнин говорит Люсе: 'Твои родители уехали на юг.' Борко говорит Люсе: 'Твои родители уехали на восток.' Оба говорят это с одинаковой уверенностью. Один из них — лжёт. Возможно, оба.",
+  "latency_secs": 3.54,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Люся остаётся без родителей, они уехали на юг или восток.\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Торнин и Борко являются для Люси как родители.\", \"target_hint\": \"родители\", \"nature\": \"идеализация\", \"valence\": \"neutral\"}, \"confidence\": 0.9, \"needs_confirmation\": true},\n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Люся становится сиротой, её родители уехали.\", \"effect_kind\": \"loss\", \"target_hint\": \"родители\"}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Люся остаётся одна, без родителей, она злится и чувствует себя потерянной.\", \"traits\": [\"злость\", \"потерянность\"]}, \"confidence\": 0.8, \"needs_confirmation\": true},\n  {\"kind\": \"KNOWLEDGE_LINK\", \"draft_payload\": {\"summary\": \"Люся узнала, что её родители уехали на юг или восток.\", \"about_hint\": \"уехание родителей\", \"learned_age\": null}, \"confidence\": 1.0, \"needs_confirmation\": false}\n]}",
+  "raw_length_chars": 1052,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 5,
+  "errors": 0,
+  "schema_conformance": 0.8,
+  "schema_failures": [
+    "empty_required:learned_age"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

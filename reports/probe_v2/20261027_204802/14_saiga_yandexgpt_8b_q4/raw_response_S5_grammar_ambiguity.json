@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S5_grammar_ambiguity",
+  "fragment_category": "ambiguity",
+  "fragment_text": "Торнин сказал Люсе, что Борко предал их. Люся не поверила. Борко предал их на следующее утро.",
+  "latency_secs": 4.69,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин сообщил Люсе о предательстве Борко\",\n        \"day\": null,\n        \"target_hint\": \"Люся\",\n        \"confidence\": 1.0,\n        \"needs_confirmation\": false,\n        \"question\": {\n          \"question_id\": \"1\",\n          \"target_span\": \"Торнин сказал Люсе, что Борко предавал их\",\n          \"options\": [\n            {\"value\": \"Люся\", \"confidence\": 1.0},\n            {\"value\": \"Борко\", \"confidence\": 1.0}\n          ],\n          \"answer\": null\n        }\n      }\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Борко предал их\",\n        \"day\": \"следующее утро\",\n        \"target_hint\": \"они\",\n        \"confidence\": 1.0,\n        \"needs_confirmation\": false,\n        \"question\": {\n          \"question_id\": \"2\",\n          \"target_span\": \"Борко предавал их на следующее утро\",\n          \"options\": [\n            {\"value\": \"они\", \"confidence\": 1.0}\n          ],\n          \"answer\": null\n        }\n      }\n    }\n  ]\n}\n```\n\nПояснения:\n- В первом событии (EVENT) Люся узнает о предательстве Борко от Торнина.\n- Во втором событии (EVENT) Борко совершает предательство на следующее утро.\n- \"Они\" в обоих событиях относится к группе персонажей, включая Люсю.\n- Возраст Люси неизвестен, поэтому не указан в payload.\n- \"Предал их\" — это событие, а не последствие для статуса/тела/личности.\n- \"На следующее утро\" — это уточнение времени события.",
+  "raw_length_chars": 1458,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 2,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

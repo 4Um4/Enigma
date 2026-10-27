@@ -1,0 +1,19 @@
+{
+  "fragment_id": "A2_simple_location",
+  "fragment_category": "A",
+  "fragment_text": "Торнин держит таверну 'Серебряный Волк' уже двадцать лет.",
+  "latency_secs": 2.71,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"LOCATION\",\n      \"draft_payload\": {\n        \"summary\": \"Таверна 'Серебряный Волк'\",\n        \"name_hint\": \"Серебряный Волк\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"1\",\n        \"target_span\": \"Таверна 'Серебряный Волк'\",\n        \"options\": [\n          {\"value\": \"CREATE_NEW_NPC\", \"label\": \"Создать нового NPC\"},\n          {\"value\": \"UNKOWN_PERSON\", \"label\": \"Неизвестный персонаж\"},\n          {\"value\": \"LEAVE_WHITE_SPOT\", \"label\": \"Оставить белое пятно\"}\n        ],\n        \"answer\": null\n      }\n    }\n  ]\n}\n```\n\nПримечание:\n- \"target_hint\" не сопоставляется однозначно с известными NPC, поэтому задан вопрос о идентичности сущности.\n- \"confidence\" = 1.0, так как информация однозначна.\n- \"needs_confirmation\" = false, так как нет причин для дополнительного подтверждения.",
+  "raw_length_chars": 889,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 1,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.5,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

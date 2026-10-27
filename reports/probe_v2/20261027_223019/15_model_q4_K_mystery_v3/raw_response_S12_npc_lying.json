@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S12_npc_lying",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "Торнин говорит Люсе: 'Твои родители уехали на юг.' Борко говорит Люсе: 'Твои родители уехали на восток.' Оба говорят это с одинаковой уверенностью. Один из них — лжёт. Возможно, оба.",
+  "latency_secs": 5.25,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Родители Люси уехали на юг\",\n        \"day\": null\n      },\n      \"confidence\": 0.7,\n      \"needs_confirmation\": true,\n      \"question\": {\n        \"question_id\": \"1\",\n        \"target_span\": \"Твои родители уехали на юг\",\n        \"options\": [\"Твои родители уехали на юг\", \"Твои родители уехали на восток\"],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Родители Люси уехали на восток\",\n        \"day\": null\n      },\n      \"confidence\": 0.7,\n      \"needs_confirmation\": true,\n      \"question\": {\n        \"question_id\": \"2\",\n        \"target_span\": \"Твои родители уехали на восток\",\n        \"options\": [\"Твои родители уехали на юг\", \"Твои родители уехали на восток\"],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин и Борко говорят с одинаковой уверенностью о местах, куда уехали родители Люси\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"conflict\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 0.8,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"3\",\n        \"target_span\": \"Торнин говорит Люсе: 'Твои родители уехали на юг.' Борко говорит Люсе: 'Твои родители уехали на восток.' Оба говорят это с одинаковой уверенностью.\",\n        \"options\": [\"Торнин и Борко говорят с одинаковой уверенностью о местах, куда уехали родители Люси\", \"Один из них — лжёт\"],\n        \"answer\": null\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1590,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

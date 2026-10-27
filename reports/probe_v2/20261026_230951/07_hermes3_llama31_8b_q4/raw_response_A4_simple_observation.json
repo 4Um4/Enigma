@@ -1,0 +1,19 @@
+{
+  "fragment_id": "A4_simple_observation",
+  "fragment_category": "A",
+  "fragment_text": "Люся видела, как Борко дерётся с пьяными.",
+  "latency_secs": 1.16,
+  "llm_error": null,
+  "raw_response": "{\n  \"items\": [\n    {\n      \"kind\": \"OBSERVATION\",\n      \"draft_payload\": {\n        \"summary\": \"Люся видела, как Борко дерется с пьяными.\",\n        \"observed_hint\": \"Борко\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"\",\n        \"target_span\": \"\",\n        \"options\": [],\n        \"answer\": null\n      }\n    }\n  ]\n}",
+  "raw_length_chars": 380,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 1,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.6,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

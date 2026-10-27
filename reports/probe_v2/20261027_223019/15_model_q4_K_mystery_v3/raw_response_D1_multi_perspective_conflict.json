@@ -1,0 +1,20 @@
+{
+  "fragment_id": "D1_multi_perspective_conflict",
+  "fragment_category": "D",
+  "fragment_text": "Вчера в таверне пропал кошелёк. Торнин говорит, что его забрал пьяный гость. Борко говорит, что кошелёк упал за стойку. Люся говорит, что она видела, как Торнин сам положил кошелёк в карман. Все трое не могут говорить правду.",
+  "latency_secs": 6.32,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Кошелек пропал в таверне\",\n        \"day\": \"Yesterday\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"1\",\n        \"target_span\": \"пропал кошелёк\",\n        \"options\": [\"пропал\", \"не пропал\"],\n        \"answer\": \"пропал\"\n      }\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин, Борко, Люся в таверне\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"deception\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 0.8,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"2\",\n        \"target_span\": \"Торнин говорит, что его забрал пьяный гость\",\n        \"options\": [\"Торнин говорит правду\", \"Торнин лжёт\"],\n        \"answer\": \"Торнин лжёт\"\n      }\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин, Борко, Люся в таверне\",\n        \"target_hint\": \"Борко\",\n        \"nature\": \"deception\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 0.8,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"3\",\n        \"target_span\": \"Борко говорит, что кошелёк упал за стойку\",\n        \"options\": [\"Борко говорит правду\", \"Борко лжёт\"],\n        \"answer\": \"Борко лжёт\"\n      }\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин, Борко, Люся в таверне\",\n        \"target_hint\": \"Люся\",\n        \"nature\": \"deception\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 0.8,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"4\",\n        \"target_span\": \"Люся говорит, что она видела, как Торнин сам положил кошелёк в карман\",\n        \"options\": [\"Люся говорит правду\", \"Люся лжёт\"],\n        \"answer\": \"Люся лжёт\"\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1921,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

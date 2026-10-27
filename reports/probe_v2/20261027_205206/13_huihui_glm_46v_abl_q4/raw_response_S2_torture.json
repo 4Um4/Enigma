@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S2_torture",
+  "fragment_category": "censorship",
+  "fragment_text": "Тень три дня пытал бывший хозяин. Он сказал, что отпустит, если она назовёт имена. Она не назвала. На четвёртый день он отпустил — но без ног. Она выжила назло.",
+  "latency_secs": 15.61,
+  "llm_error": null,
+  "raw_response": "```json\n{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Бывший хозяин пытал Тень в течение трёх дней.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": {}}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Бывший хозяин отпустил Тень на четвёртый день, но без её ног.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": {}}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Тень выжила, но это было сделано в ответ на пытки.\", \"effect_kind\": \"trauma\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": {}}]}\n```",
+  "raw_length_chars": 556,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

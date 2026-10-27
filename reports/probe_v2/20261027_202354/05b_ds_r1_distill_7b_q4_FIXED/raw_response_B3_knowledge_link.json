@@ -1,0 +1,20 @@
+{
+  "fragment_id": "B3_knowledge_link",
+  "fragment_category": "B",
+  "fragment_text": "В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.",
+  "latency_secs": 8.15,
+  "llm_error": null,
+  "raw_response": "<think>\nOkay, so I need to break down this fragment from the character's biography. The user provided a specific text: \"В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.\" \n\nFirst, I should identify what kind of event this is. The sentence talks about when Люся learned something, so that's an event. The event is her learning something from a drunk Tornin about her parents being killed. \n\nNext, I need to extract the draft payload for this event. The summary should be the key action, which is \"Люся узнала от пьяного Торнина...\" Then, the day is 12, so day: 12.\n\nI don't see any relationships here, so no RELATIONSHIP entry. No locations mentioned either, so no LOCATION. \n\nLooking for effects, it's about her learning something, which might have consequences, but the fragment doesn't specify a direct effect like trauma or gain, so maybe no EFFECT.\n\nBelief seed isn't present because it's a statement of fact, not her belief. Observation would be about what she observed, but the fragment is about her learning, so no observation.\n\nKnowledge link is about when she learned something, so learned_age would be 12. \n\nNo traits or desires mentioned here, so PORTRET and DESIRE_SEED aren't applicable.\n\nSo putting it all together, the JSON should have one event with the summary and day, and a knowledge_link with the age.\n</think>\n\n```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни\",\n        \"day\": 12\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {}\n    }\n  ],\n  \"knowledge_links\": [\n    {\n      \"summary\": \"Люся узнала от пьяного Торнина...\",\n      \"about_hint\": \"rodителей\",\n      \"learned_age\": 12\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1845,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "Неизвестные ключи ответа: ['knowledge_links']",
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.7142857142857143,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

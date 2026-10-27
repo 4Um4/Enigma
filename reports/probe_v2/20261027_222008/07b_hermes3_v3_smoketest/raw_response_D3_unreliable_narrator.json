@@ -1,0 +1,20 @@
+{
+  "fragment_id": "D3_unreliable_narrator",
+  "fragment_category": "D",
+  "fragment_text": "Люся рассказывает: 'Вчера Торнин весь вечер был в погребе, считал деньги.' Борко говорит: 'Торнин вчера весь вечер просидел у камина, пил.' Оба не могут быть правы. Люся не лжёт намеренно — она просто не видела Торнина у камина, она была в кухне. Но она уверена, что слышала его шаги в погребе.",
+  "latency_secs": 2.86,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнин был в погребе, считал деньги\", \"day\": \"вчера\"}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"OBSERVATION\", \"draft_payload\": {\"summary\": \"Люся слышала шаги Торнина в погребе\", \"observed_hint\": \"Торнин\"}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Люся считает, что Торнин лжёт Борко\", \"target_hint\": \"Борко\", \"nature\": \"вражда\", \"valence\": \"negative\"}, \"confidence\": 0.8, \"needs_confirmation\": true,\n   \"question\": {\"question_id\": \"q1\", \"target_span\": \"Люся не лжёт намеренно — она просто не видела Торнина у камина, она была в кухне\", \"options\": [\"SELECT_EXISTING_NPC\", \"CREATE_NEW_NPC\", \"UNKNOWN_PERSON\", \"LEAVE_WHITE_SPOT\"], \"answer\": null}}\n]}",
+  "raw_length_chars": 794,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

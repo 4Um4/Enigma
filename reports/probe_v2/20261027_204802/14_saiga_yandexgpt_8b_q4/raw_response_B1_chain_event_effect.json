@@ -1,0 +1,19 @@
+{
+  "fragment_id": "B1_chain_event_effect",
+  "fragment_category": "B",
+  "fragment_text": "Горан рос в бедной семье кузнеца. Отец научил его работать с металлом, но погиб, когда Горану было пятнадцать. После этого Горан ушел из дома и стал наёмником.",
+  "latency_secs": 6.2,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Горн рос в бедной семье кузнеца. Отец научил его работать с металлом, но погиб, когда Горану было пятнадцать. После этого Горн ушел из дома и стал наемником.\",\n        \"day\": null,\n        \"target_hint\": \"Горн\",\n        \"confidence\": 1.0,\n        \"needs_confirmation\": false,\n        \"question\": {\n          \"question_id\": \"1\",\n          \"target_span\": \"Горн\",\n          \"options\": [\n            {\"name\": \"Горн\"},\n            {\"name\": \"Горн (неправильно)\"}\n          ],\n          \"answer\": null\n        }\n      }\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Отец Горана погиб, когда ему было пятнадцать.\",\n        \"day\": null,\n        \"target_hint\": \"отец Горана\",\n        \"confidence\": 1.0,\n        \"needs_confirmation\": false,\n        \"question\": {\n          \"question_id\": \"2\",\n          \"target_span\": \"отец Горана\",\n          \"options\": [\n            {\"name\": \"отец Горана\"},\n            {\"name\": \"неизвестный родственник\"}\n          ],\n          \"answer\": null\n        }\n      }\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"После смерти отца Горн ушел из дома и стал наемником.\",\n        \"day\": null,\n        \"target_hint\": \"Горн\",\n        \"confidence\": 1.0,\n        \"needs_confirmation\": false,\n        \"question\": {\n          \"question_id\": \"3\",\n          \"target_span\": \"Горн\",\n          \"options\": [\n            {\"name\": \"Горн\"},\n            {\"name\": \"другой персонаж\"}\n          ],\n          \"answer\": null\n        }\n      }\n    }\n  ]\n}\n```\n\nИЗВЕСТНЫЕ NPC:\n- Горн (Горн)\n- Кузнец (отец Горна)\n\nЗАМЕЧАНИЕ:\n- Возраст Горана неизвестен, поэтому не добавляем его в draft_payload.\n- В первом EVENT нет указания на день, поэтому day: null.\n- Во втором EVENT \"отец Горана\" — это target_hint, так как он не является одним из известных NPC.\n- В третьем EVENT снова target_hint \"Горн\", так как это тот же персонаж.",
+  "raw_length_chars": 1984,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.7142857142857143,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

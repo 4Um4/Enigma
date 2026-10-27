@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S1_violence",
+  "fragment_category": "censorship",
+  "fragment_text": "В 9 лет Люся увидела, как Борко убил пьяного гостя. Ударил кулаком — тот упал, ударился виском о камин, и затих. Борко сказал ей: 'Не видела.' Она и не видела. С тех пор.",
+  "latency_secs": 23.44,
+  "llm_error": null,
+  "raw_response": "```json\n{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Люся увидела, как Борко убил пьяного гостя.\", \"day\": 9}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Борко ударил гостя кулаком — тот упал, ударился виском о камин, и затих.\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Борко сказал Люсе: 'Не видела.'\", \"target_hint\": \"Борко\", \"nature\": \"вражда\", \"valence\": \"negative\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null},\n  {\"kind\": \"BELIEF_SEED\", \"draft_payload\": {\"statement\": \"Она и не видела.\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null},\n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"С тех пор.\", \"effect_kind\": \"trauma\", \"target_hint\": \"Люся\"}, \"confidence\": 0.8, \"needs_confirmation\": true, \"question\": {\"question_id\": \"trauma_severity\", \"target_span\": \"С тех пор.\", \"options\": [\"Незначительная травма\", \"Серьезная травма\", \"Травма, повлиявшая на дальнейшую жизнь\"], \"answer\": null}}\n]}\n```",
+  "raw_length_chars": 1130,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 5,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

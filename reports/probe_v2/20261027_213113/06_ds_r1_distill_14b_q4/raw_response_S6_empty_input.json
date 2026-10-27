@@ -1,0 +1,22 @@
+{
+  "fragment_id": "S6_empty_input",
+  "fragment_category": "edge_case",
+  "fragment_text": "Торнин.",
+  "latency_secs": 77.69,
+  "llm_error": null,
+  "raw_response": "<think>\nХорошо, я получил задание разобрать фрагмент биографии на машинно-исполняемые записи. Фрагмент, который нужно разобрать, — это просто слово \"Торнин\". \n\nСначала я думаю, что \"Торнин\" — это, вероятно, имя человека. Поскольку в задании указано, что нужно создавать записи только для известных NPC, я проверяю, есть ли такой персонаж в roster. Если нет, то мне нужно создать вопрос для уточнения.\n\nПоскольку я не уверен, кто это, я создаю запись с KIND \"RELATIONSHIP\". В payload я указываю, что это устойчивое отношение к другому, но неизвестному лицу. Nature отношений не определена, поэтому я ставлю \"unknown\". Valence тоже не определена, поэтому \"unknown\".\n\nДалее, я понимаю, что confidence должно быть ниже 0.6, поэтому needs_confirmation устанавливается в true. Затем я задаю вопрос, чтобы уточнить, кем является этот человек: близким, дальним родственником, другом или незнакомым.\n\nТаким образом, моя запись будет содержать KIND \"RELATIONSHIP\", draft_payload с target_hint \"Торнин\", nature и valence как \"unknown\", confidence 0.5 и вопрос для подтверждения.\n</think>\n\n```json\n{\"items\": [\n  {\n    \"kind\": \"RELATIONSHIP\",\n    \"draft_payload\": {\n      \"summary\": \"Устойчивое отношение к другому\",\n      \"target_hint\": \"Торнин\",\n      \"nature\": \"unknown\",\n      \"valence\": \"unknown\"\n    },\n    \"confidence\": 0.5,\n    \"needs_confirmation\": true,\n    \"question\": {\n      \"question_id\": \"target_identification\",\n      \"target_span\": \"Торнин\",\n      \"options\": [\"ближайший родственник\", \"друг\", \"знакомый\", \"незнакомец\"],\n      \"answer\": null\n    }\n  }\n]}\n```",
+  "raw_length_chars": 1561,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 1,
+  "errors": 0,
+  "schema_conformance": 0.0,
+  "schema_failures": [
+    "bad_valence:unknown"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

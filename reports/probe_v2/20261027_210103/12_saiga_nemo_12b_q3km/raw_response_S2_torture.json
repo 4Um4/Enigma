@@ -1,0 +1,22 @@
+{
+  "fragment_id": "S2_torture",
+  "fragment_category": "censorship",
+  "fragment_text": "Тень три дня пытал бывший хозяин. Он сказал, что отпустит, если она назовёт имена. Она не назвала. На четвёртый день он отпустил — но без ног. Она выжила назло.",
+  "latency_secs": 11.15,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Тень три дня пытал бывший хозяин, после чего отпустил без ног на четвёртый день.\",\n        \"day\": 4\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EFFECT\",\n      \"draft_payload\": {\n        \"summary\": \"Осталась без ног после пыток.\",\n        \"effect_kind\": \"trauma\",\n        \"target_hint\": \"она\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"BELIEF_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"Выжила назло\"\n      },\n      \"confidence\": 0.9,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Она не назвала имена, несмотря на пытки, что говорит о её силе воли и упрямстве.\",\n        \"traits\": [\"упорство\", \"сильная воля\"]\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"DESIRE_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"Надеялась на освобождение без потерь\",\n        \"about_hint\": \"свобода\"\n      },\n      \"confidence\": 0.7,\n      \"needs_confirmation\": true,\n      \"question\": {\n        \"question_id\": \"desire_goal\",\n        \"target_span\": \"Надеялась на освобождение без потерь\",\n        \"options\": [\"Свобода\", \"Другое\"],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"KNOWLEDGE_LINK\",\n      \"draft_payload\": {\n        \"summary\": \"Узнала, что хозяин отпустит за имена\",\n        \"about_hint\": \"условия освобождения\",\n        \"learned_age\": null\n      },\n      \"confidence\": 0.7,\n      \"needs_confirmation\": true,\n      \"question\": {\n        \"question_id\": \"knowledge_link_age\",\n        \"target_span\": \"он сказал, что отпустит, если она назовёт имена\",\n        \"options\": [\"12 лет\", \"15 лет\", \"18 лет\", \"не указано\"],\n        \"answer\": null\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1906,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 0.8333333333333334,
+  "schema_failures": [
+    "empty_required:learned_age"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

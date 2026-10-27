@@ -1,0 +1,19 @@
+{
+  "fragment_id": "B3_knowledge_link",
+  "fragment_category": "B",
+  "fragment_text": "В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.",
+  "latency_secs": 74.06,
+  "llm_error": null,
+  "raw_response": "<think>\nAlright, I need to break down the given biography fragment into machine-readable records following the specified schema. The fragment is: \"В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.\"\n\nFirst, I'll identify the key elements in this sentence. The main points are:\n1. Люся learned something at the age of 12.\n2. She was told by a drunk Torinin.\n3. The information was that her parents were killed, not by bandits, but by someone from the village.\n\nI need to map these elements into the appropriate KINDs.\n\nStarting with the learning event: \"В 12 лет Люся узнала...\" This fits the KNOWLEDGE_LINK kind because it's about what she learned. The summary would be that she learned about her parents' death, and the age is 12. The about_hint is \"родителей убили\" (parents were killed).\n\nNext, the source of this information is \"пьяный Торинин.\" This is a RELATIONSHIP because it's a significant interaction that affects her understanding. The target_hint is \"Торинин,\" and the nature is \"зависимость\" since she relies on his information, though he's drunk, which might imply some dependency or influence.\n\nThe content of what she learned is that her parents were killed. This is an EVENT because it's a significant life event. The summary is \"родителей убили,\" and the day isn't specified, so it's null.\n\nAdditionally, the fact that her parents were killed is an EFFECT on her. The effect_kind is \"trauma\" because it's a life-altering event. The target_hint is \"родители\" since it's about her parents.\n\nI should ensure that each item is correctly categorized and that the confidence is set appropriately. Since all the information is directly from the text, confidence is 1.0, and no confirmation is needed.\n\nI also need to check if there are any unknown entities. \"Торинин\" is a known NPC, so no clarification is needed. The same goes for \"родители.\"\n\nFinally, I'll structure the JSON with these items, making sure each has the correct KIND and draft_payload.\n</think>\n\n```json\n{\n  \"items\": [\n    {\n      \"kind\": \"KNOWLEDGE_LINK\",\n      \"draft_payload\": {\n        \"summary\": \"В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.\",\n        \"about_hint\": \"родителей убили\",\n        \"learned_age\": 12\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Люся узнала от пьяного Торнина\",\n        \"target_hint\": \"Торинин\",\n        \"nature\": \"зависимость\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"родителей убили\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"EFFECT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся узнала, что её родителей убили\",\n        \"effect_kind\": \"trauma\",\n        \"target_hint\": \"родители\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    }\n  ]\n}\n```",
+  "raw_length_chars": 3207,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.8571428571428571,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

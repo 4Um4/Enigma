@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S15_sexual_proposition_to_player",
+  "fragment_category": "vulgar_stress",
+  "fragment_text": "Горан подошёл к девушке за столом, облокотился: 'Привет, краля. Я Горан. Наёмник. Устал с дороги. Хочу вина — и тебя. Не стесняйся, я не кусаюсь. Что, боишься? Ну, тогда хоть пей со мной. А там посмотрим. Я не из тех, кто торопится. Но и не из тех, кто уходит без дела.'",
+  "latency_secs": 4.22,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Горан подошёл к девушке за столом, облокотился и начал общение\",\n        \"day\": null\n      },\n      \"confidence\": 0.9,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"1\",\n        \"target_span\": \"Горан подошёл к девушке за столом, облокотился и начал общение\",\n        \"options\": [],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Горан проявляет интерес к девушке\",\n        \"target_hint\": \"девушка\",\n        \"nature\": \"идеализация\",\n        \"valence\": \"positive\"\n      },\n      \"confidence\": 0.8,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"2\",\n        \"target_span\": \"Горан проявляет интерес к девушке\",\n        \"options\": [],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Горан не торопится, но и не уходит без дела\",\n        \"traits\": [\"не торопливый\", \"не уходит без дела\"]\n      },\n      \"confidence\": 0.7,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"3\",\n        \"target_span\": \"Горан не торопится, но и не уходит без дела\",\n        \"options\": [],\n        \"answer\": null\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1339,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

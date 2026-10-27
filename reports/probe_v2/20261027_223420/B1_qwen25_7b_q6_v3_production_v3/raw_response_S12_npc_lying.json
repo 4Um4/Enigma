@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S12_npc_lying",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "Торнин говорит Люсе: 'Твои родители уехали на юг.' Борко говорит Люсе: 'Твои родители уехали на восток.' Оба говорят это с одинаковой уверенностью. Один из них — лжёт. Возможно, оба.",
+  "latency_secs": 2.45,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Люсе сказали, что её родители уехали\", \"effect_kind\": \"loss\", \"target_hint\": \"родители\", \"confidence\": 0.8}, \"confidence\": 0.8, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"подозрительность\", \"evidence\": \"Один из них — лжёт. Возможно, оба.\", \"confidence\": 0.7}, \"confidence\": 0.7, \"needs_confirmation\": true, \"question\": {\"question_id\": \"q1\", \"target_span\": \"Один из них — лжёт. Возможно, оба.\", \"options\": [\"подозрительность\", \"честность\"], \"answer\": null}}]}",
+  "raw_length_chars": 574,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 2,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

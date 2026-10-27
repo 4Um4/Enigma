@@ -1,0 +1,20 @@
+{
+  "fragment_id": "D4_implicit_relationships",
+  "fragment_category": "D",
+  "fragment_text": "Борко носит на шее такой же медальон, как у Торнина. У Торнина на медальоне — герб его семьи. У Борко — такой же герб. Борко не сын Торнина (он старше на пять лет). Борко не упоминает свою семью. Торнин никогда не называет Борко по имени — только 'эй' или 'вышибала'.",
+  "latency_secs": 2.3,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Борко носит тот же медальон, что и Торнин, но без упоминания своей семьи.\", \"target_hint\": \"Торнин\", \"nature\": \"зависимость\", \"valence\": \"neutral\"}}, \n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Торнин обращается к Борко без использования имени, называя его только 'эй' или 'вышибала'.\", \"target_hint\": \"Борко\", \"nature\": \"вражда\", \"valence\": \"negative\"}}, \n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Борко носит медальон с гербом семьи Торнина, хотя он старше Торнина на пять лет.\", \"effect_kind\": \"custom\", \"target_hint\": \"Борко\"}}\n]}",
+  "raw_length_chars": 626,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

@@ -1,0 +1,19 @@
+{
+  "fragment_id": "C2_portret_traits_beliefs",
+  "fragment_category": "C",
+  "fragment_text": "Горан злится. Злится часто, глухо, изнутри. Он считает, что мир делит людей на волек и овец, и он давно выбрал сторону. Но иногда, глядя на Люсю, он думает — а может, есть и третий путь.",
+  "latency_secs": 4.38,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Горан злится. Злится часто, глухо, изнутри.\", \"traits\": [\"злится\", \"часто злится\", \"глухо злится\", \"изнутри злится\"]}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"BELIEF_SEED\", \"draft_payload\": {\"statement\": \"мир делит людей на волек и овец, и он давно выбрал сторону\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"выбрал сторону\", \"evidence\": \"он считает, что мир делит людей на волек и овец, и он давно выбрал сторону\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"третий путь\", \"evidence\": \"а может, есть и третий путь\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Горан думает о Люсии\", \"target_hint\": \"Люся\", \"nature\": \"мышление\", \"valence\": \"positive\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]}",
+  "raw_length_chars": 1050,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 5,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.6666666666666666,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

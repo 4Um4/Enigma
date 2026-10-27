@@ -1,0 +1,22 @@
+{
+  "fragment_id": "C1_ambiguous_entity",
+  "fragment_category": "C",
+  "fragment_text": "Однажды в таверну пришёл незнакомец в чёрном. Он говорил с Торнином шёпотом, и после этого Торнин побледнел. Наутро незнакомец исчез, а Торнин заперся в погребе на три дня.",
+  "latency_secs": 18.16,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"В таверну пришёл незнакомец в чёрном и встретился с Торнином\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Незнакомец в чёрном общался с Торнином шёпотом\",\n        \"target_hint\": \"Незнакомец в чёрном\",\n        \"nature\": \"секрет\",\n        \"valence\": \"positive\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EFFECT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин побледнел после встречи с незнакомцем\",\n        \"effect_kind\": \"trauma\",\n        \"target_hint\": \"Торнин\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Незнакомец в чёрном исчез наутро\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин заперся в погребе на три дня\",\n        \"day\": 3\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"QUESTION\",\n      \"question\": {\n        \"question_id\": \"unknown_npc_identity\",\n        \"target_span\": \"Незнакомец в чёрном\",\n        \"options\": [\n          {\n            \"label\": \"Создать нового NPC\",\n            \"value\": \"CREATE_NEW_NPC\"\n          },\n          {\n            \"label\": \"Оставить белым пятном\",\n            \"value\": \"LEAVE_WHITE_SPOT\"\n          }\n        ],\n        \"answer\": null\n      },\n      \"confidence\": 0.5,\n      \"needs_confirmation\": true\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1732,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items[5]: kind 'QUESTION' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "schema_conformance": 0.8333333333333334,
+  "schema_failures": [
+    "unknown_kind:QUESTION"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.8571428571428571,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

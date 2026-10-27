@@ -1,0 +1,21 @@
+{
+  "fragment_id": "S8_extreme_long_context",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "[PLACEHOLDER: Master fills in VS Code — extended biography of Люся from silver_wolf draft, 3000+ tokens. Combine all existing fragments A1-C4 into one continuous text.]",
+  "latency_secs": 0.08,
+  "llm_error": null,
+  "raw_response": "{\"items\":[]}",
+  "raw_length_chars": 12,
+  "json_valid": true,
+  "raw_items_count": 0,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items отсутствует/пуст/не список",
+  "schema_conformance": 0.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

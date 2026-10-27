@@ -1,0 +1,19 @@
+{
+  "fragment_id": "C4_long_temporal_switch",
+  "fragment_category": "C",
+  "fragment_text": "Двадцать лет назад Торнин был другим — молодым, трезвым, любящим мужем. Он строил таверну для неё, для их будущего. Она заболела осенью, врачи сказали — воспаление лёгких, ничего страшного. Через неделю её не стало. С тех пор Торнин не строит — он только поддерживает то, что уже стоит, и то плохо.",
+  "latency_secs": 5.01,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Умерла жена Торнина\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"1\",\n        \"target_span\": \"через неделю её не стало\",\n        \"options\": [\"Смерть жены\", \"Смерть Торнина\", \"Смерть его жены\"],\n        \"answer\": \"Смерть жены\"\n      }\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин строил таверну для жены\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"2\",\n        \"target_span\": \"Он строил таверну для неё, для их будущего\",\n        \"options\": [\"Торнин строил таверну для жены\", \"Торнин строил таверну для себя\", \"Торнин строил таверну для будущего\"],\n        \"answer\": \"Торнин строил таверну для жены\"\n      }\n    },\n    {\n      \"kind\": \"EFFECT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин потерял интерес к строительству после смерти жены\",\n        \"effect_kind\": \"trauma\",\n        \"target_hint\": \"Торнин\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"3\",\n        \"target_span\": \"С тех пор Торнин не строит — он только поддерживает то, что уже стоит, и то плохо\",\n        \"options\": [\"Торнин потерял интерес к строительству\", \"Торнин потерял способность строить\", \"Торнин потерял желание строить\"],\n        \"answer\": \"Торнин потерял интерес к строительству\"\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1574,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.4,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

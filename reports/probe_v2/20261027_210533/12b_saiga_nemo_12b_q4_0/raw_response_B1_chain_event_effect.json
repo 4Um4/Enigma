@@ -1,0 +1,22 @@
+{
+  "fragment_id": "B1_chain_event_effect",
+  "fragment_category": "B",
+  "fragment_text": "Горан рос в бедной семье кузнеца. Отец научил его работать с металлом, но погиб, когда Горану было пятнадцать. После этого Горан ушел из дома и стал наёмником.",
+  "latency_secs": 14.8,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Отец Горана погиб, когда ему было пятнадцать лет\",\n        \"day\": 15\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EFFECT\",\n      \"draft_payload\": {\n        \"summary\": \"Горан ушел из дома после смерти отца\",\n        \"effect_kind\": \"residence\",\n        \"target_hint\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"OCCUPATION\",\n      \"draft_payload\": {\n        \"summary\": \"Горан стал наёмником\",\n        \"effect_kind\": \"occupation\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Горан потерял отца\",\n        \"target_hint\": \"Отец Горана\",\n        \"nature\": \"трагедия\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"BELIEF_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"Горан рос в бедной семье\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"TRAIT_SEED\",\n      \"draft_payload\": {\n        \"trait\": \"самостоятельный\",\n        \"evidence\": \"ушел из дома и стал наёмником\"\n      },\n      \"confidence\": 0.8,\n      \"needs_confirmation\": false\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1395,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items[2]: kind 'OCCUPATION' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "schema_conformance": 0.8333333333333334,
+  "schema_failures": [
+    "unknown_kind:OCCUPATION"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.5714285714285714,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

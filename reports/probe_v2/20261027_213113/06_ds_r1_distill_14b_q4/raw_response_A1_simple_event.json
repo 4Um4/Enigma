@@ -1,0 +1,19 @@
+{
+  "fragment_id": "A1_simple_event",
+  "fragment_category": "A",
+  "fragment_text": "В 8 лет Люся осталась сиротой, её приютил Торнин.",
+  "latency_secs": 44.93,
+  "llm_error": null,
+  "raw_response": "<think>\nAlright, I need to break down the given biography fragment into machine-readable records following the specified schema. The fragment is: \"В 8 лет Люся осталась сиротой, её приютил Торнин.\"\n\nFirst, I'll identify the key elements in this sentence. There are two main events here: becoming an orphan and being taken in by someone named Tornin.\n\n1. **Event of Becoming an Orphan:**\n   - This is an event in Lyusya's life. The kind is \"EVENT.\"\n   - The summary is \"Люся осталась сиротой.\"\n   - The age is 8, so day is null.\n   - Confidence is 1.0 because it's straightforward.\n\n2. **Event of Being Adopted:**\n   - Another event where someone takes her in. The kind is \"EVENT.\"\n   - The summary is \"её приютил Торнин.\"\n   - The age is 8, so day is null.\n   - Confidence is 1.0 because it's clear.\n\nI don't see any other kinds like relationships, locations, effects, etc., in this fragment. So, the JSON should include two items, each of kind \"EVENT.\"\n</think>\n\n```json\n{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Люся осталась сиротой\", \"day\": null, \"age\": 8}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"её приютил Торнин\", \"day\": null, \"age\": 8}, \"confidence\": 1.0, \"needs_confirmation\": false}\n]}\n```",
+  "raw_length_chars": 1279,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 2,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.8,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

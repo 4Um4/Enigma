@@ -1,0 +1,22 @@
+{
+  "fragment_id": "B4_desire_seed",
+  "fragment_category": "B",
+  "fragment_text": "Люся мечтает сбежать на юг, к морю, где никогда не видела снега. Она прячет медяки в щель под печью уже три года.",
+  "latency_secs": 2.99,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"DESIRE_SEED\", \"draft_payload\": {\"statement\": \"Люся мечтает сбежать на юг, к морю, где никогда не видела снега.\", \"about_hint\": \"сбежать на юг\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"прятать медяки\", \"effect_kind\": \"gain\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"прятать медяки в щель под печью\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"HISTORICAL_AGE\", \"draft_payload\": {\"summary\": \"три года\", \"age\": 3}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]}",
+  "raw_length_chars": 720,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items[3]: kind 'HISTORICAL_AGE' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "schema_conformance": 0.75,
+  "schema_failures": [
+    "unknown_kind:HISTORICAL_AGE"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.875,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

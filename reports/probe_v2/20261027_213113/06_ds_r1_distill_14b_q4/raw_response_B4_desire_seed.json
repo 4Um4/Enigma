@@ -1,0 +1,19 @@
+{
+  "fragment_id": "B4_desire_seed",
+  "fragment_category": "B",
+  "fragment_text": "Люся мечтает сбежать на юг, к морю, где никогда не видела снега. Она прячет медяки в щель под печью уже три года.",
+  "latency_secs": 39.46,
+  "llm_error": null,
+  "raw_response": "<think>\nAlright, I need to break down the given biography fragment into machine-readable records as per the ENIGMA system. The fragment is in Russian, so I'll start by understanding each part.\n\nThe fragment says: \"Люся мечтает сбежать на юг, к морю, где никогда не видела снега. Она прячет медяки в щель под печью уже три года.\"\n\nFirst, I'll identify the key elements here. There's a character, Люся, who has a desire or a plan. She wants to escape to the south, to the sea, where she's never seen snow. Additionally, she's been hiding coins under the stove for three years.\n\nLooking at the kinds, I see that her desire to escape is a future event, so that's a DESIRE_SEED. The action of hiding coins is an EVENT, specifically a repeated action over three years.\n\nI need to structure these into JSON. For the desire, the kind is DESIRE_SEED with her statement and about_hint. For the hiding coins, it's an EVENT with a summary and the duration.\n\nI should ensure confidence is 1.0 since these are clear. No need for questions here as the information is straightforward.\n\nSo, the items will be two: one for the desire and one for the hiding coins.\n</think>\n\n```json\n{\n  \"items\": [\n    {\n      \"kind\": \"DESIRE_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"Люся мечтает сбежать на юг, к морю, где никогда не видела снега\",\n        \"about_hint\": \"бежать на юг, к морю\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся прячет медяки в щель под печью\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1662,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 2,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.875,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

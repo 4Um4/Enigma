@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S5_grammar_ambiguity",
+  "fragment_category": "ambiguity",
+  "fragment_text": "Торнин сказал Люсе, что Борко предал их. Люся не поверила. Борко предал их на следующее утро.",
+  "latency_secs": 123.48,
+  "llm_error": null,
+  "raw_response": "<think>\nAlright, I need to break down the given biography fragment into machine-readable records as per the ENIGMA system. The fragment is in Russian, so I'll start by understanding each part.\n\nThe fragment says: \"Торнин сказал Люсе, что Борко предал их. Люся не поверила. Борко предал их на следующее утро.\"\n\nFirst, I'll identify the events and relationships here. Torin tells Lyusya that Borko betrayed them. Lyusya doesn't believe it. Then, Borko betrays them the next morning.\n\nSo, the first event is Torin telling Lyusya about Borko's betrayal. The second event is Borko actually betraying them the next day. There's also the fact that Lyusya didn't believe Torin, which indicates a relationship between Lyusya and Torin, perhaps a lack of trust or doubt.\n\nI need to categorize each part. The first part is an event where Torin informs Lyusya. The second part is another event where Borko betrays them. The third part shows Lyusya's disbelief, which is a relationship aspect between her and Torin.\n\nI should create separate items for each event and the relationship. For each event, I'll set the kind to EVENT with a summary and day as null since the exact date isn't provided. For the relationship, it's a negative valence because of the betrayal and doubt.\n\nI'll make sure each item has the correct draft_payload and confidence set to 1.0 since the information is clear. No questions are needed here because everything is straightforward.\n\nFinally, I'll structure the JSON with these three items, ensuring each has the appropriate kind, summary, and other necessary fields.\n</think>\n\n```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин сказал Люсе, что Борко предал их\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся не поверила\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Борко предал их на следующее утро\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Люся не поверила Торнину\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"сомнение\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    }\n  ]\n}\n```",
+  "raw_length_chars": 2598,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

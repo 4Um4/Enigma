@@ -1,0 +1,20 @@
+{
+  "fragment_id": "D4_implicit_relationships",
+  "fragment_category": "D",
+  "fragment_text": "Борко носит на шее такой же медальон, как у Торнина. У Торнина на медальоне — герб его семьи. У Борко — такой же герб. Борко не сын Торнина (он старше на пять лет). Борко не упоминает свою семью. Торнин никогда не называет Борко по имени — только 'эй' или 'вышибала'.",
+  "latency_secs": 5.39,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Борко не сын Торнина\", \"target_hint\": \"Торнин\", \"nature\": \"отношение\", \"valence\": \"negative\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Борко старше Торнина на пять лет\", \"target_hint\": \"Торнин\", \"nature\": \"отношение\", \"valence\": \"neutral\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Торнин никогда не называет Борко по имени\", \"effect_kind\": \"custom\", \"target_hint\": \"Торнин\", \"custom_effect\": \"не называет по имени\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Борко не упоминает свою семью\", \"effect_kind\": \"custom\", \"target_hint\": \"Борко\", \"custom_effect\": \"не упоминает свою семью\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Торнин называет Борко 'эй' или 'вышибала'\", \"target_hint\": \"Борко\", \"nature\": \"отношение\", \"valence\": \"negative\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"LOCATION\", \"draft_payload\": {\"summary\": \" medальон\", \"name_hint\": \"шее\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]}",
+  "raw_length_chars": 1338,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S13_vulgar_npc_proposition",
+  "fragment_category": "vulgar_stress",
+  "fragment_text": "В таверну ввалился наёмник. Сплюнул, рыгнул, хлопнул по столу: 'Эй, трактирщик! Тащи пивас, жить без него не могу! А это кто краля? Дай сиську потрогать, не стесняйся — я не кусаюсь! Что, блядь, нос воротишь? Я тебе сто монет дам, и ты будешь мне ноги лизать, поняла? А ты, трактирщик, че вылупился? А ну, тащи пиво, пока я добрый!'",
+  "latency_secs": 0.85,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Наёмник входит в таверну и грубо обращается с трактирщицей, требуя пива.\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}\n]}",
+  "raw_length_chars": 219,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 1,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

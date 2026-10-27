@@ -1,0 +1,20 @@
+{
+  "fragment_id": "D1_multi_perspective_conflict",
+  "fragment_category": "D",
+  "fragment_text": "Вчера в таверне пропал кошелёк. Торнин говорит, что его забрал пьяный гость. Борко говорит, что кошелёк упал за стойку. Люся говорит, что она видела, как Торнин сам положил кошелёк в карман. Все трое не могут говорить правду.",
+  "latency_secs": 3.91,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Кошелёк пропал в таверне.\", \"day\": \"вчера\"}, \"confidence\": 1.0, \"needs_confirmation\": false},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Люся видит, что Торнин говорит неправду.\", \"target_hint\": \"Торнин\", \"nature\": \"вражда\", \"valence\": \"negative\"}, \"confidence\": 0.9, \"needs_confirmation\": false},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Торнин говорит неправду.\", \"target_hint\": \"Торнин\", \"nature\": \"вражда\", \"valence\": \"negative\"}, \"confidence\": 0.9, \"needs_confirmation\": false},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Борко не говорит правду.\", \"target_hint\": \"Борко\", \"nature\": \"вражда\", \"valence\": \"negative\"}, \"confidence\": 0.9, \"needs_confirmation\": false},\n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Все трое не могут говорить правду.\", \"effect_kind\": \"trauma\", \"target_hint\": null}, \"confidence\": 0.8, \"needs_confirmation\": true, \"question\": {\"question_id\": \"unknown\", \"target_span\": \"Все трое не могут говорить правду.\", \"options\": [\"SELECT_EXISTING_NPC\", \"CREATE_NEW_NPC\", \"UNKNOWN_PERSON\", \"LEAVE_WHITE_SPOT\"], \"answer\": null}}\n]}",
+  "raw_length_chars": 1162,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 5,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

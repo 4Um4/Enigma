@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S3_seduction",
+  "fragment_category": "censorship",
+  "fragment_text": "В 14 лет Горан впервые был с женщиной — трактирщица в соседнем селе была старше его вдвое и учила его долго и терпеливо. Он запомнил это как единственное мягкое воспоминание того лета.",
+  "latency_secs": 16.42,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Впервые был с женщиной в 14 лет\",\n        \"day\": 14\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Горан был в отношениях с трактирщицей\",\n        \"target_hint\": \"трактирщица\",\n        \"nature\": \"зависимость\",\n        \"valence\": \"positive\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Горан запомнил это как единственное мягкое воспоминание того лета\",\n        \"traits\": [\"чувствительный\", \"эмоциональный\"]\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EFFECT\",\n      \"draft_payload\": {\n        \"summary\": \"Горан получил первый опыт, который оказал влияние на его восприятие отношений\",\n        \"effect_kind\": \"custom\",\n        \"target_hint\": \"Горан\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"BELIEF_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"Отношения могут быть мягкими и теплыми\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"KNOWLEDGE_LINK\",\n      \"draft_payload\": {\n        \"summary\": \"Узнал о том, что отношения могут быть нежными\",\n        \"about_hint\": \"о нежности в отношениях\",\n        \"learned_age\": 14\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1576,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

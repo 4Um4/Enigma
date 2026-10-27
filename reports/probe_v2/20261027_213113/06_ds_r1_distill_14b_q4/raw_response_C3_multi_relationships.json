@@ -1,0 +1,21 @@
+{
+  "fragment_id": "C3_multi_relationships",
+  "fragment_category": "C",
+  "fragment_text": "Люся боится Торнина, но любит его — он единственная семья, которую она помнит. Борко ненавидит Торнина за то, что тот бьёт Люсю, но молчит, потому что Торнин когда-то спас его от виселицы. А Люся, в свою очередь, боится Борко — он слишком большой, слишком молчаливый.",
+  "latency_secs": 77.48,
+  "llm_error": null,
+  "raw_response": "<think>\nAlright, I need to break down this biography fragment into machine-readable records. Let me start by reading the fragment carefully.\n\nThe fragment says: \"Люся боится Торнина, но любит его — он единственная семья, которую она помнит. Борко ненавидит Торнина за то, что тот бьёт Люсю, но молчит, потому что Торнин когда-то спас его от виселицы. А Люся, в свою очередь, боится Борко — он слишком большой, слишком молчаливый.\"\n\nSo, there are three main characters here: Люся, Торнин, and Борко. The relationships between them are complex.\n\nFirst, I notice that Люся has two relationships: fear and love towards Торнин, and fear towards Борко. These should be separate RELATIONSHIP items.\n\nNext, Борко has a relationship with Торнин, which is hatred. But there's also a reason why he hates him—because Торнин beats Люся. This seems like an EVENT where Торнин hurts Люся, but since it's not a specific date, it's more of a recurring event.\n\nAdditionally, there's a past event where Торнин saved Борко from execution. This is another EVENT, indicating a past action that affects their current relationship.\n\nI should also consider the nature of each relationship. For example, Люся's fear and love towards Торнин are conflicting emotions, so the nature of the relationship is complex. Similarly, her fear of Борко is due to his size and silence.\n\nI need to structure each of these into separate items with the appropriate KIND and draft_payload. Since all the relationships and events are clearly defined, confidence can be high, but I should still set needs_confirmation to true in case there are any ambiguities.\n\nI should also ensure that each item is correctly categorized—RELATIONSHIP for the emotional connections and EVENT for the past actions. The target_hint and observed_hint should point to the correct individuals involved.\n\nFinally, I'll format everything into JSON, making sure each item is properly structured with the required fields.\n</think>\n\n```json\n{\n  \"items\": [\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Люся боится Торнина, но любит его\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"страх и любовь\",\n        \"valence\": \"mixed\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Борко ненавидит Торнина\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"вражда\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Люся боится Борко\",\n        \"target_hint\": \"Борко\",\n        \"nature\": \"страх\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин бьёт Люсю\",\n        \"target_hint\": \"Торнин\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин спас Борко от виселицы\",\n        \"target_hint\": \"Торнин\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false\n    }\n  ]\n}\n```",
+  "raw_length_chars": 3232,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 5,
+  "errors": 0,
+  "schema_conformance": 0.8,
+  "schema_failures": [
+    "bad_valence:mixed"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.875,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

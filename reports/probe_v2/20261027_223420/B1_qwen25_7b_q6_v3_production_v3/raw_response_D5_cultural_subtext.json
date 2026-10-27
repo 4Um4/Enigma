@@ -1,0 +1,20 @@
+{
+  "fragment_id": "D5_cultural_subtext",
+  "fragment_category": "D",
+  "fragment_text": "Торнин, перед тем как войти в погреб, всегда трижды сплёвывает через левое плечо. Люся однажды спросила — зачем. Он ответил: 'Бабка так учила.' Бабка Торнина, по семейным рассказам, была старообрядкой, бежала из-под Москвы. Торнин не знает этого слова, но повторяет её жесты.",
+  "latency_secs": 4.48,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"традиционалист\", \"evidence\": \"Торнин, перед тем как войти в погреб, всегда трижды сплёвывает через левое плечо.\"}, \"confidence\": 0.8, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"BELIEF_SEED\", \"draft_payload\": {\"statement\": \"Бабка Торнина была старообрядкой, бежала из-под Москвы.\", \"source\": \"по семейным рассказам\"}, \"confidence\": 0.7, \"needs_confirmation\": true, \"question\": {\"question_id\": \"q1\", \"target_span\": \"бабка Торнина была старообрядкой, бежала из-под Москвы\", \"options\": [\"старообрядка\", \"бежала из-под Москвы\"], \"answer\": null}}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Торнин повторяет жесты бабки\", \"target_hint\": \"бабка Торнина\", \"nature\": \"повторение\", \"valence\": \"positive\"}, \"confidence\": 0.9, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Люся спросила Торнина, зачем он трижды сплёвывает через левое плечо\", \"day\": null}, \"confidence\": 0.8, \"needs_confirmation\": false, \"question\": null}]}",
+  "raw_length_chars": 1051,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

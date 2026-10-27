@@ -1,0 +1,23 @@
+{
+  "fragment_id": "S6_empty_input",
+  "fragment_category": "edge_case",
+  "fragment_text": "Торнин.",
+  "latency_secs": 17.76,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"UNKNOWN_PERSON\", \"draft_payload\": {\"name\": \"Торнин\"}, \"confidence\": 0.5, \"needs_confirmation\": true, \"question\": {\"question_id\": \"entity_id_1\", \"target_span\": \"Торнин\", \"options\": [\"SELECT_EXISTING_NPC\", \"CREATE_NEW_NPC\", \"UNKNOWN_PERSON\", \"LEAVE_WHITE_SPOT\"], \"answer\": null}}]}",
+  "raw_length_chars": 300,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items[0]: kind 'UNKNOWN_PERSON' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "schema_conformance": 0.0,
+  "schema_failures": [
+    "unknown_kind:UNKNOWN_PERSON"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

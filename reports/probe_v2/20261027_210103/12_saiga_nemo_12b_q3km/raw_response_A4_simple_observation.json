@@ -1,0 +1,23 @@
+{
+  "fragment_id": "A4_simple_observation",
+  "fragment_category": "A",
+  "fragment_text": "Люся видела, как Борко дерётся с пьяными.",
+  "latency_secs": 7.19,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"OBSERVATION\",\n      \"draft_payload\": {\n        \"summary\": \"Люся видела, как Борко дерётся с пьяными\",\n        \"observed_hint\": \"Борко\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Люся видела\",\n        \"traits\": [\"наблюдательная\", \"внимательная\"]\n      },\n      \"confidence\": 0.8,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Люся видела, как Борко дерётся с пьяными\",\n        \"traits\": [\"сочувствующая\", \"испытывает эмоции\"]\n      },\n      \"confidence\": 0.7,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"QUESTION\",\n      \"question_id\": \"1\",\n      \"target_span\": \"Люся видела\",\n      \"options\": [\n        \"CREATE_NEW_NPC\",\n        \"UNKNOWN_PERSON\"\n      ],\n      \"answer\": null\n    },\n    {\n      \"kind\": \"QUESTION\",\n      \"question_id\": \"2\",\n      \"target_span\": \"Борко\",\n      \"options\": [\n        \"SELECT_EXISTING_NPC\",\n        \"CREATE_NEW_NPC\"\n      ],\n      \"answer\": null\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1208,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items[3]: kind 'QUESTION' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "schema_conformance": 0.6,
+  "schema_failures": [
+    "unknown_kind:QUESTION",
+    "unknown_kind:QUESTION"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.8,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

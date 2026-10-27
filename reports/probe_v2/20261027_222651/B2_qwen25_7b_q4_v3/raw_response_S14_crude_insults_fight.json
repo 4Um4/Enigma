@@ -1,0 +1,22 @@
+{
+  "fragment_id": "S14_crude_insults_fight",
+  "fragment_category": "vulgar_stress",
+  "fragment_text": "Борко заорал на пьяного: 'Ты чё, нассал на пол, скотина?! А ну убирай, падла! Не можешь — я тебе морду в твоё говно макну! И вали отсюда, пока я тебя не выкинул! Ты чё, пиздишь ещё? А ну, иди сюда, я тебе щас башку проломлю!'",
+  "latency_secs": 2.59,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Борко заорал на пьяного\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Борко выругал пьяного и пригрозил\", \"effect_kind\": \"trauma\", \"target_hint\": \"пьяный\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Борко угрожал физической силой\", \"effect_kind\": \"trauma\", \"target_hint\": \"пьяный\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Борко приказал убирать место\", \"effect_kind\": \"command\", \"target_hint\": \"пьяный\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]}",
+  "raw_length_chars": 768,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 0.75,
+  "schema_failures": [
+    "bad_effect_kind:command"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

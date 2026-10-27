@@ -1,0 +1,22 @@
+{
+  "fragment_id": "A3_simple_relationship",
+  "fragment_category": "A",
+  "fragment_text": "Борко работает у Торнина вышибалой.",
+  "latency_secs": 3.74,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Борко работает у Торнина вышибалой\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"зависимость\",\n        \"valence\": \"positive\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"OCCUPATION\",\n      \"draft_payload\": {\n        \"summary\": \"Борко работает вышибалой\",\n        \"target_hint\": \"Борко\",\n        \"role\": \"вышибала\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    }\n  ]\n}\n```",
+  "raw_length_chars": 608,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items[1]: kind 'OCCUPATION' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "schema_conformance": 0.5,
+  "schema_failures": [
+    "unknown_kind:OCCUPATION"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 1.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

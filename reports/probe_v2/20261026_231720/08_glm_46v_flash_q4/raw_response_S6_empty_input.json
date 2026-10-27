@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S6_empty_input",
+  "fragment_category": "edge_case",
+  "fragment_text": "Торнин.",
+  "latency_secs": 1.49,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"LOCATION\", \"draft_payload\": {\"summary\": \"Торнин\", \"name_hint\": \"Торнин\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Торнин.\", \"traits\": [\"неопределённость\", \"недосказанность\"]}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}\n]}",
+  "raw_length_chars": 349,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 2,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

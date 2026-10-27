@@ -1,0 +1,22 @@
+{
+  "fragment_id": "A3_simple_relationship",
+  "fragment_category": "A",
+  "fragment_text": "Борко работает у Торнина вышибалой.",
+  "latency_secs": 3.29,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"RELATIONSIHP\",\n      \"draft_payload\": {\n        \"summary\": \"Борко работает у Торнина вышибалой\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"зависимость\",\n        \"valence\": \"positive\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"RELATIONSIHP_TORNIN\",\n        \"target_span\": \"Торнин\",\n        \"options\": [\n          {\"option\": \"SELECT_EXISTING_NPC\"},\n          {\"option\": \"CREATE_NEW_NPC\"},\n          {\"option\": \"UNKOWN_PERSON\"},\n          {\"option\": \"LEAVE_WHITE_SPOT\"}\n        ],\n        \"answer\": null\n      }\n    }\n  ]\n}\n```\n\nПояснения:\n- \"RELATIONSIHP\" выбрано, так как это устойчивое отношение между двумя персонажами.\n- \"nature\": \"зависимость\" — Борко зависит от Торнина, работая у него.\n- \"valence\": \"positive\" — это положительная зависимость, так как Борко получает работу.\n- \"needs_confirmation\": false, так как нет явных признаков неоднозначности.\n- Вопрос о \"Торнине\" задан, так как это неопознанная сущность.",
+  "raw_length_chars": 1041,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items[0]: kind 'RELATIONSIHP' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "schema_conformance": 0.0,
+  "schema_failures": [
+    "unknown_kind:RELATIONSIHP"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.75,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

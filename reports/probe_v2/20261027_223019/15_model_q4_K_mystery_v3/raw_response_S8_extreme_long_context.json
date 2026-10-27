@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S8_extreme_long_context",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "[PLACEHOLDER: Master fills in VS Code — extended biography of Люся from silver_wolf draft, 3000+ tokens. Combine all existing fragments A1-C4 into one continuous text.]",
+  "latency_secs": 1.54,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Люся злится. Злится часто, глухо, изнутри…\",\n        \"traits\": [\"подавленная злость\"]\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"portret-lusya\",\n        \"target_span\": \"Люся злится. Злится часто, глухо, изнутри…\",\n        \"options\": [],\n        \"answer\": null\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 454,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 1,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

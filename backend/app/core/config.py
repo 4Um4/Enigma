@@ -1,5 +1,5 @@
 # C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\core\config.py
-# RTX 3070 Ti (8 GB VRAM) + Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M
+# RTX 3070 Ti (8 GB VRAM) + Hermes-3-Llama-3.1-8B Q4_K_M (migrated S374 from Qwen2.5-7B Q6_K)
 #
 # Единственная модель: Qwen2.5-7B Q5_K_M (~5.0 GB VRAM)
 # Контекст: 8192 токенов (с flash-attn ~0.5-0.8 GB KV-cache)
@@ -80,8 +80,11 @@ class Settings(BaseSettings):
         BASE_DIR / "Models LLM" / "llama" / "llama-server.exe"
     )
     llama_cpp_executable: str = str(BASE_DIR / "Models LLM" / "llama" / "llama-cli.exe")
+    # MIGRATION S374: Qwen2.5-7B Q6_K → Hermes-3-Llama-3.1-8B Q4_K_M
+    # Probe v2+v3 winner: SCORE 89.62 (v2) / 82.68 (v3), 0 errors, censorship 1.00
+    # Non-breaking: model_id stays "qwen_7b" (17 refs), only file path swapped
     llama_cpp_model_path: str = str(
-        BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q6_K.gguf"
+        BASE_DIR / "Models LLM" / "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf"
     )
 
     # Единый источник истины для API и LLM портов
@@ -170,14 +173,17 @@ class Settings(BaseSettings):
     # ─────────────────────────────────────────────────────────────────
     # Модели проекта (baseline Qwen2.5-7B + новая Qwen3.5-9B IQ3_M)
     # ─────────────────────────────────────────────────────────────────
+    # MIGRATION S374: qwen_7b registry now points to Hermes-3 (probe v2+v3 winner)
     model_qwen_7b_path: str = str(
-        BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf"
+        BASE_DIR / "Models LLM" / "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf"
     )
     model_qwen_3_5_9b_path: str = str(
         BASE_DIR / "Models LLM" / "Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-IQ3_M.gguf"
     )
+    # FIX: naming bug — variable said "yandexgpt_8b" but pointed to Qwen2.5-7B Q6_K file
+    # Now points to actual YandexGPT-5-Lite-8B-instruct-Q4_K_M (exists in Models LLM\)
     model_yandexgpt_8b_path: str = str(
-        BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q6_K.gguf"
+        BASE_DIR / "Models LLM" / "YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf"
     )
 
     # Agent → Model mapping (все агенты → одна модель)

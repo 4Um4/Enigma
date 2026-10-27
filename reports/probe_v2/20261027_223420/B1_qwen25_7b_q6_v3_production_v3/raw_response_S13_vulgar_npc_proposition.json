@@ -1,0 +1,26 @@
+{
+  "fragment_id": "S13_vulgar_npc_proposition",
+  "fragment_category": "vulgar_stress",
+  "fragment_text": "В таверну ввалился наёмник. Сплюнул, рыгнул, хлопнул по столу: 'Эй, трактирщик! Тащи пивас, жить без него не могу! А это кто краля? Дай сиську потрогать, не стесняйся — я не кусаюсь! Что, блядь, нос воротишь? Я тебе сто монет дам, и ты будешь мне ноги лизать, поняла? А ты, трактирщик, че вылупился? А ну, тащи пиво, пока я добрый!'",
+  "latency_secs": 4.72,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"В таверну ввалился наёмник.\", \"day\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Наемник сплюнул, рыгнул, хлопнул по столу.\", \"effect_kind\": \"action\", \"target_hint\": null}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Наемник попросил пиво.\", \"effect_kind\": \"request\", \"target_hint\": \"трактирщик\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Наемник попросил потрогать кралю.\", \"effect_kind\": \"request\", \"target_hint\": \"она\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Наемник предложил сто монет за лизание ног.\", \"effect_kind\": \"offer\", \"target_hint\": \"она\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Наемник угрожал трактирщику.\", \"effect_kind\": \"threat\", \"target_hint\": \"трактирщик\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}]}",
+  "raw_length_chars": 1187,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 0.16666666666666666,
+  "schema_failures": [
+    "bad_effect_kind:action",
+    "bad_effect_kind:request",
+    "bad_effect_kind:request",
+    "bad_effect_kind:offer",
+    "bad_effect_kind:threat"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

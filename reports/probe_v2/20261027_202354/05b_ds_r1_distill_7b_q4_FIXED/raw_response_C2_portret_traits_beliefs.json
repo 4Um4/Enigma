@@ -1,0 +1,19 @@
+{
+  "fragment_id": "C2_portret_traits_beliefs",
+  "fragment_category": "C",
+  "fragment_text": "Горан злится. Злится часто, глухо, изнутри. Он считает, что мир делит людей на волек и овец, и он давно выбрал сторону. Но иногда, глядя на Люсю, он думает — а может, есть и третий путь.",
+  "latency_secs": 10.87,
+  "llm_error": null,
+  "raw_response": "<think>\nOkay, so I need to break down this fragment from Goran's biography. Let's see, the user provided a specific structure to follow, so I should make sure to stick to that. \n\nFirst, I'll read the fragment carefully: \"Горан злится. Злится часто, глухо, изнутри. Он считает, что мир делит людей на волек и овец, и он давно выбрал сторону. Но иногда, глядя на Люсю, он думает — а может, есть и третий путь.\" \n\nAlright, now I need to identify the different components: events, relationships, locations, effects, beliefs, observations, knowledge links, traits, portraits, desires. \n\nStarting with events: The fragment mentions Goran getting angry and frequently, which is an event. So I'll create an EVENT item with the summary as Goran's frequent anger and the day is unknown, so \"day\": null.\n\nNext, relationships: There's no mention of any relationships here, so RELATIONSHIP is not applicable.\n\nFor locations: The fragment doesn't specify any places, so LOCATION is null.\n\nEffects: Goran's anger is a negative effect, so EFFECT is \"anger\" with a negative valence. The target is Goran himself, so \"target_hint\": \"Горан\".\n\nBelief seeds: Goran believes the world divides people into wolves and sheep, which is his belief about the world. So BELIEF_SEED with the statement and the trait \"world_division\".\n\nObservations: There's no observation from others, so OBSERVATION is null.\n\nKnowledge links: No information about what Goran has learned, so nothing here.\n\nTrait seeds: Goran's anger is a trait, so TRAIT_SEED with \"anger\" and the evidence from the fragment.\n\nPortraits: There's no internal monologue, so PORTRET is null.\n\nDesire seeds: No desires mentioned, so nothing here.\n\nNow, I need to structure this into JSON, making sure each item has the correct kind and payload. I'll also ensure that the confidence is 1.0 since the information is clear. \n\nI should also check if any parts are unclear, but in this case, everything seems straightforward. No need for any questions since all data is present.\n</think>\n\n```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Горан злится. Злится часто, глухо, изнутри.\",\n        \"day\": null\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"BELIEF_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"Горан считает, что мир делит людей на волек и овец.\",\n        \"about_hint\": \"world_division\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    },\n    {\n      \"kind\": \"TRAIT_SEED\",\n      \"draft_payload\": {\n        \"trait\": \"anger\",\n        \"evidence\": \"Злится часто, глухо, изнутри.\"\n      },\n      \"confidence\": 1.0,\n      \"needs_confirmation\": false,\n      \"question\": null\n    }\n  ]\n}\n```",
+  "raw_length_chars": 2795,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.5,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

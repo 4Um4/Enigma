@@ -1,0 +1,22 @@
+{
+  "fragment_id": "S9_multiple_clarifications",
+  "fragment_category": "cognitive_stress",
+  "fragment_text": "В таверну пришёл незнакомец. Он оставил свёрток. В свёртке — кольцо. Кольцо похоже на обручальное. Но Торнин никогда не был женат. На дне свёртка — записка. В записке — только одно слово: 'Прости'.",
+  "latency_secs": 4.85,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Незнакомец пришёл в таверну и оставил свёрток с кольцом и запиской\",\n        \"day\": null\n      },\n      \"confidence\": 0.9,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"1\",\n        \"target_span\": \"Незнакомец\",\n        \"options\": [\"SELECT_EXISTING_NPC\", \"CREATE_NEW_NPC\", \"UNKNOWN_PERSON\", \"LEAVE_WHITE_SPOT\"],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"EFFECT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин получил кольцо и записку\",\n        \"effect_kind\": \"mysterious_gift\",\n        \"target_hint\": \"Торнин\"\n      },\n      \"confidence\": 0.8,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"2\",\n        \"target_span\": \"кольцо и записка\",\n        \"options\": [],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"BELIEF_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"Кольцо похоже на обручальное, но Торнин никогда не был женат\"\n      },\n      \"confidence\": 0.7,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"3\",\n        \"target_span\": \"обручальное кольцо\",\n        \"options\": [],\n        \"answer\": null\n      }\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Торнин никогда не был женат\",\n        \"traits\": [\"не женат\"]\n      },\n      \"confidence\": 0.9,\n      \"needs_confirmation\": false,\n      \"question\": {\n        \"question_id\": \"4\",\n        \"target_span\": \"Торнин\",\n        \"options\": [],\n        \"answer\": null\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1607,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 0.75,
+  "schema_failures": [
+    "bad_effect_kind:mysterious_gift"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

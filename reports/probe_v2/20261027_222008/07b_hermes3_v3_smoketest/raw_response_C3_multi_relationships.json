@@ -1,0 +1,19 @@
+{
+  "fragment_id": "C3_multi_relationships",
+  "fragment_category": "C",
+  "fragment_text": "Люся боится Торнина, но любит его — он единственная семья, которую она помнит. Борко ненавидит Торнина за то, что тот бьёт Люсю, но молчит, потому что Торнин когда-то спас его от виселицы. А Люся, в свою очередь, боится Борко — он слишком большой, слишком молчаливый.",
+  "latency_secs": 4.56,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Люся боится Торнина, но любит его\", \"target_hint\": \"Торнин\", \"nature\": \"зависимость\", \"valence\": \"positive\"}}, \n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Борко ненавидит Торнина за то, что тот бьёт Люсю\", \"target_hint\": \"Торнин\", \"nature\": \"вражда\", \"valence\": \"negative\"}}, \n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Борко был спасен Торнининым от виселицы\", \"target_hint\": \"Торнин\", \"nature\": \"доверие\", \"valence\": \"neutral\"}}, \n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Люся боится Борко — он слишком большой, слишком молчаливый\", \"target_hint\": \"Борко\", \"nature\": \"страх\", \"valence\": \"negative\"}}, \n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Люся боится Торнина, но любит его — он единственная семья, которую она помнит.\", \"traits\": [\"зависимость\", \"страх\", \"любовь\"]}}, \n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Борко ненавидит Торнина за то, что тот бьёт Люсю, но молчит, потому что Торнин когда-то спас его от виселицы.\", \"traits\": [\"вражда\", \"доверие\"]}}, \n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"А Люся, в свою очередь, боится Борко — он слишком большой, слишком молчаливый.\", \"traits\": [\"страх\"]}}\n]}",
+  "raw_length_chars": 1262,
+  "json_valid": true,
+  "raw_items_count": 7,
+  "valid_items": 7,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.875,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

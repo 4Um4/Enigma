@@ -1,0 +1,20 @@
+{
+  "fragment_id": "D2_long_temporal_evolution",
+  "fragment_category": "D",
+  "fragment_text": "Торнин в двадцать лет был подающим надежды кузнецом. В тридцать — бросил кузню, открыл таверну. В сорок — таверна процветала, но Торнин пил. В пятьдесят — таверна держится на Борко, Торнин только подписывает бумаги. Что изменило его? Не смерть жены — она умерла, когда ему было тридцать пять. Что-то другое, что он никогда не называет вслух.",
+  "latency_secs": 3.39,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнин становится кузнецом\", \"day\": null}, \"confidence\": 0.9, \"needs_confirmation\": false},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнин открывает таверну\", \"day\": null}, \"confidence\": 0.9, \"needs_confirmation\": false},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Умирает жена Торнина\", \"day\": null}, \"confidence\": 0.9, \"needs_confirmation\": false},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Торнин пил, когда таверна процветала\", \"traits\": [\"алкоголизм\", \"пустота\"]}, \"confidence\": 0.9, \"needs_confirmation\": false},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Таверна держится на Борке\", \"day\": null}, \"confidence\": 0.9, \"needs_confirmation\": false},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Торнин никогда не называет вслух что-то, что изменило его\", \"traits\": [\"тайна\", \"страх\"]}, \"confidence\": 0.9, \"needs_confirmation\": false}\n]}",
+  "raw_length_chars": 946,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

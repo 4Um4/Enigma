@@ -1,0 +1,179 @@
+{
+  "timestamp": "20261027_221955",
+  "tests": [
+    {
+      "test_id": "A",
+      "description": "Chat completions без GBNF (контроль)",
+      "endpoint": "chat",
+      "grammar_used": false,
+      "pre_resources": {
+        "gpu_total_mb": 8192,
+        "gpu_used_mb": 6933,
+        "gpu_free_mb": 1085,
+        "gpu_util_pct": 12,
+        "ram_total_mb": 16040,
+        "ram_free_mb": 1043
+      },
+      "request_start": 1793114361.9510877,
+      "request_end": 1793114362.4996352,
+      "latency_ms": 548.5475063323975,
+      "http_status": 200,
+      "error_type": null,
+      "content": "Here is the number 42 as JSON: `{\"x\": 42}`",
+      "tokens_predicted": 19,
+      "tokens_per_sec": null,
+      "json_parsed": false,
+      "json_error": "Expecting value: line 1 column 1 (char 0)",
+      "post_resources": {
+        "gpu_total_mb": 8192,
+        "gpu_used_mb": 6965,
+        "gpu_free_mb": 1053,
+        "gpu_util_pct": 1,
+        "ram_total_mb": 16040,
+        "ram_free_mb": 1053
+      },
+      "server_alive_post": true,
+      "server_logs_tail": "       eval time =     250.90 ms /    19 tokens (   13.21 ms per token,    75.73 tokens per second)\n      total time =     511.27 ms /    64 tokens\nslot      release: id  3 | task 0 | stop processing: n_tokens = 63, truncated = 0\nsrv  update_slots: all slots are idle\nsrv  log_server_r: done request: POST /v1/chat/completions ::1 200"
+    },
+    {
+      "test_id": "B",
+      "description": "/completion минимальная грамматика (fixed {\"x\": N})",
+      "endpoint": "completion",
+      "grammar_used": true,
+      "pre_resources": {
+        "gpu_total_mb": 8192,
+        "gpu_used_mb": 6989,
+        "gpu_free_mb": 1029,
+        "gpu_util_pct": 9,
+        "ram_total_mb": 16040,
+        "ram_free_mb": 1038
+      },
+      "request_start": 1793114369.9024925,
+      "request_end": 1793114370.3489587,
+      "latency_ms": 446.46620750427246,
+      "http_status": 200,
+      "error_type": null,
+      "content": "{\"x\": 42}",
+      "tokens_predicted": 8,
+      "tokens_per_sec": 85.87192202829479,
+      "json_parsed": true,
+      "json_error": null,
+      "post_resources": {
+        "gpu_total_mb": 8192,
+        "gpu_used_mb": 6968,
+        "gpu_free_mb": 1050,
+        "gpu_util_pct": 0,
+        "ram_total_mb": 16040,
+        "ram_free_mb": 1097
+      },
+      "server_alive_post": true,
+      "server_logs_tail": "       eval time =      93.16 ms /     8 tokens (   11.65 ms per token,    85.87 tokens per second)\n      total time =     412.77 ms /    24 tokens\nslot      release: id  2 | task 20 | stop processing: n_tokens = 23, truncated = 0\nsrv  update_slots: all slots are idle\nNo parser definition detected, assuming pure content parser.\u001b[0msrv  log_server_r: done request: POST /completion ::1 200"
+    },
+    {
+      "test_id": "C",
+      "description": "/completion рекурсивная грамматика (config/chronicle_decompose.gbnf)",
+      "endpoint": "completion",
+      "grammar_used": true,
+      "pre_resources": {
+        "gpu_total_mb": 8192,
+        "gpu_used_mb": 6924,
+        "gpu_free_mb": 1094,
+        "gpu_util_pct": 3,
+        "ram_total_mb": 16040,
+        "ram_free_mb": 1132
+      },
+      "request_start": 1793114377.7879598,
+      "request_end": 1793114378.0909178,
+      "latency_ms": 302.95801162719727,
+      "http_status": 200,
+      "error_type": null,
+      "content": "{\"items\":[]}",
+      "tokens_predicted": 5,
+      "tokens_per_sec": 93.23140033563304,
+      "json_parsed": true,
+      "json_error": null,
+      "post_resources": {
+        "gpu_total_mb": 8192,
+        "gpu_used_mb": 6914,
+        "gpu_free_mb": 1104,
+        "gpu_util_pct": 2,
+        "ram_total_mb": 16040,
+        "ram_free_mb": 1114
+      },
+      "server_alive_post": true,
+      "server_logs_tail": "       eval time =      53.63 ms /     5 tokens (   10.73 ms per token,    93.23 tokens per second)\n      total time =     281.88 ms /    45 tokens\nslot      release: id  3 | task 29 | stop processing: n_tokens = 49, truncated = 0\nsrv  update_slots: all slots are idle\nNo parser definition detected, assuming pure content parser.\u001b[0msrv  log_server_r: done request: POST /completion ::1 200"
+    },
+    {
+      "test_id": "D",
+      "description": "/completion грамматика ограниченной глубины (scalar payload only)",
+      "endpoint": "completion",
+      "grammar_used": true,
+      "pre_resources": {
+        "gpu_total_mb": 8192,
+        "gpu_used_mb": 6957,
+        "gpu_free_mb": 1061,
+        "gpu_util_pct": 6,
+        "ram_total_mb": 16040,
+        "ram_free_mb": 860
+      },
+      "request_start": 1793114385.485359,
+      "request_end": 1793114385.8940372,
+      "latency_ms": 408.6782932281494,
+      "http_status": 200,
+      "error_type": null,
+      "content": "{\"items\": []}",
+      "tokens_predicted": 6,
+      "tokens_per_sec": 86.07086501219338,
+      "json_parsed": true,
+      "json_error": null,
+      "post_resources": {
+        "gpu_total_mb": 8192,
+        "gpu_used_mb": 6913,
+        "gpu_free_mb": 1105,
+        "gpu_util_pct": 94,
+        "ram_total_mb": 16040,
+        "ram_free_mb": 868
+      },
+      "server_alive_post": true,
+      "server_logs_tail": "slot launch_slot_: id  1 | task 42 | processing task, is_child = 0\nslot update_slots: id  1 | task 42 | new prompt, n_ctx_slot = 8192, n_keep = 800, task.n_tokens = 238\nslot update_slots: id  1 | task 42 | n_tokens = 0, memory_seq_rm [0, end)\nslot init_sampler: id  1 | task 42 | init sampler, took 0.05 ms, tokens: text = 238, total = 238\nslot update_slots: id  1 | task 42 | prompt processing done, n_tokens = 238, batch.n_tokens = 238"
+    },
+    {
+      "test_id": "E",
+      "description": "/completion повторный запрос с грамматикой C (prompt cache, накопительная деградация)",
+      "endpoint": "completion",
+      "grammar_used": true,
+      "pre_resources": {
+        "gpu_total_mb": 8192,
+        "gpu_used_mb": 7012,
+        "gpu_free_mb": 1006,
+        "gpu_util_pct": 5,
+        "ram_total_mb": 16040,
+        "ram_free_mb": 907
+      },
+      "request_start": 1793114393.3307543,
+      "request_end": 1793114393.591465,
+      "latency_ms": 260.7107162475586,
+      "http_status": 200,
+      "error_type": null,
+      "content": "{\"items\": []}",
+      "tokens_predicted": 6,
+      "tokens_per_sec": 29.802558052899546,
+      "json_parsed": true,
+      "json_error": null,
+      "post_resources": {
+        "gpu_total_mb": 8192,
+        "gpu_used_mb": 6962,
+        "gpu_free_mb": 1056,
+        "gpu_util_pct": 5,
+        "ram_total_mb": 16040,
+        "ram_free_mb": 874
+      },
+      "server_alive_post": true,
+      "server_logs_tail": "       eval time =     201.32 ms /     6 tokens (   33.55 ms per token,    29.80 tokens per second)\n      total time =     241.49 ms /     7 tokens\nslot      release: id  3 | task 364 | stop processing: n_tokens = 50, truncated = 0\nsrv  update_slots: all slots are idle\nNo parser definition detected, assuming pure content parser.\u001b[0msrv  log_server_r: done request: POST /completion ::1 200"
+    }
+  ],
+  "summary": {
+    "tests_completed": 5,
+    "server_alive_at_end": true
+  }
+}
