@@ -1,342 +1,137 @@
-﻿# ENIGMA (Bloodloom)
+# ENIGMA — Deterministic Causal Simulation Engine
 
-> Детерминированный каузальный движок симуляции: агенты, состояние мира, восприятие,
-> память, убеждения, решения и нарратив, возникающий из их рассогласования.
+> Executable epistemic contracts for agent simulation: world truth, perception, memory, belief, narration — each layer causally traced, never conflated.
 
-**Статус: движок в активной разработке — научный research-проект, НЕ готовая игра.** Ядро детерминировано и доказано тестами; геймплей существует как вертикальные срезы (одна локация, кампания-полигон), контент и прод-полировка не начаты. · **Версия:** `0.5.4.4.5` · Ветка `main`
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22831764-blue)](https://doi.org/10.5281/zenodo.22831764)
+[![HuggingFace Space](https://img.shields.io/badge/%F0%9F%A4%97%20Space-ENIGMA-yellow)](https://huggingface.co/spaces/Um44/ENIGMA)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![Version](https://img.shields.io/badge/version-0.5.4.4.5-orange)](https://github.com/4Um4/Enigma/releases)
+[![Python](https://img.shields.io/badge/python-3.12+-blue)](https://www.python.org/)
+[![Commits](https://img.shields.io/badge/commits-729-brightgreen)](https://github.com/4Um4/Enigma/commits/main)
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22831764.svg)](https://doi.org/10.5281/zenodo.22831764)
+## Live architectural overview
 
-### 📄 Paper
+A visual overview of the architecture — 12-layer canonical order, enforced laws, causal trace, and the "Goran? Yes..." memory reconstruction scenario — is hosted on HuggingFace Spaces:
 
-**Executable Epistemic Contracts in Deterministic Agent Simulation: The ENIGMA Architecture** —
-Gritsaenko, M. (2026). Preprint. [Read (PDF)](https://doi.org/10.5281/zenodo.22831764) · [DOI: 10.5281/zenodo.22831764](https://doi.org/10.5281/zenodo.22831764)
+**→ https://huggingface.co/spaces/Um44/ENIGMA**
 
-### 🔁 Reproduction
-
-Архитектурные контракты, ADR-атлас и математическая модель — в статье. Инварианты
-воспроизводимы без LLM-сервера: `python backend/tests/IPT.py` (core invariant probes),
-сценарии SUPERBOX — `backend/tests/sandbox/SUPERBOX/`.
-
-### 🧠 SUPERBOX
-
-Executable epistemic contracts: end-to-end сценарии, превращающие эпистемические
-утверждения о системе в бинарные вердикты (belief → intent → action → world event).
-Ключевой вердикт: `goran_vertical_slice_test` (12/12) — полная каузальная петля
-кражи, наблюдения, убеждения и обвинения без единой инъекции.
+This GitHub repository contains the source code, full documentation, and reproducible build. The Space is a static presentation layer for the same artifact.
 
 ---
 
-## 1. Два лица проекта
+## What is this?
 
-ENIGMA — одновременно научный проект и игра.
+ENIGMA is a research project exploring whether a deterministic game simulation can generate meaningful emergent behavior when agents act based on their own incomplete and potentially erroneous models of the world — `WORLD TRUTH ≠ NPC MEMORY ≠ NPC BELIEF`.
 
-### Научное лицо
+**Not a game.** A scientific software artifact in active development.
 
-ENIGMA исследует один центральный вопрос:
+**Not a tutorial.** Architectural documentation for researchers and engineers working on agent systems, epistemic logic, deterministic simulation, or LLM-assisted engineering.
 
-> Может ли детерминированная игровая симуляция порождать осмысленное
-> эмерджентное поведение, если агенты действуют не на основе объективной
-> истины мира, а на основе собственных неполных и потенциально ошибочных
-> моделей этого мира?
+**Not a product.** Solo-maintained research project, no support SLAs, no roadmap commitments to external stakeholders.
 
-Традиционный игровой AI:
+What it is: a 12-layer canonical construction enforced by 18 architectural laws that raise `ArchitecturalViolationError` at runtime when violated.
 
-    WORLD STATE → PERCEPTION → DECISION → ACTION → WORLD CHANGE
+## Key architectural principles
 
-ENIGMA исследует более глубокую модель:
+- **Epistemic grounding** — LLM is never a source of canonical truth; Python = causal authority (`INV-LLM-NOT-SSOT`)
+- **Deterministic replay** — KernelRNG-protocol, no `random.*` or wall-clock in simulation layer (§15)
+- **Causal layering** — 12-layer canonical construction order; upper layers must use the causal work of lower layers, never imitate it
+- **Anti-Bond** — no parallel truth-stores, no decorative state — every entity must prove causal work no other entity performs
+- **Belief non-mutation** — beliefs are lenses (weight modifiers), not genes (scalars); personality drift via interpretation is forbidden (§16)
+- **Epistemological orthogonality** — `Reality` and `Observer Knowledge` are orthogonal axes; consumers receive only epistemic representations (§17)
 
-    WORLD TRUTH → PERCEPTION → OBSERVATION → MEMORY → BELIEF →
-    → EXPECTATION → MOTIVATION → DECISION → ACTION → WORLD CHANGE
+## The 12-layer canonical construction order
 
-Критическое свойство:
+| # | Layer | What is built |
+|---|-------|---------------|
+| 0 | **Authoring → Compiler** | Human description → semantic reconstruction → structured dossier → validation → materialization in stores. LLM translates, Python validates and writes. |
+| 1 | **Identity / History** | `origin_events` → canonical NPC history → EventMemory / Chronicle / role history / relationship history |
+| 2 | **Body → Need** | Body state, needs, sleep, hunger — and their real consumers |
+| 3 | **Desire → Object → Activity** | Desire / Activity / Object mechanisms unified into a single circuit |
+| 4 | **Decision → Action → Outcome** | `CAN ≠ WANT ≠ INTEND ≠ ATTEMPT ≠ SUCCESS`; TAKE/USE/MOVE/GIVE/FOLLOW and consequences |
+| 5 | **Perception → Experience → Memory** | Perception membrane, personal experience, chronology, event_id, bounded recall, provenance |
+| 6 | **Salience → Consolidation** | Event significance for a specific NPC → decay → consolidation → compression → deterministic distortion |
+| 7 | **Relationships as History** | RelationshipEvent → repeated interactions → relationship changes → social consequences |
+| 8 | **Belief → Expectation → Decision** | BC-2…BC-7: experience/testimony → belief → conclusion → expectation → decision |
+| 9 | **NPC as Interface** | Targeted recall, biography, provenance, epistemic divergence, investigation loop, grounding, ignorance |
+| 10 | **Self-Interpretation** | `WHAT HAPPENED ≠ WHAT REMEMBERS ≠ WHAT BELIEVES ≠ HOW EXPLAINS` |
+| 11 | **Appraisal / Prediction / Humor** | Expectation → prediction error → appraisal → individual reactions / humor |
+| 12 | **Deception** | `KNOWLEDGE → INTENTION TO DECEIVE → FALSE CLAIM → NARRATION` |
 
-    WORLD TRUTH ≠ AGENT BELIEF
-    AGENT A BELIEF ≠ AGENT B BELIEF
+**Cross-cutting law:** each upper layer must use the causal work of the layer below, not imitate it.
 
-Это свойство не считается реализованным лишь потому, что существует класс
-с именем «Belief». Оно доказано исполняемыми сценариями (см. §5).
-
-### Игровое лицо — эпистемологический симулятор
+`Dialogue ≠ Memory` · `Memory ≠ Causality` · `Belief ≠ Decision` · `Relationship scalar ≠ History` · `Self-interpretation ≠ Motivation` · `LLM ≠ Canonical Truth`
 
-ENIGMA — это игра, в которой главный ресурс — **знание**, а главная драма —
-рассогласование между тем, что произошло, тем, что видели агенты, и тем,
-во что они в итоге верят.
+## Documentation
 
-Игроку противостоит не «скриптованный босс», а сообщество NPC, у каждого
-из которого есть:
+- **[Architectural Roadmap v4.12](docs/ENIGMA_ROADMAP_v4_12_WPS.md)** — operational map of all tracks (RE-01, AG1, NL-01, CCH, MEM, COV, EPI, MOT)
+- **[Architectural Charter](docs/АРХИТЕКТУРНЫЙ_УСТАВ_ENIGMA.md)** — 18 enforced laws (§ENIGMA-001..018)
+- **[Working Mode](РЕЖИМ%20РАБОТЫ.md)** — meta code architect protocol for LLM-assisted development
+- **[Citation file](CITATION.cff)** — BibTeX / APA / Chicago formats
+- **[MUTATIONS archive](MUTATIONS.md)** — closed changes history (S1–S376+)
 
-- собственное восприятие мира (и только того, что он реально видел);
-- собственная память, которая накапливается, тускнеет и консолидируется;
-- собственные убеждения — в том числе **ложные**;
-- отношения, доверие и недоверие к конкретным персонажам;
-- потребности, тело, усталость, сон и смерть.
+## Status
 
-Из этого следует геймплей, которого нет в классических RPG:
+**Closed tracks:** RE-01 M2/D + G/H · AG1 BC-1 · CCH-0..5 · COV-0..2 · LC-IMPL-1..2
 
-- **можно лгать** — и ложь работает как каузальный механизм, а не как текст:
-  солганный факт становится убеждением NPC, меняет его решения и судьбу мира;
-- **можно управлять информацией**: сказать одному, скрыть от другого,
-  позволить свидетелю увидеть правду или не позволить;
-- **слухи и свидетельства распространяются** с искажениями и зависят от доверия
-  к источнику;
-- **последствия отложены и эмерджентны**: «победа» над NPC — это изменение его
-  убеждений, памяти и отношений, а не полоска HP;
-- **мир не сбрасывается**: Chronicle мира append-only, память NPC переживает
-  сохранение/загрузку и рестарт сессии.
+**Active fronts:** BC-2 (Conclusion → Expectation) · MOT (Motive & Decision Trace) · MEM (Memory Architecture) · NL-01 фаза 1 (Narrative Grounding)
 
-Цель в игровой плоскости — не «пройти игру», а проживать **разные каузальные
-фьючерсы одного и того же мира**, управляя не только действиями, но и тем,
-кто что знает.
+**Planned:** NL-12 (active deception) · EPI (information lifecycle) · WPS (world process simulation) · MAG (somatico-resonance magic, deferred)
 
----
+## Repository structure
 
-## 2. Онтология: истина, наблюдение, убеждение
-
-Движок никогда не схлопывает три категории в одно состояние:
-
-| Категория | Что это | Пример |
-|---|---|---|
-| **World truth** | Что произошло в симуляции | A украл кольцо у B |
-| **Observation** | К чему агент имел доступ | B видел A рядом с кольцом; C не присутствовал |
-| **Belief** | Во что агент верит сейчас | B верит, что украл A; C — что украл B |
-
-Доказанный эталонный сценарий (SUPERBOX, «Double Truth»):
-
-    WORLD TRUTH:  A украл X у B.
-    B:            видел кражу → верит, что украл A.
-    C:            не видел. A говорит C: «X украл B». C доверяет A.
-    РЕЗУЛЬТАТ:    B и C действуют по-разному в одном и том же мире:
-                  C действует против B из-за ложного убеждения,
-                  B считает виновником A.
-
-Разные убеждения → разные решения → разные фьючерсы. Это доказано, а не
-предположено.
-
----
-
-## 3. Игровой контур: как это выглядит для игрока
-
-- **Клиент:** pygame (`frontend/`, точка входа `game_launcher.py`) — сцена таверны
-  и окрестностей, кампания `Open_road`, рендер, speech bubbles, карты персонажей,
-  встроенный редактор карт (`frontend/map_editor/`).
-- **Ввод:** свободный текст; локальный LLM-сервер (`scripts/llm_server_manager.py`,
-  llama-server) интерпретирует реплику игрока в структурированное действие.
-- **Embodiment:** игрок подчиняется тем же законам, что и NPC: HP, сон, смерть —
-  через единый SSOT (`VitalStateEvaluator`), никаких «игроков вне физики».
-- **Мембрана восприятия:** NPC знает только то, что прошло через его восприятие;
-  обойти слой восприятия нельзя (архитектурный запрет, линтер + тесты).
-- **Слова становятся памятью:** сказанная NPC реплика попадает в его
-  `ExperienceTrace` → `WorkingMemory` и переживает рестарт сессии (доказано в
-  живом прогоне: proposition «Надеюсь, они не придут сюда» пережил рестарт).
-- **Между интерпретацией и состоянием стоит шлюз:** ни одна сгенерированная LLM
-  фраза не становится фактом мира без детерминированной авторизации
-  (`DeltaGate`, доктрина «LLM — медленный консультант, не SSOT»).
-
-Игровой прогресс здесь измеряется не уровнем персонажа, а **изменением эпистемического
-ландшафта мира**: что NPC помнят, во что верят, кому доверяют и как это меняет
-их поведение.
-
----
-
-## 4. Что реально реализовано (по коду, V.0.5.4.4.3 · S311)
-
-| Подсистема | Что делает | Доказательство |
-|---|---|---|
-| Tick-оркестрация | `tick_orchestrator` (13 фаз), `npc_tick_pipeline` — pure reducer, Commitment Registry/Arbiter (единое поведенческое владение) | 10/10 фаз тика живы, IPT 49/49 |
-| Решения NPC | `decision_hub` — utility-скоринг интентов; Behavioral Closure в работе | Smoke: 6/6 NPC выдают решения |
-| Восприятие | Мембрана восприятия, topology-тесты | `SUPERBOX` perception-сценарии |
-| Отношения | Relationship Engine v2, RAM-authoritative runtime (writers+readers+bootstrap) | 202 теста, RelationshipWriteGate |
-| Память | `ExperienceTrace` (провенанс TESTIMONY), `WorkingMemory` (decay, floor=is_compressed), `MemoryCrystal` (EMRL E1) | 40 замков `backend/tests/test_phase_a_memory_fixes.py` |
-| Каузальный шлюз | `DeltaGate` + `StateDeltaProposal`: whitelist, клампы, идемпотентность, `EXPERIENCE_DELTA_COMMITTED` (EMRL E2.0-a/b) | 40/40 тестов, живой провод в `reaction_subscriber` |
-| Мир-субстрат | `architecture/world.yaml`, `WorldObjectStore`, топология объектов; **G3: живая воля → объектное действие → мутация мира → событие** (`W3_G3_ENABLED` default OFF) | 30 тестов + INV в IPT; SUPERBOX G3 GREEN |
-| Идентичность | `L1Chronicle` — append-only SQLite; `BeliefCrystallizationEngine` (L2.5, травма ×6); `EffectiveDrives` (L3) | `lint_l1_append_only`, ADR-O-208/307 |
-| Тело | Потребности, сон (sleep-машина верифицирована), действие/Commitment, `ActionWindup`, смерть | S235/S236, IPT |
-| Экономика/бой | Модификаторы экономики, бой, вердикты VitalState | SUPERBOX-инварианты |
-| Диалоги | LLM-диалоги, DialogueQueue, локальный llama-server | `startup_timing.log: backend_ok=True, llm_ok=True` |
-| Наблюдаемость | CDS: DNA-метрики (SHI, NPI, SCF, DRI, BCI), `reports/LAST_SESSION.md`, DriftLab (replay/дрейф) | `backend/tests/sandbox/SUPERBOX/run` |
-| Клиент/инструменты | pygame-клиент, Map Editor, терминальный кокпит памяти (`terminal_cockpit.py`) | запускаются штатно |
-
-Ключевые константы качества: **IPT 45/45** (инвариантные пробы ядра, ~5 сек),
-профильные линтеры `scripts/lint_*.py` (silent failures, relationship engine,
-kernel RNG, L1 append-only, epistemic boundary, spatial SSOT, wall clock,
-frontend isolation — все зелёные).
-
----
-
-## 5. Сценарии-доказательства (SUPERBOX)
-
-`backend/tests/sandbox/SUPERBOX/scenarios` — исполняемый слой доказательств,
-одновременно являющийся acceptance-гейтом для эпистемических утверждений.
-Каждый сценарий доказывает один каузальный контракт цепочки
-Belief → Decision → Action → World Event:
-
-- эпистемическая дивергенция («Double Truth», три агента);
-- дивергенция наблюдений и решений;
-- атрибуция второго порядка (NPC_B верит, что NPC_A утверждает P) — `SUPERBOX-014`;
-- персистентность убеждений сквозь save/load и рестарт GameLoop;
-- жёсткость мембраны восприятия (обход слоя запрещён);
-- композиция и коммутативность модификаторов скоринга;
-- каузация действие → world-event (Belief → Task → Scheduled World Event).
-
----
-
-## 6. Что НЕ заявлено как реализованное
-
-Исследовательские цели, если прямо не подтверждены кодом и проходящим
-сценарием:
-
-- предиктивное ядро восприятия, информационно-теоретический surprise,
-  полный predictive-processing loop;
-- 4D-представление убеждений, BELIEVES-предикаты, каузальность пророчеств;
-- полноценная Theory of Mind как система (второй порядок доказан
-  сценарием, но как постоянный слой не построен);
-- Active Inference, контрфактическое рассуждение, полный self-model;
-- фракции, полноценная экономика/политика как системы;
-- Behavioral Closure: BC-1 реализован (dormant), BC-2…BC-13 открыты — контур
-  «опыт → вывод → ожидание → решение» не замкнут;
-- Unified Appraisal (EM), Predictive Perception (PP), юмор (HUM), агентность
-  аватара (AV) — спроектированы в роадмапе §6, не начаты;
-- object-cognition (CAN_STEAL ≠ ACCEPT/WANT) и L3-гейт GC-08 для W-трека —
-  открыты;
-- мир — одна локация-полигон; фракции/экономика/политика как системы — не
-  построены; прод-полировка, аудио, контент — не начаты.
-
-Статусы документации: **IMPLEMENTED** (код + валидационный сценарий),
-**PARTIAL** (инфраструктура есть, контракт не доказан), **PROPOSED**
-(дизайн/гипотеза). Запись в роадмапе не является доказательством
-реализации; имя класса не является доказательством семантики.
-
----
-
-## 7. Архитектура (реализованные слои)
-
-    WORLD / SNAPSHOT
-          ↓
-    PERCEPTION / EVENT PROCESSING   (мембрана восприятия)
-          ↓
-    NPC STATE (тело, потребности, drives)
-          ↓
-    MEMORY (ExperienceTrace → WorkingMemory → MemoryCrystal)
-          ↓
-    BELIEF (кристаллизация, провенанс, DeltaGate)
-          ↓
-    DECISION HUB (utility-скоринг)
-          ↓
-    ACTION / MOVEMENT / TASK SCHEDULER
-          ↓
-    STATE MUTATION (+ World Events)
-          ↓
-    PERSISTENCE (Snapshot + L1Chronicle, append-only)
-
-К нему подключены: отношения (RE v2), экономика-модификаторы, бой,
-идентичность, восстановление, replay/DriftLab, LLM-диалоги.
-
-Ключевые архитектурные истины:
-
-1. **Truth = Snapshot + Chronicle.** Состояние эфемерно, идентичность —
-   append-only. Асимметричная онтология — не баг.
-2. **Time & Physics разрешаются только в Causal Kernel.**
-3. **Мембрана восприятия** — единственный путь мира в голову агента.
-4. **Symptom ≠ Cause** — чинят pipeline node, а не UI.
-5. **Vacuum = local rupture, not global zero** — Unknown ≠ Neutral 0.0.
-6. **«Паттерн, не субстанция»** — человеческие категории («влюблённость»,
-   «адаптация», «месть») не вводятся как состояния-сущности; каждая обязана
-   доказать каузальную работу (anti-Bond test), иначе — derived-операция.
-7. **Renderer не является источником истины о мире** (W-TRACK).
-
-## 8. Роль LLM
-
-LLM — не субстрат интеллекта ENIGMA. Детерминированный движок владеет
-состоянием, временем, каузальностью, восприятием, памятью, убеждениями,
-решениями и персистентностью. LLM — «медленный консультант»: он даёт
-интерпретацию языка, реализацию диалога и нарративную подачу.
-
-Быстрый мир (тики) никогда не ждёт медленного интеллекта (ADR-O-377,
-две скорости). Между интерпретацией и состоянием стоит `DeltaGate`:
-сгенерированная фраза не может создать факт мира без детерминированной
-авторизации мутации.
-
-## 9. Детерминизм и качество
-
-- Единственный источник случайности в kernel — `KernelRNG(tick, npc_id, salt)`;
-  `random.*` и `time.time()` в kernel-слое запрещены (`lint_kernel_rng`).
-- Целевая формула воспроизводимости: `initial state + seed + player actions +
-  tick sequence → reproducible simulation`.
-- Replay-валидация различает структурную дивергенцию, каузальную дивергенцию,
-  численный дрейф и косметический джиттер. Известный открытый долг:
-  DEBT-QUIESCE (async-interleaving недетерминизм) — задокументирован в роадмапе.
-- Observability никогда не мутирует состояние; тихие отказы запрещены
-  (`lint_silent_failures`).
-
-## 10. Стандарт доказательства
-
-Система считается реализованной только когда её поведение наблюдаемо и
-воспроизводимо проверяемо:
-
-    CLAIM → CODE → CALL PATH → TEST → OBSERVABLE RESULT
-
-Плохо: «Belief Layer implemented».
-Хорошо: «NPC A и NPC B получают разные наблюдения одного события; их
-персистентные убеждения расходятся; их последующие решения расходятся
-из-за этих убеждений; дивергенция переживает N тиков и save/load».
-
-Что считалось бы провалом проекта: все агенты видят объективную истину;
-убеждения — алиасы состояния мира; диалог утверждает убеждение, а движок
-его не использует; LLM изобретает факт, которому нет пути в состоянии.
-
-## 11. Запуск
-
-| Что | Команда | Время |
-|-----|---------|-------|
-| Проверить baseline ядра | `python backend/tests/IPT.py` | ~5 сек |
-| 3 тика без UI | `cd backend && python -m tests.sandbox.SUPERBOX.run drift quick_debug` | ~10 сек |
-| 200 тиков (стресс) | `cd backend && python -m tests.sandbox.SUPERBOX.run drift mass_traversal` | ~60 сек |
-| Запустить игру | `python game_launcher.py` | — |
-| Все unit-тесты | `cd backend && python -m pytest tests/ -v` | ~30 сек |
-| Профильные линтеры | `python scripts/lint_wall_clock.py` (и др. `lint_*`) | ~2 сек |
-
-Требования: Python 3.x (в репозитории — `payload/python`), локальный
-LLM-сервер для диалогов (менеджер: `scripts/llm_server_manager.py`).
-
-## 12. Документация
-
-| Документ | Роль |
-|---|---|
-| `docs/ENIGMA_ROADMAP_v3_4_AVATAR_AGENCY.md` | Актуальная дорожная карта (v4.0): карта треков, сквозная очередь §0.2, реестр долгов §7 |
-| `docs/QUICKSTART.md` | Карта файлов и архитектурный гайд для разработчиков |
-| `docs/00_CAUSAL_CONTRACT_v3.0.md` | Высший закон: онтология и запреты |
-| `docs/АРХИТЕКТУРНЫЙ_УСТАВ_ENIGMA.md` | Иерархия слоёв, фазовая модель, законы |
-| `docs/ADR (Architecture Decision Records).md` | Реестр архитектурных решений |
-| `docs/MUTATIONS.md` | Реестр сессий (one-liner протокол v5.0) + живые долги |
-| `reports/LAST_SESSION.md` | DNA-метрики и красные инварианты последней сессии |
-
-## 13. Текущая точка и дорожная карта
-
-Актуальный план — `docs/ENIGMA_ROADMAP_v3_4_AVATAR_AGENCY.md` (v4.0, сквозная
-очередь §0.2). Положение на S311 (2026-09):
-
-- **Эпистемический контур**: E2.0-c каузально доказан (B0-CLOSED), BC-1
-  Conclusion Layer реализован (dormant, `BC1_ENABLED` default OFF); следующий
-  шаг — **BC-2 Conclusion→Expectation**.
-- **RE-01**: физический cutover V2 RAM-authoritative закрыт до M1b.3.4;
-  открыты M1b.3.5–3.7 → GC-11 → M2/D (первый живой needs-writer).
-- **W-TRACK**: G3 EXECUTION закрыт (S307, воля→объектная цель→мутация→событие);
-  открыты object-cognition (CAN_STEAL≠ACCEPT/WANT) и L3-гейт GC-08.
-- **Body/Embodied**: ADR-O-383 V1 закрыл availability-тракт (RED-оракул
-  GC-09B → V1 → GREEN); хвосты — калибровка, доставка сна (DEBT-SLEEP-DELIVERY).
-- **Living World**: вертикали EAT/WORK/SOCIAL/INTERRUPT доказаны production-
-  контуром; TRADE β-Stage 1; детерминизм — кросс-процессный (IRON RIVER 3×MATCH).
-- Дальше (по фазам): BC-2…BC-7 → Unified Appraisal → Predictive Perception →
-  HUMOR; Р18 «Адаптация»; эпохи 7–10 (§6.B роадмапа).
-
-Принцип развития: **не строить следующую абстракцию, пока предыдущий
-эксперимент не докажет, что симуляция её требует**:
-
-    observable behavior → causal requirement → minimal architecture →
-    implementation → validation
-
-## 14. Лицензия
-
-См. `LICENSE`.
+```
+.
+├── architecture/          # YAML topology (architecture-as-code)
+├── backend/                # Python simulation engine
+│   ├── app/
+│   │   ├── domain/         # Pure dataclasses (no dependencies)
+│   │   ├── models/         # Domain models
+│   │   ├── services/       # Business logic (RE, AG1, MEM, NL, ...)
+│   │   └── api/            # REST API layer
+│   └── tests/              # IPT + gameplay + canary
+├── frontend/               # Pygame UI (no backend imports, Law 1.1)
+├── docs/                   # ADRs, charter, roadmap
+├── diagnostics/            # Read-only observation (never mutates state)
+├── scripts/                # Lint, session patches, probes
+├── config/                 # NPC configs, calibration presets
+└── reports/                # Session artifacts, audits
+```
 
+## Citation
+
+```bibtex
+@software{gritsaenko_2026_enigma,
+  author       = {Gritsaenko, M.},
+  title        = {ENIGMA: Executable Epistemic Contracts in Deterministic Agent Simulation},
+  version      = {0.5.4.4.5},
+  year         = {2026},
+  url          = {https://github.com/4Um4/Enigma},
+  doi          = {10.5281/zenodo.22831764},
+  license      = {AGPL-3.0}
+}
+```
+
+**APA:**
+
+> Gritsaenko, M. (2026). ENIGMA: Executable Epistemic Contracts in Deterministic Agent Simulation (Version 0.5.4.4.5) [Computer software]. https://doi.org/10.5281/zenodo.22831764
+
+## Acknowledgments
+
+This project was developed through multi-model LLM-assisted engineering (GLM, GPT, Claude, Gemini, Kimi, DeepSeek) over free-tier web access. The architectural discipline — archaeological protocol, ADR-PRE-FLIGHT, executable invariants — emerged as a defense against model drift across versions.
+
+The working methodology is documented in [`РЕЖИМ РАБОТЫ.md`](РЕЖИМ%20РАБОТЫ.md) and may be of independent interest to researchers studying LLM-assisted software engineering workflows.
+
+## License
+
+GNU AGPL v3.0 — use it, modify it, but if you serve it over network, share the source.
+
+```
+ENIGMA — Deterministic Causal Simulation Engine
+Copyright (C) 2026  Gritsaenko, M.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+```
