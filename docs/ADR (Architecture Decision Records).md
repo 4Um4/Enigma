@@ -878,3 +878,10 @@ ADR-O-427 [INFRA] **Artifact Path SSOT — find_artifact + путь писате
 ❌ Taboo: хардкод пути в точке вызова; второй источник правды о расположении артефактов; «фикс» обходом всего дерева вместо SSOT; перенос файлов без обновления SSOT; молчаливый fallback на старый путь.
 Status: ACTIVE (S353: PATH-D1 закрыт; гейты — MUTATIONS S353)
 Files: `backend/app/services/spatial/spatial_registry.py`
+
+
+ADR-O-430 [STANDARD] **GBNF Grammar Constraint for Biography Decomposition** (S379)
+Суть: LLM (Qwen2.5-7B/Hermes-3) останавливался на `]` без финального `}` → json.loads EOF. S371.3-pre (response_format в payload) нерабочий — llama-server игнорирует `response_format: json_object` (probe A/B: SAME? True). Решение: GBNF grammar (`config/chronicle_decompose.gbnf`) через `/completion` endpoint — LLM физически не может остановиться без закрытия root `{`. GenerationParams.grammar field (Optional[str], default None) → _complete_via_server_with_grammar() в llama_cpp_provider.py → branching в complete() (grammar=None → existing /v1/chat/completions). Только BiographyDecomposer передаёт grammar; остальные consumers не затронуты. 7/7 production-тестов OK, latency 1.8-4.7с, сервер жив.
+❌ Taboo: response_format: json_object в /v1/chat/completions (игнорируется сервером); regex-repair JSON в normalizer (запрет Письма №12); автоматическое дописывание `}` в normalizer; переключение остальных consumers на /completion; изменение схемы BiographyDecomposition ради грамматики.
+Status: ACTIVE
+Files: `backend/app/services/llm/provider.py` (GenerationParams.grammar), `backend/app/services/llm/llama_cpp_provider.py` (_complete_via_server_with_grammar), `backend/app/services/chronicle/biography_decomposer.py` (_load_chronicle_grammar), `config/chronicle_decompose.gbnf`, `backend/tests/micro/test_s371_3_gbnf_unit.py
