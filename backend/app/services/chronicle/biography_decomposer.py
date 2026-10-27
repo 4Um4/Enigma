@@ -33,7 +33,7 @@ from app.services.chronicle.decomposition_normalizer import (
 
 # S371.3-GBNF: GBNF grammar для декомпозиции хроник (config/chronicle_decompose.gbnf).
 # Ленивая загрузка с кэшем; None при отсутствии — fallback на /v1/chat/completions.
-_GBNF_PATH = Path(__file__).resolve().parents[3] / "config" / "chronicle_decompose.gbnf"
+_GBNF_PATH = Path(__file__).resolve().parents[4] / "config" / "chronicle_decompose.gbnf"
 _grammar_cache: Optional[str] = None
 
 
