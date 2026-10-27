@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Final, List, Optional
 
 from app.domain.chronicle import (
@@ -29,6 +30,27 @@ from app.services.chronicle.decomposition_normalizer import (
     ChronicleDecompositionNormalizer,
     DecompositionError,
 )
+
+# S371.3-GBNF: GBNF grammar для декомпозиции хроник (config/chronicle_decompose.gbnf).
+# Ленивая загрузка с кэшем; None при отсутствии — fallback на /v1/chat/completions.
+_GBNF_PATH = Path(__file__).resolve().parents[3] / "config" / "chronicle_decompose.gbnf"
+_grammar_cache: Optional[str] = None
+
+
+def _load_chronicle_grammar() -> Optional[str]:
+    """S371.3-GBNF: загружает GBNF грамматику для декомпозиции хроник.
+
+    Ленивая загрузка с кэшем (грамматика статична). None если файл отсутствует
+    — декомпозер откатывается на /v1/chat/completions (existing path).
+    """
+    global _grammar_cache
+    if _grammar_cache is not None:
+        return _grammar_cache
+    if not _GBNF_PATH.exists():
+        logger.warning(f"[CHRONICLE_DECOMPOSER] GBNF grammar not found: {_GBNF_PATH} — fallback to /v1/chat/completions")
+        return None
+    _grammar_cache = _GBNF_PATH.read_text(encoding="utf-8")
+    return _grammar_cache
 
 logger = logging.getLogger(__name__)
 
@@ -161,10 +183,15 @@ class BiographyDecomposer:
             try:
                 from app.services.llm.provider import GenerationParams
 
+                # S371.3-GBNF: GBNF grammar через /completion endpoint.
+                # Загружается один раз (лениво), передаётся в GenerationParams.grammar.
+                # Провайдер ветвится: grammar задан → /completion, иначе /v1/chat/completions.
+                _grammar = _load_chronicle_grammar()
                 params = GenerationParams(
                     temperature=0.0,
-                    max_tokens=2048,  # S371.1: откат — max_tokens НЕ фактор (7/7 FAIL при 2048 и 4096; ошибки пула, не JSON)
-                    response_format={"type": "json_object"},  # доезжает, когда провайдер включит; нормализатор деградирует сам
+                    max_tokens=2048,
+                    response_format={"type": "json_object"},  # S371.3-pre: оставлен для совместимости (llama_cpp игнорирует)
+                    grammar=_grammar,  # S371.3-GBNF: рабочий путь — /completion + grammar
                 )
                 raw = await router.request(
                     capability="fact_extraction",

@@ -1,0 +1,58 @@
+{
+  "timestamp": "20261027_231659",
+  "fragments_count": 7,
+  "results": [
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 8,
+      "ok": true,
+      "error": null,
+      "raw_response": "",
+      "json_parsed": true,
+      "json_error": null,
+      "items_count": 2,
+      "latency_ms": 2490.887403488159,
+      "ends_with_brace": true,
+      "server_alive_post": true
+    },
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 13,
+      "ok": true,
+      "error": null,
+      "raw_response": "",
+      "json_parsed": true,
+      "json_error": null,
+      "items_count": 1,
+      "latency_ms": 1766.779899597168,
+      "ends_with_brace": true,
+      "server_alive_post": true
+    },
+    {
+      "npc_id": "maid_lusya",
+      "fragment_ord": 7,
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: ",
+      "raw_response": "",
+      "json_parsed": false,
+      "json_error": "Декомпозиция не удалась после retry: ",
+      "items_count": 0,
+      "latency_ms": 47241.93716049194,
+      "ends_with_brace": false,
+      "server_alive_post": false
+    }
+  ],
+  "summary": {
+    "json_parsed_ok": 2,
+    "ends_with_brace": 2,
+    "items_gt_0": 2,
+    "full_success": 2,
+    "server_alive_at_end": false
+  },
+  "baseline_comparison": {
+    "baseline_ok_2048": 3,
+    "baseline_ok_4096": 4,
+    "baseline_truncation": 7,
+    "gbnf_ok": 2
+  }
+}

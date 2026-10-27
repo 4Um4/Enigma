@@ -40,6 +40,10 @@ class GenerationParams:
     presence_penalty: Optional[float] = None
     frequency_penalty: Optional[float] = None
     response_format: Optional[dict] = None
+    # S371.3-GBNF: GBNF grammar для /completion endpoint (llama_cpp_provider).
+    # None → существующий путь /v1/chat/completions. Не None → /completion + grammar.
+    # Только llama_cpp_provider использует это поле; остальные провайдеры игнорируют.
+    grammar: Optional[str] = None
 
 
 @dataclass

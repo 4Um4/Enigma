@@ -108,9 +108,15 @@ class LlamaCppProvider(StreamingLlmProvider):
         full_prompt = self._build_chatml_prompt(prompt, system_prompt)
 
         if self._use_server:
-            # S128 FIX: Используем OpenAI-совместимый эндпоинт /v1/chat/completions
-            # передаём чистые prompt и system_prompt, чтобы избежать двойного ChatML
-            raw = self._complete_via_server(prompt, system_prompt, gen_params)
+            # S371.3-GBNF: grammar path — /completion endpoint с GBNF constraint.
+            # Только когда params.grammar задан; остальные consumers используют
+            # существующий /v1/chat/completions path (grammar=None default).
+            if gen_params.grammar:
+                raw = self._complete_via_server_with_grammar(prompt, system_prompt, gen_params)
+            else:
+                # S128 FIX: Используем OpenAI-совместимый эндпоинт /v1/chat/completions
+                # передаём чистые prompt и system_prompt, чтобы избежать двойного ChatML
+                raw = self._complete_via_server(prompt, system_prompt, gen_params)
         else:
             raw = self._complete_via_cli(full_prompt, gen_params)
 
@@ -226,6 +232,90 @@ class LlamaCppProvider(StreamingLlmProvider):
                 else:
                     logger.error(
                         f"[LLM_RETRY] all {max_retries} attempts failed. Last error: {type(e).__name__}: {e}"
+                    )
+
+        raise RuntimeError(
+            f"Не удалось подключиться к llama-server ({self.server_url}) после {max_retries} попыток. "
+            f"Последняя ошибка: {type(last_error).__name__}: {last_error}"
+        ) from last_error
+
+    def _complete_via_server_with_grammar(
+        self, prompt: str, system_prompt: Optional[str], params: GenerationParams
+    ) -> str:
+        """S371.3-GBNF: /completion endpoint с GBNF grammar constraint.
+
+        Parallel path к _complete_via_server — только когда params.grammar задан.
+        /completion — native llama.cpp endpoint, поддерживает grammar field
+        (подтверждено probe 5 + stability matrix B/C/D/E).
+        /v1/chat/completions НЕ поддерживает grammar в этой версии сервера
+        (S371.3-pre probe: response_format игнорируется).
+
+        Контракт:
+        - ChatML prompt через _build_chatml_prompt (не двойное форматирование)
+        - response: body["content"] (native format, не OpenAI choices)
+        - retry + error handling: тот же pattern, что _complete_via_server
+        """
+        url = self.server_url.rstrip("/") + "/completion"
+
+        stop_tokens = list(DEFAULT_STOP_TOKENS)
+        if params.stop:
+            stop_tokens.extend([t for t in params.stop if t.isascii()])
+
+        full_prompt = self._build_chatml_prompt(prompt, system_prompt)
+
+        _rng = KernelRNG(tick=0, npc_id="llama_cpp", salt=prompt)
+        _seed = _rng.randint(0, 2**31 - 1)
+        payload = {
+            "prompt": full_prompt,
+            "n_predict": params.max_tokens,
+            "stream": False,
+            "stop": stop_tokens,
+            "temperature": params.temperature,
+            "top_p": params.top_p,
+            "repeat_penalty": params.repeat_penalty,
+            "min_p": params.min_p,
+            "top_k": params.top_k,
+            "n_keep": params.n_keep,
+            "seed": _seed,
+            "grammar": params.grammar,
+        }
+
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        max_retries = 3
+        backoff_delays = [1.0, 2.0, 2.0]
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                with _opener.open(
+                    req, timeout=settings.llama_cpp_timeout_sec
+                ) as resp:
+                    body = json.loads(resp.read().decode("utf-8"))
+                    return cast(str, body.get("content", ""))
+            except (
+                urllib.error.URLError,
+                ConnectionResetError,
+                OSError,
+                TimeoutError,
+            ) as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    delay = backoff_delays[attempt]
+                    logger.warning(
+                        f"[LLM_RETRY_GRAMMAR] attempt {attempt + 1}/{max_retries} failed: {type(e).__name__}: {e}. Retrying in {delay}s..."
+                    )
+                    time.sleep(delay)
+                else:
+                    logger.error(
+                        f"[LLM_RETRY_GRAMMAR] all {max_retries} attempts failed. Last error: {type(e).__name__}: {e}"
                     )
 
         raise RuntimeError(

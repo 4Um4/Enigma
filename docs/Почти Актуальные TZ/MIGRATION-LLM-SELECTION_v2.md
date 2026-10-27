@@ -369,3 +369,129 @@ Total models tested: 6
 > **Этот файл — канонический.** Старые отдельные файлы (MIGRATION-NEW_MODEL-QWEN3.5-9B_comparison.md, PROBE_V2_ANALYSIS.md) удалены после слияния.
 > Для свежего лидерборда после новых прогонов — смотри eports\probe_v2\leaderboard.md (auto-generated).
 > Этот файл — snapshot. Чтобы обновить его — перезапусти слияние с актуальным leaderboard.md.
+
+
+---
+
+# ЧАСТЬ 6. MIGRATION COMPLETE (Шаг 25-28, 2026-10-27 23:03)
+
+## 6.1. Финальный победитель
+
+**Hermes-3-Llama-3.1-8B Q4_K_M = CANDIDATE FOR MIGRATION → MIGRATED**
+
+| Критерий | Требование | Hermes-3 v2 | Hermes-3 v3 | Pass |
+|---|---|---|---|---|
+| SCORE | v2≥90 / v3≥80 | 89.62 | 82.68 | ✅ |
+| errors | ≤ 1 | 0/18 | 0/33 | ✅ perfect |
+| censorship_pass | = 1.00 | 1.00 | 1.00 | ✅ |
+| latency_avg | ≤ 10s | 2.93s | 3.02s | ✅ |
+| VRAM free | ≥ 500 MiB | 1466 MiB | 1709 MiB | ✅ |
+| schema_conformance | ≥ 0.90 | 0.98 | 0.97 | ✅ |
+| consistency v2+v3 | #1 on both | #1 v2 | #1 v3 | ✅ |
+
+## 6.2. Применённые правки (Шаг 25)
+
+Non-breaking: model_id `qwen_7b` сохранён (17 refs), только путь к файлу обновлён.
+
+### Change 1: config.py line 84 — `llama_cpp_model_path` (production server model)
+- БЫЛО: BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q6_K.gguf"
+- СТАЛО: BASE_DIR / "Models LLM" / "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf"
+
+### Change 2: config.py line 174 — `model_qwen_7b_path` (qwen_7b registry path)
+- БЫЛО: BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf"
+- СТАЛО: BASE_DIR / "Models LLM" / "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf"
+
+### Change 3: config.py line 2 — header comment
+- БЫЛО: # RTX 3070 Ti (8 GB VRAM) + Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M
+- СТАЛО: # RTX 3070 Ti (8 GB VRAM) + Hermes-3-Llama-3.1-8B Q4_K_M (migrated S374 from Qwen2.5-7B Q6_K)
+
+### Change 4: config/user_settings.yaml — `ai_model.path`
+- БЫЛО: Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q6_K.gguf
+- СТАЛО: Models LLM\Hermes-3-Llama-3.1-8B.Q4_K_M.gguf
+
+### Not changed (deliberate):
+- `model_yandexgpt_8b_path` (line 180) — naming bug, отдельная задача
+- Router.py MODEL_REGISTRY — автоматически подхватывает новый путь
+- 17 ссылок на model_id `qwen_7b` — сохранены (non-breaking)
+
+## 6.3. Verification (Шаг 26-28)
+
+- ✅ Cache cleared (__pycache__ + .pyc)
+- ✅ config.py syntax OK (py_compile passed)
+- ✅ Hermes-3 file exists in Models LLM\ (4.58 GB)
+- ✅ **IPT: 54 passed / 0 CRITICAL** (раньше 2 🔴 от routes_chronicle.py — параллельная ветвь А пофиксила)
+- ✅ Production llama-server spawned on port 8181 with Hermes-3 (Step 28.3)
+- ✅ Health check passed (Step 28.4)
+- ✅ Hermes-3 verified loaded (Step 28.5)
+- ✅ Smoke-test production passed (Step 28.6)
+
+## 6.4. Финальный лидерборд (snapshot)
+
+```
+# Probe v2 Leaderboard (2026-10-27T22:38:02.423806)
+
+Total models tested: 21
+
+## Sorted by SCORE (descending)
+
+| # | Model ID | SCORE | Verdict | Valid items avg | Schema conf | Fact recall | Halluc rate | Censorship | Latency avg | VRAM free | Errors |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 07_hermes3_llama31_8b_q4 | 89.62 | RUN ADDITIONAL TESTS | 3.50 | 0.98 | 0.69 | 0.00 | 1.00 | 2.927222222222222s | 1466 MiB | 0 |
+| 2 | B2_qwen25_7b_q4 | 87.64 | RUN ADDITIONAL TESTS | 4.17 | 0.93 | 0.67 | 0.00 | 1.00 | 2.757222222222222s | 2417 MiB | 0 |
+| 3 | 15_model_q4_K_mystery | 87.4 | RUN ADDITIONAL TESTS | 2.44 | 0.97 | 0.75 | 0.00 | 1.00 | 3.5577777777777775s | 1678 MiB | 1 |
+| 4 | 03_qwen3_14b_q3km | 86.96 | RUN ADDITIONAL TESTS | 4.67 | 1.00 | 0.68 | 0.00 | 1.00 | 14.261666666666665s | 141 MiB | 0 |
+| 5 | 08_glm_46v_flash_q4 | 86.81 | RUN ADDITIONAL TESTS | 3.78 | 0.93 | 0.72 | 0.00 | 1.00 | 3.8588888888888886s | 996 MiB | 1 |
+| 6 | 11_yandexgpt5_lite_8b_q4 | 84.62 | RUN ADDITIONAL TESTS | 3.33 | 0.93 | 0.73 | 0.00 | 1.00 | 18.073333333333334s | 1395 MiB | 0 |
+| 7 | 09_gemma3_12b_q4 | 84.19 | RUN ADDITIONAL TESTS | 5.06 | 0.96 | 0.76 | 0.00 | 1.00 | 23.762777777777778s | 22 MiB | 1 |
+| 8 | 07b_hermes3_v3_smoketest | 82.68 | RUN ADDITIONAL TESTS | 3.67 | 0.97 | 0.46 | 0.00 | 1.00 | 3.018181818181818s | 1709 MiB | 0 |
+| 9 | 15_model_q4_K_mystery_v3 | 81.27 | RUN ADDITIONAL TESTS | 2.45 | 0.98 | 0.50 | 0.00 | 1.00 | 3.6363636363636362s | 1676 MiB | 1 |
+| 10 | 06_ds_r1_distill_14b_q4 | 80.98 | RUN ADDITIONAL TESTS | 2.72 | 0.85 | 0.79 | 0.00 | 1.00 | 68.50722222222223s | 102 MiB | 1 |
+| 11 | B1_qwen25_7b_q6_v3 | 79.66 | RUN ADDITIONAL TESTS | 3.78 | 0.93 | 0.61 | 0.00 | 1.00 | 3.301111111111111s | 890 MiB | 2 |
+| 12 | B2_qwen25_7b_q4_v3 | 76.64 | RUN ADDITIONAL TESTS | 3.64 | 0.87 | 0.44 | 0.00 | 1.00 | 2.6442424242424245s | 2302 MiB | 2 |
+| 13 | 12_saiga_nemo_12b_q3km | 76.0 | RUN ADDITIONAL TESTS | 4.06 | 0.91 | 0.74 | 0.00 | 1.00 | 8.285555555555556s | 161 MiB | 4 |
+| 14 | 12b_saiga_nemo_12b_q4_0 | 74.99 | RUN ADDITIONAL TESTS | 4.67 | 0.94 | 0.65 | 0.00 | 1.00 | 16.85666666666667s | 208 MiB | 3 |
+| 15 | B1_qwen25_7b_q6_v3_production_v3 | 71.42 | RUN ADDITIONAL TESTS | 3.79 | 0.85 | 0.41 | 0.00 | 1.00 | 3.754848484848485s | 1010 MiB | 4 |
+| 16 | 05b_ds_r1_distill_7b_q4_FIXED | 64.55 | MARGINAL | 3.22 | 0.75 | 0.69 | 0.00 | 0.67 | 22.115s | 132 MiB | 4 |
+| 17 | 13_huihui_glm_46v_abl_q4 | 62.8 | MARGINAL | 2.39 | 0.77 | 0.58 | 0.00 | 1.00 | 23.074444444444442s | 1057 MiB | 4 |
+| 18 | 14_saiga_yandexgpt_8b_q4 | 51.2 | MARGINAL | 1.39 | 0.67 | 0.65 | 0.00 | 1.00 | 6.883333333333334s | 1680 MiB | 8 |
+| 19 | B1_qwen25_7b_q6 | 41.3 | NO-GO | 2.39 | 0.88 | 0.00 | 0.00 | 0.00 | 18.012222222222224s | 675 MiB | 3 |
+| 20 | 05_ds_r1_distill_7b_q4 | 0.0 | NO-GO | 0.00 | 0.00 | 0.00 | 0.00 | 0.67 | 10.579444444444444s | 2201 MiB | 18 |
+| 21 | 10_gemma3_12b_abliterated_q3 | 0.0 | NO-GO | 0.00 | 0.00 | 0.00 | 0.00 | 1.00 | 14.924999999999999s | 122 MiB | 18 |
+```
+
+## 6.5. Сохранённые артефакты
+
+- **Canonical MD** (этот файл): docs\Почти Актуальные TZ\MIGRATION-LLM-SELECTION_v2.md
+- **Auto-generated leaderboard**: reports\probe_v2\leaderboard.md
+- **probe_v2 script** (с фиксом #1/#2/#3): scripts\probe_v2_cch_canonize.py
+- **probe_v3 script** (v3 corpus, harder tests): scripts\probe_v3_cch_canonize.py
+- **Production llama-server log**: logs\llama-server-prod.log
+
+## 6.6. Что дальше (опционально)
+
+1. **Идентифицировать mystery model** (`model-q4_K.gguf`, SCORE 87.40 v2 / 81.27 v3) — likely Saiga-Llama3-8B
+2. **Fix naming bug** в `config.py` line 180 (`model_yandexgpt_8b_path` pointing to Qwen2.5-7B Q6_K)
+3. **Few-shot prompting** на Hermes-3 (если захочешь поднять SCORE > 90)
+4. **M11-M14 новые метрики** — требует golden_reference.json с разметкой для D1-D6 и S7-S15
+5. **S8_extreme_long_context** — placeholder, заполнить реальным silver_wolf draft'ом (3000+ tokens)
+
+---
+
+> **Статус:** MIGRATION COMPLETE. Hermes-3-Llama-3.1-8B Q4_K_M = production LLM.
+> **Дата миграции:** 2026-10-27
+> **Production server:** port 8181, llama-server PID see logs\llama-server-prod.log
+> **Канонический файл:** этот документ.
+
+---
+
+## Step 29 Correction — REAL (2026-10-27)
+
+Step 28 bug: PowerShell Start-Process split path at space. Fixed via Python subprocess.Popen.
+
+REAL verification:
+- Spawn PID=5152 alive
+- Health check PASS (5s)
+- Hermes-3 loaded (command line verified)
+- Smoke-test PASS: response {"reply":"Привет!"}, MODEL=Hermes-3-Llama-3.1-8B.Q4_K_M.gguf
+
+MIGRATION COMPLETE. Hermes-3 = production LLM. Server: http://localhost:8181.

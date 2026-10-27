@@ -1055,18 +1055,25 @@ class MovementEngine:
                         # без via transfer-ветка не пишет direct EXITS_TO
                         # (оплачено d3: borko crossing без знания)
                     }
+                    # ADR-O-323 FIX-01: boundary_arrival — это завершение traversal
+                    # (NPC дошёл до boundary-узла), не начало нового. Cause
+                    # должен быть traversal_complete (whitelist SSM), что
+                    # корректно снимает требование proposal для snap-позиции.
+                    # MovementPlanner — единственный автор proposal для
+                    # macro relocation: boundary_arrival им не является
+                    # (это фиксация завершённого перехода, не его планирование).
                     return [
                         SceneChange(
                             type=ChangeType.NPC_POSITION, target=intent.actor_id,
                             field="position", value=next_node.node_id,
-                            cause=f"boundary_arrival:{intent.reason}", tick=tick,
+                            cause="traversal_complete", tick=tick,
                             traversal_proposal=None,
                         ),
                         SceneChange(
                             type=ChangeType.NPC_POSITION, target=intent.actor_id,
                             field="local_position",
                             value={"x": next_node.x, "y": next_node.y},
-                            cause=f"boundary_arrival:{intent.reason}", tick=tick,
+                            cause="traversal_complete", tick=tick,
                             traversal_proposal=None,
                         ),
                     ]

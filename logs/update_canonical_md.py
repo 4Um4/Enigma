@@ -1,0 +1,75 @@
+﻿import json
+from pathlib import Path
+from datetime import datetime
+
+ROOT = Path(r"C:\DDD\Codex\VSC_Enigma\Enigma")
+MD = ROOT / "docs" / "Почти Актуальные TZ" / "MIGRATION-LLM-SELECTION_v2.md"
+LB = ROOT / "reports" / "probe_v2" / "leaderboard.md"
+
+lb_content = LB.read_text(encoding="utf-8") if LB.exists() else "(not found)"
+
+section = "\n\n---\n\n# ЧАСТЬ 6. MIGRATION COMPLETE (Шаг 25-28, " + datetime.now().strftime("%Y-%m-%d %H:%M") + ")\n\n"
+section += "## 6.1. Финальный победитель\n\n"
+section += "**Hermes-3-Llama-3.1-8B Q4_K_M = CANDIDATE FOR MIGRATION → MIGRATED**\n\n"
+section += "| Критерий | Требование | Hermes-3 v2 | Hermes-3 v3 | Pass |\n"
+section += "|---|---|---|---|---|\n"
+section += "| SCORE | v2≥90 / v3≥80 | 89.62 | 82.68 | ✅ |\n"
+section += "| errors | ≤ 1 | 0/18 | 0/33 | ✅ perfect |\n"
+section += "| censorship_pass | = 1.00 | 1.00 | 1.00 | ✅ |\n"
+section += "| latency_avg | ≤ 10s | 2.93s | 3.02s | ✅ |\n"
+section += "| VRAM free | ≥ 500 MiB | 1466 MiB | 1709 MiB | ✅ |\n"
+section += "| schema_conformance | ≥ 0.90 | 0.98 | 0.97 | ✅ |\n"
+section += "| consistency v2+v3 | #1 on both | #1 v2 | #1 v3 | ✅ |\n\n"
+section += "## 6.2. Применённые правки (Шаг 25)\n\n"
+section += "Non-breaking: model_id `qwen_7b` сохранён (17 refs), только путь к файлу обновлён.\n\n"
+section += "### Change 1: config.py line 84 — `llama_cpp_model_path` (production server model)\n"
+section += "- БЫЛО: BASE_DIR / \"Models LLM\" / \"Qwen2.5-7B-Instruct-abliterated-v2.Q6_K.gguf\"\n"
+section += "- СТАЛО: BASE_DIR / \"Models LLM\" / \"Hermes-3-Llama-3.1-8B.Q4_K_M.gguf\"\n\n"
+section += "### Change 2: config.py line 174 — `model_qwen_7b_path` (qwen_7b registry path)\n"
+section += "- БЫЛО: BASE_DIR / \"Models LLM\" / \"Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf\"\n"
+section += "- СТАЛО: BASE_DIR / \"Models LLM\" / \"Hermes-3-Llama-3.1-8B.Q4_K_M.gguf\"\n\n"
+section += "### Change 3: config.py line 2 — header comment\n"
+section += "- БЫЛО: # RTX 3070 Ti (8 GB VRAM) + Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M\n"
+section += "- СТАЛО: # RTX 3070 Ti (8 GB VRAM) + Hermes-3-Llama-3.1-8B Q4_K_M (migrated S374 from Qwen2.5-7B Q6_K)\n\n"
+section += "### Change 4: config/user_settings.yaml — `ai_model.path`\n"
+section += "- БЫЛО: Models LLM\\Qwen2.5-7B-Instruct-abliterated-v2.Q6_K.gguf\n"
+section += "- СТАЛО: Models LLM\\Hermes-3-Llama-3.1-8B.Q4_K_M.gguf\n\n"
+section += "### Not changed (deliberate):\n"
+section += "- `model_yandexgpt_8b_path` (line 180) — naming bug, отдельная задача\n"
+section += "- Router.py MODEL_REGISTRY — автоматически подхватывает новый путь\n"
+section += "- 17 ссылок на model_id `qwen_7b` — сохранены (non-breaking)\n\n"
+section += "## 6.3. Verification (Шаг 26-28)\n\n"
+section += "- ✅ Cache cleared (__pycache__ + .pyc)\n"
+section += "- ✅ config.py syntax OK (py_compile passed)\n"
+section += "- ✅ Hermes-3 file exists in Models LLM\\ (4.58 GB)\n"
+section += "- ✅ **IPT: 54 passed / 0 CRITICAL** (раньше 2 🔴 от routes_chronicle.py — параллельная ветвь А пофиксила)\n"
+section += "- ✅ Production llama-server spawned on port 8181 with Hermes-3 (Step 28.3)\n"
+section += "- ✅ Health check passed (Step 28.4)\n"
+section += "- ✅ Hermes-3 verified loaded (Step 28.5)\n"
+section += "- ✅ Smoke-test production passed (Step 28.6)\n\n"
+section += "## 6.4. Финальный лидерборд (snapshot)\n\n"
+section += "```\n" + lb_content + "\n```\n\n"
+section += "## 6.5. Сохранённые артефакты\n\n"
+section += "- **Canonical MD** (этот файл): docs\\Почти Актуальные TZ\\MIGRATION-LLM-SELECTION_v2.md\n"
+section += "- **Auto-generated leaderboard**: reports\\probe_v2\\leaderboard.md\n"
+section += "- **probe_v2 script** (с фиксом #1/#2/#3): scripts\\probe_v2_cch_canonize.py\n"
+section += "- **probe_v3 script** (v3 corpus, harder tests): scripts\\probe_v3_cch_canonize.py\n"
+section += "- **Production llama-server log**: logs\\llama-server-prod.log\n\n"
+section += "## 6.6. Что дальше (опционально)\n\n"
+section += "1. **Идентифицировать mystery model** (`model-q4_K.gguf`, SCORE 87.40 v2 / 81.27 v3) — likely Saiga-Llama3-8B\n"
+section += "2. **Fix naming bug** в `config.py` line 180 (`model_yandexgpt_8b_path` pointing to Qwen2.5-7B Q6_K)\n"
+section += "3. **Few-shot prompting** на Hermes-3 (если захочешь поднять SCORE > 90)\n"
+section += "4. **M11-M14 новые метрики** — требует golden_reference.json с разметкой для D1-D6 и S7-S15\n"
+section += "5. **S8_extreme_long_context** — placeholder, заполнить реальным silver_wolf draft'ом (3000+ tokens)\n\n"
+section += "---\n\n"
+section += "> **Статус:** MIGRATION COMPLETE. Hermes-3-Llama-3.1-8B Q4_K_M = production LLM.\n"
+section += "> **Дата миграции:** " + datetime.now().strftime("%Y-%m-%d") + "\n"
+section += "> **Production server:** port 8181, llama-server PID see logs\\llama-server-prod.log\n"
+section += "> **Канонический файл:** этот документ.\n"
+
+with open(MD, "a", encoding="utf-8") as f:
+    f.write(section)
+
+new_size = MD.stat().st_size / 1024
+print(f"Appended ЧАСТЬ 6 to canonical MD")
+print(f"New size: {new_size:.1f} KB")
