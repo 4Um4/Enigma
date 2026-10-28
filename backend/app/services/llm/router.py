@@ -85,10 +85,10 @@ def _init_registry() -> dict[str, ModelConfig]:
         if _qwen_cfg
         else ProviderType.LLAMA_CPP
     )
-    _yandex_cfg = settings.available_models.get("yandexgpt_8b")
-    _yandex_pt = (
-        ProviderType(getattr(_yandex_cfg, "provider_type", "llama_cpp"))
-        if _yandex_cfg
+    _saiga_cfg = settings.available_models.get("saiga_llama3_8b")
+    _saiga_pt = (
+        ProviderType(getattr(_saiga_cfg, "provider_type", "llama_cpp"))
+        if _saiga_cfg
         else ProviderType.LLAMA_CPP
     )
     return {
@@ -114,11 +114,11 @@ def _init_registry() -> dict[str, ModelConfig]:
             temperature=0.9,
             repeat_penalty=1.12,
         ),
-        "yandexgpt_8b": ModelConfig(
-            key="yandexgpt_8b",
-            name="yandexgpt_8b",
-            provider_type=_yandex_pt,
-            path=settings.model_yandexgpt_8b_path,
+        "saiga_llama3_8b": ModelConfig(
+            key="saiga_llama3_8b",
+            name="saiga_llama3_8b",
+            provider_type=_saiga_pt,
+            path=settings.model_saiga_llama3_8b_path,
             capabilities=[
                 Capability.NARRATIVE,
                 Capability.DIALOGUE,
