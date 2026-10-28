@@ -158,7 +158,8 @@ async def test_case6_api_response_422_with_diagnostics(tmp_path, monkeypatch):
         _entry("maid_lusya", eid="e1", historical_age=10,
                object_id=EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="ghost_none")),
     ])
-    bad_doc = bad_doc._replace(canonical=False, canonical_version=0)
+    import dataclasses
+    bad_doc = dataclasses.replace(bad_doc, canonical=False, canonical_version=0)
     store.save_draft(bad_doc, "silver_wolf")
 
     # Monkeypatch store + registry
