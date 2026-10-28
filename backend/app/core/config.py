@@ -1,10 +1,13 @@
 # C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\core\config.py
-# RTX 3070 Ti (8 GB VRAM) + Hermes-3-Llama-3.1-8B Q4_K_M (migrated S374 from Qwen2.5-7B Q6_K)
+# RTX 3070 Ti (8 GB VRAM) + Hermes-3-Llama-3.1-8B Q4_K_M (primary, migrated S374/S380)
 #
-# Единственная модель: Qwen2.5-7B Q5_K_M (~5.0 GB VRAM)
+# Три поддерживаемые модели (S380 — top-3 from probe v2+v3):
+#   1. Hermes-3-Llama-3.1-8B Q4_K_M  (~4.6 GB VRAM) — primary (SCORE 82.68, 0 errors)
+#   2. Qwen2.5-7B-Instruct-abliterated Q4_K_M (~4.4 GB) — alternative
+#   3. Saiga-Llama3-8B Q4_K_M (~4.6 GB) — third (Saiga-Llama3-8B (Q4_K_M).gguf)
 # Контекст: 8192 токенов (с flash-attn ~0.5-0.8 GB KV-cache)
-# Параметры из Before.md: Temp 0.9 + Min-P 0.1 + Repeat-Penalty 1.12
-# Запуск сервера: llama-server.exe -m ... --flash-attn -ngl 99 -c 8192
+# Параметры: Temp 0.9 + Min-P 0.1 + Repeat-Penalty 1.12
+# Запуск сервера: llama-server.exe -m ... --flash-attn -ngl 99 -c 8192 --jinja
 
 import sys
 from pathlib import Path
@@ -148,12 +151,12 @@ class Settings(BaseSettings):
     dm_debug: bool = False
 
     # ─────────────────────────────────────────────────────────────────
-    # GPU: RTX 3070 Ti (8 GB VRAM) + Qwen2.5-7B Q5_K_M
+    # GPU: RTX 3070 Ti (8 GB VRAM) + Hermes-3-Llama-3.1-8B Q4_K_M (primary)
     # ─────────────────────────────────────────────────────────────────
-    # Модель:            ~5000 MB (28 слоёв, все в VRAM)
+    # Модель:            ~4600 MB (32 слоя, все в VRAM)
     # KV-cache ctx=8192: ~600 MB (с flash-attn)
     # ОС + CUDA:         ~500 MB
-    # Буфер:             ~1092 MB
+    # Буфер:             ~1492 MB
     # ИТОГО:             ~7192 MB (88% VRAM)
     gpu_layers: int = 99  # Fallback по умолчанию, если профиль не найден
     threads: int = 8
@@ -171,19 +174,19 @@ class Settings(BaseSettings):
     llama_cpp_n_keep: int = 800
 
     # ─────────────────────────────────────────────────────────────────
-    # Модели проекта (baseline Qwen2.5-7B + новая Qwen3.5-9B IQ3_M)
+    # Модели проекта (S380: top-3 from probe v2+v3)
     # ─────────────────────────────────────────────────────────────────
-    # MIGRATION S374: qwen_7b registry now points to Hermes-3 (probe v2+v3 winner)
+    # S380: qwen_7b = Hermes-3 (primary, default); key unchanged (17 refs non-breaking)
     model_qwen_7b_path: str = str(
         BASE_DIR / "Models LLM" / "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf"
     )
-    model_qwen_3_5_9b_path: str = str(
-        BASE_DIR / "Models LLM" / "Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-IQ3_M.gguf"
+    # S380: Qwen2.5-7B Q4_K_M (alternative)
+    model_qwen_2_5_7b_path: str = str(
+        BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf"
     )
-    # FIX: naming bug — variable said "yandexgpt_8b" but pointed to Qwen2.5-7B Q6_K file
-    # Now points to actual YandexGPT-5-Lite-8B-instruct-Q4_K_M (exists in Models LLM\)
-    model_yandexgpt_8b_path: str = str(
-        BASE_DIR / "Models LLM" / "YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf"
+    # S380: Saiga-Llama3-8B Q4_K_M (third; GGUF metadata: saiga_llama3_8b)
+    model_saiga_llama3_8b_path: str = str(
+        BASE_DIR / "Models LLM" / "Saiga-Llama3-8B (Q4_K_M).gguf"
     )
 
     # Agent → Model mapping (все агенты → одна модель)
@@ -224,18 +227,31 @@ class Settings(BaseSettings):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
-        # VRAM бюджет для RTX 3070 Ti (8192 MB):
-        #   Qwen2.5-7B Q5_K_M:    ~5000 MB
-        #   KV-cache ctx=8192:      ~600 MB (с flash-attn)
-        #   ОС + CUDA runtime:      ~500 MB
-        #   Буфер:                 ~1092 MB
-        #   ИТОГО:                 ~7192 MB (88% VRAM)
+        # S380: VRAM бюджет для RTX 3070 Ti (8192 MB) — top-3 models:
+        #   Hermes-3-8B Q4_K_M:  ~4600 MB (32 слоя, все в VRAM)
+        #   Qwen2.5-7B Q4_K_M:   ~4400 MB (28 слоёв)
+        #   Saiga-Llama3-8B Q4_K_M: ~4600 MB
+        #   KV-cache ctx=8192:     ~600 MB (с flash-attn)
+        #   ОС + CUDA runtime:     ~500 MB
+        #   Буфер:                ~1492-1692 MB
         self.available_models = {
             "qwen_7b": ModelConfig(
                 name="qwen_7b",
                 path=self.model_qwen_7b_path,
+                display_name="Hermes-3-Llama-3.1-8B Q4_K_M",
+                vram_mb=4600,
+                context_size=8192,
+                temperature=0.9,
+                top_p=0.9,
+                repeat_penalty=1.12,
+                n_keep=800,
+                provider_type="llama_cpp",
+            ),
+            "qwen_2_5_7b": ModelConfig(
+                name="qwen_2_5_7b",
+                path=self.model_qwen_2_5_7b_path,
                 display_name="Qwen2.5-7B-Instruct-abliterated Q4_K_M",
-                vram_mb=5000,
+                vram_mb=4400,
                 context_size=8192,
                 temperature=0.9,
                 top_p=0.9,
@@ -243,23 +259,11 @@ class Settings(BaseSettings):
                 n_keep=800,
                 provider_type="llama_cpp",
             ),
-            "qwen_3_5_9b": ModelConfig(
-                name="qwen_3_5_9b",
-                path=self.model_qwen_3_5_9b_path,
-                display_name="Qwen3.5-9B The-Defiant-Fable-Uncnr-Heretic-NEO-MAX IQ3_M",
-                vram_mb=7100,
-                context_size=8192,
-                temperature=0.9,
-                top_p=0.9,
-                repeat_penalty=1.12,
-                n_keep=800,
-                provider_type="llama_cpp",
-            ),
-            "yandexgpt_8b": ModelConfig(
-                name="yandexgpt_8b",
-                path=self.model_yandexgpt_8b_path,
-                display_name="YandexGPT-5-Lite-8B-instruct Q4_K_M",
-                vram_mb=6600,
+            "saiga_llama3_8b": ModelConfig(
+                name="saiga_llama3_8b",
+                path=self.model_saiga_llama3_8b_path,
+                display_name="Saiga-Llama3-8B (Q4_K_M)",
+                vram_mb=4600,
                 context_size=8192,
                 temperature=0.9,
                 top_p=0.9,
@@ -413,4 +417,4 @@ settings = Settings()
 
 # Константы для обратной совместимости
 DATA_DIR = Path(settings.data_dir)
-MODEL_PATH = Path(settings.model_qwen_7b_path)
+MODEL_PATH = Path(settings.model_qwen_7b_path)  # S380: = Hermes-3 (primary)

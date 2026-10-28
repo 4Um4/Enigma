@@ -184,15 +184,16 @@ class Capability(str, Enum):
 
 
 # Mapping: capability → model key (единственная модель)
+# S380: все capabilities → qwen_7b (= Hermes-3 primary); saiga_llama3_8b = fallback
 CAPABILITY_MODEL_PREFERENCES: dict["Capability", list[str]] = {
-    Capability.NARRATIVE: ["yandexgpt_8b"],
-    Capability.DIALOGUE: ["yandexgpt_8b"],
-    Capability.DIALOGUE_GENERATION: ["yandexgpt_8b"],
-    Capability.WORLD_SIMULATION: ["yandexgpt_8b"],
-    Capability.RULES_REASONING: ["yandexgpt_8b"],
-    Capability.MEMORY_SUMMARIZATION: ["yandexgpt_8b"],
-    Capability.FACT_EXTRACTION: ["yandexgpt_8b"],
-    Capability.STRATEGY: ["yandexgpt_8b"],
-    Capability.FAST: ["yandexgpt_8b"],
-    Capability.GENERAL: ["yandexgpt_8b"],
+    Capability.NARRATIVE: ["qwen_7b", "saiga_llama3_8b"],
+    Capability.DIALOGUE: ["qwen_7b", "saiga_llama3_8b"],
+    Capability.DIALOGUE_GENERATION: ["qwen_7b", "saiga_llama3_8b"],
+    Capability.WORLD_SIMULATION: ["qwen_7b", "saiga_llama3_8b"],
+    Capability.RULES_REASONING: ["qwen_7b", "saiga_llama3_8b"],
+    Capability.MEMORY_SUMMARIZATION: ["qwen_7b", "saiga_llama3_8b"],
+    Capability.FACT_EXTRACTION: ["qwen_7b", "saiga_llama3_8b"],
+    Capability.STRATEGY: ["qwen_7b", "saiga_llama3_8b"],
+    Capability.FAST: ["qwen_7b", "saiga_llama3_8b"],
+    Capability.GENERAL: ["qwen_7b", "saiga_llama3_8b"],
 }
