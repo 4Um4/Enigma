@@ -1,0 +1,110 @@
+{
+  "timestamp": "20261027_232135",
+  "fragments_count": 7,
+  "results": [
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 8,
+      "ok": true,
+      "error": null,
+      "raw_response": "",
+      "json_parsed": true,
+      "json_error": null,
+      "items_count": 2,
+      "latency_ms": 2427.767038345337,
+      "ends_with_brace": true,
+      "server_alive_post": true
+    },
+    {
+      "npc_id": "merchant_goran",
+      "fragment_ord": 13,
+      "ok": true,
+      "error": null,
+      "raw_response": "",
+      "json_parsed": true,
+      "json_error": null,
+      "items_count": 2,
+      "latency_ms": 2324.5928287506104,
+      "ends_with_brace": true,
+      "server_alive_post": true
+    },
+    {
+      "npc_id": "maid_lusya",
+      "fragment_ord": 7,
+      "ok": true,
+      "error": null,
+      "raw_response": "",
+      "json_parsed": true,
+      "json_error": null,
+      "items_count": 4,
+      "latency_ms": 3170.855760574341,
+      "ends_with_brace": true,
+      "server_alive_post": true
+    },
+    {
+      "npc_id": "blacksmith_orm",
+      "fragment_ord": 18,
+      "ok": true,
+      "error": null,
+      "raw_response": "",
+      "json_parsed": true,
+      "json_error": null,
+      "items_count": 2,
+      "latency_ms": 2316.4823055267334,
+      "ends_with_brace": true,
+      "server_alive_post": true
+    },
+    {
+      "npc_id": "thief_shadow",
+      "fragment_ord": 7,
+      "ok": true,
+      "error": null,
+      "raw_response": "",
+      "json_parsed": true,
+      "json_error": null,
+      "items_count": 5,
+      "latency_ms": 4743.5619831085205,
+      "ends_with_brace": true,
+      "server_alive_post": true
+    },
+    {
+      "npc_id": "thief_shadow",
+      "fragment_ord": 9,
+      "ok": true,
+      "error": null,
+      "raw_response": "",
+      "json_parsed": true,
+      "json_error": null,
+      "items_count": 3,
+      "latency_ms": 2763.631582260132,
+      "ends_with_brace": true,
+      "server_alive_post": true
+    },
+    {
+      "npc_id": "tavern_keeper_tornin",
+      "fragment_ord": 12,
+      "ok": true,
+      "error": null,
+      "raw_response": "",
+      "json_parsed": true,
+      "json_error": null,
+      "items_count": 2,
+      "latency_ms": 1809.3087673187256,
+      "ends_with_brace": true,
+      "server_alive_post": true
+    }
+  ],
+  "summary": {
+    "json_parsed_ok": 7,
+    "ends_with_brace": 7,
+    "items_gt_0": 7,
+    "full_success": 7,
+    "server_alive_at_end": true
+  },
+  "baseline_comparison": {
+    "baseline_ok_2048": 3,
+    "baseline_ok_4096": 4,
+    "baseline_truncation": 7,
+    "gbnf_ok": 7
+  }
+}

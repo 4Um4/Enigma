@@ -608,11 +608,8 @@ def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any
         # S143 FIX §1: Дверь разрезает стену, только если она архитектурно привязана к ней (wall_id).
         # Если привязка есть — ищем ВСЕ стены на координате двери, чтобы разрезать дубликаты.
         # Если привязки нет — стена не разрезается, что приведет к INV-TOPOLOGY-WALL-CROSS.
-        explicit_wall_id = obj.get("wall_id") or obj.get("properties", {}).get("wall_id")
-        if not explicit_wall_id:
-            rot = obj.get("rotation")
-            if isinstance(rot, str) and rot.startswith("wall_"):
-                explicit_wall_id = rot
+        # ME-1.5.1: единая форма wall_id (root) — триформ-fallback снят
+        explicit_wall_id = obj.get("wall_id")
 
         # S-01 FIX: Ищем стены по координатам ВСЕГДА, даже если wall_id не указан явно.
         # Это чинит баг, когда дверь без wall_id не разрезала стену, вызывая "crosses solid wall".

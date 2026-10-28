@@ -215,7 +215,7 @@
         "h": 1.0,
         "d": 2.2
       },
-      "rotation": "wall_5",
+      "rotation": 0,
       "passability": {
         "walk": true,
         "jump_over": false,
@@ -231,7 +231,8 @@
         "locked": false,
         "durability": 20,
         "visibility_through": 0.1
-      }
+      },
+      "wall_id": "wall_5"
     },
     {
       "id": "obj_1",
@@ -246,7 +247,7 @@
         "h": 1.0,
         "d": 2.2
       },
-      "rotation": "wall_7",
+      "rotation": 0,
       "passability": {
         "walk": true,
         "jump_over": false,
@@ -262,7 +263,8 @@
         "locked": false,
         "durability": 20,
         "visibility_through": 0.1
-      }
+      },
+      "wall_id": "wall_7"
     },
     {
       "id": "obj_2",
@@ -277,7 +279,7 @@
         "h": 0.2,
         "d": 2.2
       },
-      "rotation": "wall_2",
+      "rotation": 0,
       "passability": {
         "walk": true,
         "jump_over": false,
@@ -293,7 +295,8 @@
         "locked": false,
         "durability": 20,
         "visibility_through": 0.1
-      }
+      },
+      "wall_id": "wall_2"
     },
     {
       "id": "obj_3",
@@ -412,7 +415,7 @@
         "h": 3.96,
         "d": 1.5
       },
-      "rotation": "wall_3",
+      "rotation": 0,
       "passability": {
         "walk": false,
         "jump_over": false,
@@ -429,7 +432,8 @@
         "durability": 15,
         "sound_attenuation": 0.3,
         "visibility_through": 0.8
-      }
+      },
+      "wall_id": "wall_3"
     },
     {
       "id": "obj_8",

@@ -1,5 +1,5 @@
 ai_model:
-  model: qwen_7b
+  model: qwen_7b  # S380: qwen_7b = Hermes-3-Llama-3.1-8B Q4_K_M (primary)
   path: Models LLM\Hermes-3-Llama-3.1-8B.Q4_K_M.gguf
 content:
   individual:

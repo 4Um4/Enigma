@@ -31,11 +31,19 @@ def migrate_location(path: Path) -> dict:
         if not isinstance(props, dict):
             props = {}
             obj["properties"] = props
+        # ME-1.5.1: properties.wall_id → root
         if "wall_id" in props:
             obj["wall_id"] = props.pop("wall_id")
             changed["wall_id_normalized"] += 1
+        # ME-1.5.1: rotation=wall_* (S129 хак) → root wall_id + rotation=0
+        # ВНИМАНИЕ: условие не требует существующего root wall_id —
+        # 6 passage-объектов хранят wall_id ТОЛЬКО в rotation (S129 форма),
+        # без этой правки мигратор их пропускает.
         rotation = obj.get("rotation")
-        if isinstance(rotation, str) and rotation == obj.get("wall_id"):
+        if isinstance(rotation, str) and rotation.startswith("wall_"):
+            if not obj.get("wall_id"):
+                obj["wall_id"] = rotation
+                changed["wall_id_normalized"] += 1
             obj["rotation"] = 0
 
     portals = data.get("portals", [])

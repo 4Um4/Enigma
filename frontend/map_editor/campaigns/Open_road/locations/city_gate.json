@@ -1868,7 +1868,7 @@
         "h": 3.42,
         "d": 1.5
       },
-      "rotation": "wall_3",
+      "rotation": 0,
       "passability": {
         "walk": false,
         "jump_over": false,
@@ -1885,7 +1885,8 @@
         "durability": 15,
         "sound_attenuation": 0.3,
         "visibility_through": 0.8
-      }
+      },
+      "wall_id": "wall_3"
     },
     {
       "id": "obj_67",

@@ -130,7 +130,7 @@
         "h": 2.07,
         "d": 2.2
       },
-      "rotation": "wall_1",
+      "rotation": 0,
       "passability": {
         "walk": true,
         "jump_over": false,
@@ -146,7 +146,8 @@
         "locked": false,
         "durability": 20,
         "visibility_through": 0.1
-      }
+      },
+      "wall_id": "wall_1"
     },
     {
       "id": "obj_1",
