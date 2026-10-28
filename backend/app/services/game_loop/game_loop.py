@@ -80,6 +80,7 @@ logger = logging.getLogger(__name__)
 # GameLoop
 # ────────────────────────────────────────────────────────────────────────────────
 # DEGOD ITER5: E1-wiring экстрагирован в app/services/game_loop/e1_wiring.py.
+from app.services.events.npc_speech_act_subscriber import NpcSpeechActSubscriber
 from app.services.game_loop.e1_wiring import _e1_extract_subject
 
 # commit_tick инлайн в TickOrchestrator.finalize_and_commit — phase_8_commit.py удалён
@@ -547,6 +548,15 @@ class GameLoop:
             _bus = get_event_bus()
             _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
             _bus.subscribe(EventType.NPC_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
+            # DLG-1 (Speaker Symmetry, §3.6 DLG-L1): NPC semantic_acts → Claim в cognition listener.
+            # Симметричный PlayerSpeechActSubscriber для NPC-пути. Без LLM.
+            # Дедупликация по event_id (Claim Bridge) — между контурами.
+            _npc_speech_act_sub = NpcSpeechActSubscriber(
+                memory_manager=memory_manager,
+                campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
+                tick_provider=lambda: int(getattr(self, "_current_tick", 0)),
+            )
+            _bus.subscribe(EventType.NPC_SPOKE, _npc_speech_act_sub.on_npc_spoke)
             _bus.subscribe(EventType.PLAYER_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
             # Consumption v0 (вердикт Мастера): речевые акты игрока → Claim.
             from app.services.events.player_speech_act_subscriber import (
