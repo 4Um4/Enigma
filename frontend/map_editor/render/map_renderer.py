@@ -61,7 +61,10 @@ class MapRenderer:
             info = core.font_small.render(info_text, True, COLORS["text_dim"])
             core.screen.blit(info, (rect.x + 8, rect.y + 5))
 
-            p_count = len(data.get("portals", []))
+            p_count = sum(
+                1 for o in data.get("objects", [])
+                if o.get("type") in ("door", "window", "door_transition", "gap", "hatch")
+            )
             if p_count > 0:
                 p_text = core.font_small.render(f"🚪{p_count}", True, COLORS["accent_yellow"])
                 core.screen.blit(p_text, (rect.x + 8, rect.y + 20))
@@ -579,8 +582,8 @@ class MapRenderer:
                             pygame.draw.polygon(core.screen, COLORS["text"], pts)
 
         elif obj_type == "portal":
-            for p in loc.get("portals", []):
-                if p["id"] == obj_key:
+            for p in loc.get("objects", []):
+                if p.get("id") == obj_key and p.get("type") in ("door", "window", "door_transition", "gap", "hatch"):
                     sx, sy = self._world_to_screen(core, p["position"]["x"], p["position"]["y"])
                     pygame.draw.circle(core.screen, COLORS["accent_yellow"], (sx, sy), 18, 3)
                     break

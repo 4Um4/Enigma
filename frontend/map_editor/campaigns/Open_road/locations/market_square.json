@@ -176,14 +176,12 @@
         "open": true,
         "locked": false,
         "durability": 20,
-        "visibility_through": 0.1,
-        "wall_id": "wall_5"
+        "visibility_through": 0.1
       },
       "wall_id": "wall_5"
     }
   ],
   "passages": [],
-  "portals": [],
   "npcs": [],
   "labels": [],
   "nodes": {

@@ -1993,13 +1993,12 @@
         "open": true,
         "locked": false,
         "durability": 20,
-        "visibility_through": 0.1,
-        "wall_id": "wall_2"
-      }
+        "visibility_through": 0.1
+      },
+      "wall_id": "wall_2"
     }
   ],
   "passages": [],
-  "portals": [],
   "npcs": [],
   "labels": [],
   "nodes": {

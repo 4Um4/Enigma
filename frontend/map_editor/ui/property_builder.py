@@ -150,12 +150,18 @@ class PropertyBuilder:
                         )
 
         elif obj_type == "portal":
-            p = next((p for p in loc["portals"] if p["id"] == obj_key), None)
+            p = next(
+                (o for o in loc.get("objects", [])
+                 if o.get("id") == obj_key
+                 and o.get("type") in ("door", "window", "door_transition", "gap", "hatch")),
+                None,
+            )
             if p:
+                _props = p.get("properties") or {}
                 items = [
                     {
                         "type": "label",
-                        "text": f"Портал: {p['label']}",
+                        "text": f"Портал: {p.get('name') or p.get('id')}",
                         "important": True,
                     },
                     {"type": "toggle", "label": "Переименовать", "action": "rename"},
@@ -163,7 +169,7 @@ class PropertyBuilder:
                     {
                         "type": "value",
                         "label": "Цель",
-                        "value": p.get("target") or "(не связан)",
+                        "value": _props.get("target_file") or "(не связан)",
                     },
                 ]
 

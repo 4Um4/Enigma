@@ -917,7 +917,6 @@ class DataManager:
             "nodes": {},
             "objects": [],
             "passages": [],
-            "portals": [],
             "npcs": [],
             "labels": [],
             "player_spawn": {"x": pos_x + 1, "y": pos_y + 1, "z": 0},
@@ -975,10 +974,6 @@ class DataManager:
             obj["position"]["x"] = round(obj["position"]["x"] + ox, 2)
             obj["position"]["y"] = round(obj["position"]["y"] + oy, 2)
 
-        for portal in data.get("portals", []):
-            portal["position"]["x"] = round(portal["position"]["x"] + ox, 2)
-            portal["position"]["y"] = round(portal["position"]["y"] + oy, 2)
-
         for passage in data.get("passages", []):
             passage["position"]["x"] = round(passage["position"]["x"] + ox, 2)
             passage["position"]["y"] = round(passage["position"]["y"] + oy, 2)
@@ -1033,11 +1028,6 @@ class DataManager:
         for passage in loc.get("passages", []):
             passage["position"]["x"] = round(passage["position"]["x"] + dx, 2)
             passage["position"]["y"] = round(passage["position"]["y"] + dy, 2)
-
-        # Порталы (внешние)
-        for portal in loc.get("portals", []):
-            portal["position"]["x"] = round(portal["position"]["x"] + dx, 2)
-            portal["position"]["y"] = round(portal["position"]["y"] + dy, 2)
 
         # NPC
         for npc in loc.get("npcs", []):
@@ -1414,8 +1404,11 @@ class DataManager:
         elif entity_type == "object":
             target = next((o for o in loc["objects"] if o.get("id") == entity_id), None)
         elif entity_type == "portal":
-            target = next((p for p in loc["portals"] if p["id"] == entity_id), None)
-            name_key = "label"
+            target = next(
+                (o for o in loc["objects"]
+                 if o.get("id") == entity_id and o.get("type") in _PASSAGE_TYPES),
+                None,
+            )
 
         if target:
             target[name_key] = new_name
@@ -1432,8 +1425,11 @@ class DataManager:
         elif entity_type == "object":
             target = next((o for o in loc["objects"] if o.get("id") == entity_id), None)
         elif entity_type == "portal":
-            target = next((p for p in loc["portals"] if p["id"] == entity_id), None)
-            name_key = "label"
+            target = next(
+                (o for o in loc["objects"]
+                 if o.get("id") == entity_id and o.get("type") in _PASSAGE_TYPES),
+                None,
+            )
         else:
             return ""
 
@@ -1601,8 +1597,7 @@ class DataManager:
         }
         # Привязка к стене (для дверей, окон, проломов)
         if wall_id:
-            obj["wall_id"] = wall_id  # S143 FIX: Честный wall_id в корне объекта для editor_core
-            obj["properties"]["wall_id"] = wall_id
+            obj["wall_id"] = wall_id  # ME-1.5: единая форма хранения (root)
 
         loc["objects"].append(obj)
         return obj_id
@@ -1672,8 +1667,8 @@ class DataManager:
             "type": "door" if passage_type == "door" else passage_type,
             "position": {"x": round(position["x"], 2), "y": round(position["y"], 2)},
             "size": {"w": w, "h": h, "d": 1.0},
-            "rotation": wall_id,  # S129: Совместимость со старым контрактом
-            "wall_id": wall_id,   # S143: Честный wall_id для graph_compiler
+            "rotation": 0,        # ME-1.5: rotation больше не несёт wall_id (хак S129 снят)
+            "wall_id": wall_id,   # ME-1.5: единая форма хранения (root)
             "passability": {
                 "walk": True,
                 "jump_over": False,
@@ -1843,9 +1838,6 @@ class DataManager:
             # Узлы
             for nid in data.get("nodes", {}):
                 result.append(f"{fname}:{nid}")
-            # Порталы
-            for p in data.get("portals", []):
-                result.append(f"{fname}:{p['id']}")
         return sorted(result)
 
     def validate_external_link(self, link: str) -> Tuple[bool, str]:
@@ -1857,7 +1849,8 @@ class DataManager:
             return False, f"Файл {loc_file} не найден"
         data = self.locations[loc_file]
         if target_id in data.get("nodes", {}) or any(
-            p["id"] == target_id for p in data.get("portals", [])
+            o.get("id") == target_id and o.get("type") in _PASSAGE_TYPES
+            for o in data.get("objects", [])
         ):
             return True, ""
         return False, f"Цель {target_id} не найдена в {loc_file}"

@@ -78,8 +78,7 @@ map_editor/
   "rooms": [...],
   "walls": [...],
   "nodes": {...},
-  "objects": [...],
-  "portals": [...]
+  "objects": [...]
 }
 ```
 

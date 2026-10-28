@@ -340,7 +340,7 @@ class SpatialDataLoader:
                 if perp_dist <= 0.5:
                     walls_for_door.append(wid)
             
-            explicit_wall_id = obj.get("wall_id") or obj.get("properties", {}).get("wall_id")
+            explicit_wall_id = obj.get("wall_id")  # ME-1.5: единая форма (root)
             if not explicit_wall_id:
                 rot = obj.get("rotation")
                 if isinstance(rot, str) and rot.startswith("wall_"):

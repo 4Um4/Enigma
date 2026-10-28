@@ -1421,8 +1421,7 @@
         "durability": 25,
         "visibility_through": 0.0,
         "target_file": "",
-        "target_portal": "",
-        "wall_id": "wall_2"
+        "target_portal": ""
       },
       "wall_id": "wall_2"
     },
@@ -1454,15 +1453,13 @@
         "open": true,
         "locked": false,
         "durability": 20,
-        "visibility_through": 0.1,
-        "wall_id": "wall_1"
+        "visibility_through": 0.1
       },
       "wall_id": "wall_1"
-    }
-  ],
-  "portals": [
+    },
     {
       "id": "door_0",
+      "name": "Главный вход",
       "type": "door",
       "position": {
         "x": 8.0,
@@ -1472,13 +1469,29 @@
         "w": 1.0,
         "h": 1.0
       },
-      "label": "Главный вход",
-      "target": "",
-      "one_way": false,
-      "color": "#FFD700"
+      "rotation": 0,
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#FFD700",
+      "show_name": false,
+      "properties": {
+        "open": true,
+        "locked": false,
+        "durability": 25,
+        "visibility_through": 0.0,
+        "target_file": "",
+        "target_portal": ""
+      }
     },
     {
       "id": "door_1",
+      "name": "Дверь на кухню",
       "type": "door",
       "position": {
         "x": 14.0,
@@ -1488,14 +1501,30 @@
         "w": 1.0,
         "h": 1.0
       },
-      "label": "Дверь на кухню",
-      "target": "",
-      "one_way": false,
-      "color": "#FFD700"
+      "rotation": 0,
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#FFD700",
+      "show_name": false,
+      "properties": {
+        "open": true,
+        "locked": false,
+        "durability": 25,
+        "visibility_through": 0.0,
+        "target_file": "",
+        "target_portal": ""
+      }
     },
     {
       "id": "transition_2",
-      "type": "transition",
+      "name": "Портал: transition",
+      "type": "door_transition",
       "position": {
         "x": 8.0,
         "y": 12.0
@@ -1504,13 +1533,29 @@
         "w": 1.0,
         "h": 1.0
       },
-      "label": "Портал: transition",
-      "target": "",
-      "one_way": false,
-      "color": "#00CED1"
+      "rotation": 0,
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#00CED1",
+      "show_name": false,
+      "properties": {
+        "open": true,
+        "locked": false,
+        "durability": 25,
+        "visibility_through": 0.0,
+        "target_file": "",
+        "target_portal": ""
+      }
     },
     {
       "id": "ladder_3",
+      "name": "Погребок таверны",
       "type": "ladder",
       "position": {
         "x": 2.5,
@@ -1520,10 +1565,25 @@
         "w": 1.0,
         "h": 1.0
       },
-      "label": "Погребок таверны",
-      "target": "",
-      "one_way": false,
-      "color": "#9370DB"
+      "rotation": 0,
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#9370DB",
+      "show_name": false,
+      "properties": {
+        "open": true,
+        "locked": false,
+        "durability": 25,
+        "visibility_through": 0.0,
+        "target_file": "",
+        "target_portal": ""
+      }
     }
   ],
   "created_at": "2024-01-15T10:30:00",
