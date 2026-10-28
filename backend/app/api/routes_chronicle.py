@@ -23,6 +23,7 @@ from app.domain.chronicle import (
     CandidateStatus,
     CauseKind,
     CauseRef,
+    ChronicleDocument,
     EntryProvenance,
     NpcCausalBelief,
     make_belief_id,
@@ -34,6 +35,7 @@ from app.services.chronicle.chronicle_store import (
     document_from_dict,
     document_to_dict,
 )
+from app.services.chronicle.consistency_service import CanonicalRegistry, ConsistencyService
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
@@ -368,23 +370,83 @@ async def confirm_author_entries(campaign_id: str, npc_id: str) -> Dict[str, Any
 class CanonizeRequest(BaseModel):
     campaign_id: str = Field(..., min_length=1)
 
+def _check_canonical_consistency(doc: ChronicleDocument) -> None:
+    """CCH-7 Semantic Validation Gate (ADR-O-422, T-CCH-SV-01).
+
+    Обязательный шаг семантической валидации перед save_canonical.
+    Блокирует ТОЛЬКО CONTRADICTION canon-level (ссылка на несуществующего
+    канонного NPC) — единственное нарушение, которое:
+      - не ловится validate_document (только white_spot dangling блокируется
+        store-уровнем; RESOLVED EntityRef на несуществующий npc_id — нет);
+      - семантически означает «документ противоречит канону игры».
+
+    Все остальные Finding.kind (MERGE_CANDIDATE, GAP, QUESTION, CANON_SYNC,
+    INFO) — диагностические карточки автору (ADR-O-422), НЕ блокирующие
+    канонизацию. Логируются как WARNING.
+
+    Техническая ошибка сервиса (Exception) — НЕ маскируется под успех:
+    пробрасывается как HTTP 500.
+    """
+    registry = _build_registry_for_canonize()
+    report = ConsistencyService().check([doc], registry)
+    contradictions = [
+        f for f in report.findings
+        if f.kind == "CONTRADICTION" and f.level == "canon"
+    ]
+    if contradictions:
+        # Диагностируемый первый finding (детерминированно — по entry_id)
+        c = contradictions[0]
+        detail = (
+            f"Semantic validation (CCH-7): {c.message} "
+            f"[entry_id={c.doc_refs[0][1] if c.doc_refs else 'unknown'}]"
+        )
+        raise ValueError(detail)
+    # Диагностические (не блокирующие) — логируем
+    for f in report.findings:
+        if f.kind != "CONTRADICTION":
+            logger.info(
+                "CCH-7 diagnostic (non-blocking): [%s/%s] %s",
+                f.kind, f.level, f.message,
+            )
+
+
+def _build_registry_for_canonize() -> "CanonicalRegistry":
+    """Точка для monkeypatch в тестах. Делегирует в прод-модуль registry_builder."""
+    from app.services.chronicle.registry_builder import build_canonical_registry
+    return build_canonical_registry()
+
+
 @chronicle_router.post("/chronicle/{campaign_id}/{npc_id}/canonize")
 async def canonize_chronicle(campaign_id: str, npc_id: str, req: CanonizeRequest) -> Dict[str, Any]:
     """FR-10.1/10.2 (CCH-3): перевод draft → канон. Единственный путь
     LLM_DRAFT → AUTHOR_CONFIRMED реализован фронтендом ДО вызова (UI обязан
     выставить provenance-флаги по каждому item); здесь — валидация store
     (запрет 1: LLM_DRAFT в каноне; «Save = Contract»: открытые вопросы)
-    + canonical_version++. Вытеснение старого канона — тихое (вердикт S336)."""
+    + CCH-7 Semantic Validation Gate (ADR-O-422, T-CCH-SV-01) + canonical_version++.
+    Вытеснение старого канона — тихое (вердикт S336)."""
     store = _get_store()
     draft = store.load_draft(campaign_id, npc_id)
     if draft is None:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail=f"Черновик {npc_id} не найден в {campaign_id}")
     canonical = replace(
         draft,
         canonical=True,
         canonical_version=draft.canonical_version + 1,
     )
+    # CCH-7: семантическая валидация (Contradiction canon-level) ДО save_canonical.
+    # ValueError здесь → 422 с fix_hint (как у save_canonical ниже — единый контракт).
+    # Техническая ошибка сервиса → проброс как 500 (не маскируется под успех).
+    try:
+        _check_canonical_consistency(canonical)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except Exception as e:
+        # L4 fail-loud: техническая ошибка сервиса не должна пройти как успех.
+        logger.error("CCH-7 ConsistencyService technical error: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"ConsistencyService internal error: {e}",
+        ) from e
     try:
         path = store.save_canonical(canonical)
     except ValueError as e:

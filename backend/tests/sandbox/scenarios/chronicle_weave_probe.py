@@ -224,50 +224,9 @@ def _ensure_llm() -> bool:
 
 
 def build_registry() -> CanonicalRegistry:
-    """Снимок канона: production-лоадер для архетипов/имён + файл секретов."""
-    alias: dict[str, str] = {}
-    archetype: dict[str, str] = {}
-    try:
-        from app.services.npc.npc_loader import load_npcs_merged
-
-        npcs = load_npcs_merged()
-        for raw in npcs:
-            npc_id = str(raw["id"])
-            archetype[npc_id] = str(raw.get("_archetype") or raw.get("archetype") or "commoner")
-            forms = [str(raw.get("name") or "")]
-            nf = raw.get("name_forms")
-            if isinstance(nf, list):
-                forms.extend(str(x) for x in nf)
-            elif isinstance(nf, dict):
-                forms.extend(str(v) for v in nf.values())
-            for f in forms:
-                if f.strip():
-                    alias[f.strip().lower()] = npc_id
-    except Exception as e:  # L4: причина видима; фолбэк на сырые файлы
-        print(f"[WARN] load_npcs_merged недоступен ({e}) — читаю individuals напрямую")
-        for path in sorted((BASE_DIR / "config" / "npc" / "individuals").glob("*.json")):
-            raw = json.loads(path.read_text(encoding="utf-8-sig"))
-            npc_id = str(raw["id"])
-            archetype[npc_id] = str(raw.get("_archetype") or raw.get("archetype") or "commoner")
-            forms = [str(raw.get("name") or "")]
-            nf = raw.get("name_forms")
-            if isinstance(nf, list):
-                forms.extend(str(x) for x in nf)
-            for f in forms:
-                if f.strip():
-                    alias[f.strip().lower()] = npc_id
-
-    secret_known: dict[str, frozenset] = {}
-    ts_path = BASE_DIR / "config" / "canon" / "truth_state_tavern.json"
-    if ts_path.is_file():
-        ts = json.loads(ts_path.read_text(encoding="utf-8-sig"))
-        for s in ts.get("secrets", []):
-            holders = set(s.get("initial_holders") or []) | set(s.get("participants") or [])
-            secret_known[str(s.get("secret_id"))] = frozenset(holders)
-
-    reg = CanonicalRegistry(alias_to_npc=alias, archetype_of=archetype, secret_known_by=secret_known)
-    print(f"[REGISTRY] alias={len(alias)} archetype={archetype}")
-    return reg
+    """Делегирует в прод-модуль registry_builder (CCH-7, единый источник истины)."""
+    from app.services.chronicle.registry_builder import build_canonical_registry
+    return build_canonical_registry()
 
 
 def main() -> int:
