@@ -103,6 +103,11 @@ class CampaignManager:
         now = datetime.now().isoformat()
         campaign_dir.mkdir(parents=True)
         (campaign_dir / "locations").mkdir()
+        # ME-1.6: auto-copy starter templates → new campaign locations (вердикт в.1: "автокопия")
+        if TEMPLATE_DIR.exists():
+            import shutil
+            for tpl_file in TEMPLATE_DIR.glob("*.json"):
+                shutil.copy2(tpl_file, campaign_dir / "locations" / tpl_file.name)
         meta = validate_campaign_meta(
             {
                 _KEY_NAME: name[:70],

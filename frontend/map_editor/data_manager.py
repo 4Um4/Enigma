@@ -769,6 +769,8 @@ class DataManager:
     def __init__(self):
         self.base_dir = TEMPLATE_DIR
         self.base_dir.mkdir(exist_ok=True)
+        # ME-1.6: templates is read-only starter library; _writable=True only under campaigns/
+        self._writable: bool = False
         CACHE_DIR.mkdir(exist_ok=True)
         self.locations: Dict[str, dict] = {}
         # ME-1.3: реестр экземпляров-ссылок filename -> {obj_id: компактная запись}
@@ -782,6 +784,11 @@ class DataManager:
 
         self.base_dir = Path(path)
         self.base_dir.mkdir(parents=True, exist_ok=True)
+        # ME-1.6: writable when NOT pointing to starter templates (read-only library).
+        # campaigns/<id>/locations/ — writable; tmp_path (tests) — writable;
+        # TEMPLATE_DIR (close_campaign default) — read-only.
+        # resolve() handles relative paths and symlinks correctly.
+        self._writable = self.base_dir.resolve() != TEMPLATE_DIR.resolve()
         # ME-1.3: кампания выводится из макета campaigns/<id>/locations —
         # от неё зависит, чей каталог уникальных чертежей виден (спека §2)
         campaign_id = None
@@ -886,6 +893,12 @@ class DataManager:
         is_outdoor: bool = False,
     ) -> Tuple[bool, str]:
         """Создаёт новую локацию"""
+        # ME-1.6: starter templates is read-only; cannot create new location there
+        if not self._writable:
+            return False, (
+                "Cannot create location in starter templates (read-only). "
+                "Open or create a campaign first."
+            )
         if not filename.endswith(".json"):
             filename += ".json"
         if filename in self.locations:
@@ -1041,6 +1054,14 @@ class DataManager:
     def save(self, filename: str) -> bool:
         """Сохраняет локацию в JSON"""
         if filename not in self.locations:
+            return False
+        # ME-1.6: starter templates is read-only; save blocked to prevent orphaned edits
+        if not self._writable:
+            logger.error(
+                "[ME-1.6] Save blocked: base_dir is read-only starter templates (%s). "
+                "Open or create a campaign first.",
+                self.base_dir,
+            )
             return False
         self.locations[filename]["modified_at"] = datetime.now().isoformat()
         # ADR-061: Schema Enforcement. location_id ОБЯЗАН быть заполнен.
@@ -1272,12 +1293,26 @@ class DataManager:
 
     def save_all(self):
         """Сохраняет все локации"""
+        # ME-1.6: starter templates is read-only
+        if not self._writable:
+            logger.error(
+                "[ME-1.6] save_all blocked: base_dir is read-only starter templates (%s).",
+                self.base_dir,
+            )
+            return
         for fname in self.locations:
             self.save(fname)
 
     def delete_location(self, filename: str) -> bool:
         """Удаляет локацию"""
         if filename not in self.locations:
+            return False
+        # ME-1.6: starter templates is read-only
+        if not self._writable:
+            logger.error(
+                "[ME-1.6] Delete blocked: base_dir is read-only starter templates (%s).",
+                self.base_dir,
+            )
             return False
         path = self.base_dir / filename
         if path.exists():
