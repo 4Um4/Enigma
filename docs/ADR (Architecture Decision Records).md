@@ -1085,7 +1085,7 @@ Status: ACTIVE (S393 — standalone track; UI-контракт pending; runtime-
 Files: ``docs/ENIGMA_ROADMAP_v4_12_WPS.md`` (§15.2 LC-IMPL-3, §15.5 LC-GC-01 UI + LC-IMPL-3 Ступень C), ``docs/ADR (Architecture Decision Records).md`` (данный ADR + ревизия ADR-O-434)
 ### ADR-O-436: NPC_ADDRESSES_PLAYER Event Type — v1.1 Projection Extension
 
-**Статус:** PROPOSED (готов к вердикту Мастера для C2) | **Сессия:** S395 | **Связанные законы:** ADR-O-421 (v1-словарь), ADR-O-360 (observation membrane), §15.2 LC-IMPL-3 Ступень A
+**Статус:** PROPOSED (готов к вердикту Мастера для C2) | **Сессия:** S396 | **Связанные законы:** ADR-O-421 (v1-словарь), ADR-O-360 (observation membrane), §15.2 LC-IMPL-3 Ступень A
 
 **Контекст:**
 Археология S393-S394 (read-only, Блоки 9-18) установила:
@@ -1155,10 +1155,10 @@ Files: ``docs/ENIGMA_ROADMAP_v4_12_WPS.md`` (§15.2 LC-IMPL-3, §15.5 LC-GC-01 U
 **Ссылки:**
 ADR-O-421 (v1-словарь), ADR-O-360 (observation membrane), ADR-O-432/433 (LC-IMPL-2/3 split), TZ L44 (источник APPROACH), decision_hub.py:395-931 (точка решения), npc_state.py:854-859 (intent persistence), npc_tick_pipeline.py:59 (точка ветвления), narrative_beat.py:23 (INTERNAL — НЕ для намерения), action_commitment.py:107-115 (build_commitment_id — детерминизм).
 
-ADR-O-436 [STANDARD] **NPC_ADDRESSES_PLAYER Event Type — v1.1 Projection Extension** (S395; PROPOSED — готов к C2)
+ADR-O-436 [STANDARD] **NPC_ADDRESSES_PLAYER Event Type — v1.1 Projection Extension** (S396; PROPOSED — готов к C2)
 Суть: Новый EventType NPC_ADDRESSES_PLAYER — актуальная инициатива NPC, адресованная игроку. Публикуется в NpcTickPipeline после DecisionHub.compute при intent_target=player + адресующий intent + intent_formed_at=current_tick. visibility=whisper, target_id=player. event_id детерминирован от intent_formed_at (idempotency: один intent → одно событие; NPCState.intent_formed_at — SSOT). Добавлен в PROJECTION_EVENT_TYPES (v1.1 расширение ADR-O-421). НЕ расширяет NPC_INTERACTS_NPC/THEFT/ACTIVITY_OUTCOME. НЕ использует NarrativeBeat.delivery=INTERNAL (семантика «мысль», не «намерение»). Идемпотентность через event_id (производный от intent_formed_at), НЕ через processed_event_ids в scene_state. Stale handling через проверку NPCState.intent_formed_at в C4. Категория [STANDARD] — расширение контракта проекции, прецедент ADR-O-421a.
 ❌ Taboo: публикация по score без принятого решения; публикация для intent_target≠player; расширение существующих типов ради обхода нового; маскировка намерения под NarrativeBeat.INTERNAL; запись в RelationshipStore; открытие диалога на Ступени A; наказание за молчание; processed_event_ids в scene_state; новый interrupt reason без доказанной необходимости.
-Status: PROPOSED (S395 — готов к вердикту Мастера для C2; runtime-тесты pending)
+Status: PROPOSED (S396 — готов к вердикту Мастера для C2; runtime-тесты pending)
 Files: ``backend/app/services/events/event_types.py``, ``backend/app/services/game_loop/idle_event_projection.py``, ``backend/app/services/npc/npc_tick_pipeline.py``
 
 ---
