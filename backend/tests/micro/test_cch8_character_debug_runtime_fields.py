@@ -33,6 +33,89 @@ from app.domain.chronicle import (
 from app.services.chronicle.chronicle_store import ChronicleStore
 
 
+# ── AUTO-START/AUTO-KILL (принцип IPT.py) ──────────────────────────────
+# B1-тесты интеграционные: требуют uvicorn:8000 + llama-server:8181.
+# Поднимаем только если порт свободен; убиваем только если сами поднимали.
+# Чужие процессы (поднятые Мастером в отдельном окне) НЕ трогаем.
+import atexit
+import os
+import socket
+import subprocess
+import sys
+import time
+
+_BACKEND = Path(__file__).resolve().parents[2]   # .../backend
+_VENV_PY = _BACKEND.parent / ".venv" / "Scripts" / "python.exe"
+
+
+def _port_open(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.3)
+        return s.connect_ex(("127.0.0.1", port)) == 0
+
+
+# (a) LLM — через готовый менеджер, как в IPT.
+# Guard: kill_llama_server регистрируем ТОЛЬКО если сами подняли.
+_llm_started_here = False
+try:
+    from scripts.llm_server_manager import kill_llama_server, start_llama_server
+    if not _port_open(8181):
+        if start_llama_server():
+            _llm_started_here = True
+            atexit.register(kill_llama_server)
+except (ModuleNotFoundError, OSError) as _e:
+    print(f"⚠️ B1: LLM недоступна ({_e})", file=sys.stderr)
+
+
+# (b) uvicorn — поднимаем сами, если :8000 молчит.
+# Чужой uvicorn НЕ трогаем (нет atexit.register если не мы подняли).
+def _shutdown_uvicorn(proc: subprocess.Popen) -> None:
+    proc.terminate()
+    try:
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait(timeout=5)
+
+
+if not _port_open(8000):
+    _uvicorn_proc = subprocess.Popen(
+        [str(_VENV_PY), "-m", "uvicorn", "app.main:app",
+         "--host", "127.0.0.1", "--port", "8000"],
+        cwd=str(_BACKEND),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    atexit.register(_shutdown_uvicorn, _uvicorn_proc)
+    # Ждём готовности (≤ 10 c). Если не встал — печатаем хвост лога в stderr.
+    for _ in range(100):
+        if _port_open(8000):
+            break
+        time.sleep(0.1)
+    else:
+        try:
+            tail = _uvicorn_proc.stdout.read().decode("utf-8", errors="replace")[-2000:]
+            print(f"⚠️ B1: uvicorn не поднялся за 10с. Хвост лога:\n{tail}",
+                  file=sys.stderr)
+        except Exception:
+            pass
+
+
+# (c) ghost_reaper — гигиена перед прогоном (как в IPT).
+# Opt-out: env IPT_NO_REAPER=1.
+try:
+    if os.environ.get("IPT_NO_REAPER", "").strip().lower() not in ("1", "true", "yes"):
+        from scripts.ghost_reaper import reap as _reap
+        _r = _reap(dry_run=False)
+        print(f"[B1] KILLER_SPIRIT: killed={len(_r.get('killed', []))}, "
+              f"spared={len(_r.get('spared', []))}, "
+              f"fault={len(_r.get('fault', []))}",
+              file=sys.stderr)
+except Exception as _e:  # noqa: BLE001 — канальный отказ, не тика
+    print(f"[B1] KILLER_SPIRIT FAULT (не критично): {_e!r}", file=sys.stderr)
+
+
+
 @pytest.fixture(autouse=True)
 def _reset_store_global():
     saved = getattr(routes_chronicle, "_store", None)
