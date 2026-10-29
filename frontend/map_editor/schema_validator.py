@@ -101,6 +101,7 @@ def validate_location(data: dict, source: str) -> list[str]:
     errors.extend(_check_labels(data, source))
     errors.extend(_check_unique_object_ids(data, source))
     errors.extend(_check_levels(data, source))  # ME-1.9: multi-level contract
+    errors.extend(_check_spatial_contract(data, source))  # ME-1.12: spatial contract
     return errors
 
 
@@ -416,6 +417,59 @@ def _check_levels(data: dict, source: str) -> list[str]:
                 errors.append(
                     f"{source}: узел {name}: level={level} не найден в levels[]"
                 )
+    return errors
+
+
+# === ME-1.12: глобальный пространственный контракт v1.2/v1.3 (§5Б) ===
+
+
+def _check_spatial_contract(data: dict, source: str) -> list[str]:
+    """Пространственный контракт (ME-1.12, §5Б).
+
+    Инварианты:
+    1. Логические координаты (метры) в JSON, не пиксели (SCALE — rendering).
+    2. grid_cell_size > 0 — явное преобразование cell->meter.
+    3. spatial_ref (if present) — string, ссылка на область.
+    4. world_boundary (if present) — mode in {open, hard, transition}.
+    5. levels[] + active_level — ME-1.9 (validated by _check_levels).
+    6. Depth (elevation) != Floor (level id) — ME-1.9 contract.
+
+    НЕ валидирует: SCALE (rendering, canonical=20 per audit, fix in ME-2.8);
+    SpatialDataLoader (game-side, S-ME1).
+    """
+    errors: list[str] = []
+
+    gcs = data.get("grid_cell_size")
+    if gcs is not None:
+        if not _is_num(gcs) or gcs <= 0:
+            errors.append(
+                f"{source}: grid_cell_size — положительное число "
+                f"(получено {gcs!r})"
+            )
+
+    wb = data.get("world_boundary")
+    if wb is not None:
+        if not isinstance(wb, dict):
+            errors.append(f"{source}: world_boundary — объект")
+        else:
+            mode = wb.get("mode")
+            if mode not in ("open", "hard", "transition"):
+                errors.append(
+                    f"{source}: world_boundary.mode — один из "
+                    f"'open', 'hard', 'transition' (получено {mode!r})"
+                )
+
+    for entity_type in ("objects", "walls", "rooms", "npcs"):
+        for idx, ent in enumerate(data.get(entity_type) or []):
+            if not isinstance(ent, dict):
+                continue
+            sref = ent.get("spatial_ref")
+            if sref is not None and not isinstance(sref, str):
+                errors.append(
+                    f"{source}: {entity_type}[{idx}]: "
+                    f"spatial_ref — строка (получено {type(sref).__name__})"
+                )
+
     return errors
 
 
