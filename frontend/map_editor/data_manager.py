@@ -689,24 +689,17 @@ _PASSAGE_TYPES = ("door", "window", "door_transition", "gap", "hatch")
 
 
 def _object_wall_id(obj: dict) -> Optional[str]:
-    """Триформ-поиск wall_id (ME-D3): root → properties → rotation-строка.
+    """Возвращает wall_id объекта (ME-1.6: единая root-форма).
 
-    Данные живут в трёх формах одновременно (перепись S348: tavern — root+props,
-    city_gate/market_square — props+rotation-хак S129, городские ворота — без
-    привязки). Удаление обязано находить привязку в любой форме; нормализация
-    хранения в одну — ME-1.5.
+    ME-1.5 нормализовал запись; ME-1.5.1 завершил миграцию данных;
+    ME-1.6 снял триформ-fallback (root → properties → rotation-хак S129).
+    Аудит Этапа B: 0 wall_id в properties, 0 rotation=wall_*, сейвы не хранят
+    editor-геометрию. Функция сохранена как единая точка чтения для
+    консистентности 3 вызовов (валидация/remove_wall/remove_passages).
     """
     wid = obj.get("wall_id")
     if isinstance(wid, str) and wid:
         return wid
-    props = obj.get("properties")
-    if isinstance(props, dict):
-        wid = props.get("wall_id")
-        if isinstance(wid, str) and wid:
-            return wid
-    rot = obj.get("rotation")
-    if isinstance(rot, str) and rot:
-        return rot
     return None
 
 

@@ -97,17 +97,16 @@
 
 ## 8. Риски
 
-- **Скрытые потребители старых форм** — не найдены в рамках аудита `frontend/` (grep `properties.*wall_id` пуст). Backend не затронут. Если вне `frontend/` есть код, читающий `properties.wall_id` — он получит `None` после миграции. **Mitigation:** `_object_wall_id()` остаётся как compat-слой; ME-1.6 снимет его только после повторного аудита.
-- **Legacy-файлы вне кампании** — если в `test_campaign` или сессионных данных есть passage-объекты в старой форме, триформ-ридер их прочитает. Прямая запись (через `add_object`/`add_passage`) уже в новой форме.
-- **Rotation-хак S129 как детектор** — раньше строка в `rotation` сигнализировала о passage. Теперь `rotation` всегда число. Если в коде есть проверка `isinstance(rotation, str)` — она сломается. **Mitigation:** grep `isinstance.*rotation.*str` пуст (проверено в рамках ME-1.5).
+- **Скрытые потребители старых форм** — не найдены. После ME-1.5.1: `graph_compiler.py:611` упрощён до `obj.get("wall_id")`, `world_context.py:343` упрощён в ME-1.5. `_object_wall_id()` остаётся как compat-слой в data_manager (ME-1.6 снимет).
+- **Legacy-файлы вне кампании** — после ME-1.5.1 аудит `backend/data/sessions`, `backend/saves`, `backend/test_data`: 0 wall_id, 0 rotation=wall_*, 0 properties.wall_id. Сейвы не хранят editor-геометрию — риска нет.
+- **Rotation-хак S129 как детектор** — после ME-1.5.1: 0 вхождений `rotation=wall_*` в данных (было 6, мигрированы). grep `isinstance.*rotation.*str` пуст.
 
-## 9. Открытые вопросы (ME-1.6)
+## 9. Открытые вопросы (ME-1.6) — РЕШЕНЫ после ME-1.5.1
 
-- Снятие `_object_wall_id()` триформ-ридера — безопасно только после доказательства, что:
-  1. Все live-данные в кампаниях и сессиях хранятся в root-форме.
-  2. Нет runtime-потребителей, читающих `properties.wall_id` или `rotation == wall_id`.
-  3. Replay-сессии на старых сейвах не падают.
-- Аудит путей восстановления `wall_id` — отдельная задача ME-1.6.
+- ✅ Все live-данные в root-форме: 12 wall_id мест в campaigns+templates, 0 в properties, 0 rotation=wall_* (аудит Этапа B).
+- ✅ Нет runtime-потребителей старых форм: `graph_compiler:611` и `world_context:343` упрощены. Единственный consumer триформ-логики — `_object_wall_id()` в data_manager (3 точки вызова: 747, 1472, 1710).
+- ✅ Save-файлы не содержат editor-геометрии: 0 wall_id в `backend/data/sessions`, `backend/saves`, `backend/test_data`. Риска потери данных при загрузке старых сейвов нет.
+- **Вывод:** ME-1.6 (удаление `_object_wall_id()`) — безопасна. Замена на прямой `obj.get("wall_id")` в 3 точках вызова.
 
 ## 10. Канонические ссылки
 
@@ -116,3 +115,4 @@
 - ТЗ: «Map editor следуй карте» (ветвь Б)
 - Предыдущий ADR по map_editor: ADR-303 (Coordinate Truth)
 - Связанные инциденты: S129 (DEPRECATED), S143 (PRESERVED), S348/S349 (ME-D3 триформ-ридер)
+
