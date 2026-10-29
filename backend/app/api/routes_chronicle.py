@@ -697,6 +697,7 @@ async def get_character_debug(campaign_id: str, npc_id: str, request: Request) -
     if canon_doc is None:
         response["states"]["chronicle"] = "NOT_AUTHORED"
         response["sources"] = None
+        response["seed_summary"] = None
     else:
         response["states"]["chronicle"] = "KNOWN"
         response["sources"] = {
@@ -745,6 +746,23 @@ async def get_character_debug(campaign_id: str, npc_id: str, request: Request) -
             ],
             "npc_beliefs_count": len(canon_doc.npc_beliefs),
             "cause_candidates_count": len(canon_doc.cause_candidates),
+        }
+        # CCH-8 P1: seed_summary — независимая диагностика, не статус загрузки.
+        # KNOWN остаётся статусом. Не утверждает фактическое runtime-состояние
+        # EventMemory в NpcState — только то, что seeder смог бы произвести
+        # из текущего канона. Read-only: build_seed_report — pure function.
+        from app.services.chronicle.chronicle_seeder import build_seed_report
+        _sr = build_seed_report(npc_id)
+        response["seed_summary"] = {
+            "available": _sr is not None,
+            "memories": _sr.memories_count if _sr else 0,
+            "knowledge": _sr.knowledge_count if _sr else 0,
+            "relationships": _sr.relationships_count if _sr else 0,
+            "imprints": _sr.imprints_count if _sr else 0,
+            "beliefs": _sr.beliefs_count if _sr else 0,
+            "white_spots": _sr.white_spots_count if _sr else 0,
+            "entries_total": _sr.entries_total if _sr else 0,
+            "entries_author": _sr.entries_author if _sr else 0,
         }
 
     return response

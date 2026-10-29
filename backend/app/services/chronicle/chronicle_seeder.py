@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
 from app.core.config import BASE_DIR
@@ -391,3 +392,237 @@ def build_full_seed(npc_id: str) -> Optional[Dict[str, Any]]:
         "imprints": build_seed_imprints(doc),
         "beliefs": build_seed_beliefs(doc),
     }
+
+
+# ── CCH-8 P3: SeedReport (read-only диагностический снимок посева) ────────
+# Pure function: не мутирует состояние, не вызывает _apply_chronicle_seed_to_dict
+# / _enrich_with_chronicle_relations. Не расширяет реестр BeliefType, не добавляет
+# fallback. Существующие сигнатуры build_full_seed/build_seed_* не изменены.
+@dataclass(frozen=True)
+class SeedEntryReport:
+    """Отчёт по одной авторской entry: structural/semantic check + seed result."""
+    npc_id: str
+    entry_id: str
+    source_kind: str                # EntryKind.value
+    structural_check: str           # "OK" | "FAIL"
+    structural_notes: Tuple[str, ...]
+    semantic_check: str             # "OK" | "WARN"
+    semantic_notes: Tuple[str, ...]
+    seed_result: str                # "SEEDED" | "SKIPPED" | "NOT_APPLICABLE"
+    skip_reason: Optional[str]      # "no_object_id" | "belief_type_not_in_registry" | ...
+    day: Optional[int]              # для EVENT/EFFECT: вычисленный day
+    day_anomaly: Optional[str]      # "SENTINEL_DAY" | "DAY_ZERO" | None
+    downstream_consumer: Optional[str]  # "EventMemory" | "relationship_cache" | ...
+
+
+@dataclass(frozen=True)
+class SeedReport:
+    """Полный отчёт по посеву NPC: агрегаты по 6 категориям + per-entry детали."""
+    npc_id: str
+    chronicle_id: str
+    canon_loaded: bool
+    game_start_age: Optional[int]
+    entries_total: int
+    entries_author: int
+    entries_by_kind: Dict[str, int]
+    memories_count: int
+    knowledge_count: int
+    relationships_count: int
+    imprints_count: int
+    beliefs_count: int
+    white_spots_count: int
+    entries: Tuple[SeedEntryReport, ...]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "npc_id": self.npc_id,
+            "chronicle_id": self.chronicle_id,
+            "canon_loaded": self.canon_loaded,
+            "game_start_age": self.game_start_age,
+            "entries_total": self.entries_total,
+            "entries_author": self.entries_author,
+            "entries_by_kind": dict(self.entries_by_kind),
+            "memories_count": self.memories_count,
+            "knowledge_count": self.knowledge_count,
+            "relationships_count": self.relationships_count,
+            "imprints_count": self.imprints_count,
+            "beliefs_count": self.beliefs_count,
+            "white_spots_count": self.white_spots_count,
+            "entries": [
+                {
+                    "npc_id": e.npc_id,
+                    "entry_id": e.entry_id,
+                    "source_kind": e.source_kind,
+                    "structural_check": e.structural_check,
+                    "structural_notes": list(e.structural_notes),
+                    "semantic_check": e.semantic_check,
+                    "semantic_notes": list(e.semantic_notes),
+                    "seed_result": e.seed_result,
+                    "skip_reason": e.skip_reason,
+                    "day": e.day,
+                    "day_anomaly": e.day_anomaly,
+                    "downstream_consumer": e.downstream_consumer,
+                }
+                for e in self.entries
+            ],
+        }
+
+
+# Map: kind → downstream consumer (фиксация контракта, не расширение реестра)
+_KIND_CONSUMER: Dict[str, str] = {
+    "EVENT": "EventMemory",
+    "KNOWLEDGE_LINK": "EventMemory.known_by",
+    "RELATIONSHIP": "relationship_cache",
+    "EFFECT": "affective_imprints",
+    "BELIEF_SEED": "psyche.beliefs",
+    "TRAIT_SEED": "NOT_APPLICABLE",
+    "PORTRET": "NOT_APPLICABLE",
+    "DESIRE_SEED": "NOT_APPLICABLE",
+    "LOCATION": "NOT_APPLICABLE",
+    "OBSERVATION": "NOT_APPLICABLE",
+}
+
+_SEEDABLE_KINDS: Tuple[str, ...] = (
+    "EVENT",
+    "KNOWLEDGE_LINK",
+    "RELATIONSHIP",
+    "EFFECT",
+    "BELIEF_SEED",
+)
+
+
+def _classify_seed_entry(
+    e: ChronicleEntry,
+    doc: ChronicleDocument,
+    kind_str: str,
+) -> Tuple[str, Optional[str], Optional[int], Optional[str]]:
+    """Возвращает (seed_result, skip_reason, day, day_anomaly).
+    Логика повторяет существующие build_seed_* без мутации состояния."""
+    if kind_str not in _SEEDABLE_KINDS:
+        return ("NOT_APPLICABLE", None, None, None)
+    if kind_str == "EVENT":
+        try:
+            day = _day_from_age(
+                e.historical_age,
+                doc.game_start_age,
+                f"{doc.chronicle_id}:{e.entry_id}",
+                strict=True,
+            )
+            if day == SENTINEL_DAY:
+                return ("SEEDED", None, day, "SENTINEL_DAY")
+            if day == 0:
+                return ("SEEDED", None, day, "DAY_ZERO")
+            return ("SEEDED", None, day, None)
+        except SeederError as ex:
+            return ("SKIPPED", f"SeederError: {ex}", None, None)
+    if kind_str == "RELATIONSHIP":
+        tgt = _resolved_npc_id(e.object_id)
+        if tgt is None:
+            return ("SKIPPED", "no_object_id", None, None)
+        if tgt == doc.npc_ref:
+            return ("SKIPPED", "self_relation", None, None)
+        valence = (e.payload or {}).get(_PL_VALENCE)
+        if valence not in ("positive", "negative"):
+            return ("SKIPPED", f"valence='{valence}'", None, None)
+        return ("SEEDED", None, None, None)
+    if kind_str == "BELIEF_SEED":
+        from app.models.npc.beliefs import BeliefType
+        registry = {t.value for t in BeliefType}
+        bt = (e.payload or {}).get(_PL_BELIEF_TYPE)
+        if bt not in registry:
+            return ("SKIPPED", f"belief_type='{bt}' outside registry", None, None)
+        return ("SEEDED", None, None, None)
+    if kind_str == "EFFECT":
+        # build_seed_imprints обрабатывает trauma-linked EFFECTs:
+        # effect_kind=="trauma" + непустой triggers → imprint (SEEDED);
+        # trauma без triggers → warning + skip (SKIPPED);
+        # не-trauma EFFECT → NOT_APPLICABLE (imprint не создаётся намеренно)
+        payload = e.payload or {}
+        effect_kind = payload.get(_PL_EFFECT_KIND)
+        if effect_kind != "trauma":
+            return ("NOT_APPLICABLE", None, None, None)
+        triggers = payload.get(_PL_TRIGGERS)
+        if not triggers or not isinstance(triggers, (list, tuple)):
+            return ("SKIPPED", "trauma without triggers", None, None)
+        return ("SEEDED", None, None, None)
+    if kind_str == "KNOWLEDGE_LINK":
+        # build_seed_knowledge skip'ит источник не из канона (L229),
+        # но внутри одного канона все KL прошли строгую валидацию store
+        return ("SEEDED", None, None, None)
+    return ("NOT_APPLICABLE", None, None, None)
+
+
+def build_seed_report(npc_id: str) -> Optional[SeedReport]:
+    """Read-only диагностический снимок посева для npc_id.
+
+    Pure function: не мутирует состояние. Возвращает None если канон отсутствует.
+    Агрегаты берёт из build_full_seed (для консистентности с реальным посевом),
+    per-entry детали вычисляет через _classify_seed_entry.
+    """
+    docs = canonical_chronicles()
+    doc = docs.get(npc_id)
+    if doc is None:
+        return None
+    full = build_full_seed(npc_id)
+    if full is None:
+        return None
+    author_entries = _author_entries(doc)
+    entries_by_kind: Dict[str, int] = {}
+    entry_reports: List[SeedEntryReport] = []
+
+    for e in sorted(author_entries, key=lambda x: x.entry_id):
+        kind_str = e.kind.value
+        entries_by_kind[kind_str] = entries_by_kind.get(kind_str, 0) + 1
+
+        s_notes: List[str] = []
+        if e.historical_age is None and e.kind in (EntryKind.EVENT, EntryKind.EFFECT):
+            s_notes.append("historical_age missing")
+        if e.kind is EntryKind.RELATIONSHIP and e.object_id is None:
+            s_notes.append("object_id null")
+        if e.kind is EntryKind.KNOWLEDGE_LINK:
+            er = (e.payload or {}).get("event_ref")
+            if er is None or er not in {x.entry_id for x in doc.entries}:
+                s_notes.append("dangling event_ref")
+
+        m_notes: List[str] = []
+        if e.kind is EntryKind.BELIEF_SEED:
+            from app.models.npc.beliefs import BeliefType
+            registry = {t.value for t in BeliefType}
+            bt = (e.payload or {}).get(_PL_BELIEF_TYPE)
+            if bt not in registry:
+                m_notes.append(f"belief_type='{bt}' outside registry")
+
+        seed_result, skip_reason, day, day_anomaly = _classify_seed_entry(e, doc, kind_str)
+        consumer = _KIND_CONSUMER.get(kind_str)
+
+        entry_reports.append(SeedEntryReport(
+            npc_id=npc_id,
+            entry_id=e.entry_id,
+            source_kind=kind_str,
+            structural_check="OK" if not s_notes else "FAIL",
+            structural_notes=tuple(s_notes),
+            semantic_check="OK" if not m_notes else "WARN",
+            semantic_notes=tuple(m_notes),
+            seed_result=seed_result,
+            skip_reason=skip_reason,
+            day=day,
+            day_anomaly=day_anomaly,
+            downstream_consumer=consumer,
+        ))
+
+    return SeedReport(
+        npc_id=npc_id,
+        chronicle_id=doc.chronicle_id,
+        canon_loaded=True,
+        game_start_age=doc.game_start_age,
+        entries_total=len(doc.entries),
+        entries_author=len(author_entries),
+        entries_by_kind=entries_by_kind,
+        memories_count=len(full["memories"]),
+        knowledge_count=len(full["knowledge"]),
+        relationships_count=len(full["relationships"]),
+        imprints_count=len(full["imprints"]),
+        beliefs_count=len(full["beliefs"]),
+        white_spots_count=len(doc.white_spots),
+        entries=tuple(entry_reports),
+    )
