@@ -100,6 +100,7 @@ def validate_location(data: dict, source: str) -> list[str]:
     errors.extend(_check_npcs(data, source))
     errors.extend(_check_labels(data, source))
     errors.extend(_check_unique_object_ids(data, source))
+    errors.extend(_check_levels(data, source))  # ME-1.9: multi-level contract
     return errors
 
 
@@ -325,6 +326,96 @@ def _check_unique_object_ids(data: dict, source: str) -> list[str]:
         if oid in seen:
             errors.append(f"{source}: объект {oid}: дублирующийся id")
         seen.add(oid)
+    return errors
+
+
+# === ME-1.9: многоуровневый контракт levels[] (ME-R-101/105) ===
+
+
+def _check_levels(data: dict, source: str) -> list[str]:
+    """levels[] — опциональный многоуровневый контракт (ME-1.9).
+
+    Если levels[] отсутствует — локация одноуровневая (backward compatible).
+    Если присутствует — определяет уровни (этажи, подвалы, туннели):
+    id (int, может быть отрицательным), label (str), elevation (float?, высота).
+
+    Сущности (objects, walls, rooms, npcs, nodes) могут иметь поле 'level'
+    (int, default 0) — ссылка на id из levels[]. Если level отсутствует —
+    сущность на уровне 0 (backward compatible).
+
+    SpatialDataLoader не меняется (ME-1.9 — editor-only контракт).
+    Multi-level: игра читает flat arrays — известное ограничение до S-ME1.
+    """
+    levels = data.get("levels")
+    if levels is None:
+        return []
+    if not isinstance(levels, list):
+        return [f"{source}: levels — список, получен {type(levels).__name__}"]
+
+    errors: list[str] = []
+    seen_ids: set[int] = set()
+    level_ids: set[int] = set()
+
+    for idx, lvl in enumerate(levels):
+        if not isinstance(lvl, dict):
+            errors.append(f"{source}: levels[{idx}]: запись не объект")
+            continue
+        lid = lvl.get("id")
+        if not isinstance(lid, int) or isinstance(lid, bool):
+            errors.append(
+                f"{source}: levels[{idx}]: поле 'id' — целое "
+                f"(может быть отрицательным)"
+            )
+            continue
+        if lid in seen_ids:
+            errors.append(f"{source}: levels[{idx}]: дублирующийся id={lid}")
+        seen_ids.add(lid)
+        level_ids.add(lid)
+        label = lvl.get("label")
+        if not isinstance(label, str) or not label:
+            errors.append(
+                f"{source}: levels[{idx}] (id={lid}): поле 'label' — непустая строка"
+            )
+        elevation = lvl.get("elevation")
+        if elevation is not None and not _is_num(elevation):
+            errors.append(
+                f"{source}: levels[{idx}] (id={lid}): "
+                f"поле 'elevation' — число (опционально)"
+            )
+
+    if level_ids:
+        for entity_type in ("objects", "walls", "rooms", "npcs"):
+            entities = data.get(entity_type) or []
+            for idx, ent in enumerate(entities):
+                if not isinstance(ent, dict):
+                    continue
+                level = ent.get("level")
+                if level is None:
+                    continue
+                if not isinstance(level, int) or isinstance(level, bool):
+                    errors.append(
+                        f"{source}: {entity_type}[{idx}]: поле 'level' — целое"
+                    )
+                    continue
+                if level not in level_ids:
+                    errors.append(
+                        f"{source}: {entity_type}[{idx}]: "
+                        f"level={level} не найден в levels[]"
+                    )
+        nodes = data.get("nodes") or {}
+        for name, node in nodes.items():
+            if not isinstance(node, dict):
+                continue
+            level = node.get("level")
+            if level is None:
+                continue
+            if not isinstance(level, int) or isinstance(level, bool):
+                errors.append(f"{source}: узел {name}: поле 'level' — целое")
+                continue
+            if level not in level_ids:
+                errors.append(
+                    f"{source}: узел {name}: level={level} не найден в levels[]"
+                )
     return errors
 
 
