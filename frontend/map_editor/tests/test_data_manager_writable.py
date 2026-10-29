@@ -25,7 +25,6 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-import pytest
 from data_manager import DataManager  # type: ignore[import-not-found]
 
 _TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "location_templates"
