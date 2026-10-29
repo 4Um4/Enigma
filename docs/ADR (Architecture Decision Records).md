@@ -1083,6 +1083,85 @@ ADR-O-435 [INFRA] **LC-GC-01 UI — Standalone Track** (S393; отдельный
 ❌ Taboo: объявление LC-GC-01 закрытым по ядру без UI; предписание конкретного виджета без изучения UI-контрактов; production-рефакторинг под видом ADR; объявление трека навсегда независимым; подмена отображения логированием в тесте приёмки.
 Status: ACTIVE (S393 — standalone track; UI-контракт pending; runtime-тест pending)
 Files: ``docs/ENIGMA_ROADMAP_v4_12_WPS.md`` (§15.2 LC-IMPL-3, §15.5 LC-GC-01 UI + LC-IMPL-3 Ступень C), ``docs/ADR (Architecture Decision Records).md`` (данный ADR + ревизия ADR-O-434)
+### ADR-O-436: NPC_ADDRESSES_PLAYER Event Type — v1.1 Projection Extension
+
+**Статус:** PROPOSED (готов к вердикту Мастера для C2) | **Сессия:** S395 | **Связанные законы:** ADR-O-421 (v1-словарь), ADR-O-360 (observation membrane), §15.2 LC-IMPL-3 Ступень A
+
+**Контекст:**
+Археология S393-S394 (read-only, Блоки 9-18) установила:
+- Frontend (game_screen.py:1391-1394) фильтрует events по ``cause=="idle_pressure"``, но backend не производит такой cause.
+- Существующие EventType (ACTIVITY_OUTCOME, THEFT) не отражают семантику «NPC адресовал инициативу игроку».
+- NPC_INTERACTS_NPC (event_types.py:72) — NPC-NPC только (EXCLUDED L145); расширение семантики на player запрещено.
+- DecisionHub.compute (decision_hub.py:395-931) возвращает AgentAction с decision.intent + intent_target — точка принятого решения, не просто score.
+- NPCState (npc_state.py:854-859, 1025-1030): intent, intent_target, intent_formed_at персистируются между тиками — стабильная идентичность намерения.
+- npc_tick_pipeline.py:59 — точка ветвления: ``if intent_target and intent_target != "player"`` — player-target пропускается.
+- TZ L44: «источник уже существует — нужно перестать выбрасывать готовое».
+- NarrativeBeat.delivery=INTERNAL (narrative_beat.py:23) — «Мысль игрока/NPC, курсив, приглушенный цвет»; используется для завершённых мыслей (game_screen.py:1904, текст в *...*). НЕ для индикатора намерения — не маскировать.
+- action_commitment.py: build_commitment_id(tick, npc_id, action, ordinal) детерминирован; terminal статусы (COMPLETED/FAILED/INTERRUPTED/CANCELLED/EXPIRED) обеспечивают естественную идемпотентность; CANCELLED доступен из COMMITTED без interrupt_reason (L41).
+- event_identity.py: scene_state["event_ordinals"] персистируется через save_scene_state — replay-safe.
+
+**Решение:**
+1. **Имя**: ``NPC_ADDRESSES_PLAYER`` — следует паттерну NPC_<action>_<target> (прецеденты: NPC_INTERACTS_NPC, NPC_SPOKE, NPC_PROXIMITY_CLOSE). Семантика — актуальная инициатива NPC, адресованная игроку (не обязательно физическое приближение).
+
+2. **Точка публикации**: NpcTickPipeline.run, после DecisionHub.compute возвращает AgentAction с ``intent_target=="player"`` И ``intent`` в множестве адресующих intents {TALK, WARN, TRADE, OFFER_JOB, REQUEST_SERVICE, HELP, REPORT, INTIMIDATE, APPROACH}. Публикация только при ``intent_formed_at == current_tick`` (новое намерение, не продолжение).
+
+3. **EventDTO контракт**:
+   - type = ``"npc_addresses_player"``
+   - source = npc_id
+   - visibility = ``"whisper"`` (адресован игроку — idle_event_projection.py:216-219)
+   - payload = {intent, target_id="player", intent_formed_at}
+   - timestamp = intent_formed_at (НЕ current tick) — детерминированный event_id
+   - ordinal = 0 (одно событие на намерение)
+   - persistence_level = ``"working"`` (эфемерно, не L1-факт)
+
+4. **Идемпотентность**: event_id = MD5(``"npc_addresses_player:{npc_id}:{intent_formed_at}:0"``). Тот же intent → тот же event_id. Повторная публикация при удержании intent через тики — тот же event_id; projection фильтрует дубликаты. NPCState.intent_formed_at — SSOT идентичности намерения; не требует processed_event_ids в scene_state.
+
+5. **Projection**: добавить в PROJECTION_EVENT_TYPES (v1.1 расширение ADR-O-421). Экстрактор ``_value_npc_addresses_player(payload)`` возвращает intent (e.g., "talk", "warn"). Cause в projection = ``"npc_addresses_player"``. EXCLUDED не трогать — полнота ``enum == PROJECTION ∪ EXCLUDED`` сохраняется.
+
+6. **Read-only инвариант**: projection читает EventDTO, не мутирует (ADR-O-421). Продюсер (npc_tick_pipeline) публикует — это не нарушает read-only projection.
+
+7. **Связь с намерением**: event_id связан с intent_formed_at — та же идентичность, что у NPCState.intent. Player response передаёт event_id → backend находит NPC по source → проверяет NPCState.intent_formed_at == event timestamp → если совпадает, intent актуален; если нет — stale.
+
+**Реализация (C2, после вердикта Мастера):**
+1. event_types.py: добавить ``NPC_ADDRESSES_PLAYER = "npc_addresses_player"``.
+2. idle_event_projection.py: добавить в PROJECTION_EVENT_TYPES с экстрактором.
+3. npc_tick_pipeline.py: после DecisionHub.compute, при intent_target=="player" + адресующий intent + intent_formed_at==current_tick → publish EventDTO.
+
+**Контракт:**
+- Событие создаётся только после принятого решения NPC (DecisionHub.compute), не по score или присутствию игрока.
+- Адресат — игрок (target_id="player", visibility="whisper").
+- Один intent → одно событие (idempotency через event_id, привязанный к intent_formed_at).
+- Read-only projection (ADR-O-421).
+- Не открывает диалог (Ступень A — время не прерывается).
+- Не начисляет отношения (TZ L39).
+- Не наказывает за молчание (ignore = отсутствие ответа, не активное действие).
+
+**Границы (что решением НЕ утверждается):**
+- Не предписывает UI-виджет — вид определяется в C3. NarrativeBeat.delivery=INTERNAL НЕ используется (семантика «мысль», не «намерение»).
+- Не предписывает реакцию NPC на ответ — только сигнал намерения.
+- Не разрешает запись в RelationshipStore (TZ L39).
+- Не определяет обработку stale-event — это C4 (action_commitment FSM).
+- Не вводит новый interrupt reason без доказанной необходимости — решение в C4.
+- Не утверждает EventDTO.id единственным ключом идемпотентности без проверки: NPCState.intent_formed_at — SSOT, event_id производен от него.
+
+**Тесты (pending — критерии для C2):**
+1. NPC с intent_target=player + адресующим intent → публикует NPC_ADDRESSES_PLAYER.
+2. NPC с intent_target=npc → НЕ публикует.
+3. Тот же intent через тики → тот же event_id (idempotency).
+4. visibility=whisper, target_id=player → player_perceives=True.
+5. Projection read-only — мутация мира не происходит.
+6. Детерминизм: replay → тот же event_id.
+
+**Ссылки:**
+ADR-O-421 (v1-словарь), ADR-O-360 (observation membrane), ADR-O-432/433 (LC-IMPL-2/3 split), TZ L44 (источник APPROACH), decision_hub.py:395-931 (точка решения), npc_state.py:854-859 (intent persistence), npc_tick_pipeline.py:59 (точка ветвления), narrative_beat.py:23 (INTERNAL — НЕ для намерения), action_commitment.py:107-115 (build_commitment_id — детерминизм).
+
+ADR-O-436 [STANDARD] **NPC_ADDRESSES_PLAYER Event Type — v1.1 Projection Extension** (S395; PROPOSED — готов к C2)
+Суть: Новый EventType NPC_ADDRESSES_PLAYER — актуальная инициатива NPC, адресованная игроку. Публикуется в NpcTickPipeline после DecisionHub.compute при intent_target=player + адресующий intent + intent_formed_at=current_tick. visibility=whisper, target_id=player. event_id детерминирован от intent_formed_at (idempotency: один intent → одно событие; NPCState.intent_formed_at — SSOT). Добавлен в PROJECTION_EVENT_TYPES (v1.1 расширение ADR-O-421). НЕ расширяет NPC_INTERACTS_NPC/THEFT/ACTIVITY_OUTCOME. НЕ использует NarrativeBeat.delivery=INTERNAL (семантика «мысль», не «намерение»). Идемпотентность через event_id (производный от intent_formed_at), НЕ через processed_event_ids в scene_state. Stale handling через проверку NPCState.intent_formed_at в C4. Категория [STANDARD] — расширение контракта проекции, прецедент ADR-O-421a.
+❌ Taboo: публикация по score без принятого решения; публикация для intent_target≠player; расширение существующих типов ради обхода нового; маскировка намерения под NarrativeBeat.INTERNAL; запись в RelationshipStore; открытие диалога на Ступени A; наказание за молчание; processed_event_ids в scene_state; новый interrupt reason без доказанной необходимости.
+Status: PROPOSED (S395 — готов к вердикту Мастера для C2; runtime-тесты pending)
+Files: ``backend/app/services/events/event_types.py``, ``backend/app/services/game_loop/idle_event_projection.py``, ``backend/app/services/npc/npc_tick_pipeline.py``
+
+---
 
 ---
 
