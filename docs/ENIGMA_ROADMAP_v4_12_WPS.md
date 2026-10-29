@@ -415,7 +415,7 @@
 
 
 **Ступень LC — Замыкание игровой петли (v4.3; параллельный фронт §15; канал «мир → игрок» и «время → знание»)** (предпосылка — GC-спринт; LC-IMPL-1 доступна немедленно, т.к. только проектирует read-only проекцию уже происходящего)
-- [ ] Предпосылка — **GC-спринт GC-01 → GC-02 → GC-27** (§9.10): петля держится на непроверенном фундаменте, пока они открыты.
+- [x] Предпосылка — **GC-спринт GC-01 → GC-02 → GC-27** (§9.10): ✅ закрыт (S370/S374/S375; L1774 «спринт Б3 завершён»; 18/18 тестов зелёные 2026-10-28).
 - [x] **LC-IMPL-1** — ✅ S334 (ADR-O-421): наблюдаемая проекция idle-событий `{cause, target, value}` — ядро возвращает честную проекцию уже произошедшего (v1-словарь {ACTIVITY_OUTCOME, THEFT} за IDLE_EVENTS_PROJECTION_ENABLED default ON); строго read-only (замок K2: StateDeltas-запрет бессрочно). Диф-тест «мир молчит → мир говорит» GREEN 3/3 (SUPERBOX lc_gc01_world_speaks; «фронт отображает» — IMPL-3, не эта ступень).
 - [x] **LC-IMPL-2** — телеграф перестаёт быть no-op в API: событие Ступени А доезжает до клиента; микрорешение игрока возвращается в мир через существующий контур действий (без новых сущностей). ✅ S376: game_screen.py +10 строк (events ключ → logger.info [TELEGRAPH]); L3-тест 3/3 GREEN; трасса game_loop → routes → api_client → game_screen замкнута; UI-индикатор (церемония Б) — LC-IMPL-3.
 - [ ] **LC-IMPL-3** — оживление потребителя мировых событий во фронтенде: Ступень А (индикатор намерения + микрорешение, время идёт) / Ступень Б (полная церемония — тот же кодовый путь фокуса, что при обращении игрока; «облачко над головой» запрещено). Сюда же — потребительская часть DEBT-FE-DELTAS.
@@ -1716,7 +1716,7 @@ Harness обязан проходить через настоящий `TickOrche
 ### 9.3. GAMEPLAY Acceptance Tests (GC)
 
 - [ ] **GC-00 — Game is actually alive.** 6 NPC tavern, 100 LLM-free ticks. За прогон существуют decisions, movement/settled states, physiological changes, observations, memory/experience events, relationship activity там, где есть причины. Один seed → одинаковая causal history. Нулевые counters сами по себе не доказательство смерти — проверять production trace. 📌 *Текущий статус: тест существует (`tests/gameplay/test_tavern_vertical.py`), baseline №4 3/3 PASSED (93.44s, CLEAN-START верифицирован, коммит bd4); матрица §9.10 — «закрыто», «уверены» — открытые.*
-- [ ] **GC-01 — Real Tick Vertical Slice.** `new_game → real tick → snapshot → decision → execution → verification`. Harness не обходит production path; один NPC проходит полный цикл.
+- [x] **GC-01 — Real Tick Vertical Slice.** `new_game → real tick → snapshot → decision → execution → verification`. Harness не обходит production path; один NPC проходит полный цикл. ✅ S370: вертикальный срез закрыт (Блоки №55-№69; 5 xfail сняты, 5 дефектов D1-D5 локализованы и обработаны); 18/18 тестов зелёные (2026-10-28).
 - [x] **GC-02 — Player action → world consequence.** Игрок действует над объектом; объект меняет canonical state; изменение попадает в causal/event слой и остаётся после следующего тика. Не сливается с GC-08 (player→world ≠ object→affordance→action). ✅ S374: L3-тест 3/3 GREEN (canonical state change / action_id идемпотентность / persistence after idle_tick); HELP через InterventionEvent (LLM-free) → ActionConsequenceCompiler → WriteGate → V2-RAM; production-bag фикс load_campaign MVP-init (раньше resume/savegame ломал MVP-эпистемику).
 - [ ] **GC-03 — Observation → Experience/Memory → changed behavior.** NPC реально видит/слышит событие в пределах perception rules; observation создаётся; experience/memory сохраняется; следующий выбор отличается от baseline.
 - [~] **GC-04 — Experience → Conclusion → Expectation → Decision.** Повторяемое событие порождает машино-пригодный conclusion; conclusion меняет expectation; expectation входит в DecisionHub; NPC выбирает действие, которое без history не выбрал бы. **S243: сегмент E2-state→DecisionHub доказан** (causal_state_test A/C — флип argmax от авторизованной дельты без текста); Conclusion = BC-1 ✅; Expectation = BC-2, открыт. Full-cell закрытие — после BC-3.
@@ -2720,7 +2720,7 @@ LLM распознаёт в тексте ревность, ненависть, �
 
 ### 15.3. Предпосылки и связи
 
-- **Предпосылка — GC-спринт GC-01 → GC-02 → GC-27** (§9.10): пока открыты, петля держится на ручных доказательствах, и церемония Б строится на непроверенном фундаменте.
+- **Предпосылка — GC-спринт GC-01 → GC-02 → GC-27** (§9.10): ✅ закрыт (S370/S374/S375; 18/18 тестов зелёные 2026-10-28). Петля на проверенном фундаменте, церемония Б строится на нём.
 - **Связи:** NL-3 — носитель церемонии Б (диалог/циеремония) · NL-3/NL-5 — исполнение LC-IMPL-4 (поглощение, один факт — одно место) · G/H Satisfaction ✅ S329 (ADR-O-419; readout жив за флагом) — источник арбитража потребностей для LC-04 (консьюмер Фр4→DecisionHub — отдельная фаза) · W-TRACK дополняется трекером наблюдаемости мировых событий (видимость события игроку — первоклассное свойство).
 - **Правило доказательств:** §0.2(5) распространяется на LC без исключений — закрытие = §9-доказательство (диф-тест F5 или grep-инвариант), а не обещание. Прецедент R001 и формат F5 сохраняются.
 
@@ -2737,9 +2737,11 @@ LLM распознаёт в тексте ревность, ненависть, �
 
 ### 15.5. Чек-лист закрытия направления
 
-- [ ] GC-спринт GC-01 → GC-02 → GC-27 закрыт (предпосылка)
-- [ ] LC-IMPL-1: проекция idle-событий + диф-тест «молчит → говорит» (LC-GC-01)
-- [ ] LC-IMPL-2: телеграф доезжает до клиента; микрорешение возвращается в мир
+- [x] GC-спринт GC-01 → GC-02 → GC-27 закрыт (предпосылка; S370/S374/S375)
+- [x] LC-IMPL-1: проекция idle-событий + диф-тест «молчит → говорит» ✅ S334 (ADR-O-421; ядро замкнуто, IDLE_EVENTS_PROJECTION_ENABLED default ON)
+- [ ] LC-GC-01 (UI-составляющая): наблюдаемое событие отображается в UI — остаётся открытой, закрывается в LC-IMPL-3
+- [x] LC-IMPL-2 (часть 1/2): телеграф доезжает до клиента — ✅ S376 (test_lc_impl2_telegraph_reaches_client 3/3; канал events в game_screen.py:L1258, logger.info как индикатор)
+- [ ] LC-IMPL-2 (часть 2/2): микрорешение игрока возвращается в мир — переносится в LC-IMPL-3 (контур microdecision отсутствует; cancel_telegraph не связан с v1-проекцией; вердикт археологии 2026-10-28). Исходное определение LC-IMPL-2 (см. §15.2 L2727) включало обе части; разделение отражает фактическое состояние, не пересмотр определения.
 - [ ] LC-IMPL-3: церемония Б на едином кодовом пути фокуса; потребительская часть DEBT-FE-DELTAS погашена (LC-GC-02/03)
 - [ ] LC-IMPL-4: приёмка «память в речи» (исполнение — NL-3/NL-5)
 - [ ] LC-IMPL-5: следы skip_time без агрегатов; вердикты по dormant-сущностям (LC-GC-05)
