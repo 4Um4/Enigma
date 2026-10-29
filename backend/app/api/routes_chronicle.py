@@ -256,10 +256,20 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
         EntryProvenance,
         make_entry_id,
     )
+    from app.services.chronicle.decomposition_normalizer import (
+        resolve_object_ref_from_roster,
+    )
+    from app.services.npc.npc_loader import get_display_names
+
     store = _get_store()
     doc = store.load_draft(req.campaign_id, req.npc_id)
     if doc is None:
         doc = ChronicleDocument(chronicle_id=req.npc_id, npc_ref=req.npc_id)
+    # COV-10.4: roster для auto-resolution exact-match target_hint → object_id.
+    # Тот же источник, что и в normalizer (_default_roster_provider → get_display_names).
+    # Без этого exact-match записи оставались без object_id И без open_questions —
+    # «застрявшая» запись, seeder skip'ает, resolver не может разрешить.
+    _roster = get_display_names()
     new_ids = set()
     new_entries = []
     for _idx, _it in enumerate(result.items):
@@ -288,11 +298,22 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
             _event_count = sum(1 for x in result.items if x.kind is EntryKind.EVENT)
             if _event_count == 1:
                 _age_value = result.age_anchors[0]
+        # COV-10.4: auto-resolve object_id для RELATIONSHIP/EFFECT с exact roster match.
+        # Если normalizer создал ClarificationQuestion (non-match) — _it.question is not None,
+        # и object_id остаётся None (автор разрешит через resolve_question).
+        # Если exact match — question is None, и без этой резолюции запись осталась бы
+        # без object_id и без open_questions («застрявшая» запись, seeder skip'ает).
+        _object_id = None
+        if _it.question is None and _it.kind in (EntryKind.RELATIONSHIP, EntryKind.EFFECT):
+            _hint = _it.draft_payload.get("target_hint")
+            if isinstance(_hint, str) and _hint.strip():
+                _object_id = resolve_object_ref_from_roster(_hint, _roster)
         new_entries.append(
             ChronicleEntry(
                 entry_id=_eid,
                 kind=_it.kind,
                 subject_id=EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id=req.npc_id),
+                object_id=_object_id,
                 historical_age=_age_value,
                 payload=dict(_it.draft_payload),
                 provenance=EntryProvenance.LLM_DRAFT,
@@ -674,6 +695,13 @@ async def get_character_debug(campaign_id: str, npc_id: str, request: Request) -
 
             psyche = npc_dict.get("psyche", {})
             ledger_raw = npc_dict.get("causal_ledger", [])
+            # B1 (COV-11): runtime observability — populated memory/cache/imprints/beliefs.
+            # Read-only: reads existing npc_dict fields; does NOT call seeder or materialize.
+            # null = field absent in npc_dict (NOT_LOADED); 0/[] = field present but empty.
+            _narrative_cache = npc_dict.get("narrative_cache")
+            _relationship_cache = npc_dict.get("relationship_cache")
+            _affective_imprints = npc_dict.get("affective_imprints")
+            _psyche_beliefs = psyche.get("beliefs")
             response["now"] = {
                 "npc_id": npc_id,
                 "name": npc_dict.get("name", ""),
@@ -689,6 +717,22 @@ async def get_character_debug(campaign_id: str, npc_id: str, request: Request) -
                 "body_state": body_state,
                 "causal_ledger_last_20": ledger_raw[-20:] if ledger_raw else [],
                 "ledger_size": len(ledger_raw),
+                # B1: runtime memory/cache/imprints/beliefs observability (COV-11).
+                # null = field absent in npc_dict; counts/lists = field present.
+                "episodic_memory_count": (
+                    len(_narrative_cache) if _narrative_cache is not None else None
+                ),
+                "relationship_cache_targets": (
+                    sorted(_relationship_cache.keys())
+                    if isinstance(_relationship_cache, dict) else None
+                ),
+                "affective_imprints_count": (
+                    len(_affective_imprints) if _affective_imprints is not None else None
+                ),
+                "psyche_beliefs_types": (
+                    sorted(_psyche_beliefs.keys())
+                    if isinstance(_psyche_beliefs, dict) else None
+                ),
             }
 
     # ── ИСТОЧНИКИ — канон-хроника ──────────────────────────────────────────

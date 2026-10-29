@@ -20,6 +20,8 @@ from app.domain.chronicle import (
     ClarificationOption,
     ClarificationQuestion,
     DecompositionItem,
+    EntityRef,
+    EntityRefKind,
     EntryKind,
 )
 
@@ -90,6 +92,35 @@ def _is_identity_question_for(question: Any, hint: Any) -> bool:
     if not isinstance(span, str) or not isinstance(hint, str):
         return False
     return span.strip().lower() == hint.strip().lower()
+
+
+def resolve_object_ref_from_roster(
+    hint: Any, roster: Mapping[str, str]
+) -> Optional[EntityRef]:
+    """COV-10.4: Exact-match resolution of target_hint → EntityRef(RESOLVED, npc_id).
+
+    Когда _matches_roster_exact возвращает True, normalizer не создаёт
+    ClarificationQuestion. Без object_id запись оставалась бы «застрявшей» —
+    без object_id И без open_questions (seeder skip'ает, resolver не может
+    разрешить, так как нечего разрешать).
+
+    Возвращает EntityRef(ref_kind=RESOLVED, npc_id=<matched>) если hint
+    точно совпадает (case-insensitive) с roster display name или npc_id.
+    None в остальных случаях (non-string, пустой, нет совпадения).
+
+    Type-guarded, exact match (не fuzzy) — зеркалит _matches_roster_exact.
+    """
+    if not isinstance(hint, str):
+        return None
+    h = hint.strip().lower()
+    if not h:
+        return None
+    for npc_id, name in roster.items():
+        if isinstance(name, str) and h == name.strip().lower():
+            return EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id=npc_id)
+        if isinstance(npc_id, str) and h == npc_id.strip().lower():
+            return EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id=npc_id)
+    return None
 
 
 class DecompositionError(ValueError):
