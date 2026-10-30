@@ -779,12 +779,17 @@ class StateApplicator:
                 state.intent_target = (
                     deltas.target or state.intent_target
                 )
-                state.intent_formed_at = int(deltas.intent_tick or 0)
+                # W2: guard intent_tick is not None — None=отсутствует (не трогать),
+                # 0=валидный тик 0, N=тик N. Прежнее int(intent_tick or 0) маскировало
+                # default=0 как «не задано» и перезатирало валидный past formed_at.
+                if deltas.intent_tick is not None:
+                    _w2_tick = int(deltas.intent_tick)
+                    state.intent_formed_at = _w2_tick
+                    state.last_intent_change = _w2_tick
                 state.intent_duration = 0
                 state.intent_progress_ticks = int(
                     state.intent_progress_ticks * 0.3
                 )
-                state.last_intent_change = int(deltas.intent_tick or 0)
 
         # DEEP-015 FIX: Мёртвый код ExpectationStore (Reward Prediction Error) удалён.
         # SANATION-M1a: v2-поля IdentityPayload (identity_integrity_delta /

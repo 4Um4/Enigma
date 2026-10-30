@@ -142,7 +142,7 @@ class StateDeltas:
     intent: Optional["Intent"] = None
     # Тик решения (для intent_formed_at/last_intent_change): apply_batch-
     # контракт тик не несёт — везём в дельте (штампует пайплайн).
-    intent_tick: int = 0
+    intent_tick: Optional[int] = None  # W2: None=отсутствует, 0=валидный тик 0, N=тик N
 
     # --- v2: Domain-Tagged Typed Payloads ---
     domain: Optional[DeltaDomain] = None  # Домен мутации (v2)
