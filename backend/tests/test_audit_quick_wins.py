@@ -164,13 +164,14 @@ def _scale_inventory(path):
     return found
 
 
-# ---------- T7 (№15 ОТЗЫВАЕТСЯ): канон масштабов — handler=20, core=40 ----------
-# Правка 20->40 из аудита эмпирически ухудшила перетаскивание (объект отстаёт),
-# откатена владельцем. Тест теперь охраняет рабочий канон от случайных изменений.
+# ---------- T7 (№15): единый масштаб — все модули SCALE=20 (ME-2.8-FIX) ----------
+# SCALE-ROOT-CAUSE: editor_core SCALE=40 был historical workaround для UI elements,
+# но также влиял на camera/zoom (BUG). Fix: unified to 20; UI padding separate.
+# Drag не менялся (всегда 20 — отдельная константа event_handler).
 def test_t7_single_scale():
     inv_eh, inv_ec = _scale_inventory(EH), _scale_inventory(EC)
     assert inv_eh and {v for _, _, v in inv_eh} == {20}, f"event_handler.py SCALE: {inv_eh}"
-    assert inv_ec and {v for _, _, v in inv_ec} == {40}, f"editor_core.py SCALE: {inv_ec}"
+    assert inv_ec and {v for _, _, v in inv_ec} == {20}, f"editor_core.py SCALE: {inv_ec}"
     assert len(inv_eh) == 1, f"лишние присваивания SCALE в event_handler: {inv_eh}"
 
 
