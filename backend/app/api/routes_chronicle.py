@@ -235,9 +235,14 @@ def get_understanding(campaign: str, source: str = "drafts",
 @chronicle_router.post("/chronicle/{campaign_id}/{npc_id}/decompose")
 async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeRequest) -> Dict[str, Any]:
     """FR-2.x: фрагмент → декомпозиция. Результат merge-ится в ЧЕРНОВИК как
-    LLM_DRAFT-записи (канон не трогается — запрет 1; повторный разбор того же
-    фрагмента ЗАМЕНЯЕТ записи: entry_id детерминирован (chronicle:фрагмент:
-    порядковый), дубли невозможны по построению). Мост «разбор → лампочка»."""
+    LLM_DRAFT-записи (канон не трогается — запрет 1). Мост «разбор → лампочка».
+    COV-12, семантика повторного разбора фрагмента:
+        • заменяются ВСЕ LLM_DRAFT-записи данного фрагмента (ordinal-диапазон
+        [F*100, F*100+100)) — включая осиротевшие при сокращении числа items;
+        • авторские записи (AUTHOR_CONFIRMED/AUTHOR_AUTHORED) не трогаются;
+        если слот (F, idx) занят авторской записью, свежий черновик получает
+        salted id и сосуществует с ней — автор сравнит при ревью.
+    entry_id детерминирован: md5(chronicle[:salt]:фрагмент:порядковый)."""
     result = await _get_decomposer().decompose(req.npc_id, req.fragment_ord, req.fragment)
     if not result.ok:
         return {
@@ -270,11 +275,39 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
     # Без этого exact-match записи оставались без object_id И без open_questions —
     # «застрявшая» запись, seeder skip'ает, resolver не может разрешить.
     _roster = get_display_names()
-    new_ids = set()
+    # COV-12 (п.0): ordinal = fragment_ord*100 + idx → максимум 99 items на
+    # фрагмент. Промпт-контракт — 1..6, но 7B контракт нарушает; молчаливое
+    # переполнение разрушает диапазонную замену ниже — отказ явно.
+    if len(result.items) >= 100:
+        return {
+            "status": "NOT_DECOMPOSED",
+            "error": (
+                f"too many items ({len(result.items)}): лимит 99 на фрагмент "
+                "(ordinal = fragment_ord*100 + idx)"
+            ),
+            "age_anchors": result.age_anchors or [],
+            "raw_response": result.raw_response,
+        }
+    # COV-12: диапазон заменяемых записей — все LLM_DRAFT данного фрагмента.
+    _frag_lo = req.fragment_ord * 100
+    _frag_hi = _frag_lo + 100
+    # id слотов, занятых авторскими решениями (confirm сохраняет entry_id):
+    # свежий черновик не может претендовать на тот же id — иначе повторный
+    # разбор молча удалял бы подтверждённое автором.
+    _author_ids = {
+        e.entry_id
+        for e in doc.entries
+        if e.provenance is not EntryProvenance.LLM_DRAFT
+    }
     new_entries = []
     for _idx, _it in enumerate(result.items):
         _eid = make_entry_id(doc.chronicle_id, req.fragment_ord, _idx)
-        new_ids.add(_eid)
+        _salt = 0
+        while _eid in _author_ids:
+            _salt += 1
+            _eid = make_entry_id(
+                f"{doc.chronicle_id}:redraft{_salt}", req.fragment_ord, _idx
+            )
         _age = _it.draft_payload.get("age", _it.draft_payload.get("historical_age"))
         # §1.1: однострочное «X if cond else None» = тихий отказ — развёрнуто
         _age_value = None
@@ -322,7 +355,17 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
                 ordinal=req.fragment_ord * 100 + _idx,
             )
         )
-    _kept = [e for e in doc.entries if e.entry_id not in new_ids]
+    # COV-12: LLM_DRAFT-записи этого фрагмента заменяются ЦЕЛИКОМ (лечит
+    # осиротевшие записи при сокращении items, напр. 4→3); авторские записи
+    # в диапазоне сохраняются, прочие фрагменты не затрагиваются.
+    _kept = [
+        e
+        for e in doc.entries
+        if not (
+            e.provenance is EntryProvenance.LLM_DRAFT
+            and _frag_lo <= e.ordinal < _frag_hi
+        )
+    ]
     _merged = tuple(sorted(_kept + new_entries, key=lambda e: e.ordinal))
     store.save_draft(replace(doc, entries=_merged), req.campaign_id)
     return {
