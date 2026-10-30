@@ -133,6 +133,7 @@ class EditorCore:
         self.dragging_camera = False
         # GAME-PREVIEW-IMPLEMENTATION-1: toggle F11 in MODE_LOCAL
         self.preview_active: bool = False
+        self._preview_cam_offset: tuple[float, float] = (0.0, 0.0)
         self.camera_speed = 15  # пикселей за кадр при стрелках
 
         # Двойной клик для переименования
@@ -1688,14 +1689,26 @@ class EditorCore:
 
         # Плавное движение камеры стрелками (проверяем зажатие)
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
-            self.camera_x += self.camera_speed
-        if keys[pygame.K_RIGHT]:
-            self.camera_x -= self.camera_speed
-        if keys[pygame.K_UP]:
-            self.camera_y += self.camera_speed
-        if keys[pygame.K_DOWN]:
-            self.camera_y -= self.camera_speed
+        if self.preview_active:
+            # GAME-PREVIEW-IMPLEMENTATION-1: pan Preview camera (temporary
+            # offset, not saved to JSON). Arrows move virtual player position.
+            pan_speed = 0.3
+            dx = (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * pan_speed
+            dy = (keys[pygame.K_DOWN] - keys[pygame.K_UP]) * pan_speed
+            if dx or dy:
+                self._preview_cam_offset = (
+                    self._preview_cam_offset[0] + dx,
+                    self._preview_cam_offset[1] + dy,
+                )
+        else:
+            if keys[pygame.K_LEFT]:
+                self.camera_x += self.camera_speed
+            if keys[pygame.K_RIGHT]:
+                self.camera_x -= self.camera_speed
+            if keys[pygame.K_UP]:
+                self.camera_y += self.camera_speed
+            if keys[pygame.K_DOWN]:
+                self.camera_y -= self.camera_speed
 
         # Обновляем панель свойств
         if self.mode == MODE_LAB:
@@ -1820,6 +1833,11 @@ class EditorCore:
             from scene_renderer import SceneRenderer
 
             self._preview_scene_renderer = SceneRenderer(self.screen)
+        # GAME-PREVIEW-IMPLEMENTATION-1: apply pan offset (temporary, not saved)
+        _pxy = (
+            _pxy[0] + self._preview_cam_offset[0],
+            _pxy[1] + self._preview_cam_offset[1],
+        )
         self._preview_scene_renderer.render(
             scene=_scene,
             scene_w=_sw,

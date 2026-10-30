@@ -89,6 +89,8 @@ class EventHandler:
                 # GAME-PREVIEW-IMPLEMENTATION-1: toggle Game Preview in MODE_LOCAL
                 if core.mode == MODE_LOCAL:
                     core.preview_active = not core.preview_active
+                    if core.preview_active:
+                        core._preview_cam_offset = (0.0, 0.0)
                     state = "Game Preview (F11)" if core.preview_active else "Editing Mode"
                     core._show_toast(state)
                 else:

@@ -156,6 +156,7 @@ class TestDrawGamePreview:
         core.screen = _SCREEN
         core.preview_active = True
         core._preview_scene_renderer = None
+        core._preview_cam_offset = (0.0, 0.0)
         core._show_toast = MagicMock()
         return core
 
@@ -212,6 +213,31 @@ class TestDrawGamePreview:
             EditorCore._draw_game_preview(core)
         kwargs = mock_renderer.render.call_args.kwargs
         assert kwargs.get("avatar_state") is None
+
+    def test_pan_offset_defaults_zero(self):
+        """_preview_cam_offset field declared in __init__."""
+        ec_path = frontend_root / "map_editor" / "editor_core.py"
+        src = ec_path.read_text(encoding="utf-8")
+        assert "self._preview_cam_offset: tuple[float, float] = (0.0, 0.0)" in src
+
+    def test_pan_offset_applied_to_player_xy(self):
+        """_draw_game_preview adds _preview_cam_offset to player_xy."""
+        from map_editor.editor_core import EditorCore
+
+        core = self._make_minimal_core(SAMPLE_LOCATION)
+        core._preview_cam_offset = (5.0, 3.0)
+        mock_renderer = MagicMock()
+        with patch("scene_renderer.SceneRenderer", return_value=mock_renderer):
+            EditorCore._draw_game_preview(core)
+        kwargs = mock_renderer.render.call_args.kwargs
+        # player_spawn (10.0, 7.5) + offset (5.0, 3.0) = (15.0, 10.5)
+        assert kwargs["player_xy"] == (15.0, 10.5)
+
+    def test_pan_offset_reset_on_f11_enter(self):
+        """F11 handler resets _preview_cam_offset when entering Preview."""
+        eh_path = frontend_root / "map_editor" / "core" / "event_handler.py"
+        src = eh_path.read_text(encoding="utf-8")
+        assert "core._preview_cam_offset = (0.0, 0.0)" in src
 
 
 class TestSaveLoadPreviewRoundTrip:
