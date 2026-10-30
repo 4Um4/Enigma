@@ -79,6 +79,61 @@ def execute_persistence(ctx: Any, orchestrator: Any, is_player_turn: bool) -> No
             )
         ctx.delta_buffer.clear()
 
+    # ADR-O-436: Producer NPC_ADDRESSES_PLAYER (LC-IMPL-3 Ступень A).
+    # Единственная точка публикации в тике: ПОСЛЕ финального apply_batch,
+    # когда intent/intent_target/intent_formed_at в all_npcs_raw зафиксированы
+    # (to_persistence_dict — state_applicator:1617), и ДО scene_manager.commit.
+    # intent_formed_at == ctx.tick_number истинно ровно один раз на жизненный
+    # цикл намерения (_apply_intent state_applicator:678 пишет current_tick
+    # только при смене intent) — кросс-тиковая идемпотентность без флагов и
+    # реестров. APPROACH исключён — движение, не обращение (audit Г).
+    # Идентичность события — Single Writer next_event_identity, не отдельная
+    # формула. Read-only: публикация не мутирует all_npcs_raw (§15.4-8).
+    _tick_now = int(getattr(ctx, "tick_number", 0) or 0)
+    _addr_intents = frozenset({
+        "talk", "warn", "trade", "offer_job",
+        "request_service", "help", "report", "intimidate",
+    })
+    if _tick_now > 0 and ctx.all_npcs_raw:
+        from app.domain.events import EventDTO
+        from app.services.events.event_bus import get_event_bus
+        from app.services.events.event_types import EventType
+        for _addr_dict in ctx.all_npcs_raw:
+            _addr_id = _addr_dict.get("npc_id") or _addr_dict.get("id")
+            if not _addr_id or _addr_id == "player":
+                continue
+            _addr_intent = _addr_dict.get("intent")
+            _addr_target = _addr_dict.get("intent_target")
+            _addr_formed = _addr_dict.get("intent_formed_at")
+            # Отсутствующие поля = не валидное намерение (вердикт: не
+            # подменять нулями/дефолтами, способными создать ложное событие).
+            if not _addr_intent or not _addr_target or _addr_formed is None:
+                continue
+            if _addr_target != "player":
+                continue
+            _intent_key = str(_addr_intent).lower()
+            if _intent_key not in _addr_intents:
+                continue
+            try:
+                _addr_formed_int = int(_addr_formed)
+            except (TypeError, ValueError):
+                continue
+            if _addr_formed_int != _tick_now:
+                continue
+            get_event_bus().publish(
+                EventDTO.create(
+                    event_type=EventType.NPC_ADDRESSES_PLAYER.value,
+                    source=_addr_id,
+                    payload={
+                        "intent": _intent_key,
+                        "target_id": "player",
+                        "intent_formed_at": _addr_formed_int,
+                    },
+                    visibility="whisper",
+                    persistence_level="working",
+                )
+            )
+
     # SIL: Reconciliation S → M. Сбрасываем semantic_buffer в all_npcs_raw.
     if ctx.semantic_buffer and ctx.all_npcs_raw:
         for npc_dict in ctx.all_npcs_raw:

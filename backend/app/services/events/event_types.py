@@ -123,3 +123,4 @@ class EventType(str, Enum):
     FLIRT_REJECTED = "flirt_rejected"
     INTIMATE_ENCOUNTER = "intimate_encounter"
     INTIMATE_REJECTION = "intimate_rejection"
+    NPC_ADDRESSES_PLAYER = "npc_addresses_player"  # ADR-O-436: NPC инициирует обращение к игроку (whisper, LC-IMPL-3 Ступень A)

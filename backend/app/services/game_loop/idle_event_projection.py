@@ -143,6 +143,7 @@ EXCLUDED_EVENT_TYPES: Dict[EventType, str] = {
     EventType.REPORT: "речевой интент",
     EventType.SOCIAL_ACTION: "социальный интент-канал",
     EventType.NPC_INTERACTS_NPC: "NPC-NPC социальная инициатива — вне v1-словаря (кандидат v1.x по вердикту Мастера)",
+    EventType.NPC_ADDRESSES_PLAYER: "адресный телеграф — LC-IMPL-3 Ступень C (UI-индикатор + allow/dismiss = C3); whisper + target_id=player в payload",
     EventType.BETRAYAL: "социальная семантика — речевой класс",
     EventType.SAVED_LIFE: "социальная семантика",
     # RE M2/D dormant (консьюмер Фр4 — отдельная фаза, Anti-Race):
