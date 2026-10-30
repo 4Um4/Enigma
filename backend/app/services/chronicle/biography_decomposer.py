@@ -122,14 +122,13 @@ class BiographyDecomposer:
 
     @staticmethod
     def extract_age_anchors(text: str) -> List[int]:
-        """Fast Path: [8 лет] / «в 14 лет» / «с 12 лет» — детерминированно, без LLM."""
-        anchors: List[int] = []
-        for m in _AGE_ANCHOR.finditer(text):
-            raw = next(g for g in m.groups() if g is not None)
-            n = int(raw)
-            if 0 <= n <= 120:
-                anchors.append(n)
-        return anchors
+        """Legacy: плоский список int. Deprecated — используйте extract_age_anchors_typed.
+
+        Сохранён для backward-compat (тесты, S368 fallback). Возвращает только
+        значения без различения CURRENT_AGE/DURATION/AT_AGE.
+        """
+        from app.services.chronicle.age_anchor import extract_age_anchors_typed
+        return [a.value for a in extract_age_anchors_typed(text)]
 
     def build_user_prompt(
         self,
@@ -137,17 +136,27 @@ class BiographyDecomposer:
         age_anchors: List[int],
         roster: Optional[Dict[str, str]] = None,
     ) -> str:
-        """Детерминированный user-промпт (переиспользуется тестами).
+        """Типизированные подсказки LLM (CCH-12 Point 1).
+
         S365: hint «не найдено» не протекает в prompt — иначе LLM повторяет
-        его в summary (урок guard_borko: «Возрастных якорей не найдено. В 24
-        застал…» попало в summary как CoT-утечка).
-        S367: roster (опц.) — снимок известных NPC (id->display_name) из
-        npc_loader.get_display_names. roster=None -> блок отсутствует
-        (backward-compat: s365 test_cot_leak_blocked вызывает с 2 аргументами)."""
-        if age_anchors:
-            hints = f"Возрастные якоря фрагмента: {age_anchors}.\n\n"
+        его в summary (CoT-утечка). S367: roster (опц.) — снимок известных NPC.
+        """
+        # CCH-12 Point 1: типизированные anchors. Если передан плоский List[int]
+        # (legacy), конвертируем в AMBIGUOUS — LLM получит явный сигнал, что
+        # семантика якоря не установлена, и не должна выдумывать.
+        from app.services.chronicle.age_anchor import (
+            AgeAnchor, AgeAnchorKind, age_anchors_to_hint,
+        )
+        if age_anchors and not isinstance(age_anchors[0], AgeAnchor):
+            # Legacy: плоский список int → AMBIGUOUS anchors
+            typed_anchors = [
+                AgeAnchor(value=v, kind=AgeAnchorKind.AMBIGUOUS, source_span=str(v))
+                for v in age_anchors
+            ]
         else:
-            hints = ""
+            typed_anchors = age_anchors
+
+        hints = age_anchors_to_hint(typed_anchors) if typed_anchors else ""
         if roster:
             names = ", ".join(sorted(str(v) for v in roster.values() if isinstance(v, str)))
             roster_block = (
@@ -167,7 +176,15 @@ class BiographyDecomposer:
         """
         if not fragment.strip():
             return DecomposeResult.failure("Пустой фрагмент")
-        anchors = self.extract_age_anchors(fragment)
+        # CCH-12 Point 1: типизированные anchors. extract_age_anchors_typed
+        # возвращает List[AgeAnchor]; конвертируем для DecomposeResult, который
+        # пока хранит плоский List[int] (backward-compat response API).
+        from app.services.chronicle.age_anchor import extract_age_anchors_typed
+        typed = extract_age_anchors_typed(fragment)
+        anchors = [a.value for a in typed]
+        # Сохраняем типизированные anchors в result для downstream (промпт уже
+        # их использует через build_user_prompt; response отдаёт плоский список).
+        self._last_typed_anchors = typed
         roster = (self._roster_provider or _default_roster_provider)()
         user_prompt = self.build_user_prompt(fragment, anchors, roster)
         from app.services.llm.router import ModelRouter  # ленивый (цикл-безопасно)
