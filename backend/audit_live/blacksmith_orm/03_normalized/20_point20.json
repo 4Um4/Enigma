@@ -1,0 +1,47 @@
+[
+  {
+    "kind": "PORTRET",
+    "draft_payload": {
+      "statement": "Сидит спиной к стене, лицом к залу: за 57 лет это рефлекс, а не осторожность — просто так устроено его место у стойки. Он видит весь зал, включая коридор на кухню. Он замечает, что Борко всегда садится так, чтобы видеть тот же коридор. Он замечает — и молчит: замечать и молчать — его ремесло дольше, чем кузнечное.",
+      "traits": [
+        "замечательный",
+        "молчаливый",
+        "осторожный"
+      ]
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  },
+  {
+    "kind": "RELATIONSHIP",
+    "draft_payload": {
+      "summary": "Он замечает, что Борко всегда садится так, чтобы видеть тот же коридор.",
+      "target_hint": "Борко",
+      "nature": "зависимость",
+      "valence": "neutral"
+    },
+    "confidence": 0.4,
+    "needs_confirmation": true,
+    "question": {
+      "question_id": "roster_mismatch_1",
+      "target_span": "Борко",
+      "options": [
+        "SELECT_EXISTING_NPC",
+        "CREATE_NEW_NPC",
+        "UNKNOWN_PERSON",
+        "LEAVE_WHITE_SPOT"
+      ]
+    }
+  },
+  {
+    "kind": "LOCATION",
+    "draft_payload": {
+      "summary": "Он сидит в зале с видом на коридор на кухню.",
+      "name_hint": "зал"
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  }
+]

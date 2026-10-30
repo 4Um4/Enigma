@@ -1,0 +1,45 @@
+[
+  {
+    "kind": "EVENT",
+    "draft_payload": {
+      "summary": "Горан на следующий день после Торнина попросил о мече у кузнеца Орма.",
+      "day": null
+    },
+    "confidence": 0.9,
+    "needs_confirmation": false,
+    "question": null
+  },
+  {
+    "kind": "BELIEF_SEED",
+    "draft_payload": {
+      "statement": "информация, отданная бесплатно, не покупает благодарность, а только разжигает аппетит"
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  },
+  {
+    "kind": "TRAIT_SEED",
+    "draft_payload": {
+      "trait": "испытывает долгую осуждение",
+      "evidence": "57 лет в этом городе и знает"
+    },
+    "confidence": 0.5,
+    "needs_confirmation": true,
+    "question": null
+  },
+  {
+    "kind": "PORTRET",
+    "draft_payload": {
+      "statement": "Гном понял: заказ Торнина можно продать купцу. Продать не сталь, а факт — кому, когда и зачем куется меч.",
+      "traits": [
+        "умный",
+        "опытный",
+        "искусный"
+      ]
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  }
+]

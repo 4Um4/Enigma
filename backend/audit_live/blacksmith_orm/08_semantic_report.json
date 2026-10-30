@@ -1,0 +1,1237 @@
+{
+  "npc_id": "blacksmith_orm",
+  "summary": {
+    "npc_id": "blacksmith_orm",
+    "campaign": "silver_wolf_audit_live",
+    "pipeline": "HTTP → uvicorn → ModelPool → qwen_7b (temperature=0.9)",
+    "total_fragments": 22,
+    "real_points_count": 21,
+    "total_items": 48,
+    "zero_items_points": 2,
+    "http_failures": 3,
+    "coverage_warnings_count": 0,
+    "coverage_warnings": [],
+    "per_point": [
+      {
+        "frag_ord": 0,
+        "point_n": 0,
+        "is_header": true,
+        "text_preview": "кузнец Орм: гном",
+        "ok": false,
+        "error": "Декомпозиция не удалась после retry: items[0]: kind 'human_hint' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+        "items_count": 0,
+        "items_kinds": []
+      },
+      {
+        "frag_ord": 1,
+        "point_n": 1,
+        "is_header": false,
+        "text_preview": "1. 146 лет, из которых он кузнец в городе уже 57 лет.",
+        "ok": true,
+        "items_count": 2,
+        "items_kinds": [
+          "EVENT",
+          "TRAIT_SEED"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 1,
+          "items_count": 2,
+          "fragment_text_preview": "1. 146 лет, из которых он кузнец в городе уже 57 лет.",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 2,
+        "point_n": 2,
+        "is_header": false,
+        "text_preview": "2. Увлечён по-настоящему только своей работой и выпивкой.",
+        "ok": true,
+        "items_count": 1,
+        "items_kinds": [
+          "TRAIT_SEED"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 2,
+          "items_count": 1,
+          "fragment_text_preview": "2. Увлечён по-настоящему только своей работой и выпивкой.",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 3,
+        "point_n": 3,
+        "is_header": false,
+        "text_preview": "3. Хороший его друг Торнин, который напоминает ему старого друга, умершего 70 лет назад.",
+        "ok": false,
+        "error": 500,
+        "items_count": 0,
+        "items_kinds": []
+      },
+      {
+        "frag_ord": 4,
+        "point_n": 4,
+        "is_header": false,
+        "text_preview": "4. Когда Торнин заказал у него меч, он сразу же предупредил главу гильдии воров и городское правительство. Гильдии сказа",
+        "ok": false,
+        "error": 500,
+        "items_count": 0,
+        "items_kinds": []
+      },
+      {
+        "frag_ord": 5,
+        "point_n": 5,
+        "is_header": false,
+        "text_preview": "5. Писарь этот второй десяток лет сидит на содержании гильдии. К утру следующего дня мастер гильдии знал о предупреждени",
+        "ok": true,
+        "items_count": 3,
+        "items_kinds": [
+          "RELATIONSHIP",
+          "BELIEF_SEED",
+          "EVENT"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 5,
+          "items_count": 3,
+          "fragment_text_preview": "5. Писарь этот второй десяток лет сидит на содержании гильдии. К утру следующего",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 6,
+        "point_n": 6,
+        "is_header": false,
+        "text_preview": "6. Учился кузнечному делу у мастера Грунта Алмазной наковальни 100 лет тому назад.",
+        "ok": true,
+        "items_count": 1,
+        "items_kinds": [
+          "EVENT"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 6,
+          "items_count": 1,
+          "fragment_text_preview": "6. Учился кузнечному делу у мастера Грунта Алмазной наковальни 100 лет тому наза",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 7,
+        "point_n": 7,
+        "is_header": false,
+        "text_preview": "7. Последняя жена Эльра умерла от бреда и лихорадки уже 20 лет назад. Она долго болела, психика её слабела, галлюцинации",
+        "ok": true,
+        "items_count": 2,
+        "items_kinds": [
+          "EVENT",
+          "EFFECT"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 7,
+          "items_count": 2,
+          "fragment_text_preview": "7. Последняя жена Эльра умерла от бреда и лихорадки уже 20 лет назад. Она долго ",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 8,
+        "point_n": 8,
+        "is_header": false,
+        "text_preview": "8. Орм давно заприметил Люсю — тихую, серьёзную и исполнительную. Такой была его жена до болезни: молодой, покорной, зав",
+        "ok": true,
+        "items_count": 1,
+        "items_kinds": [
+          "PORTRET"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 8,
+          "items_count": 1,
+          "fragment_text_preview": "8. Орм давно заприметил Люсю — тихую, серьёзную и исполнительную. Такой была его",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 9,
+        "point_n": 9,
+        "is_header": false,
+        "text_preview": "9. Непонятно, что тем вечером заставило его напасть на девочку и изнасиловать — то ли желание, то ли месть жене за тяжёл",
+        "ok": true,
+        "items_count": 4,
+        "items_kinds": [
+          "PORTRET",
+          "RELATIONSHIP",
+          "BELIEF_SEED",
+          "TRAIT_SEED"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 9,
+          "items_count": 4,
+          "fragment_text_preview": "9. Непонятно, что тем вечером заставило его напасть на девочку и изнасиловать — ",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 10,
+        "point_n": 10,
+        "is_header": false,
+        "text_preview": "10. Когда ему начал угрожать Борко и заставил продолжать спать с Люсей, гном не был напуган шантажом — скорее это была д",
+        "ok": true,
+        "items_count": 3,
+        "items_kinds": [
+          "RELATIONSHIP",
+          "PORTRET",
+          "TRAIT_SEED"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 10,
+          "items_count": 3,
+          "fragment_text_preview": "10. Когда ему начал угрожать Борко и заставил продолжать спать с Люсей, гном не ",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 11,
+        "point_n": 11,
+        "is_header": false,
+        "text_preview": "11. Только перед Торниным его грызла совесть: тот хоть и бил девочку, но по-своему хорошо к ней относился и уж точно не ",
+        "ok": true,
+        "items_count": 1,
+        "items_kinds": [
+          "PORTRET"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 11,
+          "items_count": 1,
+          "fragment_text_preview": "11. Только перед Торниным его грызла совесть: тот хоть и бил девочку, но по-свое",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 12,
+        "point_n": 12,
+        "is_header": false,
+        "text_preview": "12. Когда ещё и Горан на следующий день после Торнина попросил о мече, гном понял: заказ Торнина можно продать купцу. Пр",
+        "ok": true,
+        "items_count": 3,
+        "items_kinds": [
+          "PORTRET",
+          "EVENT",
+          "BELIEF_SEED"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 12,
+          "items_count": 3,
+          "fragment_text_preview": "12. Когда ещё и Горан на следующий день после Торнина попросил о мече, гном поня",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 13,
+        "point_n": 13,
+        "is_header": false,
+        "text_preview": "13. Когда он не насилует Люсю, а видит её в таверне, испытывает сухое неприятное чувство вины — сразу перед девочкой, пе",
+        "ok": true,
+        "items_count": 1,
+        "items_kinds": [
+          "PORTRET"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 13,
+          "items_count": 1,
+          "fragment_text_preview": "13. Когда он не насилует Люсю, а видит её в таверне, испытывает сухое неприятное",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 14,
+        "point_n": 14,
+        "is_header": false,
+        "text_preview": "14. Орм думает, когда всё закончится, получить оплату за информацию и с гильдии воров, и с правительства — и открыть нор",
+        "ok": true,
+        "items_count": 1,
+        "items_kinds": [
+          "PORTRET"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 14,
+          "items_count": 1,
+          "fragment_text_preview": "14. Орм думает, когда всё закончится, получить оплату за информацию и с гильдии ",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 15,
+        "point_n": 15,
+        "is_header": false,
+        "text_preview": "15. Баланс Орма между Гильдией воров и городским правительством — это не двойная игра и не хитрый расчёт. Это стратегия ",
+        "ok": true,
+        "items_count": 5,
+        "items_kinds": [
+          "PORTRET",
+          "TRAIT_SEED",
+          "RELATIONSHIP",
+          "RELATIONSHIP",
+          "EVENT"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 15,
+          "items_count": 5,
+          "fragment_text_preview": "15. Баланс Орма между Гильдией воров и городским правительством — это не двойная",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 16,
+        "point_n": 16,
+        "is_header": false,
+        "text_preview": "16. Когда Торнин заказал меч, Орм не стал строить из себя верного друга. Торнин напоминает ему старого друга, который ум",
+        "ok": true,
+        "items_count": 6,
+        "items_kinds": [
+          "PORTRET",
+          "EVENT",
+          "RELATIONSHIP",
+          "EFFECT",
+          "BELIEF_SEED",
+          "DESIRE_SEED"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 16,
+          "items_count": 6,
+          "fragment_text_preview": "16. Когда Торнин заказал меч, Орм не стал строить из себя верного друга. Торнин ",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 17,
+        "point_n": 17,
+        "is_header": false,
+        "text_preview": "17. Борко не имеет власти над Ормом. Орм не испугался шантажа стражника. Орм просто понял, что Борко даёт ему разрешение",
+        "ok": true,
+        "items_count": 4,
+        "items_kinds": [
+          "PORTRET",
+          "RELATIONSHIP",
+          "PORTRET",
+          "PORTRET"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 17,
+          "items_count": 4,
+          "fragment_text_preview": "17. Борко не имеет власти над Ормом. Орм не испугался шантажа стражника. Орм про",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 18,
+        "point_n": 18,
+        "is_header": false,
+        "text_preview": "18. Крыша. Кузня — пристройка таверны: над головой гнома кровля, по сути принадлежащая Торнину и оплаченная молчанием и ",
+        "ok": true,
+        "items_count": 2,
+        "items_kinds": [
+          "PORTRET",
+          "DESIRE_SEED"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 18,
+          "items_count": 2,
+          "fragment_text_preview": "18. Крыша. Кузня — пристройка таверны: над головой гнома кровля, по сути принадл",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 19,
+        "point_n": 19,
+        "is_header": false,
+        "text_preview": "19. Две техники питья. Орм пьёт медленно, ровно и не пьянеет до конца вечера; Торнин пьёт в отключку. Два собутыльника с",
+        "ok": true,
+        "items_count": 2,
+        "items_kinds": [
+          "RELATIONSHIP",
+          "PORTRET"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 19,
+          "items_count": 2,
+          "fragment_text_preview": "19. Две техники питья. Орм пьёт медленно, ровно и не пьянеет до конца вечера; То",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 20,
+        "point_n": 20,
+        "is_header": false,
+        "text_preview": "20. Наблюдатель. Сидит спиной к стене, лицом к залу: за 57 лет это рефлекс, а не осторожность — просто так устроено его ",
+        "ok": true,
+        "items_count": 2,
+        "items_kinds": [
+          "PORTRET",
+          "RELATIONSHIP"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 20,
+          "items_count": 2,
+          "fragment_text_preview": "20. Наблюдатель. Сидит спиной к стене, лицом к залу: за 57 лет это рефлекс, а не",
+          "critical_topic_warning": null
+        }
+      },
+      {
+        "frag_ord": 21,
+        "point_n": 21,
+        "is_header": false,
+        "text_preview": "21. Руки и речь. Обожжённые руки в старых ожогах — рукопожатие, которого избегают. Говорит односложно: «Да». «Нет». «Жди",
+        "ok": true,
+        "items_count": 4,
+        "items_kinds": [
+          "PORTRET",
+          "LOCATION",
+          "EVENT",
+          "RELATIONSHIP"
+        ],
+        "critical_topic_warning": null,
+        "coverage": {
+          "fragment_ord": 21,
+          "items_count": 4,
+          "fragment_text_preview": "21. Руки и речь. Обожжённые руки в старых ожогах — рукопожатие, которого избегаю",
+          "critical_topic_warning": null
+        }
+      }
+    ]
+  },
+  "draft_meta": {
+    "entries_count": 48,
+    "by_kind": {
+      "EVENT": 8,
+      "TRAIT_SEED": 5,
+      "RELATIONSHIP": 10,
+      "BELIEF_SEED": 4,
+      "EFFECT": 2,
+      "PORTRET": 16,
+      "DESIRE_SEED": 2,
+      "LOCATION": 1
+    },
+    "by_provenance": {
+      "LLM_DRAFT": 48
+    },
+    "object_id_null": 37,
+    "object_id_set": 11,
+    "open_questions_count": 7,
+    "draft_author_text_present": false,
+    "draft_author_text_preview": null
+  },
+  "per_point": [
+    {
+      "point_n": 0,
+      "frag_ord": 0,
+      "text_preview": "кузнец Орм: гном",
+      "text_full_chars": 16,
+      "items_count": 0,
+      "items": [],
+      "verdict": "NOT_DECOMPOSED",
+      "issues": [
+        "NOT_DECOMPOSED: Декомпозиция не удалась после retry: items[0]: kind 'human_hint' вне реестра ['B"
+      ],
+      "severity": "HIGH"
+    },
+    {
+      "point_n": 1,
+      "frag_ord": 1,
+      "text_preview": "1. 146 лет, из которых он кузнец в городе уже 57 лет.",
+      "text_full_chars": 53,
+      "items_count": 2,
+      "items": [
+        {
+          "kind": "EVENT",
+          "payload_keys": [
+            "summary",
+            "day"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "TRAIT_SEED",
+          "payload_keys": [
+            "trait",
+            "evidence"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        }
+      ],
+      "verdict": "ISSUES",
+      "issues": [
+        "EVENT без day, но в тексте есть возраст — нужно историзировать"
+      ],
+      "severity": "MID"
+    },
+    {
+      "point_n": 2,
+      "frag_ord": 2,
+      "text_preview": "2. Увлечён по-настоящему только своей работой и выпивкой.",
+      "text_full_chars": 57,
+      "items_count": 1,
+      "items": [
+        {
+          "kind": "TRAIT_SEED",
+          "payload_keys": [
+            "trait",
+            "evidence"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        }
+      ],
+      "verdict": "OK",
+      "issues": [],
+      "severity": "LOW"
+    },
+    {
+      "point_n": 3,
+      "frag_ord": 3,
+      "text_preview": "3. Хороший его друг Торнин, который напоминает ему старого друга, умершего 70 лет назад.",
+      "text_full_chars": 88,
+      "items_count": 0,
+      "items": [],
+      "verdict": "HTTP_FAIL",
+      "issues": [
+        "HTTP 500: Internal Server Error"
+      ],
+      "severity": "HIGH"
+    },
+    {
+      "point_n": 4,
+      "frag_ord": 4,
+      "text_preview": "4. Когда Торнин заказал у него меч, он сразу же предупредил главу гильдии воров и городское правительство. Гильдии сказал: готовьтесь остановить и убить Торнина. Правительству — точнее, писарю квартал",
+      "text_full_chars": 414,
+      "items_count": 0,
+      "items": [],
+      "verdict": "HTTP_FAIL",
+      "issues": [
+        "HTTP 500: Internal Server Error"
+      ],
+      "severity": "HIGH"
+    },
+    {
+      "point_n": 5,
+      "frag_ord": 5,
+      "text_preview": "5. Писарь этот второй десяток лет сидит на содержании гильдии. К утру следующего дня мастер гильдии знал о предупреждении слово в слово — и знал, от кого оно исходило. Орм об этом не знает. Это единст",
+      "text_full_chars": 340,
+      "items_count": 3,
+      "items": [
+        {
+          "kind": "RELATIONSHIP",
+          "payload_keys": [
+            "summary",
+            "target_hint"
+          ],
+          "confidence": 0.4,
+          "needs_confirmation": true,
+          "has_question": true
+        },
+        {
+          "kind": "BELIEF_SEED",
+          "payload_keys": [
+            "statement"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "EVENT",
+          "payload_keys": [
+            "summary",
+            "day"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        }
+      ],
+      "verdict": "ISSUES",
+      "issues": [
+        "BELIEF_SEED выглядит бытовым: 'все считают его самого такой же мебелью....'",
+        "RELATIONSHIP target_hint='мастер гильдии' — нужен resolve (placeholder NEW_NPC)",
+        "EVENT без day, но в тексте есть возраст — нужно историзировать"
+      ],
+      "severity": "MID"
+    },
+    {
+      "point_n": 6,
+      "frag_ord": 6,
+      "text_preview": "6. Учился кузнечному делу у мастера Грунта Алмазной наковальни 100 лет тому назад.",
+      "text_full_chars": 82,
+      "items_count": 1,
+      "items": [
+        {
+          "kind": "EVENT",
+          "payload_keys": [
+            "summary",
+            "day"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        }
+      ],
+      "verdict": "ISSUES",
+      "issues": [
+        "EVENT без day, но в тексте есть возраст — нужно историзировать"
+      ],
+      "severity": "MID"
+    },
+    {
+      "point_n": 7,
+      "frag_ord": 7,
+      "text_preview": "7. Последняя жена Эльра умерла от бреда и лихорадки уже 20 лет назад. Она долго болела, психика её слабела, галлюцинации и психоз жены на протяжении многих лет изводили характер гнома — многое с тех в",
+      "text_full_chars": 231,
+      "items_count": 2,
+      "items": [
+        {
+          "kind": "EVENT",
+          "payload_keys": [
+            "summary",
+            "day"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "EFFECT",
+          "payload_keys": [
+            "summary",
+            "effect_kind",
+            "target_hint"
+          ],
+          "confidence": 0.4,
+          "needs_confirmation": true,
+          "has_question": true
+        }
+      ],
+      "verdict": "ISSUES",
+      "issues": [
+        "EVENT без day, но в тексте есть возраст — нужно историзировать",
+        "EFFECT kind=trauma без triggers — seeder skip'нет (imprint не создан)"
+      ],
+      "severity": "MID"
+    },
+    {
+      "point_n": 8,
+      "frag_ord": 8,
+      "text_preview": "8. Орм давно заприметил Люсю — тихую, серьёзную и исполнительную. Такой была его жена до болезни: молодой, покорной, зависящей от него. Это не любовь и не расчёт — это перенос, который он в себе так и",
+      "text_full_chars": 254,
+      "items_count": 1,
+      "items": [
+        {
+          "kind": "PORTRET",
+          "payload_keys": [
+            "statement",
+            "traits"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        }
+      ],
+      "verdict": "OK",
+      "issues": [],
+      "severity": "LOW"
+    },
+    {
+      "point_n": 9,
+      "frag_ord": 9,
+      "text_preview": "9. Непонятно, что тем вечером заставило его напасть на девочку и изнасиловать — то ли желание, то ли месть жене за тяжёлые последние годы с ней; даже он сам не понимает. Если он и ищет ответ, то тольк",
+      "text_full_chars": 355,
+      "items_count": 4,
+      "items": [
+        {
+          "kind": "PORTRET",
+          "payload_keys": [
+            "statement",
+            "traits"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "RELATIONSHIP",
+          "payload_keys": [
+            "summary",
+            "target_hint",
+            "nature",
+            "valence"
+          ],
+          "confidence": 0.9,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "BELIEF_SEED",
+          "payload_keys": [
+            "statement"
+          ],
+          "confidence": 0.8,
+          "needs_confirmation": true,
+          "has_question": false
+        },
+        {
+          "kind": "TRAIT_SEED",
+          "payload_keys": [
+            "trait",
+            "evidence"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        }
+      ],
+      "verdict": "ISSUES",
+      "issues": [
+        "BELIEF_SEED выглядит бытовым: 'он ищет ответ из-за люси, потому что она похожа на эльру — и...'"
+      ],
+      "severity": "MID"
+    },
+    {
+      "point_n": 10,
+      "frag_ord": 10,
+      "text_preview": "10. Когда ему начал угрожать Борко и заставил продолжать спать с Люсей, гном не был напуган шантажом — скорее это была дополнительная легальная причина повторять то, что приносит ему удовольствие.",
+      "text_full_chars": 196,
+      "items_count": 3,
+      "items": [
+        {
+          "kind": "RELATIONSHIP",
+          "payload_keys": [
+            "summary",
+            "target_hint",
+            "nature",
+            "valence"
+          ],
+          "confidence": 0.4,
+          "needs_confirmation": true,
+          "has_question": true
+        },
+        {
+          "kind": "PORTRET",
+          "payload_keys": [
+            "statement",
+            "traits"
+          ],
+          "confidence": 0.5,
+          "needs_confirmation": true,
+          "has_question": false
+        },
+        {
+          "kind": "TRAIT_SEED",
+          "payload_keys": [
+            "trait",
+            "evidence"
+          ],
+          "confidence": 0.5,
+          "needs_confirmation": true,
+          "has_question": false
+        }
+      ],
+      "verdict": "ISSUES",
+      "issues": [
+        "RELATIONSHIP target_hint='Борко' — нужен resolve (placeholder NEW_NPC)"
+      ],
+      "severity": "MID"
+    },
+    {
+      "point_n": 11,
+      "frag_ord": 11,
+      "text_preview": "11. Только перед Торниным его грызла совесть: тот хоть и бил девочку, но по-своему хорошо к ней относился и уж точно не хотел бы, чтобы её насиловал старый гном.",
+      "text_full_chars": 161,
+      "items_count": 1,
+      "items": [
+        {
+          "kind": "PORTRET",
+          "payload_keys": [
+            "statement",
+            "traits"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        }
+      ],
+      "verdict": "OK",
+      "issues": [],
+      "severity": "LOW"
+    },
+    {
+      "point_n": 12,
+      "frag_ord": 12,
+      "text_preview": "12. Когда ещё и Горан на следующий день после Торнина попросил о мече, гном понял: заказ Торнина можно продать купцу. Продать не сталь, а факт — кому, когда и зачем куется меч. Одна и та же информация",
+      "text_full_chars": 617,
+      "items_count": 3,
+      "items": [
+        {
+          "kind": "PORTRET",
+          "payload_keys": [
+            "statement",
+            "traits"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "EVENT",
+          "payload_keys": [
+            "summary",
+            "day"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "BELIEF_SEED",
+          "payload_keys": [
+            "statement"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        }
+      ],
+      "verdict": "ISSUES",
+      "issues": [
+        "BELIEF_SEED выглядит бытовым: 'информация, отданная бесплатно, не покупает благодарность, а...'",
+        "EVENT без day, но в тексте есть возраст — нужно историзировать"
+      ],
+      "severity": "MID"
+    },
+    {
+      "point_n": 13,
+      "frag_ord": 13,
+      "text_preview": "13. Когда он не насилует Люсю, а видит её в таверне, испытывает сухое неприятное чувство вины — сразу перед девочкой, перед умершей женой и перед собой в том числе.",
+      "text_full_chars": 164,
+      "items_count": 1,
+      "items": [
+        {
+          "kind": "PORTRET",
+          "payload_keys": [
+            "statement",
+            "traits"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        }
+      ],
+      "verdict": "OK",
+      "issues": [],
+      "severity": "LOW"
+    },
+    {
+      "point_n": 14,
+      "frag_ord": 14,
+      "text_preview": "14. Орм думает, когда всё закончится, получить оплату за информацию и с гильдии воров, и с правительства — и открыть нормальную личную кузню, а не пристройку у таверны, которую ему выделили много лет ",
+      "text_full_chars": 296,
+      "items_count": 1,
+      "items": [
+        {
+          "kind": "PORTRET",
+          "payload_keys": [
+            "statement",
+            "traits"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        }
+      ],
+      "verdict": "OK",
+      "issues": [],
+      "severity": "LOW"
+    },
+    {
+      "point_n": 15,
+      "frag_ord": 15,
+      "text_preview": "15. Баланс Орма между Гильдией воров и городским правительством — это не двойная игра и не хитрый расчёт. Это стратегия выживания гнома, который живёт в этом городе 57 лет и пережил трёх старейшин Гил",
+      "text_full_chars": 876,
+      "items_count": 5,
+      "items": [
+        {
+          "kind": "PORTRET",
+          "payload_keys": [
+            "statement",
+            "traits"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "TRAIT_SEED",
+          "payload_keys": [
+            "trait",
+            "evidence"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "RELATIONSHIP",
+          "payload_keys": [
+            "summary",
+            "target_hint",
+            "nature",
+            "valence"
+          ],
+          "confidence": 0.4,
+          "needs_confirmation": true,
+          "has_question": true
+        },
+        {
+          "kind": "RELATIONSHIP",
+          "payload_keys": [
+            "summary",
+            "target_hint",
+            "nature",
+            "valence"
+          ],
+          "confidence": 0.4,
+          "needs_confirmation": true,
+          "has_question": true
+        },
+        {
+          "kind": "EVENT",
+          "payload_keys": [
+            "summary",
+            "day",
+            "age"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        }
+      ],
+      "verdict": "ISSUES",
+      "issues": [
+        "RELATIONSHIP target_hint='Гильдия воров' — нужен resolve (placeholder NEW_NPC)",
+        "RELATIONSHIP target_hint='городское правительство' — нужен resolve (placeholder NEW_NPC)",
+        "EVENT без day, но в тексте есть возраст — нужно историзировать"
+      ],
+      "severity": "MID"
+    },
+    {
+      "point_n": 16,
+      "frag_ord": 16,
+      "text_preview": "16. Когда Торнин заказал меч, Орм не стал строить из себя верного друга. Торнин напоминает ему старого друга, который умер 70 лет назад, — но напоминает, не является. А гном, который прожил 146 лет, з",
+      "text_full_chars": 734,
+      "items_count": 6,
+      "items": [
+        {
+          "kind": "PORTRET",
+          "payload_keys": [
+            "statement",
+            "traits"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "EVENT",
+          "payload_keys": [
+            "summary",
+            "day"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "RELATIONSHIP",
+          "payload_keys": [
+            "summary",
+            "target_hint",
+            "nature",
+            "valence"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "EFFECT",
+          "payload_keys": [
+            "summary",
+            "effect_kind",
+            "target_hint"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "BELIEF_SEED",
+          "payload_keys": [
+            "statement"
+          ],
+          "confidence": 0.5,
+          "needs_confirmation": true,
+          "has_question": false
+        },
+        {
+          "kind": "DESIRE_SEED",
+          "payload_keys": [
+            "statement",
+            "about_hint"
+          ],
+          "confidence": 0.5,
+          "needs_confirmation": true,
+          "has_question": false
+        }
+      ],
+      "verdict": "ISSUES",
+      "issues": [
+        "BELIEF_SEED выглядит бытовым: 'гном привык хранить в себе многое....'",
+        "EVENT без day, но в тексте есть возраст — нужно историзировать"
+      ],
+      "severity": "MID"
+    },
+    {
+      "point_n": 17,
+      "frag_ord": 17,
+      "text_preview": "17. Борко не имеет власти над Ормом. Орм не испугался шантажа стражника. Орм просто понял, что Борко даёт ему разрешение. Не приказ. Разрешение. А гному, который 20 лет назад потерял жену в бреду и ли",
+      "text_full_chars": 676,
+      "items_count": 4,
+      "items": [
+        {
+          "kind": "PORTRET",
+          "payload_keys": [
+            "statement",
+            "traits"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "RELATIONSHIP",
+          "payload_keys": [
+            "summary",
+            "target_hint",
+            "nature",
+            "valence"
+          ],
+          "confidence": 0.4,
+          "needs_confirmation": true,
+          "has_question": true
+        },
+        {
+          "kind": "PORTRET",
+          "payload_keys": [
+            "statement",
+            "traits"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "PORTRET",
+          "payload_keys": [
+            "statement",
+            "traits"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        }
+      ],
+      "verdict": "ISSUES",
+      "issues": [
+        "PORTRET × 3 — дробление внутреннего монолога (промпт требует один)",
+        "RELATIONSHIP target_hint='Борко' — нужен resolve (placeholder NEW_NPC)"
+      ],
+      "severity": "MID"
+    },
+    {
+      "point_n": 18,
+      "frag_ord": 18,
+      "text_preview": "18. Крыша. Кузня — пристройка таверны: над головой гнома кровля, по сути принадлежащая Торнину и оплаченная молчанием и починкой утвари. Поэтому угроза Борко «посажу и сдам Торнину» бьёт не по самолюб",
+      "text_full_chars": 499,
+      "items_count": 2,
+      "items": [
+        {
+          "kind": "PORTRET",
+          "payload_keys": [
+            "statement",
+            "traits"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "DESIRE_SEED",
+          "payload_keys": [
+            "statement",
+            "about_hint"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        }
+      ],
+      "verdict": "OK",
+      "issues": [],
+      "severity": "LOW"
+    },
+    {
+      "point_n": 19,
+      "frag_ord": 19,
+      "text_preview": "19. Две техники питья. Орм пьёт медленно, ровно и не пьянеет до конца вечера; Торнин пьёт в отключку. Два собутыльника с противоположными техниками: один поддерживает застолье, другой выключается из н",
+      "text_full_chars": 314,
+      "items_count": 2,
+      "items": [
+        {
+          "kind": "RELATIONSHIP",
+          "payload_keys": [
+            "summary",
+            "target_hint",
+            "nature",
+            "valence"
+          ],
+          "confidence": 0.5,
+          "needs_confirmation": true,
+          "has_question": false
+        },
+        {
+          "kind": "PORTRET",
+          "payload_keys": [
+            "statement",
+            "traits"
+          ],
+          "confidence": 0.5,
+          "needs_confirmation": true,
+          "has_question": false
+        }
+      ],
+      "verdict": "OK",
+      "issues": [],
+      "severity": "LOW"
+    },
+    {
+      "point_n": 20,
+      "frag_ord": 20,
+      "text_preview": "20. Наблюдатель. Сидит спиной к стене, лицом к залу: за 57 лет это рефлекс, а не осторожность — просто так устроено его место у стойки. Он видит весь зал, включая коридор на кухню. Он замечает, что Бо",
+      "text_full_chars": 332,
+      "items_count": 2,
+      "items": [
+        {
+          "kind": "PORTRET",
+          "payload_keys": [
+            "statement",
+            "traits"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "RELATIONSHIP",
+          "payload_keys": [
+            "summary",
+            "target_hint",
+            "nature",
+            "valence"
+          ],
+          "confidence": 0.4,
+          "needs_confirmation": true,
+          "has_question": true
+        }
+      ],
+      "verdict": "ISSUES",
+      "issues": [
+        "RELATIONSHIP target_hint='Борко' — нужен resolve (placeholder NEW_NPC)"
+      ],
+      "severity": "MID"
+    },
+    {
+      "point_n": 21,
+      "frag_ord": 21,
+      "text_preview": "21. Руки и речь. Обожжённые руки в старых ожогах — рукопожатие, которого избегают. Говорит односложно: «Да». «Нет». «Жди». Матерится только по-гномьи — зал не понимает ни слова, и его это устраивает. ",
+      "text_full_chars": 373,
+      "items_count": 4,
+      "items": [
+        {
+          "kind": "PORTRET",
+          "payload_keys": [
+            "statement",
+            "traits"
+          ],
+          "confidence": 1.0,
+          "needs_confirmation": false,
+          "has_question": false
+        },
+        {
+          "kind": "LOCATION",
+          "payload_keys": [
+            "summary",
+            "name_hint"
+          ],
+          "confidence": 0.5,
+          "needs_confirmation": true,
+          "has_question": false
+        },
+        {
+          "kind": "EVENT",
+          "payload_keys": [
+            "summary",
+            "day",
+            "age"
+          ],
+          "confidence": 0.5,
+          "needs_confirmation": true,
+          "has_question": false
+        },
+        {
+          "kind": "RELATIONSHIP",
+          "payload_keys": [
+            "summary",
+            "target_hint",
+            "nature"
+          ],
+          "confidence": 0.5,
+          "needs_confirmation": true,
+          "has_question": false
+        }
+      ],
+      "verdict": "ISSUES",
+      "issues": [
+        "EVENT без day, но в тексте есть возраст — нужно историзировать"
+      ],
+      "severity": "MID"
+    }
+  ]
+}

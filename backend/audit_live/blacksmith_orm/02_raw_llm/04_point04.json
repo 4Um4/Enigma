@@ -1,0 +1,80 @@
+{
+  "status": "OK",
+  "age_anchors": [],
+  "items": [
+    {
+      "kind": "EVENT",
+      "draft_payload": {
+        "summary": "Торнин заказывает у кузнеца Орма меч, который затем передает главе гильдии воров для убийства Торнина. Кузнец предупреждает городское правительство и гильдию воров.",
+        "day": null
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "RELATIONSHIP",
+      "draft_payload": {
+        "summary": "Кузнец Орм предупреждает главу гильдии воров и городское правительство о намерении Торнина заказать у него меч.",
+        "target_hint": "глава гильдии воров"
+      },
+      "confidence": 0.4,
+      "needs_confirmation": true,
+      "question": {
+        "question_id": "roster_mismatch_1",
+        "target_span": "глава гильдии воров",
+        "options": [
+          "SELECT_EXISTING_NPC",
+          "CREATE_NEW_NPC",
+          "UNKNOWN_PERSON",
+          "LEAVE_WHITE_SPOT"
+        ]
+      }
+    },
+    {
+      "kind": "RELATIONSHIP",
+      "draft_payload": {
+        "summary": "Кузнец Орм предупреждает главу гильдии воров и городское правительство о намерении Торнина заказать у него меч.",
+        "target_hint": "городское правительство"
+      },
+      "confidence": 0.4,
+      "needs_confirmation": true,
+      "question": {
+        "question_id": "roster_mismatch_2",
+        "target_span": "городское правительство",
+        "options": [
+          "SELECT_EXISTING_NPC",
+          "CREATE_NEW_NPC",
+          "UNKNOWN_PERSON",
+          "LEAVE_WHITE_SPOT"
+        ]
+      }
+    },
+    {
+      "kind": "TRAIT_SEED",
+      "draft_payload": {
+        "trait": "предупредительный",
+        "evidence": "Он сразу же предупредил главу гильдии воров и городское правительство."
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "TRAIT_SEED",
+      "draft_payload": {
+        "trait": "секретный",
+        "evidence": "Гильдии сказал: готовьтесь остановить и убить Торнина. Правительству — точнее, писарю квартальной управы, которого знал как «человека города», — сказал, чтобы не вмешивались и не оказались случайно на месте событий, когда гильдия будет сама себя зачищать; а потом посоветовал всё проверить и найти виновных."
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    }
+  ],
+  "coverage": {
+    "fragment_ord": 4,
+    "items_count": 5,
+    "fragment_text_preview": "4. Когда Торнин заказал у него меч, он сразу же предупредил главу гильдии воров ",
+    "critical_topic_warning": null
+  }
+}

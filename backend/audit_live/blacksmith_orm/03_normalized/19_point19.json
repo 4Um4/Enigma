@@ -1,0 +1,40 @@
+[
+  {
+    "kind": "PORTRET",
+    "draft_payload": {
+      "statement": "Орм пьёт медленно, ровно и не пьянеет до конца вечера; Торнин пьёт в отключку. Два собутыльника с противоположными техниками: один поддерживает застолье, другой выключается из него. Орм сидит рядом не ради компании — собутыльник, который не помнит вечера, лучший слушатель из всех возможных.",
+      "traits": [
+        "постоянство",
+        "умение управлять собой",
+        "трудность общения"
+      ]
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  },
+  {
+    "kind": "RELATIONSHIP",
+    "draft_payload": {
+      "summary": "Орм и Торнин являются собутыльниками с противоположными способами питья.",
+      "target_hint": "Торнин Серебряная Луна",
+      "nature": "neutral",
+      "valence": "neutral"
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  },
+  {
+    "kind": "RELATIONSHIP",
+    "draft_payload": {
+      "summary": "Орм и Торнин являются собутыльниками с противоположными способами питья.",
+      "target_hint": "Кузнец Орм",
+      "nature": "neutral",
+      "valence": "neutral"
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  }
+]

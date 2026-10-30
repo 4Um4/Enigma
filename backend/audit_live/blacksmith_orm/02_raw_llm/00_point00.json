@@ -1,0 +1,6 @@
+{
+  "status": "NOT_DECOMPOSED",
+  "error": "Декомпозиция не удалась после retry: items[0]: kind 'human_hint' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "age_anchors": [],
+  "raw_response": "{\"items\": [\n  {\"kind\": \"human_hint\", \"draft_payload\": {\"summary\": \"кузнец Орм\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}\n]}"
+}

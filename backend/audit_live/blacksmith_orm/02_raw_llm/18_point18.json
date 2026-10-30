@@ -1,0 +1,36 @@
+{
+  "status": "OK",
+  "age_anchors": [],
+  "items": [
+    {
+      "kind": "PORTRET",
+      "draft_payload": {
+        "statement": "Орм это знает — и это единственное, что делает его хоть немного осторожнее, хотя он никогда не признался бы, что хоть что-то в этой сцене может его потревожить.",
+        "traits": [
+          "подавленная тревога",
+          "самооборона",
+          "молчаливое согласие"
+        ]
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "DESIRE_SEED",
+      "draft_payload": {
+        "statement": "его мечта о собственной кузне (п.14) — не про статус, а про то, чтобы наконец никому не быть должным за место, где стоишь.",
+        "about_hint": "собственная кузня"
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    }
+  ],
+  "coverage": {
+    "fragment_ord": 18,
+    "items_count": 2,
+    "fragment_text_preview": "18. Крыша. Кузня — пристройка таверны: над головой гнома кровля, по сути принадл",
+    "critical_topic_warning": null
+  }
+}

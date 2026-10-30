@@ -1,0 +1,428 @@
+{
+  "npc_id": "blacksmith_orm",
+  "campaign": "silver_wolf_audit_live",
+  "pipeline": "HTTP → uvicorn → ModelPool → qwen_7b (temperature=0.9)",
+  "total_fragments": 22,
+  "real_points_count": 21,
+  "total_items": 54,
+  "zero_items_points": 1,
+  "http_failures": 2,
+  "coverage_warnings_count": 0,
+  "coverage_warnings": [],
+  "per_point": [
+    {
+      "frag_ord": 0,
+      "point_n": 0,
+      "is_header": true,
+      "text_preview": "кузнец Орм: гном",
+      "ok": false,
+      "error": "Декомпозиция не удалась после retry: items[0]: kind 'human_hint' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+      "items_count": 0,
+      "items_kinds": []
+    },
+    {
+      "frag_ord": 1,
+      "point_n": 1,
+      "is_header": false,
+      "text_preview": "1. 146 лет, из которых он кузнец в городе уже 57 лет.",
+      "ok": true,
+      "items_count": 4,
+      "items_kinds": [
+        "EVENT",
+        "RELATIONSHIP",
+        "EFFECT",
+        "EFFECT"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 1,
+        "items_count": 4,
+        "fragment_text_preview": "1. 146 лет, из которых он кузнец в городе уже 57 лет.",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 2,
+      "point_n": 2,
+      "is_header": false,
+      "text_preview": "2. Увлечён по-настоящему только своей работой и выпивкой.",
+      "ok": true,
+      "items_count": 1,
+      "items_kinds": [
+        "TRAIT_SEED"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 2,
+        "items_count": 1,
+        "fragment_text_preview": "2. Увлечён по-настоящему только своей работой и выпивкой.",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 3,
+      "point_n": 3,
+      "is_header": false,
+      "text_preview": "3. Хороший его друг Торнин, который напоминает ему старого друга, умершего 70 лет назад.",
+      "ok": true,
+      "items_count": 3,
+      "items_kinds": [
+        "RELATIONSHIP",
+        "EVENT",
+        "PORTRET"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 3,
+        "items_count": 3,
+        "fragment_text_preview": "3. Хороший его друг Торнин, который напоминает ему старого друга, умершего 70 ле",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 4,
+      "point_n": 4,
+      "is_header": false,
+      "text_preview": "4. Когда Торнин заказал у него меч, он сразу же предупредил главу гильдии воров и городское правительство. Гильдии сказа",
+      "ok": true,
+      "items_count": 5,
+      "items_kinds": [
+        "EVENT",
+        "RELATIONSHIP",
+        "RELATIONSHIP",
+        "TRAIT_SEED",
+        "TRAIT_SEED"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 4,
+        "items_count": 5,
+        "fragment_text_preview": "4. Когда Торнин заказал у него меч, он сразу же предупредил главу гильдии воров ",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 5,
+      "point_n": 5,
+      "is_header": false,
+      "text_preview": "5. Писарь этот второй десяток лет сидит на содержании гильдии. К утру следующего дня мастер гильдии знал о предупреждени",
+      "ok": true,
+      "items_count": 4,
+      "items_kinds": [
+        "PORTRET",
+        "EVENT",
+        "RELATIONSHIP",
+        "EFFECT"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 5,
+        "items_count": 4,
+        "fragment_text_preview": "5. Писарь этот второй десяток лет сидит на содержании гильдии. К утру следующего",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 6,
+      "point_n": 6,
+      "is_header": false,
+      "text_preview": "6. Учился кузнечному делу у мастера Грунта Алмазной наковальни 100 лет тому назад.",
+      "ok": true,
+      "items_count": 1,
+      "items_kinds": [
+        "EVENT"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 6,
+        "items_count": 1,
+        "fragment_text_preview": "6. Учился кузнечному делу у мастера Грунта Алмазной наковальни 100 лет тому наза",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 7,
+      "point_n": 7,
+      "is_header": false,
+      "text_preview": "7. Последняя жена Эльра умерла от бреда и лихорадки уже 20 лет назад. Она долго болела, психика её слабела, галлюцинации",
+      "ok": true,
+      "items_count": 3,
+      "items_kinds": [
+        "EVENT",
+        "EFFECT",
+        "EFFECT"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 7,
+        "items_count": 3,
+        "fragment_text_preview": "7. Последняя жена Эльра умерла от бреда и лихорадки уже 20 лет назад. Она долго ",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 8,
+      "point_n": 8,
+      "is_header": false,
+      "text_preview": "8. Орм давно заприметил Люсю — тихую, серьёзную и исполнительную. Такой была его жена до болезни: молодой, покорной, зав",
+      "ok": true,
+      "items_count": 1,
+      "items_kinds": [
+        "PORTRET"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 8,
+        "items_count": 1,
+        "fragment_text_preview": "8. Орм давно заприметил Люсю — тихую, серьёзную и исполнительную. Такой была его",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 9,
+      "point_n": 9,
+      "is_header": false,
+      "text_preview": "9. Непонятно, что тем вечером заставило его напасть на девочку и изнасиловать — то ли желание, то ли месть жене за тяжёл",
+      "ok": false,
+      "error": 500,
+      "items_count": 0,
+      "items_kinds": []
+    },
+    {
+      "frag_ord": 10,
+      "point_n": 10,
+      "is_header": false,
+      "text_preview": "10. Когда ему начал угрожать Борко и заставил продолжать спать с Люсей, гном не был напуган шантажом — скорее это была д",
+      "ok": true,
+      "items_count": 2,
+      "items_kinds": [
+        "RELATIONSHIP",
+        "PORTRET"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 10,
+        "items_count": 2,
+        "fragment_text_preview": "10. Когда ему начал угрожать Борко и заставил продолжать спать с Люсей, гном не ",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 11,
+      "point_n": 11,
+      "is_header": false,
+      "text_preview": "11. Только перед Торниным его грызла совесть: тот хоть и бил девочку, но по-своему хорошо к ней относился и уж точно не ",
+      "ok": true,
+      "items_count": 1,
+      "items_kinds": [
+        "PORTRET"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 11,
+        "items_count": 1,
+        "fragment_text_preview": "11. Только перед Торниным его грызла совесть: тот хоть и бил девочку, но по-свое",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 12,
+      "point_n": 12,
+      "is_header": false,
+      "text_preview": "12. Когда ещё и Горан на следующий день после Торнина попросил о мече, гном понял: заказ Торнина можно продать купцу. Пр",
+      "ok": true,
+      "items_count": 4,
+      "items_kinds": [
+        "EVENT",
+        "BELIEF_SEED",
+        "TRAIT_SEED",
+        "PORTRET"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 12,
+        "items_count": 4,
+        "fragment_text_preview": "12. Когда ещё и Горан на следующий день после Торнина попросил о мече, гном поня",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 13,
+      "point_n": 13,
+      "is_header": false,
+      "text_preview": "13. Когда он не насилует Люсю, а видит её в таверне, испытывает сухое неприятное чувство вины — сразу перед девочкой, пе",
+      "ok": true,
+      "items_count": 1,
+      "items_kinds": [
+        "PORTRET"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 13,
+        "items_count": 1,
+        "fragment_text_preview": "13. Когда он не насилует Люсю, а видит её в таверне, испытывает сухое неприятное",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 14,
+      "point_n": 14,
+      "is_header": false,
+      "text_preview": "14. Орм думает, когда всё закончится, получить оплату за информацию и с гильдии воров, и с правительства — и открыть нор",
+      "ok": true,
+      "items_count": 1,
+      "items_kinds": [
+        "PORTRET"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 14,
+        "items_count": 1,
+        "fragment_text_preview": "14. Орм думает, когда всё закончится, получить оплату за информацию и с гильдии ",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 15,
+      "point_n": 15,
+      "is_header": false,
+      "text_preview": "15. Баланс Орма между Гильдией воров и городским правительством — это не двойная игра и не хитрый расчёт. Это стратегия ",
+      "ok": true,
+      "items_count": 4,
+      "items_kinds": [
+        "PORTRET",
+        "RELATIONSHIP",
+        "RELATIONSHIP",
+        "TRAIT_SEED"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 15,
+        "items_count": 4,
+        "fragment_text_preview": "15. Баланс Орма между Гильдией воров и городским правительством — это не двойная",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 16,
+      "point_n": 16,
+      "is_header": false,
+      "text_preview": "16. Когда Торнин заказал меч, Орм не стал строить из себя верного друга. Торнин напоминает ему старого друга, который ум",
+      "ok": true,
+      "items_count": 4,
+      "items_kinds": [
+        "PORTRET",
+        "RELATIONSHIP",
+        "EVENT",
+        "BELIEF_SEED"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 16,
+        "items_count": 4,
+        "fragment_text_preview": "16. Когда Торнин заказал меч, Орм не стал строить из себя верного друга. Торнин ",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 17,
+      "point_n": 17,
+      "is_header": false,
+      "text_preview": "17. Борко не имеет власти над Ормом. Орм не испугался шантажа стражника. Орм просто понял, что Борко даёт ему разрешение",
+      "ok": true,
+      "items_count": 5,
+      "items_kinds": [
+        "PORTRET",
+        "RELATIONSHIP",
+        "RELATIONSHIP",
+        "TRAIT_SEED",
+        "TRAIT_SEED"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 17,
+        "items_count": 5,
+        "fragment_text_preview": "17. Борко не имеет власти над Ормом. Орм не испугался шантажа стражника. Орм про",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 18,
+      "point_n": 18,
+      "is_header": false,
+      "text_preview": "18. Крыша. Кузня — пристройка таверны: над головой гнома кровля, по сути принадлежащая Торнину и оплаченная молчанием и ",
+      "ok": true,
+      "items_count": 2,
+      "items_kinds": [
+        "PORTRET",
+        "DESIRE_SEED"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 18,
+        "items_count": 2,
+        "fragment_text_preview": "18. Крыша. Кузня — пристройка таверны: над головой гнома кровля, по сути принадл",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 19,
+      "point_n": 19,
+      "is_header": false,
+      "text_preview": "19. Две техники питья. Орм пьёт медленно, ровно и не пьянеет до конца вечера; Торнин пьёт в отключку. Два собутыльника с",
+      "ok": true,
+      "items_count": 3,
+      "items_kinds": [
+        "PORTRET",
+        "RELATIONSHIP",
+        "RELATIONSHIP"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 19,
+        "items_count": 3,
+        "fragment_text_preview": "19. Две техники питья. Орм пьёт медленно, ровно и не пьянеет до конца вечера; То",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 20,
+      "point_n": 20,
+      "is_header": false,
+      "text_preview": "20. Наблюдатель. Сидит спиной к стене, лицом к залу: за 57 лет это рефлекс, а не осторожность — просто так устроено его ",
+      "ok": true,
+      "items_count": 3,
+      "items_kinds": [
+        "PORTRET",
+        "RELATIONSHIP",
+        "LOCATION"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 20,
+        "items_count": 3,
+        "fragment_text_preview": "20. Наблюдатель. Сидит спиной к стене, лицом к залу: за 57 лет это рефлекс, а не",
+        "critical_topic_warning": null
+      }
+    },
+    {
+      "frag_ord": 21,
+      "point_n": 21,
+      "is_header": false,
+      "text_preview": "21. Руки и речь. Обожжённые руки в старых ожогах — рукопожатие, которого избегают. Говорит односложно: «Да». «Нет». «Жди",
+      "ok": true,
+      "items_count": 2,
+      "items_kinds": [
+        "PORTRET",
+        "EVENT"
+      ],
+      "critical_topic_warning": null,
+      "coverage": {
+        "fragment_ord": 21,
+        "items_count": 2,
+        "fragment_text_preview": "21. Руки и речь. Обожжённые руки в старых ожогах — рукопожатие, которого избегаю",
+        "critical_topic_warning": null
+      }
+    }
+  ]
+}

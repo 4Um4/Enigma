@@ -51,6 +51,12 @@ TRAVERSAL_OWNERSHIP_ENFORCEMENT: bool = (
 
 from app.contracts.interventions import InterventionEvent
 from app.domain.tick import TickResultDTO
+# C3-A1: tick campaign context for delivery isolation
+from app.services.events.tick_campaign_context import (
+    TickCampaignContext as _C3TickCampaignContext,
+    reset_tick_context as _c3_reset_tick_context,
+    set_tick_context as _c3_set_tick_context,
+)
 from app.models.cfrm import ClusterOccupancy
 
 # ADR-O-201 ФАЗА 1: Dual Rail Execution
@@ -164,6 +170,14 @@ class TickOrchestrator:
         self._homeostasis_sub: HomeostasisProjector = HomeostasisProjector()
         self._social_input_proj: SocialInputProjector = SocialInputProjector(
             self._get_event_bus()
+        )
+        # C3-A1: Delivery subscriber for NPC_ADDRESSES_PLAYER.
+        # Long-lived (as ReactionSubscriber). drain/ack called per-tick.
+        from app.services.events.npc_addressing_delivery_subscriber import (
+            NpcAddressingDeliverySubscriber,
+        )
+        self._npc_addressing_sub: NpcAddressingDeliverySubscriber = (
+            NpcAddressingDeliverySubscriber(self._get_event_bus())
         )
 
         # CFRM P2: Каузальный солвер и интерпретатор феноменологии
@@ -645,6 +659,17 @@ class TickOrchestrator:
             if shared_context is not None:
                 shared_context.game_time_seconds = _new_game_time
 
+        # C3-A1: Set tick campaign context for delivery isolation.
+        # Active for ALL scenes in this execute(). Reset after loop.
+        # If uncaught exception between set/reset — ContextVar leaks,
+        # but next execute() overwrites. subscriber._on_event checks
+        # for None context — safe. publish() of NPC_ADDRESSES_PLAYER
+        # only happens inside _run_core_phases (Phase 10) — no leak
+        # risk in practice.
+        _c3_token = _c3_set_tick_context(
+            _C3TickCampaignContext(campaign_id=campaign_id, tick_id=tick_number)
+        )
+
         for _loc_id, _scene in _all_scenes.items():
             _is_active = (_loc_id == active_location_id) if active_location_id else True
 
@@ -750,6 +775,10 @@ class TickOrchestrator:
 
             try:
                 self._run_core_phases(ctx, tick_fully=_tick_fully)
+                # C3-A1: commit staged events AFTER successful Phase 10.
+                # If _run_core_phases raised (continue above) — commit_staged
+                # is skipped → staged_events destroyed with context (no delivery).
+                self._npc_addressing_sub.commit_staged(campaign_id)
             except Exception as e:
                 logger.error(
                     f"[TICK_CRASH] campaign={campaign_id} tick={tick_number} loc={_loc_id} error={e}"
@@ -822,10 +851,15 @@ class TickOrchestrator:
                 observed_facts=_final_facts,
                 final_scene_state=final_snapshot,
                 all_npcs_raw=ctx.all_npcs_raw,
+                npc_addressing=self._npc_addressing_sub.drain(campaign_id),
             )
             _tick_results.append(_res)
             if _is_active:
                 _final_result = _res
+
+        # C3-A1: Reset tick campaign context (staged_events from failed
+        # scenes already destroyed — commit_staged not called for them).
+        _c3_reset_tick_context(_c3_token)
 
         if _final_result is None and _tick_results:
             _final_result = _tick_results[0]

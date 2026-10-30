@@ -1,0 +1,76 @@
+{
+  "status": "OK",
+  "age_anchors": [],
+  "items": [
+    {
+      "kind": "PORTRET",
+      "draft_payload": {
+        "statement": "Писарь этот второй десяток лет сидит на содержании гильдии.",
+        "traits": [
+          "прислужник",
+          "зависимый"
+        ]
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "EVENT",
+      "draft_payload": {
+        "summary": "Мастер гильдии узнал о предупреждении слово в слово на следующий день.",
+        "day": null
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "RELATIONSHIP",
+      "draft_payload": {
+        "summary": "Орм не знает о предупреждении.",
+        "target_hint": "Орм",
+        "nature": "идеализация",
+        "valence": "neutral"
+      },
+      "confidence": 0.4,
+      "needs_confirmation": true,
+      "question": {
+        "question_id": "roster_mismatch_2",
+        "target_span": "Орм",
+        "options": [
+          "SELECT_EXISTING_NPC",
+          "CREATE_NEW_NPC",
+          "UNKNOWN_PERSON",
+          "LEAVE_WHITE_SPOT"
+        ]
+      }
+    },
+    {
+      "kind": "EFFECT",
+      "draft_payload": {
+        "summary": "Это единственная дыра в системе Орма.",
+        "effect_kind": "secret",
+        "target_hint": "Орм"
+      },
+      "confidence": 0.4,
+      "needs_confirmation": true,
+      "question": {
+        "question_id": "roster_mismatch_3",
+        "target_span": "Орм",
+        "options": [
+          "SELECT_EXISTING_NPC",
+          "CREATE_NEW_NPC",
+          "UNKNOWN_PERSON",
+          "LEAVE_WHITE_SPOT"
+        ]
+      }
+    }
+  ],
+  "coverage": {
+    "fragment_ord": 5,
+    "items_count": 4,
+    "fragment_text_preview": "5. Писарь этот второй десяток лет сидит на содержании гильдии. К утру следующего",
+    "critical_topic_warning": null
+  }
+}

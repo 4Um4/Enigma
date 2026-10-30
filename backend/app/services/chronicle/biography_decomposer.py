@@ -20,7 +20,7 @@ import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Final, List, Optional
+from typing import Any, cast, Dict, Final, List, Optional
 
 from app.domain.chronicle import (
     BiographyDecomposition,
@@ -156,7 +156,8 @@ class BiographyDecomposer:
                 for v in age_anchors
             ]
         else:
-            typed_anchors = age_anchors
+            # уже List[AgeAnchor] (или пусто) — narrowing через isinstance не срабатывает
+            typed_anchors = cast("List[AgeAnchor]", age_anchors)
 
         hints = age_anchors_to_hint(typed_anchors) if typed_anchors else ""
         if roster:

@@ -1,0 +1,47 @@
+[
+  {
+    "kind": "PORTRET",
+    "draft_payload": {
+      "statement": "Непонятно, что тем вечером заставило его напасть на девочку и изнасиловать — то ли желание, то ли месть жене за тяжёлые последние годы с ней; даже он сам не понимает. Если он и ищет ответ, то только потому, что искать безопаснее, чем находить: Люся похожа на Эльру — и это единственный ключ, который у него есть, к двери, которую он открывать не хочет.",
+      "traits": [
+        "психологический конфликт",
+        "неуверенность в себе",
+        "страх"
+      ]
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  },
+  {
+    "kind": "RELATIONSHIP",
+    "draft_payload": {
+      "summary": "Он ищет ответ из-за Люси, потому что она похожа на Эльру.",
+      "target_hint": "Люся",
+      "nature": "идеализация",
+      "valence": "positive"
+    },
+    "confidence": 0.9,
+    "needs_confirmation": false,
+    "question": null
+  },
+  {
+    "kind": "BELIEF_SEED",
+    "draft_payload": {
+      "statement": "Он ищет ответ из-за Люси, потому что она похожа на Эльру — и это единственный ключ, который у него есть, к двери, которую он открывать не хочет."
+    },
+    "confidence": 0.8,
+    "needs_confirmation": true,
+    "question": null
+  },
+  {
+    "kind": "TRAIT_SEED",
+    "draft_payload": {
+      "trait": "неуверенность в себе",
+      "evidence": "даже он сам не понимает"
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  }
+]

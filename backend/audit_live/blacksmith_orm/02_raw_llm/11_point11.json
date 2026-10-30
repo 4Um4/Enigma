@@ -1,0 +1,25 @@
+{
+  "status": "OK",
+  "age_anchors": [],
+  "items": [
+    {
+      "kind": "PORTRET",
+      "draft_payload": {
+        "statement": "Только перед Торниным его грызла совесть: тот хоть и бил девочку, но по-своему хорошо к ней относился и уж точно не хотел бы, чтобы её насиловал старый гном.",
+        "traits": [
+          "совестливость",
+          "защитность"
+        ]
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    }
+  ],
+  "coverage": {
+    "fragment_ord": 11,
+    "items_count": 1,
+    "fragment_text_preview": "11. Только перед Торниным его грызла совесть: тот хоть и бил девочку, но по-свое",
+    "critical_topic_warning": null
+  }
+}

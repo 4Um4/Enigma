@@ -1,0 +1,1623 @@
+{
+  "status": "OK",
+  "document": {
+    "schema_version": 1,
+    "chronicle_id": "blacksmith_orm",
+    "npc_ref": "blacksmith_orm",
+    "author_text": "",
+    "entries": [
+      {
+        "entry_id": "8af87d3c1b6002e788f48dbc62005b3b",
+        "kind": "EVENT",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "summary": "переезд и начало работы как кузнец",
+          "day": null
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 100
+      },
+      {
+        "entry_id": "5538cb6cdafa9d9d429385149e642e2f",
+        "kind": "RELATIONSHIP",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "payload": {
+          "summary": "работа кузнеца",
+          "target_hint": "Кузнец Орм",
+          "nature": "occupation",
+          "valence": "neutral"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 101
+      },
+      {
+        "entry_id": "2d4d26389161506a57aff7f18855ed40",
+        "kind": "EFFECT",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "payload": {
+          "summary": "стал кузнецом в городе",
+          "effect_kind": "occupation",
+          "target_hint": "Кузнец Орм"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 102
+      },
+      {
+        "entry_id": "fa4811fe50c01a5445d0dcaa0d9562f1",
+        "kind": "EFFECT",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "summary": "проживает в городе",
+          "effect_kind": "residence",
+          "target_hint": null
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 103
+      },
+      {
+        "entry_id": "19a58bd0350c33f31adaae788b59e272",
+        "kind": "TRAIT_SEED",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "trait": "увлечение",
+          "evidence": "Увлечён по-настоящему только своей работой и выпивкой."
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 200
+      },
+      {
+        "entry_id": "45ac21eac0f718a5aa353b7965f309ee",
+        "kind": "RELATIONSHIP",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "NEW_NPC",
+          "npc_id": null,
+          "white_spot_id": null,
+          "name_hint": "Торнин"
+        },
+        "payload": {
+          "summary": "Хороший его друг Торнин",
+          "target_hint": "Торнин",
+          "nature": "friendship",
+          "valence": "positive"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.4,
+        "open_questions": [
+          {
+            "question_id": "roster_mismatch_0",
+            "target_span": "Торнин",
+            "options": [
+              "SELECT_EXISTING_NPC",
+              "CREATE_NEW_NPC",
+              "UNKNOWN_PERSON",
+              "LEAVE_WHITE_SPOT"
+            ],
+            "selected_option": null,
+            "selected_value": null
+          }
+        ],
+        "ordinal": 300
+      },
+      {
+        "entry_id": "5104c79be543299e458373b978c6b312",
+        "kind": "EVENT",
+        "historical_age": 70,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "summary": "умерший 70 лет назад",
+          "day": null,
+          "age": 70
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.5,
+        "open_questions": [],
+        "ordinal": 301
+      },
+      {
+        "entry_id": "f533602eaec43e6684c15f212ef48d8c",
+        "kind": "PORTRET",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Хороший его друг Торнин, который напоминает ему старого друга",
+          "traits": [
+            "friendship"
+          ]
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.5,
+        "open_questions": [],
+        "ordinal": 302
+      },
+      {
+        "entry_id": "6c0e9513ec9389e011c863f999a97bc1",
+        "kind": "EVENT",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "summary": "Торнин заказывает у кузнеца Орма меч, который затем передает главе гильдии воров для убийства Торнина. Кузнец предупреждает городское правительство и гильдию воров.",
+          "day": null
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 400
+      },
+      {
+        "entry_id": "b8781b0bee9e9ea8e4962b45800c7aab",
+        "kind": "RELATIONSHIP",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "NEW_NPC",
+          "npc_id": null,
+          "white_spot_id": null,
+          "name_hint": "глава гильдии воров"
+        },
+        "payload": {
+          "summary": "Кузнец Орм предупреждает главу гильдии воров и городское правительство о намерении Торнина заказать у него меч.",
+          "target_hint": "глава гильдии воров"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.4,
+        "open_questions": [
+          {
+            "question_id": "roster_mismatch_1",
+            "target_span": "глава гильдии воров",
+            "options": [
+              "SELECT_EXISTING_NPC",
+              "CREATE_NEW_NPC",
+              "UNKNOWN_PERSON",
+              "LEAVE_WHITE_SPOT"
+            ],
+            "selected_option": null,
+            "selected_value": null
+          }
+        ],
+        "ordinal": 401
+      },
+      {
+        "entry_id": "8e713c8049c81b7696d06b2d6fc6a3e9",
+        "kind": "RELATIONSHIP",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "NEW_NPC",
+          "npc_id": null,
+          "white_spot_id": null,
+          "name_hint": "городское правительство"
+        },
+        "payload": {
+          "summary": "Кузнец Орм предупреждает главу гильдии воров и городское правительство о намерении Торнина заказать у него меч.",
+          "target_hint": "городское правительство"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.4,
+        "open_questions": [
+          {
+            "question_id": "roster_mismatch_2",
+            "target_span": "городское правительство",
+            "options": [
+              "SELECT_EXISTING_NPC",
+              "CREATE_NEW_NPC",
+              "UNKNOWN_PERSON",
+              "LEAVE_WHITE_SPOT"
+            ],
+            "selected_option": null,
+            "selected_value": null
+          }
+        ],
+        "ordinal": 402
+      },
+      {
+        "entry_id": "5aaadb4ff3ce841be595d05ed9da2b82",
+        "kind": "TRAIT_SEED",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "trait": "предупредительный",
+          "evidence": "Он сразу же предупредил главу гильдии воров и городское правительство."
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 403
+      },
+      {
+        "entry_id": "b7ccab30a43c095657e772fe66a4456b",
+        "kind": "TRAIT_SEED",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "trait": "секретный",
+          "evidence": "Гильдии сказал: готовьтесь остановить и убить Торнина. Правительству — точнее, писарю квартальной управы, которого знал как «человека города», — сказал, чтобы не вмешивались и не оказались случайно на месте событий, когда гильдия будет сама себя зачищать; а потом посоветовал всё проверить и найти виновных."
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 404
+      },
+      {
+        "entry_id": "de46a5226c650114dc24e633da77c1e7",
+        "kind": "PORTRET",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Писарь этот второй десяток лет сидит на содержании гильдии.",
+          "traits": [
+            "прислужник",
+            "зависимый"
+          ]
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 500
+      },
+      {
+        "entry_id": "653f2f7255952b7e8b52fcdd327a116d",
+        "kind": "EVENT",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "summary": "Мастер гильдии узнал о предупреждении слово в слово на следующий день.",
+          "day": null
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 501
+      },
+      {
+        "entry_id": "4ae58ce13d6c3e14dcb99b7a55dde9c2",
+        "kind": "RELATIONSHIP",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "NEW_NPC",
+          "npc_id": null,
+          "white_spot_id": null,
+          "name_hint": "Орм"
+        },
+        "payload": {
+          "summary": "Орм не знает о предупреждении.",
+          "target_hint": "Орм",
+          "nature": "идеализация",
+          "valence": "neutral"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.4,
+        "open_questions": [
+          {
+            "question_id": "roster_mismatch_2",
+            "target_span": "Орм",
+            "options": [
+              "SELECT_EXISTING_NPC",
+              "CREATE_NEW_NPC",
+              "UNKNOWN_PERSON",
+              "LEAVE_WHITE_SPOT"
+            ],
+            "selected_option": null,
+            "selected_value": null
+          }
+        ],
+        "ordinal": 502
+      },
+      {
+        "entry_id": "c601b7a44956bd095c01fe8e2d9baed0",
+        "kind": "EFFECT",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "NEW_NPC",
+          "npc_id": null,
+          "white_spot_id": null,
+          "name_hint": "Орм"
+        },
+        "payload": {
+          "summary": "Это единственная дыра в системе Орма.",
+          "effect_kind": "secret",
+          "target_hint": "Орм"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.4,
+        "open_questions": [
+          {
+            "question_id": "roster_mismatch_3",
+            "target_span": "Орм",
+            "options": [
+              "SELECT_EXISTING_NPC",
+              "CREATE_NEW_NPC",
+              "UNKNOWN_PERSON",
+              "LEAVE_WHITE_SPOT"
+            ],
+            "selected_option": null,
+            "selected_value": null
+          }
+        ],
+        "ordinal": 503
+      },
+      {
+        "entry_id": "200df0954ce49608a57e95b8f6fab68b",
+        "kind": "EVENT",
+        "historical_age": 100,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "summary": "Учился кузнечному делу у мастера Грунта Алмазной наковальни.",
+          "day": null
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 600
+      },
+      {
+        "entry_id": "78e4a974ec181b54b003a25683eedb3e",
+        "kind": "EVENT",
+        "historical_age": 20,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "summary": "Последняя жена Эльра умерла от бреда и лихорадки.",
+          "day": null
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 700
+      },
+      {
+        "entry_id": "db29caa16fa4352ceb7666cb6872b522",
+        "kind": "EFFECT",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "summary": "Эльра долго болела, психика её слабела, галлюцинации и психоз жены на протяжении многих лет изводили характер гнома.",
+          "effect_kind": "trauma"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 701
+      },
+      {
+        "entry_id": "e212ea20c0220aaff7e4906fab13f1d8",
+        "kind": "EFFECT",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "summary": "Многое с тех времён он привык хранить в себе.",
+          "effect_kind": "habit"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 702
+      },
+      {
+        "entry_id": "00a3f6b5d27f6324c65448507783a8a9",
+        "kind": "PORTRET",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Орм давно заприметил Люсю — тихую, серьёзную и исполнительную. Такой была его жена до болезни: молодой, покорной, зависящей от него. Это не любовь и не расчёт — это перенос, который он в себе так и не разглядел, потому что разглядывать себя не привык.",
+          "traits": [
+            "зависимость",
+            "подавленная злость"
+          ]
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 800
+      },
+      {
+        "entry_id": "8beed3786281f9961e2890fdc8f45d16",
+        "kind": "PORTRET",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Непонятно, что тем вечером заставило его напасть на девочку и изнасиловать — то ли желание, то ли месть жене за тяжёлые последние годы с ней; даже он сам не понимает. Если он и ищет ответ, то только потому, что искать безопаснее, чем находить: Люся похожа на Эльру — и это единственный ключ, который у него есть, к двери, которую он открывать не хочет.",
+          "traits": [
+            "психологический конфликт",
+            "неуверенность в себе",
+            "страх"
+          ]
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 900
+      },
+      {
+        "entry_id": "f9563bbd7cede51589f3731ebe51e61f",
+        "kind": "RELATIONSHIP",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "maid_lusya",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "payload": {
+          "summary": "Он ищет ответ из-за Люси, потому что она похожа на Эльру.",
+          "target_hint": "Люся",
+          "nature": "идеализация",
+          "valence": "positive"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.9,
+        "open_questions": [],
+        "ordinal": 901
+      },
+      {
+        "entry_id": "95e8025ccd787f04be0f172b1ea3d883",
+        "kind": "BELIEF_SEED",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Он ищет ответ из-за Люси, потому что она похожа на Эльру — и это единственный ключ, который у него есть, к двери, которую он открывать не хочет."
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.8,
+        "open_questions": [],
+        "ordinal": 902
+      },
+      {
+        "entry_id": "b437e34767faece2afbc0ceb32d5478c",
+        "kind": "TRAIT_SEED",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "trait": "неуверенность в себе",
+          "evidence": "даже он сам не понимает"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 903
+      },
+      {
+        "entry_id": "842bccf34a98a4cb6c59e695276f24fb",
+        "kind": "RELATIONSHIP",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "NEW_NPC",
+          "npc_id": null,
+          "white_spot_id": null,
+          "name_hint": "Борко"
+        },
+        "payload": {
+          "summary": "Борко заставляет Орма продолжать спать с Люсей, используя это как предлог.",
+          "target_hint": "Борко",
+          "nature": "вражда",
+          "valence": "negative"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.4,
+        "open_questions": [
+          {
+            "question_id": "roster_mismatch_0",
+            "target_span": "Борко",
+            "options": [
+              "SELECT_EXISTING_NPC",
+              "CREATE_NEW_NPC",
+              "UNKNOWN_PERSON",
+              "LEAVE_WHITE_SPOT"
+            ],
+            "selected_option": null,
+            "selected_value": null
+          }
+        ],
+        "ordinal": 1000
+      },
+      {
+        "entry_id": "df453916c88e7dc69ec6e87ca1db33f8",
+        "kind": "PORTRET",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Он не был напуган шантажом — скорее это была дополнительная легальная причина повторять то, что приносит ему удовольствие.",
+          "traits": [
+            "неприязнь к Борко",
+            "удовлетворение от сексуальных отношений с Люсей"
+          ]
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1001
+      },
+      {
+        "entry_id": "6145c048a81be3e12d74fa6469a3c3f2",
+        "kind": "PORTRET",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Только перед Торниным его грызла совесть: тот хоть и бил девочку, но по-своему хорошо к ней относился и уж точно не хотел бы, чтобы её насиловал старый гном.",
+          "traits": [
+            "совестливость",
+            "защитность"
+          ]
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1100
+      },
+      {
+        "entry_id": "676ccca018f806ca70099679ae6ca85c",
+        "kind": "EVENT",
+        "historical_age": 57,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "summary": "Горан на следующий день после Торнина попросил о мече у кузнеца Орма.",
+          "day": null
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.9,
+        "open_questions": [],
+        "ordinal": 1200
+      },
+      {
+        "entry_id": "0c774c358ebdf61a5f18f829b32bff08",
+        "kind": "BELIEF_SEED",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "информация, отданная бесплатно, не покупает благодарность, а только разжигает аппетит"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1201
+      },
+      {
+        "entry_id": "7f55a4572d7150f618378470c8b1e339",
+        "kind": "TRAIT_SEED",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "trait": "испытывает долгую осуждение",
+          "evidence": "57 лет в этом городе и знает"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.5,
+        "open_questions": [],
+        "ordinal": 1202
+      },
+      {
+        "entry_id": "42d65db7dba2da993829cb6cfa375c78",
+        "kind": "PORTRET",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Гном понял: заказ Торнина можно продать купцу. Продать не сталь, а факт — кому, когда и зачем куется меч.",
+          "traits": [
+            "умный",
+            "опытный",
+            "искусный"
+          ]
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1203
+      },
+      {
+        "entry_id": "b985e8623fc9111e782ec5861a7e743d",
+        "kind": "PORTRET",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Когда он не насилует Люсю, а видит её в таверне, испытывает сухое неприятное чувство вины - сразу перед девочкой, перед умершей женой и перед собой в том числе.",
+          "traits": [
+            "вины",
+            "неприязнь к себе"
+          ]
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1300
+      },
+      {
+        "entry_id": "4d8300dcf8172fd99efbc82d1e30de78",
+        "kind": "PORTRET",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Орм думает, когда всё закончится, получить оплату за информацию и с гильдии воров, и с правительства — и открыть нормальную личную кузню, а не пристройку у таверны, которую ему выделили много лет назад. Но для него это не вопрос жизни и смерти, а очередной закономерный этап его долгой жизни.",
+          "traits": [
+            "планирование",
+            "желание иметь собственное дело",
+            "оптимизм"
+          ]
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1400
+      },
+      {
+        "entry_id": "2bf800d790851d1f7775a2afcb3adc9d",
+        "kind": "PORTRET",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Орм не выбирает сторону. Орм выбирает себя. Он — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+          "traits": [
+            "выживание",
+            "стратегия",
+            "невидимка",
+            "неприязнь",
+            "умение"
+          ]
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1500
+      },
+      {
+        "entry_id": "0da2e35ba130f65426faf4fb2636a6a6",
+        "kind": "RELATIONSHIP",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "NEW_NPC",
+          "npc_id": null,
+          "white_spot_id": null,
+          "name_hint": "Гильдия воров"
+        },
+        "payload": {
+          "summary": "Орм — информатор Гильдии воров.",
+          "target_hint": "Гильдия воров",
+          "nature": "доверие",
+          "valence": "positive"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.4,
+        "open_questions": [
+          {
+            "question_id": "roster_mismatch_1",
+            "target_span": "Гильдия воров",
+            "options": [
+              "SELECT_EXISTING_NPC",
+              "CREATE_NEW_NPC",
+              "UNKNOWN_PERSON",
+              "LEAVE_WHITE_SPOT"
+            ],
+            "selected_option": null,
+            "selected_value": null
+          }
+        ],
+        "ordinal": 1501
+      },
+      {
+        "entry_id": "53094ae6f810139fce8b831c937f6f4d",
+        "kind": "RELATIONSHIP",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "NEW_NPC",
+          "npc_id": null,
+          "white_spot_id": null,
+          "name_hint": "правительство"
+        },
+        "payload": {
+          "summary": "Орм — терпим к правительству.",
+          "target_hint": "правительство",
+          "nature": "доверие",
+          "valence": "neutral"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.4,
+        "open_questions": [
+          {
+            "question_id": "roster_mismatch_2",
+            "target_span": "правительство",
+            "options": [
+              "SELECT_EXISTING_NPC",
+              "CREATE_NEW_NPC",
+              "UNKNOWN_PERSON",
+              "LEAVE_WHITE_SPOT"
+            ],
+            "selected_option": null,
+            "selected_value": null
+          }
+        ],
+        "ordinal": 1502
+      },
+      {
+        "entry_id": "4b2a93836c69ad91ab09383bcdd536b9",
+        "kind": "TRAIT_SEED",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "trait": "умение",
+          "evidence": "Он знает всё, что происходит не только в таверне, но и во всём городе."
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1503
+      },
+      {
+        "entry_id": "259c4c9729296eeb7665e637434d90b7",
+        "kind": "PORTRET",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Гном привык хранить в себе многое. И это тоже спрятал.",
+          "traits": [
+            "скромность",
+            "стойкость",
+            "умение держать язык за зубами"
+          ]
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1600
+      },
+      {
+        "entry_id": "e259d0d929f9fa4c03cf96e571e2a93a",
+        "kind": "RELATIONSHIP",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "NEW_NPC",
+          "npc_id": null,
+          "white_spot_id": null,
+          "name_hint": "Торнин Серебряная Луна"
+        },
+        "payload": {
+          "summary": "Орм предупредил Гильдию и правительство о Торнине.",
+          "target_hint": "Торнин Серебряная Луна",
+          "nature": "доверие",
+          "valence": "positive"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.9,
+        "open_questions": [
+          {
+            "question_id": "1",
+            "target_span": "Орм предупредил Гильдию и правительство о Торнине.",
+            "options": [
+              "SELECT_EXISTING_NPC",
+              "CREATE_NEW_NPC",
+              "UNKNOWN_PERSON",
+              "LEAVE_WHITE_SPOT"
+            ],
+            "selected_option": null,
+            "selected_value": null
+          }
+        ],
+        "ordinal": 1601
+      },
+      {
+        "entry_id": "f144df763a7e370cf698aa03ee6be40e",
+        "kind": "EVENT",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "summary": "Торнин заказал у Орма меч.",
+          "day": null
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1602
+      },
+      {
+        "entry_id": "c9fc1e0aabc278c8280c6b84ad80c191",
+        "kind": "BELIEF_SEED",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Старый друг Торнина умер 70 лет назад."
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1603
+      },
+      {
+        "entry_id": "b35718c4fc700d027152bd83bec1d773",
+        "kind": "PORTRET",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Борко не понимает, что он на самом деле — всего лишь инструмент для своего молчания. Он уверен в своей власти, но на самом деле это просто удобная иллюзия, позволяющая ему избегать самосознания.",
+          "traits": [
+            "психологический портрет",
+            "самообман",
+            "молчание"
+          ]
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1700
+      },
+      {
+        "entry_id": "721a2f9714513251d3ab3dee08313eaa",
+        "kind": "RELATIONSHIP",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "NEW_NPC",
+          "npc_id": null,
+          "white_spot_id": null,
+          "name_hint": "Борко"
+        },
+        "payload": {
+          "summary": "Орм использует Борко как инструмент для своего молчания.",
+          "target_hint": "Борко",
+          "nature": "использование",
+          "valence": "neutral"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.4,
+        "open_questions": [
+          {
+            "question_id": "roster_mismatch_1",
+            "target_span": "Борко",
+            "options": [
+              "SELECT_EXISTING_NPC",
+              "CREATE_NEW_NPC",
+              "UNKNOWN_PERSON",
+              "LEAVE_WHITE_SPOT"
+            ],
+            "selected_option": null,
+            "selected_value": null
+          }
+        ],
+        "ordinal": 1701
+      },
+      {
+        "entry_id": "09ea8872912462bbbfefee0142375ce2",
+        "kind": "RELATIONSHIP",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "NEW_NPC",
+          "npc_id": null,
+          "white_spot_id": null,
+          "name_hint": "Орм"
+        },
+        "payload": {
+          "summary": "Орм не боится шантажа со стороны Борко.",
+          "target_hint": "Орм",
+          "nature": "несensitivity to blackmail",
+          "valence": "neutral"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.4,
+        "open_questions": [
+          {
+            "question_id": "roster_mismatch_2",
+            "target_span": "Орм",
+            "options": [
+              "SELECT_EXISTING_NPC",
+              "CREATE_NEW_NPC",
+              "UNKNOWN_PERSON",
+              "LEAVE_WHITE_SPOT"
+            ],
+            "selected_option": null,
+            "selected_value": null
+          }
+        ],
+        "ordinal": 1702
+      },
+      {
+        "entry_id": "54a14c6d4a3126460b159819f583f9b5",
+        "kind": "TRAIT_SEED",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "trait": "самообман",
+          "evidence": "Борко думает, что он хозяин. А Орм просто пользуется им как инструментом для собственного молчания."
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1703
+      },
+      {
+        "entry_id": "86d678193f8052fad9dc4bba0cec5af7",
+        "kind": "TRAIT_SEED",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "trait": "эго",
+          "evidence": "Борко уверен в своей власти."
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1704
+      },
+      {
+        "entry_id": "8b749718041ef5152cab96cfca262017",
+        "kind": "PORTRET",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Орм это знает — и это единственное, что делает его хоть немного осторожнее, хотя он никогда не признался бы, что хоть что-то в этой сцене может его потревожить.",
+          "traits": [
+            "подавленная тревога",
+            "самооборона",
+            "молчаливое согласие"
+          ]
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1800
+      },
+      {
+        "entry_id": "2e280da4f2dd699257ec3d59f395198a",
+        "kind": "DESIRE_SEED",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "его мечта о собственной кузне (п.14) — не про статус, а про то, чтобы наконец никому не быть должным за место, где стоишь.",
+          "about_hint": "собственная кузня"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1801
+      },
+      {
+        "entry_id": "8b192ec5796e262e7e2f84f2f3ace9c7",
+        "kind": "PORTRET",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Орм пьёт медленно, ровно и не пьянеет до конца вечера; Торнин пьёт в отключку. Два собутыльника с противоположными техниками: один поддерживает застолье, другой выключается из него. Орм сидит рядом не ради компании — собутыльник, который не помнит вечера, лучший слушатель из всех возможных.",
+          "traits": [
+            "постоянство",
+            "умение управлять собой",
+            "трудность общения"
+          ]
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1900
+      },
+      {
+        "entry_id": "359fdb77c6cad552e274599eda17ff14",
+        "kind": "RELATIONSHIP",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "tavern_keeper_tornin",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "payload": {
+          "summary": "Орм и Торнин являются собутыльниками с противоположными способами питья.",
+          "target_hint": "Торнин Серебряная Луна",
+          "nature": "neutral",
+          "valence": "neutral"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1901
+      },
+      {
+        "entry_id": "9d3dce484983c8d7dc13ece242cbc3dd",
+        "kind": "RELATIONSHIP",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "payload": {
+          "summary": "Орм и Торнин являются собутыльниками с противоположными способами питья.",
+          "target_hint": "Кузнец Орм",
+          "nature": "neutral",
+          "valence": "neutral"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 1902
+      },
+      {
+        "entry_id": "bf338ee1ed14d1b929e0ebbfa58538e1",
+        "kind": "PORTRET",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Сидит спиной к стене, лицом к залу: за 57 лет это рефлекс, а не осторожность — просто так устроено его место у стойки. Он видит весь зал, включая коридор на кухню. Он замечает, что Борко всегда садится так, чтобы видеть тот же коридор. Он замечает — и молчит: замечать и молчать — его ремесло дольше, чем кузнечное.",
+          "traits": [
+            "замечательный",
+            "молчаливый",
+            "осторожный"
+          ]
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 2000
+      },
+      {
+        "entry_id": "f44845f19f297477dec193132b56ea6c",
+        "kind": "RELATIONSHIP",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": {
+          "ref_kind": "NEW_NPC",
+          "npc_id": null,
+          "white_spot_id": null,
+          "name_hint": "Борко"
+        },
+        "payload": {
+          "summary": "Он замечает, что Борко всегда садится так, чтобы видеть тот же коридор.",
+          "target_hint": "Борко",
+          "nature": "зависимость",
+          "valence": "neutral"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 0.4,
+        "open_questions": [
+          {
+            "question_id": "roster_mismatch_1",
+            "target_span": "Борко",
+            "options": [
+              "SELECT_EXISTING_NPC",
+              "CREATE_NEW_NPC",
+              "UNKNOWN_PERSON",
+              "LEAVE_WHITE_SPOT"
+            ],
+            "selected_option": null,
+            "selected_value": null
+          }
+        ],
+        "ordinal": 2001
+      },
+      {
+        "entry_id": "ac1656bc9be137f9b4ca0783a10ab79c",
+        "kind": "LOCATION",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "summary": "Он сидит в зале с видом на коридор на кухню.",
+          "name_hint": "зал"
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 2002
+      },
+      {
+        "entry_id": "5838e29b3fa6c06057502d4f4c4e2961",
+        "kind": "PORTRET",
+        "historical_age": null,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "statement": "Руки и речь. Обожжённые руки в старых ожогах — рукопожатие, которого избегают. Говорит односложно: «Да». «Нет». «Жди». Матерится только по-гномьи — зал не понимает ни слова, и его это устраивает.",
+          "traits": [
+            "обожженные руки",
+            "краткие ответы",
+            "громкий мат",
+            "тайна для других"
+          ]
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 2100
+      },
+      {
+        "entry_id": "0255c359f9b7d50eed0a21b78c7167f0",
+        "kind": "EVENT",
+        "historical_age": 57,
+        "historical_year": null,
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "payload": {
+          "summary": "Спит в кузнице, на лежанке у остывающего горна.",
+          "day": null
+        },
+        "causes": [],
+        "provenance": "LLM_DRAFT",
+        "confidence": 1.0,
+        "open_questions": [],
+        "ordinal": 2101
+      }
+    ],
+    "white_spots": [],
+    "npc_beliefs": [],
+    "cause_candidates": [],
+    "canonical": false,
+    "canonical_version": 0,
+    "created_by_tick_source": null,
+    "game_start_age": null,
+    "event_groups": []
+  }
+}

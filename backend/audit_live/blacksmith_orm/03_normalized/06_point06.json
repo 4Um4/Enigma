@@ -1,0 +1,12 @@
+[
+  {
+    "kind": "EVENT",
+    "draft_payload": {
+      "summary": "Учился кузнечному делу у мастера Грунта Алмазной наковальни.",
+      "day": null
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  }
+]

@@ -9,33 +9,6 @@
   "is_outdoor": false,
   "rooms": [
     {
-      "id": "room_0",
-      "name": "Комната 0",
-      "x": 0.5,
-      "y": 0.5,
-      "width": 13.5,
-      "height": 12.5,
-      "polygon": [
-        [
-          0.5,
-          0.5
-        ],
-        [
-          14.0,
-          0.5
-        ],
-        [
-          14.0,
-          13.0
-        ],
-        [
-          0.5,
-          13.0
-        ]
-      ],
-      "area_sqm": 168.8
-    },
-    {
       "id": "room_1",
       "name": "Комната 1",
       "x": 14.0,
@@ -61,45 +34,36 @@
         ]
       ],
       "area_sqm": 41.2
+    },
+    {
+      "id": "room_0",
+      "name": "Комната 0",
+      "x": 0.5,
+      "y": 0.5,
+      "width": 13.5,
+      "height": 12.5,
+      "polygon": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          14.0,
+          0.5
+        ],
+        [
+          14.0,
+          13.0
+        ],
+        [
+          0.5,
+          13.0
+        ]
+      ],
+      "area_sqm": 168.8
     }
   ],
   "walls": [
-    {
-      "id": "wall_3",
-      "type": "wall",
-      "x1": 0.5,
-      "y1": 13.0,
-      "x2": 0.5,
-      "y2": 0.5,
-      "thickness": 0.2
-    },
-    {
-      "id": "wall_2",
-      "type": "wall",
-      "x1": 14.0,
-      "y1": 13.0,
-      "x2": 0.5,
-      "y2": 13.0,
-      "thickness": 0.2
-    },
-    {
-      "id": "wall_1",
-      "type": "wall",
-      "x1": 14.0,
-      "y1": 0.5,
-      "x2": 14.0,
-      "y2": 13.0,
-      "thickness": 0.2
-    },
-    {
-      "id": "wall_0",
-      "type": "wall",
-      "x1": 0.5,
-      "y1": 0.5,
-      "x2": 14.0,
-      "y2": 0.5,
-      "thickness": 0.2
-    },
     {
       "id": "wall_7",
       "type": "wall",
@@ -135,12 +99,48 @@
       "x2": 19.5,
       "y2": 0.5,
       "thickness": 0.2
+    },
+    {
+      "id": "wall_0",
+      "type": "wall",
+      "x1": 0.5,
+      "y1": 0.5,
+      "x2": 14.0,
+      "y2": 0.5,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_1",
+      "type": "wall",
+      "x1": 14.0,
+      "y1": 0.5,
+      "x2": 14.0,
+      "y2": 13.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_2",
+      "type": "wall",
+      "x1": 14.0,
+      "y1": 13.0,
+      "x2": 0.5,
+      "y2": 13.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_3",
+      "type": "wall",
+      "x1": 0.5,
+      "y1": 13.0,
+      "x2": 0.5,
+      "y2": 0.5,
+      "thickness": 0.2
     }
   ],
   "nodes": {
     "entrance": {
-      "x": 8.14382394547325,
-      "y": 13.0258487654321,
+      "x": 8.147157278806583,
+      "y": 13.029182098765434,
       "label": "Вход",
       "role": "entrance",
       "connections": [
@@ -1392,81 +1392,15 @@
       ]
     },
     {
-      "id": "obj_38",
-      "name": "Дверь переход №1",
-      "type": "door_transition",
-      "position": {
-        "x": 8.075000000000003,
-        "y": 13.0
-      },
-      "size": {
-        "w": 3.55,
-        "h": 0.2,
-        "d": 2.2
-      },
-      "rotation": 0,
-      "passability": {
-        "walk": true,
-        "jump_over": false,
-        "crawl_under": false,
-        "climb_on": false,
-        "walk_around": true
-      },
-      "cover": 0.0,
-      "color": "#FF8C00",
-      "show_name": false,
-      "properties": {
-        "open": true,
-        "locked": false,
-        "durability": 25,
-        "visibility_through": 0.0,
-        "target_file": "",
-        "target_portal": ""
-      },
-      "wall_id": "wall_2"
-    },
-    {
-      "id": "obj_41",
-      "name": "Дверь №3",
-      "type": "door",
-      "position": {
-        "x": 14.0,
-        "y": 3.125
-      },
-      "size": {
-        "w": 0.2,
-        "h": 2.94,
-        "d": 2.2
-      },
-      "rotation": 0,
-      "passability": {
-        "walk": true,
-        "jump_over": false,
-        "crawl_under": false,
-        "climb_on": false,
-        "walk_around": true
-      },
-      "cover": 0.0,
-      "color": "#D2691E",
-      "show_name": false,
-      "properties": {
-        "open": true,
-        "locked": false,
-        "durability": 20,
-        "visibility_through": 0.1
-      },
-      "wall_id": "wall_1"
-    },
-    {
       "id": "door_0",
       "name": "Главный вход",
       "type": "door",
       "position": {
-        "x": 8.0,
-        "y": 12.0
+        "x": 8.183333333333334,
+        "y": 13.0
       },
       "size": {
-        "w": 1.0,
+        "w": 1.33,
         "h": 1.0
       },
       "rotation": 0,
@@ -1487,7 +1421,8 @@
         "visibility_through": 0.0,
         "target_file": "",
         "target_portal": ""
-      }
+      },
+      "wall_id": "wall_2"
     },
     {
       "id": "door_1",
@@ -1522,44 +1457,12 @@
       }
     },
     {
-      "id": "transition_2",
-      "name": "Портал: transition",
-      "type": "door_transition",
-      "position": {
-        "x": 8.0,
-        "y": 12.0
-      },
-      "size": {
-        "w": 1.0,
-        "h": 1.0
-      },
-      "rotation": 0,
-      "passability": {
-        "walk": true,
-        "jump_over": false,
-        "crawl_under": false,
-        "climb_on": false,
-        "walk_around": true
-      },
-      "cover": 0.0,
-      "color": "#00CED1",
-      "show_name": false,
-      "properties": {
-        "open": true,
-        "locked": false,
-        "durability": 25,
-        "visibility_through": 0.0,
-        "target_file": "",
-        "target_portal": ""
-      }
-    },
-    {
       "id": "ladder_3",
       "name": "Погребок таверны",
       "type": "ladder",
       "position": {
-        "x": 2.5,
-        "y": 2.5
+        "x": 1.4920000000000002,
+        "y": 1.348
       },
       "size": {
         "w": 1.0,
@@ -1587,7 +1490,7 @@
     }
   ],
   "created_at": "2024-01-15T10:30:00",
-  "modified_at": "2026-08-15T15:08:16.572414",
+  "modified_at": "2026-10-30T22:10:09.000351",
   "origin": {
     "x": 0,
     "y": 0

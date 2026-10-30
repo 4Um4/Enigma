@@ -1,0 +1,44 @@
+{
+  "status": "OK",
+  "age_anchors": [
+    20
+  ],
+  "items": [
+    {
+      "kind": "EVENT",
+      "draft_payload": {
+        "summary": "Последняя жена Эльра умерла от бреда и лихорадки.",
+        "day": null
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "EFFECT",
+      "draft_payload": {
+        "summary": "Эльра долго болела, психика её слабела, галлюцинации и психоз жены на протяжении многих лет изводили характер гнома.",
+        "effect_kind": "trauma"
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "EFFECT",
+      "draft_payload": {
+        "summary": "Многое с тех времён он привык хранить в себе.",
+        "effect_kind": "habit"
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    }
+  ],
+  "coverage": {
+    "fragment_ord": 7,
+    "items_count": 3,
+    "fragment_text_preview": "7. Последняя жена Эльра умерла от бреда и лихорадки уже 20 лет назад. Она долго ",
+    "critical_topic_warning": null
+  }
+}

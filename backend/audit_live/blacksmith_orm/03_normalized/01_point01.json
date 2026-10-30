@@ -1,0 +1,46 @@
+[
+  {
+    "kind": "EVENT",
+    "draft_payload": {
+      "summary": "переезд и начало работы как кузнец",
+      "day": null
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  },
+  {
+    "kind": "RELATIONSHIP",
+    "draft_payload": {
+      "summary": "работа кузнеца",
+      "target_hint": "Кузнец Орм",
+      "nature": "occupation",
+      "valence": "neutral"
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  },
+  {
+    "kind": "EFFECT",
+    "draft_payload": {
+      "summary": "стал кузнецом в городе",
+      "effect_kind": "occupation",
+      "target_hint": "Кузнец Орм"
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  },
+  {
+    "kind": "EFFECT",
+    "draft_payload": {
+      "summary": "проживает в городе",
+      "effect_kind": "residence",
+      "target_hint": null
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  }
+]

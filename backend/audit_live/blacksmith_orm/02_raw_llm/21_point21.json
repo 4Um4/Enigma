@@ -1,0 +1,39 @@
+{
+  "status": "OK",
+  "age_anchors": [
+    57
+  ],
+  "items": [
+    {
+      "kind": "PORTRET",
+      "draft_payload": {
+        "statement": "Руки и речь. Обожжённые руки в старых ожогах — рукопожатие, которого избегают. Говорит односложно: «Да». «Нет». «Жди». Матерится только по-гномьи — зал не понимает ни слова, и его это устраивает.",
+        "traits": [
+          "обожженные руки",
+          "краткие ответы",
+          "громкий мат",
+          "тайна для других"
+        ]
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "EVENT",
+      "draft_payload": {
+        "summary": "Спит в кузнице, на лежанке у остывающего горна.",
+        "day": null
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    }
+  ],
+  "coverage": {
+    "fragment_ord": 21,
+    "items_count": 2,
+    "fragment_text_preview": "21. Руки и речь. Обожжённые руки в старых ожогах — рукопожатие, которого избегаю",
+    "critical_topic_warning": null
+  }
+}

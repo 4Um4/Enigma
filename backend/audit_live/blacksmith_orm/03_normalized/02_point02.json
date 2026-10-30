@@ -1,0 +1,12 @@
+[
+  {
+    "kind": "TRAIT_SEED",
+    "draft_payload": {
+      "trait": "увлечение",
+      "evidence": "Увлечён по-настоящему только своей работой и выпивкой."
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  }
+]

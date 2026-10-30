@@ -1,0 +1,70 @@
+[
+  {
+    "kind": "PORTRET",
+    "draft_payload": {
+      "statement": "Орм не выбирает сторону. Орм выбирает себя. Он — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+      "traits": [
+        "выживание",
+        "стратегия",
+        "невидимка",
+        "неприязнь",
+        "умение"
+      ]
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  },
+  {
+    "kind": "RELATIONSHIP",
+    "draft_payload": {
+      "summary": "Орм — информатор Гильдии воров.",
+      "target_hint": "Гильдия воров",
+      "nature": "доверие",
+      "valence": "positive"
+    },
+    "confidence": 0.4,
+    "needs_confirmation": true,
+    "question": {
+      "question_id": "roster_mismatch_1",
+      "target_span": "Гильдия воров",
+      "options": [
+        "SELECT_EXISTING_NPC",
+        "CREATE_NEW_NPC",
+        "UNKNOWN_PERSON",
+        "LEAVE_WHITE_SPOT"
+      ]
+    }
+  },
+  {
+    "kind": "RELATIONSHIP",
+    "draft_payload": {
+      "summary": "Орм — терпим к правительству.",
+      "target_hint": "правительство",
+      "nature": "доверие",
+      "valence": "neutral"
+    },
+    "confidence": 0.4,
+    "needs_confirmation": true,
+    "question": {
+      "question_id": "roster_mismatch_2",
+      "target_span": "правительство",
+      "options": [
+        "SELECT_EXISTING_NPC",
+        "CREATE_NEW_NPC",
+        "UNKNOWN_PERSON",
+        "LEAVE_WHITE_SPOT"
+      ]
+    }
+  },
+  {
+    "kind": "TRAIT_SEED",
+    "draft_payload": {
+      "trait": "умение",
+      "evidence": "Он знает всё, что происходит не только в таверне, но и во всём городе."
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  }
+]

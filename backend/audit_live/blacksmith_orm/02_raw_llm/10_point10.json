@@ -1,0 +1,46 @@
+{
+  "status": "OK",
+  "age_anchors": [],
+  "items": [
+    {
+      "kind": "RELATIONSHIP",
+      "draft_payload": {
+        "summary": "Борко заставляет Орма продолжать спать с Люсей, используя это как предлог.",
+        "target_hint": "Борко",
+        "nature": "вражда",
+        "valence": "negative"
+      },
+      "confidence": 0.4,
+      "needs_confirmation": true,
+      "question": {
+        "question_id": "roster_mismatch_0",
+        "target_span": "Борко",
+        "options": [
+          "SELECT_EXISTING_NPC",
+          "CREATE_NEW_NPC",
+          "UNKNOWN_PERSON",
+          "LEAVE_WHITE_SPOT"
+        ]
+      }
+    },
+    {
+      "kind": "PORTRET",
+      "draft_payload": {
+        "statement": "Он не был напуган шантажом — скорее это была дополнительная легальная причина повторять то, что приносит ему удовольствие.",
+        "traits": [
+          "неприязнь к Борко",
+          "удовлетворение от сексуальных отношений с Люсей"
+        ]
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    }
+  ],
+  "coverage": {
+    "fragment_ord": 10,
+    "items_count": 2,
+    "fragment_text_preview": "10. Когда ему начал угрожать Борко и заставил продолжать спать с Люсей, гном не ",
+    "critical_topic_warning": null
+  }
+}

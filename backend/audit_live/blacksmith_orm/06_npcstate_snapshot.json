@@ -1,0 +1,1015 @@
+{
+  "campaign_id": "silver_wolf_audit_live",
+  "npc_id": "blacksmith_orm",
+  "now": {
+    "npc_id": "blacksmith_orm",
+    "name": "Кузнец Орм",
+    "current_role": "unknown",
+    "stress": 0.0,
+    "will_state": "free",
+    "affective_load": 0.0,
+    "life_project_state": "ACTIVE",
+    "intent": null,
+    "intent_target": null,
+    "drives_base": {},
+    "behavior_mask": {},
+    "body_state": {
+      "current_hp": 100,
+      "energy": 100.0,
+      "hydration": 100.0,
+      "nutrition": 100.0,
+      "max_hp": 100,
+      "pain": 0.0,
+      "fatigue": 0.0,
+      "blood_loss": 0.0,
+      "consciousness": 1.0,
+      "shock_impulse": 0.0,
+      "injuries": [],
+      "modifiers": {},
+      "statuses": [],
+      "life_status": "ALIVE",
+      "sleep_pressure": 0.0,
+      "arousal": 0.0
+    },
+    "causal_ledger_last_20": [],
+    "ledger_size": 0,
+    "episodic_memory_count": null,
+    "relationship_cache_targets": [
+      "maid_lusya",
+      "merchant_goran",
+      "tavern_keeper_tornin"
+    ],
+    "affective_imprints_count": null,
+    "psyche_beliefs_types": null
+  },
+  "sources": {
+    "chronicle_id": "blacksmith_orm",
+    "canonical_version": 1,
+    "game_start_age": null,
+    "entries": [
+      {
+        "entry_id": "421e229c867cff432741eaa7970f4177",
+        "kind": "LOCATION",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "LOCATION",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "8af87d3c1b6002e788f48dbc62005b3b",
+        "kind": "EFFECT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EFFECT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "19a58bd0350c33f31adaae788b59e272",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "f79b9b9791c1e39a999d88d4ee599f38",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "45ac21eac0f718a5aa353b7965f309ee",
+        "kind": "RELATIONSHIP",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "RELATIONSHIP",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "5104c79be543299e458373b978c6b312",
+        "kind": "EVENT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EVENT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "de46a5226c650114dc24e633da77c1e7",
+        "kind": "EVENT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EVENT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "653f2f7255952b7e8b52fcdd327a116d",
+        "kind": "EFFECT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EFFECT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "4ae58ce13d6c3e14dcb99b7a55dde9c2",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "200df0954ce49608a57e95b8f6fab68b",
+        "kind": "EFFECT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EFFECT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "78e4a974ec181b54b003a25683eedb3e",
+        "kind": "EVENT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EVENT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "00a3f6b5d27f6324c65448507783a8a9",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "e42407373e49144055dde90999966a67",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "0103b8f0ad32cba63131d8530b833c29",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "eceb2753257222de8ef603bc576a712b",
+        "kind": "RELATIONSHIP",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "RELATIONSHIP",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "c1d0282de7757bc27cb8da89520aecf5",
+        "kind": "BELIEF_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "BELIEF_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "842bccf34a98a4cb6c59e695276f24fb",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "6145c048a81be3e12d74fa6469a3c3f2",
+        "kind": "BELIEF_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "BELIEF_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "676ccca018f806ca70099679ae6ca85c",
+        "kind": "EVENT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EVENT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "b985e8623fc9111e782ec5861a7e743d",
+        "kind": "EVENT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EVENT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "4d8300dcf8172fd99efbc82d1e30de78",
+        "kind": "BELIEF_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "BELIEF_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "2bf800d790851d1f7775a2afcb3adc9d",
+        "kind": "EVENT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EVENT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "0da2e35ba130f65426faf4fb2636a6a6",
+        "kind": "RELATIONSHIP",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "RELATIONSHIP",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "53094ae6f810139fce8b831c937f6f4d",
+        "kind": "RELATIONSHIP",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "RELATIONSHIP",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "4b2a93836c69ad91ab09383bcdd536b9",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "3231291a57226e9d30abba927ee28b34",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "efdd32b3bee90ad074ed59787dd14f1e",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "4e37191429a275f83102577072462b2c",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "9d9822b69f520b9703c0b493a08eb456",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "13a0174e10bc47a6805bf7e371e53dc3",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "03475ee6e268de270c10f938218c0b4f",
+        "kind": "PORTRET",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "PORTRET",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "259c4c9729296eeb7665e637434d90b7",
+        "kind": "BELIEF_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "BELIEF_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "e259d0d929f9fa4c03cf96e571e2a93a",
+        "kind": "RELATIONSHIP",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "RELATIONSHIP",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "f144df763a7e370cf698aa03ee6be40e",
+        "kind": "RELATIONSHIP",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "RELATIONSHIP",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "c9fc1e0aabc278c8280c6b84ad80c191",
+        "kind": "EFFECT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EFFECT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "f8c46dafbaf31eb2dc327e7d9a50072e",
+        "kind": "EFFECT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EFFECT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "d089031b4463f5f3f4a46e6dd07d4683",
+        "kind": "EFFECT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EFFECT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "f5d060fb821e7e8a37bd22c9f6e947bd",
+        "kind": "BELIEF_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "BELIEF_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "b6009fc0eb90bedfb1f8dd805ea5fc98",
+        "kind": "EFFECT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EFFECT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "b35718c4fc700d027152bd83bec1d773",
+        "kind": "RELATIONSHIP",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "RELATIONSHIP",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "721a2f9714513251d3ab3dee08313eaa",
+        "kind": "EFFECT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EFFECT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "09ea8872912462bbbfefee0142375ce2",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "54a14c6d4a3126460b159819f583f9b5",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "86d678193f8052fad9dc4bba0cec5af7",
+        "kind": "EFFECT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EFFECT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "7b90e38ca9716055faa1377bc616d783",
+        "kind": "BELIEF_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "BELIEF_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "8b749718041ef5152cab96cfca262017",
+        "kind": "LOCATION",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "LOCATION",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "2e280da4f2dd699257ec3d59f395198a",
+        "kind": "EFFECT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EFFECT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "fa7249752ae7b83591d2b47f849e39f3",
+        "kind": "EFFECT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EFFECT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "e45869b95c3ab7c511bbafe554b3adf4",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "390c6e9b27482167e3de88135efe7568",
+        "kind": "BELIEF_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "BELIEF_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "8b192ec5796e262e7e2f84f2f3ace9c7",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "359fdb77c6cad552e274599eda17ff14",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "9d3dce484983c8d7dc13ece242cbc3dd",
+        "kind": "RELATIONSHIP",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "RELATIONSHIP",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "66a8df2ebea7932c22dff06daa1905fa",
+        "kind": "RELATIONSHIP",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "RELATIONSHIP",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "d43ef9f7bd59eebd952b7deba0191dbd",
+        "kind": "RELATIONSHIP",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "RELATIONSHIP",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "bf338ee1ed14d1b929e0ebbfa58538e1",
+        "kind": "PORTRET",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "PORTRET",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "5838e29b3fa6c06057502d4f4c4e2961",
+        "kind": "EFFECT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EFFECT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "0255c359f9b7d50eed0a21b78c7167f0",
+        "kind": "EFFECT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EFFECT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "beee2510c75c135498bd9a3e43773ed3",
+        "kind": "EFFECT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EFFECT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "7fb6eda6fd8d900a8a6c221a88dcbc35",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "47b6b6c9d48e121221829b378b421d62",
+        "kind": "LOCATION",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "LOCATION",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "fbbac27cbf2fcac794b7a38332251b87",
+        "kind": "EFFECT",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "EFFECT",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      },
+      {
+        "entry_id": "bf41ba4e5449588cbb4bfbedbc92bcde",
+        "kind": "TRAIT_SEED",
+        "subject_id": {
+          "ref_kind": "RESOLVED",
+          "npc_id": "blacksmith_orm",
+          "white_spot_id": null,
+          "name_hint": ""
+        },
+        "object_id": null,
+        "historical_age": null,
+        "kind_value": "TRAIT_SEED",
+        "causes": [],
+        "provenance": "AUTHOR_CONFIRMED"
+      }
+    ],
+    "white_spots": [],
+    "npc_beliefs_count": 0,
+    "cause_candidates_count": 0
+  },
+  "states": {
+    "runtime": "KNOWN",
+    "chronicle": "KNOWN"
+  },
+  "seed_summary": {
+    "available": true,
+    "memories": 6,
+    "knowledge": 0,
+    "relationships": 0,
+    "imprints": 0,
+    "beliefs": 0,
+    "white_spots": 0,
+    "entries_total": 63,
+    "entries_author": 63
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "status": "OK",
+  "age_anchors": [
+    57,
+    146
+  ],
+  "items": [
+    {
+      "kind": "EVENT",
+      "draft_payload": {
+        "summary": "переезд и начало работы как кузнец",
+        "day": null
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "RELATIONSHIP",
+      "draft_payload": {
+        "summary": "работа кузнеца",
+        "target_hint": "Кузнец Орм",
+        "nature": "occupation",
+        "valence": "neutral"
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "EFFECT",
+      "draft_payload": {
+        "summary": "стал кузнецом в городе",
+        "effect_kind": "occupation",
+        "target_hint": "Кузнец Орм"
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "EFFECT",
+      "draft_payload": {
+        "summary": "проживает в городе",
+        "effect_kind": "residence",
+        "target_hint": null
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    }
+  ],
+  "coverage": {
+    "fragment_ord": 1,
+    "items_count": 4,
+    "fragment_text_preview": "1. 146 лет, из которых он кузнец в городе уже 57 лет.",
+    "critical_topic_warning": null
+  }
+}

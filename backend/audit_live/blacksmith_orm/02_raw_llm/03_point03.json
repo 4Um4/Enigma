@@ -1,0 +1,58 @@
+{
+  "status": "OK",
+  "age_anchors": [
+    70
+  ],
+  "items": [
+    {
+      "kind": "RELATIONSHIP",
+      "draft_payload": {
+        "summary": "Хороший его друг Торнин",
+        "target_hint": "Торнин",
+        "nature": "friendship",
+        "valence": "positive"
+      },
+      "confidence": 0.4,
+      "needs_confirmation": true,
+      "question": {
+        "question_id": "roster_mismatch_0",
+        "target_span": "Торнин",
+        "options": [
+          "SELECT_EXISTING_NPC",
+          "CREATE_NEW_NPC",
+          "UNKNOWN_PERSON",
+          "LEAVE_WHITE_SPOT"
+        ]
+      }
+    },
+    {
+      "kind": "EVENT",
+      "draft_payload": {
+        "summary": "умерший 70 лет назад",
+        "day": null,
+        "age": 70
+      },
+      "confidence": 0.5,
+      "needs_confirmation": true,
+      "question": null
+    },
+    {
+      "kind": "PORTRET",
+      "draft_payload": {
+        "statement": "Хороший его друг Торнин, который напоминает ему старого друга",
+        "traits": [
+          "friendship"
+        ]
+      },
+      "confidence": 0.5,
+      "needs_confirmation": true,
+      "question": null
+    }
+  ],
+  "coverage": {
+    "fragment_ord": 3,
+    "items_count": 3,
+    "fragment_text_preview": "3. Хороший его друг Торнин, который напоминает ему старого друга, умершего 70 ле",
+    "critical_topic_warning": null
+  }
+}

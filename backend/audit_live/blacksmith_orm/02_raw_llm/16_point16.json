@@ -1,0 +1,69 @@
+{
+  "status": "OK",
+  "age_anchors": [
+    70,
+    146
+  ],
+  "items": [
+    {
+      "kind": "PORTRET",
+      "draft_payload": {
+        "statement": "Гном привык хранить в себе многое. И это тоже спрятал.",
+        "traits": [
+          "скромность",
+          "стойкость",
+          "умение держать язык за зубами"
+        ]
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "RELATIONSHIP",
+      "draft_payload": {
+        "summary": "Орм предупредил Гильдию и правительство о Торнине.",
+        "target_hint": "Торнин Серебряная Луна",
+        "nature": "доверие",
+        "valence": "positive"
+      },
+      "confidence": 0.9,
+      "needs_confirmation": true,
+      "question": {
+        "question_id": "1",
+        "target_span": "Орм предупредил Гильдию и правительство о Торнине.",
+        "options": [
+          "SELECT_EXISTING_NPC",
+          "CREATE_NEW_NPC",
+          "UNKNOWN_PERSON",
+          "LEAVE_WHITE_SPOT"
+        ]
+      }
+    },
+    {
+      "kind": "EVENT",
+      "draft_payload": {
+        "summary": "Торнин заказал у Орма меч.",
+        "day": null
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "BELIEF_SEED",
+      "draft_payload": {
+        "statement": "Старый друг Торнина умер 70 лет назад."
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    }
+  ],
+  "coverage": {
+    "fragment_ord": 16,
+    "items_count": 4,
+    "fragment_text_preview": "16. Когда Торнин заказал меч, Орм не стал строить из себя верного друга. Торнин ",
+    "critical_topic_warning": null
+  }
+}

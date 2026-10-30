@@ -1,5 +1,5 @@
 ai_model:
-  model: qwen_7b  # S380: qwen_7b = Hermes-3-Llama-3.1-8B Q4_K_M (primary)
+  model: qwen_7b
   path: Models LLM\Hermes-3-Llama-3.1-8B.Q4_K_M.gguf
 content:
   individual:
@@ -10,3 +10,9 @@ content:
   last_changed_reason: migration
   last_changed_tick: 0
   preset: null
+graphics:
+  display_mode: windowed
+  resolution:
+    height: 1080
+    width: 1920
+  vsync: 1

@@ -281,3 +281,8 @@ class TickResultDTO:
     observed_facts: List[str] = field(default_factory=list)
     # S83.1 FIX: Возвращаем мутированный снимок состояния из ядра (deepcopy из create_tick_context)
     final_scene_state: Optional[Dict[str, Any]] = None
+    # C3-A1: Доставка NPC_ADDRESSES_PLAYER (временная проекция, не SSOT).
+    # Заполняется TickOrchestrator после успешного Phase 10 из
+    # NpcAddressingDeliverySubscriber.drain(campaign_id). Client ACK (C3-A2)
+    # удаляет из subscriber queue. persistence_level="working" — не переживает reload.
+    npc_addressing: List[Dict[str, Any]] = field(default_factory=list)

@@ -1,0 +1,24 @@
+{
+  "status": "OK",
+  "age_anchors": [
+    100
+  ],
+  "items": [
+    {
+      "kind": "EVENT",
+      "draft_payload": {
+        "summary": "Учился кузнечному делу у мастера Грунта Алмазной наковальни.",
+        "day": null
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    }
+  ],
+  "coverage": {
+    "fragment_ord": 6,
+    "items_count": 1,
+    "fragment_text_preview": "6. Учился кузнечному делу у мастера Грунта Алмазной наковальни 100 лет тому наза",
+    "critical_topic_warning": null
+  }
+}

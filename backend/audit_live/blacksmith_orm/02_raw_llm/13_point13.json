@@ -1,0 +1,25 @@
+{
+  "status": "OK",
+  "age_anchors": [],
+  "items": [
+    {
+      "kind": "PORTRET",
+      "draft_payload": {
+        "statement": "Когда он не насилует Люсю, а видит её в таверне, испытывает сухое неприятное чувство вины - сразу перед девочкой, перед умершей женой и перед собой в том числе.",
+        "traits": [
+          "вины",
+          "неприязнь к себе"
+        ]
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    }
+  ],
+  "coverage": {
+    "fragment_ord": 13,
+    "items_count": 1,
+    "fragment_text_preview": "13. Когда он не насилует Люсю, а видит её в таверне, испытывает сухое неприятное",
+    "critical_topic_warning": null
+  }
+}
