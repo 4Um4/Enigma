@@ -145,7 +145,9 @@ class BiographyDecomposer:
         # (legacy), конвертируем в AMBIGUOUS — LLM получит явный сигнал, что
         # семантика якоря не установлена, и не должна выдумывать.
         from app.services.chronicle.age_anchor import (
-            AgeAnchor, AgeAnchorKind, age_anchors_to_hint,
+            AgeAnchor,
+            AgeAnchorKind,
+            age_anchors_to_hint,
         )
         if age_anchors and not isinstance(age_anchors[0], AgeAnchor):
             # Legacy: плоский список int → AMBIGUOUS anchors

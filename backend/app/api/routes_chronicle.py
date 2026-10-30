@@ -325,6 +325,23 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
         for e in doc.entries
         if e.provenance is not EntryProvenance.LLM_DRAFT
     }
+    # CCH-12 Point 1 Этап 4: game_start_age для производного historical_age.
+    # Источник: doc.game_start_age (если draft уже имеет), иначе NPCProfileL0.
+    # age_at_game_start. Мост profile→chronicle пока отсутствует — берем из profile.
+    _game_start_age = doc.game_start_age
+    if _game_start_age is None:
+        try:
+            from pathlib import Path as _Path
+
+            from app.services.npc.npc_loader import load_profile_from_legacy_json
+            _orm_path = _Path(__file__).resolve().parents[3] / "config" / "npc" / "individuals" / f"{req.npc_id}.json"
+            if _orm_path.exists():
+                import json as _json
+                _raw = _json.loads(_orm_path.read_text(encoding="utf-8"))
+                _profile = load_profile_from_legacy_json(_raw)
+                _game_start_age = _profile.age_at_game_start
+        except Exception:
+            pass  # fail-soft: без game_start_age правило не срабатывает, не падает
     new_entries = []
     for _idx, _it in enumerate(result.items):
         _eid = make_entry_id(doc.chronicle_id, req.fragment_ord, _idx)
@@ -339,6 +356,34 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
         _age_value = None
         if isinstance(_age, int):
             _age_value = _age
+
+        # CCH-12 Point 1 Этап 4: производный historical_age для EVENT с duration_years.
+        # Правило (общее, не хардкод Орма): если EVENT имеет duration_years в payload,
+        # game_start_age доступен (через NPCProfileL0.age_at_game_start), и
+        # historical_age не проставлен явно LLM → вычисляем:
+        #   historical_age = game_start_age - duration_years
+        # Условия: интервал непрерывен и заканчивается на game_start (контракт
+        # ADR-O-422). Provenance сохраняется в payload._provenance для аудита
+        # (не контрактуемое поле, как _resolved_questions).
+        if (
+            _age_value is None
+            and _it.kind is EntryKind.EVENT
+            and isinstance(_it.draft_payload.get("duration_years"), int)
+            and _game_start_age is not None
+        ):
+            _dur = _it.draft_payload["duration_years"]
+            if _dur > 0 and _game_start_age >= _dur:
+                _age_value = _game_start_age - _dur
+                # Provenance для аудита: правило вывода сохранено
+                _it.draft_payload.setdefault(
+                    "_provenance",
+                    {
+                        "derived_from": "game_start_age - duration_years",
+                        "game_start_age": _game_start_age,
+                        "duration_years": _dur,
+                        "rule": "interval ends at game_start; continuous",
+                    },
+                )
 
         # §S368: детерминированный fallback. Контракт (chronicle_decompose_system.txt:39)
         # требует age=атрибут СОБЫТИЯ. Если LLM не проставила age явно (регулярно

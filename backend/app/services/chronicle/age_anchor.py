@@ -119,3 +119,4 @@ def age_anchors_to_hint(anchors: List[AgeAnchor]) -> str:
     for a in anchors:
         lines.append(f"  - {a.kind.value}: {a.value} («{a.source_span}»)")
     return "\n".join(lines) + "\n\n"
+
