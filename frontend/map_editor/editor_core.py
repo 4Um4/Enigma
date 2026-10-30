@@ -38,7 +38,7 @@ from ui_components import (
 )
 
 # === Константы редактора ===
-SCALE = 40  # пикселей в 1 метре
+SCALE = 40  # пикселей в 1 метре (hit testing — 2x renderer for easier clicking; ME-2.8 audit: intentional, not bug)
 MIN_ZOOM = 0.3
 MAX_ZOOM = 3.0
 ZOOM_STEP = 1.2
