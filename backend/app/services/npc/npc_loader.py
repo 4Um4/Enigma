@@ -489,6 +489,7 @@ def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
             tier=raw_data.get("tier", "minor"),
             gender=raw_data.get("gender", "male"),
             archetype=raw_data.get("_archetype", "commoner"),
+            species=raw_data.get("species", ""),
             drives_base=drives_base,
             psyche_base=psyche_base,
             # voice_profile берётся из архетипа (если есть), иначе из JSON.

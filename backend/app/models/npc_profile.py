@@ -77,6 +77,12 @@ class NPCProfileL0:
     # v2.2 Spatial Ontology: Архетип профессии. Инъектируется из _archetype при загрузке.
     # L1 Bridge: В будущем заменит _archetype на core.compliance_bias
     archetype: str = "commoner"  # "maid", "guard", "thief", "tavern_keeper" и т.д.
+    # Species (онтологический audit CCH-12): биологический вид. SSOT для immutable-
+    # атрибута, как gender. "" = UNKNOWN — НЕ превращается в "Человек" (anti-pattern
+    # routes.py:1279). Заполняется из config/npc/individuals/*.json при наличии
+    # авторского источника. ancestry (родословная/происхождение) — отдельное
+    # измерение, не сводится к species: гном с человеческой бабушкой ≠ "half-gnome".
+    species: str = ""
     # P1 FIX: Жизненный проект (конкретная цель). Меняется при достижении/провале.
     # P5-03: Поле goal удалено как мёртвый код (DOUBLE TRUTH). DecisionHub использует state.life_project.
     # P1-3 v3.0: Ось идентичности (Core Orientation). Не меняемая базовая жизненная направленность.
