@@ -424,18 +424,31 @@ def _check_levels(data: dict, source: str) -> list[str]:
 
 
 def _check_spatial_contract(data: dict, source: str) -> list[str]:
-    """Пространственный контракт (ME-1.12, §5Б).
+    """Пространственный контракт (ME-1.12, §5Б) — schema validation only.
 
-    Инварианты:
-    1. Логические координаты (метры) в JSON, не пиксели (SCALE — rendering).
-    2. grid_cell_size > 0 — явное преобразование cell->meter.
-    3. spatial_ref (if present) — string, ссылка на область.
+    Инварианты (проверяемые на уровне схемы):
+    1. Логические координаты (метры) в JSON, не пиксели. SCALE — rendering
+       concern, не data. Editor SCALE = 20 — целевое каноническое значение,
+       утверждённое по результатам SCALE-аудита v.22; реализация ещё не
+       унифицирована (editor_core.py:41 использует 40 — ME-D2; fix в ME-2.8,
+       НЕ в ME-1.12). Ни editor_core, ни test_audit_quick_wins не меняются.
+    2. grid_cell_size > 0 — размер ячейки в логических мировых единицах
+       (метрах), не пикселях. Поле опционально; отсутствие = default 1.0
+       в load_all (setdefault добавляет DEFAULT, не определяет семантику
+       «пустого пространства»). Валидация: положительное число.
+    3. spatial_ref (if present) — string. Контракт-плейсхолдер: поле
+       определено как string, но разрешение пространственных ссылок НЕ
+       реализовано (будущий фронт ME-3.12). Валидация: тип string.
     4. world_boundary (if present) — mode in {open, hard, transition}.
+       Контракт-плейсхолдер: режим определён, но геометрия границы НЕ
+       реализована (ME-R-613). Валидация: mode в закрытом реестре.
     5. levels[] + active_level — ME-1.9 (validated by _check_levels).
     6. Depth (elevation) != Floor (level id) — ME-1.9 contract.
 
-    НЕ валидирует: SCALE (rendering, canonical=20 per audit, fix in ME-2.8);
-    SpatialDataLoader (game-side, S-ME1).
+    НЕ валидирует: SCALE (rendering, fix в ME-2.8);
+    SpatialDataLoader (game-side, S-ME1);
+    разрешение spatial_ref (future ME-3.12);
+    геометрию world_boundary (future ME-R-613).
     """
     errors: list[str] = []
 
