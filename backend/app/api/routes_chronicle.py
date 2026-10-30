@@ -385,6 +385,33 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
             }
             for i in result.items
         ],
+        # COV-12 (п.1): coverage gate — пустой items теперь легален (право на
+        # ноль), но автор должен видеть: 0 записей может быть как осознанным
+        # (шапка), так и провалом LLM (молчание на критичной теме). Coverage
+        # показывает контекст, не блокируя сохранение.
+        "coverage": {
+            "fragment_ord": req.fragment_ord,
+            "items_count": len(result.items),
+            "fragment_text_preview": req.fragment[:80],
+            "critical_topic_warning": (
+                # COV-12 (п.1): маркеры критичных тем. Подстрока, не морфология —
+                # точности достаточно для warning (не для block). Список не
+                # окончательный, расширяется по мере обнаружения слепых зон.
+                "фрагмент содержит маркеры критичной темы (насилие/преступление/"
+                "донос), но декомпозер не создал ни одной записи — проверить "
+                "осознанно"
+                if len(result.items) == 0
+                and any(
+                    m in req.fragment.lower()
+                    for m in (
+                        "насил", "изнасил", "шантаж", "донос", "предал",
+                        "предательство", "убил", "убийств", "измен",
+                        "преступл", "контрабанд",
+                    )
+                )
+                else None
+            ),
+        },
     }
 
 

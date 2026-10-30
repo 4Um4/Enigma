@@ -155,8 +155,13 @@ class ChronicleDecompositionNormalizer:
             raise DecompositionError(f"Неизвестные ключи ответа: {sorted(unknown)}")
 
         items_raw = data.get("items")
-        if not isinstance(items_raw, list) or not items_raw:
-            raise DecompositionError("items отсутствует/пуст/не список")
+        if not isinstance(items_raw, list):
+            raise DecompositionError("items не список")
+        if not items_raw:
+            # COV-12 (п.1): право на ноль — пустой items легален для шапки и
+            # нефактовых пунктов. Раньше enforced правило 7 промпта "1..6 items"
+            # заставляло модель выдумывать BELIEF_SEED из шапки "кузнец Орм: гном".
+            return []
 
         items: List[DecompositionItem] = []
         for idx, it in enumerate(items_raw):
