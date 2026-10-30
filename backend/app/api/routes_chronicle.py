@@ -341,6 +341,20 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
             _hint = _it.draft_payload.get("target_hint")
             if isinstance(_hint, str) and _hint.strip():
                 _object_id = resolve_object_ref_from_roster(_hint, _roster)
+        elif _it.question is not None and _it.kind in (EntryKind.RELATIONSHIP, EntryKind.EFFECT):
+            # COV-12 (п.2b): placeholder EntityRef для non-match target_hint.
+            # Без этого /resolve не находил EntityRef по _match (name_hint ==
+            # target_span): object_id был None, _match искал по name_hint, а
+            # name_hint у subject_id пустой → white spot создавался в
+            # doc.white_spots, но запись на него не ссылалась (терялась при
+            # канонизации). Placeholder NEW_NPC-name_hint=target_hint теперь
+            # найдётся _match и перелинкуется на WHITE_SPOT/RESOLVED/UNKNOWN.
+            _hint = _it.draft_payload.get("target_hint")
+            if isinstance(_hint, str) and _hint.strip():
+                _object_id = EntityRef(
+                    ref_kind=EntityRefKind.NEW_NPC,
+                    name_hint=_hint.strip(),
+                )
         new_entries.append(
             ChronicleEntry(
                 entry_id=_eid,
@@ -448,14 +462,34 @@ async def confirm_author_entries(campaign_id: str, npc_id: str) -> Dict[str, Any
         raise HTTPException(status_code=404, detail=f"Черновик {npc_id} не найден в {campaign_id}")
     new_entries = []
     confirmed = 0
+    skipped_open_questions = 0
+    skipped_low_confidence = 0
     for e in doc.entries:
         if e.provenance is EntryProvenance.LLM_DRAFT:
+            # COV-12 (п.2a): разоружить confirm. Кнопка больше не переводит
+            # в AUTHOR_CONFIRMED записи, требующие внимания автора:
+            # - открытые вопросы (нужно /resolve);
+            # - низкая уверенность LLM (<0.5) — требует ревью.
+            # Раньше массово подтверждалось всё, включая мусор.
+            if e.open_questions:
+                skipped_open_questions += 1
+                new_entries.append(e)
+                continue
+            if e.confidence is not None and e.confidence < 0.5:
+                skipped_low_confidence += 1
+                new_entries.append(e)
+                continue
             e = _replace(e, provenance=EntryProvenance.AUTHOR_CONFIRMED, confidence=None)
             confirmed += 1
         new_entries.append(e)
     new_doc = _replace(doc, entries=tuple(new_entries))
     store.save_draft(new_doc, campaign_id)
-    return {"status": "OK", "confirmed": confirmed}
+    return {
+        "status": "OK",
+        "confirmed": confirmed,
+        "skipped_open_questions": skipped_open_questions,
+        "skipped_low_confidence": skipped_low_confidence,
+    }
 
 
 class CanonizeRequest(BaseModel):

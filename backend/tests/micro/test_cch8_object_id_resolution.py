@@ -199,10 +199,14 @@ def test_decompose_fragment_sets_object_id_on_exact_match(monkeypatch):
 
 
 def test_decompose_fragment_no_object_id_on_partial_match(monkeypatch):
-    """Integration: decompose_fragment с partial name → object_id=None, open_questions non-empty.
+    """Integration: decompose_fragment с partial name → NEW_NPC placeholder + open_questions.
 
     target_hint='Торнин' (частичное, не exact match с roster 'Торнин Серебряная Луна').
-    Normalizer должен создать ClarificationQuestion; object_id остаётся None.
+    Normalizer создаёт ClarificationQuestion; decompose_fragment (COV-12 п.2b)
+    создаёт placeholder EntityRef(NEW_NPC, name_hint=target_hint), чтобы /resolve
+    нашёл его по _match (name_hint==target_span) и перелинковал на
+    WHITE_SPOT/RESOLVED/UNKNOWN. Без placeholder white spot создавался, но
+    запись на него не ссылалась (баг №3 вердикта).
     """
     from app.api import routes_chronicle
     from app.api.routes_chronicle import DecomposeRequest
@@ -270,9 +274,13 @@ def test_decompose_fragment_no_object_id_on_partial_match(monkeypatch):
     assert len(saved_doc.entries) == 1
     entry = saved_doc.entries[0]
     assert entry.kind is EntryKind.RELATIONSHIP
-    assert entry.object_id is None, (
-        "partial match → object_id должен быть None (требует авторского разрешения)"
+    # COV-12 п.2b: NEW_NPC placeholder, не None. Без placeholder /resolve._match
+    # (name_hint==target_span) не находил EntityRef, и white spot терялся.
+    assert entry.object_id is not None, (
+        "partial match → object_id должен быть NEW_NPC placeholder (не None)"
     )
+    assert entry.object_id.ref_kind is EntityRefKind.NEW_NPC
+    assert entry.object_id.name_hint == "Торнин"
     assert len(entry.open_questions) > 0, (
         "partial match → должен быть ClarificationQuestion"
     )
