@@ -4,7 +4,13 @@ map_editor/core/event_handler.py
 """
 
 import pygame
-from tools.constants import MODE_CHRONICLE, MODE_LAB, MODE_UIWORKBENCH, MODE_WORLD
+from tools.constants import (
+    MODE_CHRONICLE,
+    MODE_LAB,
+    MODE_LOCAL,
+    MODE_UIWORKBENCH,
+    MODE_WORLD,
+)
 
 from core.commands import (
     MirrorObjectCommand,
@@ -17,6 +23,7 @@ SCALE = 20
 ZOOM_STEP = 1.2
 MIN_ZOOM = 0.4
 MAX_ZOOM = 5.0
+
 
 class EventHandler:
     """Управляет всей обработкой ввода в редакторе карт"""
@@ -78,6 +85,15 @@ class EventHandler:
                 core.chronicle_screen.enter()
                 return
 
+            elif event.key == pygame.K_F11:
+                # GAME-PREVIEW-IMPLEMENTATION-1: toggle Game Preview in MODE_LOCAL
+                if core.mode == MODE_LOCAL:
+                    core.preview_active = not core.preview_active
+                    state = "Game Preview (F11)" if core.preview_active else "Editing Mode"
+                    core._show_toast(state)
+                else:
+                    core._show_toast("Preview доступен только в локации (MODE_LOCAL)")
+
             elif event.key == pygame.K_F12:
                 # F12 = mode-switch (паттерн F5/MODE_LAB): свой draw,
                 # панели редактора не рисуются — не оверлей поверх них.
@@ -132,11 +148,7 @@ class EventHandler:
             elif event.key == pygame.K_v and pygame.key.get_mods() & pygame.KMOD_CTRL:
                 core._paste_clipboard()
 
-            elif (
-                event.key == pygame.K_PLUS
-                or event.key == pygame.K_EQUALS
-                or event.key == pygame.K_KP_PLUS
-            ):
+            elif event.key == pygame.K_PLUS or event.key == pygame.K_EQUALS or event.key == pygame.K_KP_PLUS:
                 core._zoom(ZOOM_STEP, mx, my)
             elif event.key == pygame.K_MINUS or event.key == pygame.K_KP_MINUS:
                 core._zoom(1 / ZOOM_STEP, mx, my)
@@ -167,11 +179,7 @@ class EventHandler:
         # Хэндлы ресайза на холсте — максимальный приоритет
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mx, my = event.pos
-            if (
-                core.tool is None
-                and core.selected_object
-                and core.selected_object[0] == "object"
-            ):
+            if core.tool is None and core.selected_object and core.selected_object[0] == "object":
                 for handle in core._get_resize_handles(core.selected_object[1]):
                     if handle["rect"].collidepoint(mx, my):
                         obj = next(
@@ -264,10 +272,7 @@ class EventHandler:
             core._handle_property_action(action)
             return
         # Поглощаем клики внутри панели — чтобы не деселектить объекты
-        if (
-            event.type == pygame.MOUSEBUTTONDOWN
-            and core.property_panel.rect.collidepoint(event.pos)
-        ):
+        if event.type == pygame.MOUSEBUTTONDOWN and core.property_panel.rect.collidepoint(event.pos):
             return
 
         # Основное взаимодействие
@@ -307,11 +312,7 @@ class EventHandler:
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 2:
                 core.dragging_camera = False
-            if (
-                event.button == 1
-                and hasattr(core, "_dragging_location")
-                and core._dragging_location
-            ):
+            if event.button == 1 and hasattr(core, "_dragging_location") and core._dragging_location:
                 core._dragging_location = None
 
         elif event.type == pygame.MOUSEMOTION:
@@ -409,9 +410,7 @@ class EventHandler:
                     dy_world = round(total_dy * scale, 2)
                     if abs(dx_world) > 0.01 or abs(dy_world) > 0.01:
                         etype, eid = core.selected_object
-                        drag_wall = etype == "object" and bool(
-                            core._dragging_entity["orig"].get("wall_id")
-                        )
+                        drag_wall = etype == "object" and bool(core._dragging_entity["orig"].get("wall_id"))
                         cmd = MoveEntityCommand(
                             core.dm,
                             core.current_file,
@@ -439,9 +438,7 @@ class EventHandler:
                 dy_world = total_dy * scale
                 if core.selected_object is not None:
                     etype, eid = core.selected_object
-                    core._apply_drag(
-                        etype, eid, core._dragging_entity["orig"], dx_world, dy_world
-                    )
+                    core._apply_drag(etype, eid, core._dragging_entity["orig"], dx_world, dy_world)
             elif core._resizing:
                 obj = next(
                     (

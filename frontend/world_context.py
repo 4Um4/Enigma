@@ -83,6 +83,9 @@ class WorldViewContext:
     collidable_obstacles: Tuple[dict, ...]
 
 
+from map_editor.render.geometry_builder import build_geometry
+
+
 class SpatialDataLoader:
     """Загружает пространственные данные чанка из editor JSON.
 
@@ -114,18 +117,14 @@ class SpatialDataLoader:
         self._cache[cache_key] = spatial
         return spatial
 
-    def load_for_descriptor(
-        self, campaign_id: str, descriptor
-    ) -> Optional[ChunkSpatialData]:
+    def load_for_descriptor(self, campaign_id: str, descriptor) -> Optional[ChunkSpatialData]:
         """Загрузить по ChunkDescriptor (использует filename напрямую)."""
         cache_key = f"{campaign_id}:{descriptor.location_id}"
 
         if cache_key in self._cache:
             return self._cache[cache_key]
 
-        editor_data = self._find_editor_json_by_filename(
-            campaign_id, descriptor.filename
-        )
+        editor_data = self._find_editor_json_by_filename(campaign_id, descriptor.filename)
         if editor_data is None:
             return None
 
@@ -155,9 +154,7 @@ class SpatialDataLoader:
     def _find_editor_json(self, campaign_id: str, location_id: str) -> Optional[dict]:
         """Найти editor JSON по location_id."""
         root = self._find_project_root()
-        locations_dir = (
-            root / "frontend" / "map_editor" / "campaigns" / campaign_id / "locations"
-        )
+        locations_dir = root / "frontend" / "map_editor" / "campaigns" / campaign_id / "locations"
 
         if not locations_dir.exists():
             return None
@@ -175,20 +172,10 @@ class SpatialDataLoader:
 
         return None
 
-    def _find_editor_json_by_filename(
-        self, campaign_id: str, filename: str
-    ) -> Optional[dict]:
+    def _find_editor_json_by_filename(self, campaign_id: str, filename: str) -> Optional[dict]:
         """Найти editor JSON по имени файла."""
         root = self._find_project_root()
-        file_path = (
-            root
-            / "frontend"
-            / "map_editor"
-            / "campaigns"
-            / campaign_id
-            / "locations"
-            / filename
-        )
+        file_path = root / "frontend" / "map_editor" / "campaigns" / campaign_id / "locations" / filename
 
         if not file_path.exists():
             return None
@@ -198,103 +185,6 @@ class SpatialDataLoader:
                 return json.load(f)
         except (json.JSONDecodeError, OSError):
             return None
-
-    @staticmethod
-    def _split_wall_by_openings(wall: dict, openings: list[dict]) -> list[dict]:
-        """Разрезает сегмент стены на части, исключая проёмы (двери, проходы).
-
-        Port из scene_state_manager._split_wall_by_openings.
-        Временно дублирует логику бэкенда — будет устранено при ADR-S82.
-        """
-        if not openings:
-            return [
-                {
-                    "x1": float(wall.get("x1", 0)),
-                    "y1": float(wall.get("y1", 0)),
-                    "x2": float(wall.get("x2", 0)),
-                    "y2": float(wall.get("y2", 0)),
-                }
-            ]
-
-        x1, y1 = float(wall["x1"]), float(wall["y1"])
-        x2, y2 = float(wall["x2"]), float(wall["y2"])
-
-        dx = x2 - x1
-        dy = y2 - y1
-        wall_len = (dx * dx + dy * dy) ** 0.5
-        if wall_len == 0:
-            return [{"x1": x1, "y1": y1, "x2": x2, "y2": y2}]
-
-        # единичный вектор вдоль стены
-        ux = dx / wall_len
-        uy = dy / wall_len
-
-        # Собираем интервалы проёмов вдоль стены
-        gaps = []
-        for op in openings:
-            pos = op.get("position", {})
-            size = op.get("size", {})
-            px, py = float(pos.get("x", 0)), float(pos.get("y", 0))
-            # Вектор от начала стены до центра объекта
-            vx, vy = px - x1, py - y1
-            # Расстояние вдоль стены от начала
-            dist_along = vx * ux + vy * uy
-            # Перпендикулярное расстояние
-            perp_dist = abs(vx * (-uy) + vy * ux)
-
-            if perp_dist > 0.5:
-                continue
-
-            # Длина проёма вдоль оси стены
-            if abs(dx) < abs(dy):  # Вертикальная стена
-                span = float(size.get("h", 1.0))
-            else:  # Горизонтальная стена
-                span = float(size.get("w", 1.0))
-
-            gap_start = dist_along - span / 2
-            gap_end = dist_along + span / 2
-            gaps.append((gap_start, gap_end))
-
-        if not gaps:
-            return [{"x1": x1, "y1": y1, "x2": x2, "y2": y2}]
-
-        # Сортируем и склеиваем пересекающиеся проёмы
-        gaps.sort()
-        merged = [list(gaps[0])]
-        for gs, ge in gaps[1:]:
-            if gs <= merged[-1][1]:
-                merged[-1][1] = max(merged[-1][1], ge)
-            else:
-                merged.append([gs, ge])
-
-        # Разрезаем стену на сегменты вокруг проёмов
-        segments = []
-        current = 0.0
-        for gs, ge in merged:
-            gs = max(0.0, gs)
-            ge = min(wall_len, ge)
-            if gs > current:
-                segments.append(
-                    {
-                        "x1": x1 + ux * current,
-                        "y1": y1 + uy * current,
-                        "x2": x1 + ux * gs,
-                        "y2": y1 + uy * gs,
-                    }
-                )
-            current = ge
-
-        if current < wall_len:
-            segments.append(
-                {
-                    "x1": x1 + ux * current,
-                    "y1": y1 + uy * current,
-                    "x2": x2,
-                    "y2": y2,
-                }
-            )
-
-        return segments
 
     @staticmethod
     def _build_spatial_data(location_id: str, editor_data: dict) -> ChunkSpatialData:
@@ -310,75 +200,12 @@ class SpatialDataLoader:
         width = float(size.get("w", 0.0))
         height = float(size.get("h", 0.0))
 
-        # Стены — уже в мировых координатах, но нужно вырезать проёмы для дверей
-        # S81-ФИКС: Port _split_wall_by_openings из scene_state_manager
-        # (временно — до ADR-S82 "Walls are Obstacles", где стены = obstacles с permeability)
-        walls = []
-        wall_openings: dict[str, list[dict]] = {}
-        for obj in editor_data.get("objects", []):
-            if not obj.get("passability", {}).get("walk", True):
-                continue
-            if obj.get("type") not in ("door", "door_transition"):
-                continue
-            
-            # S143 FIX §1: Порт 3-stage lookup из backend graph_compiler.py
-            walls_for_door = []
-            door_pos = obj.get("position", {})
-            px, py = door_pos.get("x", 0), door_pos.get("y", 0)
-            for wall in editor_data.get("walls", []):
-                wid = wall.get("id")
-                x1, y1 = wall.get("x1", 0), wall.get("y1", 0)
-                x2, y2 = wall.get("x2", 0), wall.get("y2", 0)
-                dx, dy = x2 - x1, y2 - y1
-                wall_len = (dx * dx + dy * dy) ** 0.5
-                if wall_len == 0:
-                    continue
-                ux = dx / wall_len
-                uy = dy / wall_len
-                vx, vy = px - x1, py - y1
-                perp_dist = abs(vx * (-uy) + vy * ux)
-                if perp_dist <= 0.5:
-                    walls_for_door.append(wid)
-            
-            explicit_wall_id = obj.get("wall_id")  # ME-1.5: единая форма (root)
-            if not explicit_wall_id:
-                rot = obj.get("rotation")
-                if isinstance(rot, str) and rot.startswith("wall_"):
-                    explicit_wall_id = rot
-                    
-            if explicit_wall_id and explicit_wall_id not in walls_for_door:
-                walls_for_door.append(explicit_wall_id)
-                
-            for wid in walls_for_door:
-                wall_openings.setdefault(wid, []).append(obj)
-
-        for wall in editor_data.get("walls", []):
-            wall_id = wall.get("id", "")
-            openings = wall_openings.get(wall_id, [])
-            segments = SpatialDataLoader._split_wall_by_openings(wall, openings)
-            walls.extend(segments)
-
-        # Объекты — уже в мировых координатах, position = center
-        # S81-ФИКС: Конвертируем center→top-left (как бэкенд scene_state_manager:709-710)
-        # и добавляем passability для data-driven фильтрации коллизий
-        obstacles = []
-        for obj in editor_data.get("objects", []):
-            pos = obj.get("position", {})
-            obj_size = obj.get("size", {})
-            ow = float(obj_size.get("w", 1.0))
-            oh = float(obj_size.get("h", 1.0))
-            obstacles.append(
-                {
-                    "x": float(pos.get("x", 0.0)) - ow / 2,  # center → top-left
-                    "y": float(pos.get("y", 0.0)) - oh / 2,  # center → top-left
-                    "w": ow,
-                    "h": oh,
-                    "type": obj.get("type", "decoration"),
-                    "id": obj.get("id", ""),
-                    "passability": obj.get("passability", {}),
-                    "blocks_los": obj.get("cover", 0) >= 0.8,
-                }
-            )
+        # GAME-PREVIEW-IMPLEMENTATION-1 / S81-ФИКС: Каноническое преобразование
+        # вынесено в map_editor.render.geometry_builder.build_geometry — единый
+        # источник истины для SpatialDataLoader (game runtime) и scene_bridge
+        # (Map Editor Game Preview). Стены разрезаются проёмами, объекты
+        # конвертируются center -> top-left. S143 FIX §1: 3-stage lookup.
+        walls, obstacles = build_geometry(editor_data)
 
         return ChunkSpatialData(
             location_id=location_id,
@@ -421,9 +248,7 @@ class ContextResolver:
         visible_descriptors = self._registry.find_nearby(world_x, world_y, view_radius)
 
         # 3. Найти физические чанки (physics layer)
-        physics_descriptors = self._registry.find_nearby(
-            world_x, world_y, physics_radius
-        )
+        physics_descriptors = self._registry.find_nearby(world_x, world_y, physics_radius)
 
         # 4. Загрузить пространственные данные для visible
         visible_chunks_list: List[VisibleChunk] = []
@@ -493,19 +318,12 @@ class ContextResolver:
         # 7. Visible bounds
         min_x = min(vc.spatial.floor_rect[0] for vc in visible_chunks_list)
         min_y = min(vc.spatial.floor_rect[1] for vc in visible_chunks_list)
-        max_x = max(
-            vc.spatial.floor_rect[0] + vc.spatial.floor_rect[2]
-            for vc in visible_chunks_list
-        )
-        max_y = max(
-            vc.spatial.floor_rect[1] + vc.spatial.floor_rect[3]
-            for vc in visible_chunks_list
-        )
+        max_x = max(vc.spatial.floor_rect[0] + vc.spatial.floor_rect[2] for vc in visible_chunks_list)
+        max_y = max(vc.spatial.floor_rect[1] + vc.spatial.floor_rect[3] for vc in visible_chunks_list)
 
         # S80.3b-guard: Инвариант 2 — visible ⊆ collidable
         assert len(visible_walls) <= len(collidable_walls), (
-            f"INVARIANT VIOLATION: visible_walls({len(visible_walls)}) > "
-            f"collidable_walls({len(collidable_walls)})"
+            f"INVARIANT VIOLATION: visible_walls({len(visible_walls)}) > collidable_walls({len(collidable_walls)})"
         )
         assert len(visible_obstacles) <= len(collidable_obstacles), (
             f"INVARIANT VIOLATION: visible_obstacles({len(visible_obstacles)}) > "

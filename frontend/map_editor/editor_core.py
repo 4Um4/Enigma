@@ -96,6 +96,7 @@ class EditorCore:
         # а не каждый со своим захардкоженным размером
         try:
             from display_manager import load_display_settings
+
             _ds = load_display_settings().get("resolution", {}) or {}
             width = int(_ds.get("width", width))
             height = int(_ds.get("height", height))
@@ -130,6 +131,8 @@ class EditorCore:
         self.camera_y = 0.0
         self.zoom = 1.0
         self.dragging_camera = False
+        # GAME-PREVIEW-IMPLEMENTATION-1: toggle F11 in MODE_LOCAL
+        self.preview_active: bool = False
         self.camera_speed = 15  # пикселей за кадр при стрелках
 
         # Двойной клик для переименования
@@ -170,23 +173,30 @@ class EditorCore:
         # Выбранные типы
         self.selected_object_type = "table"
         from render.map_renderer import MapRenderer
+
         self.renderer = MapRenderer()
 
         from core.event_handler import EventHandler
+
         self.event_handler = EventHandler()
 
         from tools.interaction import InteractionManager
+
         self.interaction_manager = InteractionManager()
 
         from ui.property_builder import PropertyBuilder
+
         self.property_builder = PropertyBuilder()
 
         from ui.lab_screen import LabScreen
+
         self.lab_screen = LabScreen(self)
         from ui_workbench.workbench_screen import WorkbenchScreen
+
         self.workbench_screen = WorkbenchScreen(self)
         # CCH-3: редактор хроник (ленивый импорт, паттерн lab_screen)
         from chronicle.editor_screen import ChronicleScreen
+
         self.chronicle_screen = ChronicleScreen(self)
 
         self.selected_npc_id: str = ""  # id реального NPC из config
@@ -207,9 +217,7 @@ class EditorCore:
             print(f"Спрайтшит загружен: {info['cols']}x{info['rows']} тайлов")
 
         # BUG-P1-18: Хардкод "Open_road" удален. Редактор стартует пустым.
-        self._show_toast(
-            "Добро пожаловать! Откройте или создайте кампанию через меню File"
-        )
+        self._show_toast("Добро пожаловать! Откройте или создайте кампанию через меню File")
 
     def _init_ui(self):
         """Инициализирует элементы интерфейса"""
@@ -418,13 +426,9 @@ class EditorCore:
         if self.tool == TOOL_OBJECT:
             preset_keys = list(OBJECT_PRESETS.keys())
             options = [OBJECT_PRESETS[k]["label"] for k in preset_keys]
-            self.object_dropdown = Dropdown(
-                700, self.menu_height + 8, 120, 28, options=options, label="Тип"
-            )
+            self.object_dropdown = Dropdown(700, self.menu_height + 8, 120, 28, options=options, label="Тип")
             self.object_dropdown.selected = preset_keys.index(self.selected_object_type)
-            self.object_dropdown.on_select = lambda i, opt: setattr(
-                self, "selected_object_type", preset_keys[i]
-            )
+            self.object_dropdown.on_select = lambda i, opt: setattr(self, "selected_object_type", preset_keys[i])
 
         elif self.tool == TOOL_NPC:
             if not self._npc_list:
@@ -440,17 +444,13 @@ class EditorCore:
             else:
                 npc_ids = [n["id"] for n in self._npc_list]
                 options = [n["name"] for n in self._npc_list]
-                self.object_dropdown = Dropdown(
-                    700, self.menu_height + 8, 180, 28, options=options, label="NPC"
-                )
+                self.object_dropdown = Dropdown(700, self.menu_height + 8, 180, 28, options=options, label="NPC")
                 try:
                     self.object_dropdown.selected = npc_ids.index(self.selected_npc_id)
                 except ValueError:
                     self.object_dropdown.selected = 0
                     self.selected_npc_id = npc_ids[0]
-                self.object_dropdown.on_select = lambda i, opt: setattr(
-                    self, "selected_npc_id", npc_ids[i]
-                )
+                self.object_dropdown.on_select = lambda i, opt: setattr(self, "selected_npc_id", npc_ids[i])
 
     def _show_file_menu(self):
         """Показывает выпадающее меню File"""
@@ -514,9 +514,7 @@ class EditorCore:
         ]
 
         def on_confirm(inputs):
-            ok, err = self.cm.create_campaign(
-                inputs["folder"], inputs["name"], inputs["desc"]
-            )
+            ok, err = self.cm.create_campaign(inputs["folder"], inputs["name"], inputs["desc"])
             if ok:
                 self.cm.open_campaign(inputs["folder"])
                 self.current_file = None
@@ -669,9 +667,7 @@ class EditorCore:
                     "y",
                     "д",
                 )
-                ok, err = self.dm.create_location(
-                    inputs["filename"], w, h, inputs["label"], is_outdoor
-                )
+                ok, err = self.dm.create_location(inputs["filename"], w, h, inputs["label"], is_outdoor)
                 if ok:
                     self.cm.save_location(inputs["filename"])
                     self.current_file = inputs["filename"]
@@ -786,12 +782,12 @@ class EditorCore:
         """Асинхронно запрашивает обновление ObservatoryDTO с latest-state-wins."""
         self._observatory_revision += 1
         revision = self._observatory_revision
-        
+
         # S-OBS-05: Immutable snapshot для потока
         editor_data = deepcopy(self.dm.locations.get(self.current_file))
         if not editor_data:
             return
-            
+
         agents_data = {}
         for npc in editor_data.get("npcs", []):
             npc_id = npc.get("ref_id")
@@ -800,40 +796,36 @@ class EditorCore:
                 agents_data[npc_id] = {
                     "position": "",
                     "local_position": pos,
-                    "intent": {
-                        "target_type": "ANCHOR",
-                        "target_id": "bar",
-                        "reason": "test_sim"
-                    }
+                    "intent": {"target_type": "ANCHOR", "target_id": "bar", "reason": "test_sim"},
                 }
 
         payload = {
             "campaign_id": "Open_road",
             "location_id": self.current_file.replace(".json", ""),
             "editor_data": editor_data,
-            "agents_data": agents_data
+            "agents_data": agents_data,
         }
-        
+
         def fetch_data():
             try:
                 req = urllib.request.Request(
                     "http://localhost:8000/api/spatial/observatory",
-                    data=json.dumps(payload).encode('utf-8'),
-                    headers={'Content-Type': 'application/json'},
-                    method='POST'
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
                 )
                 with urllib.request.urlopen(req, timeout=5.0) as response:
-                    data = json.loads(response.read().decode('utf-8'))
+                    data = json.loads(response.read().decode("utf-8"))
                     # S-OBS-05: Latest-state-wins validation
                     with self._observatory_lock:
                         if revision == self._observatory_revision:
                             self.observatory_data = data
             except urllib.error.HTTPError as e:
-                error_body = e.read().decode('utf-8')
+                error_body = e.read().decode("utf-8")
                 print(f"[OBSERVATORY_API_ERROR] {error_body}")
             except Exception as e:
                 print(f"[OBSERVATORY_ERROR] {e}")
-                
+
         threading.Thread(target=fetch_data, daemon=True).start()
 
     def _dialog_save_as(self):
@@ -849,11 +841,7 @@ class EditorCore:
         root.withdraw()
         root.attributes("-topmost", True)
         # Начальная папка — текущая кампания или campaigns
-        init_dir = (
-            str(self.cm.campaign_path)
-            if self.cm.campaign_path
-            else str(Path(__file__).parent / "campaigns")
-        )
+        init_dir = str(self.cm.campaign_path) if self.cm.campaign_path else str(Path(__file__).parent / "campaigns")
         filepath = filedialog.asksaveasfilename(
             title="Сохранить локацию как...",
             initialdir=init_dir,
@@ -894,21 +882,16 @@ class EditorCore:
                 SpatialCompilationGateway.request_rebuild(campaign_id)
             else:
                 import logging as _logging
+
                 _logging.getLogger(__name__).warning("[EDITOR] _rebuild_spatial_registry: campaign not open, skipping")
         except Exception as e:
             import logging as _logging
 
-            _logging.getLogger(__name__).warning(
-                f"[SPATIAL_REGISTRY] Ошибка компиляции: {e}"
-            )
+            _logging.getLogger(__name__).warning(f"[SPATIAL_REGISTRY] Ошибка компиляции: {e}")
 
     def _dialog_export_zip(self):
         """Диалог экспорта кампании в zip"""
-        name = (
-            self.cm.campaign_data.get("name", "campaign")
-            if self.cm.campaign_data
-            else "campaign"
-        )
+        name = self.cm.campaign_data.get("name", "campaign") if self.cm.campaign_data else "campaign"
         safe = "".join(c if c.isalnum() or c in "_-" else "_" for c in name)
         fields = [
             {"key": "path", "label": "Путь к файлу", "value": f"{safe}.zip"},
@@ -964,16 +947,9 @@ class EditorCore:
             cx = origin["x"] + loc["size"]["w"] / 2
             cy = origin["y"] + loc["size"]["h"] / 2
             screen_cx = (self.screen.get_width() - self.panel_width) / 2
-            screen_cy = (
-                self.screen.get_height() - self.menu_height - self.toolbar_height
-            ) / 2
+            screen_cy = (self.screen.get_height() - self.menu_height - self.toolbar_height) / 2
             self.camera_x = screen_cx - cx * SCALE * self.zoom
-            self.camera_y = (
-                screen_cy
-                - cy * SCALE * self.zoom
-                + self.menu_height
-                + self.toolbar_height
-            )
+            self.camera_y = screen_cy - cy * SCALE * self.zoom + self.menu_height + self.toolbar_height
 
     # === Координатные преобразования ===
     def world_to_screen(self, wx: float, wy: float) -> Tuple[int, int]:
@@ -984,9 +960,7 @@ class EditorCore:
         """Преобразует экранные координаты в мировые"""
         return Geometry.screen_to_world(self.camera_x, self.camera_y, self.zoom, sx, sy)
 
-    def snap_to_grid(
-        self, x: float, y: float, grid_size: float = 0.5
-    ) -> Tuple[float, float]:
+    def snap_to_grid(self, x: float, y: float, grid_size: float = 0.5) -> Tuple[float, float]:
         """Привязывает координаты к сетке"""
         return Geometry.snap_to_grid(x, y, grid_size)
 
@@ -1019,9 +993,7 @@ class EditorCore:
             # Одна кнопка зеркалирования сверху
             return [
                 {
-                    "rect": pygame.Rect(
-                        sx - btn_r, sy - radius - btn_r, btn_r * 2, btn_r * 2
-                    ),
+                    "rect": pygame.Rect(sx - btn_r, sy - radius - btn_r, btn_r * 2, btn_r * 2),
                     "action": "mirror",
                 },
             ]
@@ -1029,15 +1001,11 @@ class EditorCore:
             # Две кнопки поворота по бокам
             return [
                 {
-                    "rect": pygame.Rect(
-                        sx - radius - btn_r, sy - btn_r, btn_r * 2, btn_r * 2
-                    ),
+                    "rect": pygame.Rect(sx - radius - btn_r, sy - btn_r, btn_r * 2, btn_r * 2),
                     "delta": -45,
                 },
                 {
-                    "rect": pygame.Rect(
-                        sx + radius - btn_r, sy - btn_r, btn_r * 2, btn_r * 2
-                    ),
+                    "rect": pygame.Rect(sx + radius - btn_r, sy - btn_r, btn_r * 2, btn_r * 2),
                     "delta": 45,
                 },
             ]
@@ -1093,33 +1061,25 @@ class EditorCore:
             # Четыре угла — свободный ресайз
             return [
                 {
-                    "rect": pygame.Rect(
-                        sx - w / 2 - hs, sy - h / 2 - hs, hs * 2, hs * 2
-                    ),
+                    "rect": pygame.Rect(sx - w / 2 - hs, sy - h / 2 - hs, hs * 2, hs * 2),
                     "axis": "wh",
                     "dir_x": -1,
                     "dir_y": -1,
                 },
                 {
-                    "rect": pygame.Rect(
-                        sx + w / 2 - hs, sy - h / 2 - hs, hs * 2, hs * 2
-                    ),
+                    "rect": pygame.Rect(sx + w / 2 - hs, sy - h / 2 - hs, hs * 2, hs * 2),
                     "axis": "wh",
                     "dir_x": 1,
                     "dir_y": -1,
                 },
                 {
-                    "rect": pygame.Rect(
-                        sx - w / 2 - hs, sy + h / 2 - hs, hs * 2, hs * 2
-                    ),
+                    "rect": pygame.Rect(sx - w / 2 - hs, sy + h / 2 - hs, hs * 2, hs * 2),
                     "axis": "wh",
                     "dir_x": -1,
                     "dir_y": 1,
                 },
                 {
-                    "rect": pygame.Rect(
-                        sx + w / 2 - hs, sy + h / 2 - hs, hs * 2, hs * 2
-                    ),
+                    "rect": pygame.Rect(sx + w / 2 - hs, sy + h / 2 - hs, hs * 2, hs * 2),
                     "axis": "wh",
                     "dir_x": 1,
                     "dir_y": 1,
@@ -1150,9 +1110,7 @@ class EditorCore:
                     "wall_id": obj.get("wall_id"),
                 }
                 if data["wall_id"]:
-                    wall = next(
-                        (w for w in loc["walls"] if w["id"] == data["wall_id"]), None
-                    )
+                    wall = next((w for w in loc["walls"] if w["id"] == data["wall_id"]), None)
                     if wall:
                         data["wx1"] = wall["x1"]
                         data["wy1"] = wall["y1"]
@@ -1193,9 +1151,7 @@ class EditorCore:
                 return {"x": spawn["x"], "y": spawn["y"]}
         return None
 
-    def _apply_drag(
-        self, etype: str, eid: str, orig: Dict, dx: float, dy: float
-    ) -> None:
+    def _apply_drag(self, etype: str, eid: str, orig: Dict, dx: float, dy: float) -> None:
         """Смещает сущность на dx, dy от исходных координат"""
         loc = self.dm.locations[self.current_file]  # noqa: F841
         if etype == "object":
@@ -1203,7 +1159,7 @@ class EditorCore:
             if obj:
                 target_x = orig["x"] + dx
                 target_y = orig["y"] + dy
-                
+
                 # S143 §1: Snapping дверей к стенам при перетаскивании
                 if obj.get("type") in ("door", "door_transition"):
                     wall_id = self._find_wall_near(target_x, target_y, threshold=1.5)
@@ -1227,9 +1183,7 @@ class EditorCore:
                 obj["position"]["x"] = target_x
                 obj["position"]["y"] = target_y
                 if orig.get("wall_id"):
-                    wall = next(
-                        (w for w in loc["walls"] if w["id"] == orig["wall_id"]), None
-                    )
+                    wall = next((w for w in loc["walls"] if w["id"] == orig["wall_id"]), None)
                     if wall and "wx1" in orig:
                         wall["x1"] = orig["wx1"] + dx
                         wall["y1"] = orig["wy1"] + dy
@@ -1346,15 +1300,17 @@ class EditorCore:
                     self._running = False
 
                 elif event.type == pygame.VIDEORESIZE:
-                    self.screen = pygame.display.set_mode(
-                        (event.w, event.h), pygame.RESIZABLE
-                    )
+                    self.screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
                     self._init_ui()
 
                 elif self.dialog and getattr(self.dialog, "active", False):
                     if self.dialog.handle_event(event):
                         continue
-                elif hasattr(self, "calibration_panel") and self.calibration_panel and getattr(self.calibration_panel, "active", False):
+                elif (
+                    hasattr(self, "calibration_panel")
+                    and self.calibration_panel
+                    and getattr(self.calibration_panel, "active", False)
+                ):
                     self.calibration_panel.handle_event(event)
                 elif hasattr(self, "vc_editor") and self.vc_editor and getattr(self.vc_editor, "active", False):
                     if self.vc_editor.handle_event(event):
@@ -1423,13 +1379,23 @@ class EditorCore:
                     "type": "choice",
                     "value": old_role,
                     "options": [
-                        "default", "bar", "bed", "entrance", "table",
-                        "workbench", "market", "transition", "boundary",
-                        "guard_post", "dark_corner", "serving_station",
-                        "kitchen_counter", "inn_desk"
-                    ]
+                        "default",
+                        "bar",
+                        "bed",
+                        "entrance",
+                        "table",
+                        "workbench",
+                        "market",
+                        "transition",
+                        "boundary",
+                        "guard_post",
+                        "dark_corner",
+                        "serving_station",
+                        "kitchen_counter",
+                        "inn_desk",
+                    ],
                 },
-                {"key": "tags", "label": "Теги (через запятую)", "value": old_tags}
+                {"key": "tags", "label": "Теги (через запятую)", "value": old_tags},
             ]
 
             def on_node_confirm(inputs: Dict[str, str]) -> None:
@@ -1441,9 +1407,15 @@ class EditorCore:
                 # Используем простой undo через обновление состояния
                 self.undo.push(
                     SimpleNodeUpdateCommand(
-                        self.dm, self.current_file, entity_id,
-                        old_name, old_role, node_data.get("tags", []),
-                        new_name, new_role, new_tags
+                        self.dm,
+                        self.current_file,
+                        entity_id,
+                        old_name,
+                        old_role,
+                        node_data.get("tags", []),
+                        new_name,
+                        new_role,
+                        new_tags,
                     )
                 )
                 self._show_toast(f"Узел обновлён: {new_name}")
@@ -1486,9 +1458,7 @@ class EditorCore:
     def _is_point_in_any_room(self, wx: float, wy: float) -> bool:
         return self.interaction_manager.is_point_in_any_room(self, wx, wy)
 
-    def _point_to_segment_dist(
-        self, px: float, py: float, x1: float, y1: float, x2: float, y2: float
-    ) -> float:
+    def _point_to_segment_dist(self, px: float, py: float, x1: float, y1: float, x2: float, y2: float) -> float:
         """Расстояние от точки до отрезка"""
         return Geometry.point_to_segment_dist(px, py, x1, y1, x2, y2)
 
@@ -1502,8 +1472,7 @@ class EditorCore:
         return self.interaction_manager.check_wall_overlap(self, x1, y1, x2, y2, tolerance)
 
     def _segments_intersect(
-        self, x1: float, y1: float, x2: float, y2: float,
-        x3: float, y3: float, x4: float, y4: float
+        self, x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, x4: float, y4: float
     ) -> bool:
         """Стандартный алгоритм проверки пересечения отрезков (CCW)."""
         return Geometry.segments_intersect(x1, y1, x2, y2, x3, y3, x4, y4)
@@ -1514,9 +1483,7 @@ class EditorCore:
     def _delete_at(self, mx: int, my: int):
         self.interaction_manager.delete_at(self, mx, my)
 
-    def _point_near_line(
-        self, px: int, py: int, x1: int, y1: int, x2: int, y2: int, threshold: int
-    ) -> bool:
+    def _point_near_line(self, px: int, py: int, x1: int, y1: int, x2: int, y2: int, threshold: int) -> bool:
         """Проверяет, находится ли точка рядом с отрезком"""
         return Geometry.point_near_line(px, py, x1, y1, x2, y2, threshold)
 
@@ -1530,18 +1497,14 @@ class EditorCore:
             loc = self.dm.locations[self.current_file]  # noqa: F841
             if action == "set_location_id":
                 current_val = loc.get("location_id", "")
-                fields = [
-                    {"key": "location_id", "label": "location_id", "value": current_val}
-                ]
+                fields = [{"key": "location_id", "label": "location_id", "value": current_val}]
 
                 def on_confirm(inputs: Dict[str, str]) -> None:
                     new_val = inputs.get("location_id", "").strip()
                     loc["location_id"] = new_val
                     self._show_toast(f"location_id = {new_val or '(пусто)'}")
 
-                self.dialog = ModalDialog(
-                    self.screen, "Задать location_id", fields, on_confirm
-                )
+                self.dialog = ModalDialog(self.screen, "Задать location_id", fields, on_confirm)
             return
 
         obj_type, obj_key = self.selected_object
@@ -1556,9 +1519,7 @@ class EditorCore:
                     # Стены есть → УДАЛЯЕМ их
                     for wall in existing:
                         self.dm.remove_wall(self.current_file, wall["id"])
-                    self._show_toast(
-                        f"Удалено стен: {len(existing)} для {room['name']}"
-                    )
+                    self._show_toast(f"Удалено стен: {len(existing)} для {room['name']}")
                 else:
                     # Стен нет → СОЗДАЁМ их
                     thickness = 0.2
@@ -1569,9 +1530,7 @@ class EditorCore:
                         for i in range(len(poly)):
                             x1, y1 = poly[i]
                             x2, y2 = poly[(i + 1) % len(poly)]
-                            self.dm.add_wall(
-                                self.current_file, x1, y1, x2, y2, "wall", thickness
-                            )
+                            self.dm.add_wall(self.current_file, x1, y1, x2, y2, "wall", thickness)
                             created += 1
                     else:
                         rx, ry = room["x"], room["y"]
@@ -1583,9 +1542,7 @@ class EditorCore:
                             (rx, ry, rx, ry + rh),
                         ]
                         for wx1, wy1, wx2, wy2 in perimeter:
-                            self.dm.add_wall(
-                                self.current_file, wx1, wy1, wx2, wy2, "wall", thickness
-                            )
+                            self.dm.add_wall(self.current_file, wx1, wy1, wx2, wy2, "wall", thickness)
                             created += 1
                     self._show_toast(f"Создано стен: {created} для {room['name']}")
 
@@ -1623,13 +1580,13 @@ class EditorCore:
         if action == "edit_psyche" and obj_type == "npc":
             from data_manager import load_npc_calibration, save_npc_calibration
             from ui.dialogs import CalibrationPanel
-            
+
             npc = next((n for n in loc.get("npcs", []) if n["ref_id"] == obj_key), None)
             if not npc:
                 return
-            
+
             psyche, drives = load_npc_calibration(npc["ref_id"])
-            
+
             def on_save_psyche(new_psyche, new_drives):
                 save_npc_calibration(npc["ref_id"], new_psyche, new_drives)
                 self._show_toast(f"Психика откалибрована для {npc['ref_id']}")
@@ -1644,14 +1601,15 @@ class EditorCore:
         if action == "edit_portraits" and obj_type == "npc":
             from data_manager import load_npc_visual_casting, save_npc_visual_casting
             from visual_casting_editor import VisualCastingEditor
+
             npc = next((n for n in loc.get("npcs", []) if n["ref_id"] == obj_key), None)
             if not npc:
                 return
-            
+
             current_casting = load_npc_visual_casting(npc["ref_id"])
             if not current_casting:
                 current_casting = {"fallback": {"expression_id": "neutral", "asset": ["", 0, 0]}, "rules": []}
-                
+
             def on_save_casting(new_casting):
                 save_npc_visual_casting(npc["ref_id"], new_casting)
                 self._show_toast(f"Visual Casting сохранён для {npc['ref_id']}")
@@ -1663,20 +1621,20 @@ class EditorCore:
 
         if action == "pick_sprite":
             from visual_casting_editor import VisualCastingEditor
-            
+
             if obj_type == "object":
                 obj = next((o for o in loc["objects"] if o.get("id") == obj_key), None)
                 if obj:
                     current_sprite = obj.get("sprite", [])
                     dummy_casting = {"fallback": {"expression_id": "neutral", "asset": current_sprite}, "rules": []}
-                    
+
                     def on_save_obj_sprite(new_casting):
                         fb = new_casting.get("fallback", {}).get("asset")
                         if fb and len(fb) >= 5:
                             obj["sprite"] = fb
                             self._show_toast("Спрайт объекта обновлён")
                         self.vc_editor = None
-                        
+
                     self.vc_editor = VisualCastingEditor(self.screen, obj["id"], dummy_casting, simple_mode=True)
                     self.vc_editor.on_save = on_save_obj_sprite
                     return
@@ -1686,14 +1644,14 @@ class EditorCore:
                 if npc:
                     current_sprite = npc.get("sprite", [])
                     dummy_casting = {"fallback": {"expression_id": "neutral", "asset": current_sprite}, "rules": []}
-                    
+
                     def on_save_npc_sprite(new_casting):
                         fb = new_casting.get("fallback", {}).get("asset")
                         if fb and (isinstance(fb, dict) or len(fb) >= 5):
                             npc["sprite"] = fb
                             self._show_toast("Спрайт NPC обновлён")
                         self.vc_editor = None
-                        
+
                     self.vc_editor = VisualCastingEditor(self.screen, npc["ref_id"], dummy_casting, simple_mode=True)
                     self.vc_editor.on_save = on_save_npc_sprite
                     return
@@ -1710,9 +1668,7 @@ class EditorCore:
                         self.dm.rename_label(self.current_file, obj_key, new_text)
                         self._show_toast("Текст изменён")
 
-                self.dialog = ModalDialog(
-                    self.screen, "Изменить текст", fields, on_confirm_lbl
-                )
+                self.dialog = ModalDialog(self.screen, "Изменить текст", fields, on_confirm_lbl)
             return
 
         if action.startswith("toggle_"):
@@ -1722,9 +1678,7 @@ class EditorCore:
             if not obj:
                 return
             self.undo.push(
-                TogglePassabilityCommand(
-                    self.dm, self.current_file, obj_key, flag, obj["passability"][flag]
-                )
+                TogglePassabilityCommand(self.dm, self.current_file, obj_key, flag, obj["passability"][flag])
             )
 
     def _update(self):
@@ -1782,27 +1736,37 @@ class EditorCore:
             # без симуляции — задник под настройку стилей окон).
             if self.current_file:
                 from render.scene_bridge import build_perceived_scene
+
                 _brid = build_perceived_scene(self)
                 if _brid:
                     _scene, _walls, _obst, _floors, _sw, _sh, _pxy = _brid
                     if getattr(self, "_scene_renderer", None) is None:
                         from scene_renderer import SceneRenderer
+
                         self._scene_renderer = SceneRenderer(self.screen)
                     # S3.8: сцена — шрифт из мирового стиля верстака (Журнал);
                     # каждый кадр — смена шрифта/обводки/тени в F12 живая
                     self._scene_renderer.font_small = self.workbench_screen.world_font()
                     self._scene_renderer.name_style = self.workbench_screen.world_style()
                     # S3.15: у NPC с демо-пузырём имя сцены не рисуется
-                    self._scene_renderer.suppress_names = \
-                        self.workbench_screen.demo_bubble_names()
+                    self._scene_renderer.suppress_names = self.workbench_screen.demo_bubble_names()
                     _coords = self._scene_renderer.render(
-                        scene=_scene, scene_w=_sw, scene_h=_sh,
-                        walls=_walls, obstacles=_obst, player_xy=_pxy,
+                        scene=_scene,
+                        scene_w=_sw,
+                        scene_h=_sh,
+                        walls=_walls,
+                        obstacles=_obst,
+                        player_xy=_pxy,
                         floor_rects=_floors,
                     )
-                    self.workbench_screen.draw_demo_bubbles(
-                        self.screen, _coords.get("npcs", {}), self)
+                    self.workbench_screen.draw_demo_bubbles(self.screen, _coords.get("npcs", {}), self)
             self.workbench_screen.draw(self.screen)
+            return
+
+        # GAME-PREVIEW-IMPLEMENTATION-1: in MODE_LOCAL, F11 toggles Game Preview.
+        # Clean game frame via SceneRenderer — no editor UI, no tools, no JSON mutation.
+        if self.mode == MODE_LOCAL and self.preview_active:
+            self._draw_game_preview()
             return
 
         if self.mode == MODE_WORLD:
@@ -1819,7 +1783,11 @@ class EditorCore:
                 self.dialog.draw(self.screen, self.font)
             else:
                 self.dialog.draw(self.font, self.font_small)
-        if hasattr(self, "calibration_panel") and self.calibration_panel and getattr(self.calibration_panel, "active", False):
+        if (
+            hasattr(self, "calibration_panel")
+            and self.calibration_panel
+            and getattr(self.calibration_panel, "active", False)
+        ):
             self.calibration_panel.draw(self.font, self.font_small)
         elif hasattr(self, "vc_editor") and self.vc_editor and getattr(self.vc_editor, "active", False):
             self.vc_editor.draw(self.font, self.font_small)
@@ -1829,6 +1797,38 @@ class EditorCore:
 
     def _draw_local(self):
         self.renderer.draw_local(self)
+
+    def _draw_game_preview(self):
+        """Game Preview: renders current location through SceneRenderer using
+                scene_bridge. No editor UI, no tools, no JSON mutation. SCALE=40
+        (game's SCALE_PIXELS_PER_METER), camera centered on player_spawn.
+
+                GAME-PREVIEW-IMPLEMENTATION-1.
+        """
+        if not self.current_file:
+            self._show_toast("Preview: нет открытой локации")
+            self.preview_active = False
+            return
+        from render.scene_bridge import build_perceived_scene
+
+        _brid = build_perceived_scene(self)
+        if not _brid:
+            self._show_toast("Preview: локация пуста или невалидна")
+            return
+        _scene, _walls, _obst, _floors, _sw, _sh, _pxy = _brid
+        if getattr(self, "_preview_scene_renderer", None) is None:
+            from scene_renderer import SceneRenderer
+
+            self._preview_scene_renderer = SceneRenderer(self.screen)
+        self._preview_scene_renderer.render(
+            scene=_scene,
+            scene_w=_sw,
+            scene_h=_sh,
+            walls=_walls,
+            obstacles=_obst,
+            player_xy=_pxy,
+            floor_rects=_floors,
+        )
 
     def _draw_ui(self):
         self.renderer.draw_ui(self)

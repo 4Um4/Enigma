@@ -10,6 +10,7 @@ path: /project/frontend/map_editor/render/scene_bridge.py
 """
 
 from game_types import PerceivedEntity, PerceivedScene
+from map_editor.render.geometry_builder import build_geometry
 
 
 def build_perceived_scene(core):
@@ -24,11 +25,11 @@ def build_perceived_scene(core):
     scene_w = float(size.get("w", 20.0))
     scene_h = float(size.get("h", 15.0))
 
-
-    # Стены: только записи с ожидаемым рендером контрактом (x1/y1/x2/y2);
-    # чужой формат отсекается — не падаем (зонд покажет фактический).
-    walls = [w for w in loc.get("walls", [])
-             if isinstance(w, dict) and all(k in w for k in ("x1", "y1", "x2", "y2"))]
+    # GAME-PREVIEW-IMPLEMENTATION-1: walls and obstacles built by the SAME
+    # function as SpatialDataLoader._build_spatial_data. No independent
+    # geometry interpretation in Preview — walls are split by door openings,
+    # objects converted center -> top-left.
+    walls, obstacles = build_geometry(loc)
 
     # Комнаты → floor_rects [(ox, oy, w, h)]; fallback — весь пол.
     # Формат комнат подтверждён зондом: x/y/width/height напрямую.
@@ -41,26 +42,26 @@ def build_perceived_scene(core):
     if not floor_rects:
         floor_rects = [(0.0, 0.0, scene_w, scene_h)]
 
-    _name_by_id = {n["id"]: n.get("name", n["id"])
-                   for n in getattr(core, "_npc_list", [])}
+    _name_by_id = {n["id"]: n.get("name", n["id"]) for n in getattr(core, "_npc_list", [])}
     entities = []
     for npc in loc.get("npcs", []):
         ref = npc.get("ref_id", "")
         pos = npc.get("position", {})
-        entities.append(PerceivedEntity(
-            entity_id=ref,
-            entity_type="npc",
-            x=float(pos.get("x", 0.0)),
-            y=float(pos.get("y", 0.0)),
-            visible=True,
-            clarity=1.0,
-            display_name=_name_by_id.get(ref, ref),
-            recognition_confidence=1.0,
-        ))
+        entities.append(
+            PerceivedEntity(
+                entity_id=ref,
+                entity_type="npc",
+                x=float(pos.get("x", 0.0)),
+                y=float(pos.get("y", 0.0)),
+                visible=True,
+                clarity=1.0,
+                display_name=_name_by_id.get(ref, ref),
+                recognition_confidence=1.0,
+            )
+        )
 
     spawn = loc.get("player_spawn") or {}
-    player_xy = (float(spawn.get("x", scene_w / 2.0)),
-                 float(spawn.get("y", scene_h / 2.0)))
+    player_xy = (float(spawn.get("x", scene_w / 2.0)), float(spawn.get("y", scene_h / 2.0)))
 
     scene = PerceivedScene(location_id=core.current_file or "editor", entities=entities)
-    return scene, walls, [], floor_rects, scene_w, scene_h, player_xy
+    return scene, walls, obstacles, floor_rects, scene_w, scene_h, player_xy
