@@ -69,6 +69,11 @@ class DecomposeRequest(BaseModel):
     npc_id: str = Field(..., min_length=1)
     fragment_ord: int = Field(..., ge=0)
     fragment: str = Field(..., min_length=1)
+    # COV-12 G1: полный авторский текст для прослеживаемости. Обязателен при
+    # создании нового draft (doc=None); при существующем doc — игнорируется,
+    # оригинальный author_text не затирается. Не подставляется из canonical
+    # JSON — источник только явный вызов клиента (UI: PUT /draft или decompose).
+    author_text_full: Optional[str] = None
 
 
 class ClarifyRequest(BaseModel):
@@ -269,7 +274,28 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
     store = _get_store()
     doc = store.load_draft(req.campaign_id, req.npc_id)
     if doc is None:
-        doc = ChronicleDocument(chronicle_id=req.npc_id, npc_ref=req.npc_id)
+        # COV-12 G1: прослеживаемость source → entry. Создание нового draft
+        # требует явного author_text_full — источник текста, который реально
+        # участвует в декомпозиции. Не подставляем baseline canonical: текст
+        # мог измениться, и подмена скроет несоответствие. Ошибка явная,
+        # не silent — иначе draft создаётся пустым, без исходного слова.
+        if not req.author_text_full:
+            return {
+                "status": "NOT_DECOMPOSED",
+                "error": (
+                    "draft not initialized: missing author_text_full; "
+                    "call PUT /draft first or pass author_text_full"
+                ),
+                "age_anchors": [],
+                "raw_response": None,
+            }
+        doc = ChronicleDocument(
+            chronicle_id=req.npc_id,
+            npc_ref=req.npc_id,
+            author_text=req.author_text_full,
+        )
+    # Существующий doc: не трогаем author_text —哪怕 req.author_text_full передан.
+    # Это защищает от подмены оригинального текста при повторном decompose.
     # COV-10.4: roster для auto-resolution exact-match target_hint → object_id.
     # Тот же источник, что и в normalizer (_default_roster_provider → get_display_names).
     # Без этого exact-match записи оставались без object_id И без open_questions —

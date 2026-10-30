@@ -180,6 +180,7 @@ def test_decompose_fragment_sets_object_id_on_exact_match(monkeypatch):
         npc_id="blacksmith_orm",
         fragment_ord=1,
         fragment="some text",
+        author_text_full="test biography for object_id resolution",
     )
     response = asyncio.run(
         routes_chronicle.decompose_fragment("test_c", "blacksmith_orm", req)
@@ -267,6 +268,7 @@ def test_decompose_fragment_no_object_id_on_partial_match(monkeypatch):
         npc_id="blacksmith_orm",
         fragment_ord=1,
         fragment="some text",
+        author_text_full="test biography for object_id resolution",
     )
     asyncio.run(routes_chronicle.decompose_fragment("test_c", "blacksmith_orm", req))
 

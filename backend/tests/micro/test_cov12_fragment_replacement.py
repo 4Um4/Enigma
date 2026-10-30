@@ -85,6 +85,7 @@ async def _decompose(fragment_ord: int) -> dict:
             npc_id=_NPC,
             fragment_ord=fragment_ord,
             fragment="текст",
+            author_text_full="test biography for fragment replacement",
         ),
     )
 

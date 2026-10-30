@@ -174,6 +174,7 @@ async def _decompose(fragment_ord: int) -> dict:
             npc_id=_NPC,
             fragment_ord=fragment_ord,
             fragment="Орм и Торнин — друзья.",
+            author_text_full="test biography for disarm confirm",
         ),
     )
 

@@ -79,6 +79,7 @@ async def _decompose(fragment_ord: int, fragment: str) -> dict:
             npc_id=_NPC,
             fragment_ord=fragment_ord,
             fragment=fragment,
+            author_text_full="test biography for coverage gate",
         ),
     )
 
