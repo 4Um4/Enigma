@@ -1,4 +1,4 @@
-# ENIGMA — Канонический порядок построения игровой сущности (редактор)
+﻿# ENIGMA — Канонический порядок построения игровой сущности (редактор)
 
 **Главный принцип:** автор создаёт не декорацию, а новую часть причинно-следственной системы мира. Редактор проверяет не только внешний вид, но и игровую состоятельность созданного: предмет должен уметь то, для чего существует, и вести себя согласованно с архитектурой истины ENIGMA.
 
@@ -318,7 +318,7 @@
 | Зона макета | Сегодня | Развитие |
 |---|---|---|
 | Верхняя навигация | `MODE_WORLD/LOCAL/LAB/UIWORKBENCH/CHRONICLE` (`tools/constants.py`), переключение TAB/F5/F7/F12 (`core/event_handler.py`) | Расширяется режимами Объекты/Материалы/Поведение/Проверка; существующие режимы не выбрасываются |
-| Каталог | Дропдауны `editor_core._update_dropdowns` + плоский `OBJECT_PRESETS` | Настоящий каталог: поиск, теги, категории, шаблоны, варианты, собственные ассеты (Этап 02) |
+| Каталог | `CatalogPanel` (F3, ME-2.1-F): search + category buttons + card list; `CatalogIndex` (query-слой); `OBJECT_PRESETS` mutable, refresh через `refresh_object_presets()` | Полноценный каталог: варианты вида, собственные ассеты, Blueprint Editor (ME-2.1-G) |
 | Рабочая сцена | `MapRenderer.draw_local` + `InteractionManager` + `UndoManager` | Остаются 2D-ядром Build; выбор частей модели появляется с составными объектами (Этап 02) |
 | Свойства | `PropertyPanel` + `PropertyBuilder` (имя, XY, 4 тумблера проходимости, «Выбрать спрайт», `properties` read-only) | Контекстный редактор компонентов: слои 3–6 чертежа; `properties` становится редактируемым через типизированные компоненты (Этап 03) |
 | Диагностика | Разрозненные проверки: `check_wall_overlap`, `validate_external_link`, Observatory diagnostics | Единая нижняя область: ошибки / предупреждения / игровой тест / производительность (Этапы 01, 03, 04) |
@@ -636,7 +636,7 @@ P0 здесь означает не «немедленно написать ве
 
 | Подсистема | Ценность для ENIGMA | Приоритет | Привязка к текущему коду | Закрывает |
 |---|---|---|---|---|
-| Каталог ассетов: поиск, категории, шаблоны, варианты | Ускоряет создание мира | **P0** | `OBJECT_PRESETS`, дропдауны, тройные спрайт-маппинги | ME-D5 |
+| Каталог ассетов: поиск, категории, шаблоны, варианты | Ускоряет создание мира | **P0** | `CatalogPanel` (F3) + `CatalogIndex` + `AssetStore` (30 чертежей); спрайт-деривация унифицирована (ME-D5 закрыт S349) | ME-2.1 A-F+E закрыты; G — в работе |
 | Контекстная панель свойств и редактор игровых компонентов | Связывает предмет с механикой | **P0** | `PropertyPanel`/`PropertyBuilder`, `properties` read-only | Слой 4–5 чертежа |
 | Импорт текстур, материалов и спрайтов | Улучшает визуальное разнообразие | **P0** | `VisualCastingEditor`, `SpriteRegistry` | ME-D5 |
 | Визуальная диагностика и проверка игровых контрактов | Предотвращает неработающие объекты | **P0** | `check_wall_overlap`, `validate_external_link`, Observatory diagnostics | ME-D1, ME-D4, ME-D10 |
@@ -706,7 +706,18 @@ P0 здесь означает не «немедленно написать ве
 
 **Чеклист:**
 
-- [ ] **ME-2.1** Каталог ассетов: поиск, теги, категории, варианты, собственные ассеты; единый спрайт-реестр вместо тройного дублирования `OBJECT_PRESETS`/`ENTITY_SPRITE_MAP`/`NPC_SPRITE_MAP` с валидацией расходящихся значений (ME-D5).
+- [~] **ME-2.1** Каталог ассетов: поиск, теги, категории, варианты, собственные ассеты; единый спрайт-реестр вместо тройного дублирования `OBJECT_PRESETS`/`ENTITY_SPRITE_MAP`/`NPC_SPRITE_MAP` с валидацией расходящихся значений (ME-D5).
+
+  **Подэтапы ME-2.1 (порядок Master: A->B->C+D->F->E->G->H->I->J->K->L):**
+  - [x] **A. Populate** (f931c9a1, 22 теста) — 30 Blueprint JSON в assets/catalogs/base/blueprints/
+  - [x] **B. Derive** (ecbc35c0, 19 тестов) — refresh_object_presets + _derive_presets_from_assetstore
+  - [x] **C. CatalogIndex** (828ec573, 23 теста) — query-слой на AssetStore
+  - [x] **D. ResourceValidator** (828ec573, 16 тестов) — 4 уровня валидации
+  - [x] **F. Catalog UI** (70fc1341 + 4 фикса, 20 тестов) — CatalogPanel F3 toggle
+  - [x] **E. Hierarchy** (3cfb374e, 11 тестов) — categories[] + prefix-match + multiple membership
+  - [ ] **G. Blueprint Editor** — Architecture Review завершён (ME-2.1-G_Architecture_Review.docx); 10 рисков; 10 подэтапов G-1..G-10. Реализация не начата — ждёт GO Master.
+  - [ ] **H. Import UI** | **I. Campaign Assets** | **J. Selective Propagation** | **K. Pre-placement Gate** | **L. NPC Catalog**
+  Базлайн: 111 тестов, ruff clean. Game Preview (F11) и World Map Audit — вне нумерации, см. журнал.
 - [ ] **ME-2.2** Material & Texture Studio v1: библиотека материалов, варианты одного материала, назначение на чертёж; `VisualCastingEditor` вливается как спрайтовый редактор (§4.Б).
 - [ ] **ME-2.3** Составные объекты: `parts[]` с собственными спрайтами/материалами; предпросмотр и выбор частей в рабочей сцене.
 - [ ] **ME-2.4** Точки крепления и якоря: на стене / на полу / на объекте; единое хранение вместо двойного `wall_id`; состояния части (крышка: закрыта/открыта).
@@ -935,7 +946,7 @@ P0 здесь означает не «немедленно написать ве
 |---|---|---|
 | `frontend/map_editor/assets/**` (новое), миграции формата в `data_manager.py` | **Этап 01** | Формат, AssetStore, адаптер, валидатор |
 | `frontend/map_editor/{location_templates,campaigns}/**` (миграция данных) | **Этап 01** | SSOT по вердикту Мастера (§10.3) |
-| `sprite_registry.py`, `pixels/`, `visual_casting_editor.py` | **Этап 02** | Каталог и студия |
+| `sprite_registry.py`, `pixels/`, `visual_casting_editor.py`; `assets/catalog_index.py`, `assets/resource_validator.py`, `ui/catalog_panel.py`, `render/geometry_builder.py`, `render/placement_diagnostic.py` (новые ME-2.1 / Game Preview / World Map Audit) | **Этап 02** | Каталог, студия, Game Preview (F11), World Map placement integrity |
 | `ui/property_builder.py`, `ui/panels.py`, `ui/components.py`, `ui/dialogs.py` | **Этап 02 → 03** | Передача по гейту ME-GC-2 (панель → компоненты) |
 | `ui_workbench/**` (манифесты новых окон) | **Этап 02+** | Через `WindowManifest`, без хардкода |
 | `core/commands.py` (новые команды) | **Этап 02 → 03** | Команды частей, затем компонентов |
@@ -965,7 +976,7 @@ P0 здесь означает не «немедленно написать ве
 | в.7 библиотеки чертежей | ME-1.2 | шаг | открыт (дефолт: per-campaign) |
 | в.9 модель уровней | ME-1.9 | шаг | открыт |
 | в.10 туннели под зданиями | ME-1.9 | шаг | открыт (дефолт: связность через переходы) |
-| в.8 судьба `OBJECT_PRESETS` | ME-2.1/2.6 (Этап 02) | шаг | открыт |
+| в.8 судьба `OBJECT_PRESETS` | ME-2.1/2.6 (Этап 02) | шаг | в работе (ME-2.1 B: деривация; G — редактор) |
 | в.11 разрушаемые стены | ME-3.9 | шаг | открыт |
 | в.14 seed-знания о секретах | ME-3.10 | шаг | открыт |
 | в.12 граница с CCH/Authoring | S-ME5 (Этап 05) | гейт | открыт |
@@ -1105,6 +1116,14 @@ P0 здесь означает не «немедленно написать ве
 | 2026-10-14 | ME-1.3 закрыт: адаптер экземпляров-ссылок в DataManager — load_all разворачивает ссылки в полные объекты старой формы (валидатор всегда видит полный словарь); save сворачивает обратно (вариант А) с самопроверкой: ссылка пишется только при совпадении разворота с памятью, иначе объект уходит с чертежа и пишется целиком (громкий лог); вставка ссылки через add_object_full разворачивается и регистрируется; отсутствие чертежа/неизвестный ключ overrides/initial_state = громкий отказ, локация не открывается молча сломанной; склад строится от открытой кампании, битый склад отключается громко, не роняя редактор; спека §5.3. До S-ME1 (ME-1.8) ссылки не попадают в потребляемые игрой файлы. Гейты: smoke 31/31, ruff 0, compileall 0 | 7.1 / 10.4 | Код + спека | ME-1.4 |
 | 2026-10-14 | ERRATUM к коммиту 123b9909: ушёл при красном смоке (сообщение «smoke 31/31» не соответствовало факту — 0/31; смок и коммит лежали в одном блоке команд, комментарий-гейт не останавливает PowerShell). Две причины, вскрыты последовательными прогонами: (1) фикстура смока — стена-огрызок без x1/y1/x2/y2 падала в миграции координат (реальные стены полной формы, факт tavern.json wall_3); (2) острая грань API — set_asset_store принимал незагруженный склад и молча получал пустой реестр. Починка: фикстура полной формы; set_asset_store сам перезагружает склад (fail-loud, идемпотентно; битый склад при подмене падает громко — проверка 18). Код адаптера доказан живьём независимо: регрессия на живой кампании Open_road GREEN (tavern 33/33, city_gate 70/70, market_square 2/2, ссылок 0) + смок v3 32/32. История не переписывается (аменд запрещён). Правило серии: тесты и коммит — раздельные шаги; коммит только при exit=0 | 10.4 | Код (set_asset_store) + документ | ME-1.4 |
 | 2026-10-14 | ME-1.4 закрыт: единый валидатор схемы — `schema_validator.py`. Локации: сырой файл до дефолтов (усечёнка громко перечисляется, не молча долечивается) + полный перечень на load/save с адресом «файл→сущность→поле»: верхний уровень, стены (координаты концов/нулевая длина/дубли id), комнаты (polygon ≥3), узлы, NPC (room_id существует), надписи, уникальность id объектов (дубль тихо врал генератору номеров); объектная семья S349 внутри. Кампании: `validate_campaign_meta` перенесён из campaign_manager (4 вызова переведены; логика идентична). Режимы наследия S349: чтение = громкий перечень (файл открыт для починки), запись = write-gate. ME-D10 закрыт: валидация есть; «повторная миграция» не воспроизводится — все 6 живых файлов несут global_coords, флаг закреплён обязательным полем (игра world_context флагу доверяет). player_spawn опционален (живой шаблон market_square без него — штатный дефолт загрузчика). Легаси до ME-1.5 ошибками НЕ считаются: rotation-хак S129, ключ portals, призрачные связи узлов. Попутные фиксы: add_label — _next_id вместо len() (дубли id после удаления); дыра «пустослотная запись» (.get-заглушка) закрыта явной проверкой наличия поля у стен/комнат/NPC/надписей. ОБЯЗАТЕЛЬНЫЙ автотест линейных масштабов (вердикт 2026-10-12): `tests/test_scale_parity.py` — global_coords на диске; пол = origin+size точно; препятствия: размеры точные, позиция по единственной формуле центр→левый-верх; стены: сегменты игры лежат на линиях исходных стен, суммарная длина не растёт (игра режет проёмы, не растягивает). pytest-контур map_editor/tests/ рождён (12 проверок; ME-D13 частично). Вопрос Мастеру: узел «Вход» таверны ссылается на 3 несуществующих узла (main_hall_west/corner_table/exit_east) — чистка данных вердиктом. Гейты: smoke 35/35 + 6/6, pytest 12/12, ruff 0, compileall 0 | 7.1 / 10.1 / 10.4 | Код + тесты | ME-1.5 |
+| 2026-10-20 | **Game Preview (F11)** — вне нумерации: ender/geometry_builder.py (новый, uild_geometry() единый для SpatialDataLoader и scene_bridge); editor_core._draw_game_preview() через SceneRenderer; F11 toggle, стрелки — pan. 19+13+12 тестов | — | Код + тесты | ME-2.1 |
+| 2026-10-22 | **WORLD-MAP-INTERACTION-AUDIT** — вне нумерации: ender/placement_diagnostic.py (новый) — rectangles_2d_overlap, detect_2d_overlaps, snap_location_position (1.0m); overlap визуализация в map_renderer.draw_world(). 12+12 тестов | — | Код + тесты | ME-2.1 |
+| 2026-10-25 | **ME-2.1-A Populate** (f931c9a1, 22 теста) — 30 Blueprint JSON в assets/catalogs/base/blueprints/; 6 слоёв + tags + categories + default_properties в metadata | 7.2 / 10.4 | Код + JSON | ME-2.1-B |
+| 2026-10-26 | **ME-2.1-B Derive** (ecbc35c0, 19 тестов) — OBJECT_PRESETS mutable; refresh_object_presets + _derive_presets_from_assetstore + _blueprint_to_preset в data_manager; refresh_entity_sprite_map в sprite_registry | 7.2 / 10.4 | Код | ME-2.1-C |
+| 2026-10-27 | **ME-2.1-C+D CatalogIndex+Validator** (828ec573, 39 тестов) — assets/catalog_index.py (query-слой); assets/resource_validator.py (4 уровня, ValidationResult не булев) | 7.2 / 10.4 | Код | ME-2.1-F |
+| 2026-10-28 | **ME-2.1-F Catalog UI** (70fc1341 + 4 фикса, 20 тестов) — ui/catalog_panel.py (~384 строки): F3 toggle, search + category buttons + card list + on_place | 7.2 / 10.4 | Код + UI | ME-2.1-E |
+| 2026-10-30 | **ME-2.1-E Hierarchy** (3cfb374e, 11 тестов) — categories[] (/-иерархия) во все 30 JSON; prefix-match filter; list_category_tree(); multiple membership. Базлайн ME-2.1: 111 тестов | 7.2 / 10.4 | Код + JSON | ME-2.1-G |
+| 2026-10-31 | **ME-2.1-G Architecture Review** (без реализации) — отчёт ME-2.1-G_Architecture_Review.docx (21 стр): R1 AssetStore read-only; R2 default_properties gap; 10 рисков; контракт BlueprintEditor; 10 подэтапов G-1..G-10. СТОП — реализация не начата. | 7.2 / 10.4 | Документ | GO Master -> G-1 |
 | 2026-10-29 | ME-1.6 + ME-1.7 закрыты (S394): migrator + _writable enforcement + pytest контур (50 passed); orphaned template edits логированы (не применены); SpatialDataLoader не тронут; коммиты ceafd4af + d754f306 | 7.1 / 10.1 / 10.4 | Код + тесты | ME-1.8 |
 | 2026-10-29 | ME-1.9 закрыт (S395): levels[] multi-level format contract — optional levels[] (id/label/elevation) + entity level field (backward compatible); schema_validator _check_levels; SpatialDataLoader unchanged (editor-only до S-ME1); data_manager unchanged (_fold_for_save preserves levels[]); 11 tests; 61 passed total (50+11); коммит 687107e9 | 7.1 / 10.4 | Код + тесты | ME-1.10 |
 
