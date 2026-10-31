@@ -271,9 +271,8 @@ class CatalogPanel:
 
             preview = self._index.get_preview(bp_id) if self._index else None
             if preview:
-                icon = preview.get("icon", "")
                 label_text = preview.get("label", bp_id)
-                card_label = font_small.render(f"{icon} {label_text}", True, self._text)
+                card_label = font_small.render(label_text, True, self._text)
                 screen.blit(card_label, (card_rect.x + 4, card_rect.y + 3))
 
                 cat_text = self._category_ru.get(preview.get("category", ""), preview.get("category", ""))
