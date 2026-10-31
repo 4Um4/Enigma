@@ -9,6 +9,7 @@ import urllib.error
 import urllib.request
 from copy import deepcopy
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import pygame
@@ -370,6 +371,22 @@ class EditorCore:
         panel_y = self.menu_height + self.toolbar_height + 10
         panel_h = screen_h - panel_y - self.status_height - 10
         self.property_panel = PropertyPanel(panel_x, panel_y, self.panel_width, panel_h)
+        # ME-2.1-F: Catalog panel (F3 to toggle)
+        catalog_x = 0
+        catalog_y = self.menu_height + self.toolbar_height + 10
+        catalog_w = 250
+        catalog_h = screen_h - catalog_y - self.status_height - 10
+        from ui.catalog_panel import CatalogPanel
+
+        self.catalog_panel = CatalogPanel(
+            catalog_x,
+            catalog_y,
+            catalog_w,
+            catalog_h,
+            Path(__file__).parent / "assets",
+            Path(__file__).parent / "pixels",
+        )
+        self.catalog_panel.on_place = lambda bp_id: self._catalog_place(bp_id)
 
         # === Дропдауны для типов объектов ===
         self.object_dropdown: Optional[Dropdown] = None
@@ -420,6 +437,12 @@ class EditorCore:
 
         # Создаём/убираем дропдауны
         self._update_dropdowns()
+
+    def _catalog_place(self, bp_id: str) -> None:
+        """ME-2.1-F: Called when user clicks Place in catalog panel."""
+        self.selected_object_type = bp_id
+        self._set_tool(TOOL_OBJECT)
+        self._show_toast(f"Catalog: {bp_id} — click map to place")
 
     def _update_dropdowns(self):
         """Обновляет дропдауны в зависимости от инструмента"""
@@ -1787,6 +1810,10 @@ class EditorCore:
             self._draw_world()
         else:
             self._draw_local()
+
+        # ME-2.1-F: Catalog panel
+        if self.catalog_panel and self.catalog_panel.active:
+            self.catalog_panel.draw(self.screen, self.font, self.font_small, self.font_bold)
 
         # UI поверх всего
         self._draw_ui()

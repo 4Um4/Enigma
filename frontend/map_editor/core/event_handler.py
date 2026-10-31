@@ -49,6 +49,11 @@ class EventHandler:
             core.workbench_screen.handle_event(event)
             return
 
+        # ME-2.1-F: Catalog panel event routing
+        if hasattr(core, "catalog_panel") and core.catalog_panel and core.catalog_panel.active:
+            if core.catalog_panel.handle_event(event):
+                return
+
         # Горячие клавиши
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
@@ -74,6 +79,14 @@ class EventHandler:
 
             elif event.key == pygame.K_TAB:
                 core._toggle_mode()
+            elif event.key == pygame.K_F3:
+                if hasattr(core, "catalog_panel") and core.catalog_panel:
+                    if core.catalog_panel.active:
+                        core.catalog_panel.close()
+                    else:
+                        core.catalog_panel.open()
+                        core._show_toast("Catalog (F3): search and select assets")
+
             elif event.key == pygame.K_F5:
                 core.mode = MODE_LAB
                 core.lab_screen.enter()
