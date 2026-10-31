@@ -715,7 +715,7 @@ P0 здесь означает не «немедленно написать ве
   - [x] **D. ResourceValidator** (828ec573, 16 тестов) — 4 уровня валидации
   - [x] **F. Catalog UI** (70fc1341 + 4 фикса, 20 тестов) — CatalogPanel F3 toggle
   - [x] **E. Hierarchy** (3cfb374e, 11 тестов) — categories[] + prefix-match + multiple membership
-  - [ ] **G. Blueprint Editor** — G-1 закрыт (S397, ebb85ba6, 19 тестов: save_blueprint_atomic + R1 recovery + R2 fingerprint + R3 count). G-2..G-10 ждут GO Master.
+  - [ ] **G. Blueprint Editor** — G-1 (S397, ebb85ba6) + G-2 (S399, 932c298f, 19 тестов: EditSession + BlueprintEditor) закрыты. G-3..G-10 ждут GO Master.
   - [ ] **H. Import UI** | **I. Campaign Assets** | **J. Selective Propagation** | **K. Pre-placement Gate** | **L. NPC Catalog**
   Базлайн: 111 тестов, ruff clean. Game Preview (F11) и World Map Audit — вне нумерации, см. журнал.
 - [ ] **ME-2.2** Material & Texture Studio v1: библиотека материалов, варианты одного материала, назначение на чертёж; `VisualCastingEditor` вливается как спрайтовый редактор (§4.Б).
@@ -1129,6 +1129,7 @@ ender/placement_diagnostic.py (новый) — rectangles_2d_overlap, detect_2d_
 | 2026-10-29 | ME-1.6 + ME-1.7 закрыты (S394): migrator + _writable enforcement + pytest контур (50 passed); orphaned template edits логированы (не применены); SpatialDataLoader не тронут; коммиты ceafd4af + d754f306 | 7.1 / 10.1 / 10.4 | Код + тесты | ME-1.8 |
 | 2026-10-29 | ME-1.9 закрыт (S395): levels[] multi-level format contract — optional levels[] (id/label/elevation) + entity level field (backward compatible); schema_validator _check_levels; SpatialDataLoader unchanged (editor-only до S-ME1); data_manager unchanged (_fold_for_save preserves levels[]); 11 tests; 61 passed total (50+11); коммит 687107e9 | 7.1 / 10.4 | Код + тесты | ME-1.10 |
 | 2026-10-31 | **ME-2.1-G-1 AssetStore write-API** (S397, ebb85ba6, 19 тестов): save_blueprint_atomic — 10 шагов atomic rollback; R1 recovery после self.load() failure (backup+snapshot+restore); R2 fingerprint check (lost update — version та же, содержимое другое); R3 19 тестов точно. Контракт: validator duck-typed, on_cache_refresh callback, ENTITY_SPRITE_MAP НЕ автоматически. Базлайн: 315 passed (296+19), ruff clean. G-2..G-10 ждут GO Master. | 7.2 / 10.4 | Код + тесты | G-2 |
+| 2026-10-31 | **ME-2.1-G-2 BlueprintEditor Core** (S399, 932c298f, 19 тестов): EditSession — независимая рабочая копия (deepcopy snapshot); BlueprintEditor фасад (open/new_from-заглушка-G-8). Инварианты: независимость, изоляция UI (get_data/get_field deepcopy), dirty по содержимому, cancel восстанавливает, save ТОЛЬКО через G-1 save_blueprint_atomic. Contract: 0 write_text/json.dump/_blueprints[ в code; 1 save_blueprint_atomic (в save()). 10 обязательных проверок Master + 9 доп. Базлайн: 334 passed (315+19), ruff clean. G-3..G-10 ждут GO Master. | 7.2 / 10.4 | Код + тесты | G-3 |
 
 
 ### 10.5. ME-R — реестр требований расширения v1.1/v1.2/v1.4

@@ -5,7 +5,7 @@
 > **Протокол ведения (вперёд):** завершая сессию — (1) добавить строку в реестр ниже (ID + суть + вердикт + ADR); (2) живые хвосты → раздел «Живые хвосты» (или roadmap §7, если затрагивает активные треки); (3) ничего многострочного в этот файл. MЕТА содержит только счётчик записей — проверяемый.
 
 ## МЕТА
-Записей: 249 | Базлайн: IPT 54/0
+Записей: 250 | Базлайн: IPT 54/0
 
 **Примечания целостности номеров:**
 - Пропуски S153/S171/S173/S197/S232/S275–S277 — артефакты параллельных серий и ренумберов (прецедент: S243, ренумбер S241→S243; S242, перенумерация при коллизии); S396, ренумбер S395→S396 при коллизии с чужой S395 (ME-1.9, параллельная сессия 2026-10-29). Не восстанавливать.
@@ -428,6 +428,7 @@
 - **S396** SCALE-аудит v.22 + ME-1.10 + ME-1.11 (ветвь Б; TZ Map Editor) · SCALE-аудит: 5 editor SCALE (4×20 + 1×40 в editor_core — ME-D2 mismatch), 1 game (SCALE_PIXELS_PER_METER, separate scope), 2 data/sprite (grid_cell_size=1.0, _DEFAULT_TILE_SIZE=16); backend ZERO spatial scale; canonical=20 (de facto: 4/5 + renderer), fix в ME-2.8; test_audit_quick_wins.py:172-173 enforces 40/20 (нужен update при канонизации) · ME-1.10: _resolve_one ALREADY validates overrides (_INSTANCE_OVERRIDE_KEYS frozenset 6 keys — AR-ME-2) + initial_state (_initial_state_keys: durability/open/locked/contents/damage); 9 tests added · ME-1.11: reserves declared in BLUEPRINT_FORMAT_SPEC §7 (destructible/concealable/vertical_link + Character Blueprint skeleton); _initial_state_keys handles destructible (→damage); concealable/vertical_link no state keys; no code changes · Гейты: ruff 0, compileall 0, pytest 70/0 (61+9) · коммит 30393726 · ✅ · ME-1.12 следующий
 
 - **S397** ME-2.1-G-1: AssetStore write-API — save_blueprint_atomic (R1+R2+R3 closed) · ✅ · ebb85ba6
+- **S399** ME-2.1-G-2: BlueprintEditor Core — EditSession (независимая рабочая копия) · ✅ · 932c298f
 
 ## 4. Правила ведения (вперёд)
 
