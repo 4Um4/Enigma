@@ -77,6 +77,16 @@ class CatalogPanel:
         self._btn_bg = (50, 50, 70)
         self._btn_hover = (70, 70, 100)
 
+        # Russian category display names
+        self._category_ru = {
+            "furniture": "Мебель",
+            "wall_object": "Стены",
+            "transition": "Переход",
+            "nature": "Природа",
+            "interactive": "Интер",
+            "decoration": "Декор",
+        }
+
         # Callbacks (set by editor)
         self.on_select: Optional[callable] = None  # callback(bp_id: str)
         self.on_place: Optional[callable] = None  # callback(bp_id: str)
@@ -237,7 +247,7 @@ class CatalogPanel:
             color = self._card_sel if self._selected_category == cat else self._btn_bg
             pygame.draw.rect(screen, color, r)
             pygame.draw.rect(screen, self._border, r, 1)
-            short = cat[:6] if len(cat) > 6 else cat
+            short = self._category_ru.get(cat, cat[:4])
             cat_label = font_small.render(short, True, self._text)
             screen.blit(cat_label, (r.x + 3, r.y + 3))
             cx += r.w + 3
@@ -266,7 +276,7 @@ class CatalogPanel:
                 card_label = font_small.render(f"{icon} {label_text}", True, self._text)
                 screen.blit(card_label, (card_rect.x + 4, card_rect.y + 3))
 
-                cat_text = preview.get("category", "")
+                cat_text = self._category_ru.get(preview.get("category", ""), preview.get("category", ""))
                 cat_label = font_small.render(cat_text, True, self._text_dim)
                 screen.blit(cat_label, (card_rect.right - cat_label.get_width() - 4, card_rect.y + 3))
 
@@ -319,7 +329,7 @@ class CatalogPanel:
                         issue_y += 14
 
                 # Category + tags
-                cat_str = preview.get("category", "")
+                cat_str = self._category_ru.get(preview.get("category", ""), preview.get("category", ""))
                 tags_str = ", ".join(preview.get("tags", [])[:4])
                 cat_label = font_small.render(f"Кат: {cat_str}", True, self._text_dim)
                 screen.blit(cat_label, (rx + 6, pv_y + 60))
@@ -364,13 +374,14 @@ class CatalogPanel:
         self._scroll_offset = 0
 
     def _update_category_rects(self) -> None:
-        """Build category button rects."""
+        """Build category button rects with Russian labels."""
         self._cat_rects = []
         if not self._index:
             return
-        x = 40  # after "All" button
+        x = 40  # after "Все" button
         for cat in self._index.list_categories():
-            w = max(len(cat[:6]) * 8 + 8, 36)
+            ru_name = self._category_ru.get(cat, cat[:4])
+            w = max(len(ru_name) * 8 + 8, 30)
             self._cat_rects.append((cat, pygame.Rect(0, 0, w, 20)))
             x += w + 3
 
