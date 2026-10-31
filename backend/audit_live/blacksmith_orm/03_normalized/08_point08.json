@@ -2,14 +2,36 @@
   {
     "kind": "PORTRET",
     "draft_payload": {
-      "statement": "Орм давно заприметил Люсю — тихую, серьёзную и исполнительную. Такой была его жена до болезни: молодой, покорной, зависящей от него. Это не любовь и не расчёт — это перенос, который он в себе так и не разглядел, потому что разглядывать себя не привык.",
+      "statement": "Орм давно заприметил Люсю — тихую, серьёзную и исполнительную. Такой была его жена до болезни: молодой, покорной, зависящей от него.",
       "traits": [
-        "зависимость",
-        "подавленная злость"
+        "тихая",
+        "серьезная",
+        "исполнительная"
       ]
     },
     "confidence": 1.0,
     "needs_confirmation": false,
     "question": null
+  },
+  {
+    "kind": "RELATIONSHIP",
+    "draft_payload": {
+      "summary": "Орм видит в Люсии свою бывшую жену",
+      "target_hint": "жена Орма",
+      "nature": "идеализация",
+      "valence": "neutral"
+    },
+    "confidence": 0.9,
+    "needs_confirmation": true,
+    "question": {
+      "question_id": "...",
+      "target_span": "жена Орма",
+      "options": [
+        "SELECT_EXISTING_NPC",
+        "CREATE_NEW_NPC",
+        "UNKNOWN_PERSON",
+        "LEAVE_WHITE_SPOT"
+      ]
+    }
   }
 ]

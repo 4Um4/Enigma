@@ -29,6 +29,11 @@ K_GAP = "GAP"
 K_QUESTION = "QUESTION"
 K_CANON_SYNC = "CANON_SYNC"
 K_INFO = "INFO"
+# A2: self-reference, попавшая в канон и не резолвленная автором.
+# Ловит случай: RELATIONSHIP с object_id=None, target_hint exact-matches subject
+# (через alias_to_npc), open_questions пуст. Не блокирует канонизацию (диагностика),
+# но эскалирует автору — явное self (SELECT_EXISTING_NPC+subject) не порождает Finding.
+K_SELF_REFERENCE_UNRESOLVED = "SELF_REFERENCE_UNRESOLVED"
 
 
 @dataclass(frozen=True)
@@ -336,4 +341,66 @@ class ConsistencyService:
                             payload={"secret_id": sid},
                         )
                     )
+            # A2: SELF_REFERENCE_UNRESOLVED — RELATIONSHIP, чей target_hint exact-matches
+            # subject хроники (через alias_to_npc). Различает 3 случая:
+            #   1. object_id is None — unresolved (вопрос автору не задан/не резолвнут).
+            #      Finding эскалирует: «объект неопределён, уточните».
+            #   2. object_id = RESOLVED(subject) — явное self (валидно, без Finding).
+            #      Автор осознанно выбрал subject — допустимая self-reference.
+            #   3. object_id = RESOLVED(другой NPC) — target_hint говорил subject, но автор
+            #      выбрал другого. Это может быть исправлением LLM-ошибки (валидно) или
+            #      случайным выбором. Finding-info (диагностика, не блокировка).
+            if e.kind is EntryKind.RELATIONSHIP and not e.open_questions:
+                payload = e.payload or {}
+                hint = payload.get("target_hint")
+                if isinstance(hint, str) and hint.strip():
+                    resolved_hint = registry.alias_to_npc.get(hint.strip().lower())
+                    if resolved_hint == doc.npc_ref:
+                        if e.object_id is None:
+                            # Случай 1: unresolved — вопрос автору нужен
+                            out.append(
+                                Finding(
+                                    kind=K_SELF_REFERENCE_UNRESOLVED,
+                                    level="canon",
+                                    message=(
+                                        f"{doc.npc_ref}: target_hint='{hint}' в записи "
+                                        f"'{payload.get('summary', '')}' резолвится в субъекта "
+                                        f"хроники, object_id неопределён. Уточните: явное "
+                                        f"self, другой NPC или белое пятно?"
+                                    ),
+                                    doc_refs=((doc.npc_ref, e.entry_id),),
+                                    payload={
+                                        "target_hint": hint,
+                                        "subject_id": doc.npc_ref,
+                                        "summary": payload.get("summary", ""),
+                                        "case": "unresolved",
+                                    },
+                                )
+                            )
+                        elif (
+                            e.object_id.ref_kind.value == "RESOLVED"
+                            and e.object_id.npc_id != doc.npc_ref
+                        ):
+                            # Случай 3: target_hint→subject, но object_id=другой NPC.
+                            # Автор исправил LLM-ошибку (валидно) — диагностика info.
+                            out.append(
+                                Finding(
+                                    kind=K_INFO,
+                                    level="canon",
+                                    message=(
+                                        f"{doc.npc_ref}: target_hint='{hint}' резолвится в "
+                                        f"субъекта, но object_id='{e.object_id.npc_id}' — "
+                                        f"автор изменил цель. Проверьте направление отношения."
+                                    ),
+                                    doc_refs=((doc.npc_ref, e.entry_id),),
+                                    payload={
+                                        "target_hint": hint,
+                                        "subject_id": doc.npc_ref,
+                                        "object_id": e.object_id.npc_id,
+                                        "summary": payload.get("summary", ""),
+                                        "case": "author_corrected",
+                                    },
+                                )
+                            )
+                        # Случай 2 (object_id=RESOLVED(subject)) — явное self, без Finding
         return out

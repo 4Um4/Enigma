@@ -1,53 +1,27 @@
 [
   {
-    "kind": "PORTRET",
-    "draft_payload": {
-      "statement": "Гном привык хранить в себе многое. И это тоже спрятал.",
-      "traits": [
-        "скромность",
-        "стойкость",
-        "умение держать язык за зубами"
-      ]
-    },
-    "confidence": 1.0,
-    "needs_confirmation": false,
-    "question": null
-  },
-  {
-    "kind": "RELATIONSHIP",
-    "draft_payload": {
-      "summary": "Орм предупредил Гильдию и правительство о Торнине.",
-      "target_hint": "Торнин Серебряная Луна",
-      "nature": "доверие",
-      "valence": "positive"
-    },
-    "confidence": 0.9,
-    "needs_confirmation": true,
-    "question": {
-      "question_id": "1",
-      "target_span": "Орм предупредил Гильдию и правительство о Торнине.",
-      "options": [
-        "SELECT_EXISTING_NPC",
-        "CREATE_NEW_NPC",
-        "UNKNOWN_PERSON",
-        "LEAVE_WHITE_SPOT"
-      ]
-    }
-  },
-  {
     "kind": "EVENT",
     "draft_payload": {
-      "summary": "Торнин заказал у Орма меч.",
-      "day": null
+      "summary": "Торнин заказывает у Орма меч, но Орм не хочет быть его другом после смерти предыдущего друга.",
+      "day": null,
+      "duration_years": null,
+      "years_ago": 70,
+      "_provenance": {
+        "derived_from": "game_start_age - years_ago",
+        "game_start_age": 146,
+        "years_ago": 70,
+        "rule": "point in past relative to game_start"
+      }
     },
     "confidence": 1.0,
     "needs_confirmation": false,
     "question": null
   },
   {
-    "kind": "BELIEF_SEED",
+    "kind": "TRAIT_SEED",
     "draft_payload": {
-      "statement": "Старый друг Торнина умер 70 лет назад."
+      "trait": "умеет хранить в себе",
+      "evidence": "гном привык хранить в себе многое"
     },
     "confidence": 1.0,
     "needs_confirmation": false,

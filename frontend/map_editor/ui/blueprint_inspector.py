@@ -1,25 +1,24 @@
 """path: /frontend/map_editor/ui/blueprint_inspector.py
 
-Назначение: BlueprintInspectorPanel — read-only инспектор Blueprint (ME-2.1-G-3).
-    Первый интеграционный тест архитектуры редактирования: UI управляет сессией
-    через BlueprintEditor/EditSession, НЕ получая доступа к AssetStore.
+Назначение: BlueprintEditorPanel — редактор Blueprint через EditSession (ME-2.1-G-4).
+    UI управляет сессией через BlueprintEditor/EditSession, НЕ получая доступа
+    к AssetStore. Типизированные элементы управления для полей Blueprint.
 
-    Контракт Master (G-3, read-only):
-    - Double-click по карточке каталога → открыть инспектор
-    - Сессия через BlueprintEditor.open(bp_id) → EditSession
-    - Данные через session.get_data() / session.get_field() (deepcopy — UI не
-      получает ссылку на working)
-    - Валидация через session.validate() (errors/warnings раздельно)
+    Контракт Master (G-4):
+    - Редактирование через session.set_field()
+    - Live validation после каждого изменения
     - Dirty indicator через session.dirty
-    - Закрытие → session.close() (сессия завершена)
-    - Повторное открытие → новая сессия с актуальным состоянием AssetStore
+    - Save только через session.save() (заблокирован при ошибках)
+    - Cancel через session.cancel() (настоящая отмена, не попадает в AssetStore)
+    - Save disabled при ошибках валидации
+    - VersionConflict: сохранить рабочую копию, показать конфликт, не перезаписывать
+    - Unknown fields сохраняются (set_field не трогает неизвестные поля)
+    - После успешного save: обновить состояние, dirty=False
+    - Повторное открытие: актуальные данные AssetStore
 
-    G-3 НЕ включает: set_field, save, cancel через UI (это G-4).
+Зависимости: assets.blueprint_editor, assets.resource_validator, ui.components, pygame.
 
-Зависимости: assets.blueprint_editor (BlueprintEditor, EditSession, SessionState),
-    assets.resource_validator (ValidationResult), pygame. Backend не импортируется.
-
-Основные сущности: BlueprintInspectorPanel.
+Основные сущности: BlueprintEditorPanel.
 """
 
 from __future__ import annotations
@@ -27,38 +26,133 @@ from __future__ import annotations
 from typing import Optional
 
 import pygame
+
 from assets.blueprint_editor import BlueprintEditor, EditSession, SessionState
+from ui.components import Button, Dropdown, TextInput, ToggleButton
 
 
-class BlueprintInspectorPanel:
-    """Read-only инспектор Blueprint через EditSession (ME-2.1-G-3).
+class _FieldControl:
+    """Базовый класс для типизированного контрола поля Blueprint."""
+
+    def __init__(self, path: str, label: str, widget):
+        self.path = path
+        self.label = label
+        self.widget = widget
+
+    def set_value(self, value) -> None:
+        raise NotImplementedError
+
+    def get_value(self):
+        raise NotImplementedError
+
+    def handle_event(self, event) -> bool:
+        return self.widget.handle_event(event)
+
+    def draw(self, screen, font, font_small, x: int, y: int) -> int:
+        """Отрисовать label + widget. Вернуть высоту занятой области."""
+        raise NotImplementedError
+
+
+class _TextInputField(_FieldControl):
+    """Текстовое поле (string или float через валидацию)."""
+
+    def __init__(self, path: str, label: str, x: int, y: int, w: int, is_float: bool = False):
+        widget = TextInput(x, y, w, 22)
+        super().__init__(path, label, widget)
+        self._is_float = is_float
+        self._original_value = None
+
+    def set_value(self, value) -> None:
+        self._original_value = value
+        if self._is_float:
+            self.widget.text = str(value) if value is not None else ""
+        else:
+            self.widget.text = str(value) if value is not None else ""
+
+    def get_value(self):
+        text = self.widget.text.strip()
+        if not text:
+            return None
+        if self._is_float:
+            try:
+                return float(text)
+            except ValueError:
+                return self._original_value  # невалидный float — вернуть исходный
+        return text
+
+    def draw(self, screen, font, font_small, x: int, y: int) -> int:
+        label_surf = font_small.render(self.label, True, (140, 140, 140))
+        screen.blit(label_surf, (x, y))
+        self.widget.rect.x = x
+        self.widget.rect.y = y + 14
+        self.widget.draw(screen, font_small)
+        return 38
+
+
+class _BoolField(_FieldControl):
+    """Checkbox (ToggleButton) для bool полей."""
+
+    def __init__(self, path: str, label: str, x: int, y: int):
+        widget = ToggleButton(x, y, 22, 22, "", color_key="btn_secondary")
+        super().__init__(path, label, widget)
+
+    def set_value(self, value) -> None:
+        self.widget.toggled = bool(value)
+
+    def get_value(self):
+        return self.widget.toggled
+
+    def draw(self, screen, font, font_small, x: int, y: int) -> int:
+        # Label слева, checkbox справа
+        label_surf = font_small.render(self.label, True, (140, 140, 140))
+        screen.blit(label_surf, (x, y + 3))
+        self.widget.rect.x = x + 150
+        self.widget.rect.y = y
+        self.widget.draw(screen, font_small)
+        # Индикатор состояния
+        state = "✓" if self.widget.toggled else "✗"
+        state_color = (80, 200, 80) if self.widget.toggled else (220, 80, 80)
+        state_surf = font_small.render(state, True, state_color)
+        screen.blit(state_surf, (x + 180, y + 3))
+        return 26
+
+
+class _DropdownField(_FieldControl):
+    """Dropdown для enum-полей (rotation_mode)."""
+
+    def __init__(self, path: str, label: str, x: int, y: int, w: int, options: list):
+        widget = Dropdown(x, y, w, 22, options)
+        super().__init__(path, label, widget)
+
+    def set_value(self, value) -> None:
+        if value in self.widget.options:
+            self.widget.selected = value
+
+    def get_value(self):
+        return self.widget.selected
+
+    def draw(self, screen, font, font_small, x: int, y: int) -> int:
+        label_surf = font_small.render(self.label, True, (140, 140, 140))
+        screen.blit(label_surf, (x, y))
+        self.widget.rect.x = x
+        self.widget.rect.y = y + 14
+        self.widget.draw(screen, font_small)
+        return 38
+
+
+class BlueprintEditorPanel:
+    """Редактор Blueprint через EditSession (ME-2.1-G-4).
 
     UI-контракт:
-    - НЕ получает BlueprintRecord.data (только через session.get_data/get_field)
-    - НЕ вызывает save_blueprint_atomic (нет save в read-only)
-    - НЕ пишет файлы (нет write_text/json.dump)
-    - НЕ мутирует _blueprints (нет доступа к AssetStore._blueprints)
-    - НЕ создаёт собственную логику валидации (использует session.validate())
+    - НЕ получает BlueprintRecord.data (только через session)
+    - НЕ вызывает save_blueprint_atomic (только session.save())
+    - НЕ пишет файлы
+    - НЕ мутирует _blueprints
+    - Использует типизированные виджеты (TextInput/ToggleButton/Dropdown)
+    - Save заблокирован при ошибках валидации
+    - Cancel восстанавливает original (session.cancel())
+    - VersionConflict: сохранить рабочую копию, показать конфликт
     """
-
-    # Слои Blueprint для отображения (порядок важен)
-    _SECTIONS = [
-        ("blueprint_id", "ID"),
-        ("version", "Version"),
-        ("type", "Type"),
-        ("category", "Category (legacy)"),
-        ("categories", "Categories"),
-        ("tags", "Tags"),
-    ]
-
-    _LAYER_FIELDS = [
-        ("geometry", "Geometry", ["source", "size.w", "size.h", "size.d", "rotation_mode", "requires_wall"]),
-        ("appearance", "Appearance", ["sprite", "color", "show_name"]),
-        ("physics", "Physics", ["cover", "height", "passability.walk", "passability.jump_over"]),
-        ("function", "Function", ["components"]),
-        ("semantics", "Semantics", []),
-        ("metadata", "Metadata", ["label", "icon"]),
-    ]
 
     def __init__(
         self,
@@ -72,15 +166,24 @@ class BlueprintInspectorPanel:
         self._editor = blueprint_editor
         self.active = False
         self._session: Optional[EditSession] = None
-        self._validation = None  # ValidationResult (не типизирован — duck typing)
+        self._validation = None
+        self._status_message = ""
+        self._status_color = (140, 140, 140)
 
         # Layout
         pad = 8
         self._close_rect = pygame.Rect(w - 24 - pad, pad, 24, 22)
-        self._content_y = pad + 26
-        self._content_h = h - self._content_y - pad
 
-        # Colors (соответствуют CatalogPanel)
+        # Кнопки Save / Cancel (внизу панели)
+        btn_y = h - 36
+        self._btn_save = Button(pad, btn_y, 100, 28, "Сохранить", color_key="btn_success")
+        self._btn_cancel = Button(pad + 110, btn_y, 100, 28, "Отмена", color_key="btn_danger")
+
+        # Поле контроля (создаются в open())
+        self._controls: list[_FieldControl] = []
+        self._active_control: Optional[_FieldControl] = None
+
+        # Colors
         self._bg = (30, 30, 40)
         self._border = (60, 60, 80)
         self._text = (200, 200, 220)
@@ -88,67 +191,166 @@ class BlueprintInspectorPanel:
         self._text_error = (220, 80, 80)
         self._text_warn = (220, 180, 80)
         self._text_ok = (80, 200, 80)
-        self._text_dirty = (220, 180, 80)
-        self._text_clean = (80, 200, 80)
         self._section_bg = (40, 40, 55)
         self._btn_bg = (50, 50, 65)
 
-    # ===== Жизненный цикл =====
-
     def open(self, blueprint_id: str) -> None:
-        """Открыть инспектор для blueprint_id через BlueprintEditor.open().
-
-        Создаёт новую EditSession с deepcopy snapshot. Если уже открыта —
-        закрывает предыдущую сессию (session.close()), затем открывает новую.
-        """
+        """Открыть редактор для blueprint_id через BlueprintEditor.open()."""
         if self._session is not None:
             self._session.close()
         self._session = self._editor.open(blueprint_id)
         self._validation = self._session.validate()
+        self._build_controls()
+        self._refresh_controls()
+        self._status_message = ""
         self.active = True
 
     def close(self) -> None:
-        """Закрыть инспектор. Завершает сессию через session.close().
-
-        После close сессия непригодна (state=CANCELLED, working/original очищены).
-        Повторное открытие создаст новую сессию.
-        """
+        """Закрыть редактор. Завершает сессию через session.close()."""
         if self._session is not None:
             self._session.close()
             self._session = None
         self._validation = None
+        self._controls = []
+        self._active_control = None
+        self._status_message = ""
         self.active = False
 
-    # ===== События =====
+    def _build_controls(self) -> None:
+        """Создать виджеты для редактируемых полей."""
+        self._controls = []
+        if self._session is None:
+            return
+
+        x = self.rect.x + 16
+        w = self.rect.w - 32
+        y = self.rect.y + 100  # после заголовка + валидации
+
+        # Geometry
+        self._controls.append(_DropdownField("geometry.rotation_mode", "Rotation", x, y, w, ["free", "mirror", "fixed"]))
+        y += 42
+        self._controls.append(_TextInputField("geometry.size.w", "Width (W)", x, y, w, is_float=True))
+        y += 42
+        self._controls.append(_TextInputField("geometry.size.h", "Height (H)", x, y, w, is_float=True))
+        y += 42
+        self._controls.append(_TextInputField("geometry.size.d", "Depth (D)", x, y, w, is_float=True))
+        y += 42
+        self._controls.append(_BoolField("geometry.requires_wall", "Requires Wall", x, y))
+        y += 30
+
+        # Appearance
+        self._controls.append(_TextInputField("appearance.color", "Color (HEX)", x, y, w))
+        y += 42
+        self._controls.append(_BoolField("appearance.show_name", "Show Name", x, y))
+        y += 30
+
+        # Physics
+        self._controls.append(_TextInputField("physics.cover", "Cover (0-1)", x, y, w, is_float=True))
+        y += 42
+        self._controls.append(_TextInputField("physics.height", "Height (m)", x, y, w, is_float=True))
+        y += 42
+        for field in ["walk", "jump_over", "crawl_under", "climb_on", "walk_around"]:
+            self._controls.append(_BoolField(f"physics.passability.{field}", field.replace("_", " ").title(), x, y))
+            y += 26
+
+        # Metadata
+        self._controls.append(_TextInputField("metadata.label", "Label", x, y, w))
+
+    def _refresh_controls(self) -> None:
+        """Обновить виджеты из session.get_field()."""
+        if self._session is None:
+            return
+        for control in self._controls:
+            try:
+                value = self._session.get_field(control.path)
+                control.set_value(value)
+            except (KeyError, Exception):
+                pass
+
+    def _on_field_changed(self, control: _FieldControl) -> None:
+        """Вызывается когда виджет изменил значение. Live validation."""
+        if self._session is None or self._session.state != SessionState.OPEN:
+            return
+        value = control.get_value()
+        if value is not None:
+            self._session.set_field(control.path, value)
+            self._validation = self._session.last_validation
+            self._status_message = ""
+
+    def _can_save(self) -> bool:
+        """Save доступен если: сессия OPEN, dirty, нет ошибок валидации."""
+        if self._session is None or self._session.state != SessionState.OPEN:
+            return False
+        if not self._session.dirty:
+            return False
+        if self._validation is not None and len(self._validation.errors) > 0:
+            return False
+        return True
+
+    def _on_save(self) -> None:
+        """Сохранить через session.save() → G-1. Обработать конфликты."""
+        if self._session is None or not self._can_save():
+            return
+        try:
+            result = self._session.save()
+            self._status_message = f"✓ Сохранено v{result.version}"
+            self._status_color = self._text_ok
+            # Обновить controls из актуальной сессии (после save state=SAVED)
+            # Повторное открытие для новой сессии
+            bp_id = self._session.blueprint_id
+            self.open(bp_id)
+        except Exception as e:
+            # VersionConflict или SaveBlocked или AssetStoreError
+            self._status_message = f"✗ {e}"
+            self._status_color = self._text_error
+            # Сессия остаётся OPEN, рабочая копия цела (G-2 гарантирует)
+
+    def _on_cancel(self) -> None:
+        """Отмена через session.cancel(). Закрыть панель."""
+        if self._session is not None:
+            self._session.cancel()
+        self.close()
 
     def handle_event(self, event: pygame.event.Event) -> bool:
-        """Обработать событие. Вернуть True если поглощено.
-
-        G-3 (read-only): обрабатывает только закрытие (Esc/F4/крестик).
-        Никаких set_field/save/cancel — это G-4.
-        """
+        """Обработать событие."""
         if not self.active or self._session is None:
             return False
 
+        # Esc/F4 — закрыть
         if event.type == pygame.KEYDOWN:
             if event.key in (pygame.K_ESCAPE, pygame.K_F4):
                 self.close()
                 return True
 
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:
-                mx, my = pygame.mouse.get_pos()
-                close_abs = self._close_rect.move(self.rect.x, self.rect.y)
-                if close_abs.collidepoint(mx, my):
-                    self.close()
+        # Кнопка закрытия
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mx, my = pygame.mouse.get_pos()
+            close_abs = self._close_rect.move(self.rect.x, self.rect.y)
+            if close_abs.collidepoint(mx, my):
+                self.close()
+                return True
+
+            # Save / Cancel кнопки
+            if self._btn_save.enabled:
+                save_abs = self._btn_save.rect.move(self.rect.x, self.rect.y)
+                if save_abs.collidepoint(mx, my):
+                    self._on_save()
                     return True
+            cancel_abs = self._btn_cancel.rect.move(self.rect.x, self.rect.y)
+            if cancel_abs.collidepoint(mx, my):
+                self._on_cancel()
+                return True
+
+        # Виджеты полей
+        for control in self._controls:
+            if control.handle_event(event):
+                self._on_field_changed(control)
+                return True
 
         return False
 
-    # ===== Отрисовка =====
-
     def draw(self, screen: pygame.Surface, font, font_small, font_bold) -> None:
-        """Отрисовать инспектор. Read-only: только отображение."""
+        """Отрисовать редактор."""
         if not self.active or self._session is None:
             return
 
@@ -159,10 +361,10 @@ class BlueprintInspectorPanel:
         rx = self.rect.x
         ry = self.rect.y
 
-        # Заголовок: blueprint_id + dirty indicator
+        # Заголовок
         title = self._session.blueprint_id
         dirty_text = " *изменено" if self._session.dirty else " чисто"
-        dirty_color = self._text_dirty if self._session.dirty else self._text_clean
+        dirty_color = self._text_warn if self._session.dirty else self._text_ok
         title_surf = font_bold.render(f"📋 {title}", True, self._text)
         screen.blit(title_surf, (rx + 8, ry + 6))
         dirty_surf = font_small.render(dirty_text, True, dirty_color)
@@ -175,112 +377,63 @@ class BlueprintInspectorPanel:
         close_label = font_small.render("✕", True, self._text)
         screen.blit(close_label, (close_abs.x + 8, close_abs.y + 3))
 
+        # Валидация
+        self._draw_validation(screen, font_small, font_bold, rx + 8, ry + 32)
+
         # Состояние сессии
         state_text = f"Состояние: {self._session.state.value}"
         state_color = self._text_dim if self._session.state == SessionState.OPEN else self._text_warn
         state_surf = font_small.render(state_text, True, state_color)
-        screen.blit(state_surf, (rx + 8, ry + 32))
+        screen.blit(state_surf, (rx + 8, ry + 78))
 
-        # Валидация (errors/warnings раздельно)
-        self._draw_validation(screen, font_small, font_bold, rx, ry + 52)
+        # Поля (контролы)
+        for control in self._controls:
+            try:
+                value = self._session.get_field(control.path)
+            except (KeyError, Exception):
+                continue
+            # Контрол уже отрисован в handle_event? Нет — draw отдельно
+            # Контролы хранят абсолютные позиции, установленные в _build_controls
+            # Но rect.x/y сбрасывается — обновим
+            control.draw(screen, font, font_small, control.widget.rect.x, control.widget.rect.y - (14 if isinstance(control, (_TextInputField, _DropdownField)) else 0))
 
-        # Контент — скроллируемая область
-        content_y = ry + self._content_y + 60
-        self._draw_sections(screen, font, font_small, font_bold, rx, content_y)
+        # Status message
+        if self._status_message:
+            status_surf = font_small.render(self._status_message, True, self._status_color)
+            screen.blit(status_surf, (rx + 8, self.rect.h - 50))
+
+        # Save / Cancel кнопки (внизу)
+        self._btn_save.enabled = self._can_save()
+        save_abs = self._btn_save.rect.move(rx, ry)
+        old_save_rect = self._btn_save.rect
+        self._btn_save.rect = save_abs
+        self._btn_save.draw(screen, font_small)
+        self._btn_save.rect = old_save_rect
+
+        cancel_abs = self._btn_cancel.rect.move(rx, ry)
+        old_cancel_rect = self._btn_cancel.rect
+        self._btn_cancel.rect = cancel_abs
+        self._btn_cancel.draw(screen, font_small)
+        self._btn_cancel.rect = old_cancel_rect
 
     def _draw_validation(self, screen, font_small, font_bold, x: int, y: int) -> None:
-        """Отрисовать errors/warnings раздельно."""
+        """Отрисовать errors/warnings."""
         if self._validation is None:
             label = font_small.render("Валидация: нет валидатора", True, self._text_dim)
-            screen.blit(label, (x + 8, y))
+            screen.blit(label, (x, y))
             return
 
         errors = self._validation.errors
         warnings = self._validation.warnings
 
-        # Errors
         err_text = f"Ошибки: {len(errors)}"
         err_color = self._text_error if errors else self._text_ok
-        err_surf = font_small.render(err_text, True, err_color)
-        screen.blit(err_surf, (x + 8, y))
+        screen.blit(font_small.render(err_text, True, err_color), (x, y))
 
-        # Warnings
         warn_text = f"Предупреждения: {len(warnings)}"
         warn_color = self._text_warn if warnings else self._text_ok
-        warn_surf = font_small.render(warn_text, True, warn_color)
-        screen.blit(warn_surf, (x + 120, y))
+        screen.blit(font_small.render(warn_text, True, warn_color), (x + 120, y))
 
-        # Первые 3 ошибки (если есть)
-        for i, issue in enumerate(errors[:3]):
-            msg = issue.message[:60]
-            surf = font_small.render(f"  • {msg}", True, self._text_error)
-            screen.blit(surf, (x + 8, y + 18 + i * 14))
-
-    def _draw_sections(self, screen, font, font_small, font_bold, x: int, y: int) -> None:
-        """Отрисовать секции Blueprint (read-only)."""
-        if self._session is None:
-            return
-
-        cy = y
-        max_y = self.rect.y + self.rect.h - 8
-
-        # Верхние поля
-        for key, label in self._SECTIONS:
-            if cy >= max_y:
-                break
-            try:
-                value = self._session.get_field(key)
-            except (KeyError, Exception):
-                continue
-            label_surf = font_small.render(label, True, self._text_dim)
-            screen.blit(label_surf, (x + 8, cy))
-            value_str = self._format_value(value)
-            value_surf = font_small.render(value_str, True, self._text)
-            screen.blit(value_surf, (x + 140, cy))
-            cy += 16
-
-        cy += 6
-
-        # Слои
-        for layer_key, layer_label, fields in self._LAYER_FIELDS:
-            if cy >= max_y:
-                break
-            # Заголовок слоя
-            header_surf = font_bold.render(f"── {layer_label} ──", True, self._text_dim)
-            screen.blit(header_surf, (x + 8, cy))
-            cy += 18
-
-            # Поля слоя
-            for field_path in fields:
-                if cy >= max_y:
-                    break
-                full_path = f"{layer_key}.{field_path}"
-                try:
-                    value = self._session.get_field(full_path)
-                except (KeyError, Exception):
-                    continue
-                label_surf = font_small.render(field_path, True, self._text_dim)
-                screen.blit(label_surf, (x + 16, cy))
-                value_str = self._format_value(value)
-                value_surf = font_small.render(value_str, True, self._text)
-                screen.blit(value_surf, (x + 150, cy))
-                cy += 14
-            cy += 4
-
-    def _format_value(self, value) -> str:
-        """Форматировать значение для отображения."""
-        if value is None:
-            return "—"
-        if isinstance(value, bool):
-            return "да" if value else "нет"
-        if isinstance(value, (list, tuple)):
-            if len(value) == 0:
-                return "[]"
-            if len(value) <= 3:
-                return str(list(value))
-            return f"[{len(value)} элементов]"
-        if isinstance(value, dict):
-            if len(value) == 0:
-                return "{}"
-            return f"{{ {len(value)} ключей }}"
-        return str(value)[:40]
+        for i, issue in enumerate(errors[:2]):
+            msg = issue.message[:50]
+            screen.blit(font_small.render(f"  • {msg}", True, self._text_error), (x, y + 16 + i * 14))

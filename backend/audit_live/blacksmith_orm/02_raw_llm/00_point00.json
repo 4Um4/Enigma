@@ -1,6 +1,22 @@
 {
-  "status": "NOT_DECOMPOSED",
-  "error": "Декомпозиция не удалась после retry: items[0]: kind 'human_hint' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "status": "OK",
   "age_anchors": [],
-  "raw_response": "{\"items\": [\n  {\"kind\": \"human_hint\", \"draft_payload\": {\"summary\": \"кузнец Орм\"}, \"confidence\": 1.0, \"needs_confirmation\": false, \"question\": null}\n]}"
+  "items": [
+    {
+      "kind": "TRAIT_SEED",
+      "draft_payload": {
+        "trait": "кузнец",
+        "evidence": "кузнец Орм"
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    }
+  ],
+  "coverage": {
+    "fragment_ord": 0,
+    "items_count": 1,
+    "fragment_text_preview": "кузнец Орм: гном",
+    "critical_topic_warning": null
+  }
 }

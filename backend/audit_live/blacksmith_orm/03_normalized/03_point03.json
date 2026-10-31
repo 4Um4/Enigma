@@ -2,10 +2,8 @@
   {
     "kind": "RELATIONSHIP",
     "draft_payload": {
-      "summary": "Хороший его друг Торнин",
-      "target_hint": "Торнин",
-      "nature": "friendship",
-      "valence": "positive"
+      "summary": "Хороший его друг Торнин, который напоминает ему старого друга, умершего 70 лет назад.",
+      "target_hint": "Торнин"
     },
     "confidence": 0.4,
     "needs_confirmation": true,
@@ -19,28 +17,5 @@
         "LEAVE_WHITE_SPOT"
       ]
     }
-  },
-  {
-    "kind": "EVENT",
-    "draft_payload": {
-      "summary": "умерший 70 лет назад",
-      "day": null,
-      "age": 70
-    },
-    "confidence": 0.5,
-    "needs_confirmation": true,
-    "question": null
-  },
-  {
-    "kind": "PORTRET",
-    "draft_payload": {
-      "statement": "Хороший его друг Торнин, который напоминает ему старого друга",
-      "traits": [
-        "friendship"
-      ]
-    },
-    "confidence": 0.5,
-    "needs_confirmation": true,
-    "question": null
   }
 ]

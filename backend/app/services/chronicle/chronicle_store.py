@@ -28,6 +28,10 @@ from app.domain.chronicle import (
     KP_LEARNED_AGE,
     KP_LEARNED_YEAR,
     SCHEMA_VERSION,
+    BeliefGrounding,
+    CandidateBasis,
+    CandidateStatus,
+    CauseCandidate,
     CauseKind,
     CauseRef,
     ChronicleDocument,
@@ -40,9 +44,9 @@ from app.domain.chronicle import (
     EntryProvenance,
     KnowledgeChannel,
     KnowledgeLink,
+    NpcCausalBelief,
     WhiteSpot,
     WhiteSpotResolutionState,
-    NpcCausalBelief, BeliefGrounding, CauseCandidate, CandidateBasis, CandidateStatus,
 )
 
 # ── Ключи — константы (§12.1) ────────────────────────────────────────────────

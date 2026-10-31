@@ -7,64 +7,11 @@
     {
       "kind": "PORTRET",
       "draft_payload": {
-        "statement": "Борко не понимает, что он на самом деле — всего лишь инструмент для своего молчания. Он уверен в своей власти, но на самом деле это просто удобная иллюзия, позволяющая ему избегать самосознания.",
+        "statement": "Борко не понимает того, что он хозяин, а Орм просто пользуется им как инструментом для собственного молчания.",
         "traits": [
-          "психологический портрет",
-          "самообман",
-          "молчание"
+          "не понимает свою власть",
+          "Орм использует Борко"
         ]
-      },
-      "confidence": 1.0,
-      "needs_confirmation": false,
-      "question": null
-    },
-    {
-      "kind": "RELATIONSHIP",
-      "draft_payload": {
-        "summary": "Орм использует Борко как инструмент для своего молчания.",
-        "target_hint": "Борко",
-        "nature": "использование",
-        "valence": "neutral"
-      },
-      "confidence": 0.4,
-      "needs_confirmation": true,
-      "question": {
-        "question_id": "roster_mismatch_1",
-        "target_span": "Борко",
-        "options": [
-          "SELECT_EXISTING_NPC",
-          "CREATE_NEW_NPC",
-          "UNKNOWN_PERSON",
-          "LEAVE_WHITE_SPOT"
-        ]
-      }
-    },
-    {
-      "kind": "RELATIONSHIP",
-      "draft_payload": {
-        "summary": "Орм не боится шантажа со стороны Борко.",
-        "target_hint": "Орм",
-        "nature": "несensitivity to blackmail",
-        "valence": "neutral"
-      },
-      "confidence": 0.4,
-      "needs_confirmation": true,
-      "question": {
-        "question_id": "roster_mismatch_2",
-        "target_span": "Орм",
-        "options": [
-          "SELECT_EXISTING_NPC",
-          "CREATE_NEW_NPC",
-          "UNKNOWN_PERSON",
-          "LEAVE_WHITE_SPOT"
-        ]
-      }
-    },
-    {
-      "kind": "TRAIT_SEED",
-      "draft_payload": {
-        "trait": "самообман",
-        "evidence": "Борко думает, что он хозяин. А Орм просто пользуется им как инструментом для собственного молчания."
       },
       "confidence": 1.0,
       "needs_confirmation": false,
@@ -73,8 +20,70 @@
     {
       "kind": "TRAIT_SEED",
       "draft_payload": {
-        "trait": "эго",
-        "evidence": "Борко уверен в своей власти."
+        "trait": "гном",
+        "evidence": "А гному, который 20 лет назад потерял жену в бреду и лихорадке,"
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "TRAIT_SEED",
+      "draft_payload": {
+        "trait": "привык держать всё в себе",
+        "evidence": "гному, который привык держать всё в себе,"
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "EVENT",
+      "draft_payload": {
+        "summary": "Орм не испугался шантажа стражника.",
+        "day": null,
+        "duration_years": null,
+        "years_ago": null
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "TRAIT_SEED",
+      "draft_payload": {
+        "trait": "не объясняет себе причины поступков",
+        "evidence": "с гнусом, который не понимает, почему он напал на девочку тем вечером,"
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "TRAIT_SEED",
+      "draft_payload": {
+        "trait": "пользуется разрешением для молчания",
+        "evidence": "А гному, который не понимает почему он напал на девочку тем вечером, — такому гному разрешение не нужно. Но оно удобно."
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "TRAIT_SEED",
+      "draft_payload": {
+        "trait": "не надо объяснять себе, почему ты делаешь то, что делаешь",
+        "evidence": "С ним не надо объяснять себе, почему ты делаешь то, что делаешь."
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "TRAIT_SEED",
+      "draft_payload": {
+        "trait": "продолжать действовать по указанию",
+        "evidence": "Борко сказал продолжать — значит, можно продолжать."
       },
       "confidence": 1.0,
       "needs_confirmation": false,
@@ -83,7 +92,7 @@
   ],
   "coverage": {
     "fragment_ord": 17,
-    "items_count": 5,
+    "items_count": 8,
     "fragment_text_preview": "17. Борко не имеет власти над Ормом. Орм не испугался шантажа стражника. Орм про",
     "critical_topic_warning": null
   }

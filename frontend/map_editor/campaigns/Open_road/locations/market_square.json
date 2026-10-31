@@ -3,8 +3,8 @@
   "location_id": "market_square",
   "label": "Торговая площадь",
   "origin": {
-    "x": 20.0,
-    "y": 15.0
+    "x": 20.033333333333324,
+    "y": 20.018000000000008
   },
   "size": {
     "w": 25,
@@ -42,42 +42,6 @@
     }
   ],
   "walls": [
-    {
-      "id": "wall_0",
-      "type": "wall",
-      "x1": -5.0,
-      "y1": 15.0,
-      "x2": 6.5,
-      "y2": 15.0,
-      "thickness": 0.2
-    },
-    {
-      "id": "wall_1",
-      "type": "wall",
-      "x1": 6.5,
-      "y1": 15.0,
-      "x2": 6.5,
-      "y2": 40.0,
-      "thickness": 0.2
-    },
-    {
-      "id": "wall_2",
-      "type": "wall",
-      "x1": 6.5,
-      "y1": 40.0,
-      "x2": -5.0,
-      "y2": 40.0,
-      "thickness": 0.2
-    },
-    {
-      "id": "wall_3",
-      "type": "wall",
-      "x1": -5.0,
-      "y1": 40.0,
-      "x2": -5.0,
-      "y2": 15.0,
-      "thickness": 0.2
-    },
     {
       "id": "wall_4",
       "type": "wall",
@@ -117,38 +81,6 @@
   ],
   "obstacles": [],
   "objects": [
-    {
-      "id": "obj_0",
-      "name": "Дверь №1",
-      "type": "door",
-      "position": {
-        "x": 6.5,
-        "y": 17.0971968
-      },
-      "size": {
-        "w": 0.2,
-        "h": 2.07,
-        "d": 2.2
-      },
-      "rotation": 0,
-      "passability": {
-        "walk": true,
-        "jump_over": false,
-        "crawl_under": false,
-        "climb_on": false,
-        "walk_around": true
-      },
-      "cover": 0.0,
-      "color": "#D2691E",
-      "show_name": false,
-      "properties": {
-        "open": true,
-        "locked": false,
-        "durability": 20,
-        "visibility_through": 0.1
-      },
-      "wall_id": "wall_1"
-    },
     {
       "id": "obj_1",
       "name": "Дверь №2",
@@ -269,7 +201,7 @@
   },
   "global_coords": true,
   "created_at": "2026-06-09T00:00:00",
-  "modified_at": "2026-08-15T15:08:14.808068",
+  "modified_at": "2026-10-31T11:39:23.254863",
   "adjacency": {
     "north": "tavern"
   },

@@ -221,7 +221,11 @@ class BiographyDecomposer:
                     system_prompt=system_prompt,
                 )
                 items = ChronicleDecompositionNormalizer.normalize(
-                    raw, chronicle_id=chronicle_id, fragment_ord=fragment_ord, roster=roster
+                    raw,
+                    chronicle_id=chronicle_id,
+                    fragment_ord=fragment_ord,
+                    roster=roster,
+                    subject_id=chronicle_id,
                 )
                 return DecomposeResult.success(items, anchors)
             except DecompositionError as e:

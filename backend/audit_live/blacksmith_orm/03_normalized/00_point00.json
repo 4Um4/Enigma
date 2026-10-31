@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "kind": "TRAIT_SEED",
+    "draft_payload": {
+      "trait": "кузнец",
+      "evidence": "кузнец Орм"
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  }
+]

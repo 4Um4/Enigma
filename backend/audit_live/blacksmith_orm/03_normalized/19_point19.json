@@ -1,40 +1,87 @@
 [
   {
+    "kind": "TRAIT_SEED",
+    "draft_payload": {
+      "trait": "пьёт медленно",
+      "evidence": "Орм пьёт медленно"
+    },
+    "confidence": 0.5,
+    "needs_confirmation": true,
+    "question": null
+  },
+  {
+    "kind": "TRAIT_SEED",
+    "draft_payload": {
+      "trait": "не пьянеет до конца вечера",
+      "evidence": "Орм пьёт медленно, ровно и не пьянеет до конца вечера"
+    },
+    "confidence": 0.5,
+    "needs_confirmation": true,
+    "question": null
+  },
+  {
+    "kind": "TRAIT_SEED",
+    "draft_payload": {
+      "trait": "пьёт в отключку",
+      "evidence": "Торнин пьёт в отключку"
+    },
+    "confidence": 0.5,
+    "needs_confirmation": true,
+    "question": null
+  },
+  {
+    "kind": "RELATIONSHIP",
+    "draft_payload": {
+      "summary": "Орм и Торнин - двое собутыльников с противоположными способами питья",
+      "target_hint": "Торнин",
+      "nature": "собутыльник",
+      "valence": "neutral"
+    },
+    "confidence": 0.4,
+    "needs_confirmation": true,
+    "question": {
+      "question_id": "roster_mismatch_3",
+      "target_span": "Торнин",
+      "options": [
+        "SELECT_EXISTING_NPC",
+        "CREATE_NEW_NPC",
+        "UNKNOWN_PERSON",
+        "LEAVE_WHITE_SPOT"
+      ]
+    }
+  },
+  {
+    "kind": "RELATIONSHIP",
+    "draft_payload": {
+      "summary": "Орм и Торнин - двое собутыльников с противоположными способами питья",
+      "target_hint": "Орм",
+      "nature": "собутыльник",
+      "valence": "neutral"
+    },
+    "confidence": 0.4,
+    "needs_confirmation": true,
+    "question": {
+      "question_id": "self_reference_4",
+      "target_span": "Орм",
+      "options": [
+        "SELECT_EXISTING_NPC",
+        "CREATE_NEW_NPC",
+        "UNKNOWN_PERSON",
+        "LEAVE_WHITE_SPOT"
+      ]
+    }
+  },
+  {
     "kind": "PORTRET",
     "draft_payload": {
-      "statement": "Орм пьёт медленно, ровно и не пьянеет до конца вечера; Торнин пьёт в отключку. Два собутыльника с противоположными техниками: один поддерживает застолье, другой выключается из него. Орм сидит рядом не ради компании — собутыльник, который не помнит вечера, лучший слушатель из всех возможных.",
+      "statement": "Орм сидит рядом не ради компании - собутыльник, который не помнит вечера, лучший слушатель из всех возможных",
       "traits": [
-        "постоянство",
-        "умение управлять собой",
-        "трудность общения"
+        "сидит не ради компании",
+        "лучший слушатель"
       ]
     },
-    "confidence": 1.0,
-    "needs_confirmation": false,
-    "question": null
-  },
-  {
-    "kind": "RELATIONSHIP",
-    "draft_payload": {
-      "summary": "Орм и Торнин являются собутыльниками с противоположными способами питья.",
-      "target_hint": "Торнин Серебряная Луна",
-      "nature": "neutral",
-      "valence": "neutral"
-    },
-    "confidence": 1.0,
-    "needs_confirmation": false,
-    "question": null
-  },
-  {
-    "kind": "RELATIONSHIP",
-    "draft_payload": {
-      "summary": "Орм и Торнин являются собутыльниками с противоположными способами питья.",
-      "target_hint": "Кузнец Орм",
-      "nature": "neutral",
-      "valence": "neutral"
-    },
-    "confidence": 1.0,
-    "needs_confirmation": false,
+    "confidence": 0.5,
+    "needs_confirmation": true,
     "question": null
   }
 ]

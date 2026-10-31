@@ -7,8 +7,16 @@
     {
       "kind": "EVENT",
       "draft_payload": {
-        "summary": "Учился кузнечному делу у мастера Грунта Алмазной наковальни.",
-        "day": null
+        "summary": "Учился кузнечному делу у мастера Грунта Алмазной наковальни",
+        "day": null,
+        "duration_years": null,
+        "years_ago": 100,
+        "_provenance": {
+          "derived_from": "game_start_age - years_ago",
+          "game_start_age": 146,
+          "years_ago": 100,
+          "rule": "point in past relative to game_start"
+        }
       },
       "confidence": 1.0,
       "needs_confirmation": false,

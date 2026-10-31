@@ -45,7 +45,7 @@ ALLOWLIST: dict[str, int] = {
     "models/causality_manifest.py": 1,   # DECL-MANIFEST (S317, authority ADR-O-370)
     "models/idle_tick.py": 1,            # DECL-MODEL (idle TypedDict)
     "models/npc_state.py": 7,            # OWNER-MODEL + PROJECTION-SERIALIZE + фабрика
-    "services/chronicle/chronicle_seeder.py": 1,  # DOC-SEED-CONTRACT (CCH-4/ADR-O-423: сеялка — транслятор, кэш не читает; упоминание формата в доке)
+    "services/chronicle/chronicle_seeder.py": 3,  # DOC-SEED-CONTRACT (CCH-4/ADR-O-423) + DOC-CONSUMER (downstream_consumer comment: "relationship_cache") + KIND_CONSUMER map ("RELATIONSHIP": "relationship_cache"). A2 census-touch: allowlist 1→3 — pre-existing сайты от CCH-8 (5b845625), не учтённые при S341 census-touch; сеялка кэш не читает/не пишет, только упоминает формат в доке и реестре downstream-потребителей.
     "services/combat/combat_subscriber.py": 2,    # SNAPSHOT-COPY-THROUGH + INIT-EMPTY
     "services/npc/decision/risk.py": 1,           # DECISION-READER (карта S318)
     "services/npc/decision/social_deltas.py": 1,  # DECISION-READER (карта S318)

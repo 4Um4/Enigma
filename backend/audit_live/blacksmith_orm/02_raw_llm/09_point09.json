@@ -1,4 +1,37 @@
 {
-  "_http_error": 500,
-  "_body": "Internal Server Error"
+  "status": "OK",
+  "age_anchors": [],
+  "items": [
+    {
+      "kind": "PORTRET",
+      "draft_payload": {
+        "statement": "Непонятно, что тем вечером заставило его напасть на девочку и изнасиловать — то ли желание, то ли месть жене за тяжёлые последние годы с ней; даже он сам не понимает.",
+        "traits": [
+          "непонятное желание",
+          "месть жене"
+        ]
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "RELATIONSHIP",
+      "draft_payload": {
+        "summary": "Люся похожа на Эльру — и это единственный ключ, который у него есть, к двери, которую он открывать не хочет.",
+        "target_hint": "Люся",
+        "nature": "идеализация",
+        "valence": "neutral"
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    }
+  ],
+  "coverage": {
+    "fragment_ord": 9,
+    "items_count": 2,
+    "fragment_text_preview": "9. Непонятно, что тем вечером заставило его напасть на девочку и изнасиловать — ",
+    "critical_topic_warning": null
+  }
 }

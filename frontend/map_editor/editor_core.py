@@ -388,9 +388,9 @@ class EditorCore:
         )
         self.catalog_panel.on_place = lambda bp_id: self._catalog_place(bp_id)
 
-        # ME-2.1-G-3: BlueprintInspectorPanel (read-only инспектор через EditSession)
+        # ME-2.1-G-4: BlueprintEditorPanel (редактор через EditSession)
         from assets.blueprint_editor import BlueprintEditor
-        from ui.blueprint_inspector import BlueprintInspectorPanel
+        from ui.blueprint_inspector import BlueprintEditorPanel
 
         self._blueprint_editor = BlueprintEditor(
             asset_store=self.catalog_panel.store,
@@ -398,14 +398,14 @@ class EditorCore:
         )
         inspector_x = catalog_x + catalog_w + 10
         inspector_w = 420
-        self.inspector_panel = BlueprintInspectorPanel(
+        self.inspector_panel = BlueprintEditorPanel(
             inspector_x,
             catalog_y,
             inspector_w,
             catalog_h,
             self._blueprint_editor,
         )
-        # Double-click в каталоге → открыть инспектор
+        # Double-click в каталоге → открыть редактор
         self.catalog_panel.on_inspect = lambda bp_id: self.inspector_panel.open(bp_id)
 
         # === Дропдауны для типов объектов ===

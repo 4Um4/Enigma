@@ -54,6 +54,44 @@ _VAGUE_RELATION_MARKERS: Final[tuple] = (
 # Кэшируется на уровне модуля (фракции статичны в рамках сессии).
 _FACTION_CACHE: Optional[Dict[str, str]] = None  # normalized_name -> faction_id
 
+# A2: кэш CanonicalRegistry.alias_to_npc — единственный источник, где name_forms
+# (орм, орма, орму...) резолвятся в npc_id. roster (display_name «Кузнец Орм») этого
+# не делает. Без registry self-ref backstop не срабатывает на инфлектированных формах.
+_REGISTRY_CACHE: Optional[Dict[str, str]] = None  # alias (lower) -> npc_id
+
+
+def _load_alias_registry() -> Dict[str, str]:
+    """Загружает alias_to_npc из CanonicalRegistry (registry_builder).
+
+    Возвращает mapping: normalized alias (lower) -> npc_id.
+    Кэшируется на уровне модуля (NPC-конфиги статичны в рамках сессии).
+    При ошибке загрузки возвращает {} (backstop отключается, не падает)."""
+    global _REGISTRY_CACHE
+    if _REGISTRY_CACHE is not None:
+        return _REGISTRY_CACHE
+    try:
+        from app.services.chronicle.registry_builder import build_canonical_registry
+        reg = build_canonical_registry()
+        _REGISTRY_CACHE = dict(reg.alias_to_npc)
+    except Exception as e:
+        logger.warning(f"[NORMALIZER] alias registry load failed: {e}")
+        _REGISTRY_CACHE = {}
+    return _REGISTRY_CACHE
+
+
+def _resolve_to_subject(hint: Any, subject_id: Optional[str]) -> bool:
+    """A2: True если hint резолвится в subject_id через alias registry (name_forms).
+
+    Использует _load_alias_registry (name_forms: орм/орма/орму/...), а не roster
+    (display_name: «Кузнец Орм»). roster exact-match не находит «Орм», потому что
+    display_name содержит приставку «Кузнец ». name_forms — единственный источник
+    падежных форм и коротких имён."""
+    if not isinstance(hint, str) or not subject_id:
+        return False
+    alias = _load_alias_registry()
+    resolved = alias.get(hint.strip().lower())
+    return resolved == subject_id
+
 
 def _load_faction_registry() -> Dict[str, str]:
     """Загружает реестр фракций из config/world/factions.json.
@@ -226,6 +264,7 @@ class ChronicleDecompositionNormalizer:
         chronicle_id: str,
         fragment_ord: int,
         roster: Optional[Mapping[str, str]] = None,
+        subject_id: Optional[str] = None,
     ) -> List[DecompositionItem]:
         """
         Возвращает список DecompositionItem. Бросает DecompositionError:
@@ -322,12 +361,47 @@ class ChronicleDecompositionNormalizer:
                     h = payload.get("target_hint")
                     if isinstance(h, str) and h.strip():
                         hint = h
+                # A2: self-reference backstop — ПЕРЕД roster_mismatch (более конкретный
+                # случай). LLM часто ошибается в семантической цели («Гильдия терпит
+                # Орма» → target_hint="Орм" вместо «Гильдия»). Использует alias registry
+                # (name_forms: орм/орма/орму/...), а не roster (display_name «Кузнец Орм»),
+                # потому что roster exact-match не находит инфлектированные/короткие формы.
+                # Не любая self-reference — ошибка (явные «Орм ненавидит себя» валидны),
+                # поэтому backstop создаёт вопрос, не отбрасывает запись. Автор решает
+                # через 4 опции:
+                #   SELECT_EXISTING_NPC + subject → явное self (сохранить);
+                #   SELECT_EXISTING_NPC + другой NPC → исправить target;
+                #   CREATE_NEW_NPC / UNKNOWN_PERSON / LEAVE_WHITE_SPOT → неоднозначно.
+                # target_span=target_hint (не summary): /resolve matcher ищет по name_hint,
+                # placeholder EntityRef в routes_chronicle.py:425 имеет name_hint=target_hint.
+                # Полный авторский фрагмент UI собирает из author_text по ordinal.
                 if (
-                    isinstance(hint, str)
+                    subject_id is not None
+                    and not question
+                    and isinstance(hint, str)
+                    and hint.strip()
+                    and _resolve_to_subject(hint, subject_id)
+                    and not _matches_faction(hint, _load_faction_registry())
+                ):
+                    conf = min(float(conf), 0.4)
+                    question = ClarificationQuestion(
+                        question_id=f"self_reference_{idx}",
+                        target_span=hint.strip(),
+                        options=(
+                            ClarificationOption.SELECT_EXISTING_NPC,
+                            ClarificationOption.CREATE_NEW_NPC,
+                            ClarificationOption.UNKNOWN_PERSON,
+                            ClarificationOption.LEAVE_WHITE_SPOT,
+                        ),
+                    )
+                if (
+                    not question
+                    and isinstance(hint, str)
                     and hint.strip()
                     and not _matches_roster_exact(hint, roster)
                     and not _matches_faction(hint, _load_faction_registry())
                     and not _is_identity_question_for(question, hint)
+                    and not _resolve_to_subject(hint, subject_id)
                 ):
                     conf = min(float(conf), 0.4)
                     question = ClarificationQuestion(

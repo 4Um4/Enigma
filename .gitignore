@@ -74,3 +74,13 @@ data/logs/
 # Runtime-состояние процессов и резервные копии редакторов (не коммитятся)
 *.pid
 *.bak*
+
+# CCH-12 live audit artifacts (diagnostic, not committed)
+backend/audit_live/
+
+# Временные артефакты прогонов тестов и отладки (не код проекта)
+.pytest_tmp/
+tmp_test_g4/
+g4_regression.txt
+g4_test_output.txt
+mypy_check_run.txt

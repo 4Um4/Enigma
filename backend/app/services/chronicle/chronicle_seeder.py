@@ -409,10 +409,13 @@ class SeedEntryReport:
     semantic_check: str             # "OK" | "WARN"
     semantic_notes: Tuple[str, ...]
     seed_result: str                # "SEEDED" | "SKIPPED" | "NOT_APPLICABLE"
-    skip_reason: Optional[str]      # "no_object_id" | "belief_type_not_in_registry" | ...
+    skip_reason: Optional[str]      # "no_object_id" | "self_relation" | ...
     day: Optional[int]              # для EVENT/EFFECT: вычисленный day
     day_anomaly: Optional[str]      # "SENTINEL_DAY" | "DAY_ZERO" | None
     downstream_consumer: Optional[str]  # "EventMemory" | "relationship_cache" | ...
+    # A2: структурированная диагностика skip. Заполняется только для self_relation
+    # (остальные skip'ы — без detail). None = нет дополнительной информации.
+    skip_detail: Optional[Dict[str, Any]] = None
 
 
 @dataclass(frozen=True)
@@ -495,11 +498,15 @@ def _classify_seed_entry(
     e: ChronicleEntry,
     doc: ChronicleDocument,
     kind_str: str,
-) -> Tuple[str, Optional[str], Optional[int], Optional[str]]:
-    """Возвращает (seed_result, skip_reason, day, day_anomaly).
+) -> Tuple[str, Optional[str], Optional[int], Optional[str], Optional[Dict[str, Any]]]:
+    """Возвращает (seed_result, skip_reason, day, day_anomaly, skip_detail).
+
+    skip_detail заполняется только для self_relation (A2): структурированная
+    диагностика для автора — entry_id, subject_id, target_id, summary,
+    target_hint, reason. Для остальных skip'ов — None.
     Логика повторяет существующие build_seed_* без мутации состояния."""
     if kind_str not in _SEEDABLE_KINDS:
-        return ("NOT_APPLICABLE", None, None, None)
+        return ("NOT_APPLICABLE", None, None, None, None)
     if kind_str == "EVENT":
         try:
             day = _day_from_age(
@@ -509,29 +516,45 @@ def _classify_seed_entry(
                 strict=True,
             )
             if day == SENTINEL_DAY:
-                return ("SEEDED", None, day, "SENTINEL_DAY")
+                return ("SEEDED", None, day, "SENTINEL_DAY", None)
             if day == 0:
-                return ("SEEDED", None, day, "DAY_ZERO")
-            return ("SEEDED", None, day, None)
+                return ("SEEDED", None, day, "DAY_ZERO", None)
+            return ("SEEDED", None, day, None, None)
         except SeederError as ex:
-            return ("SKIPPED", f"SeederError: {ex}", None, None)
+            return ("SKIPPED", f"SeederError: {ex}", None, None, None)
     if kind_str == "RELATIONSHIP":
         tgt = _resolved_npc_id(e.object_id)
         if tgt is None:
-            return ("SKIPPED", "no_object_id", None, None)
+            return ("SKIPPED", "no_object_id", None, None, None)
         if tgt == doc.npc_ref:
-            return ("SKIPPED", "self_relation", None, None)
+            # A2: структурированная диагностика self_relation. Не исправляем target
+            # в seeder — это ответственность автора (через UI CCH-3 / ClarificationQuestion).
+            payload = e.payload or {}
+            return (
+                "SKIPPED",
+                "self_relation",
+                None,
+                None,
+                {
+                    "entry_id": e.entry_id,
+                    "subject_id": doc.npc_ref,
+                    "target_id": tgt,
+                    "summary": payload.get("summary", ""),
+                    "target_hint": payload.get("target_hint", ""),
+                    "reason": "object_id resolved to subject_id; seeder does not materialize self-referential relationships",
+                },
+            )
         valence = (e.payload or {}).get(_PL_VALENCE)
         if valence not in ("positive", "negative"):
-            return ("SKIPPED", f"valence='{valence}'", None, None)
-        return ("SEEDED", None, None, None)
+            return ("SKIPPED", f"valence='{valence}'", None, None, None)
+        return ("SEEDED", None, None, None, None)
     if kind_str == "BELIEF_SEED":
         from app.models.npc.beliefs import BeliefType
         registry = {t.value for t in BeliefType}
         bt = (e.payload or {}).get(_PL_BELIEF_TYPE)
         if bt not in registry:
-            return ("SKIPPED", f"belief_type='{bt}' outside registry", None, None)
-        return ("SEEDED", None, None, None)
+            return ("SKIPPED", f"belief_type='{bt}' outside registry", None, None, None)
+        return ("SEEDED", None, None, None, None)
     if kind_str == "EFFECT":
         # build_seed_imprints обрабатывает trauma-linked EFFECTs:
         # effect_kind=="trauma" + непустой triggers → imprint (SEEDED);
@@ -540,10 +563,10 @@ def _classify_seed_entry(
         payload = e.payload or {}
         effect_kind = payload.get(_PL_EFFECT_KIND)
         if effect_kind != "trauma":
-            return ("NOT_APPLICABLE", None, None, None)
+            return ("NOT_APPLICABLE", None, None, None, None)
         triggers = payload.get(_PL_TRIGGERS)
         if not triggers or not isinstance(triggers, (list, tuple)):
-            return ("SKIPPED", "trauma without triggers", None, None)
+            return ("SKIPPED", "trauma without triggers", None, None, None)
         return ("SEEDED", None, None, None)
     if kind_str == "KNOWLEDGE_LINK":
         # build_seed_knowledge skip'ит источник не из канона (L229),
@@ -592,7 +615,7 @@ def build_seed_report(npc_id: str) -> Optional[SeedReport]:
             if bt not in registry:
                 m_notes.append(f"belief_type='{bt}' outside registry")
 
-        seed_result, skip_reason, day, day_anomaly = _classify_seed_entry(e, doc, kind_str)
+        seed_result, skip_reason, day, day_anomaly, skip_detail = _classify_seed_entry(e, doc, kind_str)
         consumer = _KIND_CONSUMER.get(kind_str)
 
         entry_reports.append(SeedEntryReport(
@@ -608,6 +631,7 @@ def build_seed_report(npc_id: str) -> Optional[SeedReport]:
             day=day,
             day_anomaly=day_anomaly,
             downstream_consumer=consumer,
+            skip_detail=skip_detail,
         ))
 
     return SeedReport(

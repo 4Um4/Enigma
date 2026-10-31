@@ -5,17 +5,36 @@
     {
       "kind": "TRAIT_SEED",
       "draft_payload": {
-        "trait": "увлечение",
-        "evidence": "Увлечён по-настоящему только своей работой и выпивкой."
+        "trait": "увлечен работой",
+        "evidence": "Увлечен по-настоящему только своей работой",
+        "qualifiers": [
+          "только"
+        ]
       },
-      "confidence": 1.0,
-      "needs_confirmation": false,
+      "confidence": 0.5,
+      "needs_confirmation": true,
+      "question": null
+    },
+    {
+      "kind": "TRAIT_SEED",
+      "draft_payload": {
+        "trait": "увлечен выпивкой",
+        "evidence": "и выпивкой",
+        "qualifiers": [
+          "только"
+        ],
+        "_provenance": {
+          "qualifier_basis": "Увlechен по-настоящему только своей работой и выпивкой"
+        }
+      },
+      "confidence": 0.5,
+      "needs_confirmation": true,
       "question": null
     }
   ],
   "coverage": {
     "fragment_ord": 2,
-    "items_count": 1,
+    "items_count": 2,
     "fragment_text_preview": "2. Увлечён по-настоящему только своей работой и выпивкой.",
     "critical_topic_warning": null
   }

@@ -3,23 +3,25 @@
   "age_anchors": [],
   "items": [
     {
-      "kind": "PORTRET",
+      "kind": "EVENT",
       "draft_payload": {
-        "statement": "Писарь этот второй десяток лет сидит на содержании гильдии.",
-        "traits": [
-          "прислужник",
-          "зависимый"
-        ]
+        "summary": "Писарь сидит на содержании гильдии",
+        "day": null,
+        "duration_years": 10,
+        "_provenance": {
+          "duration_years": 10,
+          "note": "duration present but historical_age not derived — requires author confirmation of interval boundary"
+        }
       },
       "confidence": 1.0,
       "needs_confirmation": false,
       "question": null
     },
     {
-      "kind": "EVENT",
+      "kind": "BELIEF_SEED",
       "draft_payload": {
-        "summary": "Мастер гильдии узнал о предупреждении слово в слово на следующий день.",
-        "day": null
+        "statement": "учёл все силы города, кроме мелкого чиновника, которого считал такой же мебелью, как и он сам",
+        "belief_type": "player_hostile"
       },
       "confidence": 1.0,
       "needs_confirmation": false,
@@ -28,35 +30,15 @@
     {
       "kind": "RELATIONSHIP",
       "draft_payload": {
-        "summary": "Орм не знает о предупреждении.",
+        "summary": "Орм не знает о предупреждении",
         "target_hint": "Орм",
-        "nature": "идеализация",
+        "nature": "незнание",
         "valence": "neutral"
       },
       "confidence": 0.4,
       "needs_confirmation": true,
       "question": {
-        "question_id": "roster_mismatch_2",
-        "target_span": "Орм",
-        "options": [
-          "SELECT_EXISTING_NPC",
-          "CREATE_NEW_NPC",
-          "UNKNOWN_PERSON",
-          "LEAVE_WHITE_SPOT"
-        ]
-      }
-    },
-    {
-      "kind": "EFFECT",
-      "draft_payload": {
-        "summary": "Это единственная дыра в системе Орма.",
-        "effect_kind": "secret",
-        "target_hint": "Орм"
-      },
-      "confidence": 0.4,
-      "needs_confirmation": true,
-      "question": {
-        "question_id": "roster_mismatch_3",
+        "question_id": "self_reference_2",
         "target_span": "Орм",
         "options": [
           "SELECT_EXISTING_NPC",
@@ -69,7 +51,7 @@
   ],
   "coverage": {
     "fragment_ord": 5,
-    "items_count": 4,
+    "items_count": 3,
     "fragment_text_preview": "5. Писарь этот второй десяток лет сидит на содержании гильдии. К утру следующего",
     "critical_topic_warning": null
   }
