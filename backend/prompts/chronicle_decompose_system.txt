@@ -10,10 +10,12 @@
 ]}
 
 KIND (только эти значения):
-- EVENT: событие жизни. draft_payload: {"summary": <фраза автора>, "day": null|<int>, "duration_years": null|<int>}
+- EVENT: событие жизни. draft_payload: {"summary": <фраза автора>, "day": null|<int>, "duration_years": null|<int>, "years_ago": null|<int>}
   duration_years — продолжительность периода, связанного с событием (например «уже 57 лет куёт»).
+  years_ago — точка в прошлом относительно текущего момента (например «100 лет тому назад»).
   НЕ используй duration_years для возраста на момент события (это historical_age через "age": N).
   Если фрагмент указывает длительность («уже N лет», «в течение N лет», «из которых N лет») → duration_years=N.
+  Если фрагмент указывает «N лет назад» / «N лет тому назад» → years_ago=N (НЕ duration_years).
 - RELATIONSHIP: устойчивое отношение к другому. draft_payload: {"summary": ..., "target_hint": <имя>, "nature": <страх|зависимость|идеализация|доверие|вражда|...>, "valence": <negative|neutral|positive>}
 - LOCATION: место. draft_payload: {"summary": ..., "name_hint": <название>}
 - EFFECT: последствие для личности/тела/статуса. draft_payload: {"summary": ..., "effect_kind": <trauma|loss|gain|secret|skill|residence|guardianship|occupation|custom>, "target_hint": null|<имя>}
@@ -53,16 +55,21 @@ KIND (только эти значения):
    CREATE_NEW_NPC/UNKNOWN_PERSON/LEAVE_WHITE_SPOT. Не выдумывай имя.
    Для незначительных упоминаний («какой-то человек») — LEAVE_WHITE_SPOT без вопроса.
 5. Возрастные якоря (типизированные подсказки в user-сообщении):
-   - AT_AGE «в N лет» → EVENT payload "age": N
+   - AT_AGE «в N лет» → EVENT payload "age": N (возраст на момент события)
    - SINCE_AGE «с N лет» → EVENT payload "age": N (возраст начала периода)
    - DURATION «уже N лет» / «из которых N лет» → EVENT payload "duration_years": N
+     (historical_age НЕ вычисляется автоматически — LLM проставляет "age" только если
+     уверена, что интервал непрерывен и заканчивается на текущий момент)
+   - YEARS_AGO «N лет назад» / «N лет тому назад» → EVENT payload "years_ago": N
+     (точка в прошлом, НЕ длительность; historical_age вычисляется автоматически)
    - AMBIGUOUS «N лет» без контекста → НЕ создавай EVENT с этим числом
    
-   Пример: «146 лет, из которых 57 лет кузнец» →
-   AMBIGUOUS(146) — НЕ записывай в EVENT (это текущий возраст, обрабатывается отдельно);
-   DURATION(57) → EVENT {"summary": "стал кузнецом в городе", "day": null, "duration_years": 57}
-   historical_age для этого EVENT вычисляется автоматически (game_start_age − duration_years),
-   LLM НЕ вычисляет его сама.
+   Пример 1: «146 лет, из которых 57 лет кузнец» →
+   DURATION(57) → EVENT {"summary": "стал кузнецом", "day": null, "duration_years": 57}
+   
+   Пример 2: «Учился у мастера 100 лет тому назад» →
+   YEARS_AGO(100) → EVENT {"summary": "учился у мастера", "day": null, "years_ago": 100}
+   (НЕ "duration_years": 100 — это не длительность обучения, а когда это было)
 6. Два времени: если фраза указывает, когда персонаж УЗНАЛ (не когда было) — это отдельный KNOWLEDGE_LINK с learned_age.
 7. Один фрагмент — 0..6 items. 0 (пустой items) — легален для:
    - шапки (имя/паспорт без события, напр. «кузнец Орм: гном»);

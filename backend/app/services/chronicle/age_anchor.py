@@ -26,6 +26,7 @@ class AgeAnchorKind(str, Enum):
     AT_AGE = "at_age"              # «в N лет» — возраст на момент события
     SINCE_AGE = "since_age"       # «с N лет» — возраст начала периода
     DURATION = "duration"          # «уже N лет» / «в течение N лет» / «из которых N лет» — длительность
+    YEARS_AGO = "years_ago"       # «N лет назад» / «N лет тому назад» — точка в прошлом от game_start
     AMBIGUOUS = "ambiguous"       # «N лет» без контекста — нельзя классифицировать
 
 
@@ -40,6 +41,15 @@ class AgeAnchor:
 
 # Упорядоченные паттерны: более специффичные — первыми (DURATION_AT_AGE не смешивать)
 _PATTERNS: List[tuple[re.Pattern, AgeAnchorKind]] = [
+    # YEARS_AGO (приоритет): «N лет назад», «N лет тому назад» — точка в прошлом.
+    # Не DURATION (не длительность интервала).
+    (
+        re.compile(
+            r"(\d{1,3})\s*(?:лет|год|года)\s*(?:тому\s+)?назад\b",
+            re.IGNORECASE,
+        ),
+        AgeAnchorKind.YEARS_AGO,
+    ),
     # DURATION: «уже N лет», «в течение N лет», «из которых N лет», «на протяжении N лет»
     (
         re.compile(

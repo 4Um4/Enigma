@@ -354,31 +354,34 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
         if isinstance(_age, int):
             _age_value = _age
 
-        # CCH-12 Point 1 Этап 4: производный historical_age для EVENT с duration_years.
-        # Правило (общее, не хардкод Орма): если EVENT имеет duration_years в payload,
-        # game_start_age доступен (через NPCProfileL0.age_at_game_start), и
-        # historical_age не проставлен явно LLM → вычисляем:
-        #   historical_age = game_start_age - duration_years
-        # Условия: интервал непрерывен и заканчивается на game_start (контракт
-        # ADR-O-422). Provenance сохраняется в payload._provenance для аудита
-        # (не контрактуемое поле, как _resolved_questions).
-        if (
-            _age_value is None
-            and _it.kind is EntryKind.EVENT
-            and isinstance(_it.draft_payload.get("duration_years"), int)
-            and _game_start_age is not None
-        ):
-            _dur = _it.draft_payload["duration_years"]
-            if _dur > 0 and _game_start_age >= _dur:
-                _age_value = _game_start_age - _dur
-                # Provenance для аудита: правило вывода сохранено
+        # CCH-12 Point 1 Этап 4 (исправление): безопасный вывод historical_age.
+        # Контракт: DURATION требует подтверждения границы окончания (interval ends
+        # at game_start). LLM часто проставляет duration_years без подтверждения.
+        # YEARS_AGO — точка назад от game_start, безопасна для вывода.
+        if _age_value is None and _it.kind is EntryKind.EVENT and _game_start_age is not None:
+            _years_ago = _it.draft_payload.get("years_ago")
+            if isinstance(_years_ago, int) and _years_ago > 0 and _game_start_age >= _years_ago:
+                _age_value = _game_start_age - _years_ago
                 _it.draft_payload.setdefault(
                     "_provenance",
                     {
-                        "derived_from": "game_start_age - duration_years",
+                        "derived_from": "game_start_age - years_ago",
                         "game_start_age": _game_start_age,
-                        "duration_years": _dur,
-                        "rule": "interval ends at game_start; continuous",
+                        "years_ago": _years_ago,
+                        "rule": "point in past relative to game_start",
+                    },
+                )
+            elif isinstance(_it.draft_payload.get("duration_years"), int):
+                # DURATION: НЕ выводим автоматически. LLM должна сама проставить
+                # historical_age (возраст начала), если уверена в непрерывности.
+                # Если historical_age не проставлен — оставляем None, автор решит.
+                # Диагностический след: сохраняем, что duration присутствовал,
+                # но вывод не сделан (контракт DURATION требует подтверждения).
+                _it.draft_payload.setdefault(
+                    "_provenance",
+                    {
+                        "duration_years": _it.draft_payload["duration_years"],
+                        "note": "duration present but historical_age not derived — requires author confirmation of interval boundary",
                     },
                 )
 
