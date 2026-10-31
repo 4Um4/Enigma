@@ -243,6 +243,15 @@ class TickOrchestrator:
         """
         return self._get_life_engine().get_current_tick(campaign_id)
 
+    def ack_addressing(self, campaign_id: str, event_id: str) -> bool:
+        """C3-A2-ACK: Подтверждение получения NPC addressing event.
+
+        Делегирует в NpcAddressingDeliverySubscriber.ack() (C3-A1).
+        Thread-safe (subscriber has threading.Lock).
+        Idempotent (повторный ACK = no-op, returns False).
+        Не меняет NPCState или EventDTO.
+        """
+        return self._npc_addressing_sub.ack(campaign_id, event_id)
     def _resolve_spatial_service(
         self, ctx: "_TickContext"
     ) -> Optional["SpatialService"]:

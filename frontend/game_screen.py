@@ -1263,8 +1263,15 @@ class GameScreen:
                         _addr_npc = _addr.get("npc_id", "")
                         _addr_eid = _addr.get("event_id", "")
                         if _addr_npc and _addr_eid:
-                            self.npc_addressing_indicators[_addr_eid] = _addr
-                            logger.info(f"[C3_DELIVERY] addressing received: npc={_addr_npc} event={_addr_eid} intent={_addr.get('intent', '')}")
+                            # C3-A2-ACK: сохраняем до ACK (контракт #9)
+                            if _addr_eid not in self.npc_addressing_indicators:
+                                self.npc_addressing_indicators[_addr_eid] = _addr
+                                logger.info(f"[C3_DELIVERY] addressing received: npc={_addr_npc} event={_addr_eid} intent={_addr.get('intent', '')}")
+                            # C3-A2-ACK: подтверждение получения (не реакция игрока)
+                            try:
+                                _gateway.ack_addressing(campaign_folder, _addr_eid)
+                            except Exception as _ack_err:
+                                logger.warning(f"[C3_ACK] failed for event={_addr_eid}: {_ack_err}")
 
                 _idle_events = _tick_data.get("events") or []
                 if _idle_events:

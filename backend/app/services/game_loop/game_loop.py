@@ -1143,6 +1143,13 @@ class GameLoop:
         """E.2: Инкапсуляция character_service.list_characters"""
         return self.character_service.list_characters(campaign_id)
 
+    def ack_addressing(self, campaign_id: str, event_id: str) -> bool:
+        """C3-A2-ACK: Подтверждение получения NPC addressing event клиентом.
+
+        Делегирует в TickOrchestrator.ack_addressing() (public API).
+        Thread-safe, idempotent. Не меняет NPCState.
+        """
+        return self._tick_orch.ack_addressing(campaign_id, event_id)
     def idle_tick(self, campaign_id: str, location_id: Optional[str] = None, interventions: Optional[List["InterventionEvent"]] = None) -> dict:
         """Idle tick — делегирует TickOrchestrator (10 фаз, Устав §3).
 

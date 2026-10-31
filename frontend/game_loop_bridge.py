@@ -348,6 +348,21 @@ class GameLoopBridge:
             logger.error(f"[IDLE_TICK_BRIDGE] ERROR: {e}\n{traceback.format_exc()}")
             return {"status": "error", "error": str(e), "npc_positions": {}}
 
+    def ack_addressing(self, campaign_id: str, event_id: str) -> bool:
+        """C3-A2-ACK: Подтверждение получения NPC addressing event.
+
+        Синхронный passthrough в GameLoop.ack_addressing().
+        При недоступном GameLoop возвращает False.
+        Ошибки не ломают игровой цикл.
+        """
+        if not self._ready or self._loop is None:
+            return False
+        try:
+            return self._loop.ack_addressing(campaign_id, event_id)
+        except Exception as e:
+            logger.error(f"[ACK_BRIDGE] ERROR: {e}")
+            return False
+
     def initialize_model_pool(self) -> None:
         """Инициализирует ModelPool в pygame процессе."""
         import importlib
