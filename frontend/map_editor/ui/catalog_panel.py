@@ -90,6 +90,10 @@ class CatalogPanel:
         # Callbacks (set by editor)
         self.on_select: Optional[callable] = None  # callback(bp_id: str)
         self.on_place: Optional[callable] = None  # callback(bp_id: str)
+        # ME-2.1-G-3: double-click → open inspector (read-only)
+        self.on_inspect: Optional[callable] = None  # callback(bp_id: str)
+        self._last_click_bp_id: Optional[str] = None
+        self._last_click_time: float = 0.0
 
     def open(self) -> None:
         """Load AssetStore + CatalogIndex + Validator. Activate refresh."""
@@ -118,6 +122,21 @@ class CatalogPanel:
         """Close catalog."""
         self.active = False
         self._search_active = False
+
+    @property
+    def store(self):
+        """AssetStore (для переиспользования в BlueprintEditor)."""
+        return self._store
+
+    @property
+    def validator(self):
+        """ResourceValidator (для переиспользования в BlueprintEditor)."""
+        return self._validator
+
+    @property
+    def selected_bp_id(self) -> Optional[str]:
+        """Выбранный blueprint_id (для F4 — открыть inspector выбранного)."""
+        return self._selected_bp_id
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         """Handle event. Returns True if consumed (editor should stop)."""
@@ -179,7 +198,21 @@ class CatalogPanel:
                 # Cards (already absolute — use mx,my directly)
                 for bp_id, rect in self._card_rects:
                     if rect.collidepoint(mx, my):
-                        self._select_blueprint(bp_id)
+                        # ME-2.1-G-3: double-click detection → on_inspect
+                        import time
+
+                        now = time.monotonic()
+                        if self._last_click_bp_id == bp_id and (now - self._last_click_time) < 0.4:
+                            # Double-click → open inspector
+                            if self.on_inspect:
+                                self.on_inspect(bp_id)
+                            self._last_click_bp_id = None
+                            self._last_click_time = 0.0
+                        else:
+                            # Single-click → select (existing behaviour)
+                            self._select_blueprint(bp_id)
+                            self._last_click_bp_id = bp_id
+                            self._last_click_time = now
                         return True
                 # Place button (absolute — matches draw position)
                 place_abs = pygame.Rect(rx + 6, ry + self._preview_y + 92, self.rect.w - 12, 24)

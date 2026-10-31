@@ -54,6 +54,11 @@ class EventHandler:
             if core.catalog_panel.handle_event(event):
                 return
 
+        # ME-2.1-G-3: Blueprint inspector panel event routing
+        if hasattr(core, "inspector_panel") and core.inspector_panel and core.inspector_panel.active:
+            if core.inspector_panel.handle_event(event):
+                return
+
         # Горячие клавиши
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
@@ -86,6 +91,18 @@ class EventHandler:
                     else:
                         core.catalog_panel.open()
                         core._show_toast("Каталог (F3): поиск и выбор ассетов")
+
+            elif event.key == pygame.K_F4:
+                # ME-2.1-G-3: Blueprint inspector (read-only)
+                # F4 toggle: открыть для выбранного в каталоге bp_id, или закрыть
+                if hasattr(core, "inspector_panel") and core.inspector_panel:
+                    if core.inspector_panel.active:
+                        core.inspector_panel.close()
+                    elif hasattr(core, "catalog_panel") and core.catalog_panel and core.catalog_panel.selected_bp_id:
+                        core.inspector_panel.open(core.catalog_panel.selected_bp_id)
+                        core._show_toast(f"Инспектор (F4): {core.catalog_panel.selected_bp_id}")
+                    else:
+                        core._show_toast("Инспектор (F4): выберите Blueprint в каталоге")
 
             elif event.key == pygame.K_F5:
                 core.mode = MODE_LAB

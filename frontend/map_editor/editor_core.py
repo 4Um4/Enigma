@@ -388,6 +388,26 @@ class EditorCore:
         )
         self.catalog_panel.on_place = lambda bp_id: self._catalog_place(bp_id)
 
+        # ME-2.1-G-3: BlueprintInspectorPanel (read-only инспектор через EditSession)
+        from assets.blueprint_editor import BlueprintEditor
+        from ui.blueprint_inspector import BlueprintInspectorPanel
+
+        self._blueprint_editor = BlueprintEditor(
+            asset_store=self.catalog_panel.store,
+            validator=self.catalog_panel.validator,
+        )
+        inspector_x = catalog_x + catalog_w + 10
+        inspector_w = 420
+        self.inspector_panel = BlueprintInspectorPanel(
+            inspector_x,
+            catalog_y,
+            inspector_w,
+            catalog_h,
+            self._blueprint_editor,
+        )
+        # Double-click в каталоге → открыть инспектор
+        self.catalog_panel.on_inspect = lambda bp_id: self.inspector_panel.open(bp_id)
+
         # === Дропдауны для типов объектов ===
         self.object_dropdown: Optional[Dropdown] = None
 
@@ -1814,6 +1834,10 @@ class EditorCore:
         # ME-2.1-F: Catalog panel
         if self.catalog_panel and self.catalog_panel.active:
             self.catalog_panel.draw(self.screen, self.font, self.font_small, self.font_bold)
+
+        # ME-2.1-G-3: Blueprint inspector panel (read-only)
+        if self.inspector_panel and self.inspector_panel.active:
+            self.inspector_panel.draw(self.screen, self.font, self.font_small, self.font_bold)
 
         # UI поверх всего
         self._draw_ui()
