@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import Any, Final, List, Mapping, Optional
+from typing import Any, Dict, Final, List, Mapping, Optional
 
 from app.domain.chronicle import (
     ClarificationOption,
@@ -47,6 +47,95 @@ _VAGUE_RELATION_MARKERS: Final[tuple] = (
     "какой-то знакомый",
     "человек со стороны",
 )
+
+
+# COV-12 p.3a: реестр фракций для распознавания организаций в roster backstop.
+# Источник: config/world/factions.json (единственный SSOT фракций).
+# Кэшируется на уровне модуля (фракции статичны в рамках сессии).
+_FACTION_CACHE: Optional[Dict[str, str]] = None  # normalized_name -> faction_id
+
+
+def _load_faction_registry() -> Dict[str, str]:
+    """Загружает реестр фракций из config/world/factions.json.
+
+    Возвращает mapping: normalized_name -> faction_id.
+    Кэшируется на уровне модуля (фракции статичны).
+    Пустой dict если файл недоступен — backstop работает без фракций (backward-compat).
+    """
+    global _FACTION_CACHE
+    if _FACTION_CACHE is not None:
+        return _FACTION_CACHE
+    try:
+        from app.core.config import BASE_DIR
+
+        path = BASE_DIR / "config" / "world" / "factions.json"
+        if not path.exists():
+            _FACTION_CACHE = {}
+            return _FACTION_CACHE
+        data = json.loads(path.read_text(encoding="utf-8"))
+        result: Dict[str, str] = {}
+        for fid, fdata in data.get("factions", {}).items():
+            name = fdata.get("name", fid)
+            # Нормализуем: lowercase, _ -> space, strip
+            norm_name = name.strip().lower().replace("_", " ").strip()
+            norm_id = fid.strip().lower().replace("_", " ").strip()
+            result[norm_name] = fid
+            result[norm_id] = fid
+        _FACTION_CACHE = result
+        return result
+    except Exception as e:
+        logger.warning(f"[NORMALIZER] faction registry load failed: {e}")
+        _FACTION_CACHE = {}
+        return _FACTION_CACHE
+
+
+def _normalize_hint(hint: str) -> str:
+    """Нормализация для сравнения: lowercase, _ -> space, strip."""
+    return hint.strip().lower().replace("_", " ").strip()
+
+
+def _matches_faction(
+    hint: Any, factions: Optional[Dict[str, str]] = None
+) -> bool:
+    """COV-12 p.3a: True если hint — известная фракция (organization), не персона.
+
+    Exact match (case-insensitive, _ normalized to space) против faction names и IDs.
+    Также: word-boundary substring match для multi-word faction names (>= 2 слова
+    и >= 10 символов) внутри более длинного hint — контролируемое совпадение.
+
+    Защита от коротких ID: однословные faction names или < 10 символов —
+    только exact match, не substring.
+
+    При неоднозначном совпадении (две фракции в одном hint) → False
+    (не молчаливый выбор, автор должен уточнить).
+    """
+    if not isinstance(hint, str):
+        return False
+    if not factions:
+        return False
+    h = _normalize_hint(hint)
+    if not h:
+        return False
+    # Exact match
+    if h in factions:
+        return True
+    # Word-boundary substring для multi-word factions (>= 2 слова, >= 10 символов)
+    matches: List[str] = []
+    for norm_name in factions:
+        words = norm_name.split()
+        if len(words) < 2 or len(norm_name) < 10:
+            continue
+        pattern = r"\b" + re.escape(norm_name) + r"\b"
+        if re.search(pattern, h):
+            matches.append(norm_name)
+    if len(matches) == 1:
+        return True
+    if len(matches) > 1:
+        logger.info(
+            f"[NORMALIZER] faction match ambiguous: hint={h!r} matches={matches}"
+        )
+        return False
+    return False
 
 # S367: identity-resolution options. LEAVE_WHITE_SPOT присутствует в каждом
 # вопросе (инвариант ClarificationQuestion.__post_init__), поэтому подпроверка
@@ -237,6 +326,7 @@ class ChronicleDecompositionNormalizer:
                     isinstance(hint, str)
                     and hint.strip()
                     and not _matches_roster_exact(hint, roster)
+                    and not _matches_faction(hint, _load_faction_registry())
                     and not _is_identity_question_for(question, hint)
                 ):
                     conf = min(float(conf), 0.4)
