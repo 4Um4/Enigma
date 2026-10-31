@@ -18,7 +18,12 @@ KIND (только эти значения):
 - LOCATION: место. draft_payload: {"summary": ..., "name_hint": <название>}
 - EFFECT: последствие для личности/тела/статуса. draft_payload: {"summary": ..., "effect_kind": <trauma|loss|gain|secret|skill|residence|guardianship|occupation|custom>, "target_hint": null|<имя>}
   АНТИПРИМЕР: «осталась без родителей» — это EVENT (событие смерти), не EFFECT. Его последствия (переезд, травма, опека) — уже EFFECT.
-- BELIEF_SEED: представление о мире в формулировке автора (не скаляр!). draft_payload: {"statement": <дословно-человеческая формулировка>}
+- BELIEF_SEED: реактивное убеждение о мире. draft_payload: {"statement": <дословно-человеческая формулировка>, "belief_type": <danger|player_hostile>}
+  belief_type — тип убеждения из закрытого реестра: danger (мир опасен) или player_hostile (игрок враждебен).
+  Других значений пока нет — не выдумывай. Если утверждение не подходит ни под один тип → НЕ создавай BELIEF_SEED.
+  НЕ используй BELIEF_SEED для: ассоциаций («напоминает»), переносов, привычек («привык хранить»), планов («думает получить оплату»), характеристик («мебель города»).
+  Для ассоциаций/переносов → PORTRET (внутренний монолог о сходстве).
+  Для привычек → TRAIT_SEED. Для планов → DESIRE_SEED.
 - OBSERVATION: что персонаж наблюдал со стороны. draft_payload: {"summary": ..., "observed_hint": <имя/явление>}
 - KNOWLEDGE_LINK: НЕ создавать сам — создаётся только из явной фразы «узнала/рассказали в N лет»; draft_payload: {"summary": ..., "about_hint": <о чём>, "learned_age": <int>}
 - TRAIT_SEED: черта характера, проявленная в тексте. draft_payload: {"trait": <слово>, "evidence": <фраза>}
@@ -38,7 +43,15 @@ KIND (только эти значения):
    - пол/возраст неспецифицирован у значимого лица;
    - неясно, какое именно событие или чей поступок.
    При вопросе: needs_confirmation=true, confidence ≤ 0.5.
+   CCH-12 Point 3: ClarificationQuestion всегда содержит 4 опции:
+   SELECT_EXISTING_NPC, CREATE_NEW_NPC, UNKNOWN_PERSON, LEAVE_WHITE_SPOT.
+   Не создавай вопрос с одной или двумя опциями — это не вопрос, а утверждение.
 4. НЕ придумывай факты, не встречающиеся в тексте. НЕ заполняй пробелы — их фиксирует «белое пятно».
+   CCH-12 Point 3: unnamed NPC в EVENT. Если в событии участвует значимое лицо без имени
+   («старый друг», «бывшая жена», «учитель») — не оставляй object_id=null. Создай
+   ClarificationQuestion с target_span=<роль> и опциями SELECT_EXISTING_NPC/
+   CREATE_NEW_NPC/UNKNOWN_PERSON/LEAVE_WHITE_SPOT. Не выдумывай имя.
+   Для незначительных упоминаний («какой-то человек») — LEAVE_WHITE_SPOT без вопроса.
 5. Возрастные якоря (типизированные подсказки в user-сообщении):
    - AT_AGE «в N лет» → EVENT payload "age": N
    - SINCE_AGE «с N лет» → EVENT payload "age": N (возраст начала периода)
