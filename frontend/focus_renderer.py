@@ -37,6 +37,52 @@ class FocusRenderer:
                     _manif_surf, (coords["sx"] - _manif_surf.get_width() // 2, coords["sy"] + coords["radius"] + 14)
                 )
 
+    # C3-A2-UI-1: Intent labels for addressing indicators (reuses i18n pattern)
+    _ADDRESSING_INTENT_LABELS = {
+        "talk": "хочет поговорить",
+        "warn": "хочет предупредить",
+        "trade": "хочет предложить сделку",
+        "offer_job": "предлагает работу",
+        "request_service": "просит об услуге",
+        "help": "хочет помочь",
+        "report": "хочет сообщить",
+        "intimidate": "угрожает",
+    }
+    _COLOR_ADDRESSING = (100, 200, 255)  # Cyan-blue — distinct from manifest grey
+
+    def draw_addressing_indicators(self, screen: pygame.Surface, npc_coords: dict, addressing_indicators: dict) -> None:
+        """C3-A2-UI-1: Отрисовка обращений NPC к игроку.
+
+        Отдельно от manifestations (не смешивать). Поддерживает несколько
+        одновременных обращений (разные NPC) и несколько событий одного NPC.
+        Не использует речевые пузыри. Не удаляет события при отсутствии NPC.
+        """
+        if not addressing_indicators:
+            return
+
+        # Build reverse lookup: npc_id → list of addressing events
+        _npc_addressing: dict = {}
+        for _eid, _addr in addressing_indicators.items():
+            _npc_id = _addr.get("npc_id", "")
+            if _npc_id:
+                _npc_addressing.setdefault(_npc_id, []).append(_addr)
+
+        for _npc_id, _coords in npc_coords.items():
+            _addrs = _npc_addressing.get(_npc_id)
+            if not _addrs:
+                continue
+
+            # Render each addressing event as a distinct text indicator
+            for _i, _addr in enumerate(_addrs):
+                _intent = _addr.get("intent", "")
+                _text = self._ADDRESSING_INTENT_LABELS.get(_intent, "обращается")
+                _surf = self.font_small.render(_text, True, self._COLOR_ADDRESSING)
+                # Above NPC, offset for multiple events on same NPC
+                _y_offset = _coords["sy"] - _coords["radius"] - 20 - (_i * 18)
+                screen.blit(
+                    _surf, (_coords["sx"] - _surf.get_width() // 2, _y_offset)
+                )
+
     def draw_action_markers(self, screen: pygame.Surface, npc_coords: dict, entities: list) -> None:
         """S163/S165: Отрисовка пиктограмм действий над NPC (Закон Локальности и Временности)."""
         _activity_map = {

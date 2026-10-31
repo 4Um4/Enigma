@@ -2179,7 +2179,14 @@ class GameScreen:
                 _render_coords.get("npcs", {}),
                 self.npc_manifest_indicators
             )
-            
+
+            # C3-A2-UI-1: NPC Addressing indicators (отдельно от manifestations)
+            self._focus_renderer.draw_addressing_indicators(
+                self.screen,
+                _render_coords.get("npcs", {}),
+                self.npc_addressing_indicators
+            )
+
             # S163: Action Markers (Слой 1) - пиктограммы над NPC
             self._focus_renderer.draw_action_markers(
                 self.screen,
