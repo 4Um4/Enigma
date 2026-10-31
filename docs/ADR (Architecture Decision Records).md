@@ -1085,7 +1085,7 @@ Status: ACTIVE (S393 — standalone track; UI-контракт pending; runtime-
 Files: ``docs/ENIGMA_ROADMAP_v4_12_WPS.md`` (§15.2 LC-IMPL-3, §15.5 LC-GC-01 UI + LC-IMPL-3 Ступень C), ``docs/ADR (Architecture Decision Records).md`` (данный ADR + ревизия ADR-O-434)
 ### ADR-O-436: NPC_ADDRESSES_PLAYER Event Type — v1.1 Projection Extension
 
-**Статус:** PROPOSED (готов к вердикту Мастера для C2) | **Сессия:** S396 | **Связанные законы:** ADR-O-421 (v1-словарь), ADR-O-360 (observation membrane), §15.2 LC-IMPL-3 Ступень A
+**Статус:** IMPLEMENTED (S398 reconciliation — фактическая реализация зафиксирована) | **Сессия:** S396 (предложение) → S398 (reconciliation) | **Связанные законы:** ADR-O-421 (v1-словарь), ADR-O-360 (observation membrane), §15.2 LC-IMPL-3 Ступень A
 
 **Контекст:**
 Археология S393-S394 (read-only, Блоки 9-18) установила:
@@ -1127,6 +1127,30 @@ Files: ``docs/ENIGMA_ROADMAP_v4_12_WPS.md`` (§15.2 LC-IMPL-3, §15.5 LC-GC-01 U
 2. idle_event_projection.py: добавить в PROJECTION_EVENT_TYPES с экстрактором.
 3. npc_tick_pipeline.py: после DecisionHub.compute, при intent_target=="player" + адресующий intent + intent_formed_at==current_tick → publish EventDTO.
 
+**Фактическая реализация (S398 reconciliation):**
+
+Первоначальное предложение (выше) описывало планируемую архитектуру. Фактическая реализация отклоняется в трёх точках — все отклонения в лучшую сторону (канонические механизмы вместо новых сущностей).
+
+**Producer:** `backend/app/services/phases/commit_phase.py:82-132` — НЕ `npc_tick_pipeline.py` (как в предложении). NpcTickPipeline — pure reducer (ADR-TZ09-1), не применяет состояние; публикация там создала бы сигнал о намерении, которое не стало состоянием. Фактическая точка — ПОСЛЕ финального `apply_batch` (где `_apply_intent` зафиксировал `state.intent_formed_at = current_tick`), ДО `scene_manager.commit`. Контракт: публикация только при `intent_formed_at == ctx.tick_number` (commit_phase.py:115) — кросс-тиковая идемпотентность без флагов и реестров.
+
+**Identity:** canonical `next_event_identity(scene_state, event_type, source) -> (tick, ordinal)` (event_identity.py) — НЕ `MD5(type:source:intent_formed_at:0)` (как в предложении). Single Writer `next_event_identity` — единственный механизм identity в проекте (ADR-O-404); собственная формула создала бы DOUBLE TRUTH. event_id = (event_type, source, tick, ordinal); идемпотентность через `intent_formed_at == current_tick` (только при смене intent), не через event_id-дедуп.
+
+**Delivery:** `backend/app/services/events/npc_addressing_delivery_subscriber.py` — двухфазная доставка (staging → commit), НЕ через `PROJECTION_EVENT_TYPES` (как в предложении). Subscriber подписан на `EventType.NPC_ADDRESSES_PLAYER`; staging в `TickCampaignContext.staged_events`; `commit_staged(campaign_id)` вызывается orchestrator ПОСЛЕ успешного Phase 10; `drain(campaign_id)` возвращает проекцию для API; `ack(campaign_id, event_id)` — idempotent. Thread-safe (threading.Lock). NPC_ADDRESSES_PLAYER в `EXCLUDED_EVENT_TYPES` (idle_event_projection.py:146) — НЕ в `PROJECTION_EVENT_TYPES`; отдельный delivery-контур, не двойная доставка через idle events.
+
+**Frontend lifecycle:** C3-A2-UI-2 (commit d252d6d1) — `game_screen.py:1260-1329`: stale re-delivery guard (intent_formed_at comparison), stale removal (old events with older intent_formed_at), безусловный ACK (try/except sibling guard), изоляция кампаний (reset в run()). 9 контрактов в `backend/tests/micro/test_npc_addressing_lifecycle.py`.
+
+**Коммиты:**
+- C2 (producer): `afb20bf2` — "ADR-O-436: NPC_ADDRESSES_PLAYER producer (LC-IMPL-3 Ступень A) — C2"
+- C3-A1 (delivery subscriber + ruff cleanup): `7723e3ac` — "C3-A1: Ruff cleanup (F401/W292/I001/F841)"; delivery subscriber wiring в `b0415813` (full-save)
+- C3-A2-UI-2 (frontend lifecycle): `d252d6d1` — "C3-A2: manage NPC addressing indicator lifecycle"
+
+**Тест producer re-entry:** `backend/tests/micro/test_npc_addresses_player.py:270` — `def test_C1_same_intent_next_tick_no_republish(bus)` — проверяет, что тот же intent на следующем тике НЕ вызывает повторную публикацию. **НАЙДЕН** — пробела нет.
+
+**Расхождения с предложением (все — в лучшую сторону):**
+1. Точка публикации: `npc_tick_pipeline` → `commit_phase.py` (после фиксации состояния, не в pure reducer)
+2. Identity: `MD5(формула)` → `next_event_identity` (canonical Single Writer, не DOUBLE TRUTH)
+3. Delivery: `PROJECTION_EVENT_TYPES` → отдельный `npc_addressing_delivery_subscriber` (разделение контуров, не двойная доставка)
+
 **Контракт:**
 - Событие создаётся только после принятого решения NPC (DecisionHub.compute), не по score или присутствию игрока.
 - Адресат — игрок (target_id="player", visibility="whisper").
@@ -1158,8 +1182,8 @@ ADR-O-421 (v1-словарь), ADR-O-360 (observation membrane), ADR-O-432/433 (
 ADR-O-436 [STANDARD] **NPC_ADDRESSES_PLAYER Event Type — v1.1 Projection Extension** (S396; PROPOSED — готов к C2)
 Суть: Новый EventType NPC_ADDRESSES_PLAYER — актуальная инициатива NPC, адресованная игроку. Публикуется в NpcTickPipeline после DecisionHub.compute при intent_target=player + адресующий intent + intent_formed_at=current_tick. visibility=whisper, target_id=player. event_id детерминирован от intent_formed_at (idempotency: один intent → одно событие; NPCState.intent_formed_at — SSOT). Добавлен в PROJECTION_EVENT_TYPES (v1.1 расширение ADR-O-421). НЕ расширяет NPC_INTERACTS_NPC/THEFT/ACTIVITY_OUTCOME. НЕ использует NarrativeBeat.delivery=INTERNAL (семантика «мысль», не «намерение»). Идемпотентность через event_id (производный от intent_formed_at), НЕ через processed_event_ids в scene_state. Stale handling через проверку NPCState.intent_formed_at в C4. Категория [STANDARD] — расширение контракта проекции, прецедент ADR-O-421a.
 ❌ Taboo: публикация по score без принятого решения; публикация для intent_target≠player; расширение существующих типов ради обхода нового; маскировка намерения под NarrativeBeat.INTERNAL; запись в RelationshipStore; открытие диалога на Ступени A; наказание за молчание; processed_event_ids в scene_state; новый interrupt reason без доказанной необходимости.
-Status: PROPOSED (S396 — готов к вердикту Мастера для C2; runtime-тесты pending)
-Files: ``backend/app/services/events/event_types.py``, ``backend/app/services/game_loop/idle_event_projection.py``, ``backend/app/services/npc/npc_tick_pipeline.py``
+Status: IMPLEMENTED (S398 — фактическая реализация зафиксирована; producer: commit_phase.py:82-132; delivery: npc_addressing_delivery_subscriber; identity: next_event_identity; frontend: C3-A2-UI-2 d252d6d1)
+Files: ``backend/app/services/events/event_types.py`` (enum), ``backend/app/services/phases/commit_phase.py`` (producer:82-132), ``backend/app/services/events/npc_addressing_delivery_subscriber.py`` (delivery), ``backend/app/services/events/tick_campaign_context.py`` (staging), ``backend/app/services/tick_orchestrator.py`` (wiring:179-184,254,795,868), ``backend/app/domain/tick.py`` (TickResultDTO:288), ``frontend/game_screen.py`` (C3-A2-UI-2:1260-1329), ``backend/tests/micro/test_npc_addresses_player.py`` (producer tests), ``backend/tests/micro/test_npc_addressing_lifecycle.py`` (9 lifecycle контрактов)
 
 ---
 
