@@ -95,7 +95,9 @@ class SpriteRegistry:
         self._tiles[tile_key] = tile
         return tile
 
-    def get_rect(self, sheet_key: str, x: int, y: int, w: int, h: int, threshold: int = 220, outline: int = 1) -> Optional[pygame.Surface]:
+    def get_rect(
+        self, sheet_key: str, x: int, y: int, w: int, h: int, threshold: int = 220, outline: int = 1
+    ) -> Optional[pygame.Surface]:
         """S176: Возвращает тайл по точным пиксельным координатам с настройкой фона и обводки."""
         clean_key = sheet_key if not sheet_key.endswith(".png") else sheet_key[:-4]
         tile_key = f"{clean_key}:R:{x}:{y}:{w}:{h}:{threshold}:{outline}"
@@ -114,14 +116,15 @@ class SpriteRegistry:
         tile = sheet.subsurface(rect).copy()
         # S176 FIX: Тотальное удаление белого гало через NumPy
         result = tile.convert_alpha()
-        
+
         try:
             import numpy as np
+
             arr = pygame.surfarray.pixels3d(result)
             alpha = pygame.surfarray.pixels_alpha(result)
-            
+
             # Удаление фона по порогу (легаси S176)
-            mask = (arr[:,:,0] > threshold) & (arr[:,:,1] > threshold) & (arr[:,:,2] > threshold)
+            mask = (arr[:, :, 0] > threshold) & (arr[:, :, 1] > threshold) & (arr[:, :, 2] > threshold)
 
             # FIX BUG-07 (В1б, решение Мастера): авто-детект фона по угловым
             # пикселям тайла. Порог из данных (часто дефолт 220) не берёт
@@ -144,29 +147,29 @@ class SpriteRegistry:
                     )
                     mask = mask | (_bg_dist <= 24 * 24 * 3)
             alpha[mask] = 0
-            
+
             # Прозрачным пикселям задаем чёрный цвет (убирает гало при масштабировании)
             alpha_mask = alpha == 0
             arr[alpha_mask] = [0, 0, 0]
-            
+
             # S176 FIX: Внутренняя обводка (эрозия альфа-канала)
             if outline > 0:
                 eroded = alpha.copy()
                 for _ in range(outline):
                     temp_eroded = eroded.copy()
-                    for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
-                        shifted = np.roll(eroded, (dx, dy), axis=(0,1))
+                    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                        shifted = np.roll(eroded, (dx, dy), axis=(0, 1))
                         temp_eroded = np.minimum(temp_eroded, shifted)
                     eroded = temp_eroded
-                
+
                 # Маска края: внутри спрайта, но эродирована
                 edge_mask = (alpha > 0) & (eroded == 0)
                 arr[edge_mask] = [0, 0, 0]
-                
+
             del arr, alpha
         except Exception:
             result.set_colorkey((255, 255, 255), pygame.RLEACCEL)
-            
+
         self._tiles[tile_key] = result
         return result
 
@@ -225,6 +228,17 @@ def _derive_entity_sprite_map() -> Dict[str, Tuple[str, int, int]]:
 
 
 ENTITY_SPRITE_MAP: Dict[str, Tuple[str, int, int]] = _derive_entity_sprite_map()
+
+
+def refresh_entity_sprite_map() -> None:
+    """ME-2.1-B: Rebuild ENTITY_SPRITE_MAP from current OBJECT_PRESETS + NPC_PRESETS.
+
+    Call after refresh_object_presets() to sync sprite mappings.
+    ENTITY_SPRITE_MAP is reassigned (not mutated) — only sprite_registry
+    module references it, so reassignment is safe.
+    """
+    global ENTITY_SPRITE_MAP
+    ENTITY_SPRITE_MAP = _derive_entity_sprite_map()
 
 
 def get_entity_sprite(entity_type: str) -> Optional[pygame.Surface]:

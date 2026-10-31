@@ -22,7 +22,7 @@ ORIGINAL_PRESETS = None
 for node in ast.walk(tree):
     if isinstance(node, ast.Assign):
         for target in node.targets:
-            if isinstance(target, ast.Name) and target.id == "OBJECT_PRESETS":
+            if isinstance(target, ast.Name) and target.id == "_HARDCODED_OBJECT_PRESETS":
                 ORIGINAL_PRESETS = ast.literal_eval(node.value)
                 break
     if ORIGINAL_PRESETS is not None:

@@ -53,7 +53,7 @@ _INSTANCE_OVERRIDE_KEYS = frozenset(
 )
 
 # Типы объектов с настройками по умолчанию
-OBJECT_PRESETS = {
+_HARDCODED_OBJECT_PRESETS = {
     # === Обычная мебель ===
     "table": {
         "label": "Стол",
@@ -622,29 +622,131 @@ VISUAL_EVIDENCE_FIELDS = [
     "pose_tremor",
     "gaze_avoidance",
     "blur_intensity",
-    "attention_score"
+    "attention_score",
 ]
 
 # S175: Доступные операторы для Evidence
 VISUAL_EVIDENCE_OPS = ["==", "!=", ">", "<", ">=", "<="]
 
 # S176: Доступные значения для полей-перечислений. Если поля нет здесь — это float.
-VISUAL_EVIDENCE_VALUES = {
-    "delivery_type": ["NORMAL", "SHOUT", "WHISPER"]
-}
+VISUAL_EVIDENCE_VALUES = {"delivery_type": ["NORMAL", "SHOUT", "WHISPER"]}
 
 # S176: Базовые визуальные состояния. Движок сам знает их логику.
 STANDARD_EXPRESSIONS = [
     {"id": "neutral", "label": "1. Спокойствие", "priority": 0, "evidence": []},
-    {"id": "shouting", "label": "2. Крик", "priority": 100, "evidence": [{"field": "delivery_type", "op": "==", "value": "SHOUT"}]},
-    {"id": "whispering", "label": "3. Шёпот", "priority": 90, "evidence": [{"field": "delivery_type", "op": "==", "value": "WHISPER"}]},
-    {"id": "tense", "label": "4. Напряжение", "priority": 50, "evidence": [{"field": "pose_tense", "op": ">", "value": 0.5}]},
-    {"id": "avoiding_gaze", "label": "5. Отведение взгляда", "priority": 40, "evidence": [{"field": "gaze_avoidance", "op": ">", "value": 0.7}]},
-    {"id": "surprised", "label": "6. Удивление", "priority": 80, "evidence": [{"field": "pose_tremor", "op": ">", "value": 0.6}]}
+    {
+        "id": "shouting",
+        "label": "2. Крик",
+        "priority": 100,
+        "evidence": [{"field": "delivery_type", "op": "==", "value": "SHOUT"}],
+    },
+    {
+        "id": "whispering",
+        "label": "3. Шёпот",
+        "priority": 90,
+        "evidence": [{"field": "delivery_type", "op": "==", "value": "WHISPER"}],
+    },
+    {
+        "id": "tense",
+        "label": "4. Напряжение",
+        "priority": 50,
+        "evidence": [{"field": "pose_tense", "op": ">", "value": 0.5}],
+    },
+    {
+        "id": "avoiding_gaze",
+        "label": "5. Отведение взгляда",
+        "priority": 40,
+        "evidence": [{"field": "gaze_avoidance", "op": ">", "value": 0.7}],
+    },
+    {
+        "id": "surprised",
+        "label": "6. Удивление",
+        "priority": 80,
+        "evidence": [{"field": "pose_tremor", "op": ">", "value": 0.6}],
+    },
 ]
 
 
 # Пресеты NPC для размещения на карте через редактор (оставлены как фоллбэк)
+
+OBJECT_PRESETS = dict(_HARDCODED_OBJECT_PRESETS)
+
+
+def _blueprint_to_preset(bp_data: dict) -> dict:
+    """ME-2.1-B: Convert Blueprint JSON data back to OBJECT_PRESETS format.
+
+    Reverse of the Step A extraction. If extraction was correct,
+    this produces identical values to _HARDCODED_OBJECT_PRESETS.
+    """
+    metadata = bp_data.get("metadata", {})
+    physics = bp_data.get("physics", {})
+    appearance = bp_data.get("appearance", {})
+    geometry = bp_data.get("geometry", {})
+
+    preset = {
+        "label": metadata.get("label", bp_data.get("blueprint_id", "")),
+        "icon": metadata.get("icon", ""),
+        "rotation_mode": geometry.get("rotation_mode", "free"),
+        "passability": dict(physics.get("passability", {})),
+        "cover": physics.get("cover", 0.0),
+        "height": physics.get("height", 1.0),
+        "color": appearance.get("color", "#FFFFFF"),
+        "default_size": dict(metadata.get("default_size", {"w": 1.0, "h": 1.0})),
+    }
+
+    if geometry.get("requires_wall"):
+        preset["requires_wall"] = True
+
+    sprite = appearance.get("sprite")
+    if sprite:
+        preset["sprite"] = tuple(sprite)
+
+    default_props = metadata.get("default_properties", {})
+    if default_props:
+        preset["default_properties"] = dict(default_props)
+
+    return preset
+
+
+def _derive_presets_from_assetstore(asset_store) -> dict:
+    """ME-2.1-B: Build OBJECT_PRESETS dict from AssetStore blueprints.
+
+    Reads each blueprint from AssetStore and converts to preset format.
+    Returns empty dict if AssetStore is empty or not loaded.
+    """
+    presets = {}
+    for bp_id in asset_store.list_blueprints():
+        record = asset_store.get_blueprint(bp_id)
+        if record and record.data:
+            presets[bp_id] = _blueprint_to_preset(record.data)
+    return presets
+
+
+def refresh_object_presets(asset_store=None) -> bool:
+    """ME-2.1-B: Update OBJECT_PRESETS from AssetStore.
+
+    If asset_store is provided and has blueprints, OBJECT_PRESETS is
+    updated in-place (mutated, not reassigned) to match the catalog.
+    If asset_store is None or empty, falls back to hardcoded values.
+
+    Returns True if derived from AssetStore, False if fallback.
+    """
+    global OBJECT_PRESETS
+    if asset_store is not None:
+        try:
+            new_presets = _derive_presets_from_assetstore(asset_store)
+            if new_presets:
+                OBJECT_PRESETS.clear()
+                OBJECT_PRESETS.update(new_presets)
+                return True
+        except Exception as exc:
+            logger.warning("[ME-2.1-B] Failed to derive from AssetStore: %s", exc)
+    # Fallback: restore hardcoded
+    OBJECT_PRESETS.clear()
+    OBJECT_PRESETS.update(_HARDCODED_OBJECT_PRESETS)
+    return False
+
+
 NPC_PRESETS = {
     "mage": {
         "label": "Маг",
@@ -683,7 +785,6 @@ NPC_PRESETS = {
 _OBJ_REQUIRED_KEYS = ("id", "type", "name", "position", "size", "passability", "cover")
 
 
-
 # === ME-D3: проходные типы и триформ-поиск привязки к стене ===
 _PASSAGE_TYPES = ("door", "window", "door_transition", "gap", "hatch")
 
@@ -720,8 +821,7 @@ def _validate_location_objects(data: dict, source: str) -> list:
         otype = obj.get("type", "<нет типа>")
         if otype not in OBJECT_PRESETS:
             errors.append(
-                f"{source}: объект {oid}: неизвестный тип '{otype}' "
-                f"(рантайм-архетипы в editor-JSON запрещены)"
+                f"{source}: объект {oid}: неизвестный тип '{otype}' (рантайм-архетипы в editor-JSON запрещены)"
             )
         for key in _OBJ_REQUIRED_KEYS:
             if key not in obj:
@@ -858,9 +958,7 @@ class DataManager:
                     data.setdefault("walls", [])  # Стены (линии)
                     data.setdefault("nodes", {})  # Навигационные узлы
                     data.setdefault("objects", [])  # Объекты (мебель и т.д.)
-                    data.setdefault(
-                        "passages", []
-                    )  # Внутренние проходы (двери в стенах)
+                    data.setdefault("passages", [])  # Внутренние проходы (двери в стенах)
                     # portals удалены — внешние переходы теперь объекты door_transition/portal_magic
                     data.setdefault("npcs", [])  # NPC в локации
                     data.setdefault("labels", [])  # Произвольные надписи
@@ -895,10 +993,7 @@ class DataManager:
         """Создаёт новую локацию"""
         # ME-1.6: starter templates is read-only; cannot create new location there
         if not self._writable:
-            return False, (
-                "Cannot create location in starter templates (read-only). "
-                "Open or create a campaign first."
-            )
+            return False, ("Cannot create location in starter templates (read-only). Open or create a campaign first.")
         if not filename.endswith(".json"):
             filename += ".json"
         if filename in self.locations:
@@ -911,9 +1006,7 @@ class DataManager:
         self.locations[filename] = {
             "filename": filename,
             "label": label or filename.replace(".json", ""),
-            "location_id": filename.replace(
-                ".json", ""
-            ),  # ADR-061: Инференс из имени файла при создании
+            "location_id": filename.replace(".json", ""),  # ADR-061: Инференс из имени файла при создании
             "origin": {"x": pos_x, "y": pos_y},
             "size": {"w": width, "h": height},
             "grid_cell_size": 1.0,
@@ -942,9 +1035,7 @@ class DataManager:
         oy = data["origin"]["y"]
 
         for room in data.get("rooms", []):
-            room.setdefault(
-                "area_sqm", round(room.get("width", 0) * room.get("height", 0), 1)
-            )
+            room.setdefault("area_sqm", round(room.get("width", 0) * room.get("height", 0), 1))
             # Миграция: создаём polygon из прямоугольника если нет
             if "polygon" not in room:
                 rx, ry = room["x"], room["y"]
@@ -1058,8 +1149,7 @@ class DataManager:
         # ME-1.6: starter templates is read-only; save blocked to prevent orphaned edits
         if not self._writable:
             logger.error(
-                "[ME-1.6] Save blocked: base_dir is read-only starter templates (%s). "
-                "Open or create a campaign first.",
+                "[ME-1.6] Save blocked: base_dir is read-only starter templates (%s). Open or create a campaign first.",
                 self.base_dir,
             )
             return False
@@ -1069,9 +1159,7 @@ class DataManager:
         if not self.locations[filename].get("location_id"):
             inferred_id = filename.replace(".json", "")
             self.locations[filename]["location_id"] = inferred_id
-        schema_errors = validate_location(
-            self.locations[filename], f"{filename} (save)"
-        )
+        schema_errors = validate_location(self.locations[filename], f"{filename} (save)")
         if schema_errors:
             for err in schema_errors:
                 logger.error(f"[ME-1.4] Сохранение заблокировано: {err}")
@@ -1108,9 +1196,7 @@ class DataManager:
             refs[full["id"]] = deepcopy(raw)
             resolved_objects.append(full)
         if errors:
-            raise ValueError(
-                "Экземпляры-ссылки не читаются:\n  " + "\n  ".join(errors)
-            )
+            raise ValueError("Экземпляры-ссылки не читаются:\n  " + "\n  ".join(errors))
         data["objects"] = resolved_objects
         self._instance_refs[source] = refs
 
@@ -1130,9 +1216,7 @@ class DataManager:
         bp = record.data
         otype = bp.get("type")
         if not isinstance(otype, str) or otype not in OBJECT_PRESETS:
-            errors.append(
-                f"чертёж '{bid}': type '{otype}' не является известным типом"
-            )
+            errors.append(f"чертёж '{bid}': type '{otype}' не является известным типом")
             return None
         overrides = ref.get(_KEY_OVERRIDES, {})
         if not isinstance(overrides, dict):
@@ -1140,9 +1224,7 @@ class DataManager:
             return None
         for key in overrides:
             if key not in _INSTANCE_OVERRIDE_KEYS:
-                errors.append(
-                    f"неизвестный ключ overrides '{key}' (реестр — спека §5.1)"
-                )
+                errors.append(f"неизвестный ключ overrides '{key}' (реестр — спека §5.1)")
                 return None
         initial = ref.get(_KEY_INITIAL_STATE, {})
         if not isinstance(initial, dict):
@@ -1151,9 +1233,7 @@ class DataManager:
         allowed_initial = self._initial_state_keys(bp)
         for key in initial:
             if key not in allowed_initial:
-                errors.append(
-                    f"initial_state: ключ '{key}' не объявлен компонентами чертежа"
-                )
+                errors.append(f"initial_state: ключ '{key}' не объявлен компонентами чертежа")
                 return None
         geometry = bp.get("geometry", {})
         size = geometry.get("size")
@@ -1170,11 +1250,7 @@ class DataManager:
             errors.append("экземпляр без id")
             return None
         position = ref.get("position")
-        if (
-            not isinstance(position, dict)
-            or "x" not in position
-            or "y" not in position
-        ):
+        if not isinstance(position, dict) or "x" not in position or "y" not in position:
             errors.append("position без x/y")
             return None
         ref_props = ref.get("properties")
@@ -1236,11 +1312,7 @@ class DataManager:
         physics = bp.get("physics", {})
         if "durability" in physics:
             props["durability"] = physics["durability"]
-        vt = (
-            bp.get("semantics", {})
-            .get("perceivability", {})
-            .get("visibility_through")
-        )
+        vt = bp.get("semantics", {}).get("perceivability", {}).get("visibility_through")
         if vt is not None:
             props["visibility_through"] = vt
         return props
@@ -1336,9 +1408,7 @@ class DataManager:
         return abs(area) / 2.0
 
     @staticmethod
-    def _point_in_polygon(
-        px: float, py: float, points: List[Tuple[float, float]]
-    ) -> bool:
+    def _point_in_polygon(px: float, py: float, points: List[Tuple[float, float]]) -> bool:
         """Лучевой метод: точка внутри полигона?"""
         n = len(points)
         if n < 3:
@@ -1348,9 +1418,7 @@ class DataManager:
         for i in range(n):
             xi, yi = points[i]
             xj, yj = points[j]
-            if ((yi > py) != (yj > py)) and (
-                px < (xj - xi) * (py - yi) / (yj - yi) + xi
-            ):
+            if ((yi > py) != (yj > py)) and (px < (xj - xi) * (py - yi) / (yj - yi) + xi):
                 inside = not inside
             j = i
         return inside
@@ -1418,9 +1486,7 @@ class DataManager:
                 return True
         return False
 
-    def rename_entity(
-        self, filename: str, entity_type: str, entity_id: str, new_name: str
-    ) -> bool:
+    def rename_entity(self, filename: str, entity_type: str, entity_id: str, new_name: str) -> bool:
         """Универсальное переименование сущности по типу и id.
         Поддерживает: room, object, portal."""
         loc = self.locations[filename]
@@ -1433,8 +1499,7 @@ class DataManager:
             target = next((o for o in loc["objects"] if o.get("id") == entity_id), None)
         elif entity_type == "portal":
             target = next(
-                (o for o in loc["objects"]
-                 if o.get("id") == entity_id and o.get("type") in _PASSAGE_TYPES),
+                (o for o in loc["objects"] if o.get("id") == entity_id and o.get("type") in _PASSAGE_TYPES),
                 None,
             )
 
@@ -1454,8 +1519,7 @@ class DataManager:
             target = next((o for o in loc["objects"] if o.get("id") == entity_id), None)
         elif entity_type == "portal":
             target = next(
-                (o for o in loc["objects"]
-                 if o.get("id") == entity_id and o.get("type") in _PASSAGE_TYPES),
+                (o for o in loc["objects"] if o.get("id") == entity_id and o.get("type") in _PASSAGE_TYPES),
                 None,
             )
         else:
@@ -1496,16 +1560,12 @@ class DataManager:
                 loc["walls"].pop(i)
                 self.remove_passages_for_wall(filename, wall_id)
                 # ME-D3: триформ-поиск привязки (root/properties/rotation-хак S129)
-                loc["objects"] = [
-                    o for o in loc["objects"] if _object_wall_id(o) != wall_id
-                ]
+                loc["objects"] = [o for o in loc["objects"] if _object_wall_id(o) != wall_id]
                 return True
         return False
 
     # === Управление узлами ===
-    def add_node(
-        self, filename: str, node_id: str, x: float, y: float, label: str = ""
-    ) -> bool:
+    def add_node(self, filename: str, node_id: str, x: float, y: float, label: str = "") -> bool:
         """Добавляет навигационный узел"""
         if not node_id:
             node_id = f"node_{len(self.locations[filename]['nodes'])}"
@@ -1536,10 +1596,20 @@ class DataManager:
 
         # 1. Валидация role (защита от несуществующих в движке ролей)
         _VALID_ROLES = {
-            "default", "bar", "bed", "entrance", "table",
-            "workbench", "market", "transition", "boundary",
-            "guard_post", "dark_corner", "serving_station",
-            "kitchen_counter", "inn_desk"
+            "default",
+            "bar",
+            "bed",
+            "entrance",
+            "table",
+            "workbench",
+            "market",
+            "transition",
+            "boundary",
+            "guard_post",
+            "dark_corner",
+            "serving_station",
+            "kitchen_counter",
+            "inn_desk",
         }
         if role is not None:
             if role not in _VALID_ROLES:
@@ -1619,9 +1689,7 @@ class DataManager:
             "cover": preset["cover"],
             "color": preset["color"],
             "show_name": False,
-            "properties": {
-                k: deepcopy(v) for k, v in preset.get("default_properties", {}).items()
-            },
+            "properties": {k: deepcopy(v) for k, v in preset.get("default_properties", {}).items()},
         }
         # Привязка к стене (для дверей, окон, проломов)
         if wall_id:
@@ -1649,9 +1717,7 @@ class DataManager:
             one_errors: List[str] = []
             full = self._resolve_one(obj, one_errors)
             if full is None:
-                raise ValueError(
-                    f"add_object_full: экземпляр не разворачивается: {one_errors}"
-                )
+                raise ValueError(f"add_object_full: экземпляр не разворачивается: {one_errors}")
             self._instance_refs.setdefault(filename, {})[full["id"]] = obj
             loc["objects"].append(full)
             return full["id"]
@@ -1683,36 +1749,31 @@ class DataManager:
         """
         loc = self.locations[filename]
         passage_id = self._next_id(loc["objects"], "obj_")
-        
+
         # Размеры в зависимости от типа (дверь по умолчанию 1х1)
         w, h = 1.0, 1.0
         if passage_type == "window":
             w, h = 1.0, 0.5
-            
+
         obj = {
             "id": passage_id,
             "name": f"Проход {passage_type} #{len(loc['objects'])}",
             "type": "door" if passage_type == "door" else passage_type,
             "position": {"x": round(position["x"], 2), "y": round(position["y"], 2)},
             "size": {"w": w, "h": h, "d": 1.0},
-            "rotation": 0,        # ME-1.5: rotation больше не несёт wall_id (хак S129 снят)
-            "wall_id": wall_id,   # ME-1.5: единая форма хранения (root)
+            "rotation": 0,  # ME-1.5: rotation больше не несёт wall_id (хак S129 снят)
+            "wall_id": wall_id,  # ME-1.5: единая форма хранения (root)
             "passability": {
                 "walk": True,
                 "jump_over": False,
                 "crawl_under": False,
                 "climb_on": False,
-                "walk_around": True
+                "walk_around": True,
             },
             "cover": 0.0,
             "color": "#FFD700",
             "show_name": False,
-            "properties": {
-                "open": True,
-                "locked": False,
-                "durability": 20,
-                "visibility_through": 0.1
-            }
+            "properties": {"open": True, "locked": False, "durability": 20, "visibility_through": 0.1},
         }
         loc["objects"].append(obj)
         return passage_id
@@ -1740,9 +1801,7 @@ class DataManager:
         return (before_o - len(loc["objects"])) + (before_p - len(loc["passages"]))
 
     # === Управление NPC ===
-    def add_npc(
-        self, filename: str, ref_id: str, x: float, y: float, room_id: str = ""
-    ) -> str:
+    def add_npc(self, filename: str, ref_id: str, x: float, y: float, room_id: str = "") -> str:
         """Добавляет NPC в локацию. Возвращает 'npc_{ref_id}'."""
         loc = self.locations[filename]
         npc_entry = {
@@ -1762,9 +1821,7 @@ class DataManager:
                 return True
         return False
 
-    def move_npc(
-        self, filename: str, npc_ref_id: str, x: float, y: float, room_id: str = ""
-    ) -> bool:
+    def move_npc(self, filename: str, npc_ref_id: str, x: float, y: float, room_id: str = "") -> bool:
         """Перемещает NPC, опционально обновляет room_id"""
         loc = self.locations[filename]
         for npc in loc["npcs"]:
@@ -1877,8 +1934,7 @@ class DataManager:
             return False, f"Файл {loc_file} не найден"
         data = self.locations[loc_file]
         if target_id in data.get("nodes", {}) or any(
-            o.get("id") == target_id and o.get("type") in _PASSAGE_TYPES
-            for o in data.get("objects", [])
+            o.get("id") == target_id and o.get("type") in _PASSAGE_TYPES for o in data.get("objects", [])
         ):
             return True, ""
         return False, f"Цель {target_id} не найдена в {loc_file}"
