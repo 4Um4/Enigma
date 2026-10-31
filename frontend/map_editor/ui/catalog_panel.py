@@ -79,12 +79,12 @@ class CatalogPanel:
 
         # Russian category display names
         self._category_ru = {
-            "furniture": "Мебель",
-            "wall_object": "Стены",
-            "transition": "Переход",
-            "nature": "Природа",
-            "interactive": "Интер",
-            "decoration": "Декор",
+            "furniture": "Меб",
+            "wall_object": "Стн",
+            "transition": "Пер",
+            "nature": "Прд",
+            "interactive": "Инт",
+            "decoration": "Дкр",
         }
 
         # Callbacks (set by editor)
@@ -380,8 +380,7 @@ class CatalogPanel:
             return
         x = 40  # after "Все" button
         for cat in self._index.list_categories():
-            ru_name = self._category_ru.get(cat, cat[:4])
-            w = max(len(ru_name) * 8 + 8, 30)
+            w = 32  # fixed width, fits 6 buttons + "Все" in 250px
             self._cat_rects.append((cat, pygame.Rect(0, 0, w, 20)))
             x += w + 3
 
