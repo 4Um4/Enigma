@@ -66,7 +66,7 @@
 
 > Карточка — навигация, НЕ статус: единственные источники статусов — чеклисты §0.2 и треков. Обновляется при закрытии фронтиров или по вердикту Мастера.
 
-- **Ветвь А (фронтир):** Ступень 0 — **CCH-4** (сеялка предыстории + Character Debugger) → CCH-5 → CCH-6 → линия CCH-02; параллельно Ступень 2 (K → Полигон M) и Ступень 4 (**BC-2**). Ступень MOT — группа G1 (MOT-0…MOT-2, MOT-8) после вердикта Мастера о допуске трека; MOT-3+ — после BC-2 (§18.7).
+- **Ветвь А (фронтир):** Ступень 0 — **CCH-4** (сеялка предыстории + Character Debugger) → CCH-5 → CCH-6 → линия CCH-02; параллельно Ступень 2 (K → Полигон M) и Ступень 4 (**BC-2**). **Ступень CCH-12 (Semantic Audit)** — онто-аудит композитора хроник: типизированные AgeAnchor (DURATION/AT_AGE/SINCE_AGE/YEARS_AGO/AMBIGUOUS), duration_years, years_ago, Species (gnome для Орма), qualifiers в TRAIT_SEED, BELIEF_SEED контракт (только danger|player_hostile), faction registry в roster backstop, YEARS_AGO + безопасный Этап 4 (без auto-derive из DURATION), разоружение confirm_author_entries, placeholder EntityRef (фикс бага №3 — white spots терялись); 16 коммитов, 71 тест, ruff чистый; backlog: S368 legacy-конфликт, p.3b partial matching, p.3c morphology, KNOWLEDGE_LINK schema, effect_kind=command, TRAIT_SEED materialization, temperature=0.9, Semantic Understanding Unification (SUU). Ступень MOT — группа G1 (MOT-0…MOT-2, MOT-8) после вердикта Мастера о допуске трека; MOT-3+ — после BC-2 (§18.7).
 - **Ветвь Б (фронтир):** COV-1 — ✅ **закрыт целиком** (Шаг 1 D58 → Шаг 2 D59 → Шаг 3 D60 → Шаг 4 D70 → Шаг 5 D72, S360/ADR-O-426) → публикация **S1** (полная — wiring MigrationRunner + replay-бюджет исполнены; релей ветви А для event_memories); COV-2 закрыт (S2-стыковка — публикация за Мастером); далее GC-спринт петли (§9.10) → LC-IMPL-2/3. PRE-FLIGHT цикл ROLLOUT-PENDING закрыт S362 (вердикт Мастера от 2026-10-19: 5 rollout-пакетов, 3 доработки разрешены, 3 блокера остаются); COV-2 закрыт (S2-стыковка — публикация за Мастером); далее GC-спринт петли (§9.10) → LC-IMPL-2/3. Rollout-цикл открыт — флаги остаются ROLLOUT-PENDING до завершения каждого пакета (§17.8 Шаг 6) (PRE-FLIGHT по конкретным флагам; D72 = ROLLOUT-PENDING default OFF по вердикту II.Д).
 - **Запрещено сейчас (без вердикта):** маски/BehaviorMask (RE-D9, §7.2 — до BC-контура), NL-12 (до зелёного NL-9), PersuasionEngine (нет ADR и вердикта — §18.8), включение ROLLOUT-PENDING-флагов вне COV-0-протокола, causal-debugger для игрока (закон NL-11).
 - **R4 / D2 — ACCEPTED / CLOSED** (2026-10-25, вердикт Мастера Тая; S372, ADR-O-429): контракт acquisition/release тик-сцены — отдельная ревизия (не roadmap-трек). Реализация: scene_state_manager.py (поле _tick_aborted, метод mark_tick_aborted с guard владения, unlock_tick с if not _tick_aborted + finally) + game_loop.py (skip_time/idle_tick/run_turn обёрнуты в try/except/finally с mark_tick_aborted + unlock_tick). PAT ×8: 37/37 PASS. Артефакты: download/R4_*.md. Backup: .r4_backup. Нюанс: atomic_commit_all из других компонентов до unlock_tick — отдельный вопрос о границах транзакции.
@@ -207,7 +207,7 @@
 | **Р18 «Адаптация»** | — (открытый раунд) | досье контура по цепочке writer→state→reader→causal effect→substitute→anti-Bond (акт передачи §2) | — |
 | **HUMOR / PLAY** | — (план §6) | только после Expectation + Appraisal + Prediction Error | — |
 | **NL-01 NPC как интерфейс** | **NL-01 APPROVED** (вердикт Мастера 2026-10-03: 8 развилок разрешены; аудит кода → находки §12.2/§7.7) | **NL-0** ADR → NL-1 → NL-3 → NL-4 → NL-8a (Фаза 1) → NL-2/NL-5/NL-6/NL-7 + NL-10/NL-11 (Фаза 2) → NL-8/NL-9 closure (Фаза 3) → NL-12 обман (Фаза 4) → GC-41…49 | — |
-| **CCH — Character Chronicle (AUTHORING, v4.3)** | — (новый трек; ТЗ `TZ_CCH-01_Character_Chronicle.md` к исполнению, `TZ_CCH-02_Biography_State_Audit.md` — параллельная линия) | **Слой 0 канонического порядка:** CCH-0 ADR → CCH-1 модель/хранилище → CCH-2 декомпозитор → CCH-3 редактор → CCH-4 сеялка + Character Debugger → CCH-5 проекции → CCH-6 калибровка; параллельно CCH-02-0…2 (аудит психики). Разделы §13/§14 | — |
+| **CCH — Character Chronicle (AUTHORING, v4.3)** | CCH-0…CCH-4 (S340/S373) + **CCH-12 Semantic Audit** (16 коммитов: п.0 полная замена LLM_DRAFT, п.1 право на ноль+coverage gate, п.2 разоружить confirm+placeholder EntityRef, G1 author_text, Species gnome, Point 1 AgeAnchor+duration_years+years_ago+Этап 4, Point 2 qualifiers, Point 3 BELIEF_SEED контракт, p.3a faction registry) | **Слой 0:** CCH-0 → CCH-4 ✅ → **CCH-12 Semantic Audit** (онто-аудит композитора: типизация временных якорей, безопасный вывод historical_age, BELIEF_SEED только реактивные, faction registry, qualifiers) → CCH-5 → CCH-6; backlog: SUU (перенос семантики на runtime), S368 legacy, p.3b/p.3c, KNOWLEDGE_LINK schema, effect_kind=command, TRAIT_SEED materialization, temperature=0.9, ancestor для Орма. Разделы §13/§14 | — |
 | **LC — Loop Closure (v4.3)** | LC-IMPL-1 ✅ (S334/ADR-O-421) → LC-IMPL-2 ч.1/2 ✅ (S376/844a73ec, ADR-O-432) | LC-IMPL-2 ч.2/2 (микрорешение-return) → LC-IMPL-3 (§15): Ступень А — подшаг C3-A2-UI-2 ✅ (d252d6d1, жизненный цикл индикаторов обращений) — Ступень Б (церемония через единый кодовый путь фокуса) + DEBT-FE-DELTAS (COV-D83) — открыто; затем LC-IMPL-5 (следы skip_time) → LC-IMPL-6 (диф-тесты) → эхо-тест LC-10. Раздел §15 | O-421, O-432 |
 | **MEM — Memory Architecture (v4.4)** | — (новый трек; рой-исследование 2026-10-08 read-only: 6 агентов, находки §7.9, карта фактов §16.2, Gap Matrix §16.3) | MEM-0 ADR → MEM-1 хронометраж/identity/перспектива записи (расширение NL-1) → MEM-2 персистентная консолидация + ремонт компрессии → MEM-3 эпизодический субстрат (активация NL-D4, BC-1 evidence) → MEM-4 временные якоря → MEM-5 забывание как accessibility → MEM-6 ассоциативная память → MEM-7 реконструкция/автобиография (потребитель NL-2) → MEM-8 предиктивная память (после BC-2/BC-3) → MEM-9 consumers → MEM-10 replay/200-летний горизонт. Раздел §16 | — |
 | **COV — Карта полноты (v4.5)** | COV-0 ✅ (S343/S344: flags.yaml + lint_flags C1–C7 + INV-FLAG-REGISTRY + pre-commit) → **COV-2 ✅ (S348, ADR-O-425: доктрина обязательной LLM — D61-фронт + транспорт-фикс + живой smoke d61_llm_outage_doctrine 32/0 EXIT=0; очередь D62 за LLM_RESILIENCE_V1 default OFF — ON вердикт Мастера; S2-стыковка разблокирована)** | Шаг 1 D58 ✅ (MigrationRunner/ADR-O-426, GC-01 GREEN, живые БД версионируемы, раннер+шаблон готовы для А — S1 частично, полная после Шага 4) → Шаг 2 D59 ✅ (детект-и-мигрировать/ADR-O-426, S354; детектор CURRENT/MIGRABLE/UNMIGRABLE, миграции v0→v1, .bak + побайтовая верификация, К3/К5; код f51cc6ae + тесты 5d0748ab, pytest 42/42) → Шаги 3–5 D60/D70/D72 → COV-3…6 вердикты механик → COV-7 игрок/MVP → COV-8…11 фронтенд/релиз/контент/документация; протокол полноты §17.7. Раздел §17 | O-425, O-426 |
@@ -1200,7 +1200,26 @@ player command → avatar appraisal → accept/modify/resist/refuse
 - [ ] **W-ретрансляции Мастеру:** `data/replay.db` = 754 МБ / 68k snapshots (рост без ротации).
 - [x] ~~DEBT-W-AUDIT~~ ✅ (S240, §4.1). · [x] ~~DEBT-W-STORE-INCIDENT~~ ✅ ACCEPT (закон-урок §4.2).
 
-### 7.6. Прочие реестровые хвосты
+### 7.5a. CCH-D (реестр находок CCH-12 Semantic Audit, 2026-10-30/31; Ветвь А)
+
+> Онто-аудит композитора хроник на реальной LLM (qwen_7b, temp=0.9) через live pipeline. 21 пункт Орма разобран. Найдены системные пробелы и пределы 7B модели. 16 коммитов закрыли контракты; backlog зафиксирован.
+
+| ID | Находка | Приоритет | Владелец | Решение |
+|---|---------|-----------|----------|---------|
+| CCH-D1 | S368 legacy-конфликт: использует AMBIGUOUS якоря для historical_age (п.12: «57 лет» → age=57) | P1 | SUU | Пересмотр S368: использовать только typed anchors; 4 теста `test_s368_route_integration.py` красные |
+| CCH-D2 | p.3b partial matching NPC: «Торнин» ≠ «Торнин Серебряная Луна» (roster exact match не срабатывает) | P2 | COV-12 p.3b | Token-based matching |
+| CCH-D3 | p.3c morphology: «гильдии» ≠ «гильдия» (p.3a exact не матчит падежи) | P2 | COV-12 p.3c | pymorphy3 lemmatization |
+| CCH-D4 | KNOWLEDGE_LINK schema: промпт рассинхронизирован с валидатором (event_ref/knower/channel/certainty отсутствуют в схеме) | P1 | Ветвь А | Синхронизировать промпт с `_validate_knowledge_entry` |
+| CCH-D5 | Декомпозиция сложных предложений: 7B сворачивает многосоставные предложения в 1 PORTRET (п.11, п.17) | P2 | SUU | Двухпроходная декомпозиция |
+| CCH-D6 | effect_kind=command: нет контракта для директив/приказов («останавливать и убить») | P2 | SUU | Расширение effect_kind enum |
+| CCH-D7 | TRAIT_SEED materialization: seeder skip'ает TRAIT_SEED (ждёт Character Calibration) | P2 | Ветвь А | Реализация Character Calibration |
+| CCH-D8 | temperature=0.9 для FACT_EXTRACTION: недетерминированность, противоречит docstring (temperature=0.0) | P1 | Ветвь Б | Снизить до 0.0 или 0.1 |
+| CCH-D9 | ancestor/происхождение для Орма (1/4 человеческой крови, бабушка 1678 лет назад) — отдельное измерение от species | P3 | Ветвь А | Отдельная структура ancestry (не species) |
+| CCH-D10 | Epistemic gap «не знает» (п.5: «Орм об этом не знает») — нет контракта для незнания | P3 | SUU | Эпистемический слой |
+| CCH-D11 | Self-reference (п.19: target_hint=«Орм» при subject_id=blacksmith_orm) — normalizer не валидирует | P2 | Ветвь А | Валидация target_hint ≠ subject_id |
+| CCH-D12 | Галлюцинации контекста (п.12,15,17): 7B вытаскивает факты из соседних пунктов | P2 | SUU | Изоляция evidence context |
+| CCH-D13 | LLM галлюцинирует years_ago для «много лет назад» (п.14: years_ago=14) | P2 | SUU | Валидация: нет точного числа → нет years_ago |
+| CCH-D14 | Semantic Understanding Unification (SUU): перенос семантических контрактов композитора на runtime (Entity Resolution, Temporal Understanding, Event Decomposition, Relations, Intent, Negation, Causal interpretation) | P1 | SUU | Архитектурный аудит |
 
 - [ ] Н-6 (HEARING_RADIUS), Н-9 (consciousness_state doc drift), Н-11 (стаб trace_causal_chain), Н-12 (wildcard-writers Task 0.9 = AUD-D4), Н-21 (soft-degradation снапшота), Н-31 (uuid4 в Фазе 6), Н-32 (H-37 FIX лжёт), Н-43 (FSM без владельца вызова), Н-45/Н-46 (sweep vanished / bypass-легализация — частично легализованы S203.3), Н-52 (мёртвая ветка), Н-53 (GROUND_TRUTH location_id=''), Н-56 (DLG_QUEUE OVERFLOW — единая первопричина churn), DEBT-R1 (radius 999.0 THEFT), DEBT-R3 (закрыт S209), DEBT-R10 (avatar psyche — vertical slice), DEBT-E1 (PlayerBeliefModel authority→projection, 6 шагов, §18 Устава), DEBT-EVBUS, DEBT-SOC, DEBT-L1-SQLITE, DEBT-MOCK, DEBT-CL1, CAL-1, pytest.ini-hygiene, world_tick.json вне saves/, фантом-каталог backend\backend\data, CONFIG-DEBT.
 - [ ] **A2-LIVE (наследие ТЗ-А2 кат. «А», срез V.0.5.3.8.2 — документ удалён, РЕВЕРИФИЦИРОВАТЬ §13.2 при касании):** 022 → superseded ADR-O-364; 023 инвариант Referential Closure (§ENIGMA-005); 026 SpeechScheduler-конкурентность (PACING=wall-clock — сверить §15.2); 027 drop/degrade-политики очереди; 028 приоритизация потребностей (RE NeedSlot.importance); 029 частота random-events; 030 STM-decay; 031 initiative-паралич; 032 social-target×relations; 033 ranged-дистанции; 036 bias×observer; 037 канонизация schedule-bypass'ов; 038 → §8.P7.
@@ -2237,6 +2256,27 @@ Feature считается **CLOSED** только если:
 - [ ] **PH-1** (P2, прецедент): test_player_turn_headless.py (эталон player-хода, база harness'а) мёртв под ADR-WRITE-GUARD: пост-конструкционные записи NPCState.drives/psyche/body_state из tests.* → ArchitecturalViolationError (guard S212; скрипт __main__-формат вне pytest — падение никем не замечено). Действие: миграция прецедента на конструкторные kwargs/фабрику; прогон отдельным гейтом после GC-00.
 - [ ] **SC-1** (P2, spatial/namespace, NEW из GC-00 baseline №2): SHADOW_COMPILER «Node not found» в run_turn-пути: tavern:entrance (event_compiler:280), tavern:right_table (:155), tavern:fireplace (:280) — цели NPC не разрешаются в скомпилированном графе (namespace целей vs граф; см. расхождение tavern/tavern_silver_wolf из GC-00-археологии). Эффект: shadow-рельса пишет FAILED-записи позиций, dual-rail компаризатор теряет материал. Действие: археология источника node-id (MovementIntent) vs компиляции графа; вердикт о namespace-каноне. Связь: F-NS1.
 - [ ] **FT-2** (P1, FLEE+позиции): wait-тики: FLEE_NAV «threat=maid_lusya not found in npc_positions! Flee blocked» ×12 — NPC решает бежать от Люси каждый тик, исполнение заблокировано; сама Люся отсутствует в npc_positions idle-тиков (SPATIAL_DATA 6/7→5/6). Живая склейка RE-D4 + Н-53. Действие: локализовать беглеца и причину исчезновения Люси из позиций (post-mortem по scene_changes_*.jsonl); зонд.
+
+### 10.2. CCH-12 Semantic Audit — журнал коммитов (Ветвь А, 2026-10-30/31)
+
+| Коммит | Тема | Тесты |
+|--------|------|-------|
+| `5b845625` | CCH-8 seeder (SeedReport) | 8 |
+| `574bd870` | COV-10.4 + COV-11 + B1 runtime fields | 23 |
+| `51b5196b` | B1 autostart (принцип IPT.py) | — |
+| `d12c8217` | CCH-12 п.0: полная замена LLM_DRAFT фрагмента | 4 |
+| `20b9f838` | CCH-12 п.1: право на ноль + coverage gate | 4 |
+| `f4f2ff5d` | CCH-12 п.2: разоружить confirm + placeholder EntityRef (фикс бага №3) | 5 |
+| `95a9476b` | CCH-12 G1: прослеживаемость author_text | 5 |
+| `79621bcf` | CCH-12 Species: вид как first-class (gnome для Орма) | 4 |
+| `d8f48147` | CCH-12 Point 1: типизированные AgeAnchor + duration_years | 11 |
+| `8c52888a` | CCH-12 Point 1 Этап 4: производный historical_age + provenance | 1 |
+| `0e2ecfed` | CCH-12 Point 2: qualifiers в TRAIT_SEED | 7 |
+| `e6db7696` | CCH-12 Point 3: BELIEF_SEED контракт + ClarificationQuestion | — |
+| `d0e22a90` | CCH-12 p.3a: faction registry в roster backstop | 11 |
+| `0ceb78bd` | CCH-12 Point 1 fix: YEARS_AGO anchor + безопасный Этап 4 | 5 |
+
+**Итого:** 16 коммитов, 71 тест, ruff 0 errors. Live proof: blacksmith_orm 21 пункт, YEARS_AGO/DURATION/AMBIGUOUS работают, BELIEF_SEED только danger|player_hostile, faction registry, qualifiers.
 
 ---
 
