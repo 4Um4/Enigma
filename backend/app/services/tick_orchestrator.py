@@ -51,12 +51,6 @@ TRAVERSAL_OWNERSHIP_ENFORCEMENT: bool = (
 
 from app.contracts.interventions import InterventionEvent
 from app.domain.tick import TickResultDTO
-# C3-A1: tick campaign context for delivery isolation
-from app.services.events.tick_campaign_context import (
-    TickCampaignContext as _C3TickCampaignContext,
-    reset_tick_context as _c3_reset_tick_context,
-    set_tick_context as _c3_set_tick_context,
-)
 from app.models.cfrm import ClusterOccupancy
 
 # ADR-O-201 ФАЗА 1: Dual Rail Execution
@@ -72,6 +66,17 @@ from app.services.events.event_types import EventType
 from app.services.events.reaction_subscriber import ReactionSubscriber
 from app.services.events.social_input_projector import SocialInputProjector
 from app.services.events.social_subscriber import SocialSubscriber
+
+# C3-A1: tick campaign context for delivery isolation
+from app.services.events.tick_campaign_context import (
+    TickCampaignContext as _C3TickCampaignContext,
+)
+from app.services.events.tick_campaign_context import (
+    reset_tick_context as _c3_reset_tick_context,
+)
+from app.services.events.tick_campaign_context import (
+    set_tick_context as _c3_set_tick_context,
+)
 from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
 from app.services.npc.life_engine import get_life_engine
 from app.services.spatial.spatial_event_detector import (

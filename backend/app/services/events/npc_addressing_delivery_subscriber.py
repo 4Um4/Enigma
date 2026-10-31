@@ -22,7 +22,6 @@ from app.domain.events import EventDTO
 from app.services.events.event_bus import EventBus
 from app.services.events.event_types import EventType
 from app.services.events.tick_campaign_context import (
-    TickCampaignContext,
     get_current_tick_context,
 )
 

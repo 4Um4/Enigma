@@ -267,7 +267,7 @@ def test_8_ack_removes_only_acked():
     token = _set_ctx("camp_A", 100)
     try:
         e_a = _publish_addressing(bus, npc_id="lusya")
-        e_b = _publish_addressing(bus, npc_id="borko")
+        _eb = _publish_addressing(bus, npc_id="borko")  # noqa: F841 — used implicitly via drain
         sub.commit_staged("camp_A")
         # ACK event A
         assert sub.ack("camp_A", str(e_a.id)) is True
