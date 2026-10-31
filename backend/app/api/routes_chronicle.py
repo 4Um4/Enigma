@@ -327,18 +327,15 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
     }
     # CCH-12 Point 1 Этап 4: game_start_age для производного historical_age.
     # Источник: doc.game_start_age (если draft уже имеет), иначе NPCProfileL0.
-    # age_at_game_start. Мост profile→chronicle пока отсутствует — берем из profile.
+    # age_at_game_start через готовый mapping (load_npc_profiles_from_config).
+    # НЕ собираем путь вручную: npc_id ≠ имя файла (blacksmith_orm → orm.json).
     _game_start_age = doc.game_start_age
     if _game_start_age is None:
         try:
-            from pathlib import Path as _Path
-
-            from app.services.npc.npc_loader import load_profile_from_legacy_json
-            _orm_path = _Path(__file__).resolve().parents[3] / "config" / "npc" / "individuals" / f"{req.npc_id}.json"
-            if _orm_path.exists():
-                import json as _json
-                _raw = _json.loads(_orm_path.read_text(encoding="utf-8"))
-                _profile = load_profile_from_legacy_json(_raw)
+            from app.services.npc.npc_loader import load_npc_profiles_from_config
+            _profiles = load_npc_profiles_from_config()
+            _profile = _profiles.get(req.npc_id)
+            if _profile is not None:
                 _game_start_age = _profile.age_at_game_start
         except Exception:
             pass  # fail-soft: без game_start_age правило не срабатывает, не падает

@@ -20,7 +20,7 @@ import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast, Dict, Final, List, Optional
+from typing import Any, Dict, Final, List, Optional, cast
 
 from app.domain.chronicle import (
     BiographyDecomposition,
@@ -133,7 +133,7 @@ class BiographyDecomposer:
     def build_user_prompt(
         self,
         fragment: str,
-        age_anchors: List[int],
+        age_anchors: List[Any],  # List[int] legacy или List[AgeAnchor] typed
         roster: Optional[Dict[str, str]] = None,
     ) -> str:
         """Типизированные подсказки LLM (CCH-12 Point 1).
@@ -184,12 +184,13 @@ class BiographyDecomposer:
         # пока хранит плоский List[int] (backward-compat response API).
         from app.services.chronicle.age_anchor import extract_age_anchors_typed
         typed = extract_age_anchors_typed(fragment)
+        # CCH-12 Point 1: передаём List[AgeAnchor] напрямую в build_user_prompt,
+        # не плоский List[int] — иначе build_user_prompt конвертирует все в
+        # AMBIGUOUS, и DURATION/AT_AGE/SINCE_AGE классификация теряется.
+        # DecomposeResult.age_anchors (legacy плоский) для response API.
         anchors = [a.value for a in typed]
-        # Сохраняем типизированные anchors в result для downstream (промпт уже
-        # их использует через build_user_prompt; response отдаёт плоский список).
-        self._last_typed_anchors = typed
         roster = (self._roster_provider or _default_roster_provider)()
-        user_prompt = self.build_user_prompt(fragment, anchors, roster)
+        user_prompt = self.build_user_prompt(fragment, typed, roster)
         from app.services.llm.router import ModelRouter  # ленивый (цикл-безопасно)
 
         router = self._router or ModelRouter()

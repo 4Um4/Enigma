@@ -134,6 +134,7 @@ class EditorCore:
         # GAME-PREVIEW-IMPLEMENTATION-1: toggle F11 in MODE_LOCAL
         self.preview_active: bool = False
         self._preview_cam_offset: tuple[float, float] = (0.0, 0.0)
+        self._dragging_location: Optional[str] = None  # WORLD-MAP-PLACEMENT-INTEGRITY-1
         self.camera_speed = 15  # пикселей за кадр при стрелках
 
         # Двойной клик для переименования

@@ -314,23 +314,26 @@ class EventHandler:
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 2:
                 core.dragging_camera = False
-            if event.button == 1 and hasattr(core, "_dragging_location") and core._dragging_location:
+            if event.button == 1 and core._dragging_location:
+                fname = core._dragging_location
                 core._dragging_location = None
+                saved = core.cm.save_location(fname)
+                if not saved:
+                    core._show_toast(f"Ошибка сохранения: {fname}")
 
         elif event.type == pygame.MOUSEMOTION:
             if core.dragging_camera:
                 core.camera_x += event.rel[0]
                 core.camera_y += event.rel[1]
-            elif hasattr(core, "_dragging_location") and core._dragging_location:
-                # Перетаскивание локации — обновляем origin
+            elif core._dragging_location:
                 fname = core._dragging_location
                 data = core.dm.locations.get(fname)
                 if data:
                     new_sx = mx - core._drag_offset[0]
                     new_sy = my - core._drag_offset[1]
-                    # Конвертируем экранные координаты обратно в мировые
-                    data["origin"]["x"] = (new_sx - core.camera_x) / (SCALE * core.zoom)
-                    data["origin"]["y"] = (new_sy - core.camera_y) / (SCALE * core.zoom)
+                    wx, wy = core.screen_to_world(new_sx, new_sy)
+                    data["origin"]["x"] = wx
+                    data["origin"]["y"] = wy
 
     def _handle_local_event(self, core, event: pygame.event.Event):
         """Обрабатывает события в режиме редактирования локации"""

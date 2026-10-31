@@ -62,12 +62,30 @@ class MapRenderer:
             core.screen.blit(info, (rect.x + 8, rect.y + 5))
 
             p_count = sum(
-                1 for o in data.get("objects", [])
+                1
+                for o in data.get("objects", [])
                 if o.get("type") in ("door", "window", "door_transition", "gap", "hatch")
             )
             if p_count > 0:
                 p_text = core.font_small.render(f"🚪{p_count}", True, COLORS["accent_yellow"])
                 core.screen.blit(p_text, (rect.x + 8, rect.y + 20))
+
+        # WORLD-MAP-PLACEMENT-INTEGRITY-1: visualize 2D overlaps
+        from render.placement_diagnostic import detect_2d_overlaps
+
+        overlaps = detect_2d_overlaps(core.dm.locations)
+        for ov in overlaps:
+            ox, oy, ow, oh = ov["overlap_bounds"]
+            sx, sy = self._world_to_screen(core, ox, oy)
+            sw = int(ow * SCALE * core.zoom)
+            sh = int(oh * SCALE * core.zoom)
+            if sw > 0 and sh > 0:
+                overlap_surf = pygame.Surface((sw, sh), pygame.SRCALPHA)
+                overlap_surf.fill((255, 50, 50, 80))
+                core.screen.blit(overlap_surf, (sx, sy))
+                pygame.draw.rect(core.screen, (255, 80, 80), (sx, sy, sw, sh), 1)
+                area_text = core.font_small.render(f"{ov['overlap_area']}sqm overlap", True, (255, 200, 200))
+                core.screen.blit(area_text, (sx + 2, sy + 2))
 
     def _draw_world_grid(self, core):
         """Отрисовывает сетку мира"""
