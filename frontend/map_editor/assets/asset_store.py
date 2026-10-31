@@ -16,11 +16,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -47,16 +48,99 @@ class AssetStoreError(RuntimeError):
 
 @dataclass(frozen=True)
 class BlueprintRecord:
-    """Чертёж в реестре: данные + откуда прочитан."""
+    """Чертёж в реестре: данные + откуда прочитан.
+
+    fingerprint — SHA256 байтов файла на момент load. Используется в
+    save_blueprint_atomic (R2-уточнение Master) для ловли lost update:
+    если внешний процесс изменил содержимое JSON, оставив version той же,
+    fingerprint разойдётся → VersionConflict. Это дополняет memory
+    version check (R5) и disk version check — последний ловит только
+    изменение поля version, fingerprint ловит любое изменение байтов.
+    """
 
     data: dict
     version: int
     source: str  # "global:<каталог>" | "campaign:<кампания>"
     path: Path
+    fingerprint: str
 
     @property
     def blueprint_id(self) -> str:
         return str(self.data[_KEY_BLUEPRINT_ID])
+
+
+class VersionConflict(Exception):
+    """Файл чертежа изменён снаружи между открытием и сохранением (ME-2.1-G-1).
+
+    Контракт: save_blueprint_atomic сравнивает (а) версию record с текущей в
+    store (memory check, R5) и (б) fingerprint байтов файла на диске с
+    record.fingerprint (disk check, R2-уточнение Master). Расхождение →
+    VersionConflict. Master решает: reload или overwrite. Авто-overwrite
+    запрещён (R5).
+
+    R2-уточнение Master: version check ловит только инкремент version;
+    fingerprint ловит любое изменение байтов (включая «version та же,
+    содержимое другое» — lost update). Оба случая → VersionConflict с
+    разным reason ('version' | 'fingerprint') для понятного сообщения.
+    """
+
+    def __init__(
+        self,
+        blueprint_id: str,
+        expected_version: int,
+        actual_version: int,
+        *,
+        reason: str = "version",
+    ) -> None:
+        self.blueprint_id = blueprint_id
+        self.expected_version = expected_version
+        self.actual_version = actual_version
+        self.reason = reason
+        if reason == "fingerprint":
+            msg = (
+                f"Blueprint '{blueprint_id}' изменён снаружи (содержимое, "
+                f"version та же v{expected_version}) — fingerprint разошёлся"
+            )
+        else:
+            msg = (
+                f"Blueprint '{blueprint_id}' изменён снаружи: ожидалась v{expected_version}, на диске v{actual_version}"
+            )
+        super().__init__(msg)
+
+
+class SaveBlocked(Exception):
+    """Сохранение заблокировано ошибками валидации (ME-2.1-G-1).
+
+    Контракт: validator (передан извне, duck-typing) нашёл error-level issues.
+    Save не выполняется, оригинал не трогается. issues — список объектов с
+    атрибутом level (ValidationIssue из resource_validator.py).
+    """
+
+    def __init__(self, blueprint_id: str, issues: list) -> None:
+        self.blueprint_id = blueprint_id
+        self.issues = issues
+        super().__init__(f"Save заблокирован для '{blueprint_id}': {len(issues)} error(s)")
+
+
+@dataclass(frozen=True)
+class SaveResult:
+    """Результат атомарного сохранения чертежа (ME-2.1-G-1).
+
+    Поля:
+    - ok: True если файл записан и реестр пересобран
+    - blueprint_id: какой чертёж сохранён
+    - version: новая версия (int, из new_data после reload)
+    - path: путь к файлу на диске
+    - cache_stale: True если файл сохранён, реестр актуален, но внешний
+      on_cache_refresh упал — производные кэши (CatalogIndex/OBJECT_PRESETS)
+      устарели; реестр AssetStore актуален
+    """
+
+    ok: bool
+    blueprint_id: str
+    version: int
+    path: Path
+    cache_stale: bool = False
 
 
 @dataclass(frozen=True)
@@ -115,23 +199,16 @@ class AssetStore:
         if catalogs_dir.is_dir():
             for catalog in sorted(catalogs_dir.iterdir()):
                 if catalog.is_dir():
-                    self._load_catalog(
-                        catalog, f"{_SOURCE_GLOBAL}:{catalog.name}", problems
-                    )
+                    self._load_catalog(catalog, f"{_SOURCE_GLOBAL}:{catalog.name}", problems)
         # Приватность (спека §2): каталог кампании виден только самой кампании.
         # Склад строится в контексте ОДНОЙ открытой кампании; чужие каталоги
         # не загружаются — уникальные предметы не протекают наружу.
         if self._campaign_id is not None:
             own = self._base / self._campaign_id
             if own.is_dir():
-                self._load_catalog(
-                    own, f"{_SOURCE_CAMPAIGN}:{self._campaign_id}", problems
-                )
+                self._load_catalog(own, f"{_SOURCE_CAMPAIGN}:{self._campaign_id}", problems)
         if problems:
-            raise AssetStoreError(
-                f"Битые чертежи/ресурсы в assets/ ({len(problems)}):\n  "
-                + "\n  ".join(problems)
-            )
+            raise AssetStoreError(f"Битые чертежи/ресурсы в assets/ ({len(problems)}):\n  " + "\n  ".join(problems))
         logger.info(
             "[ASSET_STORE] чертежей=%d, ресурсов=%d, перекрытий=%d",
             len(self._blueprints),
@@ -155,6 +232,218 @@ class AssetStore:
         """(чертежей, ресурсов, перекрытий) — для проверок и отчёта."""
         return len(self._blueprints), len(self._resources), len(self._overrides)
 
+    # ===== ME-2.1-G-1: Write-API =====
+    #
+    # Контракт ТЗ Master (G-1, п.1-6):
+    # 1. Неизменность исходника — new_data не мутирует уже зарегистрированный record.
+    # 2. Контроль версии — VersionConflict если файл изменён снаружи.
+    # 3. Атомарность файловой записи — tmp → validate → test-load → rename.
+    #    При ошибке исходный файл остаётся целым.
+    # 4. Разделение файловой транзакции и обновления кэшей — AssetStore SSOT
+    #    обновляется через load(); CatalogIndex/OBJECT_PRESETS — производные,
+    #    обновляются через on_cache_refresh callback. ENTITY_SPRITE_MAP НЕ
+    #    обновляется автоматически (по требованию Master: сначала доказать
+    #    затрагивание).
+    # 5. Не затрагивает экземпляры — сохранение Blueprint не меняет размещённые
+    #    на карте объекты (R4 — дизайн).
+    # 6. Не расширять G-1 — только фундамент записи, без UI/модалок/категорий.
+
+    def save_blueprint_atomic(
+        self,
+        record: BlueprintRecord,
+        new_data: dict,
+        *,
+        validator: Optional[Any] = None,
+        on_cache_refresh: Optional[Callable[[], None]] = None,
+    ) -> SaveResult:
+        """Атомарное сохранение чертежа (ME-2.1-G-1).
+
+        Args:
+            record: BlueprintRecord, открытый через get_blueprint(). record.path
+                определяет куда писать (source = global или campaign сохраняется).
+            new_data: новый dict чертежа. НЕ мутирует record.data (deepcopy не нужна
+                на стороне вызова — метод не трогает ни record, ни new_data после записи).
+            validator: Optional, duck-typed объект с методом validate_blueprint(data)
+                -> ValidationResult. Если передан и возвращает errors → SaveBlocked.
+                AssetStore НЕ импортирует ResourceValidator (layering, Закон 1.2).
+            on_cache_refresh: Optional callback, вызывается ПОСЛЕ успешного rename
+                и self.load(). Внутри callback: CatalogIndex.refresh() +
+                refresh_object_presets(store) (+ refresh_entity_sprite_map() если
+                доказано затрагивание appearance.sprite). Если callback raises —
+                файл уже сохранён, реестр актуален, но кэши устарели
+                → SaveResult.cache_stale=True.
+
+        Returns:
+            SaveResult с ok=True и новой версией.
+
+        Raises:
+            VersionConflict: файл изменён снаружи (expected != actual version).
+            SaveBlocked: validator нашёл error-level issues.
+            AssetStoreError: test-load упал (битый JSON в tmp) — tmp удалён,
+                оригинал цел.
+        """
+        bp_id = record.blueprint_id
+
+        # 1. Валидация (если validator передан) — гейт перед файловой транзакцией
+        if validator is not None:
+            validation = validator.validate_blueprint(new_data)
+            issues = getattr(validation, "issues", [])
+            errors = [i for i in issues if getattr(i, "level", "") == "error"]
+            if errors:
+                raise SaveBlocked(bp_id, errors)
+
+        # 2. Контроль версии (R5) — record.version должен совпадать с текущим store
+        current = self._blueprints.get(bp_id)
+        if current is None:
+            raise AssetStoreError(f"Blueprint '{bp_id}' не найден в реестре — save невозможен")
+        if current.version != record.version:
+            raise VersionConflict(bp_id, record.version, current.version)
+
+        # 2b. Проверка внешнего изменения файла (R2-уточнение Master).
+        #    version check ловит только инкремент version; fingerprint ловит
+        #    любое изменение байтов (включая «version та же, содержимое другое» —
+        #    lost update). Считаем SHA256 байтов файла на диске и сравниваем
+        #    с record.fingerprint (вычислен при load). Дополняет memory check (2).
+        try:
+            disk_bytes = record.path.read_bytes()
+        except OSError as exc:
+            raise AssetStoreError(f"Не удалось прочитать '{record.path}' для проверки fingerprint: {exc}") from exc
+        disk_fingerprint = hashlib.sha256(disk_bytes).hexdigest()
+        if disk_fingerprint != record.fingerprint:
+            # Извлечь disk_version для понятного сообщения (best-effort)
+            try:
+                raw_on_disk = json.loads(disk_bytes.decode("utf-8-sig"))
+                disk_version = raw_on_disk.get(_KEY_VERSION, record.version)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                disk_version = record.version
+            raise VersionConflict(bp_id, record.version, disk_version, reason="fingerprint")
+
+        # 3. Контракт реестра: имя файла = blueprint_id (rule спеки §2)
+        #    Rename blueprint_id запрещён в v1 (ТЗ Master п.6 «не расширять G-1»)
+        new_bp_id = new_data.get(_KEY_BLUEPRINT_ID)
+        if new_bp_id != bp_id:
+            raise AssetStoreError(
+                f"blueprint_id изменён ('{bp_id}' -> '{new_bp_id}') — rename запрещён в v1 (ТЗ Master п.6)"
+            )
+
+        # 4. Запись в tmp (utf-8 без BOM; _register_blueprint читает utf-8-sig,
+        #    толерантен к BOM и без BOM; стандарт JSON — без BOM).
+        #    tmp_path.stem ДОЛЖЕН совпадать с target_path.stem — правило реестра
+        #    «имя файла = blueprint_id» (asset_store.py:188, _register_blueprint).
+        #    with_suffix(".tmp") даёт stem="door" из "door.json" → "door.tmp";
+        #    with_suffix(".json.tmp") дало бы stem="door.json" → test-load упадёт.
+        target_path = record.path
+        tmp_path = target_path.with_suffix(".tmp")
+        try:
+            tmp_path.write_text(
+                json.dumps(new_data, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            raise AssetStoreError(f"Не удалось записать tmp-файл '{tmp_path}': {exc}") from exc
+
+        # 5. Test-load tmp через изолированный _register_blueprint
+        #    НЕ self.load() — чтобы чужой битый файл не блокировал save нашего
+        problems: List[str] = []
+        test_store = AssetStore.__new__(AssetStore)
+        test_store._base = self._base
+        test_store._campaign_id = self._campaign_id
+        test_store._blueprints = {}
+        test_store._resources = {}
+        test_store._overrides = []
+        test_store._register_blueprint(tmp_path, "test", problems)
+        if problems:
+            # tmp битый — удаляем, оригинал цел
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise AssetStoreError(f"Test-load tmp упал для '{bp_id}':\n  " + "\n  ".join(problems))
+
+        # 6. .history/<id>.<old_version>.json — копия оригинала (best-effort)
+        #    Не блокирует save; .history/ игнорируется при load (фильтр glob *.json
+        #    в _load_catalog не заходит в подпапки)
+        history_dir = target_path.parent / ".history"
+        history_path = history_dir / f"{bp_id}.{record.version}.json"
+        try:
+            history_dir.mkdir(exist_ok=True)
+            history_path.write_bytes(target_path.read_bytes())
+        except OSError as exc:
+            logger.warning("[ASSET_STORE] .history не записан для '%s': %s", bp_id, exc)
+
+        # 7. Backup оригинала в памяти для recovery (R1 — Master контрольный вопрос).
+        #    После replace() оригинал перезаписан; если load() упадёт — восстановим.
+        original_bytes = target_path.read_bytes()
+
+        # 8. Atomic rename: tmp → target (pathlib.Path.replace = POSIX rename /
+        #    Windows MoveFileEx MOVEFILE_REPLACE_EXISTING — атомарно на одной ФС)
+        try:
+            tmp_path.replace(target_path)
+        except OSError as exc:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise AssetStoreError(f"Atomic rename упал для '{bp_id}': {exc}") from exc
+
+        # 9. Пересборка реестра с recovery (R1 — Master контрольный вопрос).
+        #    Snapshot до load; при ошибке — восстановить файл + реестр.
+        #    Сценарий: другой файл в каталоге стал битым одновременно с нашим save;
+        #    load() пересобирает ВСЕ blueprints и падает на чужом файле.
+        #    Recovery: восстановить наш оригинал (файловая консистентность) +
+        #    реестр из snapshot (pre-save состояние). SaveResult не возвращается.
+        _old_blueprints = dict(self._blueprints)
+        _old_resources = dict(self._resources)
+        _old_overrides = list(self._overrides)
+        try:
+            self.load()
+        except Exception as reload_exc:
+            # Восстановить оригинал файла
+            try:
+                target_path.write_bytes(original_bytes)
+            except OSError as restore_exc:
+                logger.error(
+                    "[ASSET_STORE] CRITICAL: restore упал для '%s': %s — "
+                    "файл может быть неконсистентен, см. .history/%s.%d.json",
+                    bp_id,
+                    restore_exc,
+                    bp_id,
+                    record.version,
+                )
+            # Восстановить реестр из snapshot (pre-save состояние)
+            self._blueprints = _old_blueprints
+            self._resources = _old_resources
+            self._overrides = _old_overrides
+            raise AssetStoreError(
+                f"Reload упал после rename для '{bp_id}'. "
+                f"Оригинал восстановлен, реестр в pre-save состоянии: {reload_exc}"
+            ) from reload_exc
+
+        # 10. Внешний refresh кэшей (CatalogIndex + OBJECT_PRESETS + опц. ENTITY_SPRITE_MAP)
+        #     Файл уже сохранён; если refresh упадёт — кэши устарели, реестр актуален
+        cache_stale = False
+        if on_cache_refresh is not None:
+            try:
+                on_cache_refresh()
+            except Exception as exc:  # noqa: BLE001 — внешний callback
+                logger.warning(
+                    "[ASSET_STORE] cache refresh упал для '%s': %s — файл сохранён, реестр актуален, кэши устарели",
+                    bp_id,
+                    exc,
+                )
+                cache_stale = True
+
+        new_record = self._blueprints.get(bp_id)
+        new_version = new_record.version if new_record is not None else int(new_data.get(_KEY_VERSION, record.version))
+
+        return SaveResult(
+            ok=True,
+            blueprint_id=bp_id,
+            version=new_version,
+            path=target_path,
+            cache_stale=cache_stale,
+        )
+
     def _load_catalog(self, catalog_dir: Path, source: str, problems: List[str]) -> None:
         bp_dir = catalog_dir / _BLUEPRINTS_DIR
         if bp_dir.is_dir():
@@ -173,9 +462,7 @@ class AssetStore:
             problems.append(f"{path}: не читается или битый JSON — {exc}")
             return
         if not isinstance(raw, dict):
-            problems.append(
-                f"{path}: чертёж обязан быть JSON-объектом, получен {type(raw).__name__}"
-            )
+            problems.append(f"{path}: чертёж обязан быть JSON-объектом, получен {type(raw).__name__}")
             return
         for key in (_KEY_BLUEPRINT_ID, _KEY_VERSION, _KEY_COMPAT):
             if key not in raw:
@@ -187,9 +474,7 @@ class AssetStore:
             return
         if bid != path.stem:
             # Реестровое правило: имя файла = blueprint_id (дополнение спеки §2)
-            problems.append(
-                f"{path}: blueprint_id '{bid}' не совпадает с именем файла '{path.stem}'"
-            )
+            problems.append(f"{path}: blueprint_id '{bid}' не совпадает с именем файла '{path.stem}'")
             return
         version = raw[_KEY_VERSION]
         if not isinstance(version, int) or isinstance(version, bool) or version < 1:
@@ -199,7 +484,14 @@ class AssetStore:
         if not isinstance(compat, int) or isinstance(compat, bool) or compat < 1:
             problems.append(f"{path}: поле 'compat' — целое число >= 1")
             return
-        record = BlueprintRecord(data=raw, version=version, source=source, path=path)
+        fingerprint = hashlib.sha256(path.read_bytes()).hexdigest()
+        record = BlueprintRecord(
+            data=raw,
+            version=version,
+            source=source,
+            path=path,
+            fingerprint=fingerprint,
+        )
         self._put_blueprint(record, problems)
 
     def _put_blueprint(self, record: BlueprintRecord, problems: List[str]) -> None:
@@ -211,9 +503,7 @@ class AssetStore:
         old_is_campaign = existing.source.startswith(_SOURCE_CAMPAIGN)
         if new_is_campaign and not old_is_campaign:
             # Решение Мастера: своя версия предмета главнее общей
-            self._overrides.append(
-                f"{record.blueprint_id}: {existing.source} -> {record.source}"
-            )
+            self._overrides.append(f"{record.blueprint_id}: {existing.source} -> {record.source}")
             self._blueprints[record.blueprint_id] = record
             return
         problems.append(
@@ -221,13 +511,9 @@ class AssetStore:
             f" ({existing.source} и {record.source}) — переименуйте один"
         )
 
-    def _register_resource(
-        self, path: Path, res_root: Path, source: str, problems: List[str]
-    ) -> None:
+    def _register_resource(self, path: Path, res_root: Path, source: str, problems: List[str]) -> None:
         rel = path.relative_to(res_root).with_suffix("")
-        record = ResourceRecord(
-            resource_id=rel.as_posix(), version=1, source=source, path=path
-        )
+        record = ResourceRecord(resource_id=rel.as_posix(), version=1, source=source, path=path)
         existing = self._resources.get(record.resource_id)
         if existing is None:
             self._resources[record.resource_id] = record
@@ -235,13 +521,10 @@ class AssetStore:
         new_is_campaign = record.source.startswith(_SOURCE_CAMPAIGN)
         old_is_campaign = existing.source.startswith(_SOURCE_CAMPAIGN)
         if new_is_campaign and not old_is_campaign:
-            self._overrides.append(
-                f"ресурс {record.resource_id}: {existing.source} -> {record.source}"
-            )
+            self._overrides.append(f"ресурс {record.resource_id}: {existing.source} -> {record.source}")
             self._resources[record.resource_id] = record
             return
         problems.append(
             f"{path}: два ресурса с именем '{record.resource_id}'"
             f" ({existing.source} и {record.source}) — переименуйте один"
         )
-
