@@ -1,0 +1,60 @@
+{
+  "blueprint_id": "gap",
+  "version": 1,
+  "compat": 1,
+  "type": "gap",
+  "tags": [
+    "wall_object",
+    "requires_wall",
+    "walkable",
+    "tall"
+  ],
+  "category": "wall_object",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 1.5,
+      "h": 2.0,
+      "d": 2.5
+    },
+    "rotation_mode": "mirror",
+    "requires_wall": true
+  },
+  "appearance": {
+    "sprite": [
+      "Deadbeat/deadbeat_b",
+      3,
+      9
+    ],
+    "color": "#AAAAAA",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": true,
+      "jump_over": true,
+      "crawl_under": true,
+      "climb_on": true,
+      "walk_around": true
+    },
+    "cover": 0.0,
+    "height": 2.5
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Пролом",
+    "icon": "💥",
+    "default_properties": {
+      "visibility_through": 1.0,
+      "sound_attenuation": 0.0
+    },
+    "default_size": {
+      "w": 1.5,
+      "h": 2.0
+    }
+  }
+}

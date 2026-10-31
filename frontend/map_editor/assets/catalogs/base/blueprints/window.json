@@ -1,0 +1,58 @@
+{
+  "blueprint_id": "window",
+  "version": 1,
+  "compat": 1,
+  "type": "window",
+  "tags": [
+    "wall_object",
+    "requires_wall"
+  ],
+  "category": "wall_object",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 1.2,
+      "h": 0.2,
+      "d": 1.5
+    },
+    "rotation_mode": "mirror",
+    "requires_wall": true
+  },
+  "appearance": {
+    "sprite": null,
+    "color": "#87CEEB",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": false,
+      "jump_over": false,
+      "crawl_under": false,
+      "climb_on": true,
+      "walk_around": true
+    },
+    "cover": 0.0,
+    "height": 1.5,
+    "durability": 15
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Окно",
+    "icon": "🪟",
+    "default_properties": {
+      "opacity": 0.3,
+      "destructible": true,
+      "durability": 15,
+      "sound_attenuation": 0.3,
+      "visibility_through": 0.8
+    },
+    "default_size": {
+      "w": 1.2,
+      "h": 0.2
+    }
+  }
+}

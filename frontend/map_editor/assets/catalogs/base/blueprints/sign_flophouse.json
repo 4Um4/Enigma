@@ -1,0 +1,55 @@
+{
+  "blueprint_id": "sign_flophouse",
+  "version": 1,
+  "compat": 1,
+  "type": "sign_flophouse",
+  "tags": [
+    "interactive",
+    "walkable",
+    "tall"
+  ],
+  "category": "interactive",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 1.0,
+      "h": 0.3,
+      "d": 2.5
+    },
+    "rotation_mode": "free"
+  },
+  "appearance": {
+    "sprite": [
+      "Deadbeat/deadbeat_b",
+      11,
+      4
+    ],
+    "color": "#DAA520",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": true,
+      "jump_over": false,
+      "crawl_under": false,
+      "climb_on": false,
+      "walk_around": true
+    },
+    "cover": 0.0,
+    "height": 2.5
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Вывеска ночлежки",
+    "icon": "🏷️",
+    "default_properties": {},
+    "default_size": {
+      "w": 1.0,
+      "h": 0.3
+    }
+  }
+}

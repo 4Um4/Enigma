@@ -1,0 +1,52 @@
+{
+  "blueprint_id": "ladder",
+  "version": 1,
+  "compat": 1,
+  "type": "ladder",
+  "tags": [
+    "transition",
+    "walkable"
+  ],
+  "category": "transition",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 1.0,
+      "h": 1.0,
+      "d": 0.1
+    },
+    "rotation_mode": "free"
+  },
+  "appearance": {
+    "sprite": null,
+    "color": "#9370DB",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": true,
+      "jump_over": false,
+      "crawl_under": false,
+      "climb_on": true,
+      "walk_around": true
+    },
+    "cover": 0.0,
+    "height": 0.1
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Люк",
+    "icon": "⬛",
+    "default_properties": {
+      "direction": "down"
+    },
+    "default_size": {
+      "w": 1.0,
+      "h": 1.0
+    }
+  }
+}

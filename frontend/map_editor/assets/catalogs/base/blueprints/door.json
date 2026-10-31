@@ -1,0 +1,63 @@
+{
+  "blueprint_id": "door",
+  "version": 1,
+  "compat": 1,
+  "type": "door",
+  "tags": [
+    "wall_object",
+    "requires_wall",
+    "walkable",
+    "tall"
+  ],
+  "category": "wall_object",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 1.0,
+      "h": 0.2,
+      "d": 2.2
+    },
+    "rotation_mode": "mirror",
+    "requires_wall": true
+  },
+  "appearance": {
+    "sprite": [
+      "Deadbeat/deadbeat_b",
+      3,
+      9
+    ],
+    "color": "#D2691E",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": true,
+      "jump_over": false,
+      "crawl_under": false,
+      "climb_on": false,
+      "walk_around": true
+    },
+    "cover": 0.0,
+    "height": 2.2,
+    "durability": 20
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Дверь",
+    "icon": "🚪",
+    "default_properties": {
+      "open": true,
+      "locked": false,
+      "durability": 20,
+      "visibility_through": 0.1
+    },
+    "default_size": {
+      "w": 1.0,
+      "h": 0.2
+    }
+  }
+}

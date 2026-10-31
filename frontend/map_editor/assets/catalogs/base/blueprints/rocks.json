@@ -1,0 +1,53 @@
+{
+  "blueprint_id": "rocks",
+  "version": 1,
+  "compat": 1,
+  "type": "rocks",
+  "tags": [
+    "nature"
+  ],
+  "category": "nature",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 1.0,
+      "h": 0.8,
+      "d": 0.5
+    },
+    "rotation_mode": "free"
+  },
+  "appearance": {
+    "sprite": [
+      "Deadbeat/deadbeat_b",
+      6,
+      18
+    ],
+    "color": "#808080",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": false,
+      "jump_over": true,
+      "crawl_under": false,
+      "climb_on": true,
+      "walk_around": true
+    },
+    "cover": 0.4,
+    "height": 0.5
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Камни",
+    "icon": "🪨",
+    "default_properties": {},
+    "default_size": {
+      "w": 1.0,
+      "h": 0.8
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "blueprint_id": "spruce",
+  "version": 1,
+  "compat": 1,
+  "type": "spruce",
+  "tags": [
+    "nature",
+    "blocks_los",
+    "tall"
+  ],
+  "category": "nature",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 1.0,
+      "h": 1.0,
+      "d": 4.0
+    },
+    "rotation_mode": "free"
+  },
+  "appearance": {
+    "sprite": [
+      "Deadbeat/deadbeat_b",
+      6,
+      3
+    ],
+    "color": "#006400",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": false,
+      "jump_over": false,
+      "crawl_under": false,
+      "climb_on": true,
+      "walk_around": true
+    },
+    "cover": 0.8,
+    "height": 4.0
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Ель",
+    "icon": "🌲",
+    "default_properties": {},
+    "default_size": {
+      "w": 1.0,
+      "h": 1.0
+    }
+  }
+}

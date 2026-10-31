@@ -1,0 +1,55 @@
+{
+  "blueprint_id": "tent",
+  "version": 1,
+  "compat": 1,
+  "type": "tent",
+  "tags": [
+    "furniture",
+    "blocks_los",
+    "tall"
+  ],
+  "category": "furniture",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 2.0,
+      "h": 2.0,
+      "d": 2.0
+    },
+    "rotation_mode": "free"
+  },
+  "appearance": {
+    "sprite": [
+      "Deadbeat/deadbeat_b",
+      8,
+      15
+    ],
+    "color": "#D2691E",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": false,
+      "jump_over": false,
+      "crawl_under": false,
+      "climb_on": false,
+      "walk_around": true
+    },
+    "cover": 0.8,
+    "height": 2.0
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Палатка",
+    "icon": "⛺",
+    "default_properties": {},
+    "default_size": {
+      "w": 2.0,
+      "h": 2.0
+    }
+  }
+}

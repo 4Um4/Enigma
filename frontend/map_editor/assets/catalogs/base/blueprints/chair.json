@@ -1,0 +1,53 @@
+{
+  "blueprint_id": "chair",
+  "version": 1,
+  "compat": 1,
+  "type": "chair",
+  "tags": [
+    "furniture"
+  ],
+  "category": "furniture",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 0.5,
+      "h": 0.5,
+      "d": 0.5
+    },
+    "rotation_mode": "free"
+  },
+  "appearance": {
+    "sprite": [
+      "Deadbeat/deadbeat_b",
+      8,
+      17
+    ],
+    "color": "#A0522D",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": false,
+      "jump_over": true,
+      "crawl_under": false,
+      "climb_on": true,
+      "walk_around": true
+    },
+    "cover": 0.3,
+    "height": 0.5
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Стул",
+    "icon": "💺",
+    "default_properties": {},
+    "default_size": {
+      "w": 0.5,
+      "h": 0.5
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "blueprint_id": "bar",
+  "version": 1,
+  "compat": 1,
+  "type": "bar",
+  "tags": [
+    "furniture",
+    "blocks_los"
+  ],
+  "category": "furniture",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 2.5,
+      "h": 0.6,
+      "d": 1.2
+    },
+    "rotation_mode": "free"
+  },
+  "appearance": {
+    "sprite": null,
+    "color": "#654321",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": false,
+      "jump_over": true,
+      "crawl_under": false,
+      "climb_on": false,
+      "walk_around": true
+    },
+    "cover": 0.8,
+    "height": 1.2
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Барная стойка",
+    "icon": "🍺",
+    "default_properties": {},
+    "default_size": {
+      "w": 2.5,
+      "h": 0.6
+    }
+  }
+}

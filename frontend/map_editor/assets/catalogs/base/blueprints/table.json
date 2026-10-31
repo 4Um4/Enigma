@@ -1,0 +1,53 @@
+{
+  "blueprint_id": "table",
+  "version": 1,
+  "compat": 1,
+  "type": "table",
+  "tags": [
+    "furniture"
+  ],
+  "category": "furniture",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 1.5,
+      "h": 0.9,
+      "d": 0.8
+    },
+    "rotation_mode": "free"
+  },
+  "appearance": {
+    "sprite": [
+      "Deadbeat/deadbeat_b",
+      5,
+      11
+    ],
+    "color": "#8B7355",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": false,
+      "jump_over": true,
+      "crawl_under": true,
+      "climb_on": true,
+      "walk_around": true
+    },
+    "cover": 0.5,
+    "height": 0.8
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Стол",
+    "icon": "🪑",
+    "default_properties": {},
+    "default_size": {
+      "w": 1.5,
+      "h": 0.9
+    }
+  }
+}

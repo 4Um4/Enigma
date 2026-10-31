@@ -1,0 +1,55 @@
+{
+  "blueprint_id": "bookshelf",
+  "version": 1,
+  "compat": 1,
+  "type": "bookshelf",
+  "tags": [
+    "furniture",
+    "blocks_los",
+    "tall"
+  ],
+  "category": "furniture",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 1.0,
+      "h": 0.4,
+      "d": 2.0
+    },
+    "rotation_mode": "free"
+  },
+  "appearance": {
+    "sprite": [
+      "Deadbeat/deadbeat_b",
+      7,
+      16
+    ],
+    "color": "#8B4513",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": false,
+      "jump_over": false,
+      "crawl_under": false,
+      "climb_on": false,
+      "walk_around": true
+    },
+    "cover": 0.9,
+    "height": 2.0
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Книжный шкаф",
+    "icon": "📚",
+    "default_properties": {},
+    "default_size": {
+      "w": 1.0,
+      "h": 0.4
+    }
+  }
+}

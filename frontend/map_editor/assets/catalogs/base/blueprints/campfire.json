@@ -1,0 +1,57 @@
+{
+  "blueprint_id": "campfire",
+  "version": 1,
+  "compat": 1,
+  "type": "campfire",
+  "tags": [
+    "interactive",
+    "walkable"
+  ],
+  "category": "interactive",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 0.8,
+      "h": 0.8,
+      "d": 0.5
+    },
+    "rotation_mode": "free"
+  },
+  "appearance": {
+    "sprite": [
+      "Deadbeat/deadbeat_b",
+      4,
+      15
+    ],
+    "color": "#FF4500",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": true,
+      "jump_over": true,
+      "crawl_under": false,
+      "climb_on": false,
+      "walk_around": true
+    },
+    "cover": 0.0,
+    "height": 0.5
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Костер",
+    "icon": "🔥",
+    "default_properties": {
+      "light_radius": 5.0,
+      "temperature": 800
+    },
+    "default_size": {
+      "w": 0.8,
+      "h": 0.8
+    }
+  }
+}

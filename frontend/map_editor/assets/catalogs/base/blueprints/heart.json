@@ -1,0 +1,54 @@
+{
+  "blueprint_id": "heart",
+  "version": 1,
+  "compat": 1,
+  "type": "heart",
+  "tags": [
+    "decoration",
+    "walkable"
+  ],
+  "category": "decoration",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 0.3,
+      "h": 0.3,
+      "d": 0.2
+    },
+    "rotation_mode": "free"
+  },
+  "appearance": {
+    "sprite": [
+      "Deadbeat/deadbeat_b",
+      22,
+      12
+    ],
+    "color": "#FF0000",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": true,
+      "jump_over": false,
+      "crawl_under": false,
+      "climb_on": false,
+      "walk_around": true
+    },
+    "cover": 0.0,
+    "height": 0.2
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Сердечко",
+    "icon": "❤️",
+    "default_properties": {},
+    "default_size": {
+      "w": 0.3,
+      "h": 0.3
+    }
+  }
+}

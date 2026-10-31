@@ -1,0 +1,53 @@
+{
+  "blueprint_id": "stool",
+  "version": 1,
+  "compat": 1,
+  "type": "stool",
+  "tags": [
+    "furniture"
+  ],
+  "category": "furniture",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 0.4,
+      "h": 0.4,
+      "d": 0.5
+    },
+    "rotation_mode": "free"
+  },
+  "appearance": {
+    "sprite": [
+      "Deadbeat/deadbeat_b",
+      9,
+      19
+    ],
+    "color": "#A0522D",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": false,
+      "jump_over": true,
+      "crawl_under": false,
+      "climb_on": true,
+      "walk_around": true
+    },
+    "cover": 0.2,
+    "height": 0.5
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Табурет",
+    "icon": "🪑",
+    "default_properties": {},
+    "default_size": {
+      "w": 0.4,
+      "h": 0.4
+    }
+  }
+}

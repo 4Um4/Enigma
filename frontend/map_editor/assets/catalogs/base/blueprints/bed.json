@@ -1,0 +1,53 @@
+{
+  "blueprint_id": "bed",
+  "version": 1,
+  "compat": 1,
+  "type": "bed",
+  "tags": [
+    "furniture"
+  ],
+  "category": "furniture",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 2.0,
+      "h": 1.0,
+      "d": 0.6
+    },
+    "rotation_mode": "free"
+  },
+  "appearance": {
+    "sprite": [
+      "Deadbeat/deadbeat_b",
+      8,
+      16
+    ],
+    "color": "#8B4513",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": false,
+      "jump_over": false,
+      "crawl_under": false,
+      "climb_on": true,
+      "walk_around": true
+    },
+    "cover": 0.2,
+    "height": 0.6
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Кровать",
+    "icon": "🛏️",
+    "default_properties": {},
+    "default_size": {
+      "w": 2.0,
+      "h": 1.0
+    }
+  }
+}

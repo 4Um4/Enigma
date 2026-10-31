@@ -1,0 +1,52 @@
+{
+  "blueprint_id": "stairs_up",
+  "version": 1,
+  "compat": 1,
+  "type": "stairs_up",
+  "tags": [
+    "transition",
+    "walkable"
+  ],
+  "category": "transition",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 1.2,
+      "h": 2.0,
+      "d": 0.3
+    },
+    "rotation_mode": "free"
+  },
+  "appearance": {
+    "sprite": null,
+    "color": "#32CD32",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": true,
+      "jump_over": false,
+      "crawl_under": false,
+      "climb_on": false,
+      "walk_around": true
+    },
+    "cover": 0.0,
+    "height": 0.3
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Лестница вверх",
+    "icon": "🔼",
+    "default_properties": {
+      "direction": "up"
+    },
+    "default_size": {
+      "w": 1.2,
+      "h": 2.0
+    }
+  }
+}
