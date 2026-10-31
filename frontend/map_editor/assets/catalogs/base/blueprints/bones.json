@@ -50,5 +50,8 @@
       "w": 0.5,
       "h": 0.5
     }
-  }
+  },
+  "categories": [
+    "decoration/misc"
+  ]
 }

@@ -46,14 +46,21 @@ class CatalogIndex:
                 "label": metadata.get("label", bp_id),
                 "tags": list(data.get("tags", [])),
                 "category": data.get("category", "misc"),
+                "categories": list(data.get("categories", [data.get("category", "misc")])),
                 "type": data.get("type", bp_id),
                 "sprite": data.get("appearance", {}).get("sprite"),
                 "icon": metadata.get("icon", ""),
             }
             self._entries[bp_id] = entry
 
-            cat = entry["category"]
-            self._by_category.setdefault(cat, []).append(bp_id)
+            # ME-2.1-E: hierarchical categories — index all levels
+            for cat in entry["categories"]:
+                self._by_category.setdefault(cat, []).append(bp_id)
+                # Also index parent (e.g., "furniture" from "furniture/indoor")
+                if "/" in cat:
+                    parent = cat.split("/")[0]
+                    if bp_id not in self._by_category.setdefault(parent, []):
+                        self._by_category[parent].append(bp_id)
 
             for tag in entry["tags"]:
                 self._by_tag.setdefault(tag, []).append(bp_id)
@@ -89,7 +96,13 @@ class CatalogIndex:
         candidates = set(self._entries.keys())
 
         if category is not None:
-            candidates &= set(self._by_category.get(category, []))
+            # ME-2.1-E: hierarchical filter — prefix match
+            # "furniture" matches "furniture" AND "furniture/indoor"
+            cat_ids = set()
+            for indexed_cat, bp_ids in self._by_category.items():
+                if indexed_cat == category or indexed_cat.startswith(category + "/"):
+                    cat_ids.update(bp_ids)
+            candidates &= cat_ids
 
         if tags:
             for tag in tags:
@@ -119,6 +132,21 @@ class CatalogIndex:
     def list_all(self) -> list[str]:
         """All blueprint_ids, sorted."""
         return sorted(self._entries.keys())
+
+    def list_category_tree(self) -> dict[str, list[str]]:
+        """Returns {parent: [child_categories]} for hierarchical display.
+
+        Parents without children have empty list.
+        """
+        tree: dict[str, list[str]] = {}
+        for cat in self._by_category:
+            if "/" in cat:
+                parent, child = cat.split("/", 1)
+                if child not in tree.setdefault(parent, []):
+                    tree[parent].append(child)
+            else:
+                tree.setdefault(cat, [])
+        return tree
 
     def get_category_count(self, category: str) -> int:
         """Number of blueprints in a category."""

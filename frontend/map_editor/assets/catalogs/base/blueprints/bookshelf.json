@@ -51,5 +51,8 @@
       "w": 1.0,
       "h": 0.4
     }
-  }
+  },
+  "categories": [
+    "furniture/indoor"
+  ]
 }

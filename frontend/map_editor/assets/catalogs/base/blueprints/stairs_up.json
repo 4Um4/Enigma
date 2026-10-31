@@ -48,5 +48,8 @@
       "w": 1.2,
       "h": 2.0
     }
-  }
+  },
+  "categories": [
+    "transition/vertical"
+  ]
 }

@@ -54,5 +54,8 @@
       "w": 1.2,
       "h": 0.2
     }
-  }
+  },
+  "categories": [
+    "wall_object/opening"
+  ]
 }
