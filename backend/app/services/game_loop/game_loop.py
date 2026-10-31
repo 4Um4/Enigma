@@ -973,7 +973,7 @@ class GameLoop:
             # BUG-FB-002 FIX: Блокируем конкретную локацию, а не пустую строку.
             _scene = self.scene_manager.lock_for_tick(campaign_id, _loc_id)
             if _scene is None:
-                return {"status": "no_scene", "npc_positions": {}}
+                return {"status": "no_scene", "npc_positions": {}, "npc_addressing": []}
 
             _spatial_svc = None
             if _loc_id:
@@ -1177,6 +1177,7 @@ class GameLoop:
             return {
                 "status": "player_turn_in_flight",
                 "npc_positions": {},
+                "npc_addressing": [],
             }
 
         # S-146 FIX: Поддержка принудительного тика для конкретной локации (для тестов)
@@ -1276,7 +1277,7 @@ class GameLoop:
             from app.services.game_loop.scene_init import _ensure_player_topology
             _scene = self.scene_manager.get_scene_state(campaign_id, _active_loc)
             if _scene is None:
-                return {"status": "no_scene", "npc_positions": {}}
+                return {"status": "no_scene", "npc_positions": {}, "npc_addressing": []}
             if not _scene.get("player_body_topology"):
                 _ensure_player_topology(loop=self, campaign_id=campaign_id, scene_state=_scene)
                 logger.info("[IDLE_TICK] player_body_topology healed in-tick (F3)")
@@ -1421,7 +1422,7 @@ class GameLoop:
 
             if result is None:
                 # S313: cast — типизация, не рантайм; ядро легально возвращает None ("no_scene")
-                return {"status": "no_scene", "npc_positions": {}}  # type: ignore[unreachable]
+                return {"status": "no_scene", "npc_positions": {}, "npc_addressing": []}  # type: ignore[unreachable]
 
             # BUG-PERC-001 / BUG-CORE-006 FIX: GameLoop больше не перезаписывает perception.
             # Фаза 9 (integration.py) уже собрала корректный API DTO с observed_facts
@@ -1557,6 +1558,8 @@ class GameLoop:
             "world_snapshot": _ws,
             # ADR-075: Idle-тики не содержат Волевых конфликтов (нет действия игрока).
             "will_conflict_data": None,
+            # C3-A2: NPC_ADDRESSES_PLAYER delivery queue (C3-A1 subscriber drain)
+            "npc_addressing": getattr(result, "npc_addressing", []) if hasattr(result, "npc_addressing") else [],
         }
 
     async def run_turn(self, req: ChatTurnRequest) -> ChatTurnResponse:

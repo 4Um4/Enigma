@@ -537,6 +537,7 @@ class GameScreen:
         self.npc_speech_bubbles = {}  # ADR-SPEECH: Речевые облачка над NPC {name: {text, tick}}
         self.player_speech_bubble = None  # ADR-SPEECH: Облачко над головой игрока
         self.npc_manifest_indicators = {}  # ADR-MANIFEST: Наблюдаемые физические проявления
+        self.npc_addressing_indicators = {}  # C3-A2: NPC обращения к игроку (event_id → {npc_id, intent, ...})
         self.clock = clock
         self.renderer = SceneRenderer(screen)
         self._resistance_visual_intensity = (
@@ -1255,6 +1256,16 @@ class GameScreen:
                 # (LC-01 / ADR-O-421); строго read-only (§15.4-8). Событие
                 # уже произошло в симуляции; проекция — наблюдаемая суть.
                 # UI-индикатор (церемония Б) — отдельная задача LC-IMPL-3.
+                # C3-A2: Извлечение NPC обращений (NPC_ADDRESSES_PLAYER delivery)
+                _addressing = _tick_data.get("npc_addressing") or []
+                if _addressing:
+                    for _addr in _addressing:
+                        _addr_npc = _addr.get("npc_id", "")
+                        _addr_eid = _addr.get("event_id", "")
+                        if _addr_npc and _addr_eid:
+                            self.npc_addressing_indicators[_addr_eid] = _addr
+                            logger.info(f"[C3_DELIVERY] addressing received: npc={_addr_npc} event={_addr_eid} intent={_addr.get('intent', '')}")
+
                 _idle_events = _tick_data.get("events") or []
                 if _idle_events:
                     for _evt in _idle_events:
