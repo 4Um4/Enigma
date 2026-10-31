@@ -442,7 +442,7 @@ class EditorCore:
         """ME-2.1-F: Called when user clicks Place in catalog panel."""
         self.selected_object_type = bp_id
         self._set_tool(TOOL_OBJECT)
-        self._show_toast(f"Catalog: {bp_id} — click map to place")
+        self._show_toast(f"Каталог: {bp_id} — кликните на карту")
 
     def _update_dropdowns(self):
         """Обновляет дропдауны в зависимости от инструмента"""

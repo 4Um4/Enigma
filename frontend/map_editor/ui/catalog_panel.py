@@ -115,9 +115,7 @@ class CatalogPanel:
             return False
 
         mx, my = pygame.mouse.get_pos()
-        # Adjust mouse to panel-local coords
-        local_x = mx - self.rect.x
-        local_y = my - self.rect.y
+        rx, ry = self.rect.x, self.rect.y
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
@@ -141,36 +139,41 @@ class CatalogPanel:
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
-                # Close button
-                if self._close_rect.collidepoint(local_x, local_y):
+                # Close button (absolute)
+                close_abs = self._close_rect.move(rx, ry)
+                if close_abs.collidepoint(mx, my):
                     self.close()
                     return True
-                # Search bar
-                if self._search_rect.collidepoint(local_x, local_y):
+                # Search bar (absolute)
+                search_abs = self._search_rect.move(rx, ry)
+                if search_abs.collidepoint(mx, my):
                     self._search_active = True
                     return True
                 else:
                     self._search_active = False
-                # Category buttons
-                for cat, rect in self._cat_rects:
-                    if rect.collidepoint(local_x, local_y):
-                        self._selected_category = None if self._selected_category == cat else cat
-                        self._update_filtered()
-                        return True
-                # "All" button
-                all_rect = pygame.Rect(6, self._cat_y, 30, 20)
-                if all_rect.collidepoint(local_x, local_y):
+                # "All" button (absolute)
+                all_abs = pygame.Rect(rx + 6, ry + self._cat_y, 30, 20)
+                if all_abs.collidepoint(mx, my):
                     self._selected_category = None
                     self._update_filtered()
                     return True
-                # Cards
+                # Category buttons (absolute — compute positions matching draw)
+                cx = rx + 40  # matches draw: rx+6 + 34
+                for cat, rect in self._cat_rects:
+                    cat_abs = pygame.Rect(cx, ry + self._cat_y, rect.w, rect.h)
+                    if cat_abs.collidepoint(mx, my):
+                        self._selected_category = None if self._selected_category == cat else cat
+                        self._update_filtered()
+                        return True
+                    cx += rect.w + 3
+                # Cards (already absolute — use mx,my directly)
                 for bp_id, rect in self._card_rects:
-                    if rect.collidepoint(local_x, local_y):
+                    if rect.collidepoint(mx, my):
                         self._select_blueprint(bp_id)
                         return True
-                # Place button
-                place_rect = pygame.Rect(6, self._preview_y + 80, self.rect.w - 12, 24)
-                if place_rect.collidepoint(local_x, local_y):
+                # Place button (absolute — matches draw position)
+                place_abs = pygame.Rect(rx + 6, ry + self._preview_y + 92, self.rect.w - 12, 24)
+                if place_abs.collidepoint(mx, my):
                     if self._selected_bp_id and self._validation and self._validation.can_place:
                         if self.on_place:
                             self.on_place(self._selected_bp_id)
@@ -223,7 +226,7 @@ class CatalogPanel:
         color = self._card_sel if self._selected_category is None else self._btn_bg
         pygame.draw.rect(screen, color, all_rect)
         pygame.draw.rect(screen, self._border, all_rect, 1)
-        all_label = font_small.render("All", True, self._text)
+        all_label = font_small.render("Все", True, self._text)
         screen.blit(all_label, (all_rect.x + 4, all_rect.y + 3))
 
         cx += 34
@@ -291,10 +294,10 @@ class CatalogPanel:
                 # Validation status
                 if self._validation:
                     if self._validation.can_place:
-                        status = "✅ Ready to place"
+                        status = "✅ Готов к размещению"
                         status_color = self._text_ok
                     else:
-                        status = "❌ Cannot place"
+                        status = "❌ Нельзя разместить"
                         status_color = self._text_error
                     status_label = font_small.render(status, True, status_color)
                     screen.blit(status_label, (rx + 6, pv_y + 24))
@@ -318,9 +321,9 @@ class CatalogPanel:
                 # Category + tags
                 cat_str = preview.get("category", "")
                 tags_str = ", ".join(preview.get("tags", [])[:4])
-                cat_label = font_small.render(f"Cat: {cat_str}", True, self._text_dim)
+                cat_label = font_small.render(f"Кат: {cat_str}", True, self._text_dim)
                 screen.blit(cat_label, (rx + 6, pv_y + 60))
-                tags_label = font_small.render(f"Tags: {tags_str}", True, self._text_dim)
+                tags_label = font_small.render(f"Теги: {tags_str}", True, self._text_dim)
                 screen.blit(tags_label, (rx + 6, pv_y + 74))
 
                 # Place button
@@ -329,7 +332,7 @@ class CatalogPanel:
                 color = self._btn_hover if can else (40, 40, 40)
                 pygame.draw.rect(screen, color, place_rect)
                 pygame.draw.rect(screen, self._border, place_rect, 1)
-                place_text = "→ Place on map" if can else "Cannot place"
+                place_text = "→ Разместить на карте" if can else "Нельзя разместить"
                 place_label = font.render(place_text, True, self._text if can else self._text_dim)
                 screen.blit(
                     place_label,
@@ -338,7 +341,7 @@ class CatalogPanel:
 
         # Footer
         count_text = font_small.render(
-            f"{self._index.count if self._index else 0} assets",
+            f"{self._index.count if self._index else 0} ассетов",
             True,
             self._text_dim,
         )

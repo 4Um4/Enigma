@@ -85,7 +85,7 @@ class EventHandler:
                         core.catalog_panel.close()
                     else:
                         core.catalog_panel.open()
-                        core._show_toast("Catalog (F3): search and select assets")
+                        core._show_toast("Каталог (F3): поиск и выбор ассетов")
 
             elif event.key == pygame.K_F5:
                 core.mode = MODE_LAB
