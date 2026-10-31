@@ -332,6 +332,15 @@ class EventHandler:
                     new_sx = mx - core._drag_offset[0]
                     new_sy = my - core._drag_offset[1]
                     wx, wy = core.screen_to_world(new_sx, new_sy)
+                    # WORLD-MAP-SNAP: magnetic snapping to nearby location edges
+                    from render.placement_diagnostic import snap_location_position
+
+                    wx, wy = snap_location_position(
+                        (wx, wy),
+                        (data["size"]["w"], data["size"]["h"]),
+                        core.dm.locations,
+                        exclude=fname,
+                    )
                     data["origin"]["x"] = wx
                     data["origin"]["y"] = wy
 
