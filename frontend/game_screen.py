@@ -564,6 +564,7 @@ class GameScreen:
         self.npc_speech_bubbles = {}  # ADR-SPEECH: Сброс облачек при новой сессии
         self.player_speech_bubble = None  # ADR-SPEECH: Сброс облачка игрока
         self.npc_manifest_indicators = {}  # ADR-MANIFEST: Сброс проявлений
+        self.npc_addressing_indicators = {}  # C3-A2-UI-2: Сброс при смене кампании (изоляция)
         system_log: list[str] = []  # Log Layer: Системные сообщения, движение, ошибки
 
         # Неблокирующая очередь к backend — LLM не замораживает Pygame
@@ -1263,11 +1264,64 @@ class GameScreen:
                         _addr_npc = _addr.get("npc_id", "")
                         _addr_eid = _addr.get("event_id", "")
                         if _addr_npc and _addr_eid:
-                            # C3-A2-ACK: сохраняем до ACK (контракт #9)
-                            if _addr_eid not in self.npc_addressing_indicators:
-                                self.npc_addressing_indicators[_addr_eid] = _addr
-                                logger.info(f"[C3_DELIVERY] addressing received: npc={_addr_npc} event={_addr_eid} intent={_addr.get('intent', '')}")
-                            # C3-A2-ACK: подтверждение получения (не реакция игрока)
+                            _addr_formed = _addr.get("intent_formed_at")
+                            _skip_add = False
+
+                            # C3-A2-UI-2: Stale re-delivery guard — если для этого
+                            # NPC уже есть событие с более новым intent_formed_at,
+                            # текущее устарело (intent уже изменился повторно).
+                            # Не добавляем, но ACK отправляем (чтобы очередь доставки
+                            # не пересылала повторно). Производитель (commit_phase:121)
+                            # гарантирует: каждое событие = одна смена intent, строго
+                            # возрастающий intent_formed_at на NPC.
+                            if _addr_formed is not None:
+                                _has_newer = any(
+                                    _ex.get("npc_id") == _addr_npc
+                                    and _ex.get("intent_formed_at") is not None
+                                    and _ex.get("intent_formed_at") > _addr_formed
+                                    for _ex in self.npc_addressing_indicators.values()
+                                )
+                                if _has_newer:
+                                    _skip_add = True
+                                    logger.info(
+                                        f"[C3_UI2] stale re-delivery dropped: "
+                                        f"npc={_addr_npc} event={_addr_eid}"
+                                    )
+
+                            if not _skip_add:
+                                # C3-A2-UI-2: Intent change detection — удалить
+                                # события того же NPC с более старым intent_formed_at
+                                # (intent сменился → старое обращение устарело).
+                                # События без intent_formed_at НЕ трогаем (неизвестная
+                                # актуальность — сохраняем, см. тест #8).
+                                if _addr_formed is not None:
+                                    _to_remove = [
+                                        _old_eid
+                                        for _old_eid, _ex in self.npc_addressing_indicators.items()
+                                        if _ex.get("npc_id") == _addr_npc
+                                        and _old_eid != _addr_eid
+                                        and _ex.get("intent_formed_at") is not None
+                                        and _ex.get("intent_formed_at") < _addr_formed
+                                    ]
+                                    for _old_eid in _to_remove:
+                                        del self.npc_addressing_indicators[_old_eid]
+                                        logger.info(
+                                            f"[C3_UI2] stale addressing removed: "
+                                            f"npc={_addr_npc} old_event={_old_eid} "
+                                            f"new_event={_addr_eid}"
+                                        )
+                                # C3-A2-ACK: сохраняем до ACK (контракт #9)
+                                if _addr_eid not in self.npc_addressing_indicators:
+                                    self.npc_addressing_indicators[_addr_eid] = _addr
+                                    logger.info(
+                                        f"[C3_DELIVERY] addressing received: "
+                                        f"npc={_addr_npc} event={_addr_eid} "
+                                        f"intent={_addr.get('intent', '')}"
+                                    )
+
+                            # C3-A2-ACK: подтверждение получения (не реакция игрока).
+                            # Всегда выполняется — даже для stale re-delivery, чтобы
+                            # очередь доставки не пересылала повторно.
                             try:
                                 _gateway.ack_addressing(campaign_folder, _addr_eid)
                             except Exception as _ack_err:
