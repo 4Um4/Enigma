@@ -148,6 +148,123 @@ class _DropdownField(_FieldControl):
         return 38
 
 
+class _CategoriesField(_FieldControl):
+    """Tree-view категорий с checkbox multi-select (ME-2.1-G-5).
+
+    Контракт Master:
+    - Источник дерева — CatalogIndex.list_category_tree()
+    - Multi-select через checkbox
+    - Legacy category — детерминированная проекция (parent первого sorted)
+    - Unknown categories сохраняются, не теряются (п.В)
+    - Категории не выводятся из Blueprint-функций (п.А)
+    """
+
+    def __init__(self, path: str, label: str, x: int, y: int, w: int, catalog_index=None):
+        super().__init__(path, label, None)
+        self._index = catalog_index
+        self._tree: dict = {}
+        self._known_paths: set = set()
+        self._selected: set = set()
+        self._unknown: set = set()
+        self._checkbox_rects: list = []
+        self._line_height = 20
+
+    def _rebuild_tree(self) -> None:
+        """Перестроить дерево из CatalogIndex."""
+        if self._index is None:
+            self._tree = {}
+            self._known_paths = set()
+            return
+        self._tree = self._index.list_category_tree()
+        self._known_paths = set()
+        for parent, children in self._tree.items():
+            if children:
+                for child in children:
+                    self._known_paths.add(f"{parent}/{child}")
+            else:
+                self._known_paths.add(parent)
+
+    def set_value(self, value) -> None:
+        if not isinstance(value, list):
+            value = []
+        self._selected = set(value)
+        self._rebuild_tree()
+        self._unknown = self._selected - self._known_paths
+
+    def get_value(self):
+        known = sorted(c for c in self._selected if c not in self._unknown)
+        unknown = sorted(self._unknown)
+        return known + unknown
+
+    def handle_event(self, event) -> bool:
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mx, my = pygame.mouse.get_pos()
+            for path, rect, is_unknown in self._checkbox_rects:
+                if rect.collidepoint(mx, my):
+                    if path in self._selected:
+                        self._selected.discard(path)
+                        if is_unknown:
+                            self._unknown.discard(path)
+                    else:
+                        self._selected.add(path)
+                        if is_unknown:
+                            self._unknown.add(path)
+                    return True
+        return False
+
+    def draw(self, screen, font, font_small, x: int, y: int) -> int:
+        self._checkbox_rects = []
+        cy = y
+
+        header_surf = font_small.render(self.label, True, (140, 140, 140))
+        screen.blit(header_surf, (x, cy))
+        cy += 18
+
+        for parent in sorted(self._tree.keys()):
+            children = self._tree[parent]
+            if children:
+                parent_surf = font_small.render(f"  {parent}/", True, (100, 100, 120))
+                screen.blit(parent_surf, (x, cy))
+                cy += self._line_height
+
+                for child in sorted(children):
+                    full_path = f"{parent}/{child}"
+                    is_selected = full_path in self._selected
+                    self._draw_checkbox(screen, font_small, x + 16, cy, full_path, child, is_selected, False)
+                    cy += self._line_height
+            else:
+                full_path = parent
+                is_selected = full_path in self._selected
+                self._draw_checkbox(screen, font_small, x, cy, full_path, parent, is_selected, False)
+                cy += self._line_height
+
+        if self._unknown:
+            unknown_header = font_small.render("  ? Неизвестные:", True, (220, 180, 80))
+            screen.blit(unknown_header, (x, cy))
+            cy += self._line_height
+            for path in sorted(self._unknown):
+                is_selected = path in self._selected
+                self._draw_checkbox(screen, font_small, x + 16, cy, path, path, is_selected, True)
+                cy += self._line_height
+
+        return cy - y + 4
+
+    def _draw_checkbox(self, screen, font, x, y, path, label, checked, is_unknown):
+        rect = pygame.Rect(x, y, 16, 16)
+        color = (80, 200, 80) if checked else (50, 50, 65)
+        pygame.draw.rect(screen, color, rect, border_radius=3)
+        pygame.draw.rect(screen, (60, 60, 80), rect, 1, border_radius=3)
+        if checked:
+            check_surf = font.render("✓", True, (30, 30, 30))
+            screen.blit(check_surf, (x + 2, y - 2))
+
+        label_color = (220, 180, 80) if is_unknown else (200, 200, 220)
+        label_surf = font.render(label, True, label_color)
+        screen.blit(label_surf, (x + 22, y))
+
+        self._checkbox_rects.append((path, rect, is_unknown))
+
+
 class BlueprintInspectorPanel:
     """Редактор Blueprint через EditSession (ME-2.1-G-4).
 
@@ -169,9 +286,11 @@ class BlueprintInspectorPanel:
         w: int,
         h: int,
         blueprint_editor: BlueprintEditor,
+        catalog_index=None,
     ) -> None:
         self.rect = pygame.Rect(x, y, w, h)
         self._editor = blueprint_editor
+        self._catalog_index = catalog_index
         self.active = False
         self._session: Optional[EditSession] = None
         self._validation = None
@@ -265,6 +384,10 @@ class BlueprintInspectorPanel:
 
         # Metadata
         self._controls.append(_TextInputField("metadata.label", "Label", x, y, w))
+        y += 42
+
+        # G-5: Categories (tree-view multi-select)
+        self._controls.append(_CategoriesField("categories", "Categories", x, y, w, self._catalog_index))
 
     def _refresh_controls(self) -> None:
         """Обновить виджеты из session.get_field()."""
@@ -284,6 +407,14 @@ class BlueprintInspectorPanel:
         value = control.get_value()
         if value is not None:
             self._session.set_field(control.path, value)
+
+            # G-5: Legacy category projection — детерминированная
+            # parent первого элемента канонически упорядоченного списка
+            if control.path == "categories" and isinstance(value, list) and value:
+                sorted_cats = sorted(value)
+                parent = sorted_cats[0].split("/")[0]
+                self._session.set_field("category", parent)
+
             self._validation = self._session.last_validation
             self._status_message = ""
 

@@ -138,6 +138,11 @@ class CatalogPanel:
         """Выбранный blueprint_id (для F4 — открыть inspector выбранного)."""
         return self._selected_bp_id
 
+    @property
+    def catalog_index(self):
+        """CatalogIndex (для переиспользования в BlueprintInspectorPanel G-5)."""
+        return self._index
+
     def handle_event(self, event: pygame.event.Event) -> bool:
         """Handle event. Returns True if consumed (editor should stop)."""
         if not self.active:

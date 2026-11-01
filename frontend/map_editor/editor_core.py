@@ -388,22 +388,25 @@ class EditorCore:
         )
         self.catalog_panel.on_place = lambda bp_id: self._catalog_place(bp_id)
 
-        # ME-2.1-G-4: BlueprintEditorPanel (редактор через EditSession)
+        # ME-2.1-G-4: BlueprintInspectorPanel (редактор через EditSession)
         from assets.blueprint_editor import BlueprintEditor
-        from ui.blueprint_inspector import BlueprintEditorPanel
+        from ui.blueprint_inspector import BlueprintInspectorPanel
 
+        _store = self.catalog_panel.store
+        assert _store is not None, "CatalogPanel.store должен быть загружен до BlueprintEditor"
         self._blueprint_editor = BlueprintEditor(
-            asset_store=self.catalog_panel.store,
+            asset_store=_store,
             validator=self.catalog_panel.validator,
         )
         inspector_x = catalog_x + catalog_w + 10
         inspector_w = 420
-        self.inspector_panel = BlueprintEditorPanel(
+        self.inspector_panel = BlueprintInspectorPanel(
             inspector_x,
             catalog_y,
             inspector_w,
             catalog_h,
             self._blueprint_editor,
+            catalog_index=self.catalog_panel.catalog_index,
         )
         # Double-click в каталоге → открыть редактор
         self.catalog_panel.on_inspect = lambda bp_id: self.inspector_panel.open(bp_id)
