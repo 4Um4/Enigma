@@ -415,10 +415,14 @@ class BlueprintInspectorPanel:
         h: int,
         blueprint_editor: BlueprintEditor,
         catalog_index=None,
+        count_instances=None,
+        show_toast=None,
     ) -> None:
         self.rect = pygame.Rect(x, y, w, h)
         self._editor = blueprint_editor
         self._catalog_index = catalog_index
+        self._count_instances = count_instances  # G-9: callback(bp_id) -> int
+        self._show_toast = show_toast  # G-9: callback(message: str)
         self.active = False
         self._session: Optional[EditSession] = None
         self._validation = None
@@ -624,6 +628,16 @@ class BlueprintInspectorPanel:
             # Обновить controls из актуальной сессии (после save state=SAVED)
             # Повторное открытие для новой сессии
             bp_id = self._session.blueprint_id
+
+            # G-9: Propagation hint — подсчёт экземпляров после успешного save
+            if self._count_instances is not None and self._show_toast is not None:
+                try:
+                    count = self._count_instances(bp_id)
+                    if count > 0:
+                        self._show_toast(f"{count} экземпляров типа '{bp_id}' в локации не обновлены")
+                except Exception:
+                    pass  # Ошибка подсчёта не влияет на успешный save
+
             self.open(bp_id)
         except Exception as e:
             # VersionConflict или SaveBlocked или AssetStoreError

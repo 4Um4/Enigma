@@ -400,6 +400,14 @@ class EditorCore:
         )
         inspector_x = catalog_x + catalog_w + 10
         inspector_w = 420
+
+        def _count_bp_instances(bp_id: str) -> int:
+            """G-9: Подсчёт экземпляров Blueprint в активной локации."""
+            if not self.current_file or self.current_file not in self.dm.locations:
+                return 0
+            loc = self.dm.locations[self.current_file]
+            return sum(1 for o in loc.get("objects", []) if o.get("type") == bp_id)
+
         self.inspector_panel = BlueprintInspectorPanel(
             inspector_x,
             catalog_y,
@@ -407,6 +415,8 @@ class EditorCore:
             catalog_h,
             self._blueprint_editor,
             catalog_index=self.catalog_panel.catalog_index,
+            count_instances=_count_bp_instances,
+            show_toast=self._show_toast,
         )
         # Double-click в каталоге → открыть редактор
         self.catalog_panel.on_inspect = lambda bp_id: self.inspector_panel.open(bp_id)
