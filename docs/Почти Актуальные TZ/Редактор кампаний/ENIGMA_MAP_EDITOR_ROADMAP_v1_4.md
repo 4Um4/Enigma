@@ -715,7 +715,7 @@ P0 здесь означает не «немедленно написать ве
   - [x] **D. ResourceValidator** (828ec573, 16 тестов) — 4 уровня валидации
   - [x] **F. Catalog UI** (70fc1341 + 4 фикса, 20 тестов) — CatalogPanel F3 toggle
   - [x] **E. Hierarchy** (3cfb374e, 11 тестов) — categories[] + prefix-match + multiple membership
-  - [ ] **G. Blueprint Editor** — G-1 (S397, ebb85ba6) + G-2 (S399, 932c298f) + G-3 (S400, 906eacd2, 11 тестов: BlueprintInspectorPanel read-only) закрыты. G-4..G-10 ждут GO Master.
+  - [ ] **G. Blueprint Editor** — G-1 (S397, ebb85ba6) + G-2 (S399, 932c298f) + G-3 (S400, 906eacd2) + G-4 (S401, dc1f628b, 17 тестов: editor — типизированные виджеты, Save/Cancel, live validation) закрыты. G-5..G-10 ждут GO Master.
   - [ ] **H. Import UI** | **I. Campaign Assets** | **J. Selective Propagation** | **K. Pre-placement Gate** | **L. NPC Catalog**
   Базлайн: 111 тестов, ruff clean. Game Preview (F11) и World Map Audit — вне нумерации, см. журнал.
 - [ ] **ME-2.2** Material & Texture Studio v1: библиотека материалов, варианты одного материала, назначение на чертёж; `VisualCastingEditor` вливается как спрайтовый редактор (§4.Б).
