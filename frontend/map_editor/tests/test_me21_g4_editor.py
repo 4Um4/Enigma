@@ -30,7 +30,7 @@ for p in [str(frontend_root), str(map_editor_root)]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-from assets.asset_store import AssetStore, SaveBlocked, VersionConflict  # noqa: E402
+from assets.asset_store import AssetStore, VersionConflict  # noqa: E402
 from assets.blueprint_editor import BlueprintEditor, SessionState  # noqa: E402
 from assets.resource_validator import ResourceValidator  # noqa: E402
 
@@ -83,9 +83,9 @@ def _make_editor_panel(editor, x=300, y=50, w=420, h=600):
         pygame.display.set_mode((1, 1))
     except Exception:
         pass
-    from ui.blueprint_inspector import BlueprintEditorPanel
+    from ui.blueprint_inspector import BlueprintInspectorPanel
 
-    return BlueprintEditorPanel(x, y, w, h, editor)
+    return BlueprintInspectorPanel(x, y, w, h, editor)
 
 
 def _deep_copy(data: dict) -> dict:
@@ -126,7 +126,7 @@ class TestFieldEditing:
 
         control = next(c for c in panel._controls if c.path == "appearance.show_name")
         original = panel._session.get_field("appearance.show_name")
-        control.widget.toggled = not original
+        control._toggled = not original
         panel._on_field_changed(control)
 
         assert panel._session.get_field("appearance.show_name") == (not original)

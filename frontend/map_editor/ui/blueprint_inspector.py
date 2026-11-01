@@ -26,9 +26,9 @@ from __future__ import annotations
 from typing import Optional
 
 import pygame
-
 from assets.blueprint_editor import BlueprintEditor, EditSession, SessionState
-from ui.components import Button, Dropdown, TextInput, ToggleButton
+
+from ui.components import Button, Dropdown, TextInput
 
 
 class _FieldControl:
@@ -90,30 +90,38 @@ class _TextInputField(_FieldControl):
 
 
 class _BoolField(_FieldControl):
-    """Checkbox (ToggleButton) для bool полей."""
+    """Checkbox для bool полей (ручная отрисовка)."""
 
     def __init__(self, path: str, label: str, x: int, y: int):
-        widget = ToggleButton(x, y, 22, 22, "", color_key="btn_secondary")
-        super().__init__(path, label, widget)
+        super().__init__(path, label, None)
+        self._toggled = False
+        self._checkbox_rect = pygame.Rect(x + 150, y, 22, 22)
 
     def set_value(self, value) -> None:
-        self.widget.toggled = bool(value)
+        self._toggled = bool(value)
 
     def get_value(self):
-        return self.widget.toggled
+        return self._toggled
+
+    def handle_event(self, event) -> bool:
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mx, my = pygame.mouse.get_pos()
+            if self._checkbox_rect.collidepoint(mx, my):
+                self._toggled = not self._toggled
+                return True
+        return False
 
     def draw(self, screen, font, font_small, x: int, y: int) -> int:
-        # Label слева, checkbox справа
         label_surf = font_small.render(self.label, True, (140, 140, 140))
         screen.blit(label_surf, (x, y + 3))
-        self.widget.rect.x = x + 150
-        self.widget.rect.y = y
-        self.widget.draw(screen, font_small)
-        # Индикатор состояния
-        state = "✓" if self.widget.toggled else "✗"
-        state_color = (80, 200, 80) if self.widget.toggled else (220, 80, 80)
-        state_surf = font_small.render(state, True, state_color)
-        screen.blit(state_surf, (x + 180, y + 3))
+        self._checkbox_rect.x = x + 150
+        self._checkbox_rect.y = y
+        color = (80, 200, 80) if self._toggled else (50, 50, 65)
+        pygame.draw.rect(screen, color, self._checkbox_rect, border_radius=4)
+        pygame.draw.rect(screen, (60, 60, 80), self._checkbox_rect, 1, border_radius=4)
+        if self._toggled:
+            state_surf = font_small.render("✓", True, (30, 30, 30))
+            screen.blit(state_surf, (self._checkbox_rect.x + 6, self._checkbox_rect.y + 2))
         return 26
 
 
@@ -140,7 +148,7 @@ class _DropdownField(_FieldControl):
         return 38
 
 
-class BlueprintEditorPanel:
+class BlueprintInspectorPanel:
     """Редактор Blueprint через EditSession (ME-2.1-G-4).
 
     UI-контракт:
@@ -227,7 +235,9 @@ class BlueprintEditorPanel:
         y = self.rect.y + 100  # после заголовка + валидации
 
         # Geometry
-        self._controls.append(_DropdownField("geometry.rotation_mode", "Rotation", x, y, w, ["free", "mirror", "fixed"]))
+        self._controls.append(
+            _DropdownField("geometry.rotation_mode", "Rotation", x, y, w, ["free", "mirror", "fixed"])
+        )
         y += 42
         self._controls.append(_TextInputField("geometry.size.w", "Width (W)", x, y, w, is_float=True))
         y += 42
@@ -389,13 +399,19 @@ class BlueprintEditorPanel:
         # Поля (контролы)
         for control in self._controls:
             try:
-                value = self._session.get_field(control.path)
+                self._session.get_field(control.path)
             except (KeyError, Exception):
                 continue
             # Контрол уже отрисован в handle_event? Нет — draw отдельно
             # Контролы хранят абсолютные позиции, установленные в _build_controls
             # Но rect.x/y сбрасывается — обновим
-            control.draw(screen, font, font_small, control.widget.rect.x, control.widget.rect.y - (14 if isinstance(control, (_TextInputField, _DropdownField)) else 0))
+            control.draw(
+                screen,
+                font,
+                font_small,
+                control.widget.rect.x,
+                control.widget.rect.y - (14 if isinstance(control, (_TextInputField, _DropdownField)) else 0),
+            )
 
         # Status message
         if self._status_message:
