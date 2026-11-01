@@ -381,10 +381,14 @@ class TestGetDataIsolation:
 # ===== Доп: new_from — заглушка G-8 =====
 
 
-class TestNewFromStub:
-    def test_new_from_raises_not_implemented(self, isolated_assets, editor):
-        with pytest.raises(NotImplementedError):
-            editor.new_from("door", "door_red")
+class TestNewFromImplemented:
+    def test_new_from_creates_session(self, isolated_assets, editor):
+        """G-8: new_from теперь реализован — создаёт EditSession."""
+        session = editor.new_from("door", "door_red")
+        assert session is not None
+        assert session.blueprint_id == "door_red"
+        assert session.is_new is True
+        assert session.is_new is True
 
 
 # ===== Доп: повторное открытие получает актуальное состояние =====

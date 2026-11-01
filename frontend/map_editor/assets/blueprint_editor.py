@@ -38,6 +38,7 @@ class SessionState(str, Enum):
     OPEN = "open"
     SAVED = "saved"
     CANCELLED = "cancelled"
+    NEW = "new"  # G-8: новый черновик, ещё не сохранён в каталог
 
 
 def _deep_copy(data: dict) -> dict:
@@ -113,19 +114,21 @@ class EditSession:
         working: dict,
         opened_version: int,
         opened_fingerprint: str,
-        opened_record: BlueprintRecord,
+        opened_record: Optional[BlueprintRecord],
         store: AssetStore,
         validator: Optional[Any] = None,
+        is_new: bool = False,
     ) -> None:
         self._blueprint_id = blueprint_id
         self._original = original  # frozen snapshot (deepcopy на момент open)
         self._working = working  # мутируется UI (deepcopy на момент open)
         self._opened_version = opened_version
         self._opened_fingerprint = opened_fingerprint
-        self._opened_record = opened_record  # frozen BlueprintRecord для save
+        self._opened_record = opened_record  # frozen BlueprintRecord для save (None для new)
         self._store = store  # weak ref, НЕ владеет
         self._validator = validator  # duck-typed (как в G-1)
-        self._state = SessionState.OPEN
+        self._is_new = is_new
+        self._state = SessionState.NEW if is_new else SessionState.OPEN
         self._last_validation: Optional[Any] = None
 
     # ===== Свойства (read-only) =====
@@ -145,6 +148,11 @@ class EditSession:
     @property
     def state(self) -> SessionState:
         return self._state
+
+    @property
+    def is_new(self) -> bool:
+        """G-8: True для новой сессии (черновик, ещё не в каталоге)."""
+        return self._is_new
 
     @property
     def dirty(self) -> bool:
@@ -235,22 +243,33 @@ class EditSession:
         self._state = SessionState.CANCELLED
 
     def save(self, on_cache_refresh: Optional[Callable[[], None]] = None) -> SaveResult:
-        """Сохранить working через G-1 (store.save_blueprint_atomic).
+        """Сохранить working через AssetStore (G-1 для existing, G-8 для new).
 
-        Поднимает VersionConflict / SaveBlocked / AssetStoreError (от G-1).
+        Поднимает VersionConflict / SaveBlocked / AssetStoreError.
         После успешного save state=SAVED — сессия закрыта для изменений.
 
         Контракт: ТОЛЬКО этот путь сохранения. Никаких write_text/json.dump
         в EditSession. AssetStore — единственный владелец сохранённого состояния.
         """
         self._require_open()
-        result = self._store.save_blueprint_atomic(
-            self._opened_record,
-            self._working,
-            validator=self._validator,
-            on_cache_refresh=on_cache_refresh,
-        )
+        if self._is_new:
+            # G-8: создание нового Blueprint
+            result = self._store.save_new_blueprint_atomic(
+                self._blueprint_id,
+                self._working,
+                validator=self._validator,
+                on_cache_refresh=on_cache_refresh,
+            )
+        else:
+            # G-1: обновление существующего
+            result = self._store.save_blueprint_atomic(
+                self._opened_record,
+                self._working,
+                validator=self._validator,
+                on_cache_refresh=on_cache_refresh,
+            )
         self._state = SessionState.SAVED
+        self._is_new = False  # После успешного save — обычный чертёж
         return result
 
     def close(self) -> None:
@@ -266,8 +285,8 @@ class EditSession:
     # ===== Внутренние =====
 
     def _require_open(self) -> None:
-        """Гейт: операция разрешена только в состоянии OPEN."""
-        if self._state != SessionState.OPEN:
+        """Гейт: операция разрешена в состоянии OPEN или NEW (G-8)."""
+        if self._state not in (SessionState.OPEN, SessionState.NEW):
             raise AssetStoreError(
                 f"EditSession для '{self._blueprint_id}' закрыта "
                 f"(state={self._state.value}). "
@@ -327,9 +346,58 @@ class BlueprintEditor:
         )
 
     def new_from(self, source_id: str, new_id: str) -> EditSession:
-        """Создать EditSession для нового blueprint на основе существующего.
+        """Создать EditSession для нового blueprint на основе существующего (G-8).
 
-        G-8 (ME-2.1-G-8). В G-2 — заглушка NotImplementedError; полная реализация
-        в G-8 (deepcopy → new_id → save as new file).
+        Контракт Master:
+        1. Получает исходный Blueprint через AssetStore.
+        2. Проверяет допустимость new_id.
+        3. Проверяет отсутствие такого ID в каталоге.
+        4. Создаёт глубокую независимую копию.
+        5. Заменяет blueprint_id.
+        6. Устанавливает version = 1.
+        7. Устанавливает compat = 1.
+        8. Создаёт новую EditSession в состоянии NEW.
+        9. Возвращает её без изменения исходного Blueprint и без регистрации.
         """
-        raise NotImplementedError("new_from — G-8 (ME-2.1-G-8). В G-2 заглушка; не реализовано.")
+        import re
+
+        # 1. Получить исходный Blueprint
+        record = self._store.get_blueprint(source_id)
+        if record is None:
+            raise AssetStoreError(f"Source Blueprint '{source_id}' не найден")
+
+        # 2. Проверить допустимость new_id
+        if not isinstance(new_id, str) or not new_id:
+            raise AssetStoreError("new_id должен быть непустой строкой")
+        if not re.match(r"^[a-zA-Z0-9_]+$", new_id):
+            raise AssetStoreError(f"new_id '{new_id}' недопустим — только латиница, цифры, _")
+
+        # 3. Проверить отсутствие ID в каталоге
+        if new_id in self._store.list_blueprints():
+            raise AssetStoreError(f"Blueprint '{new_id}' уже существует в каталоге")
+
+        # 4. Глубокая независимая копия
+        working = _deep_copy(record.data)
+
+        # 5. Заменить blueprint_id
+        working["blueprint_id"] = new_id
+
+        # 6. version = 1
+        working["version"] = 1
+
+        # 7. compat = 1
+        working["compat"] = 1
+
+        # 8. Создать EditSession в состоянии NEW
+        original = _deep_copy(working)  # dirty=False изначально
+        return EditSession(
+            blueprint_id=new_id,
+            original=original,
+            working=working,
+            opened_version=1,
+            opened_fingerprint="",  # нет файла на диске
+            opened_record=None,  # нет существующего record
+            store=self._store,
+            validator=self._validator,
+            is_new=True,
+        )

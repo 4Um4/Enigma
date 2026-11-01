@@ -444,6 +444,152 @@ class AssetStore:
             cache_stale=cache_stale,
         )
 
+    def save_new_blueprint_atomic(
+        self,
+        new_id: str,
+        new_data: dict,
+        *,
+        validator: Optional[Any] = None,
+        on_cache_refresh: Optional[Callable[[], None]] = None,
+    ) -> SaveResult:
+        """Атомарное создание нового Blueprint (ME-2.1-G-8).
+
+        Вариант (a) Master: отдельная операция, не маскировать создание
+        под обновление. Не дублирует транзакцию G-1 — общая последовательность
+        write→test-load→rename→reload.
+
+        Защита от гонки: target_path.exists() проверяется ПЕРЕД rename.
+        Если файл создан другой сессией между проверкой list_blueprints и
+        rename — откажем без перезаписи.
+
+        Args:
+            new_id: blueprint_id нового чертежа (slug, без / и ..).
+            new_data: dict чертежа. blueprint_id ДОЛЖЕН == new_id.
+            validator: Optional duck-typed.
+            on_cache_refresh: Optional callback.
+
+        Raises:
+            AssetStoreError: ID недопустим, уже существует, или ошибка записи.
+            SaveBlocked: validator нашёл errors.
+        """
+        import re
+
+        # 1. Проверка допустимости ID
+        if not isinstance(new_id, str) or not new_id:
+            raise AssetStoreError("new_id должен быть непустой строкой")
+        if not re.match(r"^[a-zA-Z0-9_]+$", new_id):
+            raise AssetStoreError(f"new_id '{new_id}' недопустим — только латиница, цифры, _")
+        if "/" in new_id or "\\" in new_id or ".." in new_id:
+            raise AssetStoreError(f"new_id '{new_id}' содержит запрещённые символы")
+
+        # 2. Проверка blueprint_id в new_data
+        actual_id = new_data.get(_KEY_BLUEPRINT_ID)
+        if actual_id != new_id:
+            raise AssetStoreError(f"blueprint_id в new_data ('{actual_id}') != new_id ('{new_id}')")
+
+        # 3. Ранняя проверка уникальности
+        if new_id in self._blueprints:
+            raise AssetStoreError(f"Blueprint '{new_id}' уже существует в реестре")
+
+        # 4. Валидация
+        if validator is not None:
+            validation = validator.validate_blueprint(new_data)
+            issues = getattr(validation, "issues", [])
+            errors = [i for i in issues if getattr(i, "level", "") == "error"]
+            if errors:
+                raise SaveBlocked(new_id, errors)
+
+        # 5. Определить target_path (global catalogs/base/blueprints/)
+        target_path = self._base / _GLOBAL_CATALOGS_DIR / "base" / _BLUEPRINTS_DIR / f"{new_id}.json"
+
+        # 6. Гонка: проверить что файл не существует ПЕРЕД записью
+        if target_path.exists():
+            raise AssetStoreError(f"Файл '{target_path}' уже существует — race condition или внешний процесс")
+
+        # 7. Запись в tmp
+        tmp_path = target_path.with_suffix(".tmp")
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            tmp_path.write_text(
+                json.dumps(new_data, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            raise AssetStoreError(f"Не удалось записать tmp '{tmp_path}': {exc}") from exc
+
+        # 8. Test-load tmp
+        problems: List[str] = []
+        test_store = AssetStore.__new__(AssetStore)
+        test_store._base = self._base
+        test_store._campaign_id = self._campaign_id
+        test_store._blueprints = {}
+        test_store._resources = {}
+        test_store._overrides = []
+        test_store._register_blueprint(tmp_path, "test", problems)
+        if problems:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise AssetStoreError(f"Test-load tmp упал для '{new_id}':\n  " + "\n  ".join(problems))
+
+        # 9. Гонка: повторная проверка перед rename
+        if target_path.exists():
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise AssetStoreError(f"Файл '{target_path}' создан другой сессией — отказ без перезаписи")
+
+        # 10. Atomic rename (нет оригинала — нет backup/recovery оригинала)
+        try:
+            tmp_path.replace(target_path)
+        except OSError as exc:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise AssetStoreError(f"Atomic rename упал для '{new_id}': {exc}") from exc
+
+        # 11. Пересборка реестра с recovery (как G-1, но нет original_bytes)
+        _old_blueprints = dict(self._blueprints)
+        _old_resources = dict(self._resources)
+        _old_overrides = list(self._overrides)
+        try:
+            self.load()
+        except Exception as reload_exc:
+            # Удалить новый файл (он единственный мог сломать load)
+            try:
+                target_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            # Восстановить реестр из snapshot
+            self._blueprints = _old_blueprints
+            self._resources = _old_resources
+            self._overrides = _old_overrides
+            raise AssetStoreError(
+                f"Reload упал после создания '{new_id}'. Файл удалён, реестр в pre-create состоянии: {reload_exc}"
+            ) from reload_exc
+
+        # 12. Cache refresh
+        cache_stale = False
+        if on_cache_refresh is not None:
+            try:
+                on_cache_refresh()
+            except Exception as exc:
+                logger.warning("[ASSET_STORE] cache refresh упал для '%s': %s", new_id, exc)
+                cache_stale = True
+
+        new_version = int(new_data.get(_KEY_VERSION, 1))
+
+        return SaveResult(
+            ok=True,
+            blueprint_id=new_id,
+            version=new_version,
+            path=target_path,
+            cache_stale=cache_stale,
+        )
+
     def _load_catalog(self, catalog_dir: Path, source: str, problems: List[str]) -> None:
         bp_dir = catalog_dir / _BLUEPRINTS_DIR
         if bp_dir.is_dir():
