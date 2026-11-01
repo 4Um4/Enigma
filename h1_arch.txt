@@ -1,0 +1,1936 @@
+
+
+========== 01-EDITOR_CORE asset_store/sprite/validator wiring ==========
+30: from sprite_registry import sprite_registry
+218: info = sprite_registry.get_sheet_info("Deadbeat/deadbeat_b.png")
+389: self.catalog_panel.on_place = lambda bp_id: self._catalog_place(bp_id)
+417: catalog_index=self.catalog_panel.catalog_index,
+
+========== 01b-EDITOR_CORE full (если < 700 строк) ==========
+[FILE TOO LARGE: 1982 lines — см. отдельные секции]
+
+========== 02-DATA_MANAGER OBJECT_PRESETS + refresh + sprite ==========
+56: _HARDCODED_OBJECT_PRESETS = {
+73: "sprite": ("Deadbeat/deadbeat_b", 5, 11),
+90: "sprite": ("Deadbeat/deadbeat_b", 8, 17),
+147: "sprite": ("Deadbeat/deadbeat_b", 3, 9),
+190: "sprite": ("Deadbeat/deadbeat_b", 3, 9),
+272: "sprite": ("Deadbeat/deadbeat_b", 3, 9),
+312: "sprite": ("Deadbeat/deadbeat_b", 6, 3),
+329: "sprite": ("Deadbeat/deadbeat_b", 6, 0),
+346: "sprite": ("Deadbeat/deadbeat_b", 7, 0),
+363: "sprite": ("Deadbeat/deadbeat_b", 7, 4),
+380: "sprite": ("Deadbeat/deadbeat_b", 7, 7),
+397: "sprite": ("Deadbeat/deadbeat_b", 6, 18),
+415: "sprite": ("Deadbeat/deadbeat_b", 7, 16),
+432: "sprite": ("Deadbeat/deadbeat_b", 7, 21),
+449: "sprite": ("Deadbeat/deadbeat_b", 8, 15),
+466: "sprite": ("Deadbeat/deadbeat_b", 8, 16),
+483: "sprite": ("Deadbeat/deadbeat_b", 9, 19),
+501: "sprite": ("Deadbeat/deadbeat_b", 11, 4),
+524: "sprite": ("Deadbeat/deadbeat_b", 11, 16),
+541: "sprite": ("Deadbeat/deadbeat_b", 11, 17),
+559: "sprite": ("Deadbeat/deadbeat_b", 4, 15),
+577: "sprite": ("Deadbeat/deadbeat_b", 22, 13),
+594: "sprite": ("Deadbeat/deadbeat_b", 22, 12),
+611: "sprite": ("Deadbeat/deadbeat_b", 22, 12),
+672: OBJECT_PRESETS = dict(_HARDCODED_OBJECT_PRESETS)
+676: """ME-2.1-B: Convert Blueprint JSON data back to OBJECT_PRESETS format.
+679: this produces identical values to _HARDCODED_OBJECT_PRESETS.
+700: sprite = appearance.get("sprite")
+701: if sprite:
+702: preset["sprite"] = tuple(sprite)
+712: """ME-2.1-B: Build OBJECT_PRESETS dict from AssetStore blueprints.
+725: def refresh_object_presets(asset_store=None) -> bool:
+726: """ME-2.1-B: Update OBJECT_PRESETS from AssetStore.
+728: If asset_store is provided and has blueprints, OBJECT_PRESETS is
+734: global OBJECT_PRESETS
+739: OBJECT_PRESETS.clear()
+740: OBJECT_PRESETS.update(new_presets)
+745: OBJECT_PRESETS.clear()
+746: OBJECT_PRESETS.update(_HARDCODED_OBJECT_PRESETS)
+754: "sprite": ("Deadbeat/deadbeat_b", 23, 22),
+759: "sprite": ("Deadbeat/deadbeat_b", 25, 21),
+764: "sprite": ("Deadbeat/deadbeat_b", 23, 21),
+769: "sprite": ("Deadbeat/deadbeat_b", 25, 22),
+774: "sprite": ("Deadbeat/deadbeat_b", 25, 28),
+779: "sprite": ("Deadbeat/deadbeat_b", 26, 21),
+822: if otype not in OBJECT_PRESETS:
+1068: preset = OBJECT_PRESETS.get(otype, OBJECT_PRESETS["decoration"])
+1218: if not isinstance(otype, str) or otype not in OBJECT_PRESETS:
+1677: preset = OBJECT_PRESETS.get(obj_type, OBJECT_PRESETS["decoration"])
+1705: — копия сундука теряла name/sprite/properties/cover и становилась
+
+========== 02b-DATA_MANAGER refresh_object_presets + build_presets (lines 670-760) ==========
+# Пресеты NPC для размещения на карте через редактор (оставлены как фоллбэк)
+
+OBJECT_PRESETS = dict(_HARDCODED_OBJECT_PRESETS)
+
+
+def _blueprint_to_preset(bp_data: dict) -> dict:
+    """ME-2.1-B: Convert Blueprint JSON data back to OBJECT_PRESETS format.
+
+    Reverse of the Step A extraction. If extraction was correct,
+    this produces identical values to _HARDCODED_OBJECT_PRESETS.
+    """
+    metadata = bp_data.get("metadata", {})
+    physics = bp_data.get("physics", {})
+    appearance = bp_data.get("appearance", {})
+    geometry = bp_data.get("geometry", {})
+
+    preset = {
+        "label": metadata.get("label", bp_data.get("blueprint_id", "")),
+        "icon": metadata.get("icon", ""),
+        "rotation_mode": geometry.get("rotation_mode", "free"),
+        "passability": dict(physics.get("passability", {})),
+        "cover": physics.get("cover", 0.0),
+        "height": physics.get("height", 1.0),
+        "color": appearance.get("color", "#FFFFFF"),
+        "default_size": dict(metadata.get("default_size", {"w": 1.0, "h": 1.0})),
+    }
+
+    if geometry.get("requires_wall"):
+        preset["requires_wall"] = True
+
+    sprite = appearance.get("sprite")
+    if sprite:
+        preset["sprite"] = tuple(sprite)
+
+    default_props = metadata.get("default_properties", {})
+    if default_props:
+        preset["default_properties"] = dict(default_props)
+
+    return preset
+
+
+def _derive_presets_from_assetstore(asset_store) -> dict:
+    """ME-2.1-B: Build OBJECT_PRESETS dict from AssetStore blueprints.
+
+    Reads each blueprint from AssetStore and converts to preset format.
+    Returns empty dict if AssetStore is empty or not loaded.
+    """
+    presets = {}
+    for bp_id in asset_store.list_blueprints():
+        record = asset_store.get_blueprint(bp_id)
+        if record and record.data:
+            presets[bp_id] = _blueprint_to_preset(record.data)
+    return presets
+
+
+def refresh_object_presets(asset_store=None) -> bool:
+    """ME-2.1-B: Update OBJECT_PRESETS from AssetStore.
+
+    If asset_store is provided and has blueprints, OBJECT_PRESETS is
+    updated in-place (mutated, not reassigned) to match the catalog.
+    If asset_store is None or empty, falls back to hardcoded values.
+
+    Returns True if derived from AssetStore, False if fallback.
+    """
+    global OBJECT_PRESETS
+    if asset_store is not None:
+        try:
+            new_presets = _derive_presets_from_assetstore(asset_store)
+            if new_presets:
+                OBJECT_PRESETS.clear()
+                OBJECT_PRESETS.update(new_presets)
+                return True
+        except Exception as exc:
+            logger.warning("[ME-2.1-B] Failed to derive from AssetStore: %s", exc)
+    # Fallback: restore hardcoded
+    OBJECT_PRESETS.clear()
+    OBJECT_PRESETS.update(_HARDCODED_OBJECT_PRESETS)
+    return False
+
+
+NPC_PRESETS = {
+    "mage": {
+        "label": "Маг",
+        "icon": "🧙",
+        "sprite": ("Deadbeat/deadbeat_b", 23, 22),
+    },
+    "warrior": {
+        "label": "Воин",
+        "icon": "⚔️",
+        "sprite": ("Deadbeat/deadbeat_b", 25, 21),
+    },
+
+========== 03-ALL_BLUEPRINTS_sprite_field ==========
+apple_tree : type=apple_tree : sprite=Deadbeat/deadbeat_b,7,4 : source=
+bar : type=bar : sprite= : source=
+bed : type=bed : sprite=Deadbeat/deadbeat_b,8,16 : source=
+bones : type=bones : sprite=Deadbeat/deadbeat_b,22,13 : source=
+bookshelf : type=bookshelf : sprite=Deadbeat/deadbeat_b,7,16 : source=
+campfire : type=campfire : sprite=Deadbeat/deadbeat_b,4,15 : source=
+cauldron : type=cauldron : sprite=Deadbeat/deadbeat_b,11,17 : source=
+chair : type=chair : sprite=Deadbeat/deadbeat_b,8,17 : source=
+decoration : type=decoration : sprite= : source=
+door : type=door : sprite=Deadbeat/deadbeat_b,3,9 : source=
+door_transition : type=door_transition : sprite=Deadbeat/deadbeat_b,3,9 : source=
+gap : type=gap : sprite=Deadbeat/deadbeat_b,3,9 : source=
+grass : type=grass : sprite=Deadbeat/deadbeat_b,7,0 : source=
+hatch : type=hatch : sprite=Deadbeat/deadbeat_b,11,16 : source=
+heart : type=heart : sprite=Deadbeat/deadbeat_b,22,12 : source=
+heart_empty : type=heart_empty : sprite=Deadbeat/deadbeat_b,22,12 : source=
+ladder : type=ladder : sprite= : source=
+palm : type=palm : sprite=Deadbeat/deadbeat_b,7,7 : source=
+portal_magic : type=portal_magic : sprite= : source=
+rocks : type=rocks : sprite=Deadbeat/deadbeat_b,6,18 : source=
+sign_flophouse : type=sign_flophouse : sprite=Deadbeat/deadbeat_b,11,4 : source=
+spruce : type=spruce : sprite=Deadbeat/deadbeat_b,6,3 : source=
+stairs_down : type=stairs_down : sprite= : source=
+stairs_up : type=stairs_up : sprite= : source=
+stool : type=stool : sprite=Deadbeat/deadbeat_b,9,19 : source=
+table : type=table : sprite=Deadbeat/deadbeat_b,5,11 : source=
+tent : type=tent : sprite=Deadbeat/deadbeat_b,8,15 : source=
+toilet : type=toilet : sprite=Deadbeat/deadbeat_b,7,21 : source=
+tree : type=tree : sprite=Deadbeat/deadbeat_b,6,0 : source=
+window : type=window : sprite= : source=
+
+========== 03b-DOOR_JSON full (эталонный blueprint) ==========
+{
+  "blueprint_id": "door",
+  "version": 1,
+  "compat": 1,
+  "type": "door",
+  "tags": [
+    "wall_object",
+    "requires_wall",
+    "walkable",
+    "tall"
+  ],
+  "category": "wall_object",
+  "geometry": {
+    "source": "primitive",
+    "size": {
+      "w": 1.0,
+      "h": 0.2,
+      "d": 2.2
+    },
+    "rotation_mode": "mirror",
+    "requires_wall": true
+  },
+  "appearance": {
+    "sprite": [
+      "Deadbeat/deadbeat_b",
+      3,
+      9
+    ],
+    "color": "#D2691E",
+    "show_name": false,
+    "variants": []
+  },
+  "physics": {
+    "passability": {
+      "walk": true,
+      "jump_over": false,
+      "crawl_under": false,
+      "climb_on": false,
+      "walk_around": true
+    },
+    "cover": 0.0,
+    "height": 2.2,
+    "durability": 20
+  },
+  "function": {
+    "components": []
+  },
+  "semantics": {},
+  "metadata": {
+    "label": "Дверь",
+    "icon": "🚪",
+    "default_properties": {
+      "open": true,
+      "locked": false,
+      "durability": 20,
+      "visibility_through": 0.1
+    },
+    "default_size": {
+      "w": 1.0,
+      "h": 0.2
+    }
+  },
+  "categories": [
+    "wall_object/opening",
+    "transition/portal"
+  ]
+}
+
+========== 04-PIXELS_DIR listing ==========
+frontend\map_editor\pixels\1bit_fantasy_pyairvander.png
+frontend\map_editor\pixels\game_menu.png
+frontend\map_editor\pixels\ICO1.png
+frontend\map_editor\pixels\Icoнки.png
+frontend\map_editor\pixels\_preview.rar
+frontend\map_editor\pixels\Deadbeat\deadbeat-gb-32x.png
+frontend\map_editor\pixels\Deadbeat\deadbeat_a.png
+frontend\map_editor\pixels\Deadbeat\deadbeat_a_r.png
+frontend\map_editor\pixels\Deadbeat\deadbeat_b.png
+frontend\map_editor\pixels\Deadbeat\deadbeat_b_r.png
+frontend\map_editor\pixels\_preview\c00_r00.png
+frontend\map_editor\pixels\_preview\c00_r01.png
+frontend\map_editor\pixels\_preview\c00_r02.png
+frontend\map_editor\pixels\_preview\c00_r03.png
+frontend\map_editor\pixels\_preview\c00_r04.png
+frontend\map_editor\pixels\_preview\c00_r05.png
+frontend\map_editor\pixels\_preview\c00_r06.png
+frontend\map_editor\pixels\_preview\c00_r07.png
+frontend\map_editor\pixels\_preview\c00_r08.png
+frontend\map_editor\pixels\_preview\c00_r09.png
+frontend\map_editor\pixels\_preview\c00_r10.png
+frontend\map_editor\pixels\_preview\c00_r11.png
+frontend\map_editor\pixels\_preview\c00_r12.png
+frontend\map_editor\pixels\_preview\c00_r13.png
+frontend\map_editor\pixels\_preview\c00_r14.png
+frontend\map_editor\pixels\_preview\c00_r15.png
+frontend\map_editor\pixels\_preview\c00_r16.png
+frontend\map_editor\pixels\_preview\c00_r17.png
+frontend\map_editor\pixels\_preview\c00_r18.png
+frontend\map_editor\pixels\_preview\c00_r19.png
+frontend\map_editor\pixels\_preview\c00_r20.png
+frontend\map_editor\pixels\_preview\c00_r21.png
+frontend\map_editor\pixels\_preview\c00_r22.png
+frontend\map_editor\pixels\_preview\c00_r23.png
+frontend\map_editor\pixels\_preview\c00_r24.png
+frontend\map_editor\pixels\_preview\c00_r25.png
+frontend\map_editor\pixels\_preview\c00_r26.png
+frontend\map_editor\pixels\_preview\c00_r27.png
+frontend\map_editor\pixels\_preview\c00_r28.png
+frontend\map_editor\pixels\_preview\c01_r00.png
+frontend\map_editor\pixels\_preview\c01_r01.png
+frontend\map_editor\pixels\_preview\c01_r02.png
+frontend\map_editor\pixels\_preview\c01_r03.png
+frontend\map_editor\pixels\_preview\c01_r04.png
+frontend\map_editor\pixels\_preview\c01_r05.png
+frontend\map_editor\pixels\_preview\c01_r06.png
+frontend\map_editor\pixels\_preview\c01_r07.png
+frontend\map_editor\pixels\_preview\c01_r08.png
+frontend\map_editor\pixels\_preview\c01_r09.png
+frontend\map_editor\pixels\_preview\c01_r10.png
+frontend\map_editor\pixels\_preview\c01_r11.png
+frontend\map_editor\pixels\_preview\c01_r12.png
+frontend\map_editor\pixels\_preview\c01_r13.png
+frontend\map_editor\pixels\_preview\c01_r14.png
+frontend\map_editor\pixels\_preview\c01_r15.png
+frontend\map_editor\pixels\_preview\c01_r16.png
+frontend\map_editor\pixels\_preview\c01_r17.png
+frontend\map_editor\pixels\_preview\c01_r18.png
+frontend\map_editor\pixels\_preview\c01_r19.png
+frontend\map_editor\pixels\_preview\c01_r20.png
+frontend\map_editor\pixels\_preview\c01_r21.png
+frontend\map_editor\pixels\_preview\c01_r22.png
+frontend\map_editor\pixels\_preview\c01_r23.png
+frontend\map_editor\pixels\_preview\c01_r24.png
+frontend\map_editor\pixels\_preview\c01_r25.png
+frontend\map_editor\pixels\_preview\c01_r26.png
+frontend\map_editor\pixels\_preview\c01_r27.png
+frontend\map_editor\pixels\_preview\c01_r28.png
+frontend\map_editor\pixels\_preview\c02_r00.png
+frontend\map_editor\pixels\_preview\c02_r01.png
+frontend\map_editor\pixels\_preview\c02_r02.png
+frontend\map_editor\pixels\_preview\c02_r03.png
+frontend\map_editor\pixels\_preview\c02_r04.png
+frontend\map_editor\pixels\_preview\c02_r05.png
+frontend\map_editor\pixels\_preview\c02_r06.png
+frontend\map_editor\pixels\_preview\c02_r07.png
+frontend\map_editor\pixels\_preview\c02_r08.png
+frontend\map_editor\pixels\_preview\c02_r09.png
+frontend\map_editor\pixels\_preview\c02_r10.png
+frontend\map_editor\pixels\_preview\c02_r11.png
+frontend\map_editor\pixels\_preview\c02_r12.png
+frontend\map_editor\pixels\_preview\c02_r13.png
+frontend\map_editor\pixels\_preview\c02_r14.png
+frontend\map_editor\pixels\_preview\c02_r15.png
+frontend\map_editor\pixels\_preview\c02_r16.png
+frontend\map_editor\pixels\_preview\c02_r17.png
+frontend\map_editor\pixels\_preview\c02_r18.png
+frontend\map_editor\pixels\_preview\c02_r19.png
+frontend\map_editor\pixels\_preview\c02_r20.png
+frontend\map_editor\pixels\_preview\c02_r21.png
+frontend\map_editor\pixels\_preview\c02_r22.png
+frontend\map_editor\pixels\_preview\c02_r23.png
+frontend\map_editor\pixels\_preview\c02_r24.png
+frontend\map_editor\pixels\_preview\c02_r25.png
+frontend\map_editor\pixels\_preview\c02_r26.png
+frontend\map_editor\pixels\_preview\c02_r27.png
+frontend\map_editor\pixels\_preview\c02_r28.png
+frontend\map_editor\pixels\_preview\c03_r00.png
+frontend\map_editor\pixels\_preview\c03_r01.png
+frontend\map_editor\pixels\_preview\c03_r02.png
+frontend\map_editor\pixels\_preview\c03_r03.png
+frontend\map_editor\pixels\_preview\c03_r04.png
+frontend\map_editor\pixels\_preview\c03_r05.png
+frontend\map_editor\pixels\_preview\c03_r06.png
+frontend\map_editor\pixels\_preview\c03_r07.png
+frontend\map_editor\pixels\_preview\c03_r08.png
+frontend\map_editor\pixels\_preview\c03_r09.png
+frontend\map_editor\pixels\_preview\c03_r10.png
+frontend\map_editor\pixels\_preview\c03_r11.png
+frontend\map_editor\pixels\_preview\c03_r12.png
+frontend\map_editor\pixels\_preview\c03_r13.png
+frontend\map_editor\pixels\_preview\c03_r14.png
+frontend\map_editor\pixels\_preview\c03_r15.png
+frontend\map_editor\pixels\_preview\c03_r16.png
+frontend\map_editor\pixels\_preview\c03_r17.png
+frontend\map_editor\pixels\_preview\c03_r18.png
+frontend\map_editor\pixels\_preview\c03_r19.png
+frontend\map_editor\pixels\_preview\c03_r20.png
+frontend\map_editor\pixels\_preview\c03_r21.png
+frontend\map_editor\pixels\_preview\c03_r22.png
+frontend\map_editor\pixels\_preview\c03_r23.png
+frontend\map_editor\pixels\_preview\c03_r24.png
+frontend\map_editor\pixels\_preview\c03_r25.png
+frontend\map_editor\pixels\_preview\c03_r26.png
+frontend\map_editor\pixels\_preview\c03_r27.png
+frontend\map_editor\pixels\_preview\c03_r28.png
+frontend\map_editor\pixels\_preview\c04_r00.png
+frontend\map_editor\pixels\_preview\c04_r01.png
+frontend\map_editor\pixels\_preview\c04_r02.png
+frontend\map_editor\pixels\_preview\c04_r03.png
+frontend\map_editor\pixels\_preview\c04_r04.png
+frontend\map_editor\pixels\_preview\c04_r05.png
+frontend\map_editor\pixels\_preview\c04_r06.png
+frontend\map_editor\pixels\_preview\c04_r07.png
+frontend\map_editor\pixels\_preview\c04_r08.png
+frontend\map_editor\pixels\_preview\c04_r09.png
+frontend\map_editor\pixels\_preview\c04_r10.png
+frontend\map_editor\pixels\_preview\c04_r11.png
+frontend\map_editor\pixels\_preview\c04_r12.png
+frontend\map_editor\pixels\_preview\c04_r13.png
+frontend\map_editor\pixels\_preview\c04_r14.png
+frontend\map_editor\pixels\_preview\c04_r15.png
+frontend\map_editor\pixels\_preview\c04_r16.png
+frontend\map_editor\pixels\_preview\c04_r17.png
+frontend\map_editor\pixels\_preview\c04_r18.png
+frontend\map_editor\pixels\_preview\c04_r19.png
+frontend\map_editor\pixels\_preview\c04_r20.png
+frontend\map_editor\pixels\_preview\c04_r21.png
+frontend\map_editor\pixels\_preview\c04_r22.png
+frontend\map_editor\pixels\_preview\c04_r23.png
+frontend\map_editor\pixels\_preview\c04_r24.png
+frontend\map_editor\pixels\_preview\c04_r25.png
+frontend\map_editor\pixels\_preview\c04_r26.png
+frontend\map_editor\pixels\_preview\c04_r27.png
+frontend\map_editor\pixels\_preview\c04_r28.png
+frontend\map_editor\pixels\_preview\c05_r00.png
+frontend\map_editor\pixels\_preview\c05_r01.png
+frontend\map_editor\pixels\_preview\c05_r02.png
+frontend\map_editor\pixels\_preview\c05_r03.png
+frontend\map_editor\pixels\_preview\c05_r04.png
+frontend\map_editor\pixels\_preview\c05_r05.png
+frontend\map_editor\pixels\_preview\c05_r06.png
+frontend\map_editor\pixels\_preview\c05_r07.png
+frontend\map_editor\pixels\_preview\c05_r08.png
+frontend\map_editor\pixels\_preview\c05_r09.png
+frontend\map_editor\pixels\_preview\c05_r10.png
+frontend\map_editor\pixels\_preview\c05_r11.png
+frontend\map_editor\pixels\_preview\c05_r12.png
+frontend\map_editor\pixels\_preview\c05_r13.png
+frontend\map_editor\pixels\_preview\c05_r14.png
+frontend\map_editor\pixels\_preview\c05_r15.png
+frontend\map_editor\pixels\_preview\c05_r16.png
+frontend\map_editor\pixels\_preview\c05_r17.png
+frontend\map_editor\pixels\_preview\c05_r18.png
+frontend\map_editor\pixels\_preview\c05_r19.png
+frontend\map_editor\pixels\_preview\c05_r20.png
+frontend\map_editor\pixels\_preview\c05_r21.png
+frontend\map_editor\pixels\_preview\c05_r22.png
+frontend\map_editor\pixels\_preview\c05_r23.png
+frontend\map_editor\pixels\_preview\c05_r24.png
+frontend\map_editor\pixels\_preview\c05_r25.png
+frontend\map_editor\pixels\_preview\c05_r26.png
+frontend\map_editor\pixels\_preview\c05_r27.png
+frontend\map_editor\pixels\_preview\c05_r28.png
+frontend\map_editor\pixels\_preview\c06_r00.png
+frontend\map_editor\pixels\_preview\c06_r01.png
+frontend\map_editor\pixels\_preview\c06_r02.png
+frontend\map_editor\pixels\_preview\c06_r03.png
+frontend\map_editor\pixels\_preview\c06_r04.png
+frontend\map_editor\pixels\_preview\c06_r05.png
+frontend\map_editor\pixels\_preview\c06_r06.png
+frontend\map_editor\pixels\_preview\c06_r07.png
+frontend\map_editor\pixels\_preview\c06_r08.png
+frontend\map_editor\pixels\_preview\c06_r09.png
+frontend\map_editor\pixels\_preview\c06_r10.png
+frontend\map_editor\pixels\_preview\c06_r11.png
+frontend\map_editor\pixels\_preview\c06_r12.png
+frontend\map_editor\pixels\_preview\c06_r13.png
+frontend\map_editor\pixels\_preview\c06_r14.png
+frontend\map_editor\pixels\_preview\c06_r15.png
+frontend\map_editor\pixels\_preview\c06_r16.png
+frontend\map_editor\pixels\_preview\c06_r17.png
+frontend\map_editor\pixels\_preview\c06_r18.png
+frontend\map_editor\pixels\_preview\c06_r19.png
+frontend\map_editor\pixels\_preview\c06_r20.png
+frontend\map_editor\pixels\_preview\c06_r21.png
+frontend\map_editor\pixels\_preview\c06_r22.png
+frontend\map_editor\pixels\_preview\c06_r23.png
+frontend\map_editor\pixels\_preview\c06_r24.png
+frontend\map_editor\pixels\_preview\c06_r25.png
+frontend\map_editor\pixels\_preview\c06_r26.png
+frontend\map_editor\pixels\_preview\c06_r27.png
+frontend\map_editor\pixels\_preview\c06_r28.png
+frontend\map_editor\pixels\_preview\c07_r00.png
+frontend\map_editor\pixels\_preview\c07_r01.png
+frontend\map_editor\pixels\_preview\c07_r02.png
+frontend\map_editor\pixels\_preview\c07_r03.png
+frontend\map_editor\pixels\_preview\c07_r04.png
+frontend\map_editor\pixels\_preview\c07_r05.png
+frontend\map_editor\pixels\_preview\c07_r06.png
+frontend\map_editor\pixels\_preview\c07_r07.png
+frontend\map_editor\pixels\_preview\c07_r08.png
+frontend\map_editor\pixels\_preview\c07_r09.png
+frontend\map_editor\pixels\_preview\c07_r10.png
+frontend\map_editor\pixels\_preview\c07_r11.png
+frontend\map_editor\pixels\_preview\c07_r12.png
+frontend\map_editor\pixels\_preview\c07_r13.png
+frontend\map_editor\pixels\_preview\c07_r14.png
+frontend\map_editor\pixels\_preview\c07_r15.png
+frontend\map_editor\pixels\_preview\c07_r16.png
+frontend\map_editor\pixels\_preview\c07_r17.png
+frontend\map_editor\pixels\_preview\c07_r18.png
+frontend\map_editor\pixels\_preview\c07_r19.png
+frontend\map_editor\pixels\_preview\c07_r20.png
+frontend\map_editor\pixels\_preview\c07_r21.png
+frontend\map_editor\pixels\_preview\c07_r22.png
+frontend\map_editor\pixels\_preview\c07_r23.png
+frontend\map_editor\pixels\_preview\c07_r24.png
+frontend\map_editor\pixels\_preview\c07_r25.png
+frontend\map_editor\pixels\_preview\c07_r26.png
+frontend\map_editor\pixels\_preview\c07_r27.png
+frontend\map_editor\pixels\_preview\c07_r28.png
+frontend\map_editor\pixels\_preview\c08_r00.png
+frontend\map_editor\pixels\_preview\c08_r01.png
+frontend\map_editor\pixels\_preview\c08_r02.png
+frontend\map_editor\pixels\_preview\c08_r03.png
+frontend\map_editor\pixels\_preview\c08_r04.png
+frontend\map_editor\pixels\_preview\c08_r05.png
+frontend\map_editor\pixels\_preview\c08_r06.png
+frontend\map_editor\pixels\_preview\c08_r07.png
+frontend\map_editor\pixels\_preview\c08_r08.png
+frontend\map_editor\pixels\_preview\c08_r09.png
+frontend\map_editor\pixels\_preview\c08_r10.png
+frontend\map_editor\pixels\_preview\c08_r11.png
+frontend\map_editor\pixels\_preview\c08_r12.png
+frontend\map_editor\pixels\_preview\c08_r13.png
+frontend\map_editor\pixels\_preview\c08_r14.png
+frontend\map_editor\pixels\_preview\c08_r15.png
+frontend\map_editor\pixels\_preview\c08_r16.png
+frontend\map_editor\pixels\_preview\c08_r17.png
+frontend\map_editor\pixels\_preview\c08_r18.png
+frontend\map_editor\pixels\_preview\c08_r19.png
+frontend\map_editor\pixels\_preview\c08_r20.png
+frontend\map_editor\pixels\_preview\c08_r21.png
+frontend\map_editor\pixels\_preview\c08_r22.png
+frontend\map_editor\pixels\_preview\c08_r23.png
+frontend\map_editor\pixels\_preview\c08_r24.png
+frontend\map_editor\pixels\_preview\c08_r25.png
+frontend\map_editor\pixels\_preview\c08_r26.png
+frontend\map_editor\pixels\_preview\c08_r27.png
+frontend\map_editor\pixels\_preview\c08_r28.png
+frontend\map_editor\pixels\_preview\c09_r00.png
+frontend\map_editor\pixels\_preview\c09_r01.png
+frontend\map_editor\pixels\_preview\c09_r02.png
+frontend\map_editor\pixels\_preview\c09_r03.png
+frontend\map_editor\pixels\_preview\c09_r04.png
+frontend\map_editor\pixels\_preview\c09_r05.png
+frontend\map_editor\pixels\_preview\c09_r06.png
+frontend\map_editor\pixels\_preview\c09_r07.png
+frontend\map_editor\pixels\_preview\c09_r08.png
+frontend\map_editor\pixels\_preview\c09_r09.png
+frontend\map_editor\pixels\_preview\c09_r10.png
+frontend\map_editor\pixels\_preview\c09_r11.png
+frontend\map_editor\pixels\_preview\c09_r12.png
+frontend\map_editor\pixels\_preview\c09_r13.png
+frontend\map_editor\pixels\_preview\c09_r14.png
+frontend\map_editor\pixels\_preview\c09_r15.png
+frontend\map_editor\pixels\_preview\c09_r16.png
+frontend\map_editor\pixels\_preview\c09_r17.png
+frontend\map_editor\pixels\_preview\c09_r18.png
+frontend\map_editor\pixels\_preview\c09_r19.png
+frontend\map_editor\pixels\_preview\c09_r20.png
+frontend\map_editor\pixels\_preview\c09_r21.png
+frontend\map_editor\pixels\_preview\c09_r22.png
+frontend\map_editor\pixels\_preview\c09_r23.png
+frontend\map_editor\pixels\_preview\c09_r24.png
+frontend\map_editor\pixels\_preview\c09_r25.png
+frontend\map_editor\pixels\_preview\c09_r26.png
+frontend\map_editor\pixels\_preview\c09_r27.png
+frontend\map_editor\pixels\_preview\c09_r28.png
+frontend\map_editor\pixels\_preview\c10_r00.png
+frontend\map_editor\pixels\_preview\c10_r01.png
+frontend\map_editor\pixels\_preview\c10_r02.png
+frontend\map_editor\pixels\_preview\c10_r03.png
+frontend\map_editor\pixels\_preview\c10_r04.png
+frontend\map_editor\pixels\_preview\c10_r05.png
+frontend\map_editor\pixels\_preview\c10_r06.png
+frontend\map_editor\pixels\_preview\c10_r07.png
+frontend\map_editor\pixels\_preview\c10_r08.png
+frontend\map_editor\pixels\_preview\c10_r09.png
+frontend\map_editor\pixels\_preview\c10_r10.png
+frontend\map_editor\pixels\_preview\c10_r11.png
+frontend\map_editor\pixels\_preview\c10_r12.png
+frontend\map_editor\pixels\_preview\c10_r13.png
+frontend\map_editor\pixels\_preview\c10_r14.png
+frontend\map_editor\pixels\_preview\c10_r15.png
+frontend\map_editor\pixels\_preview\c10_r16.png
+frontend\map_editor\pixels\_preview\c10_r17.png
+frontend\map_editor\pixels\_preview\c10_r18.png
+frontend\map_editor\pixels\_preview\c10_r19.png
+frontend\map_editor\pixels\_preview\c10_r20.png
+frontend\map_editor\pixels\_preview\c10_r21.png
+frontend\map_editor\pixels\_preview\c10_r22.png
+frontend\map_editor\pixels\_preview\c10_r23.png
+frontend\map_editor\pixels\_preview\c10_r24.png
+frontend\map_editor\pixels\_preview\c10_r25.png
+frontend\map_editor\pixels\_preview\c10_r26.png
+frontend\map_editor\pixels\_preview\c10_r27.png
+frontend\map_editor\pixels\_preview\c10_r28.png
+frontend\map_editor\pixels\_preview\c11_r00.png
+frontend\map_editor\pixels\_preview\c11_r01.png
+frontend\map_editor\pixels\_preview\c11_r02.png
+frontend\map_editor\pixels\_preview\c11_r03.png
+frontend\map_editor\pixels\_preview\c11_r04.png
+frontend\map_editor\pixels\_preview\c11_r05.png
+frontend\map_editor\pixels\_preview\c11_r06.png
+frontend\map_editor\pixels\_preview\c11_r07.png
+frontend\map_editor\pixels\_preview\c11_r08.png
+frontend\map_editor\pixels\_preview\c11_r09.png
+frontend\map_editor\pixels\_preview\c11_r10.png
+frontend\map_editor\pixels\_preview\c11_r11.png
+frontend\map_editor\pixels\_preview\c11_r12.png
+frontend\map_editor\pixels\_preview\c11_r13.png
+frontend\map_editor\pixels\_preview\c11_r14.png
+frontend\map_editor\pixels\_preview\c11_r15.png
+frontend\map_editor\pixels\_preview\c11_r16.png
+frontend\map_editor\pixels\_preview\c11_r17.png
+frontend\map_editor\pixels\_preview\c11_r18.png
+frontend\map_editor\pixels\_preview\c11_r19.png
+frontend\map_editor\pixels\_preview\c11_r20.png
+frontend\map_editor\pixels\_preview\c11_r21.png
+frontend\map_editor\pixels\_preview\c11_r22.png
+frontend\map_editor\pixels\_preview\c11_r23.png
+frontend\map_editor\pixels\_preview\c11_r24.png
+frontend\map_editor\pixels\_preview\c11_r25.png
+frontend\map_editor\pixels\_preview\c11_r26.png
+frontend\map_editor\pixels\_preview\c11_r27.png
+frontend\map_editor\pixels\_preview\c11_r28.png
+frontend\map_editor\pixels\_preview\c12_r00.png
+frontend\map_editor\pixels\_preview\c12_r01.png
+frontend\map_editor\pixels\_preview\c12_r02.png
+frontend\map_editor\pixels\_preview\c12_r03.png
+frontend\map_editor\pixels\_preview\c12_r04.png
+frontend\map_editor\pixels\_preview\c12_r05.png
+frontend\map_editor\pixels\_preview\c12_r06.png
+frontend\map_editor\pixels\_preview\c12_r07.png
+frontend\map_editor\pixels\_preview\c12_r08.png
+frontend\map_editor\pixels\_preview\c12_r09.png
+frontend\map_editor\pixels\_preview\c12_r10.png
+frontend\map_editor\pixels\_preview\c12_r11.png
+frontend\map_editor\pixels\_preview\c12_r12.png
+frontend\map_editor\pixels\_preview\c12_r13.png
+frontend\map_editor\pixels\_preview\c12_r14.png
+frontend\map_editor\pixels\_preview\c12_r15.png
+frontend\map_editor\pixels\_preview\c12_r16.png
+frontend\map_editor\pixels\_preview\c12_r17.png
+frontend\map_editor\pixels\_preview\c12_r18.png
+frontend\map_editor\pixels\_preview\c12_r19.png
+frontend\map_editor\pixels\_preview\c12_r20.png
+frontend\map_editor\pixels\_preview\c12_r21.png
+frontend\map_editor\pixels\_preview\c12_r22.png
+frontend\map_editor\pixels\_preview\c12_r23.png
+frontend\map_editor\pixels\_preview\c12_r24.png
+frontend\map_editor\pixels\_preview\c12_r25.png
+frontend\map_editor\pixels\_preview\c12_r26.png
+frontend\map_editor\pixels\_preview\c12_r27.png
+frontend\map_editor\pixels\_preview\c12_r28.png
+frontend\map_editor\pixels\_preview\c13_r00.png
+frontend\map_editor\pixels\_preview\c13_r01.png
+frontend\map_editor\pixels\_preview\c13_r02.png
+frontend\map_editor\pixels\_preview\c13_r03.png
+frontend\map_editor\pixels\_preview\c13_r04.png
+frontend\map_editor\pixels\_preview\c13_r05.png
+frontend\map_editor\pixels\_preview\c13_r06.png
+frontend\map_editor\pixels\_preview\c13_r07.png
+frontend\map_editor\pixels\_preview\c13_r08.png
+frontend\map_editor\pixels\_preview\c13_r09.png
+frontend\map_editor\pixels\_preview\c13_r10.png
+frontend\map_editor\pixels\_preview\c13_r11.png
+frontend\map_editor\pixels\_preview\c13_r12.png
+frontend\map_editor\pixels\_preview\c13_r13.png
+frontend\map_editor\pixels\_preview\c13_r14.png
+frontend\map_editor\pixels\_preview\c13_r15.png
+frontend\map_editor\pixels\_preview\c13_r16.png
+frontend\map_editor\pixels\_preview\c13_r17.png
+frontend\map_editor\pixels\_preview\c13_r18.png
+frontend\map_editor\pixels\_preview\c13_r19.png
+frontend\map_editor\pixels\_preview\c13_r20.png
+frontend\map_editor\pixels\_preview\c13_r21.png
+frontend\map_editor\pixels\_preview\c13_r22.png
+frontend\map_editor\pixels\_preview\c13_r23.png
+frontend\map_editor\pixels\_preview\c13_r24.png
+frontend\map_editor\pixels\_preview\c13_r25.png
+frontend\map_editor\pixels\_preview\c13_r26.png
+frontend\map_editor\pixels\_preview\c13_r27.png
+frontend\map_editor\pixels\_preview\c13_r28.png
+frontend\map_editor\pixels\_preview\c14_r00.png
+frontend\map_editor\pixels\_preview\c14_r01.png
+frontend\map_editor\pixels\_preview\c14_r02.png
+frontend\map_editor\pixels\_preview\c14_r03.png
+frontend\map_editor\pixels\_preview\c14_r04.png
+frontend\map_editor\pixels\_preview\c14_r05.png
+frontend\map_editor\pixels\_preview\c14_r06.png
+frontend\map_editor\pixels\_preview\c14_r07.png
+frontend\map_editor\pixels\_preview\c14_r08.png
+frontend\map_editor\pixels\_preview\c14_r09.png
+frontend\map_editor\pixels\_preview\c14_r10.png
+frontend\map_editor\pixels\_preview\c14_r11.png
+frontend\map_editor\pixels\_preview\c14_r12.png
+frontend\map_editor\pixels\_preview\c14_r13.png
+frontend\map_editor\pixels\_preview\c14_r14.png
+frontend\map_editor\pixels\_preview\c14_r15.png
+frontend\map_editor\pixels\_preview\c14_r16.png
+frontend\map_editor\pixels\_preview\c14_r17.png
+frontend\map_editor\pixels\_preview\c14_r18.png
+frontend\map_editor\pixels\_preview\c14_r19.png
+frontend\map_editor\pixels\_preview\c14_r20.png
+frontend\map_editor\pixels\_preview\c14_r21.png
+frontend\map_editor\pixels\_preview\c14_r22.png
+frontend\map_editor\pixels\_preview\c14_r23.png
+frontend\map_editor\pixels\_preview\c14_r24.png
+frontend\map_editor\pixels\_preview\c14_r25.png
+frontend\map_editor\pixels\_preview\c14_r26.png
+frontend\map_editor\pixels\_preview\c14_r27.png
+frontend\map_editor\pixels\_preview\c14_r28.png
+frontend\map_editor\pixels\_preview\c15_r00.png
+frontend\map_editor\pixels\_preview\c15_r01.png
+frontend\map_editor\pixels\_preview\c15_r02.png
+frontend\map_editor\pixels\_preview\c15_r03.png
+frontend\map_editor\pixels\_preview\c15_r04.png
+frontend\map_editor\pixels\_preview\c15_r05.png
+frontend\map_editor\pixels\_preview\c15_r06.png
+frontend\map_editor\pixels\_preview\c15_r07.png
+frontend\map_editor\pixels\_preview\c15_r08.png
+frontend\map_editor\pixels\_preview\c15_r09.png
+frontend\map_editor\pixels\_preview\c15_r10.png
+frontend\map_editor\pixels\_preview\c15_r11.png
+frontend\map_editor\pixels\_preview\c15_r12.png
+frontend\map_editor\pixels\_preview\c15_r13.png
+frontend\map_editor\pixels\_preview\c15_r14.png
+frontend\map_editor\pixels\_preview\c15_r15.png
+frontend\map_editor\pixels\_preview\c15_r16.png
+frontend\map_editor\pixels\_preview\c15_r17.png
+frontend\map_editor\pixels\_preview\c15_r18.png
+frontend\map_editor\pixels\_preview\c15_r19.png
+frontend\map_editor\pixels\_preview\c15_r20.png
+frontend\map_editor\pixels\_preview\c15_r21.png
+frontend\map_editor\pixels\_preview\c15_r22.png
+frontend\map_editor\pixels\_preview\c15_r23.png
+frontend\map_editor\pixels\_preview\c15_r24.png
+frontend\map_editor\pixels\_preview\c15_r25.png
+frontend\map_editor\pixels\_preview\c15_r26.png
+frontend\map_editor\pixels\_preview\c15_r27.png
+frontend\map_editor\pixels\_preview\c15_r28.png
+frontend\map_editor\pixels\_preview\c16_r00.png
+frontend\map_editor\pixels\_preview\c16_r01.png
+frontend\map_editor\pixels\_preview\c16_r02.png
+frontend\map_editor\pixels\_preview\c16_r03.png
+frontend\map_editor\pixels\_preview\c16_r04.png
+frontend\map_editor\pixels\_preview\c16_r05.png
+frontend\map_editor\pixels\_preview\c16_r06.png
+frontend\map_editor\pixels\_preview\c16_r07.png
+frontend\map_editor\pixels\_preview\c16_r08.png
+frontend\map_editor\pixels\_preview\c16_r09.png
+frontend\map_editor\pixels\_preview\c16_r10.png
+frontend\map_editor\pixels\_preview\c16_r11.png
+frontend\map_editor\pixels\_preview\c16_r12.png
+frontend\map_editor\pixels\_preview\c16_r13.png
+frontend\map_editor\pixels\_preview\c16_r14.png
+frontend\map_editor\pixels\_preview\c16_r15.png
+frontend\map_editor\pixels\_preview\c16_r16.png
+frontend\map_editor\pixels\_preview\c16_r17.png
+frontend\map_editor\pixels\_preview\c16_r18.png
+frontend\map_editor\pixels\_preview\c16_r19.png
+frontend\map_editor\pixels\_preview\c16_r20.png
+frontend\map_editor\pixels\_preview\c16_r21.png
+frontend\map_editor\pixels\_preview\c16_r22.png
+frontend\map_editor\pixels\_preview\c16_r23.png
+frontend\map_editor\pixels\_preview\c16_r24.png
+frontend\map_editor\pixels\_preview\c16_r25.png
+frontend\map_editor\pixels\_preview\c16_r26.png
+frontend\map_editor\pixels\_preview\c16_r27.png
+frontend\map_editor\pixels\_preview\c16_r28.png
+frontend\map_editor\pixels\_preview\c17_r00.png
+frontend\map_editor\pixels\_preview\c17_r01.png
+frontend\map_editor\pixels\_preview\c17_r02.png
+frontend\map_editor\pixels\_preview\c17_r03.png
+frontend\map_editor\pixels\_preview\c17_r04.png
+frontend\map_editor\pixels\_preview\c17_r05.png
+frontend\map_editor\pixels\_preview\c17_r06.png
+frontend\map_editor\pixels\_preview\c17_r07.png
+frontend\map_editor\pixels\_preview\c17_r08.png
+frontend\map_editor\pixels\_preview\c17_r09.png
+frontend\map_editor\pixels\_preview\c17_r10.png
+frontend\map_editor\pixels\_preview\c17_r11.png
+frontend\map_editor\pixels\_preview\c17_r12.png
+frontend\map_editor\pixels\_preview\c17_r13.png
+frontend\map_editor\pixels\_preview\c17_r14.png
+frontend\map_editor\pixels\_preview\c17_r15.png
+frontend\map_editor\pixels\_preview\c17_r16.png
+frontend\map_editor\pixels\_preview\c17_r17.png
+frontend\map_editor\pixels\_preview\c17_r18.png
+frontend\map_editor\pixels\_preview\c17_r19.png
+frontend\map_editor\pixels\_preview\c17_r20.png
+frontend\map_editor\pixels\_preview\c17_r21.png
+frontend\map_editor\pixels\_preview\c17_r22.png
+frontend\map_editor\pixels\_preview\c17_r23.png
+frontend\map_editor\pixels\_preview\c17_r24.png
+frontend\map_editor\pixels\_preview\c17_r25.png
+frontend\map_editor\pixels\_preview\c17_r26.png
+frontend\map_editor\pixels\_preview\c17_r27.png
+frontend\map_editor\pixels\_preview\c17_r28.png
+frontend\map_editor\pixels\_preview\c18_r00.png
+frontend\map_editor\pixels\_preview\c18_r01.png
+frontend\map_editor\pixels\_preview\c18_r02.png
+frontend\map_editor\pixels\_preview\c18_r03.png
+frontend\map_editor\pixels\_preview\c18_r04.png
+frontend\map_editor\pixels\_preview\c18_r05.png
+frontend\map_editor\pixels\_preview\c18_r06.png
+frontend\map_editor\pixels\_preview\c18_r07.png
+frontend\map_editor\pixels\_preview\c18_r08.png
+frontend\map_editor\pixels\_preview\c18_r09.png
+frontend\map_editor\pixels\_preview\c18_r10.png
+frontend\map_editor\pixels\_preview\c18_r11.png
+frontend\map_editor\pixels\_preview\c18_r12.png
+frontend\map_editor\pixels\_preview\c18_r13.png
+frontend\map_editor\pixels\_preview\c18_r14.png
+frontend\map_editor\pixels\_preview\c18_r15.png
+frontend\map_editor\pixels\_preview\c18_r16.png
+frontend\map_editor\pixels\_preview\c18_r17.png
+frontend\map_editor\pixels\_preview\c18_r18.png
+frontend\map_editor\pixels\_preview\c18_r19.png
+frontend\map_editor\pixels\_preview\c18_r20.png
+frontend\map_editor\pixels\_preview\c18_r21.png
+frontend\map_editor\pixels\_preview\c18_r22.png
+frontend\map_editor\pixels\_preview\c18_r23.png
+frontend\map_editor\pixels\_preview\c18_r24.png
+frontend\map_editor\pixels\_preview\c18_r25.png
+frontend\map_editor\pixels\_preview\c18_r26.png
+frontend\map_editor\pixels\_preview\c18_r27.png
+frontend\map_editor\pixels\_preview\c18_r28.png
+frontend\map_editor\pixels\_preview\c19_r00.png
+frontend\map_editor\pixels\_preview\c19_r01.png
+frontend\map_editor\pixels\_preview\c19_r02.png
+frontend\map_editor\pixels\_preview\c19_r03.png
+frontend\map_editor\pixels\_preview\c19_r04.png
+frontend\map_editor\pixels\_preview\c19_r05.png
+frontend\map_editor\pixels\_preview\c19_r06.png
+frontend\map_editor\pixels\_preview\c19_r07.png
+frontend\map_editor\pixels\_preview\c19_r08.png
+frontend\map_editor\pixels\_preview\c19_r09.png
+frontend\map_editor\pixels\_preview\c19_r10.png
+frontend\map_editor\pixels\_preview\c19_r11.png
+frontend\map_editor\pixels\_preview\c19_r12.png
+frontend\map_editor\pixels\_preview\c19_r13.png
+frontend\map_editor\pixels\_preview\c19_r14.png
+frontend\map_editor\pixels\_preview\c19_r15.png
+frontend\map_editor\pixels\_preview\c19_r16.png
+frontend\map_editor\pixels\_preview\c19_r17.png
+frontend\map_editor\pixels\_preview\c19_r18.png
+frontend\map_editor\pixels\_preview\c19_r19.png
+frontend\map_editor\pixels\_preview\c19_r20.png
+frontend\map_editor\pixels\_preview\c19_r21.png
+frontend\map_editor\pixels\_preview\c19_r22.png
+frontend\map_editor\pixels\_preview\c19_r23.png
+frontend\map_editor\pixels\_preview\c19_r24.png
+frontend\map_editor\pixels\_preview\c19_r25.png
+frontend\map_editor\pixels\_preview\c19_r26.png
+frontend\map_editor\pixels\_preview\c19_r27.png
+frontend\map_editor\pixels\_preview\c19_r28.png
+frontend\map_editor\pixels\_preview\c20_r00.png
+frontend\map_editor\pixels\_preview\c20_r01.png
+frontend\map_editor\pixels\_preview\c20_r02.png
+frontend\map_editor\pixels\_preview\c20_r03.png
+frontend\map_editor\pixels\_preview\c20_r04.png
+frontend\map_editor\pixels\_preview\c20_r05.png
+frontend\map_editor\pixels\_preview\c20_r06.png
+frontend\map_editor\pixels\_preview\c20_r07.png
+frontend\map_editor\pixels\_preview\c20_r08.png
+frontend\map_editor\pixels\_preview\c20_r09.png
+frontend\map_editor\pixels\_preview\c20_r10.png
+frontend\map_editor\pixels\_preview\c20_r11.png
+frontend\map_editor\pixels\_preview\c20_r12.png
+frontend\map_editor\pixels\_preview\c20_r13.png
+frontend\map_editor\pixels\_preview\c20_r14.png
+frontend\map_editor\pixels\_preview\c20_r15.png
+frontend\map_editor\pixels\_preview\c20_r16.png
+frontend\map_editor\pixels\_preview\c20_r17.png
+frontend\map_editor\pixels\_preview\c20_r18.png
+frontend\map_editor\pixels\_preview\c20_r19.png
+frontend\map_editor\pixels\_preview\c20_r20.png
+frontend\map_editor\pixels\_preview\c20_r21.png
+frontend\map_editor\pixels\_preview\c20_r22.png
+frontend\map_editor\pixels\_preview\c20_r23.png
+frontend\map_editor\pixels\_preview\c20_r24.png
+frontend\map_editor\pixels\_preview\c20_r25.png
+frontend\map_editor\pixels\_preview\c20_r26.png
+frontend\map_editor\pixels\_preview\c20_r27.png
+frontend\map_editor\pixels\_preview\c20_r28.png
+frontend\map_editor\pixels\_preview\c21_r00.png
+frontend\map_editor\pixels\_preview\c21_r01.png
+frontend\map_editor\pixels\_preview\c21_r02.png
+frontend\map_editor\pixels\_preview\c21_r03.png
+frontend\map_editor\pixels\_preview\c21_r04.png
+frontend\map_editor\pixels\_preview\c21_r05.png
+frontend\map_editor\pixels\_preview\c21_r06.png
+frontend\map_editor\pixels\_preview\c21_r07.png
+frontend\map_editor\pixels\_preview\c21_r08.png
+frontend\map_editor\pixels\_preview\c21_r09.png
+frontend\map_editor\pixels\_preview\c21_r10.png
+frontend\map_editor\pixels\_preview\c21_r11.png
+frontend\map_editor\pixels\_preview\c21_r12.png
+frontend\map_editor\pixels\_preview\c21_r13.png
+frontend\map_editor\pixels\_preview\c21_r14.png
+frontend\map_editor\pixels\_preview\c21_r15.png
+frontend\map_editor\pixels\_preview\c21_r16.png
+frontend\map_editor\pixels\_preview\c21_r17.png
+frontend\map_editor\pixels\_preview\c21_r18.png
+frontend\map_editor\pixels\_preview\c21_r19.png
+frontend\map_editor\pixels\_preview\c21_r20.png
+frontend\map_editor\pixels\_preview\c21_r21.png
+frontend\map_editor\pixels\_preview\c21_r22.png
+frontend\map_editor\pixels\_preview\c21_r23.png
+frontend\map_editor\pixels\_preview\c21_r24.png
+frontend\map_editor\pixels\_preview\c21_r25.png
+frontend\map_editor\pixels\_preview\c21_r26.png
+frontend\map_editor\pixels\_preview\c21_r27.png
+frontend\map_editor\pixels\_preview\c21_r28.png
+frontend\map_editor\pixels\_preview\c22_r00.png
+frontend\map_editor\pixels\_preview\c22_r01.png
+frontend\map_editor\pixels\_preview\c22_r02.png
+frontend\map_editor\pixels\_preview\c22_r03.png
+frontend\map_editor\pixels\_preview\c22_r04.png
+frontend\map_editor\pixels\_preview\c22_r05.png
+frontend\map_editor\pixels\_preview\c22_r06.png
+frontend\map_editor\pixels\_preview\c22_r07.png
+frontend\map_editor\pixels\_preview\c22_r08.png
+frontend\map_editor\pixels\_preview\c22_r09.png
+frontend\map_editor\pixels\_preview\c22_r10.png
+frontend\map_editor\pixels\_preview\c22_r11.png
+frontend\map_editor\pixels\_preview\c22_r12.png
+frontend\map_editor\pixels\_preview\c22_r13.png
+frontend\map_editor\pixels\_preview\c22_r14.png
+frontend\map_editor\pixels\_preview\c22_r15.png
+frontend\map_editor\pixels\_preview\c22_r16.png
+frontend\map_editor\pixels\_preview\c22_r17.png
+frontend\map_editor\pixels\_preview\c22_r18.png
+frontend\map_editor\pixels\_preview\c22_r19.png
+frontend\map_editor\pixels\_preview\c22_r20.png
+frontend\map_editor\pixels\_preview\c22_r21.png
+frontend\map_editor\pixels\_preview\c22_r22.png
+frontend\map_editor\pixels\_preview\c22_r23.png
+frontend\map_editor\pixels\_preview\c22_r24.png
+frontend\map_editor\pixels\_preview\c22_r25.png
+frontend\map_editor\pixels\_preview\c22_r26.png
+frontend\map_editor\pixels\_preview\c22_r27.png
+frontend\map_editor\pixels\_preview\c22_r28.png
+frontend\map_editor\pixels\_preview\c23_r00.png
+frontend\map_editor\pixels\_preview\c23_r01.png
+frontend\map_editor\pixels\_preview\c23_r02.png
+frontend\map_editor\pixels\_preview\c23_r03.png
+frontend\map_editor\pixels\_preview\c23_r04.png
+frontend\map_editor\pixels\_preview\c23_r05.png
+frontend\map_editor\pixels\_preview\c23_r06.png
+frontend\map_editor\pixels\_preview\c23_r07.png
+frontend\map_editor\pixels\_preview\c23_r08.png
+frontend\map_editor\pixels\_preview\c23_r09.png
+frontend\map_editor\pixels\_preview\c23_r10.png
+frontend\map_editor\pixels\_preview\c23_r11.png
+frontend\map_editor\pixels\_preview\c23_r12.png
+frontend\map_editor\pixels\_preview\c23_r13.png
+frontend\map_editor\pixels\_preview\c23_r14.png
+frontend\map_editor\pixels\_preview\c23_r15.png
+frontend\map_editor\pixels\_preview\c23_r16.png
+frontend\map_editor\pixels\_preview\c23_r17.png
+frontend\map_editor\pixels\_preview\c23_r18.png
+frontend\map_editor\pixels\_preview\c23_r19.png
+frontend\map_editor\pixels\_preview\c23_r20.png
+frontend\map_editor\pixels\_preview\c23_r21.png
+frontend\map_editor\pixels\_preview\c23_r22.png
+frontend\map_editor\pixels\_preview\c23_r23.png
+frontend\map_editor\pixels\_preview\c23_r24.png
+frontend\map_editor\pixels\_preview\c23_r25.png
+frontend\map_editor\pixels\_preview\c23_r26.png
+frontend\map_editor\pixels\_preview\c23_r27.png
+frontend\map_editor\pixels\_preview\c23_r28.png
+frontend\map_editor\pixels\_preview\c24_r00.png
+frontend\map_editor\pixels\_preview\c24_r01.png
+frontend\map_editor\pixels\_preview\c24_r02.png
+frontend\map_editor\pixels\_preview\c24_r03.png
+frontend\map_editor\pixels\_preview\c24_r04.png
+frontend\map_editor\pixels\_preview\c24_r05.png
+frontend\map_editor\pixels\_preview\c24_r06.png
+frontend\map_editor\pixels\_preview\c24_r07.png
+frontend\map_editor\pixels\_preview\c24_r08.png
+frontend\map_editor\pixels\_preview\c24_r09.png
+frontend\map_editor\pixels\_preview\c24_r10.png
+frontend\map_editor\pixels\_preview\c24_r11.png
+frontend\map_editor\pixels\_preview\c24_r12.png
+frontend\map_editor\pixels\_preview\c24_r13.png
+frontend\map_editor\pixels\_preview\c24_r14.png
+frontend\map_editor\pixels\_preview\c24_r15.png
+frontend\map_editor\pixels\_preview\c24_r16.png
+frontend\map_editor\pixels\_preview\c24_r17.png
+frontend\map_editor\pixels\_preview\c24_r18.png
+frontend\map_editor\pixels\_preview\c24_r19.png
+frontend\map_editor\pixels\_preview\c24_r20.png
+frontend\map_editor\pixels\_preview\c24_r21.png
+frontend\map_editor\pixels\_preview\c24_r22.png
+frontend\map_editor\pixels\_preview\c24_r23.png
+frontend\map_editor\pixels\_preview\c24_r24.png
+frontend\map_editor\pixels\_preview\c24_r25.png
+frontend\map_editor\pixels\_preview\c24_r26.png
+frontend\map_editor\pixels\_preview\c24_r27.png
+frontend\map_editor\pixels\_preview\c24_r28.png
+frontend\map_editor\pixels\_preview\c25_r00.png
+frontend\map_editor\pixels\_preview\c25_r01.png
+frontend\map_editor\pixels\_preview\c25_r02.png
+frontend\map_editor\pixels\_preview\c25_r03.png
+frontend\map_editor\pixels\_preview\c25_r04.png
+frontend\map_editor\pixels\_preview\c25_r05.png
+frontend\map_editor\pixels\_preview\c25_r06.png
+frontend\map_editor\pixels\_preview\c25_r07.png
+frontend\map_editor\pixels\_preview\c25_r08.png
+frontend\map_editor\pixels\_preview\c25_r09.png
+frontend\map_editor\pixels\_preview\c25_r10.png
+frontend\map_editor\pixels\_preview\c25_r11.png
+frontend\map_editor\pixels\_preview\c25_r12.png
+frontend\map_editor\pixels\_preview\c25_r13.png
+frontend\map_editor\pixels\_preview\c25_r14.png
+frontend\map_editor\pixels\_preview\c25_r15.png
+frontend\map_editor\pixels\_preview\c25_r16.png
+frontend\map_editor\pixels\_preview\c25_r17.png
+frontend\map_editor\pixels\_preview\c25_r18.png
+frontend\map_editor\pixels\_preview\c25_r19.png
+frontend\map_editor\pixels\_preview\c25_r20.png
+frontend\map_editor\pixels\_preview\c25_r21.png
+frontend\map_editor\pixels\_preview\c25_r22.png
+frontend\map_editor\pixels\_preview\c25_r23.png
+frontend\map_editor\pixels\_preview\c25_r24.png
+frontend\map_editor\pixels\_preview\c25_r25.png
+frontend\map_editor\pixels\_preview\c25_r26.png
+frontend\map_editor\pixels\_preview\c25_r27.png
+frontend\map_editor\pixels\_preview\c25_r28.png
+frontend\map_editor\pixels\_preview\c26_r00.png
+frontend\map_editor\pixels\_preview\c26_r01.png
+frontend\map_editor\pixels\_preview\c26_r02.png
+frontend\map_editor\pixels\_preview\c26_r03.png
+frontend\map_editor\pixels\_preview\c26_r04.png
+frontend\map_editor\pixels\_preview\c26_r05.png
+frontend\map_editor\pixels\_preview\c26_r06.png
+frontend\map_editor\pixels\_preview\c26_r07.png
+frontend\map_editor\pixels\_preview\c26_r08.png
+frontend\map_editor\pixels\_preview\c26_r09.png
+frontend\map_editor\pixels\_preview\c26_r10.png
+frontend\map_editor\pixels\_preview\c26_r11.png
+frontend\map_editor\pixels\_preview\c26_r12.png
+frontend\map_editor\pixels\_preview\c26_r13.png
+frontend\map_editor\pixels\_preview\c26_r14.png
+frontend\map_editor\pixels\_preview\c26_r15.png
+frontend\map_editor\pixels\_preview\c26_r16.png
+frontend\map_editor\pixels\_preview\c26_r17.png
+frontend\map_editor\pixels\_preview\c26_r18.png
+frontend\map_editor\pixels\_preview\c26_r19.png
+frontend\map_editor\pixels\_preview\c26_r20.png
+frontend\map_editor\pixels\_preview\c26_r21.png
+frontend\map_editor\pixels\_preview\c26_r22.png
+frontend\map_editor\pixels\_preview\c26_r23.png
+frontend\map_editor\pixels\_preview\c26_r24.png
+frontend\map_editor\pixels\_preview\c26_r25.png
+frontend\map_editor\pixels\_preview\c26_r26.png
+frontend\map_editor\pixels\_preview\c26_r27.png
+frontend\map_editor\pixels\_preview\c26_r28.png
+frontend\map_editor\pixels\_preview\c27_r00.png
+frontend\map_editor\pixels\_preview\c27_r01.png
+frontend\map_editor\pixels\_preview\c27_r02.png
+frontend\map_editor\pixels\_preview\c27_r03.png
+frontend\map_editor\pixels\_preview\c27_r04.png
+frontend\map_editor\pixels\_preview\c27_r05.png
+frontend\map_editor\pixels\_preview\c27_r06.png
+frontend\map_editor\pixels\_preview\c27_r07.png
+frontend\map_editor\pixels\_preview\c27_r08.png
+frontend\map_editor\pixels\_preview\c27_r09.png
+frontend\map_editor\pixels\_preview\c27_r10.png
+frontend\map_editor\pixels\_preview\c27_r11.png
+frontend\map_editor\pixels\_preview\c27_r12.png
+frontend\map_editor\pixels\_preview\c27_r13.png
+frontend\map_editor\pixels\_preview\c27_r14.png
+frontend\map_editor\pixels\_preview\c27_r15.png
+frontend\map_editor\pixels\_preview\c27_r16.png
+frontend\map_editor\pixels\_preview\c27_r17.png
+frontend\map_editor\pixels\_preview\c27_r18.png
+frontend\map_editor\pixels\_preview\c27_r19.png
+frontend\map_editor\pixels\_preview\c27_r20.png
+frontend\map_editor\pixels\_preview\c27_r21.png
+frontend\map_editor\pixels\_preview\c27_r22.png
+frontend\map_editor\pixels\_preview\c27_r23.png
+frontend\map_editor\pixels\_preview\c27_r24.png
+frontend\map_editor\pixels\_preview\c27_r25.png
+frontend\map_editor\pixels\_preview\c27_r26.png
+frontend\map_editor\pixels\_preview\c27_r27.png
+frontend\map_editor\pixels\_preview\c27_r28.png
+frontend\map_editor\pixels\_preview\c28_r00.png
+frontend\map_editor\pixels\_preview\c28_r01.png
+frontend\map_editor\pixels\_preview\c28_r02.png
+frontend\map_editor\pixels\_preview\c28_r03.png
+frontend\map_editor\pixels\_preview\c28_r04.png
+frontend\map_editor\pixels\_preview\c28_r05.png
+frontend\map_editor\pixels\_preview\c28_r06.png
+frontend\map_editor\pixels\_preview\c28_r07.png
+frontend\map_editor\pixels\_preview\c28_r08.png
+frontend\map_editor\pixels\_preview\c28_r09.png
+frontend\map_editor\pixels\_preview\c28_r10.png
+frontend\map_editor\pixels\_preview\c28_r11.png
+frontend\map_editor\pixels\_preview\c28_r12.png
+frontend\map_editor\pixels\_preview\c28_r13.png
+frontend\map_editor\pixels\_preview\c28_r14.png
+frontend\map_editor\pixels\_preview\c28_r15.png
+frontend\map_editor\pixels\_preview\c28_r16.png
+frontend\map_editor\pixels\_preview\c28_r17.png
+frontend\map_editor\pixels\_preview\c28_r18.png
+frontend\map_editor\pixels\_preview\c28_r19.png
+frontend\map_editor\pixels\_preview\c28_r20.png
+frontend\map_editor\pixels\_preview\c28_r21.png
+frontend\map_editor\pixels\_preview\c28_r22.png
+frontend\map_editor\pixels\_preview\c28_r23.png
+frontend\map_editor\pixels\_preview\c28_r24.png
+frontend\map_editor\pixels\_preview\c28_r25.png
+frontend\map_editor\pixels\_preview\c28_r26.png
+frontend\map_editor\pixels\_preview\c28_r27.png
+frontend\map_editor\pixels\_preview\c28_r28.png
+frontend\map_editor\pixels\_preview\c29_r00.png
+frontend\map_editor\pixels\_preview\c29_r01.png
+frontend\map_editor\pixels\_preview\c29_r02.png
+frontend\map_editor\pixels\_preview\c29_r03.png
+frontend\map_editor\pixels\_preview\c29_r04.png
+frontend\map_editor\pixels\_preview\c29_r05.png
+frontend\map_editor\pixels\_preview\c29_r06.png
+frontend\map_editor\pixels\_preview\c29_r07.png
+frontend\map_editor\pixels\_preview\c29_r08.png
+frontend\map_editor\pixels\_preview\c29_r09.png
+frontend\map_editor\pixels\_preview\c29_r10.png
+frontend\map_editor\pixels\_preview\c29_r11.png
+frontend\map_editor\pixels\_preview\c29_r12.png
+frontend\map_editor\pixels\_preview\c29_r13.png
+frontend\map_editor\pixels\_preview\c29_r14.png
+frontend\map_editor\pixels\_preview\c29_r15.png
+frontend\map_editor\pixels\_preview\c29_r16.png
+frontend\map_editor\pixels\_preview\c29_r17.png
+frontend\map_editor\pixels\_preview\c29_r18.png
+frontend\map_editor\pixels\_preview\c29_r19.png
+frontend\map_editor\pixels\_preview\c29_r20.png
+frontend\map_editor\pixels\_preview\c29_r21.png
+frontend\map_editor\pixels\_preview\c29_r22.png
+frontend\map_editor\pixels\_preview\c29_r23.png
+frontend\map_editor\pixels\_preview\c29_r24.png
+frontend\map_editor\pixels\_preview\c29_r25.png
+frontend\map_editor\pixels\_preview\c29_r26.png
+frontend\map_editor\pixels\_preview\c29_r27.png
+frontend\map_editor\pixels\_preview\c29_r28.png
+frontend\map_editor\pixels\_preview\c30_r00.png
+frontend\map_editor\pixels\_preview\c30_r01.png
+frontend\map_editor\pixels\_preview\c30_r02.png
+frontend\map_editor\pixels\_preview\c30_r03.png
+frontend\map_editor\pixels\_preview\c30_r04.png
+frontend\map_editor\pixels\_preview\c30_r05.png
+frontend\map_editor\pixels\_preview\c30_r06.png
+frontend\map_editor\pixels\_preview\c30_r07.png
+frontend\map_editor\pixels\_preview\c30_r08.png
+frontend\map_editor\pixels\_preview\c30_r09.png
+frontend\map_editor\pixels\_preview\c30_r10.png
+frontend\map_editor\pixels\_preview\c30_r11.png
+frontend\map_editor\pixels\_preview\c30_r12.png
+frontend\map_editor\pixels\_preview\c30_r13.png
+frontend\map_editor\pixels\_preview\c30_r14.png
+frontend\map_editor\pixels\_preview\c30_r15.png
+frontend\map_editor\pixels\_preview\c30_r16.png
+frontend\map_editor\pixels\_preview\c30_r17.png
+frontend\map_editor\pixels\_preview\c30_r18.png
+frontend\map_editor\pixels\_preview\c30_r19.png
+frontend\map_editor\pixels\_preview\c30_r20.png
+frontend\map_editor\pixels\_preview\c30_r21.png
+frontend\map_editor\pixels\_preview\c30_r22.png
+frontend\map_editor\pixels\_preview\c30_r23.png
+frontend\map_editor\pixels\_preview\c30_r24.png
+frontend\map_editor\pixels\_preview\c30_r25.png
+frontend\map_editor\pixels\_preview\c30_r26.png
+frontend\map_editor\pixels\_preview\c30_r27.png
+frontend\map_editor\pixels\_preview\c30_r28.png
+frontend\map_editor\pixels\_preview\c31_r00.png
+frontend\map_editor\pixels\_preview\c31_r01.png
+frontend\map_editor\pixels\_preview\c31_r02.png
+frontend\map_editor\pixels\_preview\c31_r03.png
+frontend\map_editor\pixels\_preview\c31_r04.png
+frontend\map_editor\pixels\_preview\c31_r05.png
+frontend\map_editor\pixels\_preview\c31_r06.png
+frontend\map_editor\pixels\_preview\c31_r07.png
+frontend\map_editor\pixels\_preview\c31_r08.png
+frontend\map_editor\pixels\_preview\c31_r09.png
+frontend\map_editor\pixels\_preview\c31_r10.png
+frontend\map_editor\pixels\_preview\c31_r11.png
+frontend\map_editor\pixels\_preview\c31_r12.png
+frontend\map_editor\pixels\_preview\c31_r13.png
+frontend\map_editor\pixels\_preview\c31_r14.png
+frontend\map_editor\pixels\_preview\c31_r15.png
+frontend\map_editor\pixels\_preview\c31_r16.png
+frontend\map_editor\pixels\_preview\c31_r17.png
+frontend\map_editor\pixels\_preview\c31_r18.png
+frontend\map_editor\pixels\_preview\c31_r19.png
+frontend\map_editor\pixels\_preview\c31_r20.png
+frontend\map_editor\pixels\_preview\c31_r21.png
+frontend\map_editor\pixels\_preview\c31_r22.png
+frontend\map_editor\pixels\_preview\c31_r23.png
+frontend\map_editor\pixels\_preview\c31_r24.png
+frontend\map_editor\pixels\_preview\c31_r25.png
+frontend\map_editor\pixels\_preview\c31_r26.png
+frontend\map_editor\pixels\_preview\c31_r27.png
+frontend\map_editor\pixels\_preview\c31_r28.png
+frontend\map_editor\pixels\_preview\c32_r00.png
+frontend\map_editor\pixels\_preview\c32_r01.png
+frontend\map_editor\pixels\_preview\c32_r02.png
+frontend\map_editor\pixels\_preview\c32_r03.png
+frontend\map_editor\pixels\_preview\c32_r04.png
+frontend\map_editor\pixels\_preview\c32_r05.png
+frontend\map_editor\pixels\_preview\c32_r06.png
+frontend\map_editor\pixels\_preview\c32_r07.png
+frontend\map_editor\pixels\_preview\c32_r08.png
+frontend\map_editor\pixels\_preview\c32_r09.png
+frontend\map_editor\pixels\_preview\c32_r10.png
+frontend\map_editor\pixels\_preview\c32_r11.png
+frontend\map_editor\pixels\_preview\c32_r12.png
+frontend\map_editor\pixels\_preview\c32_r13.png
+frontend\map_editor\pixels\_preview\c32_r14.png
+frontend\map_editor\pixels\_preview\c32_r15.png
+frontend\map_editor\pixels\_preview\c32_r16.png
+frontend\map_editor\pixels\_preview\c32_r17.png
+frontend\map_editor\pixels\_preview\c32_r18.png
+frontend\map_editor\pixels\_preview\c32_r19.png
+frontend\map_editor\pixels\_preview\c32_r20.png
+frontend\map_editor\pixels\_preview\c32_r21.png
+frontend\map_editor\pixels\_preview\c32_r22.png
+frontend\map_editor\pixels\_preview\c32_r23.png
+frontend\map_editor\pixels\_preview\c32_r24.png
+frontend\map_editor\pixels\_preview\c32_r25.png
+frontend\map_editor\pixels\_preview\c32_r26.png
+frontend\map_editor\pixels\_preview\c32_r27.png
+frontend\map_editor\pixels\_preview\c32_r28.png
+frontend\map_editor\pixels\_preview\c33_r00.png
+frontend\map_editor\pixels\_preview\c33_r01.png
+frontend\map_editor\pixels\_preview\c33_r02.png
+frontend\map_editor\pixels\_preview\c33_r03.png
+frontend\map_editor\pixels\_preview\c33_r04.png
+frontend\map_editor\pixels\_preview\c33_r05.png
+frontend\map_editor\pixels\_preview\c33_r06.png
+frontend\map_editor\pixels\_preview\c33_r07.png
+frontend\map_editor\pixels\_preview\c33_r08.png
+frontend\map_editor\pixels\_preview\c33_r09.png
+frontend\map_editor\pixels\_preview\c33_r10.png
+frontend\map_editor\pixels\_preview\c33_r11.png
+frontend\map_editor\pixels\_preview\c33_r12.png
+frontend\map_editor\pixels\_preview\c33_r13.png
+frontend\map_editor\pixels\_preview\c33_r14.png
+frontend\map_editor\pixels\_preview\c33_r15.png
+frontend\map_editor\pixels\_preview\c33_r16.png
+frontend\map_editor\pixels\_preview\c33_r17.png
+frontend\map_editor\pixels\_preview\c33_r18.png
+frontend\map_editor\pixels\_preview\c33_r19.png
+frontend\map_editor\pixels\_preview\c33_r20.png
+frontend\map_editor\pixels\_preview\c33_r21.png
+frontend\map_editor\pixels\_preview\c33_r22.png
+frontend\map_editor\pixels\_preview\c33_r23.png
+frontend\map_editor\pixels\_preview\c33_r24.png
+frontend\map_editor\pixels\_preview\c33_r25.png
+frontend\map_editor\pixels\_preview\c33_r26.png
+frontend\map_editor\pixels\_preview\c33_r27.png
+frontend\map_editor\pixels\_preview\c33_r28.png
+frontend\map_editor\pixels\_preview\c34_r00.png
+frontend\map_editor\pixels\_preview\c34_r01.png
+frontend\map_editor\pixels\_preview\c34_r02.png
+frontend\map_editor\pixels\_preview\c34_r03.png
+frontend\map_editor\pixels\_preview\c34_r04.png
+frontend\map_editor\pixels\_preview\c34_r05.png
+frontend\map_editor\pixels\_preview\c34_r06.png
+frontend\map_editor\pixels\_preview\c34_r07.png
+frontend\map_editor\pixels\_preview\c34_r08.png
+frontend\map_editor\pixels\_preview\c34_r09.png
+frontend\map_editor\pixels\_preview\c34_r10.png
+frontend\map_editor\pixels\_preview\c34_r11.png
+frontend\map_editor\pixels\_preview\c34_r12.png
+frontend\map_editor\pixels\_preview\c34_r13.png
+frontend\map_editor\pixels\_preview\c34_r14.png
+frontend\map_editor\pixels\_preview\c34_r15.png
+frontend\map_editor\pixels\_preview\c34_r16.png
+frontend\map_editor\pixels\_preview\c34_r17.png
+frontend\map_editor\pixels\_preview\c34_r18.png
+frontend\map_editor\pixels\_preview\c34_r19.png
+frontend\map_editor\pixels\_preview\c34_r20.png
+frontend\map_editor\pixels\_preview\c34_r21.png
+frontend\map_editor\pixels\_preview\c34_r22.png
+frontend\map_editor\pixels\_preview\c34_r23.png
+frontend\map_editor\pixels\_preview\c34_r24.png
+frontend\map_editor\pixels\_preview\c34_r25.png
+frontend\map_editor\pixels\_preview\c34_r26.png
+frontend\map_editor\pixels\_preview\c34_r27.png
+frontend\map_editor\pixels\_preview\c34_r28.png
+frontend\map_editor\pixels\_preview\c35_r00.png
+frontend\map_editor\pixels\_preview\c35_r01.png
+frontend\map_editor\pixels\_preview\c35_r02.png
+frontend\map_editor\pixels\_preview\c35_r03.png
+frontend\map_editor\pixels\_preview\c35_r04.png
+frontend\map_editor\pixels\_preview\c35_r05.png
+frontend\map_editor\pixels\_preview\c35_r06.png
+frontend\map_editor\pixels\_preview\c35_r07.png
+frontend\map_editor\pixels\_preview\c35_r08.png
+frontend\map_editor\pixels\_preview\c35_r09.png
+frontend\map_editor\pixels\_preview\c35_r10.png
+frontend\map_editor\pixels\_preview\c35_r11.png
+frontend\map_editor\pixels\_preview\c35_r12.png
+frontend\map_editor\pixels\_preview\c35_r13.png
+frontend\map_editor\pixels\_preview\c35_r14.png
+frontend\map_editor\pixels\_preview\c35_r15.png
+frontend\map_editor\pixels\_preview\c35_r16.png
+frontend\map_editor\pixels\_preview\c35_r17.png
+frontend\map_editor\pixels\_preview\c35_r18.png
+frontend\map_editor\pixels\_preview\c35_r19.png
+frontend\map_editor\pixels\_preview\c35_r20.png
+frontend\map_editor\pixels\_preview\c35_r21.png
+frontend\map_editor\pixels\_preview\c35_r22.png
+frontend\map_editor\pixels\_preview\c35_r23.png
+frontend\map_editor\pixels\_preview\c35_r24.png
+frontend\map_editor\pixels\_preview\c35_r25.png
+frontend\map_editor\pixels\_preview\c35_r26.png
+frontend\map_editor\pixels\_preview\c35_r27.png
+frontend\map_editor\pixels\_preview\c35_r28.png
+frontend\map_editor\pixels\_preview\c36_r00.png
+frontend\map_editor\pixels\_preview\c36_r01.png
+frontend\map_editor\pixels\_preview\c36_r02.png
+frontend\map_editor\pixels\_preview\c36_r03.png
+frontend\map_editor\pixels\_preview\c36_r04.png
+frontend\map_editor\pixels\_preview\c36_r05.png
+frontend\map_editor\pixels\_preview\c36_r06.png
+frontend\map_editor\pixels\_preview\c36_r07.png
+frontend\map_editor\pixels\_preview\c36_r08.png
+frontend\map_editor\pixels\_preview\c36_r09.png
+frontend\map_editor\pixels\_preview\c36_r10.png
+frontend\map_editor\pixels\_preview\c36_r11.png
+frontend\map_editor\pixels\_preview\c36_r12.png
+frontend\map_editor\pixels\_preview\c36_r13.png
+frontend\map_editor\pixels\_preview\c36_r14.png
+frontend\map_editor\pixels\_preview\c36_r15.png
+frontend\map_editor\pixels\_preview\c36_r16.png
+frontend\map_editor\pixels\_preview\c36_r17.png
+frontend\map_editor\pixels\_preview\c36_r18.png
+frontend\map_editor\pixels\_preview\c36_r19.png
+frontend\map_editor\pixels\_preview\c36_r20.png
+frontend\map_editor\pixels\_preview\c36_r21.png
+frontend\map_editor\pixels\_preview\c36_r22.png
+frontend\map_editor\pixels\_preview\c36_r23.png
+frontend\map_editor\pixels\_preview\c36_r24.png
+frontend\map_editor\pixels\_preview\c36_r25.png
+frontend\map_editor\pixels\_preview\c36_r26.png
+frontend\map_editor\pixels\_preview\c36_r27.png
+frontend\map_editor\pixels\_preview\c36_r28.png
+frontend\map_editor\pixels\_preview\c37_r00.png
+frontend\map_editor\pixels\_preview\c37_r01.png
+frontend\map_editor\pixels\_preview\c37_r02.png
+frontend\map_editor\pixels\_preview\c37_r03.png
+frontend\map_editor\pixels\_preview\c37_r04.png
+frontend\map_editor\pixels\_preview\c37_r05.png
+frontend\map_editor\pixels\_preview\c37_r06.png
+frontend\map_editor\pixels\_preview\c37_r07.png
+frontend\map_editor\pixels\_preview\c37_r08.png
+frontend\map_editor\pixels\_preview\c37_r09.png
+frontend\map_editor\pixels\_preview\c37_r10.png
+frontend\map_editor\pixels\_preview\c37_r11.png
+frontend\map_editor\pixels\_preview\c37_r12.png
+frontend\map_editor\pixels\_preview\c37_r13.png
+frontend\map_editor\pixels\_preview\c37_r14.png
+frontend\map_editor\pixels\_preview\c37_r15.png
+frontend\map_editor\pixels\_preview\c37_r16.png
+frontend\map_editor\pixels\_preview\c37_r17.png
+frontend\map_editor\pixels\_preview\c37_r18.png
+frontend\map_editor\pixels\_preview\c37_r19.png
+frontend\map_editor\pixels\_preview\c37_r20.png
+frontend\map_editor\pixels\_preview\c37_r21.png
+frontend\map_editor\pixels\_preview\c37_r22.png
+frontend\map_editor\pixels\_preview\c37_r23.png
+frontend\map_editor\pixels\_preview\c37_r24.png
+frontend\map_editor\pixels\_preview\c37_r25.png
+frontend\map_editor\pixels\_preview\c37_r26.png
+frontend\map_editor\pixels\_preview\c37_r27.png
+frontend\map_editor\pixels\_preview\c37_r28.png
+frontend\map_editor\pixels\_preview\c38_r00.png
+frontend\map_editor\pixels\_preview\c38_r01.png
+frontend\map_editor\pixels\_preview\c38_r02.png
+frontend\map_editor\pixels\_preview\c38_r03.png
+frontend\map_editor\pixels\_preview\c38_r04.png
+frontend\map_editor\pixels\_preview\c38_r05.png
+frontend\map_editor\pixels\_preview\c38_r06.png
+frontend\map_editor\pixels\_preview\c38_r07.png
+frontend\map_editor\pixels\_preview\c38_r08.png
+frontend\map_editor\pixels\_preview\c38_r09.png
+frontend\map_editor\pixels\_preview\c38_r10.png
+frontend\map_editor\pixels\_preview\c38_r11.png
+frontend\map_editor\pixels\_preview\c38_r12.png
+frontend\map_editor\pixels\_preview\c38_r13.png
+frontend\map_editor\pixels\_preview\c38_r14.png
+frontend\map_editor\pixels\_preview\c38_r15.png
+frontend\map_editor\pixels\_preview\c38_r16.png
+frontend\map_editor\pixels\_preview\c38_r17.png
+frontend\map_editor\pixels\_preview\c38_r18.png
+frontend\map_editor\pixels\_preview\c38_r19.png
+frontend\map_editor\pixels\_preview\c38_r20.png
+frontend\map_editor\pixels\_preview\c38_r21.png
+frontend\map_editor\pixels\_preview\c38_r22.png
+frontend\map_editor\pixels\_preview\c38_r23.png
+frontend\map_editor\pixels\_preview\c38_r24.png
+frontend\map_editor\pixels\_preview\c38_r25.png
+frontend\map_editor\pixels\_preview\c38_r26.png
+frontend\map_editor\pixels\_preview\c38_r27.png
+frontend\map_editor\pixels\_preview\c38_r28.png
+frontend\map_editor\pixels\_preview\c39_r00.png
+frontend\map_editor\pixels\_preview\c39_r01.png
+frontend\map_editor\pixels\_preview\c39_r02.png
+frontend\map_editor\pixels\_preview\c39_r03.png
+frontend\map_editor\pixels\_preview\c39_r04.png
+frontend\map_editor\pixels\_preview\c39_r05.png
+frontend\map_editor\pixels\_preview\c39_r06.png
+frontend\map_editor\pixels\_preview\c39_r07.png
+frontend\map_editor\pixels\_preview\c39_r08.png
+frontend\map_editor\pixels\_preview\c39_r09.png
+frontend\map_editor\pixels\_preview\c39_r10.png
+frontend\map_editor\pixels\_preview\c39_r11.png
+frontend\map_editor\pixels\_preview\c39_r12.png
+frontend\map_editor\pixels\_preview\c39_r13.png
+frontend\map_editor\pixels\_preview\c39_r14.png
+frontend\map_editor\pixels\_preview\c39_r15.png
+frontend\map_editor\pixels\_preview\c39_r16.png
+frontend\map_editor\pixels\_preview\c39_r17.png
+frontend\map_editor\pixels\_preview\c39_r18.png
+frontend\map_editor\pixels\_preview\c39_r19.png
+frontend\map_editor\pixels\_preview\c39_r20.png
+frontend\map_editor\pixels\_preview\c39_r21.png
+frontend\map_editor\pixels\_preview\c39_r22.png
+frontend\map_editor\pixels\_preview\c39_r23.png
+frontend\map_editor\pixels\_preview\c39_r24.png
+frontend\map_editor\pixels\_preview\c39_r25.png
+frontend\map_editor\pixels\_preview\c39_r26.png
+frontend\map_editor\pixels\_preview\c39_r27.png
+frontend\map_editor\pixels\_preview\c39_r28.png
+frontend\map_editor\pixels\_preview\c40_r00.png
+frontend\map_editor\pixels\_preview\c40_r01.png
+frontend\map_editor\pixels\_preview\c40_r02.png
+frontend\map_editor\pixels\_preview\c40_r03.png
+frontend\map_editor\pixels\_preview\c40_r04.png
+frontend\map_editor\pixels\_preview\c40_r05.png
+frontend\map_editor\pixels\_preview\c40_r06.png
+frontend\map_editor\pixels\_preview\c40_r07.png
+frontend\map_editor\pixels\_preview\c40_r08.png
+frontend\map_editor\pixels\_preview\c40_r09.png
+frontend\map_editor\pixels\_preview\c40_r10.png
+frontend\map_editor\pixels\_preview\c40_r11.png
+frontend\map_editor\pixels\_preview\c40_r12.png
+frontend\map_editor\pixels\_preview\c40_r13.png
+frontend\map_editor\pixels\_preview\c40_r14.png
+frontend\map_editor\pixels\_preview\c40_r15.png
+frontend\map_editor\pixels\_preview\c40_r16.png
+frontend\map_editor\pixels\_preview\c40_r17.png
+frontend\map_editor\pixels\_preview\c40_r18.png
+frontend\map_editor\pixels\_preview\c40_r19.png
+frontend\map_editor\pixels\_preview\c40_r20.png
+frontend\map_editor\pixels\_preview\c40_r21.png
+frontend\map_editor\pixels\_preview\c40_r22.png
+frontend\map_editor\pixels\_preview\c40_r23.png
+frontend\map_editor\pixels\_preview\c40_r24.png
+frontend\map_editor\pixels\_preview\c40_r25.png
+frontend\map_editor\pixels\_preview\c40_r26.png
+frontend\map_editor\pixels\_preview\c40_r27.png
+frontend\map_editor\pixels\_preview\c40_r28.png
+frontend\map_editor\pixels\_preview\c41_r00.png
+frontend\map_editor\pixels\_preview\c41_r01.png
+frontend\map_editor\pixels\_preview\c41_r02.png
+frontend\map_editor\pixels\_preview\c41_r03.png
+frontend\map_editor\pixels\_preview\c41_r04.png
+frontend\map_editor\pixels\_preview\c41_r05.png
+frontend\map_editor\pixels\_preview\c41_r06.png
+frontend\map_editor\pixels\_preview\c41_r07.png
+frontend\map_editor\pixels\_preview\c41_r08.png
+frontend\map_editor\pixels\_preview\c41_r09.png
+frontend\map_editor\pixels\_preview\c41_r10.png
+frontend\map_editor\pixels\_preview\c41_r11.png
+frontend\map_editor\pixels\_preview\c41_r12.png
+frontend\map_editor\pixels\_preview\c41_r13.png
+frontend\map_editor\pixels\_preview\c41_r14.png
+frontend\map_editor\pixels\_preview\c41_r15.png
+frontend\map_editor\pixels\_preview\c41_r16.png
+frontend\map_editor\pixels\_preview\c41_r17.png
+frontend\map_editor\pixels\_preview\c41_r18.png
+frontend\map_editor\pixels\_preview\c41_r19.png
+frontend\map_editor\pixels\_preview\c41_r20.png
+frontend\map_editor\pixels\_preview\c41_r21.png
+frontend\map_editor\pixels\_preview\c41_r22.png
+frontend\map_editor\pixels\_preview\c41_r23.png
+frontend\map_editor\pixels\_preview\c41_r24.png
+frontend\map_editor\pixels\_preview\c41_r25.png
+frontend\map_editor\pixels\_preview\c41_r26.png
+frontend\map_editor\pixels\_preview\c41_r27.png
+frontend\map_editor\pixels\_preview\c41_r28.png
+frontend\map_editor\pixels\_preview\c42_r00.png
+frontend\map_editor\pixels\_preview\c42_r01.png
+frontend\map_editor\pixels\_preview\c42_r02.png
+frontend\map_editor\pixels\_preview\c42_r03.png
+frontend\map_editor\pixels\_preview\c42_r04.png
+frontend\map_editor\pixels\_preview\c42_r05.png
+frontend\map_editor\pixels\_preview\c42_r06.png
+frontend\map_editor\pixels\_preview\c42_r07.png
+frontend\map_editor\pixels\_preview\c42_r08.png
+frontend\map_editor\pixels\_preview\c42_r09.png
+frontend\map_editor\pixels\_preview\c42_r10.png
+frontend\map_editor\pixels\_preview\c42_r11.png
+frontend\map_editor\pixels\_preview\c42_r12.png
+frontend\map_editor\pixels\_preview\c42_r13.png
+frontend\map_editor\pixels\_preview\c42_r14.png
+frontend\map_editor\pixels\_preview\c42_r15.png
+frontend\map_editor\pixels\_preview\c42_r16.png
+frontend\map_editor\pixels\_preview\c42_r17.png
+frontend\map_editor\pixels\_preview\c42_r18.png
+frontend\map_editor\pixels\_preview\c42_r19.png
+frontend\map_editor\pixels\_preview\c42_r20.png
+frontend\map_editor\pixels\_preview\c42_r21.png
+frontend\map_editor\pixels\_preview\c42_r22.png
+frontend\map_editor\pixels\_preview\c42_r23.png
+frontend\map_editor\pixels\_preview\c42_r24.png
+frontend\map_editor\pixels\_preview\c42_r25.png
+frontend\map_editor\pixels\_preview\c42_r26.png
+frontend\map_editor\pixels\_preview\c42_r27.png
+frontend\map_editor\pixels\_preview\c42_r28.png
+frontend\map_editor\pixels\_preview\c43_r00.png
+frontend\map_editor\pixels\_preview\c43_r01.png
+frontend\map_editor\pixels\_preview\c43_r02.png
+frontend\map_editor\pixels\_preview\c43_r03.png
+frontend\map_editor\pixels\_preview\c43_r04.png
+frontend\map_editor\pixels\_preview\c43_r05.png
+frontend\map_editor\pixels\_preview\c43_r06.png
+frontend\map_editor\pixels\_preview\c43_r07.png
+frontend\map_editor\pixels\_preview\c43_r08.png
+frontend\map_editor\pixels\_preview\c43_r09.png
+frontend\map_editor\pixels\_preview\c43_r10.png
+frontend\map_editor\pixels\_preview\c43_r11.png
+frontend\map_editor\pixels\_preview\c43_r12.png
+frontend\map_editor\pixels\_preview\c43_r13.png
+frontend\map_editor\pixels\_preview\c43_r14.png
+frontend\map_editor\pixels\_preview\c43_r15.png
+frontend\map_editor\pixels\_preview\c43_r16.png
+frontend\map_editor\pixels\_preview\c43_r17.png
+frontend\map_editor\pixels\_preview\c43_r18.png
+frontend\map_editor\pixels\_preview\c43_r19.png
+frontend\map_editor\pixels\_preview\c43_r20.png
+frontend\map_editor\pixels\_preview\c43_r21.png
+frontend\map_editor\pixels\_preview\c43_r22.png
+frontend\map_editor\pixels\_preview\c43_r23.png
+frontend\map_editor\pixels\_preview\c43_r24.png
+frontend\map_editor\pixels\_preview\c43_r25.png
+frontend\map_editor\pixels\_preview\c43_r26.png
+frontend\map_editor\pixels\_preview\c43_r27.png
+frontend\map_editor\pixels\_preview\c43_r28.png
+frontend\map_editor\pixels\_preview\c44_r00.png
+frontend\map_editor\pixels\_preview\c44_r01.png
+frontend\map_editor\pixels\_preview\c44_r02.png
+frontend\map_editor\pixels\_preview\c44_r03.png
+frontend\map_editor\pixels\_preview\c44_r04.png
+frontend\map_editor\pixels\_preview\c44_r05.png
+frontend\map_editor\pixels\_preview\c44_r06.png
+frontend\map_editor\pixels\_preview\c44_r07.png
+frontend\map_editor\pixels\_preview\c44_r08.png
+frontend\map_editor\pixels\_preview\c44_r09.png
+frontend\map_editor\pixels\_preview\c44_r10.png
+frontend\map_editor\pixels\_preview\c44_r11.png
+frontend\map_editor\pixels\_preview\c44_r12.png
+frontend\map_editor\pixels\_preview\c44_r13.png
+frontend\map_editor\pixels\_preview\c44_r14.png
+frontend\map_editor\pixels\_preview\c44_r15.png
+frontend\map_editor\pixels\_preview\c44_r16.png
+frontend\map_editor\pixels\_preview\c44_r17.png
+frontend\map_editor\pixels\_preview\c44_r18.png
+frontend\map_editor\pixels\_preview\c44_r19.png
+frontend\map_editor\pixels\_preview\c44_r20.png
+frontend\map_editor\pixels\_preview\c44_r21.png
+frontend\map_editor\pixels\_preview\c44_r22.png
+frontend\map_editor\pixels\_preview\c44_r23.png
+frontend\map_editor\pixels\_preview\c44_r24.png
+frontend\map_editor\pixels\_preview\c44_r25.png
+frontend\map_editor\pixels\_preview\c44_r26.png
+frontend\map_editor\pixels\_preview\c44_r27.png
+frontend\map_editor\pixels\_preview\c44_r28.png
+frontend\map_editor\pixels\_preview\c45_r00.png
+frontend\map_editor\pixels\_preview\c45_r01.png
+frontend\map_editor\pixels\_preview\c45_r02.png
+frontend\map_editor\pixels\_preview\c45_r03.png
+frontend\map_editor\pixels\_preview\c45_r04.png
+frontend\map_editor\pixels\_preview\c45_r05.png
+frontend\map_editor\pixels\_preview\c45_r06.png
+frontend\map_editor\pixels\_preview\c45_r07.png
+frontend\map_editor\pixels\_preview\c45_r08.png
+frontend\map_editor\pixels\_preview\c45_r09.png
+frontend\map_editor\pixels\_preview\c45_r10.png
+frontend\map_editor\pixels\_preview\c45_r11.png
+frontend\map_editor\pixels\_preview\c45_r12.png
+frontend\map_editor\pixels\_preview\c45_r13.png
+frontend\map_editor\pixels\_preview\c45_r14.png
+frontend\map_editor\pixels\_preview\c45_r15.png
+frontend\map_editor\pixels\_preview\c45_r16.png
+frontend\map_editor\pixels\_preview\c45_r17.png
+frontend\map_editor\pixels\_preview\c45_r18.png
+frontend\map_editor\pixels\_preview\c45_r19.png
+frontend\map_editor\pixels\_preview\c45_r20.png
+frontend\map_editor\pixels\_preview\c45_r21.png
+frontend\map_editor\pixels\_preview\c45_r22.png
+frontend\map_editor\pixels\_preview\c45_r23.png
+frontend\map_editor\pixels\_preview\c45_r24.png
+frontend\map_editor\pixels\_preview\c45_r25.png
+frontend\map_editor\pixels\_preview\c45_r26.png
+frontend\map_editor\pixels\_preview\c45_r27.png
+frontend\map_editor\pixels\_preview\c45_r28.png
+frontend\map_editor\pixels\_preview\c46_r00.png
+frontend\map_editor\pixels\_preview\c46_r01.png
+frontend\map_editor\pixels\_preview\c46_r02.png
+frontend\map_editor\pixels\_preview\c46_r03.png
+frontend\map_editor\pixels\_preview\c46_r04.png
+frontend\map_editor\pixels\_preview\c46_r05.png
+frontend\map_editor\pixels\_preview\c46_r06.png
+frontend\map_editor\pixels\_preview\c46_r07.png
+frontend\map_editor\pixels\_preview\c46_r08.png
+frontend\map_editor\pixels\_preview\c46_r09.png
+frontend\map_editor\pixels\_preview\c46_r10.png
+frontend\map_editor\pixels\_preview\c46_r11.png
+frontend\map_editor\pixels\_preview\c46_r12.png
+frontend\map_editor\pixels\_preview\c46_r13.png
+frontend\map_editor\pixels\_preview\c46_r14.png
+frontend\map_editor\pixels\_preview\c46_r15.png
+frontend\map_editor\pixels\_preview\c46_r16.png
+frontend\map_editor\pixels\_preview\c46_r17.png
+frontend\map_editor\pixels\_preview\c46_r18.png
+frontend\map_editor\pixels\_preview\c46_r19.png
+frontend\map_editor\pixels\_preview\c46_r20.png
+frontend\map_editor\pixels\_preview\c46_r21.png
+frontend\map_editor\pixels\_preview\c46_r22.png
+frontend\map_editor\pixels\_preview\c46_r23.png
+frontend\map_editor\pixels\_preview\c46_r24.png
+frontend\map_editor\pixels\_preview\c46_r25.png
+frontend\map_editor\pixels\_preview\c46_r26.png
+frontend\map_editor\pixels\_preview\c46_r27.png
+frontend\map_editor\pixels\_preview\c46_r28.png
+frontend\map_editor\pixels\_preview\c47_r00.png
+frontend\map_editor\pixels\_preview\c47_r01.png
+frontend\map_editor\pixels\_preview\c47_r02.png
+frontend\map_editor\pixels\_preview\c47_r03.png
+frontend\map_editor\pixels\_preview\c47_r04.png
+frontend\map_editor\pixels\_preview\c47_r05.png
+frontend\map_editor\pixels\_preview\c47_r06.png
+frontend\map_editor\pixels\_preview\c47_r07.png
+frontend\map_editor\pixels\_preview\c47_r08.png
+frontend\map_editor\pixels\_preview\c47_r09.png
+frontend\map_editor\pixels\_preview\c47_r10.png
+frontend\map_editor\pixels\_preview\c47_r11.png
+frontend\map_editor\pixels\_preview\c47_r12.png
+frontend\map_editor\pixels\_preview\c47_r13.png
+frontend\map_editor\pixels\_preview\c47_r14.png
+frontend\map_editor\pixels\_preview\c47_r15.png
+frontend\map_editor\pixels\_preview\c47_r16.png
+frontend\map_editor\pixels\_preview\c47_r17.png
+frontend\map_editor\pixels\_preview\c47_r18.png
+frontend\map_editor\pixels\_preview\c47_r19.png
+frontend\map_editor\pixels\_preview\c47_r20.png
+frontend\map_editor\pixels\_preview\c47_r21.png
+frontend\map_editor\pixels\_preview\c47_r22.png
+frontend\map_editor\pixels\_preview\c47_r23.png
+frontend\map_editor\pixels\_preview\c47_r24.png
+frontend\map_editor\pixels\_preview\c47_r25.png
+frontend\map_editor\pixels\_preview\c47_r26.png
+frontend\map_editor\pixels\_preview\c47_r27.png
+frontend\map_editor\pixels\_preview\c47_r28.png
+frontend\map_editor\pixels\текстуры\Растения.png
+frontend\map_editor\pixels\текстуры\Утварь трактира.png
+frontend\map_editor\pixels\текстуры\Pers\Борко.png
+frontend\map_editor\pixels\текстуры\Pers\Девчуля_1.jpg
+frontend\map_editor\pixels\текстуры\Pers\Девчуля_2.jpg
+frontend\map_editor\pixels\текстуры\Pers\Детектив.png
+frontend\map_editor\pixels\текстуры\Pers\Как это работает.txt
+frontend\map_editor\pixels\текстуры\Pers\Кузнец Орм.png
+frontend\map_editor\pixels\текстуры\Pers\Люся.png
+frontend\map_editor\pixels\текстуры\Pers\Парень_1.jpg
+frontend\map_editor\pixels\текстуры\Pers\Парень_2.jpg
+frontend\map_editor\pixels\текстуры\Pers\Парень_3.jpg
+frontend\map_editor\pixels\текстуры\Pers\Странник.png
+frontend\map_editor\pixels\текстуры\Pers\Странник_2.png
+frontend\map_editor\pixels\текстуры\Pers\Странник_3.png
+frontend\map_editor\pixels\текстуры\Pers\Тень.png
+frontend\map_editor\pixels\текстуры\Pers\Трактирщик.png
+frontend\map_editor\pixels\текстуры\Pers\Трактирщик_2.png
+frontend\map_editor\pixels\текстуры\Pers\Трактирщик_3.png
+frontend\map_editor\pixels\текстуры\пол\утоптанная земля.png
+
+========== 05-CAMPAIGN_BLUEPRINTS check ==========
+Campaign: Open_road
+  blueprints/: [нет]
+  resources/: [нет]
+
+========== 06-SPRITE_REFRESH callers ==========
+frontend\map_editor\editor_core.py:218: info = sprite_registry.get_sheet_info("Deadbeat/deadbeat_b.png")
+frontend\map_editor\sprite_registry.py:3: path: /frontend/map_editor/sprite_registry.py
+frontend\map_editor\sprite_registry.py:190: def clear_cache(self) -> None:
+frontend\map_editor\sprite_registry.py:233: def refresh_entity_sprite_map() -> None:
+frontend\map_editor\sprite_registry.py:250: return sprite_registry.get(sheet_key, col, row)
+frontend\map_editor\visual_casting_editor.py:136: abs_path = os.path.normpath(os.path.join(sprite_registry.base_dir, sheet_name.replace("/", os.sep)))
+frontend\map_editor\visual_casting_editor.py:215: initialdir=sprite_registry.base_dir,
+frontend\map_editor\visual_casting_editor.py:226: base_dir = os.path.abspath(sprite_registry.base_dir)
+frontend\map_editor\visual_casting_editor.py:512: surf = sprite_registry.get_rect(
+frontend\map_editor\visual_casting_editor.py:553: surf = sprite_registry.get_rect(
+frontend\map_editor\assets\asset_store.py:271: refresh_object_presets(store) (+ refresh_entity_sprite_map() если
+frontend\map_editor\render\map_renderer.py:395: sprite_surf = sprite_registry.get_rect(
+frontend\map_editor\render\map_renderer.py:405: sprite_surf = sprite_registry.get(sprite_info[0], sprite_info[1], sprite_info[2])
+frontend\map_editor\render\map_renderer.py:448: sprite_surf = sprite_registry.get_rect(
+frontend\map_editor\render\map_renderer.py:458: sprite_surf = sprite_registry.get(sprite_info[0], sprite_info[1], sprite_info[2])
+frontend\map_editor\tests\test_me21_derive.py:27: from sprite_registry import ENTITY_SPRITE_MAP, refresh_entity_sprite_map
+frontend\map_editor\tests\test_me21_derive.py:155: """refresh_entity_sprite_map() must rebuild after OBJECT_PRESETS changes."""
+frontend\map_editor\tests\test_me21_derive.py:161: refresh_entity_sprite_map()
+frontend\map_editor\tests\test_me21_derive.py:171: refresh_entity_sprite_map()
+frontend\map_editor\ui\catalog_panel.py:107: from sprite_registry import refresh_entity_sprite_map
+frontend\map_editor\ui\catalog_panel.py:110: refresh_entity_sprite_map()
+frontend\map_editor\ui\property_builder.py:273: _surf = sprite_registry.get(fb_asset[0], fb_asset[1], fb_asset[2])
+
+========== 07-SPRITE_TESTS list ==========
+--- test_game_preview_mode.py ---
+  7: - Sprite loading (shared registry)
+  74: from constants import SCALE_PIXELS_PER_METER
+  76: assert SCALE_PIXELS_PER_METER == 40
+  84: class TestSpriteRegistry:
+  85: """Mandatory: 'Sprite loading — Общий registry, корректные ресурсы'."""
+  87: def test_preview_uses_same_sprite_registry(self):
+  89: from map_editor.sprite_registry import sprite_registry as editor_sr_obj
+  91: assert scene_renderer.sprite_registry is editor_sr_obj
+--- test_me21_catalog.py ---
+  128: assert preview["sprite"] == ["Deadbeat/deadbeat_b", 5, 11]
+--- test_me21_catalog_ui.py ---
+  24: _PIXELS_DIR = map_editor_root / "pixels"
+  28: return CatalogPanel(0, 80, 250, 600, _ASSETS_DIR, _PIXELS_DIR)
+  155: # Select a valid blueprint, then break its sprite
+  158: bp["appearance"]["sprite"] = ["Nonexistent/sheet", 0, 0]
+--- test_me21_derive.py ---
+  27: from sprite_registry import ENTITY_SPRITE_MAP, refresh_entity_sprite_map
+  100: def test_sprite_equivalence(self):
+  104: orig = hardcoded.get("sprite")
+  105: derived = OBJECT_PRESETS[t].get("sprite")
+  107: assert derived is None, f"{t}: sprite should be None"
+  109: assert derived == tuple(orig), f"{t}: sprite {derived} != {tuple(orig)}"
+  154: class TestEntitySpriteMapRefresh:
+  155: """refresh_entity_sprite_map() must rebuild after OBJECT_PRESETS changes."""
+  157: def test_refresh_updates_sprite_map(self):
+  158: """After refresh, ENTITY_SPRITE_MAP has all types."""
+  161: refresh_entity_sprite_map()
+  164: if "sprite" in preset:
+  165: assert t in ENTITY_SPRITE_MAP, f"{t}: missing from ENTITY_SPRITE_MAP after refresh"
+  167: def test_sprite_map_values_match(self):
+  168: """ENTITY_SPRITE_MAP values match OBJECT_PRESETS sprites."""
+  171: refresh_entity_sprite_map()
+  173: sprite = preset.get("sprite")
+  174: if sprite:
+  175: assert ENTITY_SPRITE_MAP.get(t) == tuple(sprite), f"{t}: ENTITY_SPRITE_MAP mismatch"
+  216: # Verify sprite_registry does NOT create a cycle with data_manager
+  217: # sprite_registry imports OBJECT_PRESETS from data_manager — one-way
+  218: # Verify data_manager does NOT import sprite_registry (would be circular)
+  223: assert "sprite_registry" not in node.module, (
+  224: f"data_manager imports sprite_registry (circular): {node.module}"
+--- test_me21_g10_e2e.py ---
+  26: from assets.resource_validator import ResourceValidator  # noqa: E402
+  35: pixels_dir = tmp_path / "pixels"
+  36: pixels_dir.mkdir()
+  37: (pixels_dir / "Deadbeat").mkdir()
+  38: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  42: validator = ResourceValidator(pixels_dir)
+  50: "pixels_dir": pixels_dir,
+--- test_me21_g1_write_api.py ---
+  6: - T3: validate-blocks — missing sprite → SaveBlocked
+  41: from assets.resource_validator import ResourceValidator  # noqa: E402
+  46: """Изолированный assets/ с одним blueprint (door.json) + pixels/ для L2."""
+  52: # pixels_dir для L2 validation (sprite file exists)
+  53: pixels_dir = tmp_path / "pixels"
+  54: pixels_dir.mkdir()
+  55: (pixels_dir / "Deadbeat").mkdir()
+  56: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  62: validator = ResourceValidator(pixels_dir)
+  69: "pixels_dir": pixels_dir,
+  132: store._resources.clear()
+  177: def test_missing_sprite_blocks_save(self, isolated_assets):
+  178: """T3: appearance.sprite → несуществующий sheet → SaveBlocked."""
+  184: bad_data["appearance"]["sprite"] = ["Nonexistent/sheet", 0, 0]
+--- test_me21_g2_edit_session.py ---
+  49: from assets.resource_validator import ResourceValidator  # noqa: E402
+  54: """Изолированный assets/ с одним blueprint (door.json) + pixels/ для L2."""
+  60: pixels_dir = tmp_path / "pixels"
+  61: pixels_dir.mkdir()
+  62: (pixels_dir / "Deadbeat").mkdir()
+  63: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  69: validator = ResourceValidator(pixels_dir)
+  76: "pixels_dir": pixels_dir,
+--- test_me21_g3_inspector.py ---
+  37: from assets.resource_validator import ResourceValidator  # noqa: E402
+  42: """Изолированный assets/ с одним blueprint (door.json) + pixels/ для L2."""
+  48: pixels_dir = tmp_path / "pixels"
+  49: pixels_dir.mkdir()
+  50: (pixels_dir / "Deadbeat").mkdir()
+  51: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  57: validator = ResourceValidator(pixels_dir)
+  64: "pixels_dir": pixels_dir,
+--- test_me21_g4_editor.py ---
+  35: from assets.resource_validator import ResourceValidator  # noqa: E402
+  40: """Изолированный assets/ с одним blueprint (door.json) + pixels/ для L2."""
+  46: pixels_dir = tmp_path / "pixels"
+  47: pixels_dir.mkdir()
+  48: (pixels_dir / "Deadbeat").mkdir()
+  49: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  55: validator = ResourceValidator(pixels_dir)
+  62: "pixels_dir": pixels_dir,
+--- test_me21_g5_categories.py ---
+  36: from assets.resource_validator import ResourceValidator  # noqa: E402
+  41: """Изолированный assets/ с одним blueprint (door.json) + pixels/ для L2."""
+  47: pixels_dir = tmp_path / "pixels"
+  48: pixels_dir.mkdir()
+  49: (pixels_dir / "Deadbeat").mkdir()
+  50: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  56: validator = ResourceValidator(pixels_dir)
+  65: "pixels_dir": pixels_dir,
+--- test_me21_g6_metadata.py ---
+  37: from assets.resource_validator import ResourceValidator  # noqa: E402
+  47: pixels_dir = tmp_path / "pixels"
+  48: pixels_dir.mkdir()
+  49: (pixels_dir / "Deadbeat").mkdir()
+  50: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  56: validator = ResourceValidator(pixels_dir)
+  63: "pixels_dir": pixels_dir,
+--- test_me21_g7_history_override.py ---
+  35: from assets.resource_validator import ResourceValidator  # noqa: E402
+  52: pixels_dir = tmp_path / "pixels"
+  53: pixels_dir.mkdir()
+  54: (pixels_dir / "Deadbeat").mkdir()
+  55: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  71: validator = ResourceValidator(pixels_dir)
+  80: "pixels_dir": pixels_dir,
+--- test_me21_g8_new_from.py ---
+  20: from assets.resource_validator import ResourceValidator  # noqa: E402
+  29: pixels_dir = tmp_path / "pixels"
+  30: pixels_dir.mkdir()
+  31: (pixels_dir / "Deadbeat").mkdir()
+  32: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  36: validator = ResourceValidator(pixels_dir)
+--- test_me21_g9_propagation.py ---
+  33: from assets.resource_validator import ResourceValidator  # noqa: E402
+  43: pixels_dir = tmp_path / "pixels"
+  44: pixels_dir.mkdir()
+  45: (pixels_dir / "Deadbeat").mkdir()
+  46: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  52: validator = ResourceValidator(pixels_dir)
+  59: "pixels_dir": pixels_dir,
+--- test_me21_populate.py ---
+  103: def test_sprite_preserved(self):
+  106: orig_sprite = preset.get("sprite")
+  107: bp_sprite = bp["appearance"]["sprite"]
+  108: if orig_sprite is None:
+  109: assert bp_sprite is None, f"{type_name}: sprite should be null"
+  111: assert bp_sprite == list(orig_sprite), (
+  112: f"{type_name}: sprite mismatch: {bp_sprite} != {list(orig_sprite)}"
+  197: class TestSpriteValidity:
+  198: """Sprite references must point to existing files."""
+  200: def test_sprite_files_exist(self):
+  201: pixels_dir = frontend_root / "map_editor" / "pixels"
+  204: sprite = bp["appearance"]["sprite"]
+  205: if sprite is None:
+  206: continue  # fallback sprite, skip
+  207: sheet_key = sprite[0]
+  208: path_png = pixels_dir / f"{sheet_key}.png"
+  209: path_noext = pixels_dir / sheet_key
+  210: assert path_png.exists() or path_noext.exists(), f"{type_name}: sprite file not found: {sheet_key}"
+--- test_me21_validator.py ---
+  1: """ME-2.1 Step D: ResourceValidator tests."""
+  21: from assets.resource_validator import ResourceValidator, ValidationResult
+  23: _PIXELS_DIR = map_editor_root / "pixels"
+  28: return ResourceValidator(_PIXELS_DIR)
+  84: class TestResourceValidation:
+  85: def test_valid_sprite_no_error(self):
+  88: resource_errors = [i for i in result.errors if i.category == "resource"]
+  89: assert resource_errors == []
+  91: def test_missing_sprite_file(self):
+  94: bp["appearance"]["sprite"] = ["Nonexistent/sheet", 0, 0]
+  97: assert any("Sprite file not found" in i.message for i in result.errors)
+  99: def test_null_sprite_warning(self):
+  102: bp["appearance"]["sprite"] = None
+  107: def test_invalid_sprite_format(self):
+  110: bp["appearance"]["sprite"] = [1, 2]  # wrong length
+  113: assert any("Invalid sprite format" in i.message for i in result.errors)
+
+========== 08-RESOURCE_RESOLVER grep (ожидается 0) ==========
+[конец — пусто = ResourceResolver не существует]
+
+========== 09-SCENE_BRIDGE grep ==========
+frontend\map_editor\editor_core.py:1805: # SceneRenderer игры (чистая проекция редакторских данных,
+frontend\map_editor\editor_core.py:1808: from render.scene_bridge import build_perceived_scene
+frontend\map_editor\editor_core.py:1810: _brid = build_perceived_scene(self)
+frontend\map_editor\editor_core.py:1814: from scene_renderer import SceneRenderer
+frontend\map_editor\editor_core.py:1816: self._scene_renderer = SceneRenderer(self.screen)
+frontend\map_editor\editor_core.py:1837: # Clean game frame via SceneRenderer — no editor UI, no tools, no JSON mutation.
+frontend\map_editor\editor_core.py:1880: """Game Preview: renders current location through SceneRenderer using
+frontend\map_editor\editor_core.py:1881: scene_bridge. No editor UI, no tools, no JSON mutation. SCALE=40
+frontend\map_editor\editor_core.py:1890: from render.scene_bridge import build_perceived_scene
+frontend\map_editor\editor_core.py:1892: _brid = build_perceived_scene(self)
+frontend\map_editor\editor_core.py:1897: if getattr(self, "_preview_scene_renderer", None) is None:
+frontend\map_editor\editor_core.py:1898: from scene_renderer import SceneRenderer
+frontend\map_editor\editor_core.py:1900: self._preview_scene_renderer = SceneRenderer(self.screen)
+frontend\map_editor\editor_core.py:1906: self._preview_scene_renderer.render(
+frontend\map_editor\render\geometry_builder.py:12: - scene_bridge.build_perceived_scene (Map Editor Game Preview)
+frontend\map_editor\render\geometry_builder.py:25: S81-FIX: устраняет дублирование между SpatialDataLoader и scene_bridge.
+frontend\map_editor\render\geometry_builder.py:115: - scene_bridge.build_perceived_scene (Map Editor Game Preview)
+frontend\map_editor\render\scene_bridge.py:2: path: /project/frontend/map_editor/render/scene_bridge.py
+frontend\map_editor\render\scene_bridge.py:9: Основные сущности: build_perceived_scene
+frontend\map_editor\render\scene_bridge.py:16: def build_perceived_scene(core):
+frontend\map_editor\tests\test_game_preview_mode.py:158: core._preview_scene_renderer = None
+frontend\map_editor\tests\test_game_preview_mode.py:169: with patch("scene_renderer.SceneRenderer", return_value=mock_renderer):
+frontend\map_editor\tests\test_game_preview_mode.py:179: with patch("scene_renderer.SceneRenderer", return_value=mock_renderer):
+frontend\map_editor\tests\test_game_preview_mode.py:201: assert core._preview_scene_renderer is None
+frontend\map_editor\tests\test_game_preview_mode.py:202: with patch("scene_renderer.SceneRenderer", return_value=MagicMock()):
+frontend\map_editor\tests\test_game_preview_mode.py:204: assert core._preview_scene_renderer is not None
+frontend\map_editor\tests\test_game_preview_mode.py:212: with patch("scene_renderer.SceneRenderer", return_value=mock_renderer):
+frontend\map_editor\tests\test_game_preview_mode.py:230: with patch("scene_renderer.SceneRenderer", return_value=mock_renderer):
+frontend\map_editor\tests\test_game_preview_mode.py:247: from map_editor.render.scene_bridge import build_perceived_scene
+frontend\map_editor\tests\test_game_preview_mode.py:262: r1 = build_perceived_scene(core1)
+frontend\map_editor\tests\test_game_preview_mode.py:263: r2 = build_perceived_scene(core2)
+frontend\map_editor\tests\test_game_preview_mode.py:271: Structural comparison: scene_bridge output == SpatialDataLoader output.
+frontend\map_editor\tests\test_game_preview_mode.py:277: from map_editor.render.scene_bridge import build_perceived_scene
+frontend\map_editor\tests\test_game_preview_mode.py:285: sb_result = build_perceived_scene(core)
+frontend\map_editor\tests\test_game_preview_mode.py:298: from map_editor.render.scene_bridge import build_perceived_scene
+frontend\map_editor\tests\test_game_preview_mode.py:306: sb_result = build_perceived_scene(core)
+frontend\map_editor\tests\test_me21_g10_e2e.py:266: def test_scene_bridge_data_path(self, isolated_assets, editor, preserve_object_presets):
+frontend\map_editor\tests\test_scene_bridge_preview.py:1: """Tests for scene_bridge.build_perceived_scene — Game Preview parity.
+frontend\map_editor\tests\test_scene_bridge_preview.py:26: from map_editor.render.scene_bridge import build_perceived_scene
+frontend\map_editor\tests\test_scene_bridge_preview.py:77: result = build_perceived_scene(core)
+frontend\map_editor\tests\test_scene_bridge_preview.py:91: result = build_perceived_scene(core)
+frontend\map_editor\tests\test_scene_bridge_preview.py:102: """Critical: walls from scene_bridge are SPLIT (door carved), not raw."""
+frontend\map_editor\tests\test_scene_bridge_preview.py:104: result = build_perceived_scene(core)
+frontend\map_editor\tests\test_scene_bridge_preview.py:112: result = build_perceived_scene(core)
+frontend\map_editor\tests\test_scene_bridge_preview.py:124: result = build_perceived_scene(core)
+frontend\map_editor\tests\test_scene_bridge_preview.py:139: result = build_perceived_scene(core)
+frontend\map_editor\tests\test_scene_bridge_preview.py:147: result = build_perceived_scene(core)
+frontend\map_editor\tests\test_scene_bridge_preview.py:158: result = build_perceived_scene(core)
+frontend\map_editor\tests\test_scene_bridge_preview.py:166: result = build_perceived_scene(core)
+frontend\map_editor\tests\test_scene_bridge_preview.py:177: assert build_perceived_scene(core) is None
+frontend\map_editor\tests\test_scene_bridge_preview.py:182: result = build_perceived_scene(core)
+frontend\map_editor\tests\test_scene_bridge_preview.py:192: result = build_perceived_scene(core)
+frontend\map_editor\tests\test_scene_bridge_preview.py:203: result = build_perceived_scene(core)

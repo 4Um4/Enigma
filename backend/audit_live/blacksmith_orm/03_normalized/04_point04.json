@@ -2,7 +2,7 @@
   {
     "kind": "EVENT",
     "draft_payload": {
-      "summary": "Торнин заказал у кузнеца Орма меч, который предупредил главу гильдии воров и городское правительство.",
+      "summary": "Торнин заказал у Орма меч",
       "day": null,
       "duration_years": null,
       "years_ago": null
@@ -14,86 +14,37 @@
   {
     "kind": "RELATIONSHIP",
     "draft_payload": {
-      "summary": "Кузнец Орм предупредил главу гильдии воров и городское правительство о заказе на убийство от Торнина.",
-      "target_hint": "глава гильдии воров",
-      "nature": "доверие",
-      "valence": "positive"
-    },
-    "confidence": 0.4,
-    "needs_confirmation": true,
-    "question": {
-      "question_id": "roster_mismatch_1",
-      "target_span": "глава гильдии воров",
-      "options": [
-        "SELECT_EXISTING_NPC",
-        "CREATE_NEW_NPC",
-        "UNKNOWN_PERSON",
-        "LEAVE_WHITE_SPOT"
-      ]
-    }
-  },
-  {
-    "kind": "RELATIONSHIP",
-    "draft_payload": {
-      "summary": "Кузнец Орм предупредил главу гильдии воров и городское правительство о заказе на убийство от Торнина.",
-      "target_hint": "городское правительство",
-      "nature": "доверие",
-      "valence": "positive"
-    },
-    "confidence": 0.4,
-    "needs_confirmation": true,
-    "question": {
-      "question_id": "roster_mismatch_2",
-      "target_span": "городское правительство",
-      "options": [
-        "SELECT_EXISTING_NPC",
-        "CREATE_NEW_NPC",
-        "UNKNOWN_PERSON",
-        "LEAVE_WHITE_SPOT"
-      ]
-    }
-  },
-  {
-    "kind": "RELATIONSHIP",
-    "draft_payload": {
-      "summary": "Кузнец Орм предупредил главу гильдии воров и городское правительство о заказе на убийство от Торнина.",
-      "target_hint": "писарь квартальной управы (человек города)",
-      "nature": "доверие",
-      "valence": "positive"
-    },
-    "confidence": 0.4,
-    "needs_confirmation": true,
-    "question": {
-      "question_id": "roster_mismatch_3",
-      "target_span": "писарь квартальной управы (человек города)",
-      "options": [
-        "SELECT_EXISTING_NPC",
-        "CREATE_NEW_NPC",
-        "UNKNOWN_PERSON",
-        "LEAVE_WHITE_SPOT"
-      ]
-    }
-  },
-  {
-    "kind": "RELATIONSHIP",
-    "draft_payload": {
-      "summary": "Кузнец Орм предупредил главу гильдии воров и городское правительство о заказе на убийство от Торнина.",
-      "target_hint": null,
-      "nature": "враждебность",
-      "valence": "negative"
+      "summary": "Орм предупредил гильдию воров о заказе на убийство Торнина",
+      "target_hint": "Гильдия воров"
     },
     "confidence": 1.0,
     "needs_confirmation": false,
     "question": null
   },
   {
-    "kind": "PORTRET",
+    "kind": "RELATIONSHIP",
     "draft_payload": {
-      "statement": "Он сразу же предупредил главу гильдии воров и городское правительство.",
-      "traits": [
-        "быстрый на подозрение",
-        "честный"
+      "summary": "Орм предупредил городское правительство о заказе на убийство Торнина",
+      "target_hint": "Городское правительство"
+    },
+    "confidence": 0.4,
+    "needs_confirmation": true,
+    "question": {
+      "question_id": "roster_mismatch_2",
+      "target_span": "Городское правительство",
+      "options": [
+        "SELECT_EXISTING_NPC",
+        "CREATE_NEW_NPC",
+        "UNKNOWN_PERSON",
+        "LEAVE_WHITE_SPOT"
       ]
+    }
+  },
+  {
+    "kind": "TRAIT_SEED",
+    "draft_payload": {
+      "trait": "человек города",
+      "evidence": "знал писаря квартальной управы как \"человека города\""
     },
     "confidence": 1.0,
     "needs_confirmation": false,

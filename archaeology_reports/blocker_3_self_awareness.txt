@@ -1,0 +1,378 @@
+﻿=== B3.1: Existing self-awareness mechanisms ===
+
+=== B3.2: Avatar/Player subscriptions ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:146:        self._social_sub: SocialSubscriber = SocialSubscriber(self._get_event_bus())
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:147:        self._combat_sub: CombatSubscriber = CombatSubscriber(self._get_event_bus())
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:179:        # C3-A1: Delivery subscriber for NPC_ADDRESSES_PLAYER.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:185:            NpcAddressingDeliverySubscriber(self._get_event_bus())
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\calibration\observability_tap.py:92:            bus.subscribe(event_type, self._handle)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\calibration\observability_tap.py:100:            bus.unsubscribe(event_type, self._handle)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\combat_subscriber.py:72:    def _subscribe(self) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\combat_subscriber.py:75:            self._event_bus.subscribe(et, self._on_event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:41:        bus.subscribe(EventType.PLAYER_ATTACKED, my_handler)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:120:    def subscribe(self, event_type: EventType, handler: EventHandler) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:135:    def unsubscribe(self, event_type: EventType, handler: EventHandler) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:252:    def get_subscriber_count(self, event_type: EventType) -> int:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_addressing_delivery_subscriber.py:3:Назначение: C3-A1 delivery subscriber для NPC_ADDRESSES_PLAYER.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_addressing_delivery_subscriber.py:36:    """Delivery subscriber для NPC_ADDRESSES_PLAYER (C3-A1).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_addressing_delivery_subscriber.py:60:    def _subscribe(self) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:147:    def _subscribe(self) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:150:            self._event_bus.subscribe(et, self._on_event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:166:                self._event_bus.subscribe(et, self._on_event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_input_projector.py:46:    def _subscribe(self) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_input_projector.py:52:            self._event_bus.subscribe(et, self._on_event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:74:    def _subscribe(self) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:77:            self._event_bus.subscribe(et, self._on_event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:419:    def _get_spatial_query_for_subscriber(self) -> Any:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:465:    def _register_npc_dialogue_subscriber(self, memory_manager: Any, rel_store: Any) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:560:            _bus.subscribe(EventType.PLAYER_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:576:            _bus.subscribe(EventType.PLAYER_SPOKE, _speech_act_sub.on_player_spoke)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:579:            _bus.subscribe(EventType.NPC_SPOKE, self._on_npc_spoke_economy_tracker)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:627:            _bus.subscribe(EventType.PLAYER_SPOKE, _subscriber.on_player_spoke)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:649:            _bus.subscribe(EventType.PLAYER_ATTACKED, _obs_sub.on_world_event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\idle_event_projection.py:185:    def subscribe(self, bus: EventBus) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\idle_event_projection.py:191:    def unsubscribe(self) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\phase_1_input.py:649:    # Потребитель: PlayerSpeechActSubscriber (SELF_INTRODUCTION → Claim).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\social\mvp_tavern_controller.py:109:                self._event_bus.subscribe(EventType.TICK_COMPLETED, self.on_tick_completed)
+
+=== B3.3: MemoryManager full contract ===
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\memory_manager.py
+Start line: 34
+class MemoryManager:
+    WORKING_MEMORY_SIZE: int = 20
+
+    def __init__(self, layered_memory: LayeredMemory, data_dir: str = "data") -> None:
+        self._layered = layered_memory
+        # V8-MEM-16 FIX: threading.RLock для защиты _identity_cache от race condition
+        import threading
+        self._identity_lock = threading.RLock()
+        self._working = WorkingMemory(maxlen=self.WORKING_MEMORY_SIZE)
+        # S313: dual-backend M1b.4.2 (legacy store / v2 cutover) — duck-typing
+        self._relationships: Any = RelationshipStore(data_dir=data_dir)
+        # M1b.4.2 (ADR-O-371): v2-cutover держателя. Легаси-инстанс выше
+        # создаётся для М1b.1-совместимости (существующие сейвы читаются
+        # мигратором); переключение на v2 — switch_to_v2_relationships()
+        # из конструктора GameLoop (когда существует provider-источник сцены).
+        # До switch: runtime на легаси (M1b.2-гейт); после: единственный
+        # носитель — scene_state.directed (легаси-инстанс теряет владельца).
+        self._v2_scene_ref: Dict[str, Any] = {"scene": None}
+        self._tick_counters: Dict[str, int] = {}
+        self._resonance = ResonanceEngine()
+        # Накопленные черты из ResonanceEngine — фактический NPCIdentityL1 (in-memory)
+        # Ключ: f"{campaign_id}:{npc_id}", значение: {trait_name: weight}
+        # WRITE: только через apply_identity_weights()
+        # V8-MEM-7 FIX: Загружаем identity_cache из SQLite/JSON при старте
+        # Safe call: SqliteMemoryStore может не иметь load_state (legacy gap)
+        self._identity_cache: Dict[str, Dict[str, float]] = (
+            self._layered.store.load_state("identity_cache")
+            if hasattr(self._layered.store, "load_state")
+            else {}
+        )
+        # STM-сессии диалогов. Ключ: campaign_id:npc_id (Закон 4.1.1 — per-NPC)
+        self._dialogue_sessions: Dict[str, DialogueSession] = {}
+
+        # BUG-DL-06: Буфер отложенных диалоговых событий для записи в L2 (narrative_cache).
+        # Заполняется в Фазе 6 (NpcDialogueSubscriber), опустошается в Фазе 3 следующего тика.
+        self._pending_dialogue_memories: List[EventDTO] = []
+
+        # BUG-DL-07: Экземпляр DialogueConsolidator для суммаризации STM перед очисткой.
+        self._dialogue_consolidator = DialogueConsolidator()
+
+    def switch_to_v2_relationships(self, npc_provider: Optional[Callable] = None) -> None:
+        """M1b.4.2 cutover + M1b.3.2 npc_provider: _relationships :=
+        V2RelationshipBackend (RAM-authoritative, late-bind; lazy-bootstrap
+        через npc_provider закрывает второй прод-путь входа при живой
+        сцене). Вызывается ИЗ GameLoop.__init__ до захвата подписчиками."""
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        _provider = lambda: self._v2_scene_ref["scene"] or {}  # noqa: E731
+        self._relationships = V2RelationshipBackend(_provider, npc_provider=npc_provider)
+        logger.info("[M1b.4.2] V2 cutover: late-bind + npc_provider (M1b.3.2)")
+
+    @property
+    def working_memory(self) -> WorkingMemory:
+        return self._working
+
+    # ──────────────────────────────────────────────────────────────────────
+    # STM: кратковременная память диалога (Этап 1)
+    # ──────────────────────────────────────────────────────────────────────
+
+    def get_dialogue_session(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> DialogueSession:
+        """Возвращает сессию диалога для NPC. Создаёт если нет."""
+        # V8-DLG-13 FIX: Используем сортированный ключ для изоляции пар A↔B от A↔C
+        pair_key = tuple(sorted((npc_id, partner_id)))
+        key = f"{campaign_id}:{pair_key[0]}:{pair_key[1]}"
+        if key not in self._dialogue_sessions:
+            self._dialogue_sessions[key] = DialogueSession(npc_id=npc_id, partner_id=partner_id)
+        return self._dialogue_sessions[key]
+
+    def get_dialogue_session_pair(self, campaign_id: str, npc_a: str, npc_b: str) -> DialogueSession:
+        """V8-DLG-13: Явный метод для получения пер-парной сессии."""
+        return self.get_dialogue_session(campaign_id, npc_a, npc_b)
+
+    def add_dialogue_turn(
+        self, campaign_id: str, npc_id: str, speaker: str, text: str,
+        target_id: str = "", intent: str = "", tone: str = "", tick: int = 0,
+        partner_id: str = "player"
+    ) -> None:
+        """Добавляет реплику в STM конкретного NPC."""
+        session = self.get_dialogue_session(campaign_id, npc_id, partner_id)
+        session.add_turn(
+
+=== B3.4: MemoryManager.apply method ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\conclusion_gate.py:113:    def apply(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\delta_gate.py:53:    def apply(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\importance_engine.py:77:def apply_decay(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\memory_manager.py:232:    def apply(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\memory_manager.py:856:    def apply_identity_weights(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\working_memory.py:44:    def apply_decay(
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\conclusion_gate.py
+Start line: 113
+    def apply(
+        self,
+        proposal: ConclusionProposal,
+        consumer_dispatch: Optional[ConsumerDispatch] = None,
+    ) -> bool:
+        """Валидация + диспатч потребителю + публикация трассы.
+
+        Gate — аудит и трассировка, НЕ второй писатель (F2б): применение
+        по ИМЕЮЩЕМУСЯ каналу потребителя — ConclusionStore.apply
+        (единственный write-path). consumer_dispatch None -> dry-run
+        (валидация без эффекта).
+
+        Отказ потребителя -> False, ключ в _applied НЕ добавляется
+        (retry легален — параллель DeltaGate :74-81).
+
+        Публикация CONCLUSION_FORMED — observation-only (Закон XI):
+        наблюдение не создаёт причинность и не роняет поток (XI.2);
+        отказ наблюдаем в логе. hasattr-guard — по образу DeltaGate :98:
+        член EventType появится в Шаге 4, гейт начнёт эмитить без
+        правок этого файла.
+        """
+        clamped = self.validate(proposal)
+        if clamped is None:
+            return False
+
+        if consumer_dispatch is not None:
+            ok = consumer_dispatch(proposal, clamped)
+            if not ok:
+                logger.warning(
+                    f"[CONCLUSION_GATE] потребитель отверг дельту "
+                    f"({proposal.trace_id}, {proposal.subject})"
+                )
+                return False
+
+        key = (proposal.trace_id, proposal.subject, proposal.predicate.value)
+        self._applied.add(key)
+        logger.info(
+            f"[CONCLUSION_GATE] применено: {key} = {clamped} "
+            f"(источник: {proposal.source}; parent: {proposal.causal_parent})"
+        )
+
+=== B3.5: Player skip logic in memory ===
+
+=== B3.6: StateApplicator player handling ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\errors.py:26:    Поднимается при попытке прямой мутации NPCState вне разрешённых писателей (StateApplicator).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\errors.py:27:    Нарушение контракта L2: ONLY StateApplicator.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\errors.py:34:            f"Use StateApplicator."
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\tick.py:69:    # V8-PSY-1 FIX: L1Chronicle пробрасывается в редюсер для StateApplicator
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\tick.py:212:    # V8-PSY-1 FIX: L1Chronicle пробрасывается в редюсер для StateApplicator
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\causality_manifest.py:257:    # state_applicator.apply_relationship_deltas → update_needs →
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\character.py:138:    # Меняется через CharacterFilter, не через StateApplicator
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\delta_payloads.py:38:    # ADR-049: Интеграл аффективного давления (передается в StateApplicator для NPCState.affective_load)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\delta_payloads.py:57:    # StateApplicator НЕ пересчитывает, только слепо записывает.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\event_resolution.py:38:    НЕ визуальное — только числа для StateApplicator.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\idle_tick.py:13:- важно, что эти обработчики не мутируют all_npcs_raw, а возвращают List[StateDeltas], который оркестратор применяет через StateApplicator.apply_batch(). Это обеспечивает чистоту данных и предсказуемость изменений в NPC state, а также позволяет легко отслеживать и логировать изменения, вызванные каждым обработчиком.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\idle_tick.py:69:    - Возвращает List[StateDeltas] для применения через StateApplicator.apply_batch().
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\interpretation.py:25:    - StateApplicator → threat_level (для стресса)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_profile.py:14:L2 (State) — Быстрая динамика. Текущий тик (DecisionHub/StateApplicator).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_state.py:8:  L2 NPCState         — write: ONLY StateApplicator
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_state.py:21:  - NPCState (mutable) — dynamic, меняется через StateApplicator
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_state.py:22:  - DecisionHub читает оба объекта, но пишет только через StateApplicator
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_state.py:58:# shared reference мутируется StateApplicator, заражая ВСЕХ NPC.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_state.py:459:# L2 — STATE (volatile, пишет ТОЛЬКО StateApplicator)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_state.py:589:    # и StateApplicator (единый L2-writer, state_applicator.py:1187-1219).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:389:            if will_conflict_for_ui and new_state.npc_id == "player":
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:1545:                if state.npc_id == "player":
+
+=== B3.7: AffectiveIntegrator inputs ===
+
+=== B3.8: Phase 3 Memory Phase ===
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\memory.py
+Start line: 24
+def execute_memory_phase(ctx: _TickContext, memory_manager: Any) -> int:
+    """Выполнить Фазу 3: обновление памяти NPC.
+
+    Args:
+        ctx: Тиковый контекст с npc_states, phase_2_events, campaign_id.
+        memory_manager: Экземпляр MemoryManager (инжектируется из TickOrchestrator).
+
+    Returns:
+        Количество обработанных memory updates (для логирования).
+    """
+    processed = 0
+
+    # ── Блок 1: compress_narrative_cache (каждые 10 тиков, idle-safe) ──
+    if ctx.tick_number % 10 == 0:
+        for npc_dict in ctx.npc_states:
+            npc_id = npc_dict.get("id")
+            if not npc_id:
+                continue
+            try:
+                npc_state = load_l2_state_from_runtime_dict(npc_dict)
+                _compressed = memory_manager.compress_narrative_cache(
+                    npc_state.narrative_cache
+                )
+                if _compressed != npc_state.narrative_cache:
+                    npc_state.narrative_cache = _compressed
+                    # ADR-117: to_persistence_dict — staticmethod, вызов через класс
+                    NPCState.to_persistence_dict(npc_state, npc_dict)
+            except Exception as e:
+                logger.error(
+                    f"[PHASE_3_MEMORY] compress_narrative_cache failed for {npc_id}: {e}. Пробрасываем исключение.",
+                    exc_info=True,
+                )
+                raise
+
+    # ── GREEN GATE: Memory cannot generate identity without causal input ──
+    # Запрет кристаллизации L2.5 в idle-тиках (ADR-S86.7, предотвращение фантомного дрейфа)
+    if not ctx.phase_2_events:
+        return processed
+
+    # ── Блок 2: check_identity_promotion (каждые 50 тиков, только при events) ──
+    if ctx.tick_number % 50 == 0:
+        for npc_dict in ctx.npc_states:
+            npc_id = npc_dict.get("id")
+            if not npc_id:
+                continue
+            try:
+                _new_traits = memory_manager.check_identity_promotion(
+                    campaign_id=ctx.campaign_id, npc_id=npc_id
+                )
+                if _new_traits:
+                    logger.info(
+                        f"[PHASE_3_MEMORY] new identity traits for {npc_id}: {_new_traits}"
+                    )
+            except Exception as e:
+                logger.error(
+                    f"[PHASE_3_MEMORY] check_identity_promotion failed for {npc_id}: {e}. Пробрасываем исключение.",
+                    exc_info=True,
+                )
+                raise
+
+    # ── Блок 3: Применение событий памяти к затронутым NPC ──
+    for event in ctx.phase_2_events:
+        for npc_id in resolve_affected_npcs(event):
+            npc_state_dict: Dict[str, Any] | None = next(
+                (n for n in ctx.npc_states if n.get("id") == npc_id),
+                None,
+            )
+            if not npc_state_dict:
+                continue
+
+            npc_state = load_l2_state_from_runtime_dict(npc_state_dict)
+            # apply() ищет npc_id в payload — инжектим
+            new_payload = {**event.payload, "npc_id": npc_id}
+            new_event = replace(event, payload=new_payload)
+
+            _sq = (
+                getattr(ctx.npc_services, "spatial_query", None)  # noqa: ENIGMA001, ENIGMA002
+                if ctx.npc_services
+                else None
+            )
+            memory_manager.apply(
+                new_event, npc_state, campaign_id=ctx.campaign_id, spatial_query=_sq
+            )
+            # Мост обратно: apply() обновил narrative_cache на NPCState,
+            # но Фаза 5 пересоздаёт NPCState из npc_state_dict (Устав §3.1)
+            NPCState.to_persistence_dict(npc_state, npc_state_dict)
+            processed += 1
+
+    # ── Блок 4: V8-MEM-1 FIX — Decay & Resonance (L3 Identity cascade) ──
+    # Раньше run_decay_and_resonance никогда не вызывалась в production.
+    # run_decay_if_needed сам проверяет раз в N тиков, можно вызывать каждый тик.
+    _active_npc_ids = [n.get("id") for n in ctx.npc_states if n.get("id")]
+    if _active_npc_ids:
+        try:
+            _identity_weights = memory_manager.run_decay_if_needed(
+                ctx.campaign_id, ctx.tick_number
+            )
+            if _identity_weights:
+                # V8-MEM-13: резонанс per-NPC из буфера campaign:npc —
+                # один общий резонанс = контаминация всех NPC чужими паттернами
+                for npc_id in _active_npc_ids:
+                    _resonance = memory_manager.detect_resonance(ctx.campaign_id, npc_id, actor_id="player")
+                    if not _resonance:
+                        continue
+                    memory_manager.apply_identity_weights(ctx.campaign_id, npc_id, _resonance)
+        except Exception as e:
+            logger.error(f"[PHASE_3_MEMORY] run_decay_and_resonance failed: {e}. Пробрасываем исключение.", exc_info=True)
+            raise
+
+    logger.debug(f"[TICK_ORCH] Фаза 3: {processed} memory updates")
+    return processed
+
+=== B3.9: Body state changes tracking ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\causality_manifest.py:222:    "state_delta.physiology_payload.hp_delta": FieldCausality("DEBT", organ="body", terminal=None, authority="ADR-123"),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\delta_payloads.py:105:    hp_delta: float = 0.0  # Макро-LOD: агрегированная потеря функции
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\delta_payloads.py:113:    # pipeline BodyState → transition → StateDelta → Applicator → Cause.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\state_delta.py:107:    # Поля damage_delta, position_delta и т.д. в v1 НЕ добавляются.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\body\body_engine.py:4:    Pure calculator: body_state + activity + Δt → PhysiologyPayload(energy_delta).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\impact_engine.py:190:    hp_delta = -structural_damage
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\impact_engine.py:216:                hp_delta=hp_delta,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:806:        hp_delta = (
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:807:            deltas.payload.hp_delta
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:922:        # S2B.1: energy_delta extraction (same v2 pattern as hp_delta etc.)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:960:                hp_delta,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:1102:        hp_delta: float,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:1134:        if hp_delta != 0.0:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:1138:                0.0, min(_max_hp, _cur_hp + hp_delta)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:1143:            state.body_state["pain"] = max(0.0, min(100.0, _cur_pain + pain_delta))
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:1548:                    npc_dict["body_state"]["money"] = float(npc_dict["body_state"].get("money", 0.0)) + _money_delta
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:92:                if d.payload.hp_delta < 0 or d.payload.add_injuries:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:108:                            effect_value=d.payload.hp_delta,
+
+=== B3.10: EventMemory contract ===
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_state.py
+Start line: 214
+class EventMemory:
+    """
+    R5.1 — L2: смысловая память о событии.
+    Хранит clarity (чёткость восприятия) и confidence (уверенность в деталях).
+    Decay переводит из Fresh → Forgotten через промежуточные стадии.
+    """
+
+    event_type: str
+    target_id: str
+    emotion_tag: str
+    day: int
+    importance: float  # 0.0–1.0, затухает со временем
+    clarity: float = 1.0  # насколько чётко NPC воспринял событие
+    confidence: float = 1.0  # уверенность в деталях (снижается при drift)
+    decay_rate: float = 0.05  # потеря importance за тик
+    stage: MemoryStage = MemoryStage.FRESH
+    sequence_id: int = 0
+    summary: str = ""  # R1: текст "игрок избил Люсю кулаками"
+    npc_id: str = ""  # R1: какой NPC это запоминает
+
+    # Фаза 0: Theatre — поля для origin_events и секретов
+    tags: Tuple[str, ...] = ()  # для триггерного поиска (immutable для frozen)
+    is_secret: bool = False
+    known_by: Tuple[str, ...] = ()  # кто знает (immutable для frozen)
+    hidden_from: Tuple[str, ...] = ()  # от кого скрыто (immutable для frozen)
+    accessibility: float = 1.0  # 0..1, падает со временем отдельно от importance
+    secret_id: Optional[str] = None  # M1/P1+P2: идентичность ФАКТА канона (не экземпляра памяти); (npc_id, secret_id) = отношение «знает»; один факт живёт во многих памятях (holders/поколения/хроника)
+
+    # Этап 6: контракты и обязательства
+    fulfilled: bool = False  # обещание выполнено / долг погашен
+    contract_ref: str = ""  # ID связанного события (promise_given ↔ fulfilled)
+
+    # Этап 9: сжатие
+    is_compressed: bool = False  # это сжатая абстракция
+    compressed_from: Tuple[str, ...] = ()  # ID исходных событий (immutable для frozen)
+
+    # R8: субъект действия — онтологическая полнота наблюдения (кто совершил)
+    actor_id: str = ""  # event.source при создании; "" если неизвестен
+
+    # EMRL E1.0: ссылка на ExperienceTrace вычисляется динамически из
+

@@ -1,0 +1,502 @@
+﻿=== B2.1: All subscriber methods (NO head limit) ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:41:    def on_npc_spoke(self, event: Any) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:89:    def on_player_spoke(self, event: Any) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:135:    def on_claim_event(self, event: Any) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\dialogue_memory_subscriber.py:30:    def on_event(self, event: Any) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:185:    def on_npc_spoke(self, event: Any) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_speech_act_subscriber.py:50:    def on_npc_spoke(self, event: Any) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\observation_subscriber.py:72:    def on_world_event(self, event: Any) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\player_speech_act_subscriber.py:42:    def on_player_spoke(self, event: Any) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_action_subscriber.py:22:    def on_social_action(self, event: EventDTO) -> None:
+
+=== B2.2: All bus.subscribe registrations ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\calibration\observability_tap.py:92:            bus.subscribe(event_type, self._handle)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\combat_subscriber.py:75:            self._event_bus.subscribe(et, self._on_event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:41:        bus.subscribe(EventType.PLAYER_ATTACKED, my_handler)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_addressing_delivery_subscriber.py:62:        self._event_bus.subscribe(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:150:            self._event_bus.subscribe(et, self._on_event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:166:                self._event_bus.subscribe(et, self._on_event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_input_projector.py:52:            self._event_bus.subscribe(et, self._on_event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:77:            self._event_bus.subscribe(et, self._on_event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:549:            _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:550:            _bus.subscribe(EventType.NPC_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:559:            _bus.subscribe(EventType.NPC_SPOKE, _npc_speech_act_sub.on_npc_spoke)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:560:            _bus.subscribe(EventType.PLAYER_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:576:            _bus.subscribe(EventType.PLAYER_SPOKE, _speech_act_sub.on_player_spoke)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:579:            _bus.subscribe(EventType.NPC_SPOKE, self._on_npc_spoke_economy_tracker)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:619:            _bus.subscribe(EventType.COMMUNICATION_CLAIM, _subscriber.on_claim_event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:621:            _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:627:            _bus.subscribe(EventType.PLAYER_SPOKE, _subscriber.on_player_spoke)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:632:            _bus.subscribe(EventType.SOCIAL_ACTION, _social_sub.on_social_action)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:645:            _bus.subscribe(EventType.THEFT, _obs_sub.on_world_event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:649:            _bus.subscribe(EventType.PLAYER_ATTACKED, _obs_sub.on_world_event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:1378:                _idle_tap.subscribe(get_event_bus())
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\idle_event_projection.py:188:            bus.subscribe(_event_type, _handler)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\conclusion_runtime.py:64:    bus.subscribe(EventType.EXPERIENCE_DELTA_COMMITTED, _on_experience_delta)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\social\mvp_tavern_controller.py:109:                self._event_bus.subscribe(EventType.TICK_COMPLETED, self.on_tick_completed)
+
+=== B2.3: Phase 8 handlers ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py:3:# backend/app/models/phase8.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py:11:  - Phase8Context READ-ONLY для обработчиков. Все выходы — через Phase8Result.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py:12:  - drain_events() — снимок + очистка. Если handle() падает — события теряются
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py:16:path: backend/app/models/phase8.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py:19:Основные сущности: Phase8Context, Phase8Result, Phase8Handler
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py:34:class Phase8Context:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py:52:class Phase8Result:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py:55:    Все выходы — только через этот DTO. Никакой мутации Phase8Context.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py:67:class Phase8Handler(Protocol):
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py:72:      2. Оркестратор вызывает drain_events() → снимок + очистка
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py:73:      3. Оркестратор вызывает handle(events, ctx) → Phase8Result
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py:79:    def drain_events(self) -> List[EventDTO]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py:87:    def handle(self, events: List[EventDTO], ctx: Phase8Context) -> Phase8Result:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py:90:        events — из drain_events(), может быть пустым.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py:92:        Возвращает Phase8Result — все выходы только через него.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:22:ФАЗА 8: Handlers (детерминированный drain: drain_events + handle → Phase8Result)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:41:    from app.models.phase8 import Phase8Handler
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:148:        # ADR-O-418 (RE M2/D, dormant): Phase8Handler событийной семантики RE.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:1082:        self._phase_8_drain_secondary(ctx) # 8
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:2500:    # _phase_8_player_handlers удалён (S100) — был мёртвым прокси на _phase_8_drain_secondary.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:2501:    # Вызов на строке 764 заменён на прямой вызов _phase_8_drain_secondary.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:2595:    def _phase_8_drain_secondary(self, ctx: _TickContext) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:2606:            homeostasis_sub=cast("Phase8Handler", self._homeostasis_sub),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\combat_subscriber.py:4:Назначение: Phase8Handler — мост между боевыми событиями (EventDTO) и
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\combat_subscriber.py:6:Зависимости: EventBus, Phase8Context, Phase8Result, ImpactEngine, ImpactIntentDTO
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\combat_subscriber.py:33:from app.models.phase8 import Phase8Context, Phase8Result
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\combat_subscriber.py:55:    """Phase8Handler: транслятор боевых событий → физические воздействия.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\combat_subscriber.py:59:      2. Оркестратор → drain_events() снимок + очистка (Фаза 8)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\combat_subscriber.py:60:      3. Оркестратор → handle(events, ctx) → Phase8Result (Фаза 8)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\combat_subscriber.py:93:    def drain_events(self) -> List:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\combat_subscriber.py:102:        ctx: Phase8Context,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\combat_subscriber.py:103:    ) -> Phase8Result:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\combat_subscriber.py:106:        events — из drain_events(), может быть пустым.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\combat_subscriber.py:108:        Возвращает Phase8Result(deltas) — оркестратор маршрутизирует
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\combat_subscriber.py:118:            return Phase8Result()
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\combat\combat_subscriber.py:252:        result = Phase8Result(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:24:Назначение: Phase8Handler — прямые эмоциональные реакции наблюдателей на события
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:25:Зависимости: app.models.phase8, app.models.state_delta, app.domain.events, app.domain.constants, app.services.events.event_types, app.services.events.event_bus
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:26:Основные сущности: ReactionSubscriber (Phase8Handler)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:44:from app.models.phase8 import Phase8Context, Phase8Result
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:132:    """Phase8Handler: прямые эмоциональные реакции наблюдателей.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:136:      2. Оркестратор → drain_events() снимок + очистка (Фаза 8)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:137:      3. Оркестратор → handle(events, ctx) → Phase8Result (Фаза 8)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:161:    def drain_events(self) -> List[EventDTO]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:170:        ctx: Phase8Context,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:171:    ) -> Phase8Result:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:174:        events — из drain_events(), может быть пустым.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:176:        Возвращает Phase8Result(deltas) — оркестратор маршрутизирует
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:186:            return Phase8Result(perceiving_npc_ids=set())
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:232:                        # P2-fix (ТЗДНЯ Проблема 2): Phase8Context.shared_context — Any и
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:234:                        # ([PHASE8_CRASH]) и события тика терялись. Паттерн соседа
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:259:            return Phase8Result(perceiving_npc_ids=set())
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:500:        return Phase8Result(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:509:    def _get_perceiving_ids(ctx: Phase8Context) -> set[str]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:4:Назначение: ADR-O-418 (RE M2/D) — Phase8Handler событийной семантики
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:9:Зависимости: app.models.phase8, app.models.state_delta, app.models.delta_payloads,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:27:from app.models.phase8 import Phase8Context, Phase8Result
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:149:    """Phase8Handler: RE-события → NeedDeltaPayload-дельты (pure).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:151:    Жизненный цикл (протокол Phase8Handler):
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:153:      2. Оркестратор → drain_events() снимок + очистка (Фаза 8)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:154:      3. Оркестратор → handle(events, ctx) → Phase8Result
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:188:    def drain_events(self) -> List[EventDTO]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:194:    def handle(self, events: List[EventDTO], ctx: Phase8Context) -> Phase8Result:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:199:        return Phase8Result(deltas=deltas, events_processed=len(events))
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_input_projector.py:9:Назначение: Phase8Handler — сенсор социального входа.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_input_projector.py:10:Зависимости: domain.events.EventDTO, models.phase8.Phase8Context/Phase8Result, services.events.event_bus.EventBus
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_input_projector.py:11:Основные сущности: SocialInputProjector (Phase8Handler)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_input_projector.py:20:from app.models.phase8 import Phase8Context, Phase8Result
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_input_projector.py:35:    """Phase8Handler: сенсор социального входа.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_input_projector.py:61:    def drain_events(self) -> List[EventDTO]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_input_projector.py:66:    def handle(self, events: List[EventDTO], ctx: Phase8Context) -> Phase8Result:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_input_projector.py:131:        return Phase8Result(deltas=deltas, events_processed=len(events))
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:3:Назначение: Phase8Handler — социальная пропагация (Устав §5.1 + §3 Фаза 8)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:4:Зависимости: domain.events.EventDTO, models.phase8.Phase8Context/Phase8Result, services.events.event_bus.EventBus
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:5:Основные сущности: SocialSubscriber (Phase8Handler)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:9:Фаза 8: drain_events() + handle() — детерминированный drain-этап.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:13:Оркестратор применяет дельты к all_npcs_raw в _apply_phase8_result().
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:27:from app.models.phase8 import Phase8Context, Phase8Result
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:56:    """Phase8Handler: социальная пропагация.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:60:      2. Оркестратор → drain_events() снимок + очистка (Фаза 8)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:61:      3. Оркестратор → handle(events, ctx) → Phase8Result (Фаза 8)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:88:    def drain_events(self) -> List[EventDTO]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:101:        ctx: Phase8Context,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:102:    ) -> Phase8Result:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:105:        events — из drain_events(), может быть пустым.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:107:        Возвращает Phase8Result(deltas) — оркестратор применяет.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:110:        Оркестратор применяет дельты к all_npcs_raw через _apply_phase8_result().
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:114:            return Phase8Result()
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:118:            return Phase8Result()
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:125:        # S259 (γ-фикс): campaign_id берем из Phase8Context (reduction.py:223
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:134:        # game_loop:1298; Phase8Context.ticky_ctx проводит его сюда).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:161:            return Phase8Result(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:197:                return Phase8Result(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:261:        return Phase8Result(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:86:# commit_tick инлайн в TickOrchestrator.finalize_and_commit — phase_8_commit.py удалён
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:16:from app.models.phase8 import Phase8Context, Phase8Handler, Phase8Result
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:25:    combat_sub: Phase8Handler,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:26:    reaction_sub: Phase8Handler,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:27:    social_sub: Phase8Handler,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:28:    homeostasis_sub: Optional[Phase8Handler] = None,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:29:    social_input_proj: Optional[Phase8Handler] = None,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:30:    relationship_sub: Optional[Phase8Handler] = None,  # ADR-O-418 (RE M2/D)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:58:            f"[DIAG_PHASE8] combat_result: deltas={len(combat_result.deltas or [])} missed={len(getattr(combat_result, 'missed_targets', []))}"  # noqa: ENIGMA002
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:62:            "[DIAG_PHASE8] combat_result=None — CombatSubscriber вернул пустой результат"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:129:                f"[DIAG_PHASE8] combat_data targets={list(_combat_data.keys())} data={_combat_data}"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:133:                "[DIAG_PHASE8] combat_data EMPTY — no PhysiologyPayload in deltas"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:156:    handler: Phase8Handler,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:158:) -> Optional[Phase8Result]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:164:            f"[DIAG_PHASE8] combat_sub pending_events={len(_pending)} types={[getattr(e, 'type', '?') for e in _pending[:3]]}"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:166:    events = handler.drain_events()
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:169:            f"[DIAG_PHASE8] combat_sub DRAINED 0 events — _pending was={len(_pending)}"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:174:            f"[PHASE8_DRAIN] handler={_handler_name} events={len(events)} types={[getattr(e, 'type', '?') for e in events[:3]]}"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:186:        # PHASE8-SOCIAL-CID FIX: подписчики Фазы 8 читают
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:208:        phase8_ctx = Phase8Context(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:217:        # Инвариант 3: Наблюдаемость отказа — CDS должен видеть краши Phase8
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:225:        result = handler.handle(events, phase8_ctx)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:229:            f"[PHASE8_CRASH] handler={handler.name} error={type(e).__name__}: {e}"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:232:            f"[PHASE_8] {handler.name} handle() failed: {e}. Events lost this tick."
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:236:    # Применяем Phase8Result к _TickContext
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:245:    result: Phase8Result,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:250:    """Применяет Phase8Result к _TickContext.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\reduction.py:270:            f"[PHASE_8] {handler_name}: {len(result.deltas)} deltas routed to delta_buffer"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\social\propagation.py:69:    Оркестратор применяет дельты в _apply_phase8_result().
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\social\propagation.py:206:    # Социальные результаты доступны оркестратору через Phase8Result.deltas
+
+=== B2.4: event.source usage per file ===
+--- C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py (5 matches) ---
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:58:        speaker_id = event.source
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:179:                if not can_address(event.source, str(prop.subject_id)) and str(prop.subject_id) != "player":
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:196:            _origin_id = event.source
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:199:                _origin_id = payload.get("target_id", event.source)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:248:                        speaker_id=event.source,
+--- C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py (5 matches) ---
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:102:            _tick, _ordinal = self._identity_provider(event.type, event.source)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:107:                f"[EVENT_IDENTITY] no scene for {event.type}/{event.source} — provisional id"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:110:        _tick, _ordinal = self._identity_provider(event.type, event.source)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:111:        _seed = f"{event.type}:{event.source}:{_tick}:{_ordinal}".encode("utf-8")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:203:                f"от {event.source!r} → "
+--- C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_addressing_delivery_subscriber.py (2 matches) ---
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_addressing_delivery_subscriber.py:78:                event.source,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_addressing_delivery_subscriber.py:142:            "npc_id": event.source,
+--- C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py (1 matches) ---
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:328:            source = event.source
+--- C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py (2 matches) ---
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:91:    """Акторы события: EventDTO.source — SSOT идентификации (Устав §2.1),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:95:    source_id = (event.source or "").strip() or str(payload.get("source_id") or "")
+--- C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_action_subscriber.py (4 matches) ---
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_action_subscriber.py:30:        logger.debug(f"[SOCIAL_ACTION_SUB] Received action={action} from={event.source} to={target}")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_action_subscriber.py:36:                source=event.source,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_action_subscriber.py:53:                source=event.source,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_action_subscriber.py:70:                source=event.source,
+--- C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_input_projector.py (1 matches) ---
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_input_projector.py:75:                # S259: фактический контракт NPC_SPOKE — спикер в EventDTO.source,
+--- C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py (1 matches) ---
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:208:                    _sp = _ev.source
+
+=== B2.5: Subscriber files list ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\dialogue_memory_subscriber.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_identity.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_types.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\intent_event_adapter.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_addressing_delivery_subscriber.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_speech_act_subscriber.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\observation_subscriber.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\player_speech_act_subscriber.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\rules_subscriber.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_action_subscriber.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_input_projector.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\tick_campaign_context.py
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\__init__.py
+
+=== B2.6: perception_filter contract ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\perception_filter.py:166:def filter_perceiving_npcs(
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\perception_filter.py
+Start line: 166
+def filter_perceiving_npcs(
+    npc_ids: List[str],
+    event: Any,  # GameEvent или dict
+    scene_state: Dict[str, Any],
+    spatial_query: "SpatialQueryService",
+) -> List[str]:
+    """
+    Возвращает список npc_id которые воспринимают данный GameEvent.
+
+    Логика:
+      1. Если event.visible_to задан явно — используем его напрямую.
+      2. Иначе — проверяем visible_to=[] (broadcast) через sight/sound фильтры.
+
+    Аргументы:
+        npc_ids    — все NPC в локации
+        event      — GameEvent (объект или dict)
+        scene_state — текущий SceneState
+    """
+    if not npc_ids:
+        return []
+
+    # Извлекаем поля события
+    if isinstance(event, EventDTO):
+        # EventDTO: нет явных списков visible_to/audible_to — фильтруем через radius/sight/sound
+        visible_to = []
+        audible_to = []
+        radius = event.radius
+        location = event.payload.get("location", "")
+        event_type = event.type
+    elif isinstance(event, dict):
+        visible_to = event.get("visible_to", [])
+        audible_to = event.get("audible_to", [])
+        radius = float(event.get("radius", 999.0))
+        location = event.get("location", "")
+        event_type = str(event.get("event_type", ""))
+    else:
+        return npc_ids  # неизвестный формат — все воспринимают
+
+    perceiving = []
+
+
+=== B2.7: propagation.py full logic ===
+# path: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\social\propagation.py
+"""
+ФАЗА 4: Social Propagation — слухи доходят до непрямо воспринимающих NPC.
+
+SocialEngine.propagate() вызывается после PerceptionFilter.
+Возвращает List[StateDeltas] — оркестратор применяет через Phase 8.
+
+Назначение: ФАЗА 4 — Social Propagation, слухи между NPC через SocialEngine
+Зависимости: logging, app.models.state_delta.StateDeltas
+Основные сущности: propagate_social_rumors
+
+TODO: мигрировать в отдельный модуль, чтобы не тянуть SocialEngine в game_loop.py. SocialEngine — сложная подсистема, которая может расти и развиваться независимо от game_loop. В идеале game_loop должен знать только про интерфейс SocialEngine, а не про его внутреннюю структуру. Вынесение в отдельный модуль улучшит модульность и
+тестируемость кода, а также позволит легче вносить изменения в SocialEngine без риска сломать game_loop.
+"""
+
+import logging
+from typing import Any, List, Tuple
+
+from app.models.state_delta import (
+    DeltaDomain,
+    EmotionPayload,
+    SocialPayload,
+    StateDeltas,
+)
+
+logger = logging.getLogger(__name__)
+
+# FIX BUG-06: конверсия шкал и капа дельты слуха (§10 — запрещены магические
+# множители). SOCIAL_TO_NPC_STRESS_SCALE = 100 (шкала 0-1 → 0-100);
+# SOCIAL_STRESS_CAP = 25.0 (один слух ≤ четверти шкалы: STRESS_DELTA_SCALE
+# 0.25 × конверсия). Per-listener персонализация — в SocialEngine
+# (_distort_intensity по trust); личностный множитель — DEBT (S72 п.7).
+SOCIAL_TO_NPC_STRESS_SCALE: float = 100.0
+SOCIAL_STRESS_CAP: float = 25.0
+# S72-7: личностный множитель стресса от слуха (§ENIGMA-S72 п.7 —
+# «эмоция = энергия, личность = направление разрядки»). Канонический
+# источник: psyche["pressure_resistance"] NPCState (0-100, clamp :875,
+# пишется StateApplicator'ом, персистентен — критерий Editor→Runtime:
+# ключ редактор-пишем, не archetype). pressure_resistance гасит давление
+# слуха; множитель = 1 - PR/100 * SPAN, clamp [1-SPAN, 1].
+PERSONALITY_STRESS_SPAN: float = 0.5
+
+
+def _listener_stress_multiplier(psyche: Any) -> float:
+    """Личностный множитель стресса слушателя.
+
+    psyche — dict из all_npcs_raw (канонический сериализат NPCState).
+    Отсутствие психики/ключа = 1.0 (честный no-personality, не молчаливый).
+    """
+    if not isinstance(psyche, dict):
+        return 1.0
+    _pr = psyche.get("pressure_resistance")
+    if not isinstance(_pr, (int, float)):
+        return 1.0
+    _clamped = max(0.0, min(100.0, float(_pr)))
+    return 1.0 - (_clamped / 100.0) * PERSONALITY_STRESS_SPAN
+
+
+def propagate_social_rumors(
+    social_engine: Any,
+    social_tick: int,
+    shared_context: Any,
+    events: List[Any] | None = None,
+) -> Tuple[int, List[StateDeltas]]:
+    """Пропагация слухов от свидетелей к непрямым наблюдателям.
+
+    Чистая функция: не мутирует all_npcs_raw и tick_ctx.
+    Возвращает (updated_social_tick, List[StateDeltas]).
+    Оркестратор применяет дельты в _apply_phase8_result().
+    """
+    _target_id = (
+        getattr(shared_context, "player_target_id", "") if shared_context else ""  # noqa: ENIGMA002
+    )
+
+    # Канонический путь: intensity из EventDTO.payload (Устав §2.1)
+    # Агрегация через max() — инфляция слухов недопустима (Стратегическое правило 5)
+    _intensity: float = 0.0
+    _event_type: str = ""
+    _actor_id: str = "player"
+    if events:
+        for _ev in events:
+            _ev_intensity = _ev.payload.get("intensity", 0.0)
+            if _ev_intensity > _intensity:
+                _intensity = float(_ev_intensity)
+                _event_type = _ev.payload.get("action_type", _ev.type)
+                _actor_id = _ev.source
+                # V8-SOC-4 FIX: Если событие NPC-to-NPC (ACTOR_ATTACKS, NPC_INTERACTS_NPC),
+                # извлекаем target_id из payload, чтобы снять player-centric gate.
+                if _ev.source != "player" and _ev.type in ("ACTOR_ATTACKS", "NPC_INTERACTS_NPC"):
+                    _target_id = _ev.payload.get("target_id", _target_id)
+
+    # Fallback: legacy путь через dm_result.event_context
+    if _intensity == 0.0:
+        _dm_res = (
+            shared_context.python_engines_result.get("dm_result")  # noqa: ENIGMA001
+            if hasattr(shared_context, "python_engines_result")
+            else None
+        )
+        if _dm_res and _dm_res.event_context:
+            _intensity = _dm_res.event_context.intensity
+            _event_type = _dm_res.event_context.event_type
+            _actor_id = _dm_res.event_context.actor_id
+
+    if (
+        not social_engine
+        or not _target_id
+        or _intensity < social_engine.MIN_ORIGIN_INTENSITY
+    ):
+        return social_tick, []
+
+    social_tick += 1
+
+    # Свидетели = NPC, получившие прямую вербализацию
+    _witness_ids = {
+        c.get("npc_id") for c in (shared_context.npc_contexts or []) if c.get("npc_id")
+    }
+
+    _social_results = social_engine.propagate(
+        event_type=_event_type,
+        intensity=_intensity,
+        actor=_actor_id,
+        target=_target_id,
+        witnesses=list(_witness_ids - {_target_id}),
+        current_tick=social_tick,
+    )
+
+    deltas: List[StateDeltas] = []
+
+    # S72-7: psyche слушателей — канонический сериализат NPCState
+    # (all_npcs_raw_snapshot; формат чтения по образцу dm_agent: npc_id|id).
+    _psyche_by_id: dict = {}
+    # §1.1/§1.2: сжатый тернарник с getattr-дефолтом разворачивается в
+    # явные ветки: None = снапшота NPC ещё не было (законное состояние),
+    # отсутствие атрибута — видимая ветка, а не тихий дефолт.
+    _anr: Any = None
+    if shared_context and hasattr(shared_context, "all_npcs_raw_snapshot"):
+        _anr = shared_context.all_npcs_raw_snapshot
+    if _anr is None and isinstance(shared_context, dict):
+        _anr = shared_context.get("all_npcs_raw_snapshot")
+    if _anr:
+        for _npc in _anr:
+            if isinstance(_npc, dict):
+                _pid = _npc.get("npc_id") or _npc.get("id", "")
+                if _pid:
+                    _psyche_by_id[_pid] = _npc.get("psyche")
+
+    if _social_results:
+        for pr in _social_results:
+            # Не перезаписываем прямых свидетелей
+            if pr.npc_id in _witness_ids:
+                continue
+
+            # v2: Разделяем на EMOTION (stress) и SOCIAL (trust)
+            # SocialEngine дельты в диапазоне ~0-1, NPCState — 0-100
+            if pr.stress_delta != 0.0:
+                # FIX BUG-06: конверсия шкал 0-1 (SocialEngine) → 0-100 (NPCState)
+                # именованной константой, не магическим ×100 (§10). Капа 25.0:
+                # один слух не может добавить более четверти шкалы стресса
+                # (STRESS_DELTA_SCALE=0.25 × 100, симметрично продюсеру).
+                # Per-listener персонализация уже внутри продюсера
+                # (_distort_intensity: trust ±амплитуда); личностный множитель
+                # (fear/willpower, §ENIGMA-S72 п.7) — долг после прокидки
+                # профилей в SocialEngine.
+                # S72-7: личностный множитель (pressure_resistance гасит
+                # слух; отсутствие психики = 1.0). Порядок: личность →
+                # конверсия шкал → капа.
+                _mult = _listener_stress_multiplier(_psyche_by_id.get(pr.npc_id))
+                _stress_100 = min(
+                    pr.stress_delta * _mult * SOCIAL_TO_NPC_STRESS_SCALE,
+                    SOCIAL_STRESS_CAP,
+                )
+                deltas.append(
+                    StateDeltas(
+                        npc_id=pr.npc_id,
+                        # v1 backward compat
+                        stress_delta=_stress_100,
+                        # v2 domain-tagged payload
+                        domain=DeltaDomain.EMOTION,
+                        payload=EmotionPayload(stress_delta=_stress_100),
+                        source="social_propagation",
+                    )
+                )
+
+            if pr.trust_delta != 0.0:
+                deltas.append(
+                    StateDeltas(
+                        npc_id=pr.npc_id,
+                        # v1 backward compat
+                        social_target=_actor_id,
+                        trust_delta=pr.trust_delta * 100,
+                        # v2 domain-tagged payload
+                        domain=DeltaDomain.SOCIAL,
+                        target=_actor_id,
+                        payload=SocialPayload(trust_delta=pr.trust_delta * 100),
+                        source="social_propagation",
+                    )
+                )
+            logger.debug(
+                f"[SOCIAL] {pr.npc_id}: "
+                f"trust{pr.trust_delta:+.3f} "
+                f"stress{pr.stress_delta:+.3f} "
+                f"({pr.rumor.hop} hops)"
+            )
+
+    # Чистая функция: не мутируем shared_context.
+    # Социальные результаты доступны оркестратору через Phase8Result.deltas
+
+    return social_tick, deltas
+
+=== B2.8: NPC_SPOKE event_type mapping ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:26:    Слушает COMMUNICATION_CLAIM и NPC_SPOKE на EventBus.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:41:    def on_npc_spoke(self, event: Any) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:43:        Фаза 8.3: Детерминированный fallback для NPC_SPOKE.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:92:        Зеркало on_npc_spoke-фоллбека: proposition строится ТОЛЬКО из DM-вектора
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:97:        import dataclasses  # локальный — прецедент on_npc_spoke (шрам трека: №181)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\dialogue_memory_subscriber.py:3:Назначение: Слушает NPC_SPOKE и PLAYER_SPOKE и пишет EventMemory в narrative_cache.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\dialogue_memory_subscriber.py:45:            # ничьей памятью (0 строк npc_spoke в живой БД).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_types.py:53:    NPC_SPOKE = "npc_spoke"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\intent_event_adapter.py:22:        "talk": EventType.NPC_SPOKE,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\intent_event_adapter.py:29:        "explain": EventType.NPC_SPOKE,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\intent_event_adapter.py:61:        # S4 FIX: Явный маппинг. Если интент неизвестен, падаем в npc_spoke,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\intent_event_adapter.py:63:        _event_type = IntentEventAdapter._INTENT_EVENT_MAP.get(_intent_val, EventType.NPC_SPOKE).value
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\intent_event_adapter.py:67:                f"[INTENT_EVENT_ADAPTER] Unmapped intent_type '{_intent_val}' defaulted to npc_spoke."
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:3:Назначение: Слушает NPC_SPOKE события, замыкая цикл восприятия для NPC-NPC диалогов
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:36:    """Слушает NPC_SPOKE события и замыкает цикл восприятия для NPC-NPC диалогов.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:73:        # NPC_SPOKE публикуется только в drain (ADR-O-399) → подписчик
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:185:    def on_npc_spoke(self, event: Any) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:295:                    # journal-запись наследует финальный event.id NPC_SPOKE
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:299:                    # в NPC_SPOKE запрещён на источнике (4 слоя, S292); этот гард —
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:540:                    # NPC_SPOKE и journal-записи — позвоночник
+
+=== B2.9: ACTOR_ATTACKS event_type mapping ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_types.py:80:    ACTOR_ATTACKS = "actor_attacks"  # ADR-O-112: Универсальная атака (NPC→Player, NPC→NPC)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\intent_event_adapter.py:25:        "attack": EventType.ACTOR_ATTACKS,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\rules_subscriber.py:85:            "ACTOR_ATTACKS",
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\rules_subscriber.py:88:            "actor_attacks",
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_action_subscriber.py:17:    """Слушает SOCIAL_ACTION и генерирует проекции (COMMUNICATION_CLAIM, NPC_SPOKE, ACTOR_ATTACKS)."""
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_action_subscriber.py:66:        # 3. Projection → ACTOR_ATTACKS (если action == ATTACK)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_action_subscriber.py:69:                event_type=EventType.ACTOR_ATTACKS.value,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_subscriber.py:47:    EventType.ACTOR_ATTACKS,
+

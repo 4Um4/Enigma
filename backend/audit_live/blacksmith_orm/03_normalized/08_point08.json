@@ -17,19 +17,14 @@
     "kind": "RELATIONSHIP",
     "draft_payload": {
       "summary": "Орм видит в Люсии свою бывшую жену",
-      "target_hint": "жена Орма",
-      "nature": "идеализация",
-      "valence": "neutral"
+      "target_hint": "Люся"
     },
     "confidence": 0.9,
     "needs_confirmation": true,
     "question": {
-      "question_id": "...",
-      "target_span": "жена Орма",
+      "question_id": "select_existing_npc_for_orm_lusya_relationship",
+      "target_span": "Люся",
       "options": [
-        "SELECT_EXISTING_NPC",
-        "CREATE_NEW_NPC",
-        "UNKNOWN_PERSON",
         "LEAVE_WHITE_SPOT"
       ]
     }

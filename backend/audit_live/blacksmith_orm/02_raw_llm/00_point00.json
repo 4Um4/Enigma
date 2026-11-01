@@ -5,8 +5,8 @@
     {
       "kind": "TRAIT_SEED",
       "draft_payload": {
-        "trait": "кузнец",
-        "evidence": "кузнец Орм"
+        "trait": "гном",
+        "evidence": "кузнец Орм: гном"
       },
       "confidence": 1.0,
       "needs_confirmation": false,

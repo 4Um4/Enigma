@@ -1,16 +1,21 @@
 [
   {
-    "kind": "PORTRET",
+    "kind": "RELATIONSHIP",
     "draft_payload": {
-      "statement": "Только перед Торниным его грызла совесть: тот хоть и бил девочку, но по-своему хорошо к ней относился и уж точно не хотел бы, чтобы её насиловал старый гном.",
-      "traits": [
-        "грызла совесть",
-        "хорошо относился",
-        "не хотел бы насильства"
-      ]
+      "summary": "Торнин бил Люсю, но хорошо к ней относился",
+      "target_hint": "Торнин"
     },
-    "confidence": 1.0,
-    "needs_confirmation": false,
-    "question": null
+    "confidence": 0.4,
+    "needs_confirmation": true,
+    "question": {
+      "question_id": "roster_mismatch_0",
+      "target_span": "Торнин",
+      "options": [
+        "SELECT_EXISTING_NPC",
+        "CREATE_NEW_NPC",
+        "UNKNOWN_PERSON",
+        "LEAVE_WHITE_SPOT"
+      ]
+    }
   }
 ]

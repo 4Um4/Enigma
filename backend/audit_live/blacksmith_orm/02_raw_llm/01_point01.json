@@ -19,11 +19,28 @@
       "confidence": 1.0,
       "needs_confirmation": false,
       "question": null
+    },
+    {
+      "kind": "EVENT",
+      "draft_payload": {
+        "summary": "начал работать кузнецом",
+        "day": null,
+        "years_ago": 146,
+        "_provenance": {
+          "derived_from": "game_start_age - years_ago",
+          "game_start_age": 146,
+          "years_ago": 146,
+          "rule": "point in past relative to game_start"
+        }
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
     }
   ],
   "coverage": {
     "fragment_ord": 1,
-    "items_count": 1,
+    "items_count": 2,
     "fragment_text_preview": "1. 146 лет, из которых он кузнец в городе уже 57 лет.",
     "critical_topic_warning": null
   }

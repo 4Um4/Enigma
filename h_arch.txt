@@ -1,0 +1,1787 @@
+
+
+========== 01-DIR assets/ ==========
+frontend\map_editor\assets\asset_store.py
+frontend\map_editor\assets\blueprint_editor.py
+frontend\map_editor\assets\catalog_index.py
+frontend\map_editor\assets\resource_validator.py
+frontend\map_editor\assets\__init__.py
+frontend\map_editor\assets\catalogs\base\blueprints\apple_tree.json
+frontend\map_editor\assets\catalogs\base\blueprints\bar.json
+frontend\map_editor\assets\catalogs\base\blueprints\bed.json
+frontend\map_editor\assets\catalogs\base\blueprints\bones.json
+frontend\map_editor\assets\catalogs\base\blueprints\bookshelf.json
+frontend\map_editor\assets\catalogs\base\blueprints\campfire.json
+frontend\map_editor\assets\catalogs\base\blueprints\cauldron.json
+frontend\map_editor\assets\catalogs\base\blueprints\chair.json
+frontend\map_editor\assets\catalogs\base\blueprints\decoration.json
+frontend\map_editor\assets\catalogs\base\blueprints\door.json
+frontend\map_editor\assets\catalogs\base\blueprints\door_transition.json
+frontend\map_editor\assets\catalogs\base\blueprints\gap.json
+frontend\map_editor\assets\catalogs\base\blueprints\grass.json
+frontend\map_editor\assets\catalogs\base\blueprints\hatch.json
+frontend\map_editor\assets\catalogs\base\blueprints\heart.json
+frontend\map_editor\assets\catalogs\base\blueprints\heart_empty.json
+frontend\map_editor\assets\catalogs\base\blueprints\ladder.json
+frontend\map_editor\assets\catalogs\base\blueprints\palm.json
+frontend\map_editor\assets\catalogs\base\blueprints\portal_magic.json
+frontend\map_editor\assets\catalogs\base\blueprints\rocks.json
+frontend\map_editor\assets\catalogs\base\blueprints\sign_flophouse.json
+frontend\map_editor\assets\catalogs\base\blueprints\spruce.json
+frontend\map_editor\assets\catalogs\base\blueprints\stairs_down.json
+frontend\map_editor\assets\catalogs\base\blueprints\stairs_up.json
+frontend\map_editor\assets\catalogs\base\blueprints\stool.json
+frontend\map_editor\assets\catalogs\base\blueprints\table.json
+frontend\map_editor\assets\catalogs\base\blueprints\tent.json
+frontend\map_editor\assets\catalogs\base\blueprints\toilet.json
+frontend\map_editor\assets\catalogs\base\blueprints\tree.json
+frontend\map_editor\assets\catalogs\base\blueprints\window.json
+frontend\map_editor\assets\__pycache__\asset_store.cpython-313.pyc
+frontend\map_editor\assets\__pycache__\blueprint_editor.cpython-313.pyc
+frontend\map_editor\assets\__pycache__\catalog_index.cpython-313.pyc
+frontend\map_editor\assets\__pycache__\resource_validator.cpython-313.pyc
+frontend\map_editor\assets\__pycache__\__init__.cpython-313.pyc
+
+========== 01-DIR ui/ ==========
+frontend\map_editor\ui\blueprint_inspector.py
+frontend\map_editor\ui\catalog_panel.py
+frontend\map_editor\ui\components.py
+frontend\map_editor\ui\dialogs.py
+frontend\map_editor\ui\graphs.py
+frontend\map_editor\ui\lab_screen.py
+frontend\map_editor\ui\panels.py
+frontend\map_editor\ui\property_builder.py
+frontend\map_editor\ui\__init__.py
+frontend\map_editor\ui\__pycache__\blueprint_inspector.cpython-313.pyc
+frontend\map_editor\ui\__pycache__\catalog_panel.cpython-313.pyc
+frontend\map_editor\ui\__pycache__\components.cpython-313.pyc
+frontend\map_editor\ui\__pycache__\dialogs.cpython-313.pyc
+frontend\map_editor\ui\__pycache__\graphs.cpython-313.pyc
+frontend\map_editor\ui\__pycache__\lab_screen.cpython-313.pyc
+frontend\map_editor\ui\__pycache__\panels.cpython-313.pyc
+frontend\map_editor\ui\__pycache__\property_builder.cpython-313.pyc
+frontend\map_editor\ui\__pycache__\__init__.cpython-313.pyc
+
+========== 01-DIR root map_editor files ==========
+campaign_manager.py
+data_manager.py
+editor_core.py
+editor_launcher.py
+FAQ.me
+README.md
+schema_validator.py
+spatial_registry_builder.py
+sprite_registry.py
+ui_components.py
+visual_casting_editor.py
+
+========== 02-ASSET_STORE full ==========
+"""path: /frontend/map_editor/assets/asset_store.py
+
+Назначение: Склад чертежей и ресурсов (ME-1.2, Этап 01). Читает общие каталоги
+    (assets/catalogs/<имя>/) и собственный каталог кампании (assets/<кампания>/),
+    ведёт список имён и версий. Если у предмета с одинаковым именем есть своя
+    версия в кампании — главнее она (решение Мастера 2026-10-14), и замена
+    фиксируется в списке перекрытий. Если папки assets/ нет — склад пуст, это не
+    ошибка, и на диск ничего не пишется (существующие кампании не ломаются).
+    Битый чертёж — громкая ошибка с именем файла и поля.
+
+Зависимости: только стандартная библиотека. Backend не импортируется
+    (граница фронта, Закон 1.1 Устава ENIGMA).
+
+Основные сущности: AssetStore, BlueprintRecord, ResourceRecord, AssetStoreError.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+logger = logging.getLogger(__name__)
+
+# Устав §12.1: ключи сериализации — модульные константы, не inline-строки
+_KEY_BLUEPRINT_ID = "blueprint_id"
+_KEY_VERSION = "version"
+_KEY_COMPAT = "compat"
+
+_BLUEPRINTS_DIR = "blueprints"
+_RESOURCES_DIR = "resources"
+_GLOBAL_CATALOGS_DIR = "catalogs"
+
+_SOURCE_GLOBAL = "global"
+_SOURCE_CAMPAIGN = "campaign"
+
+
+class AssetStoreError(RuntimeError):
+    """Громкий отказ загрузки: перечень проблем с именем файла и поля.
+
+    Загрузить половину и молча пропустить битое запрещено — это тихая потеря
+    данных; поэтому все проблемы собираются в один пакет и поднимаются разом.
+    """
+
+
+@dataclass(frozen=True)
+class BlueprintRecord:
+    """Чертёж в реестре: данные + откуда прочитан.
+
+    fingerprint — SHA256 байтов файла на момент load. Используется в
+    save_blueprint_atomic (R2-уточнение Master) для ловли lost update:
+    если внешний процесс изменил содержимое JSON, оставив version той же,
+    fingerprint разойдётся → VersionConflict. Это дополняет memory
+    version check (R5) и disk version check — последний ловит только
+    изменение поля version, fingerprint ловит любое изменение байтов.
+    """
+
+    data: dict
+    version: int
+    source: str  # "global:<каталог>" | "campaign:<кампания>"
+    path: Path
+    fingerprint: str
+
+    @property
+    def blueprint_id(self) -> str:
+        return str(self.data[_KEY_BLUEPRINT_ID])
+
+
+class VersionConflict(Exception):
+    """Файл чертежа изменён снаружи между открытием и сохранением (ME-2.1-G-1).
+
+    Контракт: save_blueprint_atomic сравнивает (а) версию record с текущей в
+    store (memory check, R5) и (б) fingerprint байтов файла на диске с
+    record.fingerprint (disk check, R2-уточнение Master). Расхождение →
+    VersionConflict. Master решает: reload или overwrite. Авто-overwrite
+    запрещён (R5).
+
+    R2-уточнение Master: version check ловит только инкремент version;
+    fingerprint ловит любое изменение байтов (включая «version та же,
+    содержимое другое» — lost update). Оба случая → VersionConflict с
+    разным reason ('version' | 'fingerprint') для понятного сообщения.
+    """
+
+    def __init__(
+        self,
+        blueprint_id: str,
+        expected_version: int,
+        actual_version: int,
+        *,
+        reason: str = "version",
+    ) -> None:
+        self.blueprint_id = blueprint_id
+        self.expected_version = expected_version
+        self.actual_version = actual_version
+        self.reason = reason
+        if reason == "fingerprint":
+            msg = (
+                f"Blueprint '{blueprint_id}' изменён снаружи (содержимое, "
+                f"version та же v{expected_version}) — fingerprint разошёлся"
+            )
+        else:
+            msg = (
+                f"Blueprint '{blueprint_id}' изменён снаружи: ожидалась v{expected_version}, на диске v{actual_version}"
+            )
+        super().__init__(msg)
+
+
+class SaveBlocked(Exception):
+    """Сохранение заблокировано ошибками валидации (ME-2.1-G-1).
+
+    Контракт: validator (передан извне, duck-typing) нашёл error-level issues.
+    Save не выполняется, оригинал не трогается. issues — список объектов с
+    атрибутом level (ValidationIssue из resource_validator.py).
+    """
+
+    def __init__(self, blueprint_id: str, issues: list) -> None:
+        self.blueprint_id = blueprint_id
+        self.issues = issues
+        super().__init__(f"Save заблокирован для '{blueprint_id}': {len(issues)} error(s)")
+
+
+@dataclass(frozen=True)
+class SaveResult:
+    """Результат атомарного сохранения чертежа (ME-2.1-G-1).
+
+    Поля:
+    - ok: True если файл записан и реестр пересобран
+    - blueprint_id: какой чертёж сохранён
+    - version: новая версия (int, из new_data после reload)
+    - path: путь к файлу на диске
+    - cache_stale: True если файл сохранён, реестр актуален, но внешний
+      on_cache_refresh упал — производные кэши (CatalogIndex/OBJECT_PRESETS)
+      устарели; реестр AssetStore актуален
+    """
+
+    ok: bool
+    blueprint_id: str
+    version: int
+    path: Path
+    cache_stale: bool = False
+
+
+@dataclass(frozen=True)
+class ResourceRecord:
+    """Ресурс (картинка): имя = путь внутри resources/ без расширения.
+
+    Версия в v1 всегда 1: полноценный учёт версий картинок включается при
+    переносе спрайтов (ME-1.6). Поле оставлено сейчас, чтобы форма записи
+    реестра не менялась дважды.
+    """
+
+    resource_id: str
+    version: int
+    source: str
+    path: Path
+
+
+class AssetStore:
+    """Склад чертежей поверх папки assets/ (ME-1.2).
+
+    Порядок чтения: сначала общие каталоги, потом собственный каталог
+    открытой кампании (campaign_id) — своя версия предмета перекрывает
+    общую при одинаковом имени. Каталоги ДРУГИХ кампаний не загружаются:
+    уникальные предметы кампании не видны остальным (спека §2).
+    """
+
+    def __init__(self, base_dir: Path | str, campaign_id: str | None = None) -> None:
+        self._base = Path(base_dir)
+        if campaign_id == _GLOBAL_CATALOGS_DIR:
+            raise ValueError("campaign_id не может называться 'catalogs'")
+        self._campaign_id = campaign_id
+        self._blueprints: Dict[str, BlueprintRecord] = {}
+        self._resources: Dict[str, ResourceRecord] = {}
+        self._overrides: List[str] = []
+
+    @property
+    def base_dir(self) -> Path:
+        return self._base
+
+    @property
+    def overrides(self) -> List[str]:
+        """Список перекрытий вида 'имя: общий источник -> источник кампании'."""
+        return list(self._overrides)
+
+    def load(self) -> None:
+        """Прочитать все каталоги. Нет папки — пустой склад, не ошибка."""
+        self._blueprints.clear()
+        self._resources.clear()
+        self._overrides.clear()
+        problems: List[str] = []
+        if not self._base.is_dir():
+            # Кампания без assets/ — законное состояние; чтение не создаёт папок
+            logger.info("[ASSET_STORE] %s отсутствует — реестр пуст", self._base)
+            return
+        catalogs_dir = self._base / _GLOBAL_CATALOGS_DIR
+        if catalogs_dir.is_dir():
+            for catalog in sorted(catalogs_dir.iterdir()):
+                if catalog.is_dir():
+                    self._load_catalog(catalog, f"{_SOURCE_GLOBAL}:{catalog.name}", problems)
+        # Приватность (спека §2): каталог кампании виден только самой кампании.
+        # Склад строится в контексте ОДНОЙ открытой кампании; чужие каталоги
+        # не загружаются — уникальные предметы не протекают наружу.
+        if self._campaign_id is not None:
+            own = self._base / self._campaign_id
+            if own.is_dir():
+                self._load_catalog(own, f"{_SOURCE_CAMPAIGN}:{self._campaign_id}", problems)
+        if problems:
+            raise AssetStoreError(f"Битые чертежи/ресурсы в assets/ ({len(problems)}):\n  " + "\n  ".join(problems))
+        logger.info(
+            "[ASSET_STORE] чертежей=%d, ресурсов=%d, перекрытий=%d",
+            len(self._blueprints),
+            len(self._resources),
+            len(self._overrides),
+        )
+
+    def get_blueprint(self, blueprint_id: str) -> Optional[BlueprintRecord]:
+        return self._blueprints.get(blueprint_id)
+
+    def list_blueprints(self) -> List[str]:
+        return sorted(self._blueprints.keys())
+
+    def get_resource(self, resource_id: str) -> Optional[ResourceRecord]:
+        return self._resources.get(resource_id)
+
+    def list_resources(self) -> List[str]:
+        return sorted(self._resources.keys())
+
+    def stats(self) -> Tuple[int, int, int]:
+        """(чертежей, ресурсов, перекрытий) — для проверок и отчёта."""
+        return len(self._blueprints), len(self._resources), len(self._overrides)
+
+    # ===== ME-2.1-G-1: Write-API =====
+    #
+    # Контракт ТЗ Master (G-1, п.1-6):
+    # 1. Неизменность исходника — new_data не мутирует уже зарегистрированный record.
+    # 2. Контроль версии — VersionConflict если файл изменён снаружи.
+    # 3. Атомарность файловой записи — tmp → validate → test-load → rename.
+    #    При ошибке исходный файл остаётся целым.
+    # 4. Разделение файловой транзакции и обновления кэшей — AssetStore SSOT
+    #    обновляется через load(); CatalogIndex/OBJECT_PRESETS — производные,
+    #    обновляются через on_cache_refresh callback. ENTITY_SPRITE_MAP НЕ
+    #    обновляется автоматически (по требованию Master: сначала доказать
+    #    затрагивание).
+    # 5. Не затрагивает экземпляры — сохранение Blueprint не меняет размещённые
+    #    на карте объекты (R4 — дизайн).
+    # 6. Не расширять G-1 — только фундамент записи, без UI/модалок/категорий.
+
+    def save_blueprint_atomic(
+        self,
+        record: BlueprintRecord,
+        new_data: dict,
+        *,
+        validator: Optional[Any] = None,
+        on_cache_refresh: Optional[Callable[[], None]] = None,
+    ) -> SaveResult:
+        """Атомарное сохранение чертежа (ME-2.1-G-1).
+
+        Args:
+            record: BlueprintRecord, открытый через get_blueprint(). record.path
+                определяет куда писать (source = global или campaign сохраняется).
+            new_data: новый dict чертежа. НЕ мутирует record.data (deepcopy не нужна
+                на стороне вызова — метод не трогает ни record, ни new_data после записи).
+            validator: Optional, duck-typed объект с методом validate_blueprint(data)
+                -> ValidationResult. Если передан и возвращает errors → SaveBlocked.
+                AssetStore НЕ импортирует ResourceValidator (layering, Закон 1.2).
+            on_cache_refresh: Optional callback, вызывается ПОСЛЕ успешного rename
+                и self.load(). Внутри callback: CatalogIndex.refresh() +
+                refresh_object_presets(store) (+ refresh_entity_sprite_map() если
+                доказано затрагивание appearance.sprite). Если callback raises —
+                файл уже сохранён, реестр актуален, но кэши устарели
+                → SaveResult.cache_stale=True.
+
+        Returns:
+            SaveResult с ok=True и новой версией.
+
+        Raises:
+            VersionConflict: файл изменён снаружи (expected != actual version).
+            SaveBlocked: validator нашёл error-level issues.
+            AssetStoreError: test-load упал (битый JSON в tmp) — tmp удалён,
+                оригинал цел.
+        """
+        bp_id = record.blueprint_id
+
+        # 1. Валидация (если validator передан) — гейт перед файловой транзакцией
+        if validator is not None:
+            validation = validator.validate_blueprint(new_data)
+            issues = getattr(validation, "issues", [])
+            errors = [i for i in issues if getattr(i, "level", "") == "error"]
+            if errors:
+                raise SaveBlocked(bp_id, errors)
+
+        # 2. Контроль версии (R5) — record.version должен совпадать с текущим store
+        current = self._blueprints.get(bp_id)
+        if current is None:
+            raise AssetStoreError(f"Blueprint '{bp_id}' не найден в реестре — save невозможен")
+        if current.version != record.version:
+            raise VersionConflict(bp_id, record.version, current.version)
+
+        # 2b. Проверка внешнего изменения файла (R2-уточнение Master).
+        #    version check ловит только инкремент version; fingerprint ловит
+        #    любое изменение байтов (включая «version та же, содержимое другое» —
+        #    lost update). Считаем SHA256 байтов файла на диске и сравниваем
+        #    с record.fingerprint (вычислен при load). Дополняет memory check (2).
+        try:
+            disk_bytes = record.path.read_bytes()
+        except OSError as exc:
+            raise AssetStoreError(f"Не удалось прочитать '{record.path}' для проверки fingerprint: {exc}") from exc
+        disk_fingerprint = hashlib.sha256(disk_bytes).hexdigest()
+        if disk_fingerprint != record.fingerprint:
+            # Извлечь disk_version для понятного сообщения (best-effort)
+            try:
+                raw_on_disk = json.loads(disk_bytes.decode("utf-8-sig"))
+                disk_version = raw_on_disk.get(_KEY_VERSION, record.version)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                disk_version = record.version
+            raise VersionConflict(bp_id, record.version, disk_version, reason="fingerprint")
+
+        # 3. Контракт реестра: имя файла = blueprint_id (rule спеки §2)
+        #    Rename blueprint_id запрещён в v1 (ТЗ Master п.6 «не расширять G-1»)
+        new_bp_id = new_data.get(_KEY_BLUEPRINT_ID)
+        if new_bp_id != bp_id:
+            raise AssetStoreError(
+                f"blueprint_id изменён ('{bp_id}' -> '{new_bp_id}') — rename запрещён в v1 (ТЗ Master п.6)"
+            )
+
+        # 4. Запись в tmp (utf-8 без BOM; _register_blueprint читает utf-8-sig,
+        #    толерантен к BOM и без BOM; стандарт JSON — без BOM).
+        #    tmp_path.stem ДОЛЖЕН совпадать с target_path.stem — правило реестра
+        #    «имя файла = blueprint_id» (asset_store.py:188, _register_blueprint).
+        #    with_suffix(".tmp") даёт stem="door" из "door.json" → "door.tmp";
+        #    with_suffix(".json.tmp") дало бы stem="door.json" → test-load упадёт.
+        target_path = record.path
+        tmp_path = target_path.with_suffix(".tmp")
+        try:
+            tmp_path.write_text(
+                json.dumps(new_data, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            raise AssetStoreError(f"Не удалось записать tmp-файл '{tmp_path}': {exc}") from exc
+
+        # 5. Test-load tmp через изолированный _register_blueprint
+        #    НЕ self.load() — чтобы чужой битый файл не блокировал save нашего
+        problems: List[str] = []
+        test_store = AssetStore.__new__(AssetStore)
+        test_store._base = self._base
+        test_store._campaign_id = self._campaign_id
+        test_store._blueprints = {}
+        test_store._resources = {}
+        test_store._overrides = []
+        test_store._register_blueprint(tmp_path, "test", problems)
+        if problems:
+            # tmp битый — удаляем, оригинал цел
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise AssetStoreError(f"Test-load tmp упал для '{bp_id}':\n  " + "\n  ".join(problems))
+
+        # 6. .history/<id>.<old_version>.json — копия оригинала (best-effort)
+        #    Не блокирует save; .history/ игнорируется при load (фильтр glob *.json
+        #    в _load_catalog не заходит в подпапки)
+        history_dir = target_path.parent / ".history"
+        history_path = history_dir / f"{bp_id}.{record.version}.json"
+        try:
+            history_dir.mkdir(exist_ok=True)
+            history_path.write_bytes(target_path.read_bytes())
+        except OSError as exc:
+            logger.warning("[ASSET_STORE] .history не записан для '%s': %s", bp_id, exc)
+
+        # 7. Backup оригинала в памяти для recovery (R1 — Master контрольный вопрос).
+        #    После replace() оригинал перезаписан; если load() упадёт — восстановим.
+        original_bytes = target_path.read_bytes()
+
+        # 8. Atomic rename: tmp → target (pathlib.Path.replace = POSIX rename /
+        #    Windows MoveFileEx MOVEFILE_REPLACE_EXISTING — атомарно на одной ФС)
+        try:
+            tmp_path.replace(target_path)
+        except OSError as exc:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise AssetStoreError(f"Atomic rename упал для '{bp_id}': {exc}") from exc
+
+        # 9. Пересборка реестра с recovery (R1 — Master контрольный вопрос).
+        #    Snapshot до load; при ошибке — восстановить файл + реестр.
+        #    Сценарий: другой файл в каталоге стал битым одновременно с нашим save;
+        #    load() пересобирает ВСЕ blueprints и падает на чужом файле.
+        #    Recovery: восстановить наш оригинал (файловая консистентность) +
+        #    реестр из snapshot (pre-save состояние). SaveResult не возвращается.
+        _old_blueprints = dict(self._blueprints)
+        _old_resources = dict(self._resources)
+        _old_overrides = list(self._overrides)
+        try:
+            self.load()
+        except Exception as reload_exc:
+            # Восстановить оригинал файла
+            try:
+                target_path.write_bytes(original_bytes)
+            except OSError as restore_exc:
+                logger.error(
+                    "[ASSET_STORE] CRITICAL: restore упал для '%s': %s — "
+                    "файл может быть неконсистентен, см. .history/%s.%d.json",
+                    bp_id,
+                    restore_exc,
+                    bp_id,
+                    record.version,
+                )
+            # Восстановить реестр из snapshot (pre-save состояние)
+            self._blueprints = _old_blueprints
+            self._resources = _old_resources
+            self._overrides = _old_overrides
+            raise AssetStoreError(
+                f"Reload упал после rename для '{bp_id}'. "
+                f"Оригинал восстановлен, реестр в pre-save состоянии: {reload_exc}"
+            ) from reload_exc
+
+        # 10. Внешний refresh кэшей (CatalogIndex + OBJECT_PRESETS + опц. ENTITY_SPRITE_MAP)
+        #     Файл уже сохранён; если refresh упадёт — кэши устарели, реестр актуален
+        cache_stale = False
+        if on_cache_refresh is not None:
+            try:
+                on_cache_refresh()
+            except Exception as exc:  # noqa: BLE001 — внешний callback
+                logger.warning(
+                    "[ASSET_STORE] cache refresh упал для '%s': %s — файл сохранён, реестр актуален, кэши устарели",
+                    bp_id,
+                    exc,
+                )
+                cache_stale = True
+
+        new_record = self._blueprints.get(bp_id)
+        new_version = new_record.version if new_record is not None else int(new_data.get(_KEY_VERSION, record.version))
+
+        return SaveResult(
+            ok=True,
+            blueprint_id=bp_id,
+            version=new_version,
+            path=target_path,
+            cache_stale=cache_stale,
+        )
+
+    def save_new_blueprint_atomic(
+        self,
+        new_id: str,
+        new_data: dict,
+        *,
+        validator: Optional[Any] = None,
+        on_cache_refresh: Optional[Callable[[], None]] = None,
+    ) -> SaveResult:
+        """Атомарное создание нового Blueprint (ME-2.1-G-8).
+
+        Вариант (a) Master: отдельная операция, не маскировать создание
+        под обновление. Не дублирует транзакцию G-1 — общая последовательность
+        write→test-load→rename→reload.
+
+        Защита от гонки: target_path.exists() проверяется ПЕРЕД rename.
+        Если файл создан другой сессией между проверкой list_blueprints и
+        rename — откажем без перезаписи.
+
+        Args:
+            new_id: blueprint_id нового чертежа (slug, без / и ..).
+            new_data: dict чертежа. blueprint_id ДОЛЖЕН == new_id.
+            validator: Optional duck-typed.
+            on_cache_refresh: Optional callback.
+
+        Raises:
+            AssetStoreError: ID недопустим, уже существует, или ошибка записи.
+            SaveBlocked: validator нашёл errors.
+        """
+        import re
+
+        # 1. Проверка допустимости ID
+        if not isinstance(new_id, str) or not new_id:
+            raise AssetStoreError("new_id должен быть непустой строкой")
+        if not re.match(r"^[a-zA-Z0-9_]+$", new_id):
+            raise AssetStoreError(f"new_id '{new_id}' недопустим — только латиница, цифры, _")
+        if "/" in new_id or "\\" in new_id or ".." in new_id:
+            raise AssetStoreError(f"new_id '{new_id}' содержит запрещённые символы")
+
+        # 2. Проверка blueprint_id в new_data
+        actual_id = new_data.get(_KEY_BLUEPRINT_ID)
+        if actual_id != new_id:
+            raise AssetStoreError(f"blueprint_id в new_data ('{actual_id}') != new_id ('{new_id}')")
+
+        # 3. Ранняя проверка уникальности
+        if new_id in self._blueprints:
+            raise AssetStoreError(f"Blueprint '{new_id}' уже существует в реестре")
+
+        # 4. Валидация
+        if validator is not None:
+            validation = validator.validate_blueprint(new_data)
+            issues = getattr(validation, "issues", [])
+            errors = [i for i in issues if getattr(i, "level", "") == "error"]
+            if errors:
+                raise SaveBlocked(new_id, errors)
+
+        # 5. Определить target_path (global catalogs/base/blueprints/)
+        target_path = self._base / _GLOBAL_CATALOGS_DIR / "base" / _BLUEPRINTS_DIR / f"{new_id}.json"
+
+        # 6. Гонка: проверить что файл не существует ПЕРЕД записью
+        if target_path.exists():
+            raise AssetStoreError(f"Файл '{target_path}' уже существует — race condition или внешний процесс")
+
+        # 7. Запись в tmp
+        tmp_path = target_path.with_suffix(".tmp")
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            tmp_path.write_text(
+                json.dumps(new_data, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            raise AssetStoreError(f"Не удалось записать tmp '{tmp_path}': {exc}") from exc
+
+        # 8. Test-load tmp
+        problems: List[str] = []
+        test_store = AssetStore.__new__(AssetStore)
+        test_store._base = self._base
+        test_store._campaign_id = self._campaign_id
+        test_store._blueprints = {}
+        test_store._resources = {}
+        test_store._overrides = []
+        test_store._register_blueprint(tmp_path, "test", problems)
+        if problems:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise AssetStoreError(f"Test-load tmp упал для '{new_id}':\n  " + "\n  ".join(problems))
+
+        # 9. Гонка: повторная проверка перед rename
+        if target_path.exists():
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise AssetStoreError(f"Файл '{target_path}' создан другой сессией — отказ без перезаписи")
+
+        # 10. Atomic rename (нет оригинала — нет backup/recovery оригинала)
+        try:
+            tmp_path.replace(target_path)
+        except OSError as exc:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise AssetStoreError(f"Atomic rename упал для '{new_id}': {exc}") from exc
+
+        # 11. Пересборка реестра с recovery (как G-1, но нет original_bytes)
+        _old_blueprints = dict(self._blueprints)
+        _old_resources = dict(self._resources)
+        _old_overrides = list(self._overrides)
+        try:
+            self.load()
+        except Exception as reload_exc:
+            # Удалить новый файл (он единственный мог сломать load)
+            try:
+                target_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            # Восстановить реестр из snapshot
+            self._blueprints = _old_blueprints
+            self._resources = _old_resources
+            self._overrides = _old_overrides
+            raise AssetStoreError(
+                f"Reload упал после создания '{new_id}'. Файл удалён, реестр в pre-create состоянии: {reload_exc}"
+            ) from reload_exc
+
+        # 12. Cache refresh
+        cache_stale = False
+        if on_cache_refresh is not None:
+            try:
+                on_cache_refresh()
+            except Exception as exc:
+                logger.warning("[ASSET_STORE] cache refresh упал для '%s': %s", new_id, exc)
+                cache_stale = True
+
+        new_version = int(new_data.get(_KEY_VERSION, 1))
+
+        return SaveResult(
+            ok=True,
+            blueprint_id=new_id,
+            version=new_version,
+            path=target_path,
+            cache_stale=cache_stale,
+        )
+
+    def _load_catalog(self, catalog_dir: Path, source: str, problems: List[str]) -> None:
+        bp_dir = catalog_dir / _BLUEPRINTS_DIR
+        if bp_dir.is_dir():
+            for path in sorted(bp_dir.glob("*.json")):
+                self._register_blueprint(path, source, problems)
+        res_dir = catalog_dir / _RESOURCES_DIR
+        if res_dir.is_dir():
+            for path in sorted(res_dir.rglob("*")):
+                if path.is_file() and path.suffix.lower() != ".json":
+                    self._register_resource(path, res_dir, source, problems)
+
+    def _register_blueprint(self, path: Path, source: str, problems: List[str]) -> None:
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8-sig"))
+        except (OSError, json.JSONDecodeError) as exc:
+            problems.append(f"{path}: не читается или битый JSON — {exc}")
+            return
+        if not isinstance(raw, dict):
+            problems.append(f"{path}: чертёж обязан быть JSON-объектом, получен {type(raw).__name__}")
+            return
+        for key in (_KEY_BLUEPRINT_ID, _KEY_VERSION, _KEY_COMPAT):
+            if key not in raw:
+                problems.append(f"{path}: нет обязательного поля '{key}'")
+                return
+        bid = raw[_KEY_BLUEPRINT_ID]
+        if not isinstance(bid, str) or not bid:
+            problems.append(f"{path}: поле 'blueprint_id' — непустая строка")
+            return
+        if bid != path.stem:
+            # Реестровое правило: имя файла = blueprint_id (дополнение спеки §2)
+            problems.append(f"{path}: blueprint_id '{bid}' не совпадает с именем файла '{path.stem}'")
+            return
+        version = raw[_KEY_VERSION]
+        if not isinstance(version, int) or isinstance(version, bool) or version < 1:
+            problems.append(f"{path}: поле 'version' — целое число >= 1")
+            return
+        compat = raw[_KEY_COMPAT]
+        if not isinstance(compat, int) or isinstance(compat, bool) or compat < 1:
+            problems.append(f"{path}: поле 'compat' — целое число >= 1")
+            return
+        fingerprint = hashlib.sha256(path.read_bytes()).hexdigest()
+        record = BlueprintRecord(
+            data=raw,
+            version=version,
+            source=source,
+            path=path,
+            fingerprint=fingerprint,
+        )
+        self._put_blueprint(record, problems)
+
+    def _put_blueprint(self, record: BlueprintRecord, problems: List[str]) -> None:
+        existing = self._blueprints.get(record.blueprint_id)
+        if existing is None:
+            self._blueprints[record.blueprint_id] = record
+            return
+        new_is_campaign = record.source.startswith(_SOURCE_CAMPAIGN)
+        old_is_campaign = existing.source.startswith(_SOURCE_CAMPAIGN)
+        if new_is_campaign and not old_is_campaign:
+            # Решение Мастера: своя версия предмета главнее общей
+            self._overrides.append(f"{record.blueprint_id}: {existing.source} -> {record.source}")
+            self._blueprints[record.blueprint_id] = record
+            return
+        problems.append(
+            f"{record.path}: два чертежа с именем '{record.blueprint_id}'"
+            f" ({existing.source} и {record.source}) — переименуйте один"
+        )
+
+    def _register_resource(self, path: Path, res_root: Path, source: str, problems: List[str]) -> None:
+        rel = path.relative_to(res_root).with_suffix("")
+        record = ResourceRecord(resource_id=rel.as_posix(), version=1, source=source, path=path)
+        existing = self._resources.get(record.resource_id)
+        if existing is None:
+            self._resources[record.resource_id] = record
+            return
+        new_is_campaign = record.source.startswith(_SOURCE_CAMPAIGN)
+        old_is_campaign = existing.source.startswith(_SOURCE_CAMPAIGN)
+        if new_is_campaign and not old_is_campaign:
+            self._overrides.append(f"ресурс {record.resource_id}: {existing.source} -> {record.source}")
+            self._resources[record.resource_id] = record
+            return
+        problems.append(
+            f"{path}: два ресурса с именем '{record.resource_id}'"
+            f" ({existing.source} и {record.source}) — переименуйте один"
+        )
+
+========== 03-RESOURCE_VALIDATOR full ==========
+"""ME-2.1 Step D: ResourceValidator — multi-level Blueprint validation.
+
+Validation levels (NOT a single boolean):
+- L1 Structural: required fields, types, geometry
+- L2 Resource: sprite file exists in pixels/
+- L3 Editor compat: type known to OBJECT_PRESETS
+- L4 Runtime compat: archetype known to backend FSMs (info only)
+
+Errors block placement. Warnings allow placement but flag issues.
+Info is informational only.
+
+Does NOT duplicate SpriteRegistry internal logic — uses file existence check only.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+
+@dataclass
+class ValidationIssue:
+    """Single validation finding."""
+
+    level: str  # "error", "warning", "info"
+    category: str  # "structural", "resource", "editor", "runtime"
+    message: str
+    field: str | None = None
+
+
+@dataclass
+class ValidationResult:
+    """Validation result for a single blueprint."""
+
+    blueprint_id: str
+    issues: list[ValidationIssue] = field(default_factory=list)
+
+    @property
+    def can_place(self) -> bool:
+        """True if no error-level issues (placement allowed)."""
+        return not any(i.level == "error" for i in self.issues)
+
+    @property
+    def fully_supported(self) -> bool:
+        """True if no error AND no warning (fully game-ready)."""
+        return not any(i.level in ("error", "warning") for i in self.issues)
+
+    @property
+    def errors(self) -> list[ValidationIssue]:
+        return [i for i in self.issues if i.level == "error"]
+
+    @property
+    def warnings(self) -> list[ValidationIssue]:
+        return [i for i in self.issues if i.level == "warning"]
+
+    @property
+    def infos(self) -> list[ValidationIssue]:
+        return [i for i in self.issues if i.level == "info"]
+
+
+class ResourceValidator:
+    """Multi-level Blueprint and resource validation."""
+
+    # Known backend archetypes (from test_object_fsms.py / build_world_object)
+    # Extension = mini-ADR (same pattern as AffordanceResolver precondition registry)
+    _KNOWN_ARCHETYPES = frozenset(
+        {
+            "door",
+            "chair",
+            "container",
+            "bed",
+            "lever",
+            "weapon",
+        }
+    )
+
+    def __init__(self, pixels_dir: Path | str) -> None:
+        self._pixels_dir = Path(pixels_dir)
+
+    def validate_blueprint(self, bp_data: dict[str, Any]) -> ValidationResult:
+        """Full validation: structural + resource + editor + runtime.
+
+        Args:
+            bp_data: Blueprint JSON data dict.
+
+        Returns ValidationResult with all issues found.
+        """
+        bp_id = str(bp_data.get("blueprint_id", "<unknown>"))
+        result = ValidationResult(blueprint_id=bp_id)
+
+        self._check_structural(bp_data, result)
+        self._check_resources(bp_data, result)
+        self._check_editor_compat(bp_data, result)
+        self._check_runtime_compat(bp_data, result)
+
+        return result
+
+    def validate_all(self, asset_store: Any) -> dict[str, ValidationResult]:
+        """Validate all blueprints in AssetStore.
+
+        Returns dict of {blueprint_id: ValidationResult}.
+        """
+        results: dict[str, ValidationResult] = {}
+        for bp_id in asset_store.list_blueprints():
+            record = asset_store.get_blueprint(bp_id)
+            if record and record.data:
+                results[bp_id] = self.validate_blueprint(record.data)
+        return results
+
+    def _check_structural(self, data: dict, result: ValidationResult) -> None:
+        """L1: Required fields and structure."""
+        for key in ("blueprint_id", "version", "compat"):
+            if key not in data:
+                result.issues.append(
+                    ValidationIssue(
+                        level="error",
+                        category="structural",
+                        message=f"Missing required field: {key}",
+                        field=key,
+                    )
+                )
+
+        for layer in ("geometry", "appearance", "physics"):
+            if layer not in data:
+                result.issues.append(
+                    ValidationIssue(
+                        level="error",
+                        category="structural",
+                        message=f"Missing layer: {layer}",
+                        field=layer,
+                    )
+                )
+
+        # Geometry size
+        geom = data.get("geometry", {})
+        size = geom.get("size", {})
+        for dim in ("w", "h", "d"):
+            val = size.get(dim, 0)
+            if not isinstance(val, int | float) or val <= 0:
+                result.issues.append(
+                    ValidationIssue(
+                        level="error",
+                        category="structural",
+                        message=f"geometry.size.{dim} must be > 0",
+                        field=f"geometry.size.{dim}",
+                    )
+                )
+
+        # Passability
+        physics = data.get("physics", {})
+        passability = physics.get("passability", {})
+        for key in ("walk", "jump_over", "crawl_under", "climb_on", "walk_around"):
+            if key not in passability:
+                result.issues.append(
+                    ValidationIssue(
+                        level="error",
+                        category="structural",
+                        message=f"physics.passability.{key} missing",
+                        field=f"physics.passability.{key}",
+                    )
+                )
+
+    def _check_resources(self, data: dict, result: ValidationResult) -> None:
+        """L2: Sprite file exists in pixels/."""
+        appearance = data.get("appearance", {})
+        sprite = appearance.get("sprite")
+
+        if sprite is None:
+            result.issues.append(
+                ValidationIssue(
+                    level="warning",
+                    category="resource",
+                    message="No sprite — uses fallback (may not render correctly)",
+                    field="appearance.sprite",
+                )
+            )
+            return
+
+        if not isinstance(sprite, list) or len(sprite) not in (3, 7):
+            length = len(sprite) if isinstance(sprite, list) else type(sprite).__name__
+            result.issues.append(
+                ValidationIssue(
+                    level="error",
+                    category="resource",
+                    message=f"Invalid sprite format: expected 3 or 7 elements, got {length}",
+                    field="appearance.sprite",
+                )
+            )
+            return
+
+        sheet_key = sprite[0]
+        if not isinstance(sheet_key, str) or not sheet_key:
+            result.issues.append(
+                ValidationIssue(
+                    level="error",
+                    category="resource",
+                    message="Sprite sheet_key must be non-empty string",
+                    field="appearance.sprite[0]",
+                )
+            )
+            return
+
+        # Check file exists (don't use SpriteRegistry — just file check)
+        path_png = self._pixels_dir / f"{sheet_key}.png"
+        path_noext = self._pixels_dir / sheet_key
+
+        if not path_png.exists() and not path_noext.exists():
+            result.issues.append(
+                ValidationIssue(
+                    level="error",
+                    category="resource",
+                    message=f"Sprite file not found: {sheet_key}",
+                    field="appearance.sprite",
+                )
+            )
+
+    def _check_editor_compat(self, data: dict, result: ValidationResult) -> None:
+        """L3: Type known to editor (OBJECT_PRESETS or new)."""
+        from data_manager import OBJECT_PRESETS
+
+        bp_type = data.get("type", "")
+        if not bp_type:
+            result.issues.append(
+                ValidationIssue(
+                    level="warning",
+                    category="editor",
+                    message="No type field — type will be inferred from blueprint_id",
+                )
+            )
+        elif bp_type not in OBJECT_PRESETS:
+            result.issues.append(
+                ValidationIssue(
+                    level="warning",
+                    category="editor",
+                    message=f"Unknown type '{bp_type}' — not in OBJECT_PRESETS (new type)",
+                )
+            )
+
+    def _check_runtime_compat(self, data: dict, result: ValidationResult) -> None:
+        """L4: Runtime archetype known to backend (info only).
+
+        Cannot fully check from frontend — backend FSMs are separate.
+        This is informational only, does not block placement.
+        """
+        bp_type = data.get("type", data.get("blueprint_id", ""))
+        if bp_type not in self._KNOWN_ARCHETYPES:
+            result.issues.append(
+                ValidationIssue(
+                    level="info",
+                    category="runtime",
+                    message=(
+                        f"Archetype '{bp_type}' may not have backend FSM — object is decorative only (no game actions)"
+                    ),
+                )
+            )
+
+========== 04-CATALOG_INDEX full ==========
+"""ME-2.1 Step C: CatalogIndex — search/filter/tags API on AssetStore.
+
+Query layer, NOT a second storage. Reads blueprint data dicts from
+AssetStore and builds an in-memory index for fast search/filter.
+Index is rebuilt on refresh() — no persistent storage.
+
+Categories support hierarchy and multiple membership:
+- A blueprint has ONE category (string)
+- A blueprint has MULTIPLE tags (list of strings)
+- Tags can represent hierarchical categories (e.g., "furniture", "furniture/indoor")
+- Filter by category is exact match; filter by tags requires ALL tags present
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from assets.asset_store import AssetStore
+
+
+class CatalogIndex:
+    """Search and filter layer on top of AssetStore."""
+
+    def __init__(self, asset_store: AssetStore) -> None:
+        self._store = asset_store
+        self._entries: dict[str, dict[str, Any]] = {}
+        self._by_category: dict[str, list[str]] = {}
+        self._by_tag: dict[str, list[str]] = {}
+        self.refresh()
+
+    def refresh(self) -> None:
+        """Rebuild index from AssetStore blueprints."""
+        self._entries.clear()
+        self._by_category.clear()
+        self._by_tag.clear()
+
+        for bp_id in self._store.list_blueprints():
+            record = self._store.get_blueprint(bp_id)
+            if not record or not record.data:
+                continue
+
+            data = record.data
+            metadata = data.get("metadata", {})
+            entry = {
+                "blueprint_id": bp_id,
+                "label": metadata.get("label", bp_id),
+                "tags": list(data.get("tags", [])),
+                "category": data.get("category", "misc"),
+                "categories": list(data.get("categories", [data.get("category", "misc")])),
+                "type": data.get("type", bp_id),
+                "sprite": data.get("appearance", {}).get("sprite"),
+                "icon": metadata.get("icon", ""),
+            }
+            self._entries[bp_id] = entry
+
+            # ME-2.1-E: hierarchical categories — index all levels
+            for cat in entry["categories"]:
+                self._by_category.setdefault(cat, []).append(bp_id)
+                # Also index parent (e.g., "furniture" from "furniture/indoor")
+                if "/" in cat:
+                    parent = cat.split("/")[0]
+                    if bp_id not in self._by_category.setdefault(parent, []):
+                        self._by_category[parent].append(bp_id)
+
+            for tag in entry["tags"]:
+                self._by_tag.setdefault(tag, []).append(bp_id)
+
+    def search(self, query: str) -> list[str]:
+        """Search by blueprint_id, label, or tags (case-insensitive).
+
+        Returns sorted list of matching blueprint_ids.
+        """
+        q = query.lower()
+        results = []
+        for bp_id, entry in self._entries.items():
+            if q in bp_id.lower() or q in entry["label"].lower() or any(q in tag.lower() for tag in entry["tags"]):
+                results.append(bp_id)
+        return sorted(results)
+
+    def filter(
+        self,
+        category: str | None = None,
+        tags: list[str] | None = None,
+    ) -> list[str]:
+        """Filter by category and/or tags.
+
+        Args:
+            category: Exact category match.
+            tags: Blueprint must have ALL specified tags.
+
+        Returns sorted list of matching blueprint_ids.
+        """
+        if category is None and not tags:
+            return sorted(self._entries.keys())
+
+        candidates = set(self._entries.keys())
+
+        if category is not None:
+            # ME-2.1-E: hierarchical filter — prefix match
+            # "furniture" matches "furniture" AND "furniture/indoor"
+            cat_ids = set()
+            for indexed_cat, bp_ids in self._by_category.items():
+                if indexed_cat == category or indexed_cat.startswith(category + "/"):
+                    cat_ids.update(bp_ids)
+            candidates &= cat_ids
+
+        if tags:
+            for tag in tags:
+                candidates &= set(self._by_tag.get(tag, []))
+
+        return sorted(candidates)
+
+    def get_preview(self, blueprint_id: str) -> dict[str, Any] | None:
+        """Get preview metadata for UI display.
+
+        Returns dict with blueprint_id, label, tags, category, type, sprite, icon.
+        Returns None if not found.
+        """
+        entry = self._entries.get(blueprint_id)
+        if entry is None:
+            return None
+        return dict(entry)
+
+    def list_categories(self) -> list[str]:
+        """All unique categories, sorted."""
+        return sorted(self._by_category.keys())
+
+    def list_tags(self) -> list[str]:
+        """All unique tags, sorted."""
+        return sorted(self._by_tag.keys())
+
+    def list_all(self) -> list[str]:
+        """All blueprint_ids, sorted."""
+        return sorted(self._entries.keys())
+
+    def list_category_tree(self) -> dict[str, list[str]]:
+        """Returns {parent: [child_categories]} for hierarchical display.
+
+        Parents without children have empty list.
+        """
+        tree: dict[str, list[str]] = {}
+        for cat in self._by_category:
+            if "/" in cat:
+                parent, child = cat.split("/", 1)
+                if child not in tree.setdefault(parent, []):
+                    tree[parent].append(child)
+            else:
+                tree.setdefault(cat, [])
+        return tree
+
+    def get_category_count(self, category: str) -> int:
+        """Number of blueprints in a category."""
+        return len(self._by_category.get(category, []))
+
+    def get_tag_count(self, tag: str) -> int:
+        """Number of blueprints with a tag."""
+        return len(self._by_tag.get(tag, []))
+
+    @property
+    def count(self) -> int:
+        """Number of indexed blueprints."""
+        return len(self._entries)
+
+========== 05-SPRITE_REGISTRY location ==========
+C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\sprite_registry.py
+
+========== 05-SPRITE_REGISTRY full ==========
+"""Реестр спрайтов для работы с тайлсетами и палитрами.
+
+path: /frontend/map_editor/sprite_registry.py
+
+Назначение: Универсальный кэширующий провайдер тайлов из спрайтшитов. Поддерживает произвольные паки палитр.
+Зависимости: pygame, typing
+Основные сущности: SpriteRegistry (singleton через модуль)
+
+Позволяет получать любой тайл из спрайтшита по ключу:
+    registry.get("Deadbeat/deadbeat_b", col, row)
+
+Синглтон создается на уровне модуля: sprite_registry
+"""
+
+import os
+from typing import Dict, Optional, Tuple
+
+import pygame
+
+# ME-D5: дома определений спрайтов (деривация ниже; цикла нет — data_manager
+# не импортирует sprite_registry, проверено S348 командой 91/92)
+from data.npc_data import NPC_SPRITE_MAP
+from data_manager import NPC_PRESETS, OBJECT_PRESETS
+
+# Базовая директория с палитрами (NEW-MVP-007 FIX: 2-Bit Pack не существует, используем pixels)
+_BASE_DIR = os.path.join(os.path.dirname(__file__), "pixels")
+# Стандартный размер тайла для 2-Bit стилей
+_DEFAULT_TILE_SIZE = 16
+
+
+class SpriteRegistry:
+    """Кэширующий провайдер тайлов из спрайтшитов."""
+
+    def __init__(self, base_dir: str = _BASE_DIR, tile_size: int = _DEFAULT_TILE_SIZE):
+        self.base_dir = base_dir
+        self.tile_size = tile_size
+        # Кэш: ключ "Папка/Файл" -> pygame.Surface (весь лист)
+        self._sheets: Dict[str, pygame.Surface] = {}
+        # Кэш: ключ "Папка/Файл:col:row" -> pygame.Surface (отдельный тайл)
+        self._tiles: Dict[str, pygame.Surface] = {}
+
+    def _load_sheet(self, sheet_key: str) -> Optional[pygame.Surface]:
+        """Загружает спрайтшит с диска, если его нет в кэше."""
+        if sheet_key in self._sheets:
+            return self._sheets[sheet_key]
+
+        # S176 FIX: Поддержка произвольной вложенности папок (Pers/traktir/Трактирщик)
+        parts = sheet_key.replace("\\", "/").strip("/").split("/")
+        if not parts:
+            return None
+
+        path = os.path.join(self.base_dir, *parts)
+
+        if not os.path.exists(path):
+            path_png = path + ".png"
+            if not os.path.exists(path_png):
+                return None
+            path = path_png
+
+        try:
+            sheet = pygame.image.load(path).convert_alpha()
+            self._sheets[sheet_key] = sheet
+            return sheet
+        except pygame.error:
+            return None
+
+    def get(self, sheet_key: str, col: int, row: int, tile_w: int = 16, tile_h: int = 16) -> Optional[pygame.Surface]:
+        """Возвращает тайл из спрайтшита по сетке.
+
+        Args:
+            sheet_key: Путь относительно папки pixels, например "Deadbeat/deadbeat_b.png"
+            col: Столбец тайла (начиная с 0)
+            row: Ряд тайла (начиная с 0)
+            tile_w: Ширина тайла (по умолчанию 16)
+            tile_h: Высота тайла (по умолчанию 16)
+        """
+        # Нормализуем ключ (убираем .png если передали)
+        clean_key = sheet_key if not sheet_key.endswith(".png") else sheet_key[:-4]
+        tile_key = f"{clean_key}:{col}:{row}:{tile_w}:{tile_h}"
+
+        if tile_key in self._tiles:
+            return self._tiles[tile_key]
+
+        sheet = self._load_sheet(clean_key)
+        if not sheet:
+            return None
+
+        x, y = col * tile_w, row * tile_h
+
+        # Защита от выхода за границы листа
+        if x + tile_w > sheet.get_width() or y + tile_h > sheet.get_height():
+            return None
+
+        tile = sheet.subsurface(pygame.Rect(x, y, tile_w, tile_h)).copy()
+        self._tiles[tile_key] = tile
+        return tile
+
+    def get_rect(
+        self, sheet_key: str, x: int, y: int, w: int, h: int, threshold: int = 220, outline: int = 1
+    ) -> Optional[pygame.Surface]:
+        """S176: Возвращает тайл по точным пиксельным координатам с настройкой фона и обводки."""
+        clean_key = sheet_key if not sheet_key.endswith(".png") else sheet_key[:-4]
+        tile_key = f"{clean_key}:R:{x}:{y}:{w}:{h}:{threshold}:{outline}"
+
+        if tile_key in self._tiles:
+            return self._tiles[tile_key]
+
+        sheet = self._load_sheet(clean_key)
+        if not sheet:
+            return None
+
+        rect = pygame.Rect(x, y, w, h)
+        if rect.right > sheet.get_width() or rect.bottom > sheet.get_height():
+            return None
+
+        tile = sheet.subsurface(rect).copy()
+        # S176 FIX: Тотальное удаление белого гало через NumPy
+        result = tile.convert_alpha()
+
+        try:
+            import numpy as np
+
+            arr = pygame.surfarray.pixels3d(result)
+            alpha = pygame.surfarray.pixels_alpha(result)
+
+            # Удаление фона по порогу (легаси S176)
+            mask = (arr[:, :, 0] > threshold) & (arr[:, :, 1] > threshold) & (arr[:, :, 2] > threshold)
+
+            # FIX BUG-07 (В1б, решение Мастера): авто-детект фона по угловым
+            # пикселям тайла. Порог из данных (часто дефолт 220) не берёт
+            # нестандартные фоны (бежевый 226,232,189: синий канал < 220).
+            # Если 4 угла однородны (допуск 24/канал) и непрозрачны — фон
+            # удаляется по цвету угла независимо от threshold; порог остаётся
+            # страховочной маской. Альфа-листы (углы прозрачны) не трогаем.
+            _corner_alphas = [int(alpha[0, 0]), int(alpha[0, -1]), int(alpha[-1, 0]), int(alpha[-1, -1])]
+            if any(_corner_alphas):
+                _ref = [int(arr[0, 0, 0]), int(arr[0, 0, 1]), int(arr[0, 0, 2])]
+                _uniform = all(
+                    max(abs(int(arr[cy, cx, i]) - _ref[i]) for i in range(3)) <= 24
+                    for cy, cx in ((0, 0), (0, -1), (-1, 0), (-1, -1))
+                )
+                if _uniform:
+                    _bg_dist = (
+                        (arr[:, :, 0].astype(int) - _ref[0]) ** 2
+                        + (arr[:, :, 1].astype(int) - _ref[1]) ** 2
+                        + (arr[:, :, 2].astype(int) - _ref[2]) ** 2
+                    )
+                    mask = mask | (_bg_dist <= 24 * 24 * 3)
+            alpha[mask] = 0
+
+            # Прозрачным пикселям задаем чёрный цвет (убирает гало при масштабировании)
+            alpha_mask = alpha == 0
+            arr[alpha_mask] = [0, 0, 0]
+
+            # S176 FIX: Внутренняя обводка (эрозия альфа-канала)
+            if outline > 0:
+                eroded = alpha.copy()
+                for _ in range(outline):
+                    temp_eroded = eroded.copy()
+                    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                        shifted = np.roll(eroded, (dx, dy), axis=(0, 1))
+                        temp_eroded = np.minimum(temp_eroded, shifted)
+                    eroded = temp_eroded
+
+                # Маска края: внутри спрайта, но эродирована
+                edge_mask = (alpha > 0) & (eroded == 0)
+                arr[edge_mask] = [0, 0, 0]
+
+            del arr, alpha
+        except Exception:
+            result.set_colorkey((255, 255, 255), pygame.RLEACCEL)
+
+        self._tiles[tile_key] = result
+        return result
+
+    def get_sheet_info(self, sheet_key: str) -> Optional[Dict[str, int]]:
+        """Возвращает информацию о листе: размер, количество столбцов и строк."""
+        clean_key = sheet_key if not sheet_key.endswith(".png") else sheet_key[:-4]
+        sheet = self._load_sheet(clean_key)
+        if not sheet:
+            return None
+        ts = self.tile_size
+        return {
+            "width": sheet.get_width(),
+            "height": sheet.get_height(),
+            "cols": sheet.get_width() // ts,
+            "rows": sheet.get_height() // ts,
+        }
+
+    def clear_cache(self) -> None:
+        """Очищает кэш (например, при смене палитры)."""
+        self._sheets.clear()
+        self._tiles.clear()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Маппинг типов сущностей (используется рендерером)
+# ═══════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════
+# Маппинг типов сущностей — ДЕРИВАЦИЯ из домов определений (ME-D5, S348)
+# Объекты: OBJECT_PRESETS[t]["sprite"] · Архетипы NPC: NPC_PRESETS[t]["sprite"]
+# Персональные NPC: NPC_SPRITE_MAP (data/npc_data.py)
+# Правка спрайта = правка в доме; здесь спрайт-литералов нет.
+# ═══════════════════════════════════════════════════════════════════
+# 7 типов без sprite в пресете (bar/gap — TODO-заглушки, MISSING_TEXTURES.md).
+# Перенос в пресеты — часть текстурных работ (ME-R-627); после переноса — удалить.
+_PRESET_SPRITE_FALLBACK: Dict[str, Tuple[str, int, int]] = {
+    "bar": ("Deadbeat/deadbeat_b", 5, 11),
+    "decoration": ("Deadbeat/deadbeat_b", 3, 9),
+    "window": ("Deadbeat/deadbeat_b", 6, 9),
+    "stairs_up": ("Deadbeat/deadbeat_b", 0, 9),
+    "stairs_down": ("Deadbeat/deadbeat_b", 0, 9),
+    "ladder": ("Deadbeat/deadbeat_b", 0, 9),
+    "portal_magic": ("Deadbeat/deadbeat_b", 6, 2),
+}
+
+
+def _derive_entity_sprite_map() -> Dict[str, Tuple[str, int, int]]:
+    derived: Dict[str, Tuple[str, int, int]] = dict(_PRESET_SPRITE_FALLBACK)
+    for _t, _p in OBJECT_PRESETS.items():
+        if "sprite" in _p:
+            derived[_t] = tuple(_p["sprite"])
+    for _a, _p in NPC_PRESETS.items():
+        if "sprite" in _p:
+            derived[_a] = tuple(_p["sprite"])
+    derived.update(NPC_SPRITE_MAP)
+    return derived
+
+
+ENTITY_SPRITE_MAP: Dict[str, Tuple[str, int, int]] = _derive_entity_sprite_map()
+
+
+def refresh_entity_sprite_map() -> None:
+    """ME-2.1-B: Rebuild ENTITY_SPRITE_MAP from current OBJECT_PRESETS + NPC_PRESETS.
+
+    Call after refresh_object_presets() to sync sprite mappings.
+    ENTITY_SPRITE_MAP is reassigned (not mutated) — only sprite_registry
+    module references it, so reassignment is safe.
+    """
+    global ENTITY_SPRITE_MAP
+    ENTITY_SPRITE_MAP = _derive_entity_sprite_map()
+
+
+def get_entity_sprite(entity_type: str) -> Optional[pygame.Surface]:
+    """Возвращает тайл для типа сущности из кэша или с диска (через глобальный реестр)."""
+    sprite_info = ENTITY_SPRITE_MAP.get(entity_type)
+    if not sprite_info:
+        return None
+    sheet_key, col, row = sprite_info
+    return sprite_registry.get(sheet_key, col, row)
+
+
+# Глобальный экземпляр реестра
+sprite_registry = SpriteRegistry()
+
+========== 06-FILE_DIALOGS grep ==========
+string RelativePath(string directory):633: from tkinter import filedialog
+string RelativePath(string directory):639: folder = filedialog.askdirectory(
+string RelativePath(string directory):659: from tkinter import filedialog
+string RelativePath(string directory):664: filepath = filedialog.askopenfilename(
+string RelativePath(string directory):896: from tkinter import filedialog
+string RelativePath(string directory):903: filepath = filedialog.asksaveasfilename(
+string RelativePath(string directory):11: from tkinter import filedialog
+string RelativePath(string directory):213: file_path = filedialog.askopenfilename(
+
+========== 07-STAGING_PREVIEW_ROLLBACK grep ==========
+string RelativePath(string directory):178: """Синхронизирует карты с saves и build/staging, пересобирает кэш графа (spatial_registry.json)."""
+string RelativePath(string directory):189: Path("build/staging/saves") / campaign_name / "locations",
+string RelativePath(string directory):190: Path("build/staging/frontend/map_editor/campaigns") / campaign_name / "locations"
+string RelativePath(string directory):135: # GAME-PREVIEW-IMPLEMENTATION-1: toggle F11 in MODE_LOCAL
+string RelativePath(string directory):136: self.preview_active: bool = False
+string RelativePath(string directory):137: self._preview_cam_offset: tuple[float, float] = (0.0, 0.0)
+string RelativePath(string directory):1749: if self.preview_active:
+string RelativePath(string directory):1750: # GAME-PREVIEW-IMPLEMENTATION-1: pan Preview camera (temporary
+string RelativePath(string directory):1756: self._preview_cam_offset = (
+string RelativePath(string directory):1757: self._preview_cam_offset[0] + dx,
+string RelativePath(string directory):1758: self._preview_cam_offset[1] + dy,
+string RelativePath(string directory):1836: # GAME-PREVIEW-IMPLEMENTATION-1: in MODE_LOCAL, F11 toggles Game Preview.
+string RelativePath(string directory):1838: if self.mode == MODE_LOCAL and self.preview_active:
+string RelativePath(string directory):1839: self._draw_game_preview()
+string RelativePath(string directory):1879: def _draw_game_preview(self):
+string RelativePath(string directory):1880: """Game Preview: renders current location through SceneRenderer using
+string RelativePath(string directory):1884: GAME-PREVIEW-IMPLEMENTATION-1.
+string RelativePath(string directory):1887: self._show_toast("Preview: нет открытой локации")
+string RelativePath(string directory):1888: self.preview_active = False
+string RelativePath(string directory):1894: self._show_toast("Preview: локация пуста или невалидна")
+string RelativePath(string directory):1897: if getattr(self, "_preview_scene_renderer", None) is None:
+string RelativePath(string directory):1900: self._preview_scene_renderer = SceneRenderer(self.screen)
+string RelativePath(string directory):1901: # GAME-PREVIEW-IMPLEMENTATION-1: apply pan offset (temporary, not saved)
+string RelativePath(string directory):1903: _pxy[0] + self._preview_cam_offset[0],
+string RelativePath(string directory):1904: _pxy[1] + self._preview_cam_offset[1],
+string RelativePath(string directory):1906: self._preview_scene_renderer.render(
+string RelativePath(string directory):54: self.preview_zoom: float = 1.0
+string RelativePath(string directory):249: self.preview_zoom = min(4.0, self.preview_zoom + 0.2)
+string RelativePath(string directory):251: self.preview_zoom = max(0.5, self.preview_zoom - 0.2)
+string RelativePath(string directory):535: # Окно превью активной эмоции (Live Preview)
+string RelativePath(string directory):548: txt_title = small_font.render(f"Превью: {label} (Zoom: {self.preview_zoom:.1f}x)", True, COLORS["text"])
+string RelativePath(string directory):559: base_size = int(160 * self.preview_zoom)
+string RelativePath(string directory):113: def get_preview(self, blueprint_id: str) -> dict[str, Any] | None:
+string RelativePath(string directory):114: """Get preview metadata for UI display.
+string RelativePath(string directory):119: # GAME-PREVIEW-IMPLEMENTATION-1: toggle Game Preview in MODE_LOCAL
+string RelativePath(string directory):121: core.preview_active = not core.preview_active
+string RelativePath(string directory):122: if core.preview_active:
+string RelativePath(string directory):123: core._preview_cam_offset = (0.0, 0.0)
+string RelativePath(string directory):124: state = "Game Preview (F11)" if core.preview_active else "Editing Mode"
+string RelativePath(string directory):127: core._show_toast("Preview доступен только в локации (MODE_LOCAL)")
+string RelativePath(string directory):12: - scene_bridge.build_perceived_scene (Map Editor Game Preview)
+string RelativePath(string directory):15: GAME-PREVIEW-IMPLEMENTATION-1.
+string RelativePath(string directory):115: - scene_bridge.build_perceived_scene (Map Editor Game Preview)
+string RelativePath(string directory):137: self._draw_preview(core)
+string RelativePath(string directory):523: def _draw_preview(self, core):
+string RelativePath(string directory):28: # GAME-PREVIEW-IMPLEMENTATION-1: walls and obstacles built by the SAME
+string RelativePath(string directory):30: # geometry interpretation in Preview — walls are split by door openings,
+string RelativePath(string directory):1: """Tests for Game Preview mode in editor_core.
+string RelativePath(string directory):3: GAME-PREVIEW-IMPLEMENTATION-1.
+string RelativePath(string directory):8: - Mode switching (preview_active field, F11 hotkey, no coordinate change)
+string RelativePath(string directory):9: - Save -> Load -> Preview (geometry preserved)
+string RelativePath(string directory):10: - Preview -> Editing (no JSON mutation)
+string RelativePath(string directory):11: - Comparison: Preview inputs vs game inputs (structural parity)
+string RelativePath(string directory):87: def test_preview_uses_same_sprite_registry(self):
+string RelativePath(string directory):94: class TestPreviewActiveField:
+string RelativePath(string directory):100: assert "self.preview_active: bool = False" in text
+string RelativePath(string directory):103: core = SimpleNamespace(preview_active=False, mode=MODE_LOCAL)
+string RelativePath(string directory):105: core.preview_active = not core.preview_active
+string RelativePath(string directory):106: assert core.preview_active is True
+string RelativePath(string directory):108: core.preview_active = not core.preview_active
+string RelativePath(string directory):109: assert core.preview_active is False
+string RelativePath(string directory):112: """Toggling preview must not change camera/zoom/JSON."""
+string RelativePath(string directory):114: preview_active=False,
+string RelativePath(string directory):124: core.preview_active = not core.preview_active
+string RelativePath(string directory):136: assert "core.preview_active = not core.preview_active" in text
+string RelativePath(string directory):147: class TestDrawGamePreview:
+string RelativePath(string directory):148: """Mandatory: 'Preview -> Editing — Нет изменений JSON'."""
+string RelativePath(string directory):157: core.preview_active = True
+string RelativePath(string directory):158: core._preview_scene_renderer = None
+string RelativePath(string directory):159: core._preview_cam_offset = (0.0, 0.0)
+string RelativePath(string directory):170: EditorCore._draw_game_preview(core)
+string RelativePath(string directory):172: assert loc_after == loc_before, "Preview mutated JSON!"
+string RelativePath(string directory):180: EditorCore._draw_game_preview(core)
+string RelativePath(string directory):189: def test_no_current_file_disables_preview(self):
+string RelativePath(string directory):194: EditorCore._draw_game_preview(core)
+string RelativePath(string directory):195: assert core.preview_active is False
+string RelativePath(string directory):201: assert core._preview_scene_renderer is None
+string RelativePath(string directory):203: EditorCore._draw_game_preview(core)
+string RelativePath(string directory):204: assert core._preview_scene_renderer is not None
+string RelativePath(string directory):207: """Preview must NOT pass avatar_state (clean frame, no blood/tunnel/shake)."""
+string RelativePath(string directory):213: EditorCore._draw_game_preview(core)
+string RelativePath(string directory):218: """_preview_cam_offset field declared in __init__."""
+string RelativePath(string directory):221: assert "self._preview_cam_offset: tuple[float, float] = (0.0, 0.0)" in src
+string RelativePath(string directory):224: """_draw_game_preview adds _preview_cam_offset to player_xy."""
+string RelativePath(string directory):228: core._preview_cam_offset = (5.0, 3.0)
+string RelativePath(string directory):231: EditorCore._draw_game_preview(core)
+string RelativePath(string directory):237: """F11 handler resets _preview_cam_offset when entering Preview."""
+string RelativePath(string directory):240: assert "core._preview_cam_offset = (0.0, 0.0)" in src
+string RelativePath(string directory):243: class TestSaveLoadPreviewRoundTrip:
+string RelativePath(string directory):244: """Mandatory: 'Save -> Load -> Preview — Геометрия сохраняется'."""
+string RelativePath(string directory):268: class TestPreviewVsGameComparison:
+string RelativePath(string directory):269: """Mandatory: 'сравнить результат Preview с игровым рендером на одной карте'.
+string RelativePath(string directory):272: Proves Preview renders the SAME world the game would render.
+string RelativePath(string directory):276: def test_preview_inputs_match_game_inputs(self):
+string RelativePath(string directory):3: GAME-PREVIEW-IMPLEMENTATION-1: canonical conversion editor JSON -> (walls, obstacles).
+string RelativePath(string directory):120: class TestPreview:
+string RelativePath(string directory):121: def test_get_preview_table(self):
+string RelativePath(string directory):123: preview = idx.get_preview("table")
+string RelativePath(string directory):124: assert preview is not None
+string RelativePath(string directory):125: assert preview["label"] == "Стол"
+string RelativePath(string directory):126: assert preview["category"] == "furniture"
+string RelativePath(string directory):127: assert "furniture" in preview["tags"]
+string RelativePath(string directory):128: assert preview["sprite"] == ["Deadbeat/deadbeat_b", 5, 11]
+string RelativePath(string directory):130: def test_get_preview_nonexistent(self):
+string RelativePath(string directory):132: assert idx.get_preview("nonexistent") is None
+string RelativePath(string directory):134: def test_preview_returns_copy(self):
+string RelativePath(string directory):136: p1 = idx.get_preview("table")
+string RelativePath(string directory):137: p2 = idx.get_preview("table")
+string RelativePath(string directory):118: preview = index.get_preview("door")
+string RelativePath(string directory):119: assert preview["label"] == "Updated Door"
+string RelativePath(string directory):212: preview = index.get_preview("door")
+string RelativePath(string directory):213: assert preview["label"] == "E2E Test Door"
+string RelativePath(string directory):248: class TestGamePreviewPath:
+string RelativePath(string directory):249: def test_geometry_data_accessible_for_preview(self, isolated_assets, editor, preserve_object_presets):
+string RelativePath(string directory):111: def test_categories_field_in_preview(self):
+string RelativePath(string directory):112: """Preview includes 'categories' list."""
+string RelativePath(string directory):114: preview = idx.get_preview("table")
+string RelativePath(string directory):115: assert preview is not None
+string RelativePath(string directory):116: assert "categories" in preview
+string RelativePath(string directory):117: assert "furniture/indoor" in preview["categories"]
+string RelativePath(string directory):1: """Tests for scene_bridge.build_perceived_scene — Game Preview parity.
+string RelativePath(string directory):3: GAME-PREVIEW-IMPLEMENTATION-1: Preview uses SAME geometry as SpatialDataLoader.
+string RelativePath(string directory):3: Toggle with F3. Shows search, category filter, card list, preview.
+string RelativePath(string directory):63: self._preview_y = self._list_y + self._list_h + pad
+string RelativePath(string directory):223: place_abs = pygame.Rect(rx + 6, ry + self._preview_y + 92, self.rect.w - 12, 24)
+string RelativePath(string directory):310: preview = self._index.get_preview(bp_id) if self._index else None
+string RelativePath(string directory):311: if preview:
+string RelativePath(string directory):312: label_text = preview.get("label", bp_id)
+string RelativePath(string directory):316: cat_text = self._category_ru.get(preview.get("category", ""), preview.get("category", ""))
+string RelativePath(string directory):330: # Preview area
+string RelativePath(string directory):331: pv_y = ry + self._preview_y
+string RelativePath(string directory):335: preview = self._index.get_preview(self._selected_bp_id)
+string RelativePath(string directory):336: if preview:
+string RelativePath(string directory):338: lbl = font_bold.render(preview.get("label", ""), True, self._text)
+string RelativePath(string directory):369: cat_str = self._category_ru.get(preview.get("category", ""), preview.get("category", ""))
+string RelativePath(string directory):370: tags_str = ", ".join(preview.get("tags", [])[:4])
+
+========== 08-ID_UNIQUENESS grep ==========
+string RelativePath(string directory):853: def _next_id(items: List[Dict], prefix: str) -> str:
+string RelativePath(string directory):1542: wall_id = self._next_id(self.locations[filename]["walls"], "wall_")
+string RelativePath(string directory):1680: obj_id = self._next_id(loc["objects"], "obj_")
+string RelativePath(string directory):1713: obj["id"] = self._next_id(loc["objects"], "obj_")
+string RelativePath(string directory):1751: passage_id = self._next_id(loc["objects"], "obj_")
+string RelativePath(string directory):1874: # ME-1.4: _next_id вместо len() — после удаления len() даёт дубликат
+string RelativePath(string directory):1876: label_id = self._next_id(loc["labels"], "label_")
+string RelativePath(string directory):449: new_id: str,
+string RelativePath(string directory):466: new_id: blueprint_id нового чертежа (slug, без / и ..).
+string RelativePath(string directory):467: new_data: dict чертежа. blueprint_id ДОЛЖЕН == new_id.
+string RelativePath(string directory):478: if not isinstance(new_id, str) or not new_id:
+string RelativePath(string directory):479: raise AssetStoreError("new_id должен быть непустой строкой")
+string RelativePath(string directory):480: if not re.match(r"^[a-zA-Z0-9_]+$", new_id):
+string RelativePath(string directory):481: raise AssetStoreError(f"new_id '{new_id}' недопустим — только латиница, цифры, _")
+string RelativePath(string directory):482: if "/" in new_id or "\\" in new_id or ".." in new_id:
+string RelativePath(string directory):483: raise AssetStoreError(f"new_id '{new_id}' содержит запрещённые символы")
+string RelativePath(string directory):487: if actual_id != new_id:
+string RelativePath(string directory):488: raise AssetStoreError(f"blueprint_id в new_data ('{actual_id}') != new_id ('{new_id}')")
+string RelativePath(string directory):491: if new_id in self._blueprints:
+string RelativePath(string directory):492: raise AssetStoreError(f"Blueprint '{new_id}' уже существует в реестре")
+string RelativePath(string directory):500: raise SaveBlocked(new_id, errors)
+string RelativePath(string directory):503: target_path = self._base / _GLOBAL_CATALOGS_DIR / "base" / _BLUEPRINTS_DIR / f"{new_id}.json"
+string RelativePath(string directory):534: raise AssetStoreError(f"Test-load tmp упал для '{new_id}':\n  " + "\n  ".join(problems))
+string RelativePath(string directory):552: raise AssetStoreError(f"Atomic rename упал для '{new_id}': {exc}") from exc
+string RelativePath(string directory):571: f"Reload упал после создания '{new_id}'. Файл удалён, реестр в pre-create состоянии: {reload_exc}"
+string RelativePath(string directory):580: logger.warning("[ASSET_STORE] cache refresh упал для '%s': %s", new_id, exc)
+string RelativePath(string directory):587: blueprint_id=new_id,
+string RelativePath(string directory):348: def new_from(self, source_id: str, new_id: str) -> EditSession:
+string RelativePath(string directory):353: 2. Проверяет допустимость new_id.
+string RelativePath(string directory):369: # 2. Проверить допустимость new_id
+string RelativePath(string directory):370: if not isinstance(new_id, str) or not new_id:
+string RelativePath(string directory):371: raise AssetStoreError("new_id должен быть непустой строкой")
+string RelativePath(string directory):372: if not re.match(r"^[a-zA-Z0-9_]+$", new_id):
+string RelativePath(string directory):373: raise AssetStoreError(f"new_id '{new_id}' недопустим — только латиница, цифры, _")
+string RelativePath(string directory):376: if new_id in self._store.list_blueprints():
+string RelativePath(string directory):377: raise AssetStoreError(f"Blueprint '{new_id}' уже существует в каталоге")
+string RelativePath(string directory):383: working["blueprint_id"] = new_id
+string RelativePath(string directory):394: blueprint_id=new_id,
+
+========== 09-OBJECT_PRESETS_DEFINITION grep ==========
+string RelativePath(string directory):56: _HARDCODED_OBJECT_PRESETS = {
+string RelativePath(string directory):672: OBJECT_PRESETS = dict(_HARDCODED_OBJECT_PRESETS)
+string RelativePath(string directory):676: """ME-2.1-B: Convert Blueprint JSON data back to OBJECT_PRESETS format.
+string RelativePath(string directory):679: this produces identical values to _HARDCODED_OBJECT_PRESETS.
+string RelativePath(string directory):712: """ME-2.1-B: Build OBJECT_PRESETS dict from AssetStore blueprints.
+string RelativePath(string directory):725: def refresh_object_presets(asset_store=None) -> bool:
+string RelativePath(string directory):726: """ME-2.1-B: Update OBJECT_PRESETS from AssetStore.
+string RelativePath(string directory):728: If asset_store is provided and has blueprints, OBJECT_PRESETS is
+string RelativePath(string directory):734: global OBJECT_PRESETS
+string RelativePath(string directory):739: OBJECT_PRESETS.clear()
+string RelativePath(string directory):740: OBJECT_PRESETS.update(new_presets)
+string RelativePath(string directory):745: OBJECT_PRESETS.clear()
+string RelativePath(string directory):746: OBJECT_PRESETS.update(_HARDCODED_OBJECT_PRESETS)
+string RelativePath(string directory):822: if otype not in OBJECT_PRESETS:
+string RelativePath(string directory):1068: preset = OBJECT_PRESETS.get(otype, OBJECT_PRESETS["decoration"])
+string RelativePath(string directory):1218: if not isinstance(otype, str) or otype not in OBJECT_PRESETS:
+string RelativePath(string directory):1677: preset = OBJECT_PRESETS.get(obj_type, OBJECT_PRESETS["decoration"])
+string RelativePath(string directory):26: OBJECT_PRESETS,
+string RelativePath(string directory):485: preset_keys = list(OBJECT_PRESETS.keys())
+string RelativePath(string directory):486: options = [OBJECT_PRESETS[k]["label"] for k in preset_keys]
+string RelativePath(string directory):1047: preset = OBJECT_PRESETS.get(obj_type, {})
+string RelativePath(string directory):1087: preset = OBJECT_PRESETS.get(obj_type, {})
+string RelativePath(string directory):23: from data_manager import NPC_PRESETS, OBJECT_PRESETS
+string RelativePath(string directory):201: # Объекты: OBJECT_PRESETS[t]["sprite"] · Архетипы NPC: NPC_PRESETS[t]["sprite"]
+string RelativePath(string directory):207: _PRESET_SPRITE_FALLBACK: Dict[str, Tuple[str, int, int]] = {
+string RelativePath(string directory):218: def _derive_entity_sprite_map() -> Dict[str, Tuple[str, int, int]]:
+string RelativePath(string directory):219: derived: Dict[str, Tuple[str, int, int]] = dict(_PRESET_SPRITE_FALLBACK)
+string RelativePath(string directory):220: for _t, _p in OBJECT_PRESETS.items():
+string RelativePath(string directory):230: ENTITY_SPRITE_MAP: Dict[str, Tuple[str, int, int]] = _derive_entity_sprite_map()
+string RelativePath(string directory):233: def refresh_entity_sprite_map() -> None:
+string RelativePath(string directory):234: """ME-2.1-B: Rebuild ENTITY_SPRITE_MAP from current OBJECT_PRESETS + NPC_PRESETS.
+string RelativePath(string directory):236: Call after refresh_object_presets() to sync sprite mappings.
+string RelativePath(string directory):237: ENTITY_SPRITE_MAP is reassigned (not mutated) — only sprite_registry
+string RelativePath(string directory):240: global ENTITY_SPRITE_MAP
+string RelativePath(string directory):241: ENTITY_SPRITE_MAP = _derive_entity_sprite_map()
+string RelativePath(string directory):246: sprite_info = ENTITY_SPRITE_MAP.get(entity_type)
+string RelativePath(string directory):135: on_cache_refresh упал — производные кэши (CatalogIndex/OBJECT_PRESETS)
+string RelativePath(string directory):243: #    обновляется через load(); CatalogIndex/OBJECT_PRESETS — производные,
+string RelativePath(string directory):244: #    обновляются через on_cache_refresh callback. ENTITY_SPRITE_MAP НЕ
+string RelativePath(string directory):271: refresh_object_presets(store) (+ refresh_entity_sprite_map() если
+string RelativePath(string directory):422: # 10. Внешний refresh кэшей (CatalogIndex + OBJECT_PRESETS + опц. ENTITY_SPRITE_MAP)
+string RelativePath(string directory):6: - L3 Editor compat: type known to OBJECT_PRESETS
+string RelativePath(string directory):219: """L3: Type known to editor (OBJECT_PRESETS or new)."""
+string RelativePath(string directory):220: from data_manager import OBJECT_PRESETS
+string RelativePath(string directory):231: elif bp_type not in OBJECT_PRESETS:
+string RelativePath(string directory):236: message=f"Unknown type '{bp_type}' — not in OBJECT_PRESETS (new type)",
+string RelativePath(string directory):11: from data_manager import OBJECT_PRESETS, DataManager
+string RelativePath(string directory):388: preset = OBJECT_PRESETS.get(obj["type"], {})
+string RelativePath(string directory):569: preset = OBJECT_PRESETS.get(obj["type"], {})
+string RelativePath(string directory):54: from data_manager import _HARDCODED_OBJECT_PRESETS, OBJECT_PRESETS
+string RelativePath(string directory):58: # After open, OBJECT_PRESETS should have 30 types from AssetStore
+string RelativePath(string directory):59: assert len(OBJECT_PRESETS) == len(_HARDCODED_OBJECT_PRESETS)
+string RelativePath(string directory):60: for t in _HARDCODED_OBJECT_PRESETS:
+string RelativePath(string directory):61: assert t in OBJECT_PRESETS
+string RelativePath(string directory):1: """ME-2.1 Step B: Derive OBJECT_PRESETS from AssetStore — equivalence tests.
+string RelativePath(string directory):4: to the hardcoded _HARDCODED_OBJECT_PRESETS. Tests round-trip:
+string RelativePath(string directory):26: from data_manager import _HARDCODED_OBJECT_PRESETS, OBJECT_PRESETS, refresh_object_presets
+string RelativePath(string directory):27: from sprite_registry import ENTITY_SPRITE_MAP, refresh_entity_sprite_map
+string RelativePath(string directory):40: """Derived OBJECT_PRESETS must match hardcoded values for all fields."""
+string RelativePath(string directory):45: refresh_object_presets(store)
+string RelativePath(string directory):46: for type_name in _HARDCODED_OBJECT_PRESETS:
+string RelativePath(string directory):47: assert type_name in OBJECT_PRESETS, f"Missing after derivation: {type_name}"
+string RelativePath(string directory):52: refresh_object_presets(store)
+string RelativePath(string directory):53: assert len(OBJECT_PRESETS) == len(_HARDCODED_OBJECT_PRESETS), (
+string RelativePath(string directory):54: f"Count mismatch: {len(OBJECT_PRESETS)} != {len(_HARDCODED_OBJECT_PRESETS)}"
+string RelativePath(string directory):59: refresh_object_presets(store)
+string RelativePath(string directory):60: for t, hardcoded in _HARDCODED_OBJECT_PRESETS.items():
+string RelativePath(string directory):61: assert OBJECT_PRESETS[t]["label"] == hardcoded["label"], f"{t}: label"
+string RelativePath(string directory):65: refresh_object_presets(store)
+string RelativePath(string directory):66: for t, hardcoded in _HARDCODED_OBJECT_PRESETS.items():
+string RelativePath(string directory):67: assert OBJECT_PRESETS[t].get("icon", "") == hardcoded.get("icon", ""), f"{t}: icon"
+string RelativePath(string directory):71: refresh_object_presets(store)
+string RelativePath(string directory):72: for t, hardcoded in _HARDCODED_OBJECT_PRESETS.items():
+string RelativePath(string directory):74: assert OBJECT_PRESETS[t]["passability"][key] == hardcoded["passability"][key], f"{t}: passability.{key}"
+string RelativePath(string directory):78: refresh_object_presets(store)
+string RelativePath(string directory):79: for t, hardcoded in _HARDCODED_OBJECT_PRESETS.items():
+string RelativePath(string directory):80: assert OBJECT_PRESETS[t]["cover"] == hardcoded["cover"], f"{t}: cover"
+string RelativePath(string directory):84: refresh_object_presets(store)
+string RelativePath(string directory):85: for t, hardcoded in _HARDCODED_OBJECT_PRESETS.items():
+string RelativePath(string directory):86: assert OBJECT_PRESETS[t]["height"] == hardcoded["height"], f"{t}: height"
+string RelativePath(string directory):90: refresh_object_presets(store)
+string RelativePath(string directory):91: for t, hardcoded in _HARDCODED_OBJECT_PRESETS.items():
+string RelativePath(string directory):92: assert OBJECT_PRESETS[t]["color"] == hardcoded["color"], f"{t}: color"
+string RelativePath(string directory):96: refresh_object_presets(store)
+string RelativePath(string directory):97: for t, hardcoded in _HARDCODED_OBJECT_PRESETS.items():
+string RelativePath(string directory):98: assert OBJECT_PRESETS[t].get("default_size", {}) == hardcoded.get("default_size", {}), f"{t}: default_size"
+string RelativePath(string directory):102: refresh_object_presets(store)
+string RelativePath(string directory):103: for t, hardcoded in _HARDCODED_OBJECT_PRESETS.items():
+string RelativePath(string directory):105: derived = OBJECT_PRESETS[t].get("sprite")
+string RelativePath(string directory):113: refresh_object_presets(store)
+string RelativePath(string directory):114: for t, hardcoded in _HARDCODED_OBJECT_PRESETS.items():
+string RelativePath(string directory):116: derived = OBJECT_PRESETS[t].get("default_properties", {})
+string RelativePath(string directory):121: refresh_object_presets(store)
+string RelativePath(string directory):122: for t, hardcoded in _HARDCODED_OBJECT_PRESETS.items():
+string RelativePath(string directory):123: assert OBJECT_PRESETS[t].get("rotation_mode", "free") == hardcoded.get("rotation_mode", "free"), (
+string RelativePath(string directory):129: refresh_object_presets(store)
+string RelativePath(string directory):130: for t, hardcoded in _HARDCODED_OBJECT_PRESETS.items():
+string RelativePath(string directory):131: assert OBJECT_PRESETS[t].get("requires_wall", False) == hardcoded.get("requires_wall", False), (
+string RelativePath(string directory):137: """refresh_object_presets(None) must restore hardcoded values."""
+string RelativePath(string directory):140: refresh_object_presets(None)
+string RelativePath(string directory):141: for t, hardcoded in _HARDCODED_OBJECT_PRESETS.items():
+string RelativePath(string directory):142: assert OBJECT_PRESETS[t] == hardcoded, f"{t}: fallback value mismatch"
+string RelativePath(string directory):148: result = refresh_object_presets(store)
+string RelativePath(string directory):150: for t in _HARDCODED_OBJECT_PRESETS:
+string RelativePath(string directory):151: assert t in OBJECT_PRESETS, f"{t}: missing after empty fallback"
+string RelativePath(string directory):155: """refresh_entity_sprite_map() must rebuild after OBJECT_PRESETS changes."""
+string RelativePath(string directory):158: """After refresh, ENTITY_SPRITE_MAP has all types."""
+string RelativePath(string directory):160: refresh_object_presets(store)
+string RelativePath(string directory):161: refresh_entity_sprite_map()
+string RelativePath(string directory):162: for t in OBJECT_PRESETS:
+string RelativePath(string directory):163: preset = OBJECT_PRESETS[t]
+string RelativePath(string directory):165: assert t in ENTITY_SPRITE_MAP, f"{t}: missing from ENTITY_SPRITE_MAP after refresh"
+string RelativePath(string directory):168: """ENTITY_SPRITE_MAP values match OBJECT_PRESETS sprites."""
+string RelativePath(string directory):170: refresh_object_presets(store)
+string RelativePath(string directory):171: refresh_entity_sprite_map()
+string RelativePath(string directory):172: for t, preset in OBJECT_PRESETS.items():
+string RelativePath(string directory):175: assert ENTITY_SPRITE_MAP.get(t) == tuple(sprite), f"{t}: ENTITY_SPRITE_MAP mismatch"
+string RelativePath(string directory):217: # sprite_registry imports OBJECT_PRESETS from data_manager — one-way
+string RelativePath(string directory):4: Изоляция: OBJECT_PRESETS сохраняется и восстанавливается через fixture.
+string RelativePath(string directory):63: def preserve_object_presets():
+string RelativePath(string directory):64: """Сохранить и восстановить глобальный OBJECT_PRESETS (изоляция G-10)."""
+string RelativePath(string directory):65: from data_manager import OBJECT_PRESETS
+string RelativePath(string directory):67: saved = copy.deepcopy(OBJECT_PRESETS)
+string RelativePath(string directory):68: yield OBJECT_PRESETS
+string RelativePath(string directory):69: OBJECT_PRESETS.clear()
+string RelativePath(string directory):70: OBJECT_PRESETS.update(saved)
+string RelativePath(string directory):78: from data_manager import refresh_object_presets
+string RelativePath(string directory):80: refresh_object_presets(store)
+string RelativePath(string directory):121: def test_object_presets_refreshed_after_save(self, isolated_assets, editor, preserve_object_presets):
+string RelativePath(string directory):127: from data_manager import OBJECT_PRESETS
+string RelativePath(string directory):129: assert OBJECT_PRESETS["door"]["label"] == "Preset Door"
+string RelativePath(string directory):144: def test_new_instance_gets_updated_data(self, isolated_assets, editor, preserve_object_presets):
+string RelativePath(string directory):151: from data_manager import OBJECT_PRESETS
+string RelativePath(string directory):153: preset = OBJECT_PRESETS["door"]
+string RelativePath(string directory):183: def test_clone_independent_after_save(self, isolated_assets, editor, preserve_object_presets):
+string RelativePath(string directory):198: def test_full_pipeline(self, isolated_assets, editor, preserve_object_presets):
+string RelativePath(string directory):214: from data_manager import OBJECT_PRESETS
+string RelativePath(string directory):216: assert OBJECT_PRESETS["door"]["label"] == "E2E Test Door"
+string RelativePath(string directory):226: def test_full_pipeline_with_clone(self, isolated_assets, editor, preserve_object_presets):
+string RelativePath(string directory):249: def test_geometry_data_accessible_for_preview(self, isolated_assets, editor, preserve_object_presets):
+string RelativePath(string directory):266: def test_scene_bridge_data_path(self, isolated_assets, editor, preserve_object_presets):
+string RelativePath(string directory):272: from data_manager import OBJECT_PRESETS
+string RelativePath(string directory):274: preset = OBJECT_PRESETS["door"]
+string RelativePath(string directory):282: def test_assetstore_remains_ssot(self, isolated_assets, editor, preserve_object_presets):
+string RelativePath(string directory):289: from data_manager import OBJECT_PRESETS, refresh_object_presets
+string RelativePath(string directory):291: refresh_object_presets(store)
+string RelativePath(string directory):292: assert OBJECT_PRESETS["door"]["label"] == "SSOT Test"
+string RelativePath(string directory):3: Verifies all OBJECT_PRESETS types are extracted to Blueprint JSON
+string RelativePath(string directory):18: # Parse OBJECT_PRESETS from source (no pygame import needed)
+string RelativePath(string directory):25: if isinstance(target, ast.Name) and target.id == "_HARDCODED_OBJECT_PRESETS":
+string RelativePath(string directory):42: """Every OBJECT_PRESETS type must have a corresponding Blueprint JSON."""
+string RelativePath(string directory):45: """All 30 types from OBJECT_PRESETS have Blueprint JSON files."""
+string RelativePath(string directory):51: """Number of Blueprint files == number of OBJECT_PRESETS types."""
+string RelativePath(string directory):59: """Every field from OBJECT_PRESETS must be preserved in Blueprint JSON."""
+string RelativePath(string directory):28: from data_manager import OBJECT_PRESETS, DataManager
+string RelativePath(string directory):102: preset = OBJECT_PRESETS.get(core.selected_object_type, {})
+string RelativePath(string directory):106: from data_manager import refresh_object_presets
+string RelativePath(string directory):107: from sprite_registry import refresh_entity_sprite_map
+string RelativePath(string directory):109: refresh_object_presets(self._store)
+string RelativePath(string directory):110: refresh_entity_sprite_map()
+
+========== 10-RESOURCES_DIR check ==========

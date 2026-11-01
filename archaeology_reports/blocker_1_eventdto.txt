@@ -1,0 +1,764 @@
+﻿=== B1.1: EventDTO class definition ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\events.py:63:class EventDTO:
+
+=== B1.2: EventDTO all fields and methods ===
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\events.py
+Start line: 63
+class EventDTO:
+    """Паспорт события. Неизменяем после создания.
+
+    Проходит через EventBus → MemoryProcessor → Persistence.
+    Никаких List[dict] больше нигде.
+    """
+
+    id: UUID
+    type: str
+    source: str  # player_name или npc_id
+    timestamp: float
+    payload: Dict[str, Any]
+    visibility: Literal["public", "private", "whisper"]
+    radius: float
+    persistence_level: Literal["working", "session", "campaign"]
+
+    @classmethod
+    def create(
+        cls,
+        event_type: str,
+        source: str,
+        payload: Dict[str, Any],
+        *,
+        visibility: Literal["public", "private", "whisper"] = "public",
+        radius: float = 999.0,
+        persistence_level: Literal["working", "session", "campaign"] = "session",
+        timestamp: float = 0.0,
+        ordinal: int = 0,
+        event_id: UUID | None = None,
+    ) -> "EventDTO":
+        """Фабричный метод — не нужно вручную передавать UUID и timestamp."""
+        # BUG-FB-037 FIX: Детерминированный event_id и timestamp (убираем wall-clock).
+        _final_ts = timestamp if timestamp != 0.0 else 0.0
+        if event_id is None:
+            # Identity-контракт (ADR: Event Identity): id = (type, source,
+            # event_tick, ordinal). Payload — DATA, не identity. ordinal=0
+            # легален только для путей с доказанной кардинальностью 1
+            # ((type, source, tick) → максимум одно событие).
+            _seed_str = f"{event_type}:{source}:{_final_ts}:{ordinal}".encode(
+                "utf-8"
+            )
+            event_id = UUID(hex=hashlib.md5(_seed_str).hexdigest())
+
+        return cls(
+            id=event_id,
+            type=event_type,
+            source=source,
+            timestamp=_final_ts,
+            payload=payload,
+            visibility=visibility,
+            radius=radius,
+            persistence_level=persistence_level,
+        )
+
+    @classmethod
+    def create_social_action(
+        cls,
+        source: str,
+        payload: Dict[str, Any],
+        visibility: str = "public",
+        radius: float = 10.0,
+    ) -> "EventDTO":
+        """S201: Фабричный метод для создания канонического SOCIAL_ACTION события.
+        visibility и radius берутся из SocialActionPayload, если не переданы явно.
+        """
+        _visibility = payload.get("visibility", visibility)
+        _radius = payload.get("radius", radius)
+        return cls.create(
+            event_type="social_action",
+            source=source,
+            payload=payload,
+            visibility=_visibility,
+            radius=_radius,
+            persistence_level="session"
+        )
+
+
+# ── Теги контрактов и обязательств (Этап 6) ──
+# Используются как теги в EventMemory для триггерного поиска и фильтрации.
+
+
+=== B1.3: EventDTO all creation points ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:1159:        _tick_completed_event = EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:1716:                _attack_event = EventDTO(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:2058:                                    _bleeded_event = EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\economy\work_orders.py:467:            EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\intent_event_adapter.py:70:        return EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:564:            _dialogue_event = EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_action_subscriber.py:34:            claim_event = EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_action_subscriber.py:51:            spoke_event = EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_action_subscriber.py:68:            attack_event = EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\execution\dialogue_materializer.py:54:        events.append(EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\execution\dialogue_materializer.py:73:            events.append(EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:1928:            _dm_evt = EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\phase_1_input.py:456:            EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\phase_1_input.py:495:            EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\phase_1_input.py:668:    _game_evt = EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\turn_pipeline.py:396:                _event = EventDTO.create_social_action(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\conclusion_gate.py:161:                    EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\delta_gate.py:100:                    EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\memory_manager.py:130:                EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\working_memory_tick.py:83:                EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\activity_lifecycle_service.py:283:            EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py:1343:    _evt_dto = EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py:1435:        _evt_dto = EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\sleep_lifecycle_service.py:389:        event = EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\sleep_lifecycle_service.py:400:        event = EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\commit_phase.py:124:                EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\input.py:44:        EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\input.py:254:            EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\spatial\player_target_pipeline.py:123:            _ge = EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\spatial\spatial_event_detector.py:90:                event = EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\spatial\spatial_event_detector.py:121:                event = EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\spatial\spatial_event_detector.py:143:                event = EventDTO.create(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\world_tick_engine.py:241:                        EventDTO.create(
+
+=== B1.4: EventDTO serialization ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\action_windup.py:42:    def to_dict(self) -> dict[str, Any]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\action_windup.py:57:    def from_dict(d: dict[str, Any]) -> "ActionWindup":
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\activity.py:94:    def to_dict(self) -> Dict[str, Any]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\activity.py:103:    def from_dict(d: Dict[str, Any]) -> "ActivityStep":
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\activity.py:132:    def to_dict(self) -> Dict[str, Any]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\activity.py:140:    def from_dict(d: Dict[str, Any]) -> "SuccessCriterion":
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\activity.py:186:    def to_dict(self) -> Dict[str, Any]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\activity.py:201:    def from_dict(d: Dict[str, Any]) -> "ActivityState":
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\communication.py:54:    def to_dict(self) -> dict[str, Any]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\communication.py:63:    def from_dict(d: dict[str, Any]) -> "ExposureLevel":
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\communication.py:136:    def to_dict(self) -> Dict[str, Any]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\communication.py:159:    def from_dict(d: Dict[str, Any]) -> "CommunicationIntent":
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\desire.py:77:    def to_dict(self) -> Dict[str, Any]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\desire.py:85:    def from_dict(d: Dict[str, Any]) -> "ProvenanceEntry":
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\desire.py:126:    def to_dict(self) -> Dict[str, Any]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\desire.py:140:    def from_dict(d: Dict[str, Any]) -> "Desire":
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\epistemology.py:86:    def to_dict(self) -> dict[str, Any]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\epistemology.py:96:    def from_dict(d: dict[str, Any]) -> "Proposition":
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\identity_events.py:25:    def from_dict(d: Dict[str, float]) -> "EffectiveDrives":
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\semantic_action.py:87:    def to_dict(self) -> dict[str, Any]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\world_object.py:217:    def to_dict(self) -> Dict[str, Any]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\world_object.py:240:    def from_dict(d: Dict[str, Any]) -> "WorldObject":
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes_stream.py:43:    return f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game\combat_math.py:248:    _log_event("attack", result.to_dict())
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\llm\provider_manager.py:450:                    f.write(json.dumps(event, ensure_ascii=False) + "\n")
+
+=== B1.5: event_id usage ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\conclusions.py:50:    causal_parent — event.id источника опыта: один event.id → один trace →
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\conclusions.py:60:    evidence: Tuple[str, ...]  # event_ids → L1-адресуемость (append-only)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\conclusions.py:62:    causal_parent: str         # event.id источника (AG1-INV-TRACE-ONCE)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\conclusions.py:88:    evidence: Tuple[str, ...] = ()             # event_ids → L1
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\conclusions.py:90:    causal_parent: str = ""                    # event.id источника опыта
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\epistemology.py:113:    event_id: str
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\events.py:91:        event_id: UUID | None = None,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\events.py:94:        # BUG-FB-037 FIX: Детерминированный event_id и timestamp (убираем wall-clock).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\events.py:96:        if event_id is None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\events.py:104:            event_id = UUID(hex=hashlib.md5(_seed_str).hexdigest())
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\events.py:107:            id=event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\motion_core.py:114:    source_id: str  # Кто/что вызвал деформацию (npc_id, "system", weather_event_id)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\presentation.py:104:    event_id: str         # UUID для связи с блокнотом/гипотезами
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\semantic_span.py:40:    source_event_id: str, start: int, end: int, span_type: str
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\semantic_span.py:44:    событием — через source_event_id (одно событие → N спанов)."""
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\semantic_span.py:45:    _seed = f"{source_event_id}:{start}:{end}:{span_type}".encode("utf-8")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\semantic_span.py:60:    source_event_id: str          # сквозной event identity (ADR-O-404)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\snapshot.py:118:    event_id: str
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\snapshot.py:223:    last_event_id: Optional[UUID]  # последнее обработанное событие
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\snapshot.py:236:    # Event Identity (ADR-O-404): записи аддитивно несут event_id/tick для
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\state_delta_proposal.py:29:    # E2.0-b AG1-п.13: каузальный родитель — event.id источника.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\state_delta_proposal.py:31:    # событием: один event.id → один trace (AG1-INV-TRACE-ONCE).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\world_projection.py:25:    event_id: str
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\causality_manifest.py:263:    # read-back frustration из персистентной сцены). source_event_id — DEBT:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\causality_manifest.py:270:    "state_delta.need_delta_payload.source_event_id": FieldCausality("DEBT", organ="provenance", terminal=None, authority="ADR-O-418"),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\causality_manifest.py:395:    "claim_event.event_id": FieldCausality("DEBT", organ="knowledge", terminal=None, authority="ADR-O-354"),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\delta_payloads.py:147:    source_event_id — O1-provenance: id события-источника (ТЗ §4.3: дельта несёт source).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\delta_payloads.py:154:    source_event_id: Optional[str] = None
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_state.py:254:    # mem_id (см. memory_manager.apply: _mem_id = f"{event.id}:{npc_id}:{digest}")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_state.py:943:            if entry.cause and entry.cause.source_event_id == state_delta_id:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\psychological.py:64:    source_event_id: Optional[UUID] = None
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\psychological.py:111:            source_event_id: Optional[str] = None
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\psychological.py:112:            if self.cause.source_event_id:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\psychological.py:113:                source_event_id = str(self.cause.source_event_id)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\psychological.py:118:                "source_event_id": source_event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\psychological.py:140:            _event_raw = _cause_dict.get("source_event_id")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\psychological.py:142:            source_event_id: Optional[UUID] = None
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\psychological.py:144:                source_event_id = UUID(_event_raw)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\psychological.py:149:                source_event_id=source_event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:496:    _KEY_EVENT_ID = "event_id"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:503:        channel: str = "narrative", event_id: str = "", tick: int = 0,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:510:        Event Identity (ADR-O-404): event_id — сквозная идентичность
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:521:        if event_id:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:522:            _entry[self._KEY_EVENT_ID] = event_id
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_board_service.py:13:    мутация Journal. event_id для ref_type=journal здесь НЕ
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py:1232:                    "event_id": evt.event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:246:    def ack_addressing(self, campaign_id: str, event_id: str) -> bool:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py:254:        return self._npc_addressing_sub.ack(campaign_id, event_id)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\chronicle\chronicle_projections.py:269:    all_event_ids: Set[str] = set()
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\chronicle\chronicle_projections.py:273:                all_event_ids.add(e.entry_id)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\chronicle\chronicle_projections.py:372:            if target_id not in all_event_ids:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\chronicle\chronicle_seeder.py:152:def _trauma_linked_event_ids(doc: ChronicleDocument) -> Set[str]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\chronicle\chronicle_seeder.py:173:    trauma_ids = _trauma_linked_event_ids(doc)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:82:            new_payload.setdefault("claim_id", f"fallback-{event.id}")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:130:            new_payload.setdefault("claim_id", f"player-claim-{event.id}")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:246:                        event_id=str(event.id),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:247:                        claim_id=payload.get("claim_id", str(event.id)),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\claim_event_subscriber.py:263:                        f"claim={payload.get('claim_id', event.id)}: {_listener_err}",
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:58:        # Провайдер — замыкание на scene_state через next_event_identity
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:93:        """Финализирует (event_tick, ordinal) → детерминированный event_id.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:107:                f"[EVENT_IDENTITY] no scene for {event.type}/{event.source} — provisional id"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_identity.py:5:Основные сущности: next_event_identity
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_identity.py:13:def next_event_identity(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_addressing_delivery_subscriber.py:45:      ack(campaign_id, event_id) — удаляет событие из delivery queue.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_addressing_delivery_subscriber.py:76:                "context (event_id=%s, source=%s). Event will not be delivered.",
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_addressing_delivery_subscriber.py:77:                event.id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_addressing_delivery_subscriber.py:113:        НЕ очищает queue (повторная выдача до ACK возвращает тот же event_id).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_addressing_delivery_subscriber.py:120:    def ack(self, campaign_id: str, event_id: str) -> bool:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_addressing_delivery_subscriber.py:124:        Проверка принадлежности кампании: если event_id не в
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_addressing_delivery_subscriber.py:132:                if str(e.id) == event_id:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_addressing_delivery_subscriber.py:141:            "event_id": str(event.id),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:295:                    # journal-запись наследует финальный event.id NPC_SPOKE
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:344:                            event_id=str(getattr(event, "id", "") or ""),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:445:                # AG1-D8p Шаг 3.2 (ADR-O-382): event.id (UUID EventDTO) —
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:448:                _event_id = str(getattr(event, "id", "") or "")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:450:                    speaker, listener, text, tone, topic, tick, event_id=_event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:469:        event_id: str = "",
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:488:            # (INV-D8P-NOOP). Dubl event.id → enqueue=False, повторная
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:494:                _ev_id = event_id or hashlib.md5(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:499:                        event_id=_ev_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:538:                    # Claim Bridge: claims наследуют сквозной event.id
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:539:                    # (параметр event_id этой функции — тот же, что у
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_dialogue_subscriber.py:547:                        event_id=event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_speech_act_subscriber.py:13:Дедупликация: event_id (Claim Bridge, ADR-O-404). Если NpcDialogueSubscriber
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_speech_act_subscriber.py:14:уже написал Claim с тем же event_id в той же сессии — дубль не пройдёт
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_speech_act_subscriber.py:15:(any(c.event_id == event_id for c in session.claims)).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_speech_act_subscriber.py:17:Без LLM. Идемпотентность по event_id.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_speech_act_subscriber.py:57:            event_id = str(getattr(event, "id", "") or "")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_speech_act_subscriber.py:84:                # Идемпотентность по event_id (Claim Bridge, ADR-O-404):
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_speech_act_subscriber.py:86:                # уже написал Claim с тем же event_id, дубль не пройдёт.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_speech_act_subscriber.py:87:                if event_id and any(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_speech_act_subscriber.py:88:                    c.event_id == event_id
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_speech_act_subscriber.py:91:                    logger.debug(f"[NPC_SPEECH_ACT] дубль event_id={event_id[:8]} — skip")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_speech_act_subscriber.py:99:                    event_id=event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\npc_speech_act_subscriber.py:104:                    f"(event={event_id[:8]}, name-len={len(name)})"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\observation_subscriber.py:108:                event_id=str(getattr(event, "id", "")),  # noqa: ENIGMA002
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\player_speech_act_subscriber.py:10:    Идемпотентность по event_id (прецедент Q5/ADR-O-382).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\player_speech_act_subscriber.py:48:            event_id = str(getattr(event, "id", "") or "")  # noqa: ENIGMA002
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\player_speech_act_subscriber.py:72:                # Идемпотентность: дубль event_id → 1 claim (Q5-прецедент).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\player_speech_act_subscriber.py:73:                if event_id and any(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\player_speech_act_subscriber.py:74:                    c.event_id == event_id
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\player_speech_act_subscriber.py:77:                    logger.debug(f"[SPEECH_ACT] дубль event_id={event_id[:8]} — skip")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\player_speech_act_subscriber.py:84:                    event_id=event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\player_speech_act_subscriber.py:88:                    f"(event={event_id[:8]}, name-len={len(name)})"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\player_speech_act_subscriber.py:106:                        "claim_id", f"player-selfintro-{event_id}"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\player_speech_act_subscriber.py:115:                        f"(listener={npc_id}, claim=player-selfintro-{event_id[:8]})"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:286:            # связанной тем же event.id (causal_parent).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:300:                    trace_id=f"{event.id}:{_event_target_id}:player",
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:303:                    causal_parent=str(event.id),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:311:                        f"({_proposal.trace_id}) — событие {event.id}"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:411:                        trace_id=f"{event.id}:{npc_id}:witness",
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:414:                        causal_parent=str(event.id),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\reaction_subscriber.py:422:                            f"({_proposal.trace_id}) — событие {event.id}"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:99:            f"(event_id={event.id}) — каузальный разрыв, актор неизвестен"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:115:                f"target_id в payload (event_id={event.id})"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:129:    event_id: str,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:142:            source_event_id=event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:218:        event_id = str(event.id)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:226:                        npc_id, need_id, field, magnitude, event_id, source_tag
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\relationship_event_semantics.py:231:            f"event_id={event_id}"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\rules_subscriber.py:151:            _event_id = getattr(event, "id", "") or str(event.get("id", ""))  # noqa: ENIGMA002
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\social_action_subscriber.py:41:                    "claim_id": f"proj-{event.id}",
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\execution\dialogue_materializer.py:78:                    # Event Identity: claim_id наследует финальный event_id
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\execution\dialogue_materializer.py:79:                    # события (ClaimEventSubscriber fallback str(event.id)) —
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:329:        from app.services.events.event_identity import next_event_identity
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:331:        def _event_identity_provider(event_type: str, source: str) -> tuple:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:340:            return next_event_identity(_scene, event_type, source)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:342:        _eb_module.get_event_bus().set_identity_provider(_event_identity_provider)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:553:            # Дедупликация по event_id (Claim Bridge) — между контурами.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:1146:    def ack_addressing(self, campaign_id: str, event_id: str) -> bool:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:1152:        return self._tick_orch.ack_addressing(campaign_id, event_id)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:1496:                if _ws.get("last_event_id") is not None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:1497:                    _ws["last_event_id"] = str(_ws["last_event_id"])
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:1943:                event_id=str(_final.id),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\journal_presentation.py:16:_KEY_EVENT_ID = "event_id"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\journal_presentation.py:24:    (event_id непуст). narrative/self без события — легально False
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\journal_presentation.py:30:        _event_id = entry.get(_KEY_EVENT_ID, "")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\journal_presentation.py:34:        # с identity (без event_id привязывать не к чему); speaker-имя
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\journal_presentation.py:37:        if _event_id:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\journal_presentation.py:38:            _spans = ground_speaker_mention(_event_id, _speaker, _text)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\journal_presentation.py:44:                "event_id": _event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\journal_presentation.py:46:                "provenance_complete": bool(_event_id),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\journal_presentation.py:50:                        "source_event_id": s.source_event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\journal_presentation.py:79:                "event_id": getattr(c, "event_id", ""),  # noqa: ENIGMA002
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\journal_presentation.py:82:                "provenance_complete": bool(getattr(c, "event_id", "")),  # noqa: ENIGMA002
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\span_grounding.py:23:    source_event_id: str, speaker: str, text: str
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\span_grounding.py:30:    if not source_event_id or not speaker or not text:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\span_grounding.py:38:            span_id=make_span_id(source_event_id, _idx, _end, SpanType.SPEAKER_MENTION.value),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\span_grounding.py:39:            source_event_id=source_event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\world_snapshot_builder.py:43:        last_event_id: Optional[Any] = None,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\world_snapshot_builder.py:62:            last_event_id: ID последнего обработанного события (опционально)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\world_snapshot_builder.py:122:                        event_id=f"{d.get('speaker_id', 'unk')}_{d.get('game_time', 0.0)}",
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\world_snapshot_builder.py:134:            last_event_id=last_event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\integration\world_snapshot_builder.py:461:            last_event_id=None,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\conclusion_engine.py:33:# "{event.id}:{owner}:{channel}" — канал player|witness. Средний сегмент
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\conclusion_engine.py:45:    """Владелец опыта из S115-формата "{event.id}:{owner}:{channel}".
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\conclusion_engine.py:47:    event.id — UUID (содержит '-', сегмент неразрушим). Неузнаваемое —
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\conclusion_gate.py:101:        # (6) Идемпотентность: один event.id -> один trace -> <=1
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\delta_gate.py:63:        trace_id/causal_parent (AG1-INV-TRACE-ONCE: один event.id →
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\dialogue_session.py:18:    Claim Bridge (ADR-O-404-наследие): event_id — сквозная идентичность
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\dialogue_session.py:28:    event_id: str = ""
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\dialogue_session.py:126:                  event_id: str = "") -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\dialogue_session.py:129:            timestamp_tick=tick, event_id=event_id
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\intelligence_queue.py:90:    event_id: str
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\intelligence_queue.py:100:        raw = f"{self.campaign_id}:{self.event_id}:{self.listener}"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\intelligence_queue.py:110:    вне лока (LLM-вызов долгий). Идемпотентность (Q5): один event.id →
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\intelligence_queue.py:148:        event_id: str,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\intelligence_queue.py:158:        False = дубль event.id (Q5-идемпотентность). Пул не резолвится —
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\intelligence_queue.py:161:            event_id=str(event_id),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\intelligence_queue.py:170:            if task.event_id in self._enqueued:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\intelligence_queue.py:173:            self._enqueued[task.event_id] = None
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\intelligence_queue.py:253:                self._applied[task.event_id] = None
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\intelligence_queue.py:321:                task.event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\intelligence_queue.py:360:                task.event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\intelligence_queue.py:369:                task.event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\intelligence_queue.py:378:                task.event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\memory_manager.py:349:        # Фаза A Шаг 9.6: BUG-FB-037 делает event.id детерминированным по
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\memory_manager.py:367:            _mem_id = f"{event.id}:{npc_id}:{_content_digest}"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\life_engine.py:146:# Формат: (event_id, описание_для_лога, генератор SceneChange)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\life_engine.py:1153:        Возвращает список (event_id, changes, intent_or_none).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\life_engine.py:2596:        event_id, changes, movement_intent = rng.choice(events)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\life_engine.py:2598:        if event_id == "minor_argument":
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\life_engine.py:2602:        logger.info(f"[LIFE_ENGINE] {npc_id}: случайное событие '{event_id}'")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:150:        строится из payload.source_event_id (UUID от EventDTO.id — ставит
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:151:        reducer). Дельта без source_event_id = MissingProvenanceError
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:175:            if not delta.payload.source_event_id:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:178:                    f"{delta.npc_id} без source_event_id — M2-писатель обязан "
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:182:                event_uuid = UUID(delta.payload.source_event_id)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:185:                    f"apply_relationship_deltas: source_event_id="
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:186:                    f"'{delta.payload.source_event_id}' не UUID"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:195:                cause=Cause(source_event_id=event_uuid),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\state_applicator.py:229:                getattr(cause, "source_event_id", None),  # noqa: ENIGMA002
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\offscreen\world_projection_buffer.py:46:                # BUG-FB-038 FIX: Детерминированный event_id через md5(tick:source:type)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\offscreen\world_projection_buffer.py:51:                        event_id=f"proj_{_proj_id}",
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\offscreen\world_projection_buffer.py:87:                        event_id=f"proj_{_proj_id}",
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\perception\narrative_projector.py:36:    Не генерирует event_id (ожидает его в raw_dialogues).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\perception\narrative_projector.py:56:            event_id = d.get("event_id", "") # Ожидаем event_id снаружи!
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\perception\narrative_projector.py:79:                event_id=event_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\commit_phase.py:90:    # Идентичность события — Single Writer next_event_identity, не отдельная
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene\narrative_extractor.py:238:    event_id: str
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene\narrative_extractor.py:439:                        event_id=f"evt_{uuid.uuid4().hex[:6]}",
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state\scene_factory.py:251:        # Порядковый компонент event_id. Единственный писатель —
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state\scene_factory.py:252:        # next_event_identity (services/events/event_identity.py). Загруженные
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\social\relationship_dynamics.py:159:                        source_event_id=str(cause),
+
+=== B1.6: EventDTO equality usage ===
+
+=== B1.7: EventLog / world_event in scene_state ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py:514:            world_changes = world_result.get("world_events", []) if world_result else []
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\world_sim_agent.py:56:                "world_events": [response],
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\world_sim_agent.py:134:            "world_events": [f"Мир в {location} продолжает существовать."],
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\world_state_diff.py:21:    world_events: List[str]               # ["goran_killed", "lusya_escaped"]
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world_scheduler.py:53:        result = {"world_events": _events, "simulation_log": "offscreen_tick_ok"}
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world_scheduler.py:57:            "events": result.get("world_events", []),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world_scheduler.py:63:            "events": result.get("world_events", []),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:52:        self._event_log: List[EventDTO] = []  # последние 100 событий для debug
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:196:        self._event_log.append(event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:197:        if len(self._event_log) > 100:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:198:            self._event_log.pop(0)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:246:                for e in self._event_log
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:250:        return self._event_log[-limit:]
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:259:        self._event_log.clear()
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\observation_subscriber.py:72:    def on_world_event(self, event: Any) -> None:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\observation_subscriber.py:76:        print(f"[OBS_DIAG] on_world_event: type={event_type!r}")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:645:            _bus.subscribe(EventType.THEFT, _obs_sub.on_world_event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:649:            _bus.subscribe(EventType.PLAYER_ATTACKED, _obs_sub.on_world_event)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:1631:                "world_events": state.world_tick_meta.get("events", []),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:1923:            # финализированной копии (_event_log[-1] детерминирован: чтение
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:1939:            _final = get_event_bus()._event_log[-1]
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:2104:        world_result: dict[str, Any] = {"world_events": []}
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\state\world_diff_builder.py:37:        world_events: List[str] = []
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\state\world_diff_builder.py:41:                world_events.append(f"{state.npc_id}_{state.resolved_fate.value}")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\state\world_diff_builder.py:71:            world_events=world_events,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\time_skip_executor.py:60:    event_log: List[Any]  # List[StateDeltas]
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\time_skip_executor.py:290:        event_log: List[Any] = []
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\time_skip_executor.py:309:            event_log.extend(result.significant_events or [])
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\time_skip_executor.py:313:            event_log=event_log,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\time_skip_executor.py:336:        event_log: List[Any] = []
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\time_skip_executor.py:358:            event_log.extend(result.significant_events or [])
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\time_skip_executor.py:367:                    event_log=event_log,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\time_skip_executor.py:377:            event_log=event_log,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\time_skip_executor.py:402:        event_log: List[Any] = []
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\time_skip_executor.py:423:            event_log.extend(result.significant_events or [])
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\time_skip_executor.py:439:        summary = self._compress(checkpoints, event_log, context)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\time_skip_executor.py:443:            event_log=event_log,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\time_skip_executor.py:454:        event_log: List[Any],
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\time_skip_executor.py:463:            total_ticks=len(event_log),
+
+=== B1.8: next_event_identity contract ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py:58:        # Провайдер — замыкание на scene_state через next_event_identity
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_identity.py:5:Основные сущности: next_event_identity
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_identity.py:13:def next_event_identity(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:329:        from app.services.events.event_identity import next_event_identity
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py:340:            return next_event_identity(_scene, event_type, source)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\commit_phase.py:90:    # Идентичность события — Single Writer next_event_identity, не отдельная
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state\scene_factory.py:252:        # next_event_identity (services/events/event_identity.py). Загруженные
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_identity.py
+Start line: 13
+def next_event_identity(
+    scene_state: Dict[str, Any], event_type: str, source: str
+) -> Tuple[int, int]:
+    """Выделяет (event_tick, ordinal) для нового события.
+
+    Единственная точка инкремента счётчиков identity (Single Writer —
+    не DOUBLE TRUTH). Пропуски ordinal легальны: счётчик монотонный,
+    не плотный (прецедент commitment_ordinals, ADR-O-363 закон №4).
+    Загруженный сейв без контейнера или без конкретного ключа
+    самовосстанавливается здесь же — миграция без миграционной системы.
+    """
+    ordinals = scene_state.setdefault(_KEY_ORDINALS, {})
+    key = f"{event_type}:{source}"
+    ordinal = int(ordinals.get(key, 0)) + 1
+    ordinals[key] = ordinal
+    tick = int(scene_state.get("tick", 0) or 0)
+    return tick, ordinal
+
+=== B1.9: scene_state persistence contract ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1415:    """B1.4-FIX + R2-В (S244): единый приёмник GameLoop.save_scene_state.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1422:    game_loop.save_scene_state(campaign_id, scene_state)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py:140:      8. save_scene_state → сохранить в campaign_state.json
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py:259:                "[SCENE] reset_campaign_persistence: PersistencePort отсутствует — пропуск"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py:281:            # СНИМАЕМ LOCK ДО save — иначе guard в save_scene_state() сделает return!
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py:288:                    if self._persistence and _valid_scenes:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py:301:                    if self._persistence and self._tick_scenes:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py:303:                        _verify = self._persistence.load_scene(campaign_id)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py:325:        Этот метод обновляет persistence target БЕЗ мутации исходного scene_state.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py:380:        """Загружает scene_state из persistence БЕЗ кэша.
+
+=== B1.10: EventDTO frozen check ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\contracts\interventions.py:13:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\core\calendar.py:36:@dataclass(frozen=True, slots=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\core\content_policy.py:24:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\core\startup_gate.py:70:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\action_windup.py:22:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\activity.py:77:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\activity.py:119:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\activity.py:148:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\activity.py:221:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\attention.py:69:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\attention.py:135:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\attention_inference.py:44:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\attention_inference.py:230:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\attention_inference.py:242:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\attention_inference.py:255:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\attention_inference.py:268:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\behavior.py:17:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\body.py:29:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\body.py:41:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\body.py:101:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\body.py:116:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\body.py:130:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\body_state_view.py:27:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\chronicle.py:138:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\chronicle.py:154:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\chronicle.py:190:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\chronicle.py:208:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\chronicle.py:262:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\chronicle.py:294:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\chronicle.py:331:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\chronicle.py:358:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\chronicle.py:389:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\chronicle.py:404:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\chronicle.py:416:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\communication.py:43:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\communication.py:90:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\communication.py:110:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\conclusions.py:39:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\conclusions.py:68:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\decision_context.py:9:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\decision_context.py:19:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\decision_context.py:30:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\desire.py:58:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\desire.py:93:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\desired_change.py:37:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\disclosure.py:27:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\disclosure.py:57:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\disclosure.py:67:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\embodied_trace.py:13:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\epistemology.py:75:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\epistemology.py:107:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\epistemology.py:122:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\epistemology.py:136:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\events.py:62:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\events.py:63:class EventDTO:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\execution.py:77:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\identity_events.py:14:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\identity_events.py:32:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\identity_events.py:49:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\identity_events.py:62:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\idle_projection.py:19:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\inference.py:14:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\intent.py:13:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\intent.py:56:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\manifestation.py:14:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\manifestation.py:24:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\manifestation.py:31:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\manifestation.py:42:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\manifestation.py:49:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\manifestation.py:57:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\manifestation.py:66:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\manifestation.py:76:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\motion_core.py:26:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\motion_core.py:52:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\motion_core.py:71:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\motion_core.py:84:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\motion_core.py:99:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\motion_core.py:117:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\movement.py:76:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\object_fsms.py:66:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\observatory.py:11:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\observatory.py:20:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\observatory.py:28:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\observatory.py:37:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\observatory.py:46:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\observatory.py:54:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\observatory.py:62:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\observatory.py:72:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\observatory.py:78:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\observed_fact.py:14:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\observed_facts.py:14:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\observed_facts.py:25:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\perception.py:11:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\perception.py:25:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\perception_physics.py:15:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\perception_physics.py:30:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\player_epistemics.py:47:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\player_epistemics.py:62:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\player_epistemics.py:77:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\player_epistemics.py:91:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\presentation.py:21:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\presentation.py:28:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\presentation.py:37:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\presentation.py:45:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\presentation.py:51:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\presentation.py:63:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\presentation.py:68:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\presentation.py:77:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\presentation.py:85:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\presentation.py:92:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\presentation.py:101:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\presentation.py:117:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\presentation.py:123:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\relationship_contracts.py:122:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\relationship_contracts.py:182:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\relationship_contracts.py:214:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\relationship_contracts.py:249:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\relationship_contracts.py:272:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\semantic_action.py:51:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\semantic_action.py:65:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\semantic_span.py:49:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\snapshot.py:38:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\snapshot.py:73:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\snapshot.py:104:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\snapshot.py:114:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\snapshot.py:125:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\snapshot.py:135:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\snapshot.py:145:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\snapshot.py:163:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\snapshot.py:171:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\snapshot.py:183:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\snapshot.py:213:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\spatial_target.py:26:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\spatial_target.py:34:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\spatial_target.py:47:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\state_delta_proposal.py:12:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\subject_ref.py:27:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\temporal_specs.py:35:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\temporal_specs.py:44:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\tick.py:148:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\tick.py:230:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\tick.py:259:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\traversal.py:20:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\traversal.py:26:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\traversal.py:33:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\traversal.py:42:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\traversal.py:55:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\traversal.py:63:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\traversal.py:73:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\traversal.py:80:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\traversal.py:88:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\traversal.py:97:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\traversal_schema.py:114:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\traversal_schema.py:147:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\world_object.py:86:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\world_object.py:97:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\world_projection.py:21:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\memetic\voice_archetype.py:21:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\affect.py:18:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\affect.py:62:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\causality_manifest.py:40:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\cfrm.py:41:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\cfrm.py:223:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\cfrm.py:314:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\cfrm.py:343:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\cfrm.py:367:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\character.py:59:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\cognitive_dissonance.py:12:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\contracts.py:8:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\delta_payloads.py:19:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\delta_payloads.py:30:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\delta_payloads.py:44:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\delta_payloads.py:51:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\delta_payloads.py:68:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\delta_payloads.py:79:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\delta_payloads.py:95:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\delta_payloads.py:123:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\delta_payloads.py:130:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\delta_payloads.py:141:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\dilemma.py:21:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\dilemma.py:29:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\dilemma.py:39:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\dilemma.py:47:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\economy.py:78:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\economy.py:204:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\end_screen.py:17:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\end_screen.py:24:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\evaluation.py:13:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\evaluation.py:22:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\event_resolution.py:34:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\event_resolution.py:56:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\event_resolution.py:85:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\faction.py:12:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\fate.py:28:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\fate.py:40:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\impact.py:29:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\interpretation.py:15:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\last_words.py:19:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\locomotion.py:15:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\locomotion.py:29:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\locomotion.py:40:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_profile.py:28:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_profile.py:42:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_profile.py:57:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_state.py:213:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_state.py:383:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_state.py:468:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_state.py:1390:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\observation.py:21:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\observation.py:41:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py:33:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\physical.py:57:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\physical.py:243:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\player_action.py:23:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\player_belief.py:19:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\psychological.py:25:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\psychological.py:61:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\psychological.py:71:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\scene_event.py:25:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\social.py:78:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\social.py:98:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\social_fabric.py:12:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\social_fabric.py:39:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\spatial_contracts.py:56:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\temporal.py:25:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\thick_scene_change.py:28:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\thick_scene_change.py:43:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\thick_scene_change.py:58:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\thick_scene_change.py:70:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\thick_scene_change.py:85:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\truth_state.py:24:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\truth_state.py:38:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\truth_state.py:45:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\will.py:40:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\will.py:60:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\will.py:87:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\world_snapshot.py:25:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\world_state_diff.py:13:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc\beliefs.py:24:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc\beliefs.py:34:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc\experience_trace.py:21:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc\memory_crystal.py:14:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\dto.py:224:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\action\commitment_arbiter.py:79:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\action\dm_orchestrator.py:22:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\action\dm_router.py:125:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\action\dm_router.py:136:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\action\dm_scene_builder.py:19:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\calibration\experiment_runner.py:54:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\calibration\experiment_runner.py:91:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\calibration\preset_io.py:69:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\calibration\preset_io.py:81:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\calibration\preset_materializer.py:45:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\calibration\profile.py:14:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\calibration\scenario_player.py:56:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\calibration\scenario_player.py:67:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\calibration\superbox_adapter.py:32:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\chronicle\age_anchor.py:33:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\chronicle\biography_decomposer.py:78:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\chronicle\causal_linker.py:44:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\chronicle\causal_linker.py:52:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\chronicle\chronicle_seeder.py:401:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\chronicle\chronicle_seeder.py:421:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\chronicle\consistency_service.py:39:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\chronicle\consistency_service.py:48:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\chronicle\consistency_service.py:59:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\economy\opportunity_engine.py:85:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\economy\opportunity_engine.py:119:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\rules_subscriber.py:61:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\dm_phase.py:30:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\npc_orchestration.py:21:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\task_scheduler.py:17:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\tick_context.py:23:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\tick_context.py:74:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\input\semantic_library\__init__.py:37:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\intelligence_queue.py:81:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\promotion_engine.py:59:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\resonance_engine.py:72:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\act_consumer.py:30:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\behavior_modifiers.py:14:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\break_progress_engine.py:55:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\knowledge_retrieval.py:31:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_contracts.py:34:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_contracts.py:75:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\personal_route_resolver.py:23:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\resolution_engine.py:45:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\resolution_engine.py:76:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\decision\relationship_profile.py:20:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\decision\risk_profile.py:28:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\perception\behavior_manifestation_service.py:39:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\affective.py:19:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\idle_services.py:19:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\input.py:18:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\integration.py:20:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_cognition\discovery_bridge.py:45:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\probes\probe_registry.py:11:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\reaction\micro_event.py:27:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\social\reputation_engine.py:27:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\spatial\player_target_pipeline.py:35:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\spatial\spatial_events.py:22:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\spatial\spatial_registry.py:22:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\spatial\spatial_registry.py:37:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\spatial\spatial_registry.py:50:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\state\migration_runner.py:82:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\state\migration_runner.py:99:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\state\migration_runner.py:114:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\state\save_format_detector.py:56:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\state\save_migrations.py:77:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\verbalization\dm_contract_builder.py:43:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\verbalization\dm_response_normalizer.py:18:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\verbalization\scene_outcome_builder.py:65:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\verbalization\scene_outcome_builder.py:75:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\verbalization\scene_outcome_builder.py:109:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\verbalization\scene_outcome_builder.py:118:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\verbalization\scene_outcome_builder.py:145:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\verbalization\scene_outcome_builder.py:154:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\verbalization\scene_outcome_builder.py:201:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\verbalization\state_interpreter.py:198:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\verbalization\tension_synthesizer.py:22:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\verbalization\verbalization_context.py:20:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\verbalization\verbalization_context.py:38:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\verbalization\verbal_stance.py:37:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\g3_executor.py:50:@dataclass(frozen=True)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\world\world_object_spawner.py:61:@dataclass(frozen=True)
+

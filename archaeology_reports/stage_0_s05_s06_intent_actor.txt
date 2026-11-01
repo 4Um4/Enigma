@@ -1,0 +1,887 @@
+﻿============================================================
+
+STAGE 0 - S0.5 INTENT OWNER + S0.6 ACTOR IDENTITY
+
+Mode: READ ONLY - per Master verdict
+
+Identity Contract: APPROVED (semantic), implementation HOLD
+
+Principle: KTO XOTEL != KTO DEYSTVOVAL != CHEREZ KAKOE TELO != KAK ETO UVIDEL MIR
+
+Generated: 2026-11-01 20:12:13
+
+============================================================
+
+============================================================
+
+S0.5 - INTENT OWNER
+
+Question: Where is authorship PRESERVED vs DERIVED retroactively?
+
+============================================================
+
+--- Item 1: DecisionResult ---
+
+[READ] DecisionResult class  backend\app\services\npc\decision_hub.py L119-163 (class at L119)
+  119: class DecisionResult:
+  120:     """
+  121:     Результат DecisionHub.compute() — read-only контракт.
+  122:     StateApplicator читает это и применяет изменения атомарно.
+  123:     """
+  124: 
+  125:     npc_id: str
+  126:     intent: Intent
+  127:     intent_target: Optional[str]
+  128:     score: float  # итоговый score победившего intent
+  129:     scores_trace: Dict[str, float]  # все scores для калибровки R4.2
+  130:     deltas: List[StateDeltas]  # ADR-013: Каноничный v2 (Domain-Tagged Payloads)
+  131:     narrative_fact: Optional[str] = None  # текстовое описание для scene_outcome_builder
+  132:     explanation_mode: bool = False  # True если intent=EXPLAIN
+  133:     expected_success: float = 0.0  # Резолвер: ожидаемый шанс успеха (нормализованный score). 0.0 = не вычислялся.
+  134: 
+  135: 
+  136: @dataclass
+  137: class AgentAction:
+  138:     """Агрегат: gameplay-решение + опциональная речь (Устав 2.2).
+  139: 
+  140:     Наследует все поля DecisionResult через .decision.
+  141:     StateApplicator, ReactionResolver — берут .decision (обратная совместимость).
+  142:     DialogueEngine — берёт .communication (если есть).
+  143:     """
+  144: 
+  145:     decision: DecisionResult
+  146:     communication: Optional[CommunicationIntent] = None
+  147: 
+  148:     # Делегируем часто используемые поля — потребители не заметят
+  149:     @property
+  150:     def npc_id(self) -> str:
+  151:         return self.decision.npc_id
+  152: 
+  153:     @property
+  154:     def intent(self) -> Intent:
+  155:         return self.decision.intent
+  156: 
+  157:     @property
+  158:     def score(self) -> float:
+  159:         return self.decision.score
+  160: 
+  161:     @property
+  162:     def deltas(self) -> List[StateDeltas]:
+  163:         return self.decision.deltas
+
+[SEARCH] DecisionResult construction sites  pattern: /DecisionResult\(/
+  8 matches:
+  backend\app\services\npc\decision_hub.py:446 : decision=DecisionResult(
+  backend\app\services\npc\decision_hub.py:720 : decision=DecisionResult(
+  backend\app\services\npc\decision_hub.py:896 : _decision = DecisionResult(
+  backend\app\services\npc\decision_hub.py:2042 : _decision = DecisionResult(
+  backend\tests\test_dm_frame.py:59 : return DecisionResult(
+  backend\tests\test_scene_outcome_builder.py:77 : return DecisionResult(
+  backend\tests\test_state_applicator_pipeline.py:36 : result = DecisionResult(
+  backend\tests\test_state_applicator_pipeline.py:79 : result = DecisionResult(
+
+--- Item 2: CommunicationIntent ---
+
+[READ] CommunicationIntent class  backend\app\domain\communication.py L111-155 (class at L111)
+  111: class CommunicationIntent:
+  112:     """Единый источник истины для всей цепочки ответа NPC.
+  113: 
+  114:     Создаётся DecisionHub ПОСЛЕ TopicExtractor.
+  115:     Не допускается создание с пустым topic.
+  116:     """
+  117: 
+  118:     speaker: str  # npc_id
+  119:     audience: str  # 'player' | npc_id | 'all'
+  120:     topic: str  # 'торговля_мечом', 'угроза_бандитов' — из TopicExtractor
+  121:     intent_type: str  # 'диалог', 'приказ', 'ложь', 'вопрос'
+  122:     emotional_state: str  # 'злость', 'страх', 'любопытство'
+  123:     exposure_level: ExposureLevel
+  124:     semantic_action: Optional[str] = (
+  125:         None  # GAP8 FIX: Тип социального акта (MOVE, THREATEN, PERSUADE, GIVE)
+  126:     )
+  127:     target_id: Optional[str] = (
+  128:         None  # GAP8 FIX: ID цели директивы (для NPC-to-NPC Social Physics)
+  129:     )
+  130:     thread_id: str = ""  # BUG-DL-04: ID нити диалога
+  131:     priority: float = 0.5  # H-28 FIX: DRF overlay для модуляции приоритета реплик
+  132:     # S197: Causal Provenance. Утверждение, породившее этот Intent.
+  133:     # Пробрасывается из EpistemicContext через DecisionHub в DialogueRequest.
+  134:     proposition: Optional[Proposition] = None
+  135: 
+  136:     def to_dict(self) -> Dict[str, Any]:
+  137:         """Э6 (Н-40): JSON-сериализация для scene_state-персистентности
+  138:         (_pending_intents → scene_state). Все поля — примитивы или
+  139:         сериализуемые доменные объекты (§12 WARA)."""
+  140:         # §1.1: proposition опционален — явная ветка вместо тернарника.
+  141:         proposition_dict: Optional[Dict[str, Any]] = None
+  142:         if self.proposition is not None:
+  143:             proposition_dict = self.proposition.to_dict()
+  144:         return {
+  145:             "speaker": self.speaker,
+  146:             "audience": self.audience,
+  147:             "topic": self.topic,
+  148:             "intent_type": self.intent_type,
+  149:             "emotional_state": self.emotional_state,
+  150:             "exposure_level": self.exposure_level.to_dict(),
+  151:             "semantic_action": self.semantic_action,
+  152:             "target_id": self.target_id,
+  153:             "thread_id": self.thread_id,
+  154:             "priority": self.priority,
+  155:             "proposition": proposition_dict,
+
+[SEARCH] CommunicationIntent construction sites  pattern: /CommunicationIntent\(/
+  13 matches:
+  backend\app\domain\communication.py:168 : return CommunicationIntent(
+  backend\app\services\npc\decision_hub.py:354 : return CommunicationIntent(
+  backend\app\services\npc\npc_tick_pipeline.py:1098 : _attack_intent = CommunicationIntent(
+  backend\tests\sandbox\SUPERBOX\scenarios\agency_steal_test.py:107 : _intent = CommunicationIntent(
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_interrupt_test.py:92 : _intent = CommunicationIntent(
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:256 : _intent = CommunicationIntent(
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:216 : _intent = CommunicationIntent(
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:241 : _intent = CommunicationIntent(
+  backend\tests\sandbox\g3_execution_probe.py:42 : _intent = CommunicationIntent(
+  backend\tests\IPT.py:1734 : _mock_intent = CommunicationIntent(
+  backend\tests\test_action_commitment.py:1325 : _orig = CommunicationIntent(
+  backend\tests\test_action_commitment.py:1347 : _orig = CommunicationIntent(
+  backend\tests\test_post_decision_t04_producer.py:18 : CommunicationIntent(
+
+--- Item 3: MacroMovementGoal ---
+
+[READ] MacroMovementGoal class  backend\app\domain\movement.py L36-80 (class at L36)
+  36: class MacroMovementGoal:
+  37:     """LOD1: Навигация по графу локации (двери, зоны, комнаты).
+  38: 
+  39:     Генерируется: LifeEngine (schedule/need-driven).
+  40:     Обрабатывается: MovementEngine (Слой 2).
+  41:     Конвертация в {x, y} — ответственность MovementEngine.
+  42:     """
+  43: 
+  44:     actor_id: str  # ADR-O-314: Actor-Agnostic ("player", "tornin")
+  45:     target_node_id: str = ""  # ADR-O-330: Заполняется адаптером, если есть target_intent
+  46:     target_intent: Optional[SpatialTargetIntent] = None  # ADR-O-330: Семантическая цель
+  47:     from_node_id: str = ""  # текущий узел — для pathfinding (Слой 2)
+  48:     location_id: str = ""  # для загрузки правильного графа
+  49:     reason: str = ""  # "need_driven:hunger", "schedule:working"
+  50:     domain: IntentDomain = (
+  51:         IntentDomain.ROUTINE
+  52:     )  # ДОЛГ 4.3: Онтологический домен намерения
+  53:     priority: float = 0.5  # 0.0–1.0, для разрешения конфликтов intent-ов
+  54:     target_local_xy: Optional[tuple[float, float]] = (
+  55:         None  # ADR-065: Точные координаты цели внутри узла (для подхода к игроку)
+  56:     )
+  57:     intent_id: str = field(default_factory=lambda: str(uuid.uuid4())) # P1-09: Уникальный ID для трекинга
+  58:     # MOVEMENT-V2 (мандат Phase A): семантическая цель — «ГДЕ ХОЧУ ОКАЗАТЬСЯ».
+  59:     # Инвариант I-MV2: final_* НЕ мутируется навигацией (boundary/waypoint
+  60:     # перезаписывают только target_node_id). Пусто = цель совпадает с
+  61:     # target_node_id (обратная совместимость всех существующих создателей).
+  62:     final_location_id: str = ""
+  63:     final_node_id: str = ""
+  64:     # ADR-O-333: Embodied Traversal. Контракт физического тела для навигации.
+  65:     body_capabilities: BodyCapabilities = field(default_factory=BodyCapabilities)
+  66:     # ADR-XXXX: Инвариант единого владения причинностью. Один Intent → один process_intents() → одно будущее.
+  67:     processed: bool = field(default=False, init=False)
+  68:     processor: Optional[str] = field(default=None, init=False)
+  69: 
+  70:     @property
+  71:     def npc_id(self) -> str:
+  72:         """Alias for actor_id (backward compatibility)."""
+  73:         return self.actor_id
+  74: 
+  75: 
+  76: @dataclass(frozen=True)
+  77: class MovementRequest:
+  78:     """Контракт перемещения от Слоя Интерпретации к Симуляции.
+  79: 
+  80:     Содержит готовые ID акторов, извлечённые LLM/IntentCompressor,
+
+[SEARCH] MacroMovementGoal construction sites  pattern: /MacroMovementGoal\(/
+  21 matches:
+  backend\app\services\game_loop\turn_pipeline.py:473 : _player_goal = MacroMovementGoal(
+  backend\app\services\npc\activity_lifecycle_service.py:212 : return MacroMovementGoal(
+  backend\app\services\npc\life_engine.py:732 : _exploration_intent = MacroMovementGoal(
+  backend\app\services\npc\life_engine.py:1183 : MacroMovementGoal(
+  backend\app\services\npc\life_engine.py:1699 : goal = MacroMovementGoal(
+  backend\app\services\npc\life_engine.py:1713 : goal = MacroMovementGoal(
+  backend\app\services\npc\life_engine.py:2169 : intent = MacroMovementGoal(
+  backend\app\services\npc\life_engine.py:2301 : intent = MacroMovementGoal(
+  backend\app\services\npc\npc_tick_pipeline.py:1167 : _movement = MacroMovementGoal(
+  backend\app\services\npc\npc_tick_pipeline.py:1693 : return MacroMovementGoal(
+  backend\app\services\npc\npc_tick_pipeline.py:1765 : _goal = MacroMovementGoal(
+  backend\tests\micro\test_prefix_target_loc_gate.py:35 : intent = MacroMovementGoal(
+  backend\tests\sandbox\micro\test_boundary_transition.py:151 : intent = MacroMovementGoal(
+  backend\tests\sandbox\micro\test_lod_arbitration.py:24 : macro = MacroMovementGoal(actor_id="test_npc", target_node_id="bar_area")
+  backend\tests\sandbox\micro\test_lod_arbitration.py:53 : macro = MacroMovementGoal(actor_id="test_npc", target_node_id="bar_area")
+  backend\tests\sandbox\SUPERBOX\scenarios\spatial_knowledge_divergence_test.py:105 : if "cross-loc relocation intent" in src_le and "MacroMovementGoal(" in src_le:
+  backend\tests\sandbox\test_causal_bridge_integration.py:155 : intent = MacroMovementGoal(
+  backend\tests\sandbox\test_causal_bridge_integration.py:200 : intent = MacroMovementGoal(
+  backend\tests\sandbox\test_causal_bridge_integration.py:242 : intent = MacroMovementGoal(
+  backend\tests\sandbox\test_viability_compression.py:185 : intent = MacroMovementGoal(actor_id="test", target_node_id="bar")
+  backend\tests\sandbox\test_viability_compression.py:190 : flee = MacroMovementGoal(
+
+--- Item 4: InterventionEvent ---
+
+[READ] InterventionEvent class  backend\app\contracts\interventions.py L14-35 (class at L14)
+  14: class InterventionEvent:
+  15:     """Внешнее вмешательство в мир (TZ-08 v0.2).
+  16: 
+  17:     Ядро симуляции (TickOrchestrator) не знает 'player', 'CK successor' или 'world_scheduler'.
+  18:     Ядро обрабатывает interventions как недифференцированный data stream.
+  19:     Любая семантическая классификация переносится в downstream-слои.
+  20:     """
+  21: 
+  22:     source: str
+  23:     payload: Dict[str, Any]
+  24:     tick: int
+  25: 
+  26:     @classmethod
+  27:     def from_player_action(
+  28:         cls, action_text: str, player_name: str, tick: int, **kwargs: Any
+  29:     ) -> "InterventionEvent":
+  30:         """Factory для player actions (backward compat для GameLoop)."""
+  31:         return cls(
+  32:             source="player",
+  33:             payload={"text": action_text, "player_name": player_name, **kwargs},
+  34:             tick=tick,
+  35:         )
+
+[SEARCH] InterventionEvent construction + from_player_action  pattern: /InterventionEvent\(|from_player_action/
+  13 matches:
+  backend\app\contracts\interventions.py:27 : def from_player_action(
+  backend\app\services\calibration\scenario_player.py:221 : InterventionEvent.from_player_action(
+  backend\app\services\game_loop\npc_orchestration.py:189 : _intervention = InterventionEvent(
+  backend\app\services\tick_orchestrator.py:532 : InterventionEvent(
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:4 : #   Помогает maid_lusya через InterventionEvent(semantic_action="HELP") —
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:53 : return InterventionEvent(
+  backend\tests\gameplay\test_negative_paths.py:16 : e2: InterventionEvent schema (source/payload/tick + from_player_action),
+  backend\tests\gameplay\test_negative_paths.py:326 : ev = InterventionEvent(source="test", payload={"k": "v"}, tick=42)
+  backend\tests\gameplay\test_negative_paths.py:330 : assert hasattr(InterventionEvent, "from_player_action"), (
+  backend\tests\gameplay\test_negative_paths.py:331 : "InterventionEvent.from_player_action factory missing (TZ-08 v0.2)"
+  backend\tests\gameplay\test_negative_paths.py:346 : interv = InterventionEvent(
+  backend\tests\sandbox\micro\test_player_turn_headless.py:78 : _intervention = InterventionEvent(
+  backend\tests\sandbox\re_gap1_production_probe.py:128 : _intervention = InterventionEvent(
+
+--- Item 5: ActionCommitment ---
+
+[READ] Class pattern not found: class ActionCommitment\b
+
+[SEARCH] ActionCommitment construction sites  pattern: /ActionCommitment\(/
+  (no matches)
+
+--- Item 6: ActionWindup ---
+
+[READ] ActionWindup class  backend\app\domain\action_windup.py L23-67 (class at L23)
+  23: class ActionWindup:
+  24:     """Окно подготовки к значимому действию (DEBT-310.1).
+  25: 
+  26:     Pure Temporal Gate (I-CORE-02/03).
+  27:     Не хранит и не интерпретирует намерение. Хранит только ID отложенного интента.
+  28:     Живёт в TickOrchestrator._windup_registry.
+  29:     """
+  30: 
+  31:     actor_id: str
+  32:     target_id: str
+  33:     action_type: str  # "attack", "cast", "steal"
+  34:     started_tick: int
+  35:     duration_ticks: int  # Сколько тиков длится подготовка
+  36:     status: WindupStatus = WindupStatus.PENDING
+  37:     # Условие прерывания: например, порог шока или уровня HP
+  38:     interrupt_shock_threshold: float = 0.7
+  39:     # DEBT-310.1: ID интента, отложенного в TickOrchestrator._pending_intents.
+  40:     held_intent_id: Optional[str] = None
+  41: 
+  42:     def to_dict(self) -> dict[str, Any]:
+  43:         """S203.4 (Э6, Н-40): JSON-сериализация для scene_state-персистентности.
+  44:         Все поля — примитивы или str-Enum; round-trip без потерь (§12 WARA)."""
+  45:         return {
+  46:             "actor_id": self.actor_id,
+  47:             "target_id": self.target_id,
+  48:             "action_type": self.action_type,
+  49:             "started_tick": self.started_tick,
+  50:             "duration_ticks": self.duration_ticks,
+  51:             "status": self.status.value,
+  52:             "interrupt_shock_threshold": self.interrupt_shock_threshold,
+  53:             "held_intent_id": self.held_intent_id,
+  54:         }
+  55: 
+  56:     @staticmethod
+  57:     def from_dict(d: dict[str, Any]) -> "ActionWindup":
+  58:         """S203.4 (Э6): восстановление из JSON (после atomic_commit → load)."""
+  59:         return ActionWindup(
+  60:             actor_id=d["actor_id"],
+  61:             target_id=d["target_id"],
+  62:             action_type=d["action_type"],
+  63:             started_tick=d["started_tick"],
+  64:             duration_ticks=d["duration_ticks"],
+  65:             status=WindupStatus(d["status"]),
+  66:             interrupt_shock_threshold=d.get("interrupt_shock_threshold", 0.7),
+  67:             held_intent_id=d.get("held_intent_id"),
+
+[SEARCH] ActionWindup construction + held_intent_id  pattern: /ActionWindup\(|held_intent_id/
+  17 matches:
+  backend\app\domain\action_commitment.py:164 : # S203.4: ссылка на объект исполнителя (task_id / held_intent_id) —
+  backend\app\domain\action_windup.py:40 : held_intent_id: Optional[str] = None
+  backend\app\domain\action_windup.py:53 : "held_intent_id": self.held_intent_id,
+  backend\app\domain\action_windup.py:59 : return ActionWindup(
+  backend\app\domain\action_windup.py:67 : held_intent_id=d.get("held_intent_id"),
+  backend\app\services\action\commitment_registry.py:442 : (шкала v1); held_intent_id вызывающая сторона берёт = commitment_id
+  backend\app\services\phases\post_decision.py:326 : # становится held_intent_id (детерминизм, закон №4; Н-31 не
+  backend\app\services\phases\post_decision.py:353 : windup = ActionWindup(
+  backend\app\services\phases\post_decision.py:364 : held_intent_id=_intent_id,
+  backend\app\services\phases\post_decision.py:428 : if windup.held_intent_id:
+  backend\app\services\phases\post_decision.py:429 : _held_dict = _held_store.pop(windup.held_intent_id, None)
+  backend\tests\sandbox\g3_execution_probe.py:38 : для ядра достаточно windup+held). Возвращает held_intent_id."""
+  backend\tests\sandbox\g3_execution_probe.py:53 : _windup = ActionWindup(
+  backend\tests\sandbox\g3_execution_probe.py:60 : held_intent_id=_intent_id,
+  backend\tests\test_action_commitment.py:1299 : _orig = ActionWindup(
+  backend\tests\test_action_commitment.py:1303 : held_intent_id="cmt-abc123",
+  backend\tests\test_action_commitment.py:1312 : _orig = ActionWindup(
+
+============================================================
+
+S0.6 - ACTOR IDENTITY
+
+Goal: trace decision -> execution, find divergence points
+
+============================================================
+
+--- Execution mechanism: Movement ---
+
+[READ] MovementEngine class  backend\app\services\spatial\movement_engine.py L60-104 (class at L60)
+  60: class MovementEngine:
+  61:     """Слой 2: Execution. Конвертирует намерения в изменения позиции.
+  62: 
+  63:     Не принимает решений — только выполняет:
+  64:     1. Берёт MovementIntent (target_node_id)
+  65:     2. Резолвит через LocationGraph → {x, y}
+  66:     3. Генерирует SceneChange(field="local_position")
+  67:     """
+  68: 
+  69:     def __init__(self) -> None:
+  70:         # SpatialService v1.2 — инъекция извне (DI)
+  71:         self._spatial_service: Optional[Any] = None
+  72:         # S131: LocalTraversalPlanner — честная физика проходимости (Embodied Traversal)
+  73:         self._planner = LocalTraversalPlanner()
+  74:         # Phase C: персональный эпистемический store (DI, как spatial_service)
+  75:         self._epistemic_store: Optional[Any] = None
+  76: 
+  77:     def set_spatial_service(self, svc: Any) -> None:
+  78:         """Инъекция SpatialService для A* с учётом оверлея."""
+  79:         self._spatial_service = svc
+  80: 
+  81:     def set_epistemic_store(self, store: Any) -> None:
+  82:         """Phase C: персональные пространственные знания актора."""
+  83:         self._epistemic_store = store
+  84: 
+  85:     # ── Spatial Intent Gate: единый пространственный арбитр ────────────
+  86:     # ADR-138: Spatial eligibility logic ЗАПРЕЩЕНА нигде кроме этого метода.
+  87:     # Все источники MovementIntent (schedule, decision, approach, flee, random)
+  88:     # проходят через этот фильтр. ONE gate to rule them all.
+  89:     # Желание (Desire) не мутируется — остаётся immutable record.
+  90: 
+  91:     def _spatial_intent_gate(
+  92:         self,
+  93:         intents: List,
+  94:         npc_positions: Optional[Dict],
+  95:     ) -> List:
+  96:         """Spatial Arbitration Layer: конвертация Desire → Spatial Commitment.
+  97: 
+  98:         Отклоняет intent'ы где NPC уже на целевом узле (spatial no-op collapse).
+  99:         НЕ мутирует intent — desire остаётся неизменным record'ом.
+  100:         Источник истины: npc_positions из scene_state (авторитетная реальность).
+  101:         НЕ использует intent.from_node_id (может быть stale от npc dict).
+  102:         """
+  103:         if not npc_positions:
+  104:             return intents  # нет данных для арбитража — пропускаем всё
+
+--- Execution mechanism: Combat ---
+
+[READ] CombatSubscriber class  backend\app\services\combat\combat_subscriber.py L54-98 (class at L54)
+  54: class CombatSubscriber:
+  55:     """Phase8Handler: транслятор боевых событий → физические воздействия.
+  56: 
+  57:     Поток:
+  58:       1. EventBus доставляет событие → _on_event() накапливает
+  59:       2. Оркестратор → drain_events() снимок + очистка (Фаза 8)
+  60:       3. Оркестратор → handle(events, ctx) → Phase8Result (Фаза 8)
+  61: 
+  62:     Deltas маршрутизируются через delta_buffer → apply_batch (ADR-002).
+  63:     PHYSICS_COMPOSITE: дельты НЕ суммируются в _aggregate_deltas,
+  64:     а передаются как инъекции энергии в StateApplicator.
+  65:     """
+  66: 
+  67:     def __init__(self, event_bus: EventBus) -> None:
+  68:         self._event_bus = event_bus
+  69:         self._pending_events: list = []
+  70:         self._subscribe()
+  71: 
+  72:     def _subscribe(self) -> None:
+  73:         """Подписывается на типы событий, порождающие физические воздействия."""
+  74:         for et in _COMBAT_EVENT_TYPES:
+  75:             self._event_bus.subscribe(et, self._on_event)
+  76: 
+  77:     def _on_event(self, event: EventDTO) -> Optional[EventDTO]:
+  78:         """EventHandler: накапливает событие для обработки на Фазе 8.
+  79: 
+  80:         Контракт EventBus (§2.1 Устава): Callable[[EventDTO], Optional[EventDTO]].
+  81:         None = событие поглощено, производное на шину не публикуется.
+  82:         """
+  83:         logger.debug(
+  84:             f"[DIAG_COMBAT_ON_EVENT] type={getattr(event, 'type', '?')}, source={getattr(event, 'source', '?')}"
+  85:         )
+  86:         self._pending_events.append(event)
+  87:         return None
+  88: 
+  89:     @property
+  90:     def name(self) -> str:
+  91:         return "combat"
+  92: 
+  93:     def drain_events(self) -> List:
+  94:         """Снимок накопленных событий + очистка буфера."""
+  95:         snapshot = self._pending_events[:]
+  96:         self._pending_events.clear()
+  97:         return snapshot
+  98: 
+
+--- Execution mechanism: Dialogue ---
+
+[READ] DialogueExecutor class  backend\app\services\execution\dialogue_executor.py L35-79 (class at L35)
+  35: class DialogueExecutor:
+  36:     """
+  37:     Исполнитель диалоговых задач.
+  38:     В продакшене вызывает LlmProvider. Соблюдает Эпистемический Барьер (ADR-TZ08-6).
+  39:     """
+  40: 
+  41:     def __init__(
+  42:         self,
+  43:         router: Any = None,
+  44:         context_provider: Optional[Callable[[str, str], dict]] = None,
+  45:         belief_store: Any = None,
+  46:         memory_manager: Any = None,
+  47:         confession_parser: Any = None,  # V8-MVP-12 FIX
+  48:         discovery_bridge: Any = None,  # P6/E1 (S255): Bridge — владелец перехода
+  49:         npc_states_provider: Any = None,  # P6/E1: Callable[[cid], list[dict]]
+  50:         relationship_provider: Any = None,  # P6/E1: Callable[[cid, k, r], dict]
+  51:         subject_resolver: Any = None,  # P6/E1: Callable[[topic], SubjectRef]
+  52:     ) -> None:
+  53:         self._router = router
+  54:         self._memory_manager = memory_manager
+  55:         self._get_context = context_provider or (
+  56:             lambda npc_id, camp_id: {"name": npc_id, "description": ""}
+  57:         )
+  58:         self._belief_store = belief_store
+  59:         self._confession_parser = confession_parser
+  60:         # P6/E1 (S255): игрок-контур (late-binding: set_epistemic_wiring)
+  61:         self._discovery_bridge = discovery_bridge
+  62:         self._npc_states_provider = npc_states_provider
+  63:         self._relationship_provider = relationship_provider
+  64:         self._subject_resolver = subject_resolver
+  65:         # L-02: Валидатор реплик NPC
+  66:         from dataclasses import dataclass, field
+  67:         from uuid import uuid4
+  68: 
+  69:         from app.services.verbalization.response_validator import ResponseValidator
+  70: 
+  71:         @dataclass
+  72:         class NpcContract:
+  73:             system_prompt: str = ""
+  74:             user_prompt: str = ""
+  75:             max_sentences: int = 2
+  76:             contract_id: str = field(default_factory=lambda: uuid4().hex[:8])
+  77:             _forbidden_tuple: tuple[str, ...] = (
+  78:                 "описывать действия за других",
+  79:                 "задавать вопросы игроку напрямую",
+
+--- Object interaction execution ---
+
+[SEARCH] object interaction execution  pattern: /def execute_object|def apply_object|def interact_object|class ObjectInteractor/
+  1 matches:
+  backend\app\services\world\g3_executor.py:79 : def execute_object_action(
+
+--- Defense / dodge execution ---
+
+[SEARCH] defense/dodge execution  pattern: /def execute_defense|def apply_defense|def dodge|def execute_dodge/
+  (no matches)
+
+--- actor_id assignments (production) ---
+
+[SEARCH] actor_id = assignments  pattern: /actor_id\s*=\s*/
+  185 matches:
+  backend\app\domain\action_windup.py:60 : actor_id=d["actor_id"],
+  backend\app\domain\intent_identity.py:37 : actor_id=npc_id,
+  backend\app\domain\intent_identity.py:47 : actor_id = character_id (who executes in the world)
+  backend\app\domain\intent_identity.py:53 : actor_id=character_id,
+  backend\app\domain\intent_identity.py:63 : actor_id = character_id
+  backend\app\domain\intent_identity.py:69 : actor_id=character_id,
+  backend\app\domain\intent_identity.py:79 : actor_id="",
+  backend\app\models\npc_state.py:320 : actor_id=self.actor_id,
+  backend\app\services\action\dm_router.py:212 : actor_id="player",
+  backend\app\services\action\dm_scene_builder.py:158 : actor_id=raw_event.actor_id,
+  backend\app\services\action\dm_scene_builder.py:167 : actor_id="player",
+  backend\app\services\combat\combat_subscriber.py:181 : if intent.actor_id == "player" and _distances:
+  backend\app\services\combat\combat_subscriber.py:284 : actor_id = str(payload.get("actor_id") or getattr(event, "source", "") or "player")  # noqa: ENIGMA002
+  backend\app\services\combat\combat_subscriber.py:318 : actor_id=actor_id,
+  backend\app\services\combat\impact_engine.py:140 : if intent.actor_id == "player":
+  backend\app\services\economy\work_orders.py:202 : actor_id=buyer,
+  backend\app\services\events\observation_subscriber.py:85 : actor_id = getattr(event, "source", None)  # noqa: ENIGMA002
+  backend\app\services\events\rules_subscriber.py:153 : _actor_id = getattr(event, "source", "") or "unknown"
+  backend\app\services\game_loop\dm_phase.py:264 : actor_id=getattr(_raw_event, "source", "player"),
+  backend\app\services\game_loop\phase_1_input.py:310 : resolved_actor_id = _resolve_actor_reference(semantic_field, scene_context)
+  backend\app\services\game_loop\phase_1_input.py:322 : actor_id=resolved_actor_id,  # ADR-O-315: Инъекция ID актора
+  backend\app\services\game_loop\phase_1_input.py:381 : actor_id=resolved_actor_id, target_actor_id=resolved_target_id
+  backend\app\services\game_loop\turn_pipeline.py:474 : actor_id="player",
+  backend\app\services\memory\event_semantic_tagger.py:90 : if actor_id == "player":
+  backend\app\services\memory\evidence_mapper.py:123 : actor_id=memory.actor_id,
+  backend\app\services\memory\memory_manager.py:296 : actor_id=event.source or "",
+  backend\app\services\memory\memory_manager.py:332 : actor_id=event.source or "",
+  backend\app\services\memory\memory_manager.py:791 : elif (hasattr(e, "target_id") and e.target_id == tid) or (hasattr(e, "actor_id") and e.actor_id == tid):
+  backend\app\services\memory\memory_manager.py:853 : patterns = self._resonance.detect(em_events, actor_id=actor_id)
+  backend\app\services\memory\promotion_engine.py:156 : actor_id=batch[0].actor_id,
+  backend\app\services\memory\working_memory_tick.py:159 : resonance = memory_manager.detect_resonance(campaign_id, npc_id, actor_id="player")
+  backend\app\services\npc\activity_lifecycle_service.py:213 : actor_id=_npc_id(npc),
+  backend\app\services\npc\belief_transition_engine.py:108 : if event.actor_id == "player":
+  backend\app\services\npc\interpretation_engine.py:90 : actor_is_player = event.actor_id == "player"
+  backend\app\services\npc\life_engine.py:733 : actor_id=npc_id,
+  backend\app\services\npc\life_engine.py:1184 : actor_id=npc_id,
+  backend\app\services\npc\life_engine.py:1700 : actor_id=npc_id,
+  backend\app\services\npc\life_engine.py:1714 : actor_id=npc_id,
+  backend\app\services\npc\life_engine.py:2170 : actor_id=npc_id,
+  backend\app\services\npc\life_engine.py:2302 : actor_id=npc_id,
+  backend\app\services\npc\npc_tick_pipeline.py:345 : actor_id=npc_id,
+  backend\app\services\npc\npc_tick_pipeline.py:375 : actor_id=npc_id,
+  backend\app\services\npc\npc_tick_pipeline.py:1168 : actor_id=npc_id,
+  backend\app\services\npc\npc_tick_pipeline.py:1694 : actor_id=npc_id,
+  backend\app\services\npc\npc_tick_pipeline.py:1721 : actor_id=npc_id,
+  backend\app\services\npc\npc_tick_pipeline.py:1766 : actor_id=npc_id,
+  backend\app\services\phases\memory.py:125 : _resonance = memory_manager.detect_resonance(ctx.campaign_id, npc_id, actor_id="player")
+  backend\app\services\phases\movement_bridge.py:72 : actor_id=intent.actor_id,
+  backend\app\services\phases\movement_bridge.py:115 : actor_id=intent.actor_id,
+  backend\app\services\phases\post_decision.py:305 : _actor_id = getattr(intent, "speaker", "")  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:354 : actor_id=_actor_id,
+  backend\app\services\phases\post_decision.py:415 : _campaign_id, _actor_id = _parts
+  backend\app\services\phases\post_decision.py:434 : _actor_id = getattr(_held_intent, "speaker", "")  # noqa: ENIGMA002
+  backend\app\services\player_cognition\action_semantic_resolver.py:69 : actor_id="player",
+  backend\app\services\player_cognition\legacy_bridge.py:99 : actor_id="player",
+  backend\app\services\scene\scene_event_emitter.py:78 : actor_id=actor_id,
+  backend\app\services\scene\scene_event_emitter.py:96 : actor_id=actor_id,
+  backend\app\services\scene\scene_event_emitter.py:130 : actor_id=actor_id,
+  backend\app\services\scene\scene_event_layer.py:58 : actor_id="player",
+  backend\app\services\scene\scene_event_layer.py:66 : actor_id="player",
+  backend\app\services\social\propagation.py:86 : _actor_id = _ev.source
+  backend\app\services\social\propagation.py:102 : _actor_id = _dm_res.event_context.actor_id
+  backend\app\services\spatial\movement_engine.py:999 : actor_id=intent.actor_id,
+  backend\app\services\spatial\spatial_observatory_service.py:109 : agent_dto = ObservatoryAgentDTO(actor_id=npc_id, position=pos)
+  backend\app\services\spatial\spatial_observatory_service.py:124 : actor_id=npc_id,
+  backend\app\services\spatial\spatial_observatory_service.py:150 : actor_id=npc_id, position=pos,
+  backend\app\services\world\world_tick_engine.py:178 : actor_id=npc_id,
+  backend\app\services\pipeline_runner.py:159 : _actor_id = getattr(_intent, "actor_id", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1607 : actor_id=_fast_actor,
+  backend\app\services\tick_orchestrator.py:1663 : actor_id="player",
+  backend\tests\canary\test_full_playthrough.py:42 : actor_id="player",
+  backend\tests\canary\test_full_playthrough.py:54 : actor_id="player",
+  backend\tests\canary\test_full_playthrough.py:65 : actor_id="player",
+  backend\tests\gameplay\test_2bii_causal_addressee.py:35 : e.actor_id = actor
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:214 : actor_id="player",
+  backend\tests\gameplay\test_gc09_body_causality.py:117 : event_type="social", actor_id="player", success=True,
+  backend\tests\gameplay\test_p6_e3_compiler_bridge.py:55 : actor_id="player",
+  backend\tests\gameplay\test_p6_e3_compiler_bridge.py:81 : actor_id="player",
+  backend\tests\micro\test_gap1_bias_differential.py:51 : """EventContext с actor_id='player' — активирует bias-ветки (:90)."""
+  backend\tests\micro\test_gap1_bias_differential.py:57 : actor_id="player",
+  backend\tests\micro\test_prefix_target_loc_gate.py:36 : actor_id="merchant_goran",
+  backend\tests\sandbox\legacy\decision_hub_sandbox.py:123 : actor_id="player",
+  backend\tests\sandbox\micro\test_boundary_transition.py:152 : actor_id="npc_lusya",
+  backend\tests\sandbox\micro\test_lod_arbitration.py:24 : macro = MacroMovementGoal(actor_id="test_npc", target_node_id="bar_area")
+  backend\tests\sandbox\micro\test_lod_arbitration.py:25 : micro = LocalSteeringGoal(actor_id="test_npc", local_target_xy=(5.0, 5.0))
+  backend\tests\sandbox\micro\test_lod_arbitration.py:53 : macro = MacroMovementGoal(actor_id="test_npc", target_node_id="bar_area")
+  backend\tests\sandbox\movement\test_target_id_payload_fallback_prevents_uninvited_approach.py:39 : actor_id="player",
+  backend\tests\sandbox\movement\test_target_id_payload_fallback_prevents_uninvited_approach.py:82 : actor_id="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\accusation_gate_test.py:81 : action_id=f"act-{tick}", tick=tick, actor_id="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\bm_bprime_framework.py:156 : "                elif (hasattr(e, \"target_id\") and e.target_id == tid) or (hasattr(e, \"actor_id\") and e.actor_id == tid):\n"
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_decision_gap_test.py:56 : event = EventContext(event_type=EventType.TICK_COMPLETED, actor_id="world")
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_decision_test.py:74 : actor_id="world"
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:172 : event_type=_ET.WORLD_TICK, actor_id="world", success=True,
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:399 : action_id="goran-g7", tick=99, actor_id="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:516 : action_id="goran-g9", tick=99, actor_id="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\modifier_composition_test.py:49 : event = EventContext(event_type=EventType.TICK_COMPLETED, actor_id="world")
+  backend\tests\sandbox\SUPERBOX\scenarios\modifier_invariants_test.py:76 : event = EventContext(event_type=EventType.TICK_COMPLETED, actor_id="world")
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:208 : event_type=EventType.WORLD_TICK, actor_id="world", success=True,
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:368 : action_id=f"beta-accuse-{arm}", tick=99, actor_id="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\_h1b_mini3_capture_test.py:72 : self.actor_id = actor_id
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:263 : actor_id="sandbox",
+  backend\tests\sandbox\system\test_causal_closure.py:51 : return EventContext(event_type=EventType.IDLE, actor_id="player", success=True, intensity=0.2, location="tavern")
+  backend\tests\sandbox\system\test_life_direction_crisis.py:41 : return EventContext(event_type=EventType.WORLD_TICK, actor_id="world", location="tavern")
+  backend\tests\sandbox\g3_execution_probe.py:54 : actor_id=_ACTOR,
+  backend\tests\sandbox\re_gap1_production_probe.py:125 : # ── Player-интервенция ( actor_id='player' активирует bias-ветки)
+  backend\tests\sandbox\sandbox_combat_vertical.py:42 : actor_id = "player"
+  backend\tests\sandbox\sandbox_combat_vertical.py:65 : actor_id=actor_id,
+  backend\tests\sandbox\test_7_3_threat_scenario.py:47 : actor_id="player",
+  backend\tests\sandbox\test_causal_bridge_integration.py:156 : actor_id="tavern_keeper_tornin",
+  backend\tests\sandbox\test_causal_bridge_integration.py:201 : actor_id="thief_shadow",
+  backend\tests\sandbox\test_causal_bridge_integration.py:243 : actor_id="maid_lusya",
+  backend\tests\sandbox\test_lod0_collision_avoidance.py:48 : actor_id="npc_2",
+  backend\tests\sandbox\test_viability_compression.py:185 : intent = MacroMovementGoal(actor_id="test", target_node_id="bar")
+  backend\tests\sandbox\test_viability_compression.py:191 : actor_id="test", target_node_id="exit", reason="decision:flee_stay=player", domain=IntentDomain.SURVIVAL
+  backend\tests\test_action_commitment.py:707 : actor_id="n1", target_node_id="bar", reason="need:flee",
+  backend\tests\test_action_commitment.py:733 : actor_id="n1", target_node_id="bar", reason="need:flee",
+  backend\tests\test_action_commitment.py:766 : actor_id="n1", target_node_id="bar", reason="social:greet",
+  backend\tests\test_action_commitment.py:1300 : actor_id="n1", target_id="n2", action_type="steal",
+  backend\tests\test_action_commitment.py:1313 : actor_id="n1", target_id="n2", action_type="attack",
+  backend\tests\test_action_consequence_compiler.py:42 : actor_id="player",
+  backend\tests\test_action_consequence_compiler.py:73 : actor_id="player",
+  backend\tests\test_action_consequence_compiler.py:94 : actor_id="player",
+  backend\tests\test_action_consequence_compiler.py:153 : actor_id="player",
+  backend\tests\test_action_consequence_compiler.py:178 : actor_id="player",
+  backend\tests\test_combat_subscriber.py:204 : # actor_id = "player" — нет в npc_by_id
+  backend\tests\test_contracts_stage6.py:209 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_contracts_stage6.py:238 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_decision_calibration.py:87 : actor_id="player",
+  backend\tests\test_decision_calibration.py:101 : actor_id="player",
+  backend\tests\test_decision_calibration.py:165 : actor_id="player",
+  backend\tests\test_decision_calibration.py:231 : actor_id="player",
+  backend\tests\test_decision_calibration.py:306 : actor_id="player",
+  backend\tests\test_decision_calibration.py:353 : actor_id="player",
+  backend\tests\test_decision_hub_goal_boost.py:32 : actor_id="test_actor",
+  backend\tests\test_end_screen_api.py:31 : actor_id="player",
+  backend\tests\test_g3_will_integration.py:51 : return EventContext(event_type=EventType.WORLD_TICK, actor_id="world")
+  backend\tests\test_impact_engine.py:60 : actor_id=actor_id, target_id=target_id, damage_type=damage_type, target_zone=target_zone, force=force
+  backend\tests\test_impact_engine.py:71 : intent = _make_intent(actor_id="attacker", target_id="defender", force=30.0)
+  backend\tests\test_impact_engine.py:87 : intent = _make_intent(actor_id="attacker", target_id="defender", force=30.0)
+  backend\tests\test_mvp_tavern_integration.py:71 : actor_id="player",
+  backend\tests\test_npc_npc_stage7.py:167 : event = EventContext(event_type="npc_interacts_npc", actor_id="tavernkeeper")
+  backend\tests\test_npc_npc_stage7.py:188 : event = EventContext(event_type="npc_interacts_npc", actor_id="tavernkeeper")
+  backend\tests\test_object_fsms.py:109 : res = transition_object(_chair(), WorldActionType.SIT, actor_id="npc_1")
+  backend\tests\test_object_fsms.py:119 : _chair(), WorldActionType.SIT, actor_id="npc_1").new_obj
+  backend\tests\test_object_fsms.py:120 : res = transition_object(sat, WorldActionType.SIT, actor_id="npc_2")
+  backend\tests\test_object_fsms.py:128 : _chair(), WorldActionType.SIT, actor_id="npc_1").new_obj
+  backend\tests\test_object_fsms.py:129 : res = transition_object(sat, WorldActionType.TAKE, actor_id="npc_2")
+  backend\tests\test_object_fsms.py:135 : _chair(), WorldActionType.SIT, actor_id="npc_1").new_obj
+  backend\tests\test_object_fsms.py:142 : res = transition_object(_chair(), WorldActionType.TAKE, actor_id="npc_1")
+  backend\tests\test_object_fsms.py:166 : _chair(), WorldActionType.TAKE, actor_id="npc_1").new_obj
+  backend\tests\test_object_fsms.py:241 : _chair(), WorldActionType.SIT, actor_id="npc_1")
+  backend\tests\test_object_fsms.py:308 : scene_state, "chair_1", WorldActionType.SIT, actor_id="npc_1")
+  backend\tests\test_p7_09_cognitive_dissonance.py:23 : PlayerAction(action_id="act_1", tick=1, actor_id="player", action_type=ActionType.HELP, target_id="maid_lusya"),
+  backend\tests\test_p7_09_cognitive_dissonance.py:24 : PlayerAction(action_id="act_2", tick=2, actor_id="player", action_type=ActionType.ATTACK, target_id="merchant_goran"),
+  backend\tests\test_p7_09_cognitive_dissonance.py:25 : PlayerAction(action_id="act_3", tick=3, actor_id="player", action_type=ActionType.BLACKMAIL, target_id="guard_borko")
+  backend\tests\test_p7_09_cognitive_dissonance.py:31 : PlayerAction(action_id="a1", tick=1, actor_id="p", action_type=ActionType.HELP, target_id="npc1"),
+  backend\tests\test_p7_09_cognitive_dissonance.py:32 : PlayerAction(action_id="a2", tick=2, actor_id="p", action_type=ActionType.HELP, target_id="npc2")
+  backend\tests\test_p7_09_cognitive_dissonance.py:58 : PlayerAction(action_id="act_4", tick=4, actor_id="player", action_type=ActionType.BRIBE, target_id="tavern_keeper_tornin")
+  backend\tests\test_phase3_spatial_social.py:373 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase3_spatial_social.py:387 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase3_spatial_social.py:399 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase3_spatial_social.py:418 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase_a_memory_fixes.py:37 : assert mm.detect_resonance("camp", "npc1", actor_id="player") == []
+  backend\tests\test_phase_a_memory_fixes.py:43 : Ловит возврат к форме detect_resonance(campaign_id, actor_id=...),
+  backend\tests\test_phase_a_memory_fixes.py:221 : actor_id="player",
+  backend\tests\test_phase_a_memory_fixes.py:546 : actor_id="player",
+  backend\tests\test_phase_a_memory_fixes.py:553 : actor_id="player",
+  backend\tests\test_phase_a_memory_fixes.py:570 : actor_id="player",
+  backend\tests\test_phase_a_memory_fixes.py:596 : actor_id="player",
+  backend\tests\test_physiology_flow.py:75 : actor_id="player", target_id="maid_lusya", damage_type="slash", target_zone="head_ear_l", force=80.0
+  backend\tests\test_physiology_flow.py:117 : actor_id="player",
+  backend\tests\test_r2_r5_math.py:43 : actor_id="player",
+  backend\tests\test_resonance_engine.py:36 : patterns = engine.detect(events, actor_id="player")
+  backend\tests\test_resonance_engine.py:45 : patterns = engine.detect(events, actor_id="player")
+  backend\tests\test_resonance_engine.py:55 : patterns = engine.detect(events, actor_id="player")
+  backend\tests\test_resonance_engine.py:74 : patterns = engine.detect(events, actor_id="player")
+  backend\tests\test_resonance_engine.py:82 : patterns = engine.detect(events, actor_id="player")
+  backend\tests\test_resonance_engine.py:99 : patterns = engine.detect(events, actor_id="player")
+  backend\tests\test_resonance_engine.py:108 : patterns = engine.detect(events, actor_id="player")
+  backend\tests\test_resonance_engine.py:123 : p_dense = engine.detect(dense, actor_id="player")
+  backend\tests\test_resonance_engine.py:124 : p_sparse = engine.detect(sparse, actor_id="player")
+  backend\tests\test_resonance_engine.py:143 : assert engine.detect(events, actor_id="player") == []
+  backend\tests\test_resonance_engine.py:150 : assert engine.detect(events, actor_id="guard_01") == []
+  backend\tests\test_resonance_engine.py:157 : patterns = engine.detect(events, actor_id="player")
+  backend\tests\test_social_homeostasis.py:150 : event = EventContext(event_type=EventType.WORLD_TICK, actor_id="npc_1", target_id=None)
+
+--- executor assignments ---
+
+[SEARCH] executor = assignments  pattern: /\bexecutor\s*=\s*/
+  36 matches:
+  backend\app\services\action\commitment_registry.py:196 : executor=executor,
+  backend\app\services\action\commitment_registry.py:296 : executor="traversal",
+  backend\app\services\action\commitment_registry.py:354 : executor=executor,
+  backend\app\services\action\commitment_registry.py:363 : f"executor={executor} executor_ref={executor_ref}"
+  backend\app\services\action\commitment_registry.py:385 : executor="task", executor_ref=task_id,
+  backend\app\services\action\commitment_registry.py:451 : executor="windup", executor_ref=None, target_id=target_id,
+  backend\app\services\action\commitment_registry.py:509 : cause="sleep:coupling", executor="sleep",
+  backend\app\services\action\commitment_registry.py:549 : cause="activity:lifecycle", executor="activity",
+  backend\app\services\game_loop\task_scheduler.py:627 : executor = self._ambient_executor
+  backend\app\services\game_loop\task_scheduler.py:629 : executor = self._executors.get(task.kind)
+  backend\app\services\phases\post_decision.py:556 : executor="windup",
+  backend\app\services\phases\post_decision.py:563 : "COMPLETED", executor="windup",
+  backend\tests\gameplay\test_p6_e1_dialogue_executor.py:78 : executor = _executor(borko_dict, truth, bridge, trust, pressure)
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:204 : executor = _executor(borko_dict, truth, spy, trust=60.0, pressure=2, router=router)
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:224 : executor = _executor(borko_dict, truth, spy, trust=0.0, pressure=0, router=router)
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:254 : executor = _executor(borko_dict, truth, spy, trust=60.0, pressure=2, router=None)
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:270 : executor = _executor(borko_dict, truth, spy, trust=60.0, pressure=2, router=None)
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:380 : executor = _executor(borko_dict, truth, spy, trust=0.0, pressure=0, router=None)
+  backend\tests\micro\test_lang_leak_provenance.py:83 : executor = DialogueExecutor(router=router)
+  backend\tests\micro\test_lang_leak_provenance.py:101 : executor = DialogueExecutor(router=router)
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:109 : executor = DialogueExecutor(router=mock_router, memory_manager=mock_mm)
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:137 : executor = DialogueExecutor(router=mock_router, memory_manager=mock_mm)
+  backend\tests\sandbox\SUPERBOX\scenarios\action_integrity_test.py:314 : _YELLOW.append("Y6: сон исполняется БЕЗ commitment (executor=SleepLifecycle)")
+  backend\tests\sandbox\test_dialogue_task_layer.py:48 : executor = DialogueExecutor()
+  backend\tests\sandbox\test_dialogue_task_layer.py:81 : executor = DialogueExecutor()
+  backend\tests\test_action_commitment.py:53 : executor="traversal",
+  backend\tests\test_action_commitment.py:242 : CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="TALK", cause="c", executor="task")
+  backend\tests\test_action_commitment.py:250 : CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="TALK", cause="c", executor="task")
+  backend\tests\test_action_commitment.py:263 : CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="EAT", cause="c", executor="task")
+  backend\tests\test_action_commitment.py:645 : ss, tick=1, npc_id="n1", action="TALK", cause="c", executor=executor
+  backend\tests\test_action_commitment.py:666 : ss, tick=1, npc_id="n1", action="TALK", cause="c", executor="task"
+  backend\tests\test_dialogue_context_and_target.py:48 : executor = DialogueExecutor(router=mock_router, context_provider=mock_context_provider)
+  backend\tests\test_dialogue_executor_validation.py:33 : executor = DialogueExecutor(router=mock_router, context_provider=mock_context_provider)
+  backend\tests\test_dialogue_executor_validation.py:43 : executor = DialogueExecutor(router=mock_router, context_provider=mock_context_provider)
+  backend\tests\test_dialogue_executor_validation.py:53 : executor = DialogueExecutor(router=mock_router, context_provider=mock_context_provider)
+  backend\tests\test_dialogue_npc_npc_context.py:38 : executor = DialogueExecutor(router=mock_router, context_provider=mock_context_provider)
+
+--- speaker assignments ---
+
+[SEARCH] speaker = assignments  pattern: /\bspeaker\s*=\s*/
+  119 matches:
+  backend\app\domain\communication.py:169 : speaker=d["speaker"],
+  backend\app\domain\communication.py:186 : f"CommunicationIntent.topic не может быть пустым (speaker={self.speaker!r})"
+  backend\app\services\events\claim_event_subscriber.py:108 : speaker = getattr(event, "source", "player")
+  backend\app\services\events\dialogue_memory_subscriber.py:46 : speaker = payload.get("npc_id") or getattr(event, "source", "")  # noqa: ENIGMA002
+  backend\app\services\events\npc_dialogue_subscriber.py:188 : speaker = getattr(event, "source", "")  # noqa: ENIGMA002
+  backend\app\services\events\npc_dialogue_subscriber.py:191 : speaker = event.get("source", "")
+  backend\app\services\events\npc_dialogue_subscriber.py:298 : # INV-PLAYER-AUTHORSHIP (ADR-O-406, защитный слой): speaker='player'
+  backend\app\services\events\npc_dialogue_subscriber.py:300 : # последняя линия против БУДУЩИХ писателей speaker='player':
+  backend\app\services\events\npc_dialogue_subscriber.py:342 : campaign_id=_campaign_id, speaker=_speaker_name, text=text,
+  backend\app\services\events\npc_dialogue_subscriber.py:501 : speaker=speaker,
+  backend\app\services\events\npc_dialogue_subscriber.py:523 : speaker=speaker,
+  backend\app\services\events\npc_dialogue_subscriber.py:544 : speaker=speaker,
+  backend\app\services\events\npc_speech_act_subscriber.py:58 : speaker = str(getattr(event, "source", "") or "")
+  backend\app\services\events\npc_speech_act_subscriber.py:77 : f"(len={len(name)}, speaker={speaker})"
+  backend\app\services\events\npc_speech_act_subscriber.py:96 : speaker=speaker,
+  backend\app\services\events\player_speech_act_subscriber.py:81 : speaker="player",
+  backend\app\services\game_loop\dm_phase.py:188 : speaker="player",
+  backend\app\services\game_loop\game_loop.py:1912 : campaign_id=req.campaign_id, speaker=_a.player_name, text=_a.action,
+  backend\app\services\game_loop\game_loop.py:1941 : campaign_id=req.campaign_id, speaker="Рассказчик", text=_dm_text,
+  backend\app\services\game_loop\task_scheduler.py:437 : "[DLG_ENQ_DEDUP] skip дубликата: speaker=%s intent=%s",
+  backend\app\services\game_loop\task_scheduler.py:451 : f"(pending>=20, speaker={speaker_id}, "
+  backend\app\services\game_loop\task_scheduler.py:704 : logger.info(f"[TASK_SCHED] dialogue executed: speaker={task.owner_id} target={task.payload.target_id if hasattr(task.payload, 'tar...
+  backend\app\services\memory\dialogue_session.py:87 : speaker=speaker, text=text, target_id=target_id,
+  backend\app\services\memory\dialogue_session.py:97 : self.add_turn(speaker=speaker, text=text)
+  backend\app\services\memory\dialogue_session.py:128 : text=text, speaker=speaker, confidence=confidence,
+  backend\app\services\memory\dialogue_session.py:166 : speaker_name = "Игрок" if turn.speaker == "player" else self.npc_id
+  backend\app\services\memory\intelligence_queue.py:163 : speaker=speaker,
+  backend\app\services\memory\intelligence_queue.py:331 : speaker=task.speaker,
+  backend\app\services\memory\memory_manager.py:114 : speaker=speaker, text=text, target_id=target_id,
+  backend\app\services\memory\memory_manager.py:442 : speaker = "Игрок" if turn.speaker == "player" else turn.speaker
+  backend\app\services\memory\working_memory_tick.py:128 : f"[STM_WRITE] npc={matched_id} speaker={_speaker_name} text={npc_text[:60]}"
+  backend\app\services\memory\working_memory_tick.py:133 : speaker=_speaker_name,
+  backend\app\services\npc\decision_hub.py:329 : f"[INV-PLAYER-AUTHORSHIP] speaker={npc_id!r}: авторский "
+  backend\app\services\npc\decision_hub.py:355 : speaker=npc_id,
+  backend\app\services\npc\npc_tick_pipeline.py:1089 : f"[INV-PLAYER-AUTHORSHIP] attack-factory: speaker={npc_id!r} "
+  backend\app\services\npc\npc_tick_pipeline.py:1099 : speaker=npc_id,
+  backend\app\services\phases\post_decision.py:82 : speaker=str(getattr(intent, "speaker", "") or ""),  # noqa: ENIGMA002
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:117 : (intent_type="intimidate" → Proposition(speaker=maid_lusya,
+  backend\tests\gameplay\test_p7_e1_production_wiring.py:137 : speaker="player",
+  backend\tests\micro\test_claim_bridge_chain.py:48 : text=text, speaker=speaker, confidence=confidence,
+  backend\tests\micro\test_claim_bridge_chain.py:176 : SimpleNamespace(text="c1", speaker="lusya", confidence=0.8,
+  backend\tests\micro\test_claim_bridge_chain.py:178 : SimpleNamespace(text="c2", speaker="lusya", confidence=0.5,
+  backend\tests\micro\test_cognition_context_resolver.py:34 : text="представился как «Мю»", speaker="player", confidence=0.9, tick=1,
+  backend\tests\micro\test_cognition_dmframe_lock.py:37 : speaker="player",
+  backend\tests\micro\test_dlg0_corpus.py:45 : """speaker='player' → PLAYER_SPOKE; speaker='npc' → NPC_SPOKE."""
+  backend\tests\micro\test_dlg0_corpus.py:47 : if s.speaker == "player":
+  backend\tests\micro\test_dlg0_corpus.py:49 : elif s.speaker == "npc":
+  backend\tests\micro\test_dlg0_corpus.py:104 : speaker="player",
+  backend\tests\micro\test_dlg0_corpus.py:135 : ref_3_6=None, speaker="player", event_type="PLAYER_SPOKE",
+  backend\tests\micro\test_dlg0_corpus.py:163 : ref_3_6=None, speaker="player", event_type="PLAYER_SPOKE",
+  backend\tests\micro\test_dlg1_speaker_symmetry.py:68 : assert session.claims[0].speaker == "tavern_keeper_tornin"
+  backend\tests\micro\test_dlg1_speaker_symmetry.py:184 : assert p_session.claims[0].speaker == "player"
+  backend\tests\micro\test_dlg1_speaker_symmetry.py:200 : assert n_session.claims[0].speaker == "tavern_keeper_tornin"
+  backend\tests\micro\test_dlg1_speaker_symmetry.py:229 : speaker="tavern_keeper_tornin",
+  backend\tests\micro\test_name_gate.py:109 : svc.append_journal("c1", speaker="Торнин", text="Привет",
+  backend\tests\micro\test_name_gate.py:111 : svc.append_journal("c1", speaker="Тень", text="...",
+  backend\tests\micro\test_player_self_intro_claim.py:58 : assert claim.speaker == "player"
+  backend\tests\sandbox\micro\test_recognition_and_eavesdrop.py:23 : # true_name, поэтому ассерт speaker == "Люся" остаётся эквивалентным.
+  backend\tests\sandbox\phenomenology\test_dialogue_context_binding.py:30 : session.add_turn(speaker="tavern_keeper_tornin", text="И тут я ему и говорю...", tick=1)
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:179 : session.add_turn(speaker="player", text="Одиноко")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:182 : session.add_turn(speaker="test", text="Да, одиноко")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:201 : session.add_claim(text=f"Claim {i}", speaker="player", confidence=0.9, tick=1)
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:155 : ref_3_6="DLG-L1", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:167 : ref_3_6="DLG-L1", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:179 : ref_3_6=None, speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:191 : ref_3_6=None, speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:203 : ref_3_6=None, speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:216 : ref_3_6="DLG-L1", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:228 : ref_3_6="DLG-L1", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:240 : ref_3_6="DLG-L1", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:252 : ref_3_6="DLG-L1", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:265 : ref_3_6=None, speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:276 : ref_3_6=None, speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:287 : ref_3_6=None, speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:299 : ref_3_6="DLG-L1", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:314 : ref_3_6="DLG-L3", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:329 : ref_3_6="DLG-L3", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:346 : ref_3_6="DLG-L2", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:358 : ref_3_6="DLG-L2", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:371 : ref_3_6="DLG-L1 (асимметрия)", speaker="npc",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:383 : ref_3_6=None, speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:395 : ref_3_6=None, speaker="npc",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:430 : session.add_turn(speaker="player", text="борко", tick=1)
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:431 : session.add_turn(speaker="player", text="и ещё борко", tick=2)
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:432 : session.add_turn(speaker="player", text="нейтральный текст", tick=3)
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:434 : session.add_turn(speaker="player", text=scenario.text, tick=1)
+  backend\tests\sandbox\SUPERBOX\scenarios\agency_steal_test.py:108 : speaker="thief_shadow", audience="gold_chest", topic="theft",
+  backend\tests\sandbox\SUPERBOX\scenarios\d8p_intelligence_test.py:47 : SPEAKER = "merchant_goran"
+  backend\tests\sandbox\SUPERBOX\scenarios\d8p_intelligence_test.py:77 : speaker=speaker, text=text, target_id=target_id,
+  backend\tests\sandbox\SUPERBOX\scenarios\d8p_intelligence_test.py:180 : t.speaker == SPEAKER and t.intent == "dialogue" for t in sess.buffer
+  backend\tests\sandbox\SUPERBOX\scenarios\d8p_intelligence_test.py:243 : t.speaker == SPEAKER for t in sess.buffer
+  backend\tests\sandbox\SUPERBOX\scenarios\d8p_intelligence_test.py:285 : t.speaker == SPEAKER and t.intent == "dialogue" for t in sess.buffer
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_second_order_attribution_test.py:87 : speaker=NPC_A, text="Я видел, что ты сделал.", target_id=NPC_B,
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_second_order_attribution_test.py:92 : speaker=NPC_B, text="О чём ты говоришь?", target_id=NPC_A,
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_second_order_test.py:85 : speaker=NPC_A,
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_second_order_test.py:96 : speaker=NPC_B,
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_interrupt_test.py:93 : speaker=speaker, audience=target, topic=topic,
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:257 : speaker=_attacker, audience=_addressee, topic="combat",
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:217 : speaker=THIEF, audience="gold_chest", topic="theft",
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_alpha.py:244 : speaker = item.payload.get("speaker_id", "unknown")
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:242 : speaker=THIEF, audience="gold_chest", topic="theft",
+  backend\tests\sandbox\SUPERBOX\scenarios\social_vertical_test.py:339 : print(f"[S2] spoke: speaker={_spk} target={_tgt}")
+  backend\tests\sandbox\g3_execution_probe.py:43 : speaker=_ACTOR,
+  backend\tests\IPT.py:463 : speaker = "maid_lusya"
+  backend\tests\IPT.py:1735 : speaker="test_npc",
+  backend\tests\test_action_commitment.py:1326 : speaker="n1", audience="n2", topic="trade",
+  backend\tests\test_action_commitment.py:1348 : speaker="n1", audience="all", topic="gossip",
+  backend\tests\test_post_decision_t04_producer.py:19 : speaker="guard_borko",
+  backend\tests\test_work_orders.py:68 : oid = create_order_from_trade_intent(ctx, speaker=GORAN, seller_ref=TORNIN)
+  backend\tests\test_work_orders.py:113 : assert create_order_from_trade_intent(ctx, speaker=GORAN, seller_ref=TORNIN) is None
+  backend\tests\test_work_orders.py:132 : oid = create_order_from_trade_intent(ctx, speaker=GORAN, seller_ref=TORNIN)
+  backend\tests\test_work_orders.py:152 : assert create_order_from_trade_intent(ctx, speaker=GORAN, seller_ref=TORNIN) is None
+  backend\tests\test_work_orders.py:155 : assert create_order_from_trade_intent(ctx, speaker=GORAN, seller_ref="all") is None
+  backend\tests\test_work_orders.py:168 : oid = create_order_from_trade_intent(ctx, speaker=GORAN, seller_ref=TORNIN)
+  backend\tests\test_work_orders.py:188 : oid = create_order_from_trade_intent(ctx, speaker=GORAN, seller_ref=TORNIN)
+  backend\tests\test_work_orders.py:329 : ctx, speaker=GORAN, seller_ref="blacksmith_orm"
+  backend\tests\test_work_orders.py:345 : assert create_order_from_trade_intent(ctx, speaker=GORAN, seller_ref=TORNIN)
+  backend\tests\test_work_orders.py:347 : create_order_from_trade_intent(ctx, speaker=GORAN, seller_ref=TORNIN) is None
+  backend\tests\test_work_orders.py:371 : oid = create_order_from_trade_intent(ctx, speaker=GORAN, seller_ref=TORNIN)
+
+--- npc_id derived from intent/decision ---
+
+[SEARCH] npc_id derived from intent/decision  pattern: /npc_id\s*=\s*getattr|npc_id\s*=\s*intent\.|npc_id\s*=\s*decision\./
+  22 matches:
+  backend\app\services\combat\combat_subscriber.py:236 : tick=_combat_tick, npc_id=intent.actor_id, salt="combat"
+  backend\app\services\combat\impact_engine.py:149 : npc_id=intent.actor_id,
+  backend\app\services\combat\impact_engine.py:212 : npc_id=intent.target_id,
+  backend\app\services\combat\impact_engine.py:231 : npc_id=intent.actor_id,
+  backend\app\services\game_loop\game_loop.py:456 : _npc_id = getattr(event, "source", None)  # noqa: ENIGMA002
+  backend\app\services\probes\probes\causal_provenance_probe.py:23 : delta_npc_id = getattr(delta, "npc_id", None)  # noqa: ENIGMA002
+  backend\app\services\probes\probes\historical_constraint_probe.py:23 : npc_id = getattr(intent, "speaker", None) or getattr(intent, "actor_id", None)  # noqa: ENIGMA002
+  backend\app\services\reaction\reaction_rules.py:78 : npc_id=decision.npc_id,
+  backend\app\services\reaction\reaction_rules.py:92 : npc_id=decision.npc_id,
+  backend\app\services\reaction\reaction_rules.py:105 : npc_id=decision.npc_id,
+  backend\app\services\spatial\movement_engine.py:110 : npc_id = intent.actor_id
+  backend\app\services\spatial\movement_engine.py:163 : _npc_id = intent.actor_id
+  backend\app\services\spatial\movement_engine.py:612 : _npc_id = intent.actor_id
+  backend\app\services\spatial\movement_engine.py:694 : rng = KernelRNG(tick=tick, npc_id=intent.actor_id, salt="movement_jitter")
+  backend\app\services\spatial\movement_engine.py:807 : npc_id=intent.actor_id,
+  backend\app\services\spatial\movement_engine.py:898 : npc_id=intent.actor_id,
+  backend\app\services\spatial\movement_engine.py:932 : _npc_id = intent.actor_id
+  backend\app\services\verbalization\scene_outcome_builder.py:592 : npc_id = decision.npc_id
+  backend\app\services\verbalization\scene_outcome_builder.py:721 : npc_id = decision.npc_id
+  backend\app\services\verbalization\scene_outcome_builder.py:932 : npc_id = decision.npc_id
+  backend\app\services\tick_orchestrator.py:2694 : _d_npc_id = getattr(_d, "npc_id", None)  # noqa: ENIGMA002
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:219 : npc_id = getattr(state, "npc_id", None) if state else None
+
+

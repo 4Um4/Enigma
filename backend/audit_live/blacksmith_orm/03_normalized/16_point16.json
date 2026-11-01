@@ -2,26 +2,100 @@
   {
     "kind": "EVENT",
     "draft_payload": {
-      "summary": "Торнин заказывает у Орма меч, но Орм не хочет быть его другом после смерти предыдущего друга.",
+      "summary": "Торнин заказывает меч у Орма",
       "day": null,
       "duration_years": null,
-      "years_ago": 70,
-      "_provenance": {
-        "derived_from": "game_start_age - years_ago",
-        "game_start_age": 146,
-        "years_ago": 70,
-        "rule": "point in past relative to game_start"
-      }
+      "years_ago": null
     },
     "confidence": 1.0,
     "needs_confirmation": false,
     "question": null
   },
   {
-    "kind": "TRAIT_SEED",
+    "kind": "PORTRET",
     "draft_payload": {
-      "trait": "умеет хранить в себе",
-      "evidence": "гном привык хранить в себе многое"
+      "statement": "А гном, который прожил 146 лет, знает разницу между привязанностью и долгом.",
+      "traits": [
+        "гном",
+        "привык хранить в себе многое"
+      ]
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  },
+  {
+    "kind": "EVENT",
+    "draft_payload": {
+      "summary": "Орм предупредил Гильдию о Торнине",
+      "day": null,
+      "duration_years": null,
+      "years_ago": null
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  },
+  {
+    "kind": "RELATIONSHIP",
+    "draft_payload": {
+      "summary": "Орм предупредил Гильдию, потому что, если бы он промолчал и Торнин убил бы кого-то из Гильдии, виноватым сделали бы кузнеца, который знал и не сказал.",
+      "target_hint": "Гильдия воров",
+      "nature": "взаимовыгодный"
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  },
+  {
+    "kind": "EVENT",
+    "draft_payload": {
+      "summary": "Орм предупредил правительство о Торнине",
+      "day": null,
+      "duration_years": null,
+      "years_ago": null
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  },
+  {
+    "kind": "RELATIONSHIP",
+    "draft_payload": {
+      "summary": "Орм предупредил правительство, потому что, если бы стража случайно оказалась на месте зачистки, виноватым сделали бы кузнеца, который знал и не сказал.",
+      "target_hint": "правительство",
+      "nature": "взаимовыгодный"
+    },
+    "confidence": 0.4,
+    "needs_confirmation": true,
+    "question": {
+      "question_id": "roster_mismatch_5",
+      "target_span": "правительство",
+      "options": [
+        "SELECT_EXISTING_NPC",
+        "CREATE_NEW_NPC",
+        "UNKNOWN_PERSON",
+        "LEAVE_WHITE_SPOT"
+      ]
+    }
+  },
+  {
+    "kind": "PORTRET",
+    "draft_payload": {
+      "statement": "Орм защитил себя.",
+      "traits": [
+        "самозащита"
+      ]
+    },
+    "confidence": 1.0,
+    "needs_confirmation": false,
+    "question": null
+  },
+  {
+    "kind": "DESIRE_SEED",
+    "draft_payload": {
+      "statement": "Орм спрятал что-то похожее на сожаление о Торнине.",
+      "about_hint": "сожаление о Торнине"
     },
     "confidence": 1.0,
     "needs_confirmation": false,

@@ -1,0 +1,1586 @@
+﻿============================================================
+STAGE 0 - IDENTITY CONTRACT AUDIT
+Block 1: S0.1 + S0.2 - Player & Avatar identity sources
+Mode: READ ONLY
+Generated: 2026-11-01 19:34:13
+============================================================
+
+============================================================
+S0.1 - PLAYER IDENTITY SOURCE
+============================================================
+
+[SEARCH] PlayerSession class definition  pattern: /class PlayerSession/
+  3 matches:
+  backend\app\models\schemas.py:278 : class PlayerSession(BaseModel):
+  backend\app\models\schemas.py:345 : class PlayerSessionResponse(BaseModel):
+  backend\app\services\player_session_service.py:19 : class PlayerSessionService:
+
+[SEARCH] player_name assignment/annotation  pattern: /player_name\s*[:=]/
+  80 matches:
+  backend\app\api\routes.py:740 : player_name = request.actions[0].player_name
+  backend\app\api\routes.py:1071 : actions=[PlayerAction(player_name=player, action=action_text)],
+  backend\app\api\routes.py:1349 : player_name=request.player_name,
+  backend\app\api\routes.py:1430 : player_name = request.get("player")
+  backend\app\api\routes.py:1431 : if not player_name:
+  backend\app\contracts\interventions.py:28 : cls, action_text: str, player_name: str, tick: int, **kwargs: Any
+  backend\app\domain\events.py:39 : player_name: str
+  backend\app\domain\intent_identity.py:43 : def for_player_input(cls, player_name: str, character_id: str) -> "IntentIdentity":
+  backend\app\models\pipeline_context.py:32 : player_name: str = "player"
+  backend\app\models\schemas.py:46 : player_name: str
+  backend\app\models\schemas.py:282 : player_name: str
+  backend\app\models\schemas.py:306 : player_name: str
+  backend\app\models\schemas.py:327 : player_name: str
+  backend\app\services\calibration\scenario_player.py:223 : player_name="player",
+  backend\app\services\character\character_filter_applicator.py:22 : player_name: str,
+  backend\app\services\character\front_applicator.py:23 : player_name: str,
+  backend\app\services\game_loop\game_loop.py:889 : if session and session.player_name:
+  backend\app\services\game_loop\game_loop.py:1746 : _player_name = req.actions[0].player_name if req.actions else None  # noqa: ENIGMA001
+  backend\app\services\game_loop\game_loop.py:1751 : player_name=_player_name,
+  backend\app\services\game_loop\game_loop.py:2038 : actions = [PlayerAction(player_name=player, action=action_text)]
+  backend\app\services\game_loop\game_loop.py:2220 : def _get_character_dict(self, campaign_id: str, player_name: str) -> dict:
+  backend\app\services\game_loop\game_loop.py:2225 : if char.name == player_name:
+  backend\app\services\game_loop\npc_orchestration.py:79 : _player_name = actions[0].player_name if actions else ""
+  backend\app\services\game_loop\npc_orchestration.py:80 : if _player_name:
+  backend\app\services\game_loop\npc_orchestration.py:87 : player_name=_player_name,
+  backend\app\services\game_loop\phase_1_input.py:446 : player_name: str,
+  backend\app\services\game_loop\phase_1_input.py:472 : player_name: str,
+  backend\app\services\game_loop\phase_6_avatar.py:24 : player_name: str,
+  backend\app\services\game_loop\turn_pipeline.py:201 : _player_name = actions[0].player_name if actions else ""
+  backend\app\services\game_loop\turn_pipeline.py:322 : _player_name = shared_context.player_name or "player"
+  backend\app\services\game_loop\turn_pipeline.py:572 : _player_name = actions[0].player_name if actions else ""
+  backend\app\services\game_loop\turn_pipeline.py:589 : _player_name: avatar_to_prompt(_avatar_state)
+  backend\app\services\game_loop\turn_pipeline.py:666 : _player_name: avatar_to_prompt(_avatar_state)
+  backend\app\services\memory\rce.py:49 : player_name: Optional[str] = None,
+  backend\app\services\memory\rce.py:97 : player_name=player_name,
+  backend\app\services\memory\rce.py:184 : player_name: Optional[str] = None,
+  backend\app\services\memory\rce.py:229 : player_name: Optional[str] = None,
+  backend\app\services\state\context_builder.py:54 : player_name=player,
+  backend\app\services\player_avatar_service.py:127 : def load_avatar(self, campaign_id: str, player_name: str) -> Optional[dict]:
+  backend\app\services\player_avatar_service.py:138 : if data.get("state", {}).get("npc_id") != player_name:
+  backend\app\services\player_avatar_service.py:170 : def load_state(self, campaign_id: str, player_name: str) -> NPCState:
+  backend\app\services\player_avatar_service.py:212 : def load_sheet(self, campaign_id: str, player_name: str) -> CharacterSheet:
+  backend\app\services\player_avatar_service.py:222 : def load_profile(self, campaign_id: str, player_name: str) -> CharacterProfile:
+  backend\app\services\player_session_service.py:93 : player_name=data["player_name"],
+  backend\app\services\player_session_service.py:119 : def select_player(self, campaign_id: str, player_name: str) -> PlayerSession:
+  backend\app\services\player_session_service.py:135 : player_name=player_name,
+  backend\app\services\player_session_service.py:158 : def heartbeat(self, campaign_id: str, player_name: str) -> PlayerSession:
+  backend\app\services\player_session_service.py:166 : if existing.player_name != player_name:
+  backend\app\services\player_session_service.py:184 : player_name=player_name,
+  backend\app\services\player_session_service.py:195 : def is_player_active(self, campaign_id: str, player_name: Optional[str] = None) -> bool:
+  backend\app\services\player_session_service.py:210 : if player_name and session.player_name != player_name:
+  backend\app\services\player_session_service.py:225 : player_name = self._sessions[campaign_id].player_name
+  backend\tests\gameplay\harness.py:276 : actions=[PlayerAction(player_name=_PLAYER, action=action_text)],
+  backend\tests\micro\test_dm_raw_leak_lock.py:21 : def __init__(self, player_name: str, action: str) -> None:
+  backend\tests\micro\test_dm_raw_leak_lock.py:22 : self.player_name = player_name
+  backend\tests\sandbox\micro\test_player_turn_headless.py:46 : player_name = "Tester"
+  backend\tests\sandbox\micro\test_recognition_and_eavesdrop.py:163 : actions=[PlayerAction(player_name="Tester", action="Привет")]
+  backend\tests\sandbox\micro\test_run_turn_e2e.py:51 : actions=[PlayerAction(player_name="Tester", action="Люся, привет")]
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:198 : actions = [SimpleNamespace(player_name="p", action="Не бей его.")]
+  backend\tests\sandbox\SUPERBOX\scenarios\activity_gap_probe.py:135 : actions=[PlayerAction(player_name="ВВорг", action="остаюсь на месте")],
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_attention_integration_test.py:235 : actions=[PlayerAction(player_name="ВВорг", action="остаюсь на месте")],
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_g3x_test.py:200 : actions=[PlayerAction(player_name="ВВорг", action="остаюсь на месте")],
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3d_test.py:208 : actions=[PlayerAction(player_name="ВВорг", action=action)],
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3e_test.py:234 : actions=[PlayerAction(player_name="ВВорг", action="остаюсь на месте")],
+  backend\tests\sandbox\SUPERBOX\scenarios\d61_llm_outage_doctrine_test.py:27 : #   по harness.py:266-276 (player_name='player' — константа; при RED
+  backend\tests\sandbox\SUPERBOX\scenarios\d61_llm_outage_doctrine_test.py:87 : "run_turn-шейп по harness.py:266-276; player_name='player' — константа",
+  backend\tests\sandbox\SUPERBOX\scenarios\d61_llm_outage_doctrine_test.py:194 : actions=[PlayerAction(player_name=PLAYER, action=action_text)],
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:136 : actions=[PlayerAction(player_name="Tester", action=action_text)],
+  backend\tests\sandbox\SUPERBOX\player_stress_test.py:104 : player_name = "Tester"
+  backend\tests\sandbox\SUPERBOX\player_stress_test.py:118 : actions=[PlayerAction(player_name=player_name, action=action_text)],
+  backend\tests\sandbox\SUPERBOX\run_terminal_mvp.py:102 : player_name="ВВорг", # Имя игрока
+  backend\tests\sandbox\system\test_epistemology_pipeline.py:103 : player_name = "Венус"
+  backend\tests\sandbox\system\test_epistemology_pipeline.py:125 : player_action = PlayerAction(player_name=player_name, action=_actions[tick])
+  backend\tests\sandbox\system\test_homeostatic_dialogue_stability.py:99 : player_name = "Tester"
+  backend\tests\sandbox\system\test_homeostatic_dialogue_stability.py:126 : player_action = PlayerAction(player_name=player_name, action="осмотреться")
+  backend\tests\sandbox\phase_a_xray_test.py:50 : PLAYER_NAME = "XRayProbe"
+  backend\tests\sandbox\phase_a_xray_test.py:88 : actions=[PlayerAction(player_name=PLAYER_NAME, action=action_text)],
+  backend\tests\sandbox\terminal_cockpit.py:141 : actions=[PlayerAction(player_name=PLAYER, action=_action)],
+  backend\tests\test_game_loop_pipeline.py:60 : _mock_action = MagicMock(player_name="TestPlayer", raw_text="осмотреться")
+  backend\tests\test_r4_pat_x8.py:91 : actions=[PlayerAction(player_name="Tester", action="осмотреться")],
+
+[SEARCH] session_id usage  pattern: /session_id/
+  173 matches:
+  backend\app\models\schemas.py:285 : session_id: str = ""
+  backend\app\services\game_loop\game_loop.py:272 : _session_id = _replay_store.start_session(
+  backend\app\services\game_loop\game_loop.py:278 : session_id=_session_id
+  backend\app\services\game_loop\game_loop.py:280 : logger.info(f"[GAME_LOOP] Replay Recorder started. Session ID: {_session_id}")
+  backend\app\services\game_loop\game_loop.py:284 : _router.set_replay_context(store=_replay_store, session_id=_session_id)
+  backend\app\services\llm\provider_manager.py:185 : session_id: Optional[str] = None,
+  backend\app\services\llm\provider_manager.py:192 : session_log = f"[{session_id}]" if session_id else ""
+  backend\app\services\llm\provider_manager.py:211 : self._get_model_locked(key, session_id),
+  backend\app\services\llm\provider_manager.py:278 : self, key: str, session_id: Optional[str] = None
+  backend\app\services\llm\router.py:293 : def set_replay_context(self, store: Any, session_id: str) -> None:
+  backend\app\services\llm\router.py:299 : self._current_session_id = session_id
+  backend\app\services\llm\router.py:301 : logger.info(f"[LLM_CACHE] Replay context bound. Session: {session_id}")
+  backend\app\services\llm\router.py:520 : session_id=getattr(self, "_current_session_id", "unknown"),
+  backend\app\services\llm\router.py:809 : _current_session = getattr(self, "_current_session_id", "unknown")
+  backend\app\services\llm\router.py:826 : _current_session = getattr(self, "_current_session_id", "unknown")
+  backend\app\services\llm\router.py:887 : session_id=getattr(self, "_current_session_id", "unknown"),
+  backend\app\services\llm\router.py:969 : session_id=getattr(self, "_current_session_id", "unknown"),
+  backend\app\services\llm\router.py:1037 : session_id=getattr(self, "_current_session_id", "unknown"),
+  backend\app\services\llm\router.py:1079 : getattr(self, "_current_session_id", "unknown"), agent_name, _hash
+  backend\app\services\replay\llm_cache.py:29 : def record(self, session_id: str, tick_id: int, agent_name: str, prompt: str, response: str, model_name: str, latency_ms: int = 0)...
+  backend\app\services\replay\llm_cache.py:32 : session_id=session_id,
+  backend\app\services\replay\replay_player.py:24 : def __init__(self, store: ReplayStore, game_loop: Any, session_id: str, campaign_id: str, location_id: str):
+  backend\app\services\replay\replay_player.py:27 : self.session_id = session_id
+  backend\app\services\replay\replay_player.py:102 : "SELECT game_time_seconds, world_snapshot_json FROM tick_snapshots WHERE session_id = ? AND tick_id = ?",
+  backend\app\services\replay\replay_player.py:103 : (self.session_id, tick_id)
+  backend\app\services\replay\replay_recorder.py:15 : def __init__(self, store: Any, session_id: str):
+  backend\app\services\replay\replay_recorder.py:17 : self.session_id = session_id
+  backend\app\services\replay\replay_recorder.py:28 : session_id=self.session_id,
+  backend\app\services\replay\replay_recorder.py:40 : session_id=self.session_id,
+  backend\app\services\replay\replay_recorder.py:62 : session_id=self.session_id,
+  backend\app\services\replay\replay_recorder.py:78 : session_id=self.session_id,
+  backend\app\services\replay\replay_store.py:35 : session_id TEXT PRIMARY KEY,
+  backend\app\services\replay\replay_store.py:42 : session_id TEXT NOT NULL,
+  backend\app\services\replay\replay_store.py:48 : PRIMARY KEY (session_id, tick_id),
+  backend\app\services\replay\replay_store.py:49 : FOREIGN KEY (session_id) REFERENCES sessions(session_id)
+  backend\app\services\replay\replay_store.py:54 : session_id TEXT NOT NULL,
+  backend\app\services\replay\replay_store.py:59 : FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
+  backend\app\services\replay\replay_store.py:64 : session_id TEXT NOT NULL,
+  backend\app\services\replay\replay_store.py:72 : FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
+  backend\app\services\replay\replay_store.py:77 : session_id TEXT NOT NULL,
+  backend\app\services\replay\replay_store.py:82 : FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
+  backend\app\services\replay\replay_store.py:87 : session_id TEXT NOT NULL,
+  backend\app\services\replay\replay_store.py:91 : FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
+  backend\app\services\replay\replay_store.py:116 : session_id = str(uuid.uuid4())
+  backend\app\services\replay\replay_store.py:118 : "INSERT INTO sessions (session_id, campaign_id, commit_hash, started_at) VALUES (?, ?, ?, ?)",
+  backend\app\services\replay\replay_store.py:119 : (session_id, campaign_id, commit_hash, time.time())
+  backend\app\services\replay\replay_store.py:122 : return session_id
+  backend\app\services\replay\replay_store.py:124 : def count_ticks(self, session_id: str) -> int:
+  backend\app\services\replay\replay_store.py:127 : session_id существует ≠ запись произведена (start_session пишет
+  backend\app\services\replay\replay_store.py:132 : "SELECT COUNT(*) FROM tick_snapshots WHERE session_id = ?",
+  backend\app\services\replay\replay_store.py:133 : (session_id,)
+  backend\app\services\replay\replay_store.py:139 : session_id: str,
+  backend\app\services\replay\replay_store.py:151 : (session_id, tick_id, game_time_seconds, tick_state_json, tick_mutation_json, world_snapshot_json)
+  backend\app\services\replay\replay_store.py:153 : (session_id, tick_id, game_time_seconds, b'{}', b'{}', b'{}')
+  backend\app\services\replay\replay_store.py:162 : WHERE session_id = ? AND tick_id = ?""",
+  backend\app\services\replay\replay_store.py:168 : session_id, tick_id
+  backend\app\services\replay\replay_store.py:175 : session_id: str,
+  backend\app\services\replay\replay_store.py:183 : """INSERT INTO interventions (session_id, tick_id, source, payload_json, intent_compression_json)
+  backend\app\services\replay\replay_store.py:185 : (session_id, tick_id, source, self._to_json_bytes(payload), self._to_json_bytes(intent_compression))
+  backend\app\services\replay\replay_store.py:191 : session_id: str,
+  backend\app\services\replay\replay_store.py:206 : """INSERT INTO llm_calls (session_id, tick_id, agent_name, prompt_hash, prompt_json, response_json, model_name, latency_ms)
+  backend\app\services\replay\replay_store.py:208 : (session_id, tick_id, agent_name, prompt_hash, self._to_json_bytes(prompt), self._to_json_bytes(response), model_name, latency_ms)
+  backend\app\services\replay\replay_store.py:214 : session_id: str,
+  backend\app\services\replay\replay_store.py:222 : """INSERT INTO causal_probes (session_id, tick_id, probe_name, status, details_json)
+  backend\app\services\replay\replay_store.py:224 : (session_id, tick_id, probe_name, status, self._to_json_bytes(details))
+  backend\app\services\replay\replay_store.py:230 : session_id: str,
+  backend\app\services\replay\replay_store.py:237 : """INSERT INTO scene_changes (session_id, tick_id, change_json, applied)
+  backend\app\services\replay\replay_store.py:239 : (session_id, tick_id, self._to_json_bytes(change), applied)
+  backend\app\services\replay\replay_store.py:243 : def get_llm_call(self, session_id: str, agent_name: str, prompt_hash: str) -> Optional[Dict[str, Any]]:
+  backend\app\services\replay\replay_store.py:249 : "SELECT response_json, model_name FROM llm_calls WHERE session_id = ? AND agent_name = ? AND prompt_hash = ? ORDER BY call_id DESC...
+  backend\app\services\replay\replay_store.py:250 : (session_id, agent_name, prompt_hash)
+  backend\app\services\replay\replay_store.py:273 : Поля: session_id, campaign_id, commit_hash, started_at, pinned.
+  backend\app\services\replay\replay_store.py:277 : """SELECT session_id, campaign_id, commit_hash,
+  backend\app\services\replay\replay_store.py:292 : def pin_session(self, session_id: str) -> bool:
+  backend\app\services\replay\replay_store.py:300 : "UPDATE sessions SET pinned = 1 WHERE session_id = ? AND pinned = 0",
+  backend\app\services\replay\replay_store.py:301 : (session_id,),
+  backend\app\services\replay\replay_store.py:306 : def unpin_session(self, session_id: str) -> bool:
+  backend\app\services\replay\replay_store.py:310 : "UPDATE sessions SET pinned = 0 WHERE session_id = ? AND pinned = 1",
+  backend\app\services\replay\replay_store.py:311 : (session_id,),
+  backend\app\services\replay\replay_store.py:335 : scene_changes). Возвращает список удалённых session_id.
+  backend\app\services\replay\replay_store.py:337 : dry_run=True: возвращает список session_id для удаления БЕЗ
+  backend\app\services\replay\replay_store.py:351 : """SELECT session_id FROM sessions
+  backend\app\services\replay\replay_store.py:367 : "DELETE FROM scene_changes WHERE session_id = ?",
+  backend\app\services\replay\replay_store.py:371 : "DELETE FROM causal_probes WHERE session_id = ?",
+  backend\app\services\replay\replay_store.py:375 : "DELETE FROM llm_calls WHERE session_id = ?",
+  backend\app\services\replay\replay_store.py:379 : "DELETE FROM interventions WHERE session_id = ?",
+  backend\app\services\replay\replay_store.py:383 : "DELETE FROM tick_snapshots WHERE session_id = ?",
+  backend\app\services\replay\replay_store.py:387 : "DELETE FROM sessions WHERE session_id = ?",
+  backend\app\services\state\json_persistence_adapter.py:133 : self, session_id: str, npc_dicts: List[Dict[str, Any]]
+  backend\app\services\state\json_persistence_adapter.py:136 : if not session_id:
+  backend\app\services\state\json_persistence_adapter.py:138 : "[PERSISTENCE] save_npc_runtime вызван без session_id — пропуск"
+  backend\app\services\state\json_persistence_adapter.py:141 : runtime_path = self._saves_dir / session_id / "npc_runtime.json"
+  backend\app\services\state\json_persistence_adapter.py:147 : f"[PERSISTENCE] NPC runtime saved: {session_id} ({len(npc_dicts)} records)"
+  backend\app\services\state\json_persistence_adapter.py:152 : def load_npc_runtime(self, session_id: str) -> Optional[List[Dict[str, Any]]]:
+  backend\app\services\state\json_persistence_adapter.py:154 : if not session_id:
+  backend\app\services\state\json_persistence_adapter.py:156 : runtime_path = self._saves_dir / session_id / "npc_runtime.json"
+  backend\app\services\state\migration_runner.py:288 : session_id TEXT PRIMARY KEY,
+  backend\app\services\state\migration_runner.py:296 : session_id TEXT NOT NULL,
+  backend\app\services\state\migration_runner.py:302 : PRIMARY KEY (session_id, tick_id),
+  backend\app\services\state\migration_runner.py:303 : FOREIGN KEY (session_id) REFERENCES sessions(session_id)
+  backend\app\services\state\migration_runner.py:309 : session_id TEXT NOT NULL,
+  backend\app\services\state\migration_runner.py:314 : FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
+  backend\app\services\state\migration_runner.py:320 : session_id TEXT NOT NULL,
+  backend\app\services\state\migration_runner.py:328 : FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
+  backend\app\services\state\migration_runner.py:334 : session_id TEXT NOT NULL,
+  backend\app\services\state\migration_runner.py:339 : FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
+  backend\app\services\state\migration_runner.py:345 : session_id TEXT NOT NULL,
+  backend\app\services\state\migration_runner.py:349 : FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
+  backend\app\services\state\persistence_port.py:58 : self, session_id: str, npc_dicts: List[Dict[str, Any]]
+  backend\app\services\state\persistence_port.py:64 : def load_npc_runtime(self, session_id: str) -> Optional[List[Dict[str, Any]]]:
+  backend\app\services\state\sqlite_persistence_adapter.py:17 : Ключи: scene:{campaign_id}, runtime:{session_id}, npcs:{campaign_id}
+  backend\app\services\state\sqlite_persistence_adapter.py:170 : self, session_id: str, npc_dicts: List[Dict[str, Any]]
+  backend\app\services\state\sqlite_persistence_adapter.py:173 : if not session_id:
+  backend\app\services\state\sqlite_persistence_adapter.py:175 : "[SQLITE_PERSISTENCE] save_npc_runtime без session_id — пропуск"
+  backend\app\services\state\sqlite_persistence_adapter.py:180 : self._upsert(f"runtime:{session_id}", npc_dicts)
+  backend\app\services\state\sqlite_persistence_adapter.py:185 : f"[SQLITE_PERSISTENCE] NPC runtime saved: {session_id} ({len(npc_dicts)} records)"
+  backend\app\services\state\sqlite_persistence_adapter.py:266 : def load_npc_runtime(self, session_id: str) -> Optional[List[Dict[str, Any]]]:
+  backend\app\services\state\sqlite_persistence_adapter.py:268 : if not session_id:
+  backend\app\services\state\sqlite_persistence_adapter.py:270 : data = self._select(f"runtime:{session_id}")
+  backend\app\services\state\sqlite_persistence_adapter.py:276 : f"[SQLITE_PERSISTENCE] runtime:{session_id} не список, а {type(data)}"
+  backend\app\services\campaign_state_service.py:232 : session_id = f"session_{uuid4().hex[:8]}"
+  backend\app\services\campaign_state_service.py:236 : id=session_id,
+  backend\app\services\error_interpreter.py:59 : context: {'session_id', 'vram_before', ...}
+  backend\app\services\player_session_service.py:67 : "session_id": session.session_id,
+  backend\app\services\player_session_service.py:96 : session_id=data["session_id"],
+  backend\app\services\player_session_service.py:138 : session_id=str(uuid.uuid4()),
+  backend\app\services\player_session_service.py:143 : logger.debug(f"[PLAYER_SESSION_CREATED] Session ID: {session.session_id}")
+  backend\app\services\player_session_service.py:187 : session_id=str(uuid.uuid4()),
+  backend\tests\micro\test_d72_replay_budget.py:47 : "UPDATE sessions SET started_at = ? WHERE session_id = ?",
+  backend\tests\micro\test_d72_replay_budget.py:57 : store: ReplayStore, session_id: str, tick_id: int = 1
+  backend\tests\micro\test_d72_replay_budget.py:61 : session_id=session_id, tick_id=tick_id,
+  backend\tests\micro\test_d72_replay_budget.py:65 : session_id=session_id, tick_id=tick_id,
+  backend\tests\micro\test_d72_replay_budget.py:69 : session_id=session_id, tick_id=tick_id,
+  backend\tests\micro\test_d72_replay_budget.py:74 : session_id=session_id, tick_id=tick_id,
+  backend\tests\micro\test_d72_replay_budget.py:78 : session_id=session_id, tick_id=tick_id,
+  backend\tests\micro\test_d72_replay_budget.py:101 : "SELECT pinned FROM sessions WHERE session_id = ?", (sid,)
+  backend\tests\micro\test_d72_replay_budget.py:165 : "session_id", "campaign_id", "commit_hash",
+  backend\tests\micro\test_d72_replay_budget.py:185 : sid = store.list_sessions()[0]["session_id"]
+  backend\tests\micro\test_d72_replay_budget.py:264 : _add_all_dependent_rows(store, s["session_id"], tick_id=1)
+  backend\tests\micro\test_d72_replay_budget.py:277 : f"SELECT COUNT(*) FROM {table} WHERE session_id = ?",
+  backend\tests\micro\test_d72_replay_budget.py:285 : f"SELECT COUNT(*) FROM {table} WHERE session_id = ?",
+  backend\tests\micro\test_d72_replay_budget.py:286 : (remaining[0]["session_id"],),
+  backend\tests\micro\test_d72_replay_budget.py:307 : _add_all_dependent_rows(store, s["session_id"], tick_id=1)
+  backend\tests\micro\test_llm_resilience_v1.py:18 : def get_llm_call(self, session_id, agent_name, prompt_hash):
+  backend\tests\micro\test_llm_resilience_v1.py:19 : return self._entries.get((session_id, agent_name, prompt_hash))
+  backend\tests\micro\test_llm_resilience_v1.py:83 : assert calls[0]["session_id"] == "sess-t3"
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:233 : def run(self, mode: str, session_id: str = None) -> DriftResult:
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:235 : self._replay_session_id = session_id
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:266 : runner(result, self._replay_session_id)
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:442 : self._replay_session_id = self._orchestrator._replay_recorder.session_id
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:443 : # R2 (Phantom fix): session_id ≠ запись. Считаем фактические
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:449 : self._replay_session_id
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:1162 : def _mode_replay_compare(self, result: DriftResult, session_id: str) -> None:
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:1171 : print(f"\n--- MODE H: Replay Compare against session {session_id} ---")
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:1187 : session_id,
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:2141 : def main(mode: str = "long_horizon", session_id: str = None) -> None:
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:2170 : result = lab.run(mode, session_id=session_id)
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:2206 : if hasattr(lab, "_replay_session_id"):
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:2212 : print(f"   Session ID: {lab._replay_session_id}")
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:2215 : print(f"   python -m tests.sandbox.SUPERBOX.run drift replay_compare {lab._replay_session_id}")
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:2220 : print(f"   Session ID (пустая запись): {lab._replay_session_id}")
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:2225 : print(f"   Session ID: {lab._replay_session_id}")
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:2227 : print(f"   python -m tests.sandbox.SUPERBOX.run drift replay_compare {lab._replay_session_id}")
+  backend\tests\sandbox\SUPERBOX\run.py:46 : session_id = args[2] if len(args) > 2 else None
+  backend\tests\sandbox\SUPERBOX\run.py:47 : drift_main(mode, session_id=session_id)
+  backend\tests\IPT.py:869 : session_id = store.start_session("test_campaign", "test_hash")
+  backend\tests\IPT.py:870 : if not session_id:
+  backend\tests\IPT.py:874 : session_id=session_id,
+  backend\tests\IPT.py:881 : store.record_intervention(session_id, 1, "player", {"text": "test"})
+  backend\tests\IPT.py:882 : store.record_causal_probe(session_id, 1, "INV-TEST", "PASS", {"msg": "ok"})
+  backend\tests\IPT.py:1637 : _session_id = _recorder.session_id
+  backend\tests\IPT.py:1641 : "SELECT tick_id FROM tick_snapshots WHERE session_id = ? AND tick_id = ?",
+  backend\tests\IPT.py:1642 : (_session_id, world.tick)
+
+[SEARCH] InterventionEvent class  pattern: /class InterventionEvent/
+  1 matches:
+  backend\app\contracts\interventions.py:14 : class InterventionEvent:
+
+[SEARCH] Player input DTOs  pattern: /class PlayerInput|class PlayerAction|class PlayerCommand|class PlayerIntent/
+  3 matches:
+  backend\app\domain\events.py:33 : class PlayerActionPayload(TypedDict, total=False):
+  backend\app\models\player_action.py:24 : class PlayerAction:
+  backend\app\models\schemas.py:45 : class PlayerAction(BaseModel):
+
+[SEARCH] from_player_action factory  pattern: /from_player_action/
+  5 matches:
+  backend\app\contracts\interventions.py:27 : def from_player_action(
+  backend\app\services\calibration\scenario_player.py:221 : InterventionEvent.from_player_action(
+  backend\tests\gameplay\test_negative_paths.py:16 : e2: InterventionEvent schema (source/payload/tick + from_player_action),
+  backend\tests\gameplay\test_negative_paths.py:330 : assert hasattr(InterventionEvent, "from_player_action"), (
+  backend\tests\gameplay\test_negative_paths.py:331 : "InterventionEvent.from_player_action factory missing (TZ-08 v0.2)"
+
+[SEARCH] literal "player" string  pattern: /"player"/
+  1132 matches:
+  backend\app\agents\dm_agent.py:313 : if _nid == "player":
+  backend\app\agents\dm_agent.py:461 : if _nid == "player":
+  backend\app\api\routes.py:830 : _recalled = _mm.recall(_cache, hidden_from_id="player", limit=5)
+  backend\app\api\routes.py:848 : _rel = _mm._relationships.get_pair(campaign_id, npc_id, "player")
+  backend\app\api\routes.py:942 : player = request.get("player")
+  backend\app\api\routes.py:1132 : _player_ws = (_npc_pos_dict or {}).get("player") or {}
+  backend\app\api\routes.py:1304 : return {"status": "ok", "player": stored.model_dump()}
+  backend\app\api\routes.py:1417 : Whitelist-контракт: из payload принимается ТОЛЬКО npc_positions["player"]
+  backend\app\api\routes.py:1430 : player_name = request.get("player")
+  backend\app\api\routes_stream.py:55 : "player":   "Демеург",
+  backend\app\api\routes_stream.py:63 : player = request.get("player")
+  backend\app\api\world_routes.py:62 : _eco_profile = _game_loop._svc.get_or_create_economic_profiles(campaign_id).get("player")
+  backend\app\contracts\interventions.py:32 : source="player",
+  backend\app\domain\control_source.py:24 : _PLAYER_ACTORS = frozenset({"player"})
+  backend\app\domain\disclosure.py:29 : """Универсальный адресат. Player = SocialTarget(PERSON, "player") —
+  backend\app\domain\events.py:47 : actor: str                    # npc_id или "player"
+  backend\app\domain\intent.py:21 : None  # ADR-O-315: Кто совершает действие ("player", "tornin")
+  backend\app\domain\movement.py:44 : actor_id: str  # ADR-O-314: Actor-Agnostic ("player", "tornin")
+  backend\app\domain\movement.py:84 : actor_id: str  # Кто идёт ("player", "tornin")
+  backend\app\domain\movement.py:85 : target_actor_id: str  # К кому идёт ("player", "tornin")
+  backend\app\domain\sanity_membrane.py:23 : if target_id == "player":
+  backend\app\domain\semantic_span.py:30 : PLAYER = "player"         # ручная привязка (доска — будущее)
+  backend\app\domain\snapshot.py:251 : # Содержит только убеждения observer_id="player" для вкладки "Мои убеждения".
+  backend\app\domain\tick.py:164 : # Поля игрока (заполняются из interventions, если source="player")
+  backend\app\models\npc\memory_crystal.py:42 : subject: str          # "player"
+  backend\app\models\economy.py:127 : party_b: str  # Вторая сторона (NPC ID или "player")
+  backend\app\models\npc_state.py:1079 : _player_rc = rc.get("player", {})
+  backend\app\models\pipeline_context.py:32 : player_name: str = "player"
+  backend\app\models\scene_event.py:33 : actor_id: str  # кто инициировал ("player", "maid_lusya")
+  backend\app\models\schemas.py:309 : player: Optional[str] = Field(None, alias="player")
+  backend\app\models\schemas.py:316 : if "player" in data and data["player"]:
+  backend\app\models\schemas.py:317 : data["player_name"] = data.pop("player")
+  backend\app\models\social.py:90 : origin_actor: str  # обычно "player"
+  backend\app\services\action\dm_router.py:212 : actor_id="player",
+  backend\app\services\action\dm_scene_builder.py:167 : actor_id="player",
+  backend\app\services\action\player_target_extractor.py:902 : player_data = scene_state.get("npc_positions", {}).get("player", {})
+  backend\app\services\affective\affective_decay_handler.py:48 : if n.get("npc_id") != "player"
+  backend\app\services\affective\affective_decay_handler.py:54 : if not npc_id or npc_id == "player":
+  backend\app\services\body\body_topology_service.py:234 : avatar_id=data.get("avatar_id", "player"),
+  backend\app\services\calibration\experiment_runner.py:465 : target_id="player",
+  backend\app\services\calibration\experiment_runner.py:472 : store_read = rel_store.get_pair(campaign_id, nid, "player")
+  backend\app\services\calibration\scenario_player.py:223 : player_name="player",
+  backend\app\services\cfrm\local_causal_solver.py:345 : if entity_id == "player":
+  backend\app\services\chronicle\chronicle_seeder.py:264 : hidden_from=("player",),
+  backend\app\services\combat\combat_subscriber.py:132 : if npc_id == "player":
+  backend\app\services\combat\combat_subscriber.py:181 : if intent.actor_id == "player" and _distances:
+  backend\app\services\combat\combat_subscriber.py:206 : if intent.target_id == "player":
+  backend\app\services\combat\combat_subscriber.py:284 : actor_id = str(payload.get("actor_id") or getattr(event, "source", "") or "player")  # noqa: ENIGMA002
+  backend\app\services\combat\combat_subscriber.py:437 : npc_id="player",
+  backend\app\services\combat\impact_engine.py:140 : if intent.actor_id == "player":
+  backend\app\services\economy\work_orders.py:125 : if not buyer or _named in ("all", "player") or _named == buyer:
+  backend\app\services\economy\work_orders.py:179 : if nid not in (buyer, "player") and _subj in _stock_keys(nid)
+  backend\app\services\events\claim_event_subscriber.py:29 : S199 (Фаза 8.3): Поддержка игрока как наблюдателя (observer_id="player").
+  backend\app\services\events\claim_event_subscriber.py:108 : speaker = getattr(event, "source", "player")
+  backend\app\services\events\claim_event_subscriber.py:179 : if not can_address(event.source, str(prop.subject_id)) and str(prop.subject_id) != "player":
+  backend\app\services\events\dialogue_memory_subscriber.py:47 : listener = payload.get("target_id", "player")
+  backend\app\services\events\dialogue_memory_subscriber.py:52 : if not npc_id or npc_id in ("all", "player"):
+  backend\app\services\events\npc_dialogue_subscriber.py:218 : if listener != "player" and listener != SELF_TALK_SENTINEL:
+  backend\app\services\events\npc_dialogue_subscriber.py:238 : _player_pos = _spatial_query._npc_positions.get("player", {}).get("local_position", {})
+  backend\app\services\events\npc_dialogue_subscriber.py:293 : _channel = "direct" if listener == "player" else "overheard"
+  backend\app\services\events\npc_dialogue_subscriber.py:306 : if speaker != "player":
+  backend\app\services\events\npc_dialogue_subscriber.py:327 : if _oid == speaker or _oid == "player":
+  backend\app\services\events\npc_dialogue_subscriber.py:372 : if listener != "player" and speaker != "player":
+  backend\app\services\events\player_speech_act_subscriber.py:70 : campaign_id, npc_id, partner_id="player"
+  backend\app\services\events\player_speech_act_subscriber.py:81 : speaker="player",
+  backend\app\services\events\player_speech_act_subscriber.py:100 : "subject_id": "player",
+  backend\app\services\events\player_speech_act_subscriber.py:125 : if not npc_id or npc_id in ("player", "all"):
+  backend\app\services\events\reaction_subscriber.py:333 : trust_target_val = source if source_is_npc else "player"
+  backend\app\services\events\rules_subscriber.py:165 : "player": getattr(event, "source", "system"),
+  backend\app\services\events\rules_subscriber.py:229 : if n.get("npc_id") == "player" or n.get("id") == "player"
+  backend\app\services\events\rules_subscriber.py:262 : "player",
+  backend\app\services\events\social_subscriber.py:231 : _gate.apply(_campaign_id, "player", _sp, {"trust": _TRUST_DELTA}, cause="social_sub:gossip")
+  backend\app\services\events\social_subscriber.py:234 : _gate.apply(_campaign_id, "player", _tg, {"trust": _TARGET_TRUST_DELTA}, cause="social_sub:praise")
+  backend\app\services\events\social_subscriber.py:237 : _gate.apply(_campaign_id, "player", _tg, {"fear": _TARGET_FEAR_DELTA}, cause="social_sub:accuse")
+  backend\app\services\events\social_subscriber.py:240 : _gate.apply(_campaign_id, "player", _sp, {"trust": _TRUST_DELTA}, cause="social_sub:talk")
+  backend\app\services\execution\dialogue_executor.py:271 : if (req.target_id or "") != "player":
+  backend\app\services\execution\dialogue_executor.py:294 : task.campaign_id, task.owner_id, "player"
+  backend\app\services\execution\dialogue_executor.py:310 : recipient = SocialTarget(SocialTargetKind.PERSON, "player")
+  backend\app\services\execution\dialogue_executor.py:324 : if (req.target_id or "") != "player":
+  backend\app\services\game\combat_math.py:300 : key=lambda c: (-c["initiative"], 0 if c.get("type") == "player" else 1),
+  backend\app\services\game_loop\campaign_lifecycle.py:384 : BodyTopologyService.create_topology("player")
+  backend\app\services\game_loop\dialogue_log.py:49 : "player": player_text,
+  backend\app\services\game_loop\dm_phase.py:188 : speaker="player",
+  backend\app\services\game_loop\dm_phase.py:205 : source_id="player",
+  backend\app\services\game_loop\dm_phase.py:264 : actor_id=getattr(_raw_event, "source", "player"),
+  backend\app\services\game_loop\game_loop.py:887 : n for n in npcs if n.get("id") != "player" and n.get("npc_id") != "player"
+  backend\app\services\game_loop\game_loop.py:923 : "id": "player",
+  backend\app\services\game_loop\game_loop.py:924 : "npc_id": "player",
+  backend\app\services\game_loop\game_loop.py:1045 : _player_eco_profile = self._svc.get_or_create_economic_profiles(campaign_id).get("player")
+  backend\app\services\game_loop\game_loop.py:1050 : _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
+  backend\app\services\game_loop\game_loop.py:1051 : _sp_positions = {nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0)) for nid, d in _npc_po...
+  backend\app\services\game_loop\game_loop.py:1109 : принимается ТОЛЬКО npc_positions["player"] (+ location_id для
+  backend\app\services\game_loop\game_loop.py:1125 : _player_entry = _npc_pos.get("player") if isinstance(_npc_pos, dict) else None  # noqa: ENIGMA001
+  backend\app\services\game_loop\game_loop.py:1135 : _current.setdefault("npc_positions", {})["player"] = _copy.deepcopy(_player_entry)
+  backend\app\services\game_loop\game_loop.py:1326 : _player_eco_profile = self._svc.get_or_create_economic_profiles(campaign_id).get("player")
+  backend\app\services\game_loop\game_loop.py:1506 : _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
+  backend\app\services\game_loop\game_loop.py:1507 : _sp_positions = {nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0)) for nid, d in _npc_po...
+  backend\app\services\game_loop\game_loop.py:1875 : _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
+  backend\app\services\game_loop\game_loop.py:1876 : _sp_positions = {nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0)) for nid, d in _npc_po...
+  backend\app\services\game_loop\game_loop.py:1961 : _ws_dict["player_beliefs"] = [r for r in _all if r.get("agent_id") == "player"]
+  backend\app\services\game_loop\game_loop.py:1962 : _ws_dict["npc_beliefs_about_player"] = [r for r in _all if r.get("agent_id") != "player"]
+  backend\app\services\game_loop\idle_event_projection.py:41 : # Идентификатор аватара игрока (SSOT позиций: npc_positions["player"]).
+  backend\app\services\game_loop\idle_event_projection.py:42 : _PLAYER_ID = "player"
+  backend\app\services\game_loop\npc_orchestration.py:137 : "player", {}
+  backend\app\services\game_loop\npc_orchestration.py:141 : ).get("player", {}).get("local_position", {})
+  backend\app\services\game_loop\npc_orchestration.py:190 : source="player",
+  backend\app\services\game_loop\npc_orchestration.py:193 : "player_name": actions[0].player_name if actions else "player",
+  backend\app\services\game_loop\npc_orchestration.py:310 : source_id="player",
+  backend\app\services\game_loop\npc_orchestration.py:343 : source_id="player",
+  backend\app\services\game_loop\phase_1_input.py:244 : Возвращает ID актора ("player", "tornin") или пустую строку.
+  backend\app\services\game_loop\phase_1_input.py:247 : return "player"  # По умолчанию действие совершает игрок
+  backend\app\services\game_loop\phase_1_input.py:252 : _player_aliases = {"я", "меня", "мне", "мы", "нас", "нам", "player"}
+  backend\app\services\game_loop\phase_1_input.py:254 : return "player"
+  backend\app\services\game_loop\phase_1_input.py:670 : source="player",
+  backend\app\services\game_loop\scene_init.py:74 : node = scene_state.setdefault("npc_positions", {}).setdefault("player", {})
+  backend\app\services\game_loop\scene_init.py:431 : BodyTopologyService.create_topology("player")
+  backend\app\services\game_loop\service_factories.py:145 : _profiles["player"] = create_profile_from_npc(
+  backend\app\services\game_loop\service_factories.py:146 : npc_data={"id": "player", "status_profile": {"wealth": 20}},
+  backend\app\services\game_loop\task_scheduler.py:668 : if nid != "player" and nid != task.owner_id
+  backend\app\services\game_loop\turn_pipeline.py:156 : "source": actions[0].player_name if actions else "player",
+  backend\app\services\game_loop\turn_pipeline.py:215 : npc_id="player",
+  backend\app\services\game_loop\turn_pipeline.py:220 : _player_dict = next((n for n in _ctx.all_npcs_raw if n.get("npc_id") == "player"), None)
+  backend\app\services\game_loop\turn_pipeline.py:229 : _avatar_dict["npc_id"] = "player"
+  backend\app\services\game_loop\turn_pipeline.py:230 : _avatar_dict["id"] = "player"
+  backend\app\services\game_loop\turn_pipeline.py:233 : n for n in _ctx.all_npcs_raw if n.get("npc_id") != "player"
+  backend\app\services\game_loop\turn_pipeline.py:255 : if n.get("npc_id") == "player"
+  backend\app\services\game_loop\turn_pipeline.py:322 : _player_name = shared_context.player_name or "player"
+  backend\app\services\game_loop\turn_pipeline.py:351 : _target_npc = shared_context.player_target_id or "player"
+  backend\app\services\game_loop\turn_pipeline.py:353 : if self.memory_manager and _target_npc != "player":
+  backend\app\services\game_loop\turn_pipeline.py:358 : partner_id="player"
+  backend\app\services\game_loop\turn_pipeline.py:386 : "actor": _semantic_field.actor or "player",
+  backend\app\services\game_loop\turn_pipeline.py:397 : source=_semantic_field.actor or "player",
+  backend\app\services\game_loop\turn_pipeline.py:474 : actor_id="player",
+  backend\app\services\game_loop\turn_pipeline.py:678 : _topo = BodyTopologyService.create_topology("player", strength_score=_str_score)
+  backend\app\services\input\intent_compressor.py:890 : # GAP11 FIX: Если NOUN не найден, но есть наречия/местоимения 1-го лица -> цель "player"
+  backend\app\services\input\intent_compressor.py:894 : target_ref = "player"
+  backend\app\services\input\intent_compressor.py:919 : subject_id="player",
+  backend\app\services\input\intent_compressor.py:927 : _actor_ref = "player"
+  backend\app\services\input\llm_compressor_client.py:357 : Ввод: "Я слуга этого дома десять лет." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "ASSERT", "params": {{"claim": "Я сл...
+  backend\app\services\input\llm_compressor_client.py:365 : - actor: КТО совершает действие. Если игрок говорит о себе ("я подойду") — "player". Если приказывает NPC ("Торнин, отойди" или "п...
+  backend\app\services\integration\world_snapshot_builder.py:100 : _player_beliefs = [r for r in epistemic_store.to_dict() if r.get("agent_id") == "player"]
+  backend\app\services\integration\world_snapshot_builder.py:109 : if r.get("agent_id") != "player"
+  backend\app\services\integration\world_snapshot_builder.py:281 : if npc_id == "player":
+  backend\app\services\integration\world_snapshot_builder.py:362 : spatial = scene_state.get("npc_positions", {}).get("player", {})
+  backend\app\services\integration\world_snapshot_builder.py:417 : if npc.get("npc_id") == "player":
+  backend\app\services\memory\conclusion_engine.py:35 : _TRACE_CHANNEL_PLAYER = "player"
+  backend\app\services\memory\conclusion_engine.py:41 : _CONCLUSION_SUBJECT_PLAYER = "player"
+  backend\app\services\memory\dialogue_session.py:59 : partner_id: str = "player"
+  backend\app\services\memory\dialogue_session.py:166 : speaker_name = "Игрок" if turn.speaker == "player" else self.npc_id
+  backend\app\services\memory\event_semantic_tagger.py:90 : if actor_id == "player":
+  backend\app\services\memory\memory_manager.py:93 : def get_dialogue_session(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> DialogueSession:
+  backend\app\services\memory\memory_manager.py:109 : partner_id: str = "player"
+  backend\app\services\memory\memory_manager.py:118 : def clear_dialogue_session(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> None:
+  backend\app\services\memory\memory_manager.py:209 : def get_stm_prompt_block(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> str:
+  backend\app\services\memory\memory_manager.py:442 : speaker = "Игрок" if turn.speaker == "player" else turn.speaker
+  backend\app\services\memory\memory_manager.py:460 : hidden_from_id: str = "player",
+  backend\app\services\memory\memory_manager.py:519 : hidden_from_id: str = "player",
+  backend\app\services\memory\memory_manager.py:836 : actor_id: str = "player",
+  backend\app\services\memory\relationship_store.py:102 : Пример: update("c1", "player", "tornin", {"trust": +10, "fear": -5})
+  backend\app\services\memory\resonance_engine.py:101 : actor_id: str = "player",
+  backend\app\services\memory\resonance_engine.py:107 : actor_id — чьи действия анализируем (обычно "player").
+  backend\app\services\memory\working_memory_tick.py:105 : "target_id": "player",
+  backend\app\services\memory\working_memory_tick.py:159 : resonance = memory_manager.detect_resonance(campaign_id, npc_id, actor_id="player")
+  backend\app\services\npc\decision\risk.py:81 : _rel_data = state.relationship_cache.get("player", {})
+  backend\app\services\npc\decision\social_deltas.py:169 : current=_get_rel_value(state, "player", "trust") or 0.0,
+  backend\app\services\npc\decision\social_deltas.py:177 : current=_get_rel_value(state, "player", "fear") or 0.0,
+  backend\app\services\npc\decision\social_deltas.py:193 : _target = "player"
+  backend\app\services\npc\act_consumer.py:158 : src = "сам игрок" if plan.provenance_hint == "player" else plan.provenance_hint
+  backend\app\services\npc\attention_reflex.py:11 : `== "player"` нет); orient-АКТУАЦИЯ гейтится ControlSource — владелец
+  backend\app\services\npc\belief_transition_engine.py:108 : if event.actor_id == "player":
+  backend\app\services\npc\cognition_context.py:29 : def resolve_block(self, npc_id: str, partner_id: str = "player") -> str:
+  backend\app\services\npc\decision_hub.py:506 : _fear_raw = self._get_rel_value(state, "player", "fear")
+  backend\app\services\npc\decision_hub.py:1294 : fear = (self._get_rel_value(state, "player", "fear") or 0.0) / 100.0
+  backend\app\services\npc\decision_hub.py:1295 : trust = (self._get_rel_value(state, "player", "trust") or 0.0) / 100.0
+  backend\app\services\npc\homeostasis_projector.py:51 : if not _npc_id or _npc_id == "player":
+  backend\app\services\npc\interpretation_engine.py:90 : actor_is_player = event.actor_id == "player"
+  backend\app\services\npc\interpretation_engine.py:140 : state.relationship_cache.get("player", {}) if actor_is_player else {}
+  backend\app\services\npc\npc_loader.py:619 : hidden_from=("player",),
+  backend\app\services\npc\npc_loader.py:935 : "player": {
+  backend\app\services\npc\npc_tick_pipeline.py:59 : if intent_target and intent_target != "player":
+  backend\app\services\npc\npc_tick_pipeline.py:91 : if other_id == npc_id or other_id == "player":
+  backend\app\services\npc\npc_tick_pipeline.py:202 : _player_pos_dict = state.scene_state.get("npc_positions", {}).get("player", {}).get("local_position", {"x": 0.0, "y": 0.0})
+  backend\app\services\npc\npc_tick_pipeline.py:208 : _p_target = state.player_target_id or "player"
+  backend\app\services\npc\npc_tick_pipeline.py:267 : target_id=state.player_target_id or "player",
+  backend\app\services\npc\npc_tick_pipeline.py:285 : _player_weights = _mem_weights.get("player", {})
+  backend\app\services\npc\npc_tick_pipeline.py:287 : state_l2.relationship_cache.setdefault("player", {}).update(
+  backend\app\services\npc\npc_tick_pipeline.py:323 : state.player_target_id or "player",
+  backend\app\services\npc\npc_tick_pipeline.py:1049 : if _target_ref in ("player", ""):
+  backend\app\services\npc\npc_tick_pipeline.py:1065 : decision.decision, intent=Intent.APPROACH, intent_target="player"
+  backend\app\services\npc\npc_tick_pipeline.py:1077 : decision.decision.intent_target = "player"
+  backend\app\services\npc\npc_tick_pipeline.py:1100 : audience=decision.intent_target or "player",
+  backend\app\services\npc\npc_tick_pipeline.py:1106 : target_id=decision.intent_target or "player",
+  backend\app\services\npc\npc_tick_pipeline.py:1146 : intent_target=decision.intent_target or "player",
+  backend\app\services\npc\npc_tick_pipeline.py:1226 : player_target_id=state.player_target_id or "player",
+  backend\app\services\npc\npc_tick_pipeline.py:1324 : _evt_actor = hub_event.actor_id or "player" if hub_event else "player"
+  backend\app\services\npc\npc_tick_pipeline.py:1382 : _evt_actor = hub_event.actor_id or "player" if hub_event else "player"
+  backend\app\services\npc\npc_tick_pipeline.py:1507 : hidden_from_id="player",
+  backend\app\services\npc\npc_tick_pipeline.py:1586 : # flee для "player" — авто-бегство без ввода: аватар перебегал локации
+  backend\app\services\npc\npc_tick_pipeline.py:1589 : if npc_id == "player":
+  backend\app\services\npc\npc_tick_pipeline.py:1629 : _target_id = intent_target or "player"
+  backend\app\services\npc\npc_tick_pipeline.py:1632 : # ADR-048: Игрок внедрен как npc_id="player" (ADR-031), его позиция находится в npc_positions.
+  backend\app\services\npc\npc_tick_pipeline.py:1668 : # ADR-048: Единый пространственный авторитет. Игрок внедрен как npc_id="player".
+  backend\app\services\npc\reaction_priority.py:167 : actor_id: str = "player",
+  backend\app\services\npc\reaction_priority.py:213 : actor_id: str = "player",
+  backend\app\services\npc\state_applicator.py:389 : if will_conflict_for_ui and new_state.npc_id == "player":
+  backend\app\services\npc\state_applicator.py:392 : "npc_id": "player",
+  backend\app\services\npc\state_applicator.py:399 : npc_id="player",
+  backend\app\services\npc\state_applicator.py:401 : target="player",
+  backend\app\services\npc\state_applicator.py:1085 : or "player"
+  backend\app\services\npc\state_applicator.py:1545 : if state.npc_id == "player":
+  backend\app\services\offscreen\world_projection_buffer.py:65 : if n.get("npc_id") != "player"
+  backend\app\services\offscreen\world_projection_buffer.py:70 : if not npc_id or npc_id == "player":
+  backend\app\services\perception\behavior_manifestation_service.py:135 : if npc_id == "player":
+  backend\app\services\perception\phenomenology_projection_service.py:102 : total_npcs = len([k for k in npc_positions.keys() if k != "player"])
+  backend\app\services\phases\affective.py:89 : if not entity_id or entity_id == "player":
+  backend\app\services\phases\commit_phase.py:103 : if not _addr_id or _addr_id == "player":
+  backend\app\services\phases\commit_phase.py:112 : if _addr_target != "player":
+  backend\app\services\phases\commit_phase.py:129 : "target_id": "player",
+  backend\app\services\phases\decision.py:196 : _rel_cache.get("player", {}) if isinstance(_rel_cache, dict) else {}
+  backend\app\services\phases\decision.py:203 : _player_data = _rels.get("player", {}) if isinstance(_rels, dict) else {}
+  backend\app\services\phases\decision.py:278 : if "player" not in _target_ids:
+  backend\app\services\phases\decision.py:279 : _target_ids.append("player")
+  backend\app\services\phases\input.py:46 : source="player",
+  backend\app\services\phases\input.py:85 : (n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None
+  backend\app\services\phases\input.py:159 : npc_id="player",
+  backend\app\services\phases\input.py:161 : target="player",
+  backend\app\services\phases\input.py:173 : npc_id="player",
+  backend\app\services\phases\input.py:175 : target="player",
+  backend\app\services\phases\input.py:217 : npc_id="player",
+  backend\app\services\phases\input.py:219 : target="player",
+  backend\app\services\phases\input.py:256 : source="player",
+  backend\app\services\phases\input.py:268 : npc_id="player",
+  backend\app\services\phases\input.py:270 : target="player",
+  backend\app\services\phases\input.py:284 : npc_id="player",
+  backend\app\services\phases\input.py:286 : target="player",
+  backend\app\services\phases\integration.py:155 : target="player",
+  backend\app\services\phases\integration.py:412 : target="player",
+  backend\app\services\phases\integration.py:508 : (n for n in _npc_truth_source if n.get("npc_id") == "player"), None
+  backend\app\services\phases\integration.py:553 : if _nid == "player":
+  backend\app\services\phases\integration.py:563 : observer_id="player",
+  backend\app\services\phases\memory.py:125 : _resonance = memory_manager.detect_resonance(ctx.campaign_id, npc_id, actor_id="player")
+  backend\app\services\phases\post_decision.py:461 : if _target_id == "player":
+  backend\app\services\phases\post_decision.py:462 : if "player" not in ctx.scene_state.get(
+  backend\app\services\phases\reduction.py:97 : source_id="player",
+  backend\app\services\phases\simulation.py:57 : (n for n in (ctx.all_npcs_raw or []) if n.get("npc_id") == "player"), None
+  backend\app\services\phases\simulation.py:62 : n for n in ctx.all_npcs_raw if n.get("npc_id") != "player"
+  backend\app\services\phases\simulation.py:178 : _pair = ((_att_map.get(_aid) or {}).get("player") or {})
+  backend\app\services\player_cognition\action_consequence_compiler.py:128 : "player", action.target_id
+  backend\app\services\player_cognition\action_semantic_resolver.py:69 : actor_id="player",
+  backend\app\services\player_cognition\legacy_bridge.py:99 : actor_id="player",
+  backend\app\services\player_cognition\npc_confession_parser.py:40 : target_id: str = "player"
+  backend\app\services\player_cognition\spatial_layer.py:26 : ps = scene_state.get("npc_positions", {}).get("player", {})
+  backend\app\services\scene\scene_event_layer.py:58 : actor_id="player",
+  backend\app\services\scene\scene_event_layer.py:66 : actor_id="player",
+  backend\app\services\scene_state\dm_presentation.py:97 : _player_data = scene_state.get("npc_positions", {}).get("player", {})
+  backend\app\services\scene_state\dm_presentation.py:270 : _player_data = scene_state.get("npc_positions", {}).get("player", {})
+  backend\app\services\scene_state\dm_presentation.py:274 : if nid != "player" and euclidean_distance(_player_data, ndata) < 999.0
+  backend\app\services\scene_state\scene_factory.py:110 : npc_positions["player"] = {
+  backend\app\services\scene_state\scene_factory.py:111 : "name": "player",
+  backend\app\services\scene_state\scene_factory.py:126 : npc_positions["player"] = {
+  backend\app\services\scene_state\scene_factory.py:127 : "name": "player",
+  backend\app\services\scene_state\scene_factory.py:136 : npc_positions["player"] = {
+  backend\app\services\scene_state\scene_factory.py:137 : "name": "player",
+  backend\app\services\social\directive_interpretation_subscriber.py:102 : source_id = getattr(event, "source", event.payload.get("source", "player"))
+  backend\app\services\social\directive_interpretation_subscriber.py:104 : if source_id == "player":
+  backend\app\services\social\directive_interpretation_subscriber.py:108 : .get("player", {})
+  backend\app\services\social\directive_interpretation_subscriber.py:119 : .get("player", {})
+  backend\app\services\social\directive_interpretation_subscriber.py:243 : event, "source", event.payload.get("source", "player")
+  backend\app\services\social\directive_interpretation_subscriber.py:266 : event, "source", event.payload.get("source", "player")
+  backend\app\services\social\end_screen_narrator.py:49 : src_name = "Игрок" if src == "player" else src
+  backend\app\services\social\end_screen_narrator.py:50 : tgt_name = "Игрока" if tgt == "player" else tgt
+  backend\app\services\social\exit_trigger.py:18 : player_pos_data = scene_state.get("npc_positions", {}).get("player", {})
+  backend\app\services\social\last_words_system.py:54 : snap = social_fabric.get_current(npc_id, "player")
+  backend\app\services\social\mvp_tavern_controller.py:247 : _name_map: Dict[str, str] = {"player": "Игрок"}
+  backend\app\services\social\propagation.py:79 : _actor_id: str = "player"
+  backend\app\services\social\propagation.py:89 : if _ev.source != "player" and _ev.type in ("ACTOR_ATTACKS", "NPC_INTERACTS_NPC"):
+  backend\app\services\social\social_engine.py:143 : actor: кто совершил (обычно "player")
+  backend\app\services\spatial\player_target_pipeline.py:125 : source="player",
+  backend\app\services\spatial\player_target_pipeline.py:171 : _player_pos = _npc_positions.get("player", {}).get("local_position", {})
+  backend\app\services\spatial\player_target_pipeline.py:175 : if _nid == "player":
+  backend\app\services\spatial\player_target_pipeline.py:188 : _player_lp = _npc_positions.get("player", {}).get("local_position", {})
+  backend\app\services\spatial\player_target_pipeline.py:191 : if _nid == "player":
+  backend\app\services\spatial\player_target_pipeline.py:221 : _has_player = "player" in _npc_positions
+  backend\app\services\spatial\spatial_query_service.py:51 : return self.distance(npc_id, "player")
+  backend\app\services\spatial\spatial_runtime.py:313 : return {"nearby": [], "player": None, "available_actions": ["wait"]}
+  backend\app\services\spatial\spatial_runtime.py:349 : player_data = scene_state.get("npc_positions", {}).get("player", {})
+  backend\app\services\spatial\spatial_runtime.py:376 : "player": player_snapshot,
+  backend\app\services\verbalization\scene_outcome_builder.py:660 : if _is_secret and "player" in _hidden_from:
+  backend\app\services\verbalization\scene_outcome_builder.py:737 : relevance = 1.0 if decision.intent_target == "player" else 0.0
+  backend\app\services\dto.py:177 : # TZ-08 v0.2: interventions replace dm_ctx. Kernel не знает "player".
+  backend\app\services\pdf_drop_importer.py:22 : ("rules", ("rule", "правил", "player", "игрок", "phb", "dmg")),
+  backend\app\services\pipeline_runner.py:52 : if interv.source == "player":
+  backend\app\services\pipeline_runner.py:285 : intent_target: str = "player"
+  backend\app\services\pipeline_runner.py:329 : intent_target=getattr(_intent, "target_id", "player") or "player",
+  backend\app\services\scene_state_manager.py:1048 : # ADR-O-315: Игрок читается из npc_positions["player"].
+  backend\app\services\scene_state_manager.py:1082 : topo = BodyTopologyService.create_topology("player")
+  backend\app\services\tick_orchestrator.py:481 : if player_data := npc_positions.get("player"):
+  backend\app\services\tick_orchestrator.py:487 : ctx.cluster_occupancy.update_entity("player", p_cluster)
+  backend\app\services\tick_orchestrator.py:533 : source="player",
+  backend\app\services\tick_orchestrator.py:987 : (n.get("npc_id") or n.get("id")) == "player"
+  backend\app\services\tick_orchestrator.py:1313 : if npc_id != "player"
+  backend\app\services\tick_orchestrator.py:1430 : (n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None
+  backend\app\services\tick_orchestrator.py:1434 : _player_pos = ctx.scene_state.get("npc_positions", {}).get("player")
+  backend\app\services\tick_orchestrator.py:1437 : "npc_id": "player",
+  backend\app\services\tick_orchestrator.py:1438 : "id": "player",
+  backend\app\services\tick_orchestrator.py:1450 : n for n in ctx.all_npcs_raw if n.get("npc_id") != "player"
+  backend\app\services\tick_orchestrator.py:1463 : if interv.source == "player":
+  backend\app\services\tick_orchestrator.py:1472 : if interv.source == "player" and "dm_ctx" in interv.payload:
+  backend\app\services\tick_orchestrator.py:1476 : elif interv.source == "player":
+  backend\app\services\tick_orchestrator.py:1520 : if _fast_actor != "player" and _target_id == "player":
+  backend\app\services\tick_orchestrator.py:1663 : actor_id="player",
+  backend\app\services\tick_orchestrator.py:1719 : source="player",
+  backend\app\services\tick_orchestrator.py:1729 : "actor_id": "player",
+  backend\app\services\tick_orchestrator.py:2215 : if interv.source == "player" and "dm_ctx" in interv.payload:
+  backend\app\services\tick_utils.py:68 : social_stats.trust         → relationship_cache["player"]["trust"] (0-100)
+  backend\app\services\tick_utils.py:69 : social_stats.fear_of_player → relationship_cache["player"]["fear"]
+  backend\app\services\tick_utils.py:70 : psyche.loyalty_true        → base_values["player"] (базовое доверие к игроку)
+  backend\app\services\tick_utils.py:121 : if "player" not in relationship_cache and (
+  backend\app\services\tick_utils.py:124 : relationship_cache["player"] = {
+  backend\app\services\tick_utils.py:133 : if "player" not in base_values:
+  backend\app\services\tick_utils.py:135 : base_values["player"] = _loyalty
+  backend\app\services\tick_utils.py:455 : if getattr(_interv, "source", "") == "player":  # noqa: ENIGMA002
+  backend\app\services\tick_utils.py:474 : _is_player = any(getattr(i, "source", "") == "player" for i in interventions)  # noqa: ENIGMA002
+  backend\tests\canary\test_full_playthrough.py:42 : actor_id="player",
+  backend\tests\canary\test_full_playthrough.py:54 : actor_id="player",
+  backend\tests\canary\test_full_playthrough.py:65 : actor_id="player",
+  backend\tests\gameplay\harness.py:292 : def read_trust(self, npc_id: str, target: str = "player") -> Optional[float]:
+  backend\tests\gameplay\perturbation_harness.py:57 : pair_target: str = "player"     # RELATIONSHIP_V2: направленность пары (R001-прецедент)
+  backend\tests\gameplay\test_2bii_causal_addressee.py:61 : event=_event(target_id="player", event_type="PLAYER_ATTACKED"),
+  backend\tests\gameplay\test_2bii_causal_addressee.py:63 : assert res == "player"
+  backend\tests\gameplay\test_gc01_vertical_slice.py:158 : assert "player" in npc_positions, \
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:54 : source="player",
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:65 : def _v2_trust(harness, npc_id: str, target: str = "player"):
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:71 : def _v2_fear(harness, npc_id: str, target: str = "player"):
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:116 : _trust_before = _v2_trust(harness, _TARGET_NPC, "player")
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:117 : _fear_before = _v2_fear(harness, _TARGET_NPC, "player")
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:130 : _trust_after = _v2_trust(harness, _TARGET_NPC, "player")
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:131 : _fear_after = _v2_fear(harness, _TARGET_NPC, "player")
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:205 : _trust_before_dup = _v2_trust(harness, _TARGET_NPC, "player")
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:214 : actor_id="player",
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:220 : _trust_after_dup = _v2_trust(harness, _TARGET_NPC, "player")
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:253 : _trust_after_help = _v2_trust(harness, _TARGET_NPC, "player")
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:265 : _trust_after_idle = _v2_trust(harness, _TARGET_NPC, "player")
+  backend\tests\gameplay\test_gc05_production_path_testimony.py:72 : _PLAYER = "player"
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:45 : _TARGET = "player"         # Объект обвинения/атаки
+  backend\tests\gameplay\test_gc09_body_causality.py:117 : event_type="social", actor_id="player", success=True,
+  backend\tests\gameplay\test_gc11_relationship_causality.py:129 : _before = _v2_rel(harness, "player", _TARGET_NPC)
+  backend\tests\gameplay\test_gc11_relationship_causality.py:134 : _after_immediate = _v2_rel(harness, "player", _TARGET_NPC)
+  backend\tests\gameplay\test_gc11_relationship_causality.py:137 : _after = _v2_rel(harness, "player", _TARGET_NPC)
+  backend\tests\gameplay\test_gc11_relationship_causality.py:179 : _trust_before = _v2_rel(harness, "player", _TARGET_NPC)
+  backend\tests\gameplay\test_gc11_relationship_causality.py:185 : _trust_after = _v2_rel(harness, "player", _TARGET_NPC)
+  backend\tests\gameplay\test_p5_disclosure.py:24 : _TARGET_PLAYER = SocialTarget(SocialTargetKind.PERSON, "player")
+  backend\tests\gameplay\test_p6_e1_dialogue_executor.py:41 : target_id="player",
+  backend\tests\gameplay\test_p6_e1_dialogue_executor.py:53 : target_ids=["player"],
+  backend\tests\gameplay\test_p6_e2_eavesdrop_channel.py:200 : sub.on_npc_spoke(_spoke_event(target_id="player"))
+  backend\tests\gameplay\test_p6_e3_compiler_bridge.py:55 : actor_id="player",
+  backend\tests\gameplay\test_p6_e3_compiler_bridge.py:81 : actor_id="player",
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:14 : Гварды: E1 target=="player"; E2 listener≠player ∧ speaker≠player;
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:115 : target_id="player",
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:127 : target_ids=["player"],
+  backend\tests\gameplay\test_p7_e1_production_wiring.py:71 : target_id="player",
+  backend\tests\gameplay\test_p7_e1_production_wiring.py:83 : target_ids=["player"],
+  backend\tests\gameplay\test_p7_e1_production_wiring.py:112 : store.update(_harness_campaign(harness), "guard_borko", "player", {"trust": trust})
+  backend\tests\gameplay\test_p7_e1_production_wiring.py:137 : speaker="player",
+  backend\tests\gameplay\test_p7_e1_production_wiring.py:142 : partner_id="player",
+  backend\tests\gameplay\test_tavern_vertical.py:253 : for _nid in ("player", "Tester"):
+  backend\tests\micro\test_act_consumer.py:38 : speaker_id="player",
+  backend\tests\micro\test_act_consumer.py:41 : subject_id="player", predicate=Predicate.NAME, object_id=name
+  backend\tests\micro\test_act_consumer.py:62 : assert rec.source_id == "player"  # provenance
+  backend\tests\micro\test_act_consumer.py:82 : assert plan.provenance_hint == "player"
+  backend\tests\micro\test_attack_cardinality.py:86 : "actor_id": "player",
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:197 : "relationship_cache": {"player": {"trust": 50.0}, "npc_b": {"trust": -40.0}},
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:209 : assert now["relationship_cache_targets"] == ["npc_b", "player"]
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:285 : "relationship_cache": {"player": {"trust": 50.0}},
+  backend\tests\micro\test_chronicle_cch4_seed.py:136 : assert lusya[0].hidden_from == ("player",)  # телепатия игроку запрещена
+  backend\tests\micro\test_claim_bridge_chain.py:28 : "player": {"local_position": {"x": 0.0, "y": 0.0}},
+  backend\tests\micro\test_claim_bridge_chain.py:130 : "target_id": "player",
+  backend\tests\micro\test_cognition_context_resolver.py:21 : self, campaign_id: str, npc_id: str, partner_id: str = "player"
+  backend\tests\micro\test_cognition_context_resolver.py:32 : s = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
+  backend\tests\micro\test_cognition_context_resolver.py:34 : text="представился как «Мю»", speaker="player", confidence=0.9, tick=1,
+  backend\tests\micro\test_cognition_context_resolver.py:53 : s = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
+  backend\tests\micro\test_cognition_context_resolver.py:55 : text="кто ты?", asked_by="player", addressed_to="merchant_goran", tick=2,
+  backend\tests\micro\test_cognition_dmframe_lock.py:23 : self, campaign_id: str, npc_id: str, partner_id: str = "player"
+  backend\tests\micro\test_cognition_dmframe_lock.py:34 : s = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
+  backend\tests\micro\test_cognition_dmframe_lock.py:37 : speaker="player",
+  backend\tests\micro\test_cognition_dmframe_lock.py:57 : intent_target="player",
+  backend\tests\micro\test_dlg0_corpus.py:47 : if s.speaker == "player":
+  backend\tests\micro\test_dlg0_corpus.py:104 : speaker="player",
+  backend\tests\micro\test_dlg0_corpus.py:135 : ref_3_6=None, speaker="player", event_type="PLAYER_SPOKE",
+  backend\tests\micro\test_dlg0_corpus.py:163 : ref_3_6=None, speaker="player", event_type="PLAYER_SPOKE",
+  backend\tests\micro\test_dlg1_speaker_symmetry.py:25 : self, campaign_id: str, npc_id: str, partner_id: str = "player"
+  backend\tests\micro\test_dlg1_speaker_symmetry.py:179 : source="player",
+  backend\tests\micro\test_dlg1_speaker_symmetry.py:181 : p_session = mem_p.get_dialogue_session("T", "merchant_goran", partner_id="player")
+  backend\tests\micro\test_dlg1_speaker_symmetry.py:184 : assert p_session.claims[0].speaker == "player"
+  backend\tests\micro\test_dm_raw_leak_lock.py:40 : [_PA("player", "Я Гобен")],
+  backend\tests\micro\test_dm_raw_leak_lock.py:51 : [_PA("player", "Я слуга этого дома")],
+  backend\tests\micro\test_dm_raw_leak_lock.py:58 : {}, [_PA("player", "Я Гобен")]
+  backend\tests\micro\test_f5_event_to_telegraph.py:74 : "player": {"local_position": {"x": 0.0, "y": 0.0}},
+  backend\tests\micro\test_fast_phantom_attack.py:24 : subject_id="player", predicate=Predicate.ATTACKED, object_id=target
+  backend\tests\micro\test_fast_phantom_attack.py:70 : subject_id="player", predicate=Predicate.ATTACKED, object_id="goran"
+  backend\tests\micro\test_gap1_bias_differential.py:38 : "player": {"trust": trust, "fear": fear},
+  backend\tests\micro\test_gap1_bias_differential.py:46 : state.relationship_cache["player"] = {"trust": trust, "fear": fear}
+  backend\tests\micro\test_gap1_bias_differential.py:57 : actor_id="player",
+  backend\tests\micro\test_idle_event_projection.py:127 : _scene({"player": _pos(0.0, 0.0), "npc_a": _pos(3.0, 0.0)}),
+  backend\tests\micro\test_idle_event_projection.py:134 : _scene({"player": _pos(0.0, 0.0), "npc_a": _pos(50.0, 0.0)}),
+  backend\tests\micro\test_idle_event_projection.py:143 : _scene({"player": _pos(0.0, 0.0), "npc_a": _pos(3.0, 0.0)}),
+  backend\tests\micro\test_idle_event_projection.py:153 : payload={"target_id": "player"},
+  backend\tests\micro\test_idle_event_projection.py:158 : {"cause": "theft", "target": "npc_a", "value": "player"}
+  backend\tests\micro\test_idle_event_projection.py:171 : _scene({"player": _pos(0.0, 0.0), "npc_a": _pos(50.0, 0.0)}),
+  backend\tests\micro\test_idle_event_projection.py:181 : [evt], _scene({"player": _pos(0.0, 0.0), "npc_a": _pos(1.0, 0.0)})
+  backend\tests\micro\test_idle_event_projection.py:202 : scene = _scene({"player": _pos(0.0, 0.0), "npc_a": _pos(2.0, 0.0)})
+  backend\tests\micro\test_idle_event_projection.py:215 : scene = _scene({"player": _pos(0.0, 0.0), "npc_a": _pos(2.0, 0.0)})
+  backend\tests\micro\test_idle_event_projection.py:229 : _scene({"player": _pos(0.0, 0.0), "npc_a": _pos(2.0, 0.0)}),
+  backend\tests\micro\test_idle_event_projection.py:242 : scene = _scene({"player": _pos(0.0, 0.0), "npc_a": _pos(2.0, 0.0)})
+  backend\tests\micro\test_idle_event_projection.py:258 : _scene({"player": _pos(0.0, 0.0), "npc_a": _pos(2.0, 0.0)}),
+  backend\tests\micro\test_intent_liveness_gate.py:24 : "payload": {"intent_type": "talk", "target_id": "player", "emotional_state": "neutral"},
+  backend\tests\micro\test_intent_roundtrip.py:24 : intent_target="player",
+  backend\tests\micro\test_intent_roundtrip.py:42 : assert d["intent_target"] == "player"
+  backend\tests\micro\test_intent_roundtrip.py:60 : assert restored.intent_target == "player"
+  backend\tests\micro\test_intent_roundtrip.py:110 : [StateDeltas(npc_id="npc_test", intent=Intent.FLEE, target="player",
+  backend\tests\micro\test_intent_roundtrip.py:115 : assert dicts[0]["intent_target"] == "player"
+  backend\tests\micro\test_intent_roundtrip.py:120 : d1 = StateDeltas(npc_id="npc_test", intent=Intent.TALK, intent_tick=40, target="player")
+  backend\tests\micro\test_intent_roundtrip.py:129 : app.apply_batch([StateDeltas(npc_id="npc_test", intent=Intent.TALK, target="player", intent_tick=41)], dicts, "t")  # [GC-I01-E1b-...
+  backend\tests\micro\test_intent_roundtrip.py:130 : app.apply_batch([StateDeltas(npc_id="npc_test", intent=Intent.TALK, target="player", intent_tick=42)], dicts, "t")
+  backend\tests\micro\test_intent_roundtrip.py:137 : d.update({"intent": "flee", "intent_target": "player", "intent_formed_at": 41,
+  backend\tests\micro\test_intent_tick_guard.py:37 : target: str = "player",
+  backend\tests\micro\test_intent_tick_guard.py:76 : target="player",
+  backend\tests\micro\test_intent_tick_guard.py:97 : target="player",
+  backend\tests\micro\test_intent_tick_guard.py:123 : target="player",
+  backend\tests\micro\test_intent_tick_guard.py:147 : target="player",
+  backend\tests\micro\test_intent_tick_guard.py:173 : target="player",
+  backend\tests\micro\test_intent_tick_guard.py:195 : target="player",
+  backend\tests\micro\test_intent_tick_guard.py:222 : target="player",
+  backend\tests\micro\test_intent_tick_guard.py:250 : target="player",
+  backend\tests\micro\test_npc_addresses_player.py:39 : target: str | None = "player",
+  backend\tests\micro\test_npc_addresses_player.py:166 : "target_id": "player",
+  backend\tests\micro\test_npc_addresses_player.py:253 : _build_ctx(npcs=[_npc(npc_id="player")]),
+  backend\tests\micro\test_npc_addressing_ack.py:50 : payload={"intent": "talk", "target_id": "player", "intent_formed_at": tick_id},
+  backend\tests\micro\test_npc_addressing_ack.py:73 : payload={"intent": "talk", "target_id": "player", "intent_formed_at": 100},
+  backend\tests\micro\test_npc_addressing_ack.py:203 : payload={"intent": "talk", "target_id": "player", "intent_formed_at": 100},
+  backend\tests\micro\test_npc_addressing_ack.py:241 : payload={"intent": "talk", "target_id": "player", "intent_formed_at": 100},
+  backend\tests\micro\test_npc_addressing_delivery.py:69 : "target_id": "player",
+  backend\tests\micro\test_npc_addressing_propagation.py:98 : payload={"intent": "talk", "target_id": "player", "intent_formed_at": 100},
+  backend\tests\micro\test_perception_witness.py:22 : self._pos["player"] = (0.0, 0.0)
+  backend\tests\micro\test_perception_witness.py:30 : px, py = self._pos["player"]
+  backend\tests\micro\test_perception_witness.py:46 : source="player",
+  backend\tests\micro\test_player_self_intro_claim.py:29 : self, campaign_id: str, npc_id: str, partner_id: str = "player"
+  backend\tests\micro\test_player_self_intro_claim.py:40 : source="player",
+  backend\tests\micro\test_player_self_intro_claim.py:55 : session = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
+  backend\tests\micro\test_player_self_intro_claim.py:58 : assert claim.speaker == "player"
+  backend\tests\micro\test_player_self_intro_claim.py:74 : session = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
+  backend\tests\micro\test_player_self_intro_claim.py:87 : session = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
+  backend\tests\micro\test_player_self_intro_claim.py:97 : session = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
+  backend\tests\micro\test_player_speech_claim.py:59 : source="player",
+  backend\tests\micro\test_player_speech_claim.py:78 : {"player": {}, "merchant_goran": {}, "maid_lusya": {}},
+  backend\tests\micro\test_player_speech_claim.py:79 : {("player", "merchant_goran"): 3.0, ("player", "maid_lusya"): 2.0},
+  backend\tests\micro\test_player_speech_claim.py:106 : {"player": {}, "maid_lusya": {}},
+  backend\tests\micro\test_player_speech_claim.py:107 : {("player", "maid_lusya"): 9.0},
+  backend\tests\micro\test_player_speech_claim.py:123 : source="player",
+  backend\tests\micro\test_player_speech_claim.py:146 : {"player": {}, "merchant_goran": {}, "maid_lusya": {}},
+  backend\tests\micro\test_player_speech_claim.py:148 : ("merchant_goran", "player"): 2.0,
+  backend\tests\micro\test_player_speech_claim.py:150 : ("player", "merchant_goran"): 2.0,
+  backend\tests\micro\test_player_speech_claim.py:151 : ("player", "maid_lusya"): 3.0,
+  backend\tests\micro\test_player_speech_claim.py:160 : assert _c.claim.speaker_id == "player"
+  backend\tests\micro\test_player_speech_claim.py:161 : assert _c.proposition.subject_id == "player"
+  backend\tests\micro\test_rules_roll_determinism.py:11 : def _event(source: str = "player", tick: int = 100, etype: str = "player_attacks", target: str = "merchant_goran") -> SimpleNamesp...
+  backend\tests\micro\test_utterance_identity_chain.py:24 : "player": {"local_position": {"x": 0.0, "y": 0.0}},
+  backend\tests\micro\test_utterance_identity_chain.py:121 : "target_id": "player",
+  backend\tests\pbt\properties\test_inv_causal_provenance.py:14 : "source": st.sampled_from(["player", "dm", "world"]),
+  backend\tests\sandbox\fixtures\tavern_world.py:24 : "player": {
+  backend\tests\sandbox\fixtures\tavern_world.py:28 : "npc_id": "player",
+  backend\tests\sandbox\identity\test_pattern_detector.py:45 : events = [_make_event(tick=i, source="player", effect=-0.1) for i in range(MIN_EVENTS_FOR_PERSISTENCE - 1)]
+  backend\tests\sandbox\identity\test_pattern_detector.py:55 : events = [_make_event(tick=i, source="player", effect=-0.2) for i in range(MIN_EVENTS_FOR_PERSISTENCE)]
+  backend\tests\sandbox\identity\test_pattern_detector.py:61 : assert evidence_list[0].source_id == "player"
+  backend\tests\sandbox\identity\test_pattern_detector.py:68 : stable_events = [_make_event(tick=i, source="player", effect=-0.5) for i in range(10)]
+  backend\tests\sandbox\identity\test_pattern_detector.py:74 : mixed_events.append(_make_event(tick=i, source="player", effect=effect))
+  backend\tests\sandbox\identity\test_pattern_detector.py:91 : events = [_make_event(tick=i, source="player", effect=-0.1) for i in range(10)]
+  backend\tests\sandbox\identity\test_pattern_detector.py:131 : base_params = {"source": "player", "effect": -0.5, "weight": 1.0}
+  backend\tests\sandbox\identity\test_pattern_detector.py:152 : _make_event(tick=i, source="player", effect=-1.0, weight=1.0) for i in range(MIN_EVENTS_FOR_PERSISTENCE)
+  backend\tests\sandbox\identity\test_pattern_detector.py:157 : _make_event(tick=i, source="player", effect=-1.0, weight=0.1) for i in range(MIN_EVENTS_FOR_PERSISTENCE)
+  backend\tests\sandbox\legacy\decision_hub_sandbox.py:123 : actor_id="player",
+  backend\tests\sandbox\micro\test_arousal_gate.py:141 : "source": "player",
+  backend\tests\sandbox\micro\test_attention_reflex_fsm.py:179 : {"orm": _pos(0, 0, 0.0), "player": _pos(4, 3, 0.0)},
+  backend\tests\sandbox\micro\test_attention_reflex_fsm.py:180 : [_raw("orm"), _raw("player")],
+  backend\tests\sandbox\micro\test_attention_reflex_fsm.py:183 : assert delta["orm"]["player"]["phase"] == "oriented"
+  backend\tests\sandbox\micro\test_attention_reflex_fsm.py:203 : {"player": _pos(0, 0, 0.0), "maid_lusya": _pos(5, 0)},
+  backend\tests\sandbox\micro\test_attention_reflex_fsm.py:204 : [_raw("player"), _raw("maid_lusya")],
+  backend\tests\sandbox\micro\test_attention_reflex_fsm.py:207 : assert delta["player"]["maid_lusya"]["phase"] == "detected"
+  backend\tests\sandbox\micro\test_attention_reflex_fsm.py:208 : assert all(c.target != "player" for c in changes)
+  backend\tests\sandbox\micro\test_claim_guard.py:24 : source="player",
+  backend\tests\sandbox\micro\test_claim_guard.py:33 : sub.on_claim_event(_event({"subject_id": "player", "predicate": "stole", "object_id": None, "polarity": None}))
+  backend\tests\sandbox\micro\test_claim_guard.py:40 : sub.on_claim_event(_event({"subject_id": "player", "predicate": "attacked", "object_id": "", "polarity": True}))
+  backend\tests\sandbox\micro\test_claim_guard.py:46 : sub.on_claim_event(_event({"subject_id": "player", "predicate": "attacked", "object_id": "maid_lusya", "polarity": True}))
+  backend\tests\sandbox\micro\test_cognition_snapshot.py:42 : {"orm": _pos(0, 0, 0.0), "player": _pos(4, 3)},
+  backend\tests\sandbox\micro\test_cognition_snapshot.py:43 : [{"npc_id": "orm", "body_state": {}}, {"npc_id": "player", "body_state": {}}],
+  backend\tests\sandbox\micro\test_cognition_snapshot.py:48 : pair = [s for s in snaps if s["observer_id"] == "orm" and s["subject_id"] == "player"]
+  backend\tests\sandbox\micro\test_cognition_snapshot.py:67 : {"orm": _pos(0, 0, 0.0), "player": _pos(1.0, 0.1)},
+  backend\tests\sandbox\micro\test_cognition_snapshot.py:68 : [{"npc_id": "orm", "body_state": {}}, {"npc_id": "player", "body_state": {}}],
+  backend\tests\sandbox\micro\test_cognition_snapshot.py:71 : p = [s for s in snaps if s["observer_id"] == "orm" and s["subject_id"] == "player"][0]
+  backend\tests\sandbox\micro\test_directive_npc_state_required.py:22 : source="player",
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:36 : relationship_cache={"player": {"fear": fear, "trust": trust}},
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:41 : intent_target="player",
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:94 : state.relationship_cache["player"]["recent_pressure"] = 0.5
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:132 : "relationship_cache": {"player": {"trust": 30.0, "fear": 50.0, "base_trust": 50.0}},
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:133 : "base_values": {"player": 50.0},
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:153 : "relationship_cache": {"player": {"trust": 30.0, "fear": 0.0, "base_trust": 50.0}},
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:154 : "base_values": {"player": 50.0},
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:174 : def _make_event(self, semantic_action, target_id="npc_2", social_pressure=0.8, source="player"):
+  backend\tests\sandbox\micro\test_gate1_source.py:48 : "attention_states": {"borko": {"player": {"approach_evidence": 1.0, "phase": "oriented"}}}}
+  backend\tests\sandbox\micro\test_gate1_source.py:56 : "attention_states": {"borko": {"player": {"approach_evidence": 0.3, "phase": "oriented"}}}}
+  backend\tests\sandbox\micro\test_gate1_source.py:63 : "attention_states": {"borko": {"player": {"approach_evidence": 1.0, "phase": "oriented"}}}}
+  backend\tests\sandbox\micro\test_observer_causality.py:42 : positions = {"player": {}, "maid_lusya": {}, "guard_borko": {}}
+  backend\tests\sandbox\micro\test_observer_causality.py:45 : distances_near = {("maid_lusya", "guard_borko"): 5.0, ("player", "guard_borko"): 15.0}
+  backend\tests\sandbox\micro\test_observer_causality.py:49 : distances_far = {("maid_lusya", "guard_borko"): 15.0, ("player", "guard_borko"): 25.0}
+  backend\tests\sandbox\micro\test_observer_causality.py:62 : "proposition": {"subject_id": "player", "predicate": "attacked", "object_id": "maid_lusya", "polarity": True},
+  backend\tests\sandbox\micro\test_observer_causality.py:68 : event = EventDTO.create(event_type="communication_claim", source="player", payload=payload, radius=10.0)
+  backend\tests\sandbox\micro\test_observer_causality.py:84 : "proposition": {"subject_id": "player", "predicate": "attacked", "object_id": "maid_lusya", "polarity": True},
+  backend\tests\sandbox\micro\test_observer_causality.py:90 : event = EventDTO.create(event_type="communication_claim", source="player", payload=payload, radius=10.0)
+  backend\tests\sandbox\micro\test_player_intent_projection.py:65 : assert proj["actor_id"] == "player"         # дефолт резолвера актора
+  backend\tests\sandbox\micro\test_player_turn_headless.py:79 : source="player",
+  backend\tests\sandbox\micro\test_player_turn_headless.py:97 : if not any(n.get("npc_id") == "player" for n in all_npcs_raw):
+  backend\tests\sandbox\micro\test_recognition_and_eavesdrop.py:36 : "player": {"name": "ВВорг", "local_position": {"x": 8.0, "y": 0.0}},
+  backend\tests\sandbox\micro\test_reconciler_v0.py:36 : proposition=Proposition(subject_id="player", predicate=Predicate.ATTACKED, object_id="ушко", polarity=True)
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:142 : state = _make_state(rel_cache={"player": {"trust": 50.0, "fear": 30.0}})
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:155 : state = _make_state(rel_cache={"player": {"trust": 50.0, "fear": 30.0}})
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:167 : state = _make_state(rel_cache={"player": {"trust": 50.0, "fear": 30.0}})
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:192 : state_neutral = _make_state(rel_cache={"player": {"trust": 50.0, "fear": 30.0}})
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:193 : state_coward = _make_state(rel_cache={"player": {"trust": 50.0, "fear": 30.0}})
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:210 : state_neutral = _make_state(rel_cache={"player": {"trust": 50.0, "fear": 30.0}})
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:211 : state_zealot = _make_state(rel_cache={"player": {"trust": 50.0, "fear": 30.0}})
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:229 : state_brave = _make_state(rel_cache={"player": {"trust": 50.0, "fear": 30.0}})
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:230 : state_neutral = _make_state(rel_cache={"player": {"trust": 50.0, "fear": 30.0}})
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:247 : state_desire = _make_state(rel_cache={"player": {"trust": 50.0, "fear": 30.0}})
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:248 : state_neutral = _make_state(rel_cache={"player": {"trust": 50.0, "fear": 30.0}})
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:269 : state = _make_state(rel_cache={"player": {"trust": 50.0, "fear": 30.0}})
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:76 : source="player",
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:139 : source="player",
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:23 : subject_id="player", predicate=Predicate.ATTACKED,
+  backend\tests\sandbox\movement\test_movement_lock_blocks_schedule_on_active_traversal.py:40 : "guard_1": {"status": "MOVING", "target_node": "player", "source_node": "barracks", "progress": 0.4}
+  backend\tests\sandbox\movement\test_target_id_payload_fallback_prevents_uninvited_approach.py:39 : actor_id="player",
+  backend\tests\sandbox\movement\test_target_id_payload_fallback_prevents_uninvited_approach.py:82 : actor_id="player",
+  backend\tests\sandbox\persistence\test_crystallized_belief_persistence.py:19 : source_id="player",
+  backend\tests\sandbox\persistence\test_crystallized_belief_persistence.py:34 : assert beliefs[0].source_id == "player"
+  backend\tests\sandbox\persistence\test_dm_death_scene_includes_life_status.py:89 : context = {"player_state": {"Player": pdata}, "scene_state": {}}
+  backend\tests\sandbox\persistence\test_dm_death_scene_includes_life_status.py:109 : context = {"player_state": {"Player": pdata}, "scene_state": {}}
+  backend\tests\sandbox\persistence\test_dm_death_scene_includes_life_status.py:144 : context = {"player_state": {"Player": legacy_pdata}, "scene_state": {}}
+  backend\tests\sandbox\persistence\test_l1_chronicle_archival.py:24 : source_id="player",
+  backend\tests\sandbox\persistence\test_relationship_cache_not_persisted.py:36 : state = dataclasses.replace(state, relationship_cache={"player": {"fear": 80.0, "trust": 10.0}})
+  backend\tests\sandbox\phenomenology\test_dialogue_context_binding.py:29 : session = DialogueSession(npc_id="tavern_keeper_tornin", partner_id="player")
+  backend\tests\sandbox\phenomenology\test_dialogue_context_binding.py:65 : empty_session = DialogueSession(npc_id="tavern_keeper_tornin", partner_id="player")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:32 : mm.add_dialogue_turn("test_meteor", "tavern_keeper_tornin", "player", "расскажи о метели", target_id="tavern_keeper_tornin", tick=...
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:35 : payload={"target_id": "player", "text": "Метель? Да, в прошлом году была страшная.", "topic": "weather", "tone": "NEUTRAL"},
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:42 : mm.add_dialogue_turn("test_meteor", "tavern_keeper_tornin", "player", "какая погода?", target_id="tavern_keeper_tornin", tick=i+2)
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:43 : mm.add_dialogue_turn("test_meteor", "tavern_keeper_tornin", "player", "так что насчёт той метели?", target_id="tavern_keeper_torni...
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:65 : mm.add_dialogue_turn("test_claims", "tavern_keeper_tornin", "player", "где ключ от подвала?", target_id="tavern_keeper_tornin", ti...
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:68 : payload={"target_id": "player", "text": "Какой ещё ключ?", "topic": "basement", "tone": "SUSPICIOUS"},
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:76 : mm.add_dialogue_turn("test_claims", "tavern_keeper_tornin", "player", "какая погода?", target_id="tavern_keeper_tornin", tick=i+2)
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:79 : payload={"target_id": "player", "text": "Снег идёт.", "topic": "weather", "tone": "NEUTRAL"},
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:178 : session = DialogueSession(npc_id="test", partner_id="player")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:179 : session.add_turn(speaker="player", text="Одиноко")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:199 : session = DialogueSession(npc_id="test", partner_id="player")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:201 : session.add_claim(text=f"Claim {i}", speaker="player", confidence=0.9, tick=1)
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:213 : session = DialogueSession(npc_id="test", partner_id="player")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:214 : session.add_open_question(text="Где ключ?", asked_by="player", addressed_to="test", tick=1)
+  backend\tests\sandbox\phenomenology\test_directive_obedience_pipeline.py:123 : source="player",
+  backend\tests\sandbox\phenomenology\test_directive_obedience_pipeline.py:154 : source="player",
+  backend\tests\sandbox\phenomenology\test_memory_absurd_fixation.py:21 : source="player",
+  backend\tests\sandbox\phenomenology\test_memory_fixation.py:117 : source="player",
+  backend\tests\sandbox\phenomenology\test_memory_truth_decay.py:22 : source="player",
+  backend\tests\sandbox\phenomenology\test_rumor_mutation.py:54 : occ.update_entity("player", "tavern:main_hall")
+  backend\tests\sandbox\phenomenology\test_rumor_mutation.py:63 : {"npc_id": "player", "perceptual_kernel": {}, "body_state": {"consciousness": 1.0}, "psyche": {"stress": 0.0}},
+  backend\tests\sandbox\phenomenology\test_rumor_mutation.py:87 : source_entity="player",
+  backend\tests\sandbox\phenomenology\test_rumor_mutation.py:104 : "player",
+  backend\tests\sandbox\probes\scale_population.py:36 : _ref_name, ref_entry = next((k, v) for k, v in positions.items() if k != "player")
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:60 : speaker: str            # "player" | "npc"
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:120 : self, campaign_id: str, npc_id: str, partner_id: str = "player"
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:155 : ref_3_6="DLG-L1", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:167 : ref_3_6="DLG-L1", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:179 : ref_3_6=None, speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:191 : ref_3_6=None, speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:203 : ref_3_6=None, speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:216 : ref_3_6="DLG-L1", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:228 : ref_3_6="DLG-L1", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:240 : ref_3_6="DLG-L1", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:252 : ref_3_6="DLG-L1", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:265 : ref_3_6=None, speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:276 : ref_3_6=None, speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:287 : ref_3_6=None, speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:299 : ref_3_6="DLG-L1", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:314 : ref_3_6="DLG-L3", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:329 : ref_3_6="DLG-L3", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:346 : ref_3_6="DLG-L2", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:358 : ref_3_6="DLG-L2", speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:383 : ref_3_6=None, speaker="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:428 : session = mem.get_dialogue_session(campaign_id, npc_id, partner_id="player")
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:430 : session.add_turn(speaker="player", text="борко", tick=1)
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:431 : session.add_turn(speaker="player", text="и ещё борко", tick=2)
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:432 : session.add_turn(speaker="player", text="нейтральный текст", tick=3)
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:434 : session.add_turn(speaker="player", text=scenario.text, tick=1)
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:440 : session = mem.get_dialogue_session(campaign_id, npc_id, partner_id="player")
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:442 : text="кто ты?", asked_by="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:455 : source="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:474 : source="player",
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:479 : session = mem.get_dialogue_session(campaign_id, npc_id, partner_id="player")
+  backend\tests\sandbox\scenarios\minimal_obedience_field.py:36 : entity_id="player",
+  backend\tests\sandbox\scenarios\minimal_obedience_field.py:80 : data={"goal": "DESIRED_PROXIMITY_CLOSE", "target": "player"},
+  backend\tests\sandbox\scenarios\minimal_obedience_field.py:89 : target_node = world["npc_positions"]["player"]["position"]  # "main_hall"
+  backend\tests\sandbox\scenarios\minimal_obedience_field.py:94 : to_xy = world["npc_positions"]["player"]["local_position"]
+  backend\tests\sandbox\stress\test_schedule_override.py:35 : "source": "player",
+  backend\tests\sandbox\SUPERBOX\scenarios\accusation_gate_test.py:58 : listener_id="player", proposition=prop, tick=1)
+  backend\tests\sandbox\SUPERBOX\scenarios\accusation_gate_test.py:59 : record = engine.revise("player", claim, None)
+  backend\tests\sandbox\SUPERBOX\scenarios\accusation_gate_test.py:81 : action_id=f"act-{tick}", tick=tick, actor_id="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\accusation_gate_test.py:100 : agent_id="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\accusation_gate_test.py:119 : _pair = rel.get_pair(CAMP, "guard_borko", "player") or {}
+  backend\tests\sandbox\SUPERBOX\scenarios\activity_gap_probe.py:146 : p, g = _xy(pos.get("player")), _xy(pos.get(TARGET))
+  backend\tests\sandbox\SUPERBOX\scenarios\activity_gap_probe.py:202 : att = ((ss.get("attention_states") or {}).get(TARGET) or {}).get("player") or {}
+  backend\tests\sandbox\SUPERBOX\scenarios\bc1_conclusion_test.py:124 : source="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\bc1_conclusion_test.py:203 : rec = store.get(NPC_TARGET, "player", _predicate())
+  backend\tests\sandbox\SUPERBOX\scenarios\bc1_conclusion_test.py:240 : if store is None or store.get(NPC_TARGET, "player", _predicate()) is None:
+  backend\tests\sandbox\SUPERBOX\scenarios\bc1_conclusion_test.py:283 : subject="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\bc1_conclusion_test.py:313 : subject="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\bc1_conclusion_test.py:336 : rec = restored.get(NPC_TARGET, "player", ConclusionPredicate.IS_DANGEROUS)
+  backend\tests\sandbox\SUPERBOX\scenarios\bc1_conclusion_test.py:444 : and res_c.record.get("subject") == "player"
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:314 : "player": {"trust": trust, "fear": fear}
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:332 : player_session_service.select_player(cfg.campaign_id, "player")
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:351 : rc = (fin.get("relationship_cache", {}) or {}).get("player", {}) or {}
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:449 : player_session_service.select_player(cfg.campaign_id, "player")
+  backend\tests\sandbox\SUPERBOX\scenarios\causal_state_test.py:164 : source="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_attention_integration_test.py:127 : return ((ss.get("attention_states") or {}).get(npc) or {}).get("player") or {}
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_attention_integration_test.py:154 : "xy": {n: _xy(pos.get(n)) for n in ALL_NPC + ("player",)},
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_attention_integration_test.py:282 : _sp = _xy((_scene(world) or {}).get("npc_positions", {}).get("player")) or (8.0, 11.5)
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_attention_integration_test.py:317 : p, g = _xy(pos.get("player")), _xy(pos.get(target))
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_attention_integration_test.py:349 : _hp = _xy((_scene(world) or {}).get("npc_positions", {}).get("player"))
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_attention_integration_test.py:367 : _sp0 = _xy((_scene(world) or {}).get("npc_positions", {}).get("player")) or (8.0, 11.5)
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_attention_integration_test.py:374 : p = _xy((ss.get("npc_positions") or {}).get("player"))
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_g3x_test.py:128 : pxy = _xy(pos.get("player"))
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_g3x_test.py:131 : if nid == "player" or nid in moving:
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_g3x_test.py:215 : pair = (att.get(target) or {}).get("player") or {}
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_g3x_test.py:226 : pxy_now = _xy(pos2.get("player"))
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_g3x_test.py:246 : p_h = _heading((p_ss.get("npc_positions") or {}).get("player"))
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_g3x_test.py:247 : c_ok = _angdiff(p_h, _heading(pos.get("player"))) < 0.01
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_test.py:222 : if o != "player"
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_test.py:224 : if s != "player" and s != o and st.get("phase") in valid_phases
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_test.py:262 : if o == "player" or not _stable(pos2, pos3, o):
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_test.py:296 : if "player" in pos3:
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_test.py:298 : _heading(pos1.get("player")),
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_test.py:299 : _heading(pos2.get("player")),
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_test.py:300 : _heading(pos3.get("player")),
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_test.py:302 : p_obs = att3.get("player") or {}
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3d_test.py:147 : pxy = _xy(pos.get("player"))
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3d_test.py:150 : if nid == "player" or nid in moving:
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3d_test.py:177 : if _subj != "player":
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3d_test.py:295 : _pxy, _txy = _xy(_pos_now.get("player")), _xy(_pos_now.get(target))
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3d_test.py:365 : _pair = (_att_now.get(target) or {}).get("player") or {}
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3d_test.py:367 : _pxy, _txy = _xy(_pos_now.get("player")), _xy(_pos_now.get(target))
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3d_test.py:444 : _p_now = _xy((_scene(world) or {}).get("npc_positions", {}).get("player"))
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3e_test.py:124 : return ((ss.get("attention_states") or {}).get(npc) or {}).get("player") or {}
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3e_test.py:139 : row["xy"] = {n: _xy(pos.get(n)) for n in ALL_NPC + ("player",)}
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3e_test.py:188 : p, n = r["xy"].get("player"), r["xy"].get(npc)
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3e_test.py:309 : _sp = _xy((_scene(world) or {}).get("npc_positions", {}).get("player")) or (8.0, 11.5)
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3e_test.py:351 : p, g = _xy((ss.get("npc_positions") or {}).get("player")), \
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3e_test.py:382 : p = _xy((ss.get("npc_positions") or {}).get("player"))
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3e_test.py:419 : p, n = r["xy"].get("player"), r["xy"].get(_g1n)
+  backend\tests\sandbox\SUPERBOX\scenarios\d61_llm_outage_doctrine_test.py:78 : PLAYER = "player"  # harness.py:266-276 (шейп хода; константа — см. границы)
+  backend\tests\sandbox\SUPERBOX\scenarios\d8p_intelligence_test.py:64 : self, campaign_id: str, npc_id: str, partner_id: str = "player"
+  backend\tests\sandbox\SUPERBOX\scenarios\d8p_intelligence_test.py:74 : tick: int = 0, partner_id: str = "player",
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_context_test.py:74 : proposition=Proposition(subject_id="maid_lusya", predicate=Predicate.HELPED, object_id="player"),
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_membrane_hardening_test.py:60 : "subject_id": "player",
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_membrane_hardening_test.py:111 : prop = Proposition(subject_id="player", predicate=Predicate.STOLE, object_id="apple")
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_observation_test.py:51 : source="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_observation_test.py:69 : "player": {"local_position": {"x": 2.0, "y": 0.0}},
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_observation_test.py:110 : "player": {"local_position": {"x": 2.0, "y": 0.0}},
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_observation_test.py:154 : prop = Proposition(subject_id="player", predicate=Predicate.STOLE,
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_player_belief_test.py:48 : rel_store.update(CAMPAIGN_ID, "player", NPC_A, {"trust": 80.0})  # NPC_A - друг
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_player_belief_test.py:49 : rel_store.update(CAMPAIGN_ID, "player", NPC_B, {"trust": -50.0}) # NPC_B - враг
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_player_belief_test.py:57 : "player": {"local_position": {"x": 0.0, "y": 0.0}},
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_player_belief_test.py:97 : player_beliefs = store.get_all_for_agent("player")
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_player_belief_test.py:138 : player_serialized = [s for s in serialized if s.get("agent_id") == "player"]
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_reliability_baseline_test.py:47 : PLAYER = "player"
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_resolver_test.py:54 : proposition=Proposition(subject_id="maid_lusya", predicate=Predicate.HELPED, object_id="player"),
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_runtime_closure_test.py:44 : rel_store.update(CAMPAIGN_ID, "player", NPC_A, {"trust": 80.0})  # NPC_A - друг
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_runtime_closure_test.py:51 : "player": {"local_position": {"x": 0.0, "y": 0.0}},
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_runtime_closure_test.py:91 : player_beliefs = store.get_all_for_agent("player")
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_scheduler_closure_test.py:47 : rel_store.update(CAMPAIGN_ID, "player", NPC_A, {"trust": 80.0})  # NPC_A - друг
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_scheduler_closure_test.py:54 : "player": {"local_position": {"x": 0.0, "y": 0.0}},
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_scheduler_closure_test.py:146 : player_beliefs = store.get_all_for_agent("player")
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:135 : return h.game_loop.memory_manager.get_stm_prompt_block_pair(CAMPAIGN, npc_id, "player")
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:177 : if n != "player"
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:204 : "npc_positions": {"player": {
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:212 : _px, _py = _npc_pos(_scene_chk, "player")
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:260 : # И адресованный игроку (target_id=="player") — ambient-реплика
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:267 : and (getattr(e, "payload", {}) or {}).get("target_id") == "player"
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_interrupt_test.py:110 : def _warn_task(owner, target="player"):
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_interrupt_test.py:179 : _ids = sorted(n for n in (scene.get("npc_positions") or {}) if n != "player")
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_interrupt_test.py:197 : _sc1 = _phase6_intent(h, "talk", _A, "player", "smalltalk")
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:78 : "npc_positions": {"player": {"local_position": {"x": x, "y": y}}},
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:84 : CAMPAIGN, npc_id, "player"
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:107 : _ids = sorted(n for n in (scene.get("npc_positions") or {}) if n != "player")
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:131 : _px, _py = _npc_pos(_sc_chk, "player")
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:155 : and (getattr(e, "payload", {}) or {}).get("target_id") == "player"
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:231 : _trust_after = h.read_trust(_addressee, "player")  # до S3 фиксируем
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:344 : _trust_after2 = h.read_trust(_addressee, "player")
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:262 : for _nid, _pos in ((THIEF, (11.5, 11.0)), (GORAN, (10.1, 6.1)), ("player", (8.59, 0.81))):
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:303 : _pp = (_scene_p.get("npc_positions") or {}).get("player")
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:374 : _player_beliefs = _res.get_all_for_agent("player")
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:399 : action_id="goran-g7", tick=99, actor_id="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:415 : _pair = _rel.get_pair(CAMPAIGN, THIEF, "player") or {}
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:447 : if "player" in _np2:
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:448 : _np2["player"] = dict(_np2["player"])
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:449 : _np2["player"]["local_position"] = {"x": 29.0, "y": 31.0}
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:499 : _p2 = _res2.get_all_for_agent("player")
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:516 : action_id="goran-g9", tick=99, actor_id="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\movement_comprehensive_test.py:155 : if nid == "player":
+  backend\tests\sandbox\SUPERBOX\scenarios\movement_comprehensive_test.py:165 : if nid == "player":
+  backend\tests\sandbox\SUPERBOX\scenarios\perception_topology_test.py:75 : "player":    {"local_position": {"x": 0.0, "y": 0.0}},
+  backend\tests\sandbox\SUPERBOX\scenarios\perception_topology_test.py:87 : event_type=EventType.THEFT.value, source="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\same_loc_disappearance_forensic.py:72 : ever_in_tavern |= {k for k in pos_keys if k != "player"}
+  backend\tests\sandbox\SUPERBOX\scenarios\same_loc_disappearance_forensic.py:78 : if nid == "player":
+  backend\tests\sandbox\SUPERBOX\scenarios\sleep_forensic.py:166 : if nid == "player":
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:150 : _set("player", POS_PLAYER)
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:153 : if _other not in (THIEF, "player", GORAN):
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:333 : _player_conf = _conf_about(_store(world), "player", THIEF)
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:345 : _n_recs = len(_records_about(_store(world), "player", THIEF))
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:368 : action_id=f"beta-accuse-{arm}", tick=99, actor_id="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:436 : player_conf = _conf_about(exp_res["store"], "player", THIEF)
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:450 : ctrl_player_conf = _conf_about(ctrl_res["store"], "player", THIEF)
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:480 : for _b in _records_about(exp_res["store"], "player", THIEF):
+  backend\tests\sandbox\SUPERBOX\scenarios\social_vertical_test.py:161 : if _nid == "player":
+  backend\tests\sandbox\SUPERBOX\scenarios\social_vertical_test.py:183 : _player = _rel.get(CAMPAIGN, "player") or {}
+  backend\tests\sandbox\SUPERBOX\scenarios\ue0_baseline_probe.py:66 : "player": {"x": 5.0, "y": 7.0},
+  backend\tests\sandbox\SUPERBOX\scenarios\_h1b2_neutrality_test.py:38 : state.relationship_cache = {"player": {"fear": 70.0, "trust": -60.0, "recent_pressure": 0.0}}
+  backend\tests\sandbox\SUPERBOX\scenarios\_h1b_mini3_capture_test.py:83 : MockEvent("npc_moved", "merchant_goran", "player", 0.4),
+  backend\tests\sandbox\SUPERBOX\scenarios\_h1b_mini3_capture_test.py:85 : MockEvent("player_interacts", "player", "merchant_goran", 0.5),
+  backend\tests\sandbox\SUPERBOX\scenarios\_h1b_mini3_capture_test.py:97 : target_ids=["player"],
+  backend\tests\sandbox\SUPERBOX\scenarios\_h1b_mini3_capture_test.py:100 : player_weights = result.get("player", {})
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:208 : _trust_before = rel_store.get_all_for_source("Open_road", "guard_borko").get("player", {}).get("trust", 0.0)
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:213 : _trust_after = rel_store.get_all_for_source("Open_road", "guard_borko").get("player", {}).get("trust", 0.0)
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:222 : rel_store.get_all_for_source("Open_road", "tavern_keeper_tornin").get("player", {}).get("attraction", 0.0)
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:230 : rel_store.get_all_for_source("Open_road", "tavern_keeper_tornin").get("player", {}).get("attraction", 0.0)
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:246 : player_npc = next((n for n in npcs if n.get("npc_id") == "player" or n.get("id") == "player"), None)
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:317 : evidence = pd.query_evidence("tavern_keeper_tornin", "player") if hasattr(pd, "query_evidence") else []
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:137 : npc_id="player",
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:147 : eco_profiles["player"] = player_ep
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:234 : if "player" in eco_profiles:
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:235 : p_ep = eco_profiles["player"]
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:528 : p_ep = eco_profiles.get("player")
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:533 : npc_id="player",
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:610 : _p_ep = eco_profiles.get("player")
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:617 : if _npc_id == "player":
+  backend\tests\sandbox\SUPERBOX\run_terminal_mvp.py:134 : elif response.npc_positions and response.npc_positions.get("player"):
+  backend\tests\sandbox\SUPERBOX\run_terminal_mvp.py:135 : _p_pos = response.npc_positions["player"].get("local_position", {})
+  backend\tests\sandbox\SUPERBOX\run_terminal_mvp.py:163 : if _pid == "player":
+  backend\tests\sandbox\SUPERBOX\run_terminal_mvp.py:234 : if _pid == "player": continue
+  backend\tests\sandbox\system\test_causal_closure.py:51 : return EventContext(event_type=EventType.IDLE, actor_id="player", success=True, intensity=0.2, location="tavern")
+  backend\tests\sandbox\system\test_homeostatic_dialogue_stability.py:110 : if npc_dict.get("npc_id") != "player":
+  backend\tests\sandbox\system\test_t06_belief_pipeline.py:32 : source_id="player", trait="fear", weight=0.8, last_updated_tick=1
+  backend\tests\sandbox\b1_4_push_probe.py:59 : _node = fe.setdefault("npc_positions", {}).setdefault("player", {})
+  backend\tests\sandbox\b1_4_push_probe.py:141 : report["player_delta_expected"] = "player" in _np["changed"]
+  backend\tests\sandbox\b1_4_push_probe.py:142 : report["npc_unexpected_changed"] = [i for i in _np["changed"] if i != "player"]
+  backend\tests\sandbox\commitment_baseline.py:34 : if npc == "player":
+  backend\tests\sandbox\conftest.py:24 : {"npc_id": "player", "name": "Венус", "position": {"node": "main_hall", "x": 5.0, "y": 5.0}},
+  backend\tests\sandbox\conftest.py:33 : "player": {"npc_id": "player", "display_name": "Венус", "location_id": "tavern_silver_wolf:main_hall"},
+  backend\tests\sandbox\conftest.py:47 : co.update_entity("player", "tavern_silver_wolf:main_hall")
+  backend\tests\sandbox\f3_combat_smoke.py:73 : source="player",
+  backend\tests\sandbox\f3_combat_smoke.py:79 : "actor_id": "player",
+  backend\tests\sandbox\lab_r001_clone_differential.py:68 : player_session_service.select_player(cfg.campaign_id, "player")
+  backend\tests\sandbox\lab_r002_fear_scale_probe.py:61 : player_session_service.select_player(cfg.campaign_id, "player")
+  backend\tests\sandbox\lab_r002_fear_scale_probe.py:68 : rc = fin.get("relationship_cache", {}).get("player", {}) or {}
+  backend\tests\sandbox\lab_r003_gc11_causal_delta.py:14 : L2 cache_hydr  — relationship_cache["player"] у NPC в per-tick
+  backend\tests\sandbox\lab_r003_gc11_causal_delta.py:63 : rc_player = (npc_dict.get("relationship_cache", {}) or {}).get("player", {})
+  backend\tests\sandbox\lab_r003_gc11_causal_delta.py:105 : player_session_service.select_player(cfg.campaign_id, "player")
+  backend\tests\sandbox\lab_r003_gc11_causal_delta.py:117 : pair = rel_store.get_pair(cfg.campaign_id, _NPC, "player") or {}
+  backend\tests\sandbox\lab_r004_spatial_coherence.py:31 : player_session_service.select_player(cfg.campaign_id, "player")
+  backend\tests\sandbox\live_visibility_monitor.py:68 : if nid == "player":
+  backend\tests\sandbox\oscilloscope_closed_loop.py:51 : "player": {"position": "main_hall", "local_position": {"x": 15.0, "y": 20.0}},
+  backend\tests\sandbox\oscilloscope_closed_loop.py:76 : source="player",
+  backend\tests\sandbox\oscilloscope_closed_loop.py:103 : intent_target="player",
+  backend\tests\sandbox\re_gap1_production_probe.py:102 : _rc["player"] = {"trust": _val, "fear": 0.0}
+  backend\tests\sandbox\re_gap1_production_probe.py:116 : _p = _rc.get("player", {})
+  backend\tests\sandbox\re_gap1_production_probe.py:129 : source="player",
+  backend\tests\sandbox\sandbox_cfrm_vertical.py:73 : "player": "tavern:main_hall",
+  backend\tests\sandbox\sandbox_cfrm_vertical.py:100 : origin_cluster = occupancy.get_cluster("player") or "world:unknown"
+  backend\tests\sandbox\sandbox_cfrm_vertical.py:116 : source_entity="player",
+  backend\tests\sandbox\sandbox_cfrm_vertical.py:239 : assert p4.get("player", PsychologicalPressure()).uncertainty == 0.18, (
+  backend\tests\sandbox\sandbox_combat_vertical.py:42 : actor_id = "player"
+  backend\tests\sandbox\sandbox_combat_vertical.py:58 : relationship_cache={"player": {"trust": 50.0, "fear": 20.0}},
+  backend\tests\sandbox\sandbox_combat_vertical.py:59 : base_values={"player": 50.0},
+  backend\tests\sandbox\sandbox_sprint_27.py:108 : if npc.get("npc_id") == "player":
+  backend\tests\sandbox\sandbox_sprint_27.py:241 : npcs_d = [{"npc_id": "player", "psyche": {"stress": 1.0, "fear": 1.0}}]
+  backend\tests\sandbox\superbox_social_deterministic.py:119 : return dict(_rel.get(CAMPAIGN, "player") or {})
+  backend\tests\sandbox\terminal_cockpit.py:151 : "player", {}
+  backend\tests\sandbox\test_7_3_threat_scenario.py:47 : actor_id="player",
+  backend\tests\sandbox\test_causal_bridge_integration.py:67 : "player": {
+  backend\tests\sandbox\test_causal_bridge_integration.py:296 : player_entry = next((n for n in result["npcs"] if n["npc_id"] == "player"), None)
+  backend\tests\sandbox\test_causal_movement.py:58 : player_cluster = cluster_occupancy.get_cluster("player")
+  backend\tests\sandbox\test_causal_movement.py:79 : source="player",
+  backend\tests\sandbox\test_causal_movement.py:114 : source="player",
+  backend\tests\sandbox\test_legitimacy_gate.py:29 : {"payload": {"semantic_action": "MOVE", "target_id": "npc_1", "social_pressure": 0.8}, "source": "player"},
+  backend\tests\sandbox\test_legitimacy_gate.py:57 : {"payload": {"semantic_action": "MOVE", "target_id": "npc_2", "social_pressure": 0.8}, "source": "player"},
+  backend\tests\sandbox\test_micro_macro_locomotion.py:20 : "player": {"position": "tavern_silver_wolf:main_hall", "local_position": {"x": 10.0, "y": 10.0}},
+  backend\tests\sandbox\test_micro_macro_locomotion.py:31 : "player": {"position": "main_hall", "local_position": {"x": 12.5, "y": 8.0}},
+  backend\tests\sandbox\test_micro_macro_locomotion.py:41 : intent_target="player",
+  backend\tests\sandbox\test_micro_macro_locomotion.py:60 : intent_target="player",
+  backend\tests\sandbox\test_schedule_locomotion.py:49 : "recent_directive": {"source": "player", "salience": 0.9, "interrupts_routine": True}
+  backend\tests\IPT.py:414 : if nid != "player":
+  backend\tests\IPT.py:424 : position=world.npc_position("player")
+  backend\tests\IPT.py:881 : store.record_intervention(session_id, 1, "player", {"text": "test"})
+  backend\tests\IPT.py:1448 : _epistemic_store._records = {k: v for k, v in _epistemic_store._records.items() if k[0] != "player"}
+  backend\tests\IPT.py:1471 : _player_beliefs = _epistemic_store.get_all_for_agent("player")
+  backend\tests\IPT.py:1504 : _rel_store.update(_campaign_id, "player", "npc_friend", {"trust": 80.0})
+  backend\tests\IPT.py:1505 : _rel_store.update(_campaign_id, "player", "npc_enemy", {"trust": -50.0})
+  backend\tests\IPT.py:1507 : rel_friend = _provider.get_reliability(observer="player", source="npc_friend")
+  backend\tests\IPT.py:1508 : rel_enemy = _provider.get_reliability(observer="player", source="npc_enemy")
+  backend\tests\IPT.py:1596 : if _npc_id == "player":
+  backend\tests\IPT.py:1736 : audience="player",
+  backend\tests\IPT.py:1922 : _total_npcs = len([nid for nid in _scene.get("npc_positions", {}).keys() if nid != "player"])
+  backend\tests\test_action_consequence_compiler.py:28 : fabric.set_baseline("maid_lusya", "player", RelationshipSnapshot(
+  backend\tests\test_action_consequence_compiler.py:29 : source_id="maid_lusya", target_id="player", trust=20.0, fear=10.0, affection=0.0, debt=0.0, respect=10.0
+  backend\tests\test_action_consequence_compiler.py:42 : actor_id="player",
+  backend\tests\test_action_consequence_compiler.py:62 : snap = fabric.get_current("maid_lusya", "player")
+  backend\tests\test_action_consequence_compiler.py:73 : actor_id="player",
+  backend\tests\test_action_consequence_compiler.py:83 : snap = fabric.get_current("maid_lusya", "player")
+  backend\tests\test_action_consequence_compiler.py:94 : actor_id="player",
+  backend\tests\test_action_consequence_compiler.py:107 : snap = fabric.get_current("maid_lusya", "player")
+  backend\tests\test_action_consequence_compiler.py:153 : actor_id="player",
+  backend\tests\test_action_consequence_compiler.py:162 : store_l.update(camp, "maid_lusya", "player", dict(deltas))
+  backend\tests\test_action_consequence_compiler.py:163 : got_g = store_g.get_pair(camp, "maid_lusya", "player")
+  backend\tests\test_action_consequence_compiler.py:164 : want_l = store_l.get_pair(camp, "maid_lusya", "player")
+  backend\tests\test_action_consequence_compiler.py:178 : actor_id="player",
+  backend\tests\test_avatar_status.py:69 : profile = EconomicProfile(npc_id="player", gold=42.5, goods={"food": 3.0})
+  backend\tests\test_board_acceptance_gates.py:160 : # (to_dict → фильтр agent_id == "player").
+  backend\tests\test_board_acceptance_gates.py:163 : agent_id="player",
+  backend\tests\test_board_acceptance_gates.py:177 : [r for r in _store.to_dict() if r.get("agent_id") == "player"],
+  backend\tests\test_build_npc_snapshots.py:6 : social_stats.trust         → relationship_cache["player"]["trust"]
+  backend\tests\test_build_npc_snapshots.py:7 : social_stats.fear_of_player → relationship_cache["player"]["fear"]
+  backend\tests\test_build_npc_snapshots.py:8 : psyche.loyalty_true        → base_values["player"]
+  backend\tests\test_build_npc_snapshots.py:71 : """social_stats → relationship_cache["player"]."""
+  backend\tests\test_build_npc_snapshots.py:76 : assert snapshots[0]["relationship_cache"]["player"]["trust"] == 40.0
+  backend\tests\test_build_npc_snapshots.py:81 : assert snapshots[0]["relationship_cache"]["player"]["fear"] == 15.0
+  backend\tests\test_build_npc_snapshots.py:86 : assert snapshots[0]["relationship_cache"]["player"]["debt"] == 200.0
+  backend\tests\test_build_npc_snapshots.py:89 : """Все нули → нет записи "player" (нет данных для дрейфа)."""
+  backend\tests\test_build_npc_snapshots.py:92 : assert "player" not in snapshots[0]["relationship_cache"]
+  backend\tests\test_build_npc_snapshots.py:104 : """loyalty_true → base_values["player"]."""
+  backend\tests\test_build_npc_snapshots.py:109 : assert snapshots[0]["base_values"]["player"] == 60.0
+  backend\tests\test_build_npc_snapshots.py:115 : assert snapshots[0]["base_values"]["player"] == 50.0
+  backend\tests\test_build_npc_snapshots.py:119 : npc["base_values"] = {"player": 70.0, "npc_other": 30.0}
+  backend\tests\test_build_npc_snapshots.py:121 : assert snapshots[0]["base_values"]["player"] == 70.0
+  backend\tests\test_build_npc_snapshots.py:176 : "player": {"trust": 50.0, "fear": 10.0},
+  backend\tests\test_build_npc_snapshots.py:181 : assert "player" in rc
+  backend\tests\test_build_npc_snapshots.py:183 : assert rc["player"]["trust"] == 50.0
+  backend\tests\test_build_npc_snapshots.py:192 : assert "player" in rc
+  backend\tests\test_build_npc_snapshots.py:193 : assert rc["player"]["trust"] == 25.0
+  backend\tests\test_cfrm_models.py:149 : idx.update_entity("player", "loc:bar")
+  backend\tests\test_cfrm_models.py:153 : assert idx.get_entities_in_cluster("loc:bar") == {"player"}
+  backend\tests\test_combat_pipeline_e2e.py:42 : source="player",
+  backend\tests\test_combat_pipeline_e2e.py:45 : "actor_id": "player",
+  backend\tests\test_combat_pipeline_e2e.py:69 : "relationship_cache": {"player": {"trust": 40.0, "fear": 20.0}},
+  backend\tests\test_combat_pipeline_e2e.py:70 : "base_values": {"player": 50.0},
+  backend\tests\test_combat_subscriber.py:36 : source: str = "player",
+  backend\tests\test_combat_subscriber.py:46 : "actor_id": "player",
+  backend\tests\test_combat_subscriber.py:68 : "relationship_cache": {"player": {"trust": 40.0, "fear": 20.0}},
+  backend\tests\test_combat_subscriber.py:69 : "base_values": {"player": 50.0},
+  backend\tests\test_combat_subscriber.py:130 : "actor_id": "player",
+  backend\tests\test_combat_subscriber.py:154 : "actor_id": "player",
+  backend\tests\test_combat_subscriber.py:162 : # "player" может получить fatigue_delta
+  backend\tests\test_combat_subscriber.py:173 : "actor_id": "player",
+  backend\tests\test_combat_subscriber.py:204 : # actor_id = "player" — нет в npc_by_id
+  backend\tests\test_combat_subscriber.py:209 : "actor_id": "player",
+  backend\tests\test_combat_subscriber.py:258 : "actor_id": "player",
+  backend\tests\test_combat_subscriber.py:285 : "actor_id": "player",
+  backend\tests\test_compression_stage9.py:36 : target_id="player",
+  backend\tests\test_contracts_stage6.py:52 : target_id="player",
+  backend\tests\test_contracts_stage6.py:87 : source="player",
+  backend\tests\test_contracts_stage6.py:90 : "target_id": "player",
+  backend\tests\test_contracts_stage6.py:109 : source="player",
+  backend\tests\test_contracts_stage6.py:112 : "target_id": "player",
+  backend\tests\test_contracts_stage6.py:128 : source="player",
+  backend\tests\test_contracts_stage6.py:209 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_contracts_stage6.py:238 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_decay_game_days_stage8.py:30 : target_id="player",
+  backend\tests\test_decision_calibration.py:87 : actor_id="player",
+  backend\tests\test_decision_calibration.py:101 : actor_id="player",
+  backend\tests\test_decision_calibration.py:165 : actor_id="player",
+  backend\tests\test_decision_calibration.py:231 : actor_id="player",
+  backend\tests\test_decision_calibration.py:243 : _v2.update("test_calib", "control_npc", "player", {"trust": 80.0})
+  backend\tests\test_decision_calibration.py:306 : actor_id="player",
+  backend\tests\test_decision_calibration.py:353 : actor_id="player",
+  backend\tests\test_decision_calibration.py:360 : intent_target="player",
+  backend\tests\test_desire_generator.py:59 : npc = {"npc_id": "player"}
+  backend\tests\test_discovery_mechanics.py:27 : target_id="player",
+  backend\tests\test_discovery_mechanics.py:40 : hidden_from=("player",),
+  backend\tests\test_discovery_mechanics.py:178 : hidden_from_id="player",
+  backend\tests\test_discovery_mechanics.py:197 : target_id="player",
+  backend\tests\test_discovery_mechanics.py:207 : hidden_from_id="player",
+  backend\tests\test_discovery_mechanics.py:232 : hidden_from_id="player",
+  backend\tests\test_discovery_mechanics.py:248 : hidden_from_id="player",
+  backend\tests\test_end_screen_api.py:31 : actor_id="player",
+  backend\tests\test_end_screen_api.py:40 : scene_outside = {"npc_positions": {"player": {"local_position": {"x": 5.0, "y": 15.0}}}}
+  backend\tests\test_event_memory.py:26 : target_id="player",
+  backend\tests\test_event_memory.py:37 : target_id="player",
+  backend\tests\test_event_memory.py:52 : target_id="player",
+  backend\tests\test_event_memory.py:65 : target_id="player",
+  backend\tests\test_event_memory.py:79 : target_id="player",
+  backend\tests\test_event_memory.py:93 : target_id="player",
+  backend\tests\test_event_memory.py:108 : target_id="player",
+  backend\tests\test_event_memory.py:121 : target_id="player",
+  backend\tests\test_event_memory.py:149 : target_id="player",
+  backend\tests\test_event_memory.py:158 : target_id="player",
+  backend\tests\test_event_memory.py:175 : wm.push("test", {"type": "legacy_event", "actor": "player"})
+  backend\tests\test_event_memory.py:192 : target_id="player",
+  backend\tests\test_event_memory.py:210 : target_id="player",
+  backend\tests\test_event_memory.py:225 : target_id="player",
+  backend\tests\test_event_memory.py:237 : target_id="player",
+  backend\tests\test_impact_engine.py:53 : actor_id: str = "player",
+  backend\tests\test_memory_manager_r53.py:41 : target_id="player",
+  backend\tests\test_memory_manager_r53.py:64 : target_id="player",
+  backend\tests\test_mvp_tavern_integration.py:71 : actor_id="player",
+  backend\tests\test_mvp_tavern_integration.py:89 : scene_inside = {"npc_positions": {"player": {"local_position": {"x": 5.0, "y": 5.0}}}}
+  backend\tests\test_mvp_tavern_integration.py:93 : scene_outside = {"npc_positions": {"player": {"local_position": {"x": 5.0, "y": 15.0}}}}
+  backend\tests\test_npc_npc_stage7.py:41 : target_id: str = "player",
+  backend\tests\test_npc_npc_stage7.py:80 : mem_player = _make_mem(target_id="player")
+  backend\tests\test_npc_npc_stage7.py:93 : mem = _make_mem(target_id="player", importance=0.9)
+  backend\tests\test_npc_npc_stage7.py:99 : assert result[0].target_id == "player"
+  backend\tests\test_npc_npc_stage7.py:106 : mem_other = _make_mem(target_id="player", importance=0.9)
+  backend\tests\test_npc_social_enrichment.py:241 : assert "player" in rc
+  backend\tests\test_npc_social_enrichment.py:242 : assert rc["player"]["trust"] == 30.0
+  backend\tests\test_npc_social_enrichment.py:243 : assert rc["player"]["fear"] == 10.0
+  backend\tests\test_npc_social_enrichment.py:246 : assert "player" in bv
+  backend\tests\test_npc_social_enrichment.py:247 : assert bv["player"] == 60.0
+  backend\tests\test_npc_social_enrichment.py:257 : "player": {"trust": 50.0, "fear": 15.0, "base_trust": 55.0},
+  backend\tests\test_npc_social_enrichment.py:260 : npc["base_values"] = {"player": 55.0, "npc_b": 25.0}
+  backend\tests\test_npc_social_enrichment.py:267 : assert rc["player"]["trust"] == 50.0
+  backend\tests\test_npc_social_enrichment.py:268 : assert rc["player"]["fear"] == 15.0
+  backend\tests\test_npc_social_enrichment.py:270 : assert bv["player"] == 55.0
+  backend\tests\test_npc_social_enrichment.py:284 : assert "player" in bv
+  backend\tests\test_npc_social_enrichment.py:285 : assert bv["player"] == 70.0
+  backend\tests\test_npc_social_enrichment.py:343 : player_deltas = [d for d in deltas if d.social_target == "player"]
+  backend\tests\test_npc_social_enrichment.py:391 : player_deltas = [d for d in deltas if d.social_target == "player"]
+  backend\tests\test_p7_04_social_fabric.py:19 : t.set_baseline("maid_lusya", "player", RelationshipSnapshot(
+  backend\tests\test_p7_04_social_fabric.py:20 : source_id="maid_lusya", target_id="player", trust=20.0, fear=10.0, affection=0.0, debt=0.0, respect=10.0
+  backend\tests\test_p7_04_social_fabric.py:35 : tracker.set_baseline("maid_lusya", "player", RelationshipSnapshot(
+  backend\tests\test_p7_04_social_fabric.py:36 : source_id="maid_lusya", target_id="player", trust=50.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0
+  backend\tests\test_p7_04_social_fabric.py:39 : assert tracker.get_current("maid_lusya", "player").trust == 20.0
+  backend\tests\test_p7_04_social_fabric.py:43 : tracker.set_baseline("player", "maid_lusya", RelationshipSnapshot(
+  backend\tests\test_p7_04_social_fabric.py:44 : source_id="player", target_id="maid_lusya", trust=80.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0
+  backend\tests\test_p7_04_social_fabric.py:46 : assert tracker.get_current("maid_lusya", "player").trust == 20.0
+  backend\tests\test_p7_04_social_fabric.py:47 : assert tracker.get_current("player", "maid_lusya").trust == 80.0
+  backend\tests\test_p7_04_social_fabric.py:51 : tracker.apply_delta(tick=1, source_id="maid_lusya", target_id="player", trust_delta=-30.0, cause="blackmail")
+  backend\tests\test_p7_04_social_fabric.py:52 : assert tracker.get_current("maid_lusya", "player").trust == -10.0
+  backend\tests\test_p7_04_social_fabric.py:54 : assert tracker._baseline[("maid_lusya", "player")].trust == 20.0
+  backend\tests\test_p7_04_social_fabric.py:58 : tracker.apply_delta(tick=1, source_id="maid_lusya", target_id="player", trust_delta=-30.0, fear_delta=20.0, cause="blackmail")
+  backend\tests\test_p7_04_social_fabric.py:60 : snap = tracker.get_current("maid_lusya", "player")
+  backend\tests\test_p7_04_social_fabric.py:66 : tracker.apply_delta(tick=1, source_id="maid_lusya", target_id="player", trust_delta=-200.0, fear_delta=200.0)
+  backend\tests\test_p7_04_social_fabric.py:68 : snap = tracker.get_current("maid_lusya", "player")
+  backend\tests\test_p7_04_social_fabric.py:74 : tracker.apply_delta(tick=1, source_id="maid_lusya", target_id="player", trust_delta=-10.0, cause="action1")
+  backend\tests\test_p7_04_social_fabric.py:75 : tracker.apply_delta(tick=2, source_id="guard_borko", target_id="player", fear_delta=10.0, cause="action2")
+  backend\tests\test_p7_04_social_fabric.py:80 : lusya_deltas = tracker.get_deltas_for("maid_lusya", "player")
+  backend\tests\test_p7_09_cognitive_dissonance.py:23 : PlayerAction(action_id="act_1", tick=1, actor_id="player", action_type=ActionType.HELP, target_id="maid_lusya"),
+  backend\tests\test_p7_09_cognitive_dissonance.py:24 : PlayerAction(action_id="act_2", tick=2, actor_id="player", action_type=ActionType.ATTACK, target_id="merchant_goran"),
+  backend\tests\test_p7_09_cognitive_dissonance.py:25 : PlayerAction(action_id="act_3", tick=3, actor_id="player", action_type=ActionType.BLACKMAIL, target_id="guard_borko")
+  backend\tests\test_p7_09_cognitive_dissonance.py:58 : PlayerAction(action_id="act_4", tick=4, actor_id="player", action_type=ActionType.BRIBE, target_id="tavern_keeper_tornin")
+  backend\tests\test_p7_10_end_screen.py:38 : fabric.set_baseline("maid_lusya", "player", RelationshipSnapshot(
+  backend\tests\test_p7_10_end_screen.py:39 : source_id="maid_lusya", target_id="player", trust=80.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0
+  backend\tests\test_p7_11_last_words.py:22 : f.set_baseline("maid_lusya", "player", RelationshipSnapshot(
+  backend\tests\test_p7_11_last_words.py:23 : source_id="maid_lusya", target_id="player", trust=80.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0
+  backend\tests\test_p7_11_last_words.py:48 : fabric.set_baseline("maid_lusya", "player", RelationshipSnapshot(
+  backend\tests\test_p7_11_last_words.py:49 : source_id="maid_lusya", target_id="player", trust=-50.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0
+  backend\tests\test_p7_12_exit_trigger.py:21 : scene = {"npc_positions": {"player": {"local_position": {"x": 5.0, "y": 5.0}}}}
+  backend\tests\test_p7_12_exit_trigger.py:26 : scene = {"npc_positions": {"player": {"local_position": {"x": 5.0, "y": 12.5}}}}
+  backend\tests\test_p7_12_exit_trigger.py:31 : scene = {"npc_positions": {"player": {"local_position": {"x": 5.0, "y": 15.0}}}}
+  backend\tests\test_p7_13_world_diff.py:52 : fabric.set_baseline("maid_lusya", "player", RelationshipSnapshot(
+  backend\tests\test_p7_13_world_diff.py:53 : source_id="maid_lusya", target_id="player", trust=20.0, fear=10.0, affection=0.0, debt=0.0, respect=10.0
+  backend\tests\test_p7_13_world_diff.py:55 : fabric.apply_delta(tick=1, source_id="maid_lusya", target_id="player", trust_delta=-50.0, fear_delta=40.0)
+  backend\tests\test_perception_filter.py:185 : "actor_id": "player",
+  backend\tests\test_phase3_spatial_social.py:373 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase3_spatial_social.py:387 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase3_spatial_social.py:399 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase3_spatial_social.py:418 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase_a_memory_fixes.py:37 : assert mm.detect_resonance("camp", "npc1", actor_id="player") == []
+  backend\tests\test_phase_a_memory_fixes.py:221 : actor_id="player",
+  backend\tests\test_phase_a_memory_fixes.py:248 : "target_id": "player",
+  backend\tests\test_phase_a_memory_fixes.py:337 : target_id="player",
+  backend\tests\test_phase_a_memory_fixes.py:362 : "target_id": "player",
+  backend\tests\test_phase_a_memory_fixes.py:546 : actor_id="player",
+  backend\tests\test_phase_a_memory_fixes.py:548 : source_id="player",
+  backend\tests\test_phase_a_memory_fixes.py:553 : actor_id="player",
+  backend\tests\test_phase_a_memory_fixes.py:570 : actor_id="player",
+  backend\tests\test_phase_a_memory_fixes.py:572 : source_id="player",
+  backend\tests\test_phase_a_memory_fixes.py:596 : actor_id="player",
+  backend\tests\test_phase_a_memory_fixes.py:598 : source_id="player",
+  backend\tests\test_phase_a_memory_fixes.py:620 : event_type="combat", target_id="player", emotion_tag="neutral",
+  backend\tests\test_phase_a_memory_fixes.py:642 : event_type="player_interacts", target_id="player",
+  backend\tests\test_phase_a_memory_fixes.py:672 : event_type="npc_moved", target_id="player", emotion_tag="neutral",
+  backend\tests\test_phase_a_memory_fixes.py:693 : subject="player", predicate="occupation", object="geologist",
+  backend\tests\test_phase_a_memory_fixes.py:712 : subject="player", predicate="rumor", object="killed_dragon",
+  backend\tests\test_phase_a_memory_fixes.py:734 : subject="player", predicate="trait", object="brave",
+  backend\tests\test_phase_a_memory_fixes.py:754 : subject="player", predicate="history", object="northern_pass",
+  backend\tests\test_phase_a_memory_fixes.py:755 : source="player", origin_reference="told-him-1",
+  backend\tests\test_phase_a_memory_fixes.py:990 : source="player",
+  backend\tests\test_phase_a_memory_fixes.py:1085 : source="player",
+  backend\tests\test_phase_a_memory_fixes.py:1135 : source="player",
+  backend\tests\test_phase_a_memory_fixes.py:1188 : event_type="player_threatens", source="player",
+  backend\tests\test_physiology_flow.py:27 : npc_id="player",
+  backend\tests\test_physiology_flow.py:60 : relationship_cache={"player": {"trust": 50.0, "fear": 20.0}},
+  backend\tests\test_physiology_flow.py:61 : base_values={"player": 50.0},
+  backend\tests\test_physiology_flow.py:75 : actor_id="player", target_id="maid_lusya", damage_type="slash", target_zone="head_ear_l", force=80.0
+  backend\tests\test_physiology_flow.py:117 : actor_id="player",
+  backend\tests\test_player_board_service.py:131 : {"agent_id": "player",
+  backend\tests\test_player_target_extractor_r4.py:13 : "player": {
+  backend\tests\test_r2_r5_math.py:43 : actor_id="player",
+  backend\tests\test_reaction_subscriber.py:45 : source: str = "player",
+  backend\tests\test_reaction_subscriber.py:227 : result = sub.handle([_make_event("player_attacks", "player")], ctx)
+  backend\tests\test_reaction_subscriber.py:238 : assert social_d.intent_target == "player"
+  backend\tests\test_reaction_subscriber.py:253 : result = sub.handle([_make_event("help", "player")], ctx)
+  backend\tests\test_reaction_subscriber.py:270 : result = sub.handle([_make_event("saved_life", "player")], ctx)
+  backend\tests\test_reaction_subscriber.py:286 : result = sub.handle([_make_event("unknown", "player")], ctx)
+  backend\tests\test_reaction_subscriber.py:297 : """Действие игрока → intent_target="player" (в SOCIAL дельте)."""
+  backend\tests\test_reaction_subscriber.py:304 : result = sub.handle([_make_event("player_attacks", "player")], ctx)
+  backend\tests\test_reaction_subscriber.py:306 : assert social_d.intent_target == "player"
+  backend\tests\test_reaction_subscriber.py:353 : result = sub.handle([_make_event("player_attacks", source="player")], ctx)
+  backend\tests\test_reaction_subscriber.py:356 : assert all(d.npc_id != "player" for d in result.deltas)
+  backend\tests\test_relationship_state_store.py:143 : req = RelationshipStateStore.get_exclusivity(scene_state, NPC_ID, "player")
+  backend\tests\test_relationship_state_store.py:338 : assert RelationshipStateStore.get_directed_pair(ss, "thief_shadow", "player") == {}
+  backend\tests\test_relationship_state_store.py:388 : assert legacy.get_pair("test_campaign", "player", "maid_lusya")["trust"] == 25.5
+  backend\tests\test_relationship_state_store.py:530 : ("gossip", "maid_lusya", "merchant_goran", [("player", "maid_lusya", {"trust": -2.0})]),
+  backend\tests\test_relationship_state_store.py:531 : ("praise", "maid_lusya", "merchant_goran", [("player", "merchant_goran", {"trust": 1.5})]),
+  backend\tests\test_relationship_state_store.py:532 : ("accuse", "guard_borko", "thief_shadow", [("player", "thief_shadow", {"fear": 1.0})]),
+  backend\tests\test_relationship_state_store.py:533 : ("talk", "maid_lusya", "merchant_goran", [("player", "maid_lusya", {"trust": 0.5})]),
+  backend\tests\test_relationship_state_store.py:627 : store.get("broken_campaign", "player")
+  backend\tests\test_relationship_state_store.py:632 : assert store.get("fresh_campaign", "player") == {}
+  backend\tests\test_relationship_state_store.py:654 : sa.update_relationships(real, "app_parity", "player", trust_delta=3.0, fear_delta=-1.0)
+  backend\tests\test_relationship_state_store.py:656 : store_l.update("app_parity", "maid_lusya", "player", {"trust": 3.0, "fear": -1.0})
+  backend\tests\test_relationship_state_store.py:657 : got_g = store_g.get_pair("app_parity", "maid_lusya", "player")
+  backend\tests\test_relationship_state_store.py:658 : want_l = store_l.get_pair("app_parity", "maid_lusya", "player")
+  backend\tests\test_relationship_state_store.py:661 : assert real.relationship_cache["player"]["trust"] == got_g["trust"]
+  backend\tests\test_relationship_state_store.py:687 : "relationship_cache": {"player": {"trust": 30.0, "fear": 10.0}},
+  backend\tests\test_relationship_state_store.py:688 : "base_values": {"player": 50.0},
+  backend\tests\test_relationship_state_store.py:704 : store.update("decay_route", "maid_lusya", "player", {"trust": 30.0, "fear": 10.0})
+  backend\tests\test_relationship_state_store.py:720 : pair = store.get_pair("decay_route", "maid_lusya", "player")
+  backend\tests\test_relationship_state_store.py:766 : source="player",
+  backend\tests\test_relationship_state_store.py:777 : pair_pt = store.get_pair("camp", "player", "maid_lusya")
+  backend\tests\test_relationship_state_store.py:778 : pair_tp = store.get_pair("camp", "maid_lusya", "player")
+  backend\tests\test_relationship_state_store.py:1055 : v2.update("c", "maid_lusya", "player", {"trust": 25.0})
+  backend\tests\test_relationship_state_store.py:1061 : assert v2.get_pair("c", "maid_lusya", "player")["trust"] == 25.0  # не потерялись
+  backend\tests\test_relationship_state_store.py:1062 : v2.update("c", "maid_lusya", "player", {"trust": 5.0})
+  backend\tests\test_relationship_state_store.py:1063 : assert v2.get_pair("c", "maid_lusya", "player")["trust"] > 25.0
+  backend\tests\test_relationship_state_store.py:1085 : v2.update("camp", "player", "npc_friend", {"trust": 80.0})
+  backend\tests\test_relationship_state_store.py:1086 : v2.update("camp", "player", "npc_enemy", {"trust": -50.0})
+  backend\tests\test_relationship_state_store.py:1088 : assert v2.get_pair("camp", "player", "npc_friend")["trust"] == 80.0
+  backend\tests\test_relationship_state_store.py:1104 : assert v2_reloaded.get_pair("camp", "player", "npc_friend")["trust"] == 80.0
+  backend\tests\test_relationship_state_store.py:1105 : assert v2_reloaded.get_pair("camp", "player", "npc_enemy")["trust"] == -50.0
+  backend\tests\test_relationship_state_store.py:1123 : v2.update("camp", "player", "npc_friend", {"trust": 80.0})  # pre-scene
+  backend\tests\test_relationship_state_store.py:1127 : assert v2.get_pair("camp", "player", "npc_friend")["trust"] == 80.0
+  backend\tests\test_relationship_state_store.py:1198 : "player": {"trust": 45.0, "fear": 5.0},
+  backend\tests\test_relationship_state_store.py:1200 : "base_values": {"merchant_goran": 30.0, "player": 50.0},
+  backend\tests\test_relationship_state_store.py:1270 : "base_values": {"player": 50.0},
+  backend\tests\test_relationship_state_store.py:1279 : v2.update("camp", "maid_lusya", "player", {"trust": 80.0})
+  backend\tests\test_relationship_state_store.py:1283 : assert rc["player"]["trust"] == 80.0        # канон перекрыл stale/дефолт
+  backend\tests\test_relationship_state_store.py:1287 : assert snaps[0]["base_values"]["player"] == 50.0
+  backend\tests\test_relationship_state_store.py:1295 : assert rc["player"]["trust"] == 1.0          # social_stats-дефолт
+  backend\tests\test_relationship_state_store.py:1306 : v2.update("camp", "maid_lusya", "player", {"trust": 40.0})  # current=40
+  backend\tests\test_relationship_state_store.py:1310 : _d = next(d for d in deltas if d.social_target == "player")
+  backend\tests\test_resonance_engine.py:18 : target_id="player",
+  backend\tests\test_resonance_engine.py:36 : patterns = engine.detect(events, actor_id="player")
+  backend\tests\test_resonance_engine.py:45 : patterns = engine.detect(events, actor_id="player")
+  backend\tests\test_resonance_engine.py:55 : patterns = engine.detect(events, actor_id="player")
+  backend\tests\test_resonance_engine.py:74 : patterns = engine.detect(events, actor_id="player")
+  backend\tests\test_resonance_engine.py:82 : patterns = engine.detect(events, actor_id="player")
+  backend\tests\test_resonance_engine.py:99 : patterns = engine.detect(events, actor_id="player")
+  backend\tests\test_resonance_engine.py:108 : patterns = engine.detect(events, actor_id="player")
+  backend\tests\test_resonance_engine.py:123 : p_dense = engine.detect(dense, actor_id="player")
+  backend\tests\test_resonance_engine.py:124 : p_sparse = engine.detect(sparse, actor_id="player")
+  backend\tests\test_resonance_engine.py:139 : EventMemory("theft", "player", "angry", 1, 0.8, stage=MemoryStage.FORGOTTEN),
+  backend\tests\test_resonance_engine.py:140 : EventMemory("theft", "player", "angry", 2, 0.8, stage=MemoryStage.FORGOTTEN),
+  backend\tests\test_resonance_engine.py:141 : EventMemory("theft", "player", "angry", 3, 0.8, stage=MemoryStage.FORGOTTEN),
+  backend\tests\test_resonance_engine.py:143 : assert engine.detect(events, actor_id="player") == []
+  backend\tests\test_resonance_engine.py:157 : patterns = engine.detect(events, actor_id="player")
+  backend\tests\test_s2b7_injury_chain.py:75 : source="player",
+  backend\tests\test_s2b7_injury_chain.py:77 : "actor_id": "player",
+  backend\tests\test_scene_outcome_builder.py:176 : intent_target="player",
+  backend\tests\test_scene_outcome_builder.py:219 : intent_target="player",
+  backend\tests\test_scene_outcome_builder.py:501 : intent_target="player",
+  backend\tests\test_scene_outcome_builder.py:507 : intent_target="player",
+  backend\tests\test_social_engine.py:210 : actor="player",
+  backend\tests\test_social_engine.py:222 : actor="player",
+  backend\tests\test_social_engine.py:234 : actor="player",
+  backend\tests\test_social_engine.py:248 : actor="player",
+  backend\tests\test_social_engine.py:262 : actor="player",
+  backend\tests\test_social_engine.py:276 : actor="player",
+  backend\tests\test_social_engine.py:302 : actor="player",
+  backend\tests\test_social_engine.py:321 : actor="player",
+  backend\tests\test_social_engine.py:347 : actor="player",
+  backend\tests\test_social_engine.py:361 : actor="player",
+  backend\tests\test_social_engine.py:374 : actor="player",
+  backend\tests\test_social_engine.py:387 : actor="player",
+  backend\tests\test_social_engine.py:400 : actor="player",
+  backend\tests\test_social_engine.py:422 : actor="player",
+  backend\tests\test_social_engine.py:431 : actor="player",
+  backend\tests\test_social_engine.py:444 : actor="player",
+  backend\tests\test_social_engine.py:452 : actor="player",
+  backend\tests\test_social_engine.py:465 : actor="player",
+  backend\tests\test_social_engine.py:473 : actor="player",
+  backend\tests\test_social_engine.py:494 : actor="player",
+  backend\tests\test_social_engine.py:507 : actor="player",
+  backend\tests\test_social_engine.py:523 : actor="player",
+  backend\tests\test_social_engine.py:604 : origin_actor="player",
+  backend\tests\test_social_engine.py:618 : origin_actor="player",
+  backend\tests\test_spatial_runtime_r4.py:56 : assert "player" in out
+  backend\tests\test_spatial_runtime_r4.py:57 : assert out["player"] is not None
+  backend\tests\test_spatial_runtime_r4.py:58 : assert "distance" in out["player"]
+  backend\tests\test_spatial_runtime_r4.py:59 : assert "in_los" in out["player"]
+  backend\tests\test_spatial_runtime_r4.py:95 : # ADR-048: Игрок внедрен как npc_id="player" в npc_positions
+  backend\tests\test_spatial_runtime_r4.py:96 : "player": {
+  backend\tests\test_spatial_runtime_r4.py:132 : scene["npc_positions"]["player"],
+  backend\tests\test_sqlite_store_stage11.py:91 : "target_id": "player",
+  backend\tests\test_sqlite_store_stage11.py:127 : hidden_from=("player",),
+  backend\tests\test_sqlite_store_stage11.py:155 : hidden_from=("player", "guard"),
+  backend\tests\test_sqlite_store_stage11.py:162 : assert loaded[0]["hidden_from"] == ("player", "guard")
+  backend\tests\test_sqlite_store_stage11.py:414 : "hidden_from": ("player",),
+  backend\tests\test_state_applicator_pipeline.py:39 : intent_target="player",
+  backend\tests\test_state_applicator_pipeline.py:82 : intent_target="player",
+  backend\tests\test_state_delta_v2.py:30 : npc_id="1", domain=DeltaDomain.SOCIAL, target="player", payload=SocialPayload(trust_delta=10.0)
+  backend\tests\test_state_delta_v2.py:66 : npc_id="1", domain=DeltaDomain.SOCIAL, target="player", payload=EmotionPayload(stress_delta=5.0)
+  backend\tests\test_state_delta_v2.py:79 : social_target="player",
+  backend\tests\test_state_delta_v2.py:82 : target="player",
+  backend\tests\test_tick_orchestrator_full_loop.py:61 : "player": {
+  backend\tests\test_tick_orchestrator_full_loop.py:130 : source="player",
+  backend\tests\test_tick_orchestrator_full_loop.py:131 : payload={"intensity": 1.0, "actor_id": "player", "target_id": "npc_1"},
+  backend\tests\test_working_memory.py:19 : target_id="player",
+  backend\tests\test_working_memory.py:52 : target_id="player",
+  backend\tests\test_working_memory.py:76 : target_id="player",
+  backend\tests\test_working_memory.py:98 : target_id="player",
+
+[SEARCH] PlayerInput phase  pattern: /class.*PlayerInput.*Phase|def.*player_input|player_input_phase/
+  2 matches:
+  backend\app\domain\intent_identity.py:43 : def for_player_input(cls, player_name: str, character_id: str) -> "IntentIdentity":
+  backend\tests\sandbox\phenomenology\test_memory_fixation.py:129 : def build_prompt_with_memory(npc_name: str, recalled_facts: list, player_input: str) -> str:
+
+============================================================
+S0.2 - AVATAR IDENTITY
+============================================================
+
+[SEARCH] CharacterProfile class  pattern: /class CharacterProfile/
+  1 matches:
+  backend\app\models\character.py:102 : class CharacterProfile:
+
+[SEARCH] CharacterSheet class  pattern: /class CharacterSheet/
+  1 matches:
+  backend\app\models\schemas.py:91 : class CharacterSheet(BaseModel):
+
+[SEARCH] character_id usage  pattern: /character_id/
+  31 matches:
+  backend\app\domain\intent_identity.py:22 : intent_owner: кто инициировал (player name/id ИЛИ character_id для autonomous)
+  backend\app\domain\intent_identity.py:43 : def for_player_input(cls, player_name: str, character_id: str) -> "IntentIdentity":
+  backend\app\domain\intent_identity.py:47 : actor_id = character_id (who executes in the world)
+  backend\app\domain\intent_identity.py:48 : body_id = character_id (the body)
+  backend\app\domain\intent_identity.py:53 : actor_id=character_id,
+  backend\app\domain\intent_identity.py:54 : body_id=character_id,
+  backend\app\domain\intent_identity.py:59 : def for_avatar_initiative(cls, character_id: str) -> "IntentIdentity":
+  backend\app\domain\intent_identity.py:62 : intent_owner = character_id (Avatar itself decided)
+  backend\app\domain\intent_identity.py:63 : actor_id = character_id
+  backend\app\domain\intent_identity.py:64 : body_id = character_id
+  backend\app\domain\intent_identity.py:68 : intent_owner=character_id,
+  backend\app\domain\intent_identity.py:69 : actor_id=character_id,
+  backend\app\domain\intent_identity.py:70 : body_id=character_id,
+  backend\app\models\character.py:108 : - character_id = CharacterSheet.name (ключ связки)
+  backend\app\models\character.py:119 : character_id: str
+  backend\app\models\character.py:238 : f"[EROSION] {self.character_id}: {old_stage.value} → {new_stage.value} (integrity={integrity:.2f})"
+  backend\app\models\character.py:252 : "character_id": self.character_id,
+  backend\app\models\character.py:279 : character_id=data.get("character_id", "unknown"),
+  backend\app\services\avatar_character_registry.py:3 : Назначение: Maps campaign_id → character_id (Avatar body npc_id).
+  backend\app\services\avatar_character_registry.py:17 : """Maps campaign_id → character_id (Avatar body identity).
+  backend\app\services\avatar_character_registry.py:34 : def register(self, campaign_id: str, character_id: str) -> None:
+  backend\app\services\avatar_character_registry.py:35 : """Register Avatar character_id for campaign."""
+  backend\app\services\avatar_character_registry.py:37 : self._campaign_to_character[campaign_id] = character_id
+  backend\app\services\avatar_character_registry.py:44 : def get_character_id(self, campaign_id: str) -> Optional[str]:
+  backend\app\services\avatar_character_registry.py:45 : """Get Avatar character_id for campaign."""
+  backend\app\services\avatar_character_registry.py:51 : char_id = self.get_character_id(campaign_id)
+  backend\app\services\character_service.py:88 : if p.character_id == character_name:
+  backend\app\services\character_service.py:100 : if item.character_id == profile.character_id:
+  backend\app\services\character_service.py:129 : default = CharacterProfile(character_id=character_name)
+  backend\app\services\player_avatar_service.py:230 : return CharacterProfile(character_id=player_name)
+  backend\app\services\player_avatar_service.py:286 : profile = CharacterProfile(character_id=sheet.name)
+
+[SEARCH] avatar_id usage  pattern: /avatar_id/
+  4 matches:
+  backend\app\domain\body.py:150 : avatar_id: str
+  backend\app\services\body\body_topology_service.py:53 : def create_topology(cls, avatar_id: str, strength_score: int = 10) -> BodyTopology:
+  backend\app\services\body\body_topology_service.py:61 : topology = BodyTopology(avatar_id=avatar_id, strength_score=strength_score)
+  backend\app\services\body\body_topology_service.py:234 : avatar_id=data.get("avatar_id", "player"),
+
+[SEARCH] Avatar membership  pattern: /is_avatar|avatar_character_registry|AvatarCharacterRegistry/
+  6 matches:
+  backend\app\services\avatar_character_registry.py:2 : path: backend/app/services/avatar_character_registry.py
+  backend\app\services\avatar_character_registry.py:8 : Основные сущности: AvatarCharacterRegistry
+  backend\app\services\avatar_character_registry.py:16 : class AvatarCharacterRegistry:
+  backend\app\services\avatar_character_registry.py:23 : _instance: Optional["AvatarCharacterRegistry"] = None
+  backend\app\services\avatar_character_registry.py:26 : def __new__(cls) -> "AvatarCharacterRegistry":
+  backend\app\services\avatar_character_registry.py:49 : def is_avatar(self, npc_id: str, campaign_id: str) -> bool:
+
+[SEARCH] PlayerAvatarService references  pattern: /player_avatar_service|PlayerAvatarService/
+  22 matches:
+  backend\app\services\avatar_character_registry.py:4 : Заменяет player_name coupling в player_avatar_service.py:138.
+  backend\app\services\avatar_character_registry.py:20 : Replaces player_name as identity key in player_avatar_service.
+  backend\app\services\avatar_state_applicator.py:23 : - Construction/restore      → PlayerAvatarService (NPCState(...), self-write)
+  backend\app\services\game_loop_builder.py:23 : from app.services.player_avatar_service import PlayerAvatarService
+  backend\app\services\game_loop_builder.py:56 : avatar_service = PlayerAvatarService(root=str(saves_dir))
+  backend\app\services\player_avatar_service.py:3 : # backend/app/services/player_avatar_service.py
+  backend\app\services\player_avatar_service.py:5 : PlayerAvatarService — живой аватар персонажа игрока.
+  backend\app\services\player_avatar_service.py:9 : Основные сущности: PlayerAvatarService
+  backend\app\services\player_avatar_service.py:74 : class PlayerAvatarService:
+  backend\tests\micro\test_name_gate.py:7 : Зависимости: pytest, app.services.player_avatar_service
+  backend\tests\micro\test_name_gate.py:13 : from app.services.player_avatar_service import PlayerAvatarService
+  backend\tests\micro\test_name_gate.py:18 : return PlayerAvatarService(root=str(tmp_path))
+  backend\tests\micro\test_name_gate.py:94 : svc2 = PlayerAvatarService(root=str(tmp_path))
+  backend\tests\sandbox\persistence\test_player_body_state_survives_save_load.py:3 : Без этого теста любой рефакторинг PlayerAvatarService может молча откатить ADR-128,
+  backend\tests\sandbox\persistence\test_player_body_state_survives_save_load.py:16 : from app.services.player_avatar_service import PlayerAvatarService
+  backend\tests\sandbox\persistence\test_player_body_state_survives_save_load.py:25 : svc = PlayerAvatarService()
+  backend\tests\sandbox\persistence\test_player_wounds_conditions_drives_roundtrip.py:22 : from app.services.player_avatar_service import PlayerAvatarService
+  backend\tests\sandbox\persistence\test_player_wounds_conditions_drives_roundtrip.py:56 : svc = PlayerAvatarService()
+  backend\tests\sandbox\persistence\test_player_wounds_conditions_drives_roundtrip.py:80 : svc = PlayerAvatarService()
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:27 : from app.services.player_avatar_service import PlayerAvatarService
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:40 : svc = PlayerAvatarService(root=str(root))
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:55 : svc2 = PlayerAvatarService(root=str(broken_root))
+
+[SEARCH] Avatar resolution  pattern: /load_avatar|get_avatar|fetch_avatar|resolve_avatar/
+  11 matches:
+  backend\app\services\game_loop\turn_pipeline.py:657 : and self.avatar_service.load_avatar(campaign_id, _player_name) is None
+  backend\app\services\player_avatar_service.py:127 : def load_avatar(self, campaign_id: str, player_name: str) -> Optional[dict]:
+  backend\app\services\player_avatar_service.py:171 : avatar = self.load_avatar(campaign_id, player_name)
+  backend\app\services\player_avatar_service.py:214 : avatar = self.load_avatar(campaign_id, player_name)
+  backend\app\services\player_avatar_service.py:224 : avatar = self.load_avatar(campaign_id, player_name)
+  backend\app\services\player_avatar_service.py:284 : if self.load_avatar(campaign_id, sheet.name) is not None:
+  backend\app\services\player_avatar_service.py:492 : # B1.3-FIX: Журнал обрабатывается в load_avatar, здесь ему не место.
+  backend\app\services\player_avatar_service.py:539 : журнала, но load_state/load_avatar перетирают RAM диском (:109),
+  backend\tests\micro\test_name_gate.py:85 : путь load_avatar с несовпадающим именем требует валидный state —
+  backend\tests\micro\test_name_gate.py:96 : svc2.load_avatar("c1", "any")  # вернёт None по имени, но load-ветка...
+  backend\tests\micro\test_name_gate.py:97 : # честный путь: прямой load секции (как делает load_avatar)
+
+[SEARCH] npc_id=player bridge  pattern: /npc_id\s*=\s*.*player|npc_id\s*==\s*.player./
+  47 matches:
+  backend\app\services\affective\affective_decay_handler.py:54 : if not npc_id or npc_id == "player":
+  backend\app\services\combat\combat_subscriber.py:132 : if npc_id == "player":
+  backend\app\services\combat\combat_subscriber.py:437 : npc_id="player",
+  backend\app\services\game_loop\dm_phase.py:130 : target_npc_id=shared_context.player_target_id,
+  backend\app\services\game_loop\npc_orchestration.py:422 : target_npc_id=shared_context.player_target_id,
+  backend\app\services\game_loop\turn_pipeline.py:215 : npc_id="player",
+  backend\app\services\integration\world_snapshot_builder.py:281 : if npc_id == "player":
+  backend\app\services\npc\homeostasis_projector.py:51 : if not _npc_id or _npc_id == "player":
+  backend\app\services\npc\npc_tick_pipeline.py:1589 : if npc_id == "player":
+  backend\app\services\npc\npc_tick_pipeline.py:1632 : # ADR-048: Игрок внедрен как npc_id="player" (ADR-031), его позиция находится в npc_positions.
+  backend\app\services\npc\npc_tick_pipeline.py:1668 : # ADR-048: Единый пространственный авторитет. Игрок внедрен как npc_id="player".
+  backend\app\services\npc\state_applicator.py:389 : if will_conflict_for_ui and new_state.npc_id == "player":
+  backend\app\services\npc\state_applicator.py:399 : npc_id="player",
+  backend\app\services\npc\state_applicator.py:1545 : if state.npc_id == "player":
+  backend\app\services\offscreen\world_projection_buffer.py:70 : if not npc_id or npc_id == "player":
+  backend\app\services\perception\behavior_manifestation_service.py:135 : if npc_id == "player":
+  backend\app\services\phases\input.py:159 : npc_id="player",
+  backend\app\services\phases\input.py:173 : npc_id="player",
+  backend\app\services\phases\input.py:217 : npc_id="player",
+  backend\app\services\phases\input.py:268 : npc_id="player",
+  backend\app\services\phases\input.py:284 : npc_id="player",
+  backend\app\services\player_cognition\attention_layer.py:108 : _rng = KernelRNG(tick=0, npc_id="player_attention", salt=str(score))
+  backend\app\services\scene_state\dm_presentation.py:267 : target_npc_id = scene_state.get("player_target_npc")
+  backend\app\services\verbalization\scene_outcome_builder.py:746 : if context.player_target_id and npc_id == context.player_target_id
+  backend\app\services\player_avatar_service.py:196 : npc_id=player_name,
+  backend\tests\micro\test_intent_roundtrip.py:110 : [StateDeltas(npc_id="npc_test", intent=Intent.FLEE, target="player",
+  backend\tests\micro\test_intent_roundtrip.py:120 : d1 = StateDeltas(npc_id="npc_test", intent=Intent.TALK, intent_tick=40, target="player")
+  backend\tests\micro\test_intent_roundtrip.py:129 : app.apply_batch([StateDeltas(npc_id="npc_test", intent=Intent.TALK, target="player", intent_tick=41)], dicts, "t")  # [GC-I01-E1b-...
+  backend\tests\micro\test_intent_roundtrip.py:130 : app.apply_batch([StateDeltas(npc_id="npc_test", intent=Intent.TALK, target="player", intent_tick=42)], dicts, "t")
+  backend\tests\micro\test_npc_addresses_player.py:253 : _build_ctx(npcs=[_npc(npc_id="player")]),
+  backend\tests\sandbox\micro\test_player_turn_headless.py:69 : _avatar_state = NPCState(npc_id=player_name)
+  backend\tests\sandbox\persistence\test_player_wounds_conditions_drives_roundtrip.py:27 : state = NPCState(npc_id="player_test")
+  backend\tests\sandbox\phenomenology\test_dialogue_context_binding.py:29 : session = DialogueSession(npc_id="tavern_keeper_tornin", partner_id="player")
+  backend\tests\sandbox\phenomenology\test_dialogue_context_binding.py:65 : empty_session = DialogueSession(npc_id="tavern_keeper_tornin", partner_id="player")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:178 : session = DialogueSession(npc_id="test", partner_id="player")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:199 : session = DialogueSession(npc_id="test", partner_id="player")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:213 : session = DialogueSession(npc_id="test", partner_id="player")
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:137 : npc_id="player",
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:533 : npc_id="player",
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:617 : if _npc_id == "player":
+  backend\tests\sandbox\re_gap1_production_probe.py:72 : _avatar = NPCState(npc_id=PLAYER)
+  backend\tests\IPT.py:1596 : if _npc_id == "player":
+  backend\tests\test_avatar_status.py:69 : profile = EconomicProfile(npc_id="player", gold=42.5, goods={"food": 3.0})
+  backend\tests\test_physiology_flow.py:27 : npc_id="player",
+  backend\tests\test_spatial_runtime_r4.py:95 : # ADR-048: Игрок внедрен как npc_id="player" в npc_positions
+  backend\tests\test_state_delta_v2.py:30 : npc_id="1", domain=DeltaDomain.SOCIAL, target="player", payload=SocialPayload(trust_delta=10.0)
+  backend\tests\test_state_delta_v2.py:66 : npc_id="1", domain=DeltaDomain.SOCIAL, target="player", payload=EmotionPayload(stress_delta=5.0)
+
+============================================================

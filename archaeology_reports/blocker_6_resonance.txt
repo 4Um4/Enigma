@@ -1,0 +1,254 @@
+﻿=== B6.1: scan_affective_resonance ===
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\affect.py
+Pattern: 'def scan_affective_resonance' matched at line 33
+Reading lines 33-73 (41 lines):
+---
+  33: def scan_affective_resonance(
+  34:     intent: IntentDTO,
+  35:     psych_pressure: Optional[PsychologicalPressure],
+  36:     phenomenon: Optional[PerceivedPhenomenon],
+  37:     imprints: Tuple[AffectiveImprint, ...],
+  38: ) -> ResonanceProfile:
+  39:     """Сканирует аффективную память на резонанс с текущим контекстом.
+  40: 
+  41:     НЕ мутирует давление. Только фиксирует совпадение смысловых паттернов.
+  42:     Работает на PerceivedPhenomenon и PsychologicalPressure, а не только на Intent.
+  43:     """
+  44:     if not imprints:
+  45:         return ResonanceProfile()
+  46: 
+  47:     triggered_ids = []
+  48:     max_trigger_strength = 0.0
+  49: 
+  50:     acc_fear = 0.0
+  51:     acc_humiliation = 0.0
+  52:     acc_domination = 0.0
+  53:     acc_violence = 0.0
+  54:     acc_abandonment = 0.0
+  55: 
+  56:     # Сбор семантического контекста текущего момента
+  57:     # ADR-035: Приоритет semantic_action из parameters. Защита от AttributeError и None.
+  58:     _action = (
+  59:         getattr(intent, "parameters", None)  # noqa: ENIGMA002
+  60:         and intent.parameters.semantic_action
+  61:         or getattr(intent, "action", "")  # noqa: ENIGMA002
+  62:         or ""
+  63:     ).lower()
+  64:     _target = (
+  65:         getattr(intent, "parameters", None)  # noqa: ENIGMA002
+  66:         and intent.parameters.target_reference
+  67:         or getattr(intent, "target", "")  # noqa: ENIGMA002
+  68:         or ""
+  69:     ).lower()
+  70:     context_tags = set()
+  71:     if _action:
+  72:         context_tags.add(_action)
+  73:     if _target:
+---
+
+=== B6.2: scan_affective_resonance calls ===
+Call site: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\affect.py:6
+   1: from __future__ import annotations
+   2: 
+   3: # path: backend/app/services/affect.py
+   4: # Назначение: Аффективная Резонансная Система (ADR-031 Extension).
+   5: # Зависимости: app.domain.intent, app.models.will, app.models.affect, app.models.cfrm
+   6: # Основные сущности: scan_affective_resonance, distort_pressure
+   7: 
+   8: """
+   9: Система Аффекта — это не эмоциональный бафф.
+  10: Это искажение интерпретации давления реальности через призму прошлого опыта.
+  11: 
+  12: Архитектурный принцип:
+  13: Detection (Resonance) и Mutation (Distortion) разделены.
+  14: Иначе мы теряем explainability и убиваем future AI introspection.
+
+Call site: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\affect.py:33
+  25: from app.models.will import IntentPressureProfile, WillResponseDTO, WillState
+  26: 
+  27: logger = logging.getLogger(__name__)
+  28: 
+  29: 
+  30: # --- СЛОЙ 1: RESONANCE DETECTION (PURE FUNCTION) ---
+  31: 
+  32: 
+  33: def scan_affective_resonance(
+  34:     intent: IntentDTO,
+  35:     psych_pressure: Optional[PsychologicalPressure],
+  36:     phenomenon: Optional[PerceivedPhenomenon],
+  37:     imprints: Tuple[AffectiveImprint, ...],
+  38: ) -> ResonanceProfile:
+  39:     """Сканирует аффективную память на резонанс с текущим контекстом.
+  40: 
+  41:     НЕ мутирует давление. Только фиксирует совпадение смысловых паттернов.
+
+Call site: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\input.py:112
+ 104:     if not ctx.player_pressure:
+ 105:         ctx.player_pressure = resolve_intent_pressure(intent)
+ 106:     pressure = ctx.player_pressure
+ 107:     psyche = player_dict.get("psyche", {})
+ 108: 
+ 109:     # 2. Affect Resonance Scan (Искажение интерпретации реальности)
+ 110:     # Травма - это не бафф, это искажение. Resonance -> Distortion -> Will.
+ 111:     from app.models.affect import AffectiveImprint
+ 112:     from app.services.affect import distort_pressure, scan_affective_resonance
+ 113: 
+ 114:     imprints = tuple(
+ 115:         AffectiveImprint(**imp) for imp in player_dict.get("affective_imprints", [])
+ 116:     )
+ 117: 
+ 118:     # TODO: Передать PsychologicalPressure и PerceivedPhenomenon от CFRM P2, когда LocalCausalSolver будет генерировать их для хода игрока
+ 119:     resonance = scan_affective_resonance(intent, None, None, imprints)
+ 120:     distorted_pressure = distort_pressure(pressure, resonance, psyche)
+
+Call site: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\input.py:119
+ 111:     from app.models.affect import AffectiveImprint
+ 112:     from app.services.affect import distort_pressure, scan_affective_resonance
+ 113: 
+ 114:     imprints = tuple(
+ 115:         AffectiveImprint(**imp) for imp in player_dict.get("affective_imprints", [])
+ 116:     )
+ 117: 
+ 118:     # TODO: Передать PsychologicalPressure и PerceivedPhenomenon от CFRM P2, когда LocalCausalSolver будет генерировать их для хода игрока
+ 119:     resonance = scan_affective_resonance(intent, None, None, imprints)
+ 120:     distorted_pressure = distort_pressure(pressure, resonance, psyche)
+ 121: 
+ 122:     # 3. Вычисление реакции аватара (Cumulative Strain Model на искаженном давлении)
+ 123:     will_response = compute_willpower(distorted_pressure, psyche)
+ 124: 
+ 125:     # ДИАГНОСТИКА: Почему нет конфликта?
+ 126:     logger.warning(
+ 127:         f"[WILL_TRACE] 2. Pressure: identity={pressure.identity_deviation:.2f}, humiliation={pressure.humiliation:.2f}"
+
+
+=== B6.3: AffectiveResonance class ===
+NOT FOUND: class AffectiveResonance
+
+=== B6.4: distort_pressure ===
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\affect.py
+Pattern: 'def distort_pressure' matched at line 143
+Reading lines 143-163 (21 lines):
+---
+ 143: def distort_pressure(
+ 144:     base_pressure: IntentPressureProfile,
+ 145:     resonance: ResonanceProfile,
+ 146:     psyche: Dict[str, float],
+ 147: ) -> IntentPressureProfile:
+ 148:     """Искажает базовое давление через призму травматического резонанса.
+ 149: 
+ 150:     Травма ≠ страх. Одна и та же травма может породить ярость, ступор или подчинение.
+ 151:     Зависит от Personality Matrix (psyche).
+ 152:     """
+ 153:     if resonance.trigger_strength < 0.01:
+ 154:         return base_pressure
+ 155: 
+ 156:     # Извлечение черт личности для определения ResponseBias
+ 157:     fear = psyche.get("fear", 0.5)
+ 158:     aggression = psyche.get("aggression", 0.5)
+ 159:     identity_rigidity = psyche.get("identity_rigidity", 0.5)
+ 160:     shame = psyche.get("shame", 0.5)
+ 161: 
+ 162:     # Определение доминирующего паттерна искажения
+ 163:     dominant_bias = _determine_response_bias(
+---
+
+
+=== B6.5: affect.py full ===
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\affect.py (FULL, 95 lines)
+---
+   1: from __future__ import annotations
+   2: 
+   3: # path: backend/app/models/affect.py
+   4: # Назначение: Контракты Аффективной Памяти (Affective Imprints). Этап 3 Roadmap.
+   5: # Зависимости: dataclasses
+   6: # Основные сущности: AffectiveImprint
+   7: # Принцип: Avatar = NPC with dual consciousness ownership. Модель универсальна для всех агентов.
+   8: """
+   9: TODO: Временный контракт для разработки и тестирования Аффективной Памяти.
+  10: В будущем может быть расширен или переработан в зависимости от потребностей ADR-031 и взаимодействия с другими системами (воля, эмоции, идентичность).
+  11: """
+  12: 
+  13: 
+  14: from dataclasses import dataclass, field
+  15: from enum import Enum
+  16: 
+  17: 
+  18: @dataclass(frozen=True)
+  19: class AffectiveImprint:
+  20:     """Единица аффективной памяти — остаточное давление опыта.
+  21: 
+  22:     Не хранит нарратив ("Бандит избил меня у моста").
+  23:     Хранит векторы давления и триггеры, чтобы LLM мог озвучить это как травму.
+  24:     Интегрируется перед WillpowerGate (Affect Resonance Scan).
+  25:     """
+  26: 
+  27:     # Источник возмущения (кто нанес травму / оказал давление)
+  28:     source_entity_id: str
+  29: 
+  30:     # Семантические теги события (для резонанса с IntentPressureProfile)
+  31:     trigger_tags: tuple[str, ...]  # например: ("violence", "public", "betrayal")
+  32: 
+  33:     # Сигнатуры давления (осколки пережитого)
+  34:     pain_signature: float  # 0.0-1.0, остаточная физическая боль
+  35:     fear_signature: float  # 0.0-1.0, остаточный страх
+  36:     humiliation_signature: float  # 0.0-1.0, остаточный стыд/унижение
+  37: 
+  38:     # Социальный сдвиг (как изменилось доверие к источнику)
+  39:     trust_shift: float  # дельта доверия (-1.0 ... +1.0)
+  40: 
+  41:     # Параметры инерции и затухания
+  42:     reinforcement: (
+  43:         float  # 0.0-1.0, насколько травма укрепилась при повторном воздействии
+  44:     )
+  45:     decay_rate: float  # 0.0-1.0, скорость затухания (0 = вечная травма, 1 = мгновенно забывается)
+  46: 
+  47:     # Временные метки (в game_time_seconds)
+  48:     created_at: int  # Когда произошло событие
+  49:     last_triggered_at: int  # Когда травма последний раз резонировала с новым действием
+  50: 
+  51: 
+  52: class ResponseBias(Enum):
+  53:     """Спектр реакций на травматический резонанс. Травма ≠ страх."""
+  54: 
+  55:     FEAR = "fear"  # Бегство, избегание
+  56:     AGGRESSION = "aggression"  # Ярость, нападение (конвертация страха в гнев)
+  57:     FREEZE = "freeze"  # Оцепенение, ступор
+  58:     SUBMISSION = "submission"  # Подчинение, гиперкомплаенс
+  59:     DISSOCIATION = "dissociation"  # Отчуждение, "это происходит не со мной"
+  60: 
+  61: 
+  62: @dataclass(frozen=True)
+  63: class AffectivePressureDTO:
+  64:     """Промежуточный слой между восприятием и эмоцией. Давление системы на организм."""
+  65: 
+  66:     threat_load: float = 0.0  # Накопленная угроза
+  67:     uncertainty_load: float = 0.0  # Когнитивная перегрузка
+  68:     social_submission: float = 0.0  # Давление подчинения
+  69:     aggression_charge: float = 0.0  # Агрессивный потенциал
+  70:     sensory_overload: float = 0.0  # Сенсорная перегрузка (боль, шум)
+  71: 
+  72: 
+  73: @dataclass
+  74: class ResonanceProfile:
+  75:     """Результат сканирования аффективной памяти. Искажение интерпретации, а не бафф.
+  76: 
+  77:     Создаётся AffectResonanceScanner (Pure Function).
+  78:     """
+  79: 
+  80:     triggered_imprints: tuple[str, ...] = field(default_factory=tuple)  # ID сработавших травм
+  81: 
+  82:     # Оси резонанса (как травма откликается текущему контексту)
+  83:     fear_resonance: float = 0.0
+  84:     humiliation_resonance: float = 0.0
+  85:     domination_resonance: float = 0.0
+  86:     violence_resonance: float = 0.0
+  87:     abandonment_resonance: float = 0.0
+  88: 
+  89:     # Модификаторы когнитивного состояния
+  90:     certainty_modifier: float = 0.0  # Искажение уверенности в происходящем
+  91:     dissociation_risk: float = 0.0  # Риск отключения от реальности
+  92: 
+  93:     # Интегральная сила триггера и доминирующий bias личности
+  94:     trigger_strength: float = 0.0
+  95:     dominant_bias: ResponseBias = ResponseBias.FEAR
+---

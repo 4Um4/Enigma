@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-_BASE_URL = "http://localhost:8000"
+_BASE_URL = "http://localhost:8011"
 _CAMPAIGN = "silver_wolf_audit_live"  # изолированная
 _AUDIT_DIR = Path(__file__).resolve().parent.parent / "audit_live"
 _CANON_DIR = Path(__file__).resolve().parents[2] / "config" / "npc" / "chronicles"

@@ -2,7 +2,7 @@
   {
     "kind": "EVENT",
     "draft_payload": {
-      "summary": "Последняя жена Эльра умерла от бреда и лихорадки",
+      "summary": "Жена умерла от бреда и лихорадки",
       "day": null,
       "duration_years": null,
       "years_ago": 20,
@@ -20,10 +20,9 @@
   {
     "kind": "PORTRET",
     "draft_payload": {
-      "statement": "гном привык хранить многое в себе",
+      "statement": "многое с тех времён он привык хранить в себе",
       "traits": [
-        "скромный",
-        "замкнутый"
+        "хранит в себе"
       ]
     },
     "confidence": 1.0,

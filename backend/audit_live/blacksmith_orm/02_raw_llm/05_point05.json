@@ -3,15 +3,32 @@
   "age_anchors": [],
   "items": [
     {
-      "kind": "EVENT",
+      "kind": "RELATIONSHIP",
       "draft_payload": {
-        "summary": "Писарь сидит на содержании гильдии",
-        "day": null,
-        "duration_years": 10,
-        "_provenance": {
-          "duration_years": 10,
-          "note": "duration present but historical_age not derived — requires author confirmation of interval boundary"
-        }
+        "summary": "Писарь на содержании гильдии",
+        "target_hint": "Писарь"
+      },
+      "confidence": 0.4,
+      "needs_confirmation": true,
+      "question": {
+        "question_id": "roster_mismatch_0",
+        "target_span": "Писарь",
+        "options": [
+          "SELECT_EXISTING_NPC",
+          "CREATE_NEW_NPC",
+          "UNKNOWN_PERSON",
+          "LEAVE_WHITE_SPOT"
+        ]
+      }
+    },
+    {
+      "kind": "PORTRET",
+      "draft_payload": {
+        "statement": "Кузнец Орм об этом не знает. Это единственная дыра в его системе: он учёл все силы города, кроме мелкого чиновника, которого считал такой же мебелью, какой все считают его самого.",
+        "traits": [
+          "директность",
+          "системный подход"
+        ]
       },
       "confidence": 1.0,
       "needs_confirmation": false,
@@ -20,33 +37,12 @@
     {
       "kind": "BELIEF_SEED",
       "draft_payload": {
-        "statement": "учёл все силы города, кроме мелкого чиновника, которого считал такой же мебелью, как и он сам",
-        "belief_type": "player_hostile"
+        "statement": "Все считают Орма такой же мебелью",
+        "belief_type": "danger"
       },
       "confidence": 1.0,
       "needs_confirmation": false,
       "question": null
-    },
-    {
-      "kind": "RELATIONSHIP",
-      "draft_payload": {
-        "summary": "Орм не знает о предупреждении",
-        "target_hint": "Орм",
-        "nature": "незнание",
-        "valence": "neutral"
-      },
-      "confidence": 0.4,
-      "needs_confirmation": true,
-      "question": {
-        "question_id": "self_reference_2",
-        "target_span": "Орм",
-        "options": [
-          "SELECT_EXISTING_NPC",
-          "CREATE_NEW_NPC",
-          "UNKNOWN_PERSON",
-          "LEAVE_WHITE_SPOT"
-        ]
-      }
     }
   ],
   "coverage": {

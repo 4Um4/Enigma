@@ -5,12 +5,12 @@
   ],
   "items": [
     {
-      "kind": "EVENT",
+      "kind": "PORTRET",
       "draft_payload": {
-        "summary": "Горан просит у гнома меча после Торнина",
-        "day": null,
-        "duration_years": null,
-        "years_ago": null
+        "statement": "Гном понял: заказ Торнина можно продать купцу. Продать не сталь, а факт — кому, когда и зачем куется меч.",
+        "traits": [
+          "гном"
+        ]
       },
       "confidence": 1.0,
       "needs_confirmation": false,
@@ -19,20 +19,32 @@
     {
       "kind": "TRAIT_SEED",
       "draft_payload": {
-        "trait": "увлечение информацией",
-        "evidence": "гном понял: заказ Торнина можно продать купцу"
+        "trait": "продает информацию",
+        "evidence": "Продаст ли до конца — гном ещё взвешивает"
       },
       "confidence": 1.0,
       "needs_confirmation": false,
       "question": null
     },
     {
-      "kind": "PORTRET",
+      "kind": "RELATIONSHIP",
       "draft_payload": {
-        "statement": "гном 57 лет в этом городе и знает, что информация, отданная бесплатно, не покупает благодарность, а только разжигает аппетит",
-        "traits": [
-          "знакомство с реальностью"
-        ]
+        "summary": "гном и купец Горан имеют устойчивое отношение друг к другу",
+        "target_hint": "Купец Горан",
+        "nature": "взаимовыгодное",
+        "valence": "neutral"
+      },
+      "confidence": 1.0,
+      "needs_confirmation": false,
+      "question": null
+    },
+    {
+      "kind": "EVENT",
+      "draft_payload": {
+        "summary": "гном живёт в этом городе 57 лет",
+        "day": null,
+        "duration_years": null,
+        "years_ago": null
       },
       "confidence": 1.0,
       "needs_confirmation": false,
@@ -41,7 +53,7 @@
   ],
   "coverage": {
     "fragment_ord": 12,
-    "items_count": 3,
+    "items_count": 4,
     "fragment_text_preview": "12. Когда ещё и Горан на следующий день после Торнина попросил о мече, гном поня",
     "critical_topic_warning": null
   }

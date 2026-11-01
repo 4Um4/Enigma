@@ -1,0 +1,151 @@
+﻿=== S0.1: ControlSource full contract ===
+"""
+path: /project/backend/app/domain/control_source.py
+Назначение: Ось источника контроля актора (INV-PLAYER-AUTHORSHIP, мини-ADR F1).
+    Различает «существует в мире» и «кто управляет действием»:
+    Actor ≠ AutonomousDecisionAgent. Единственная точка знания о том,
+    чьё решение производится autonomous decision loop; строка 'player'
+    как предикат агентности живёт ЗДЕСЬ, новые строковые гарды запрещены.
+    Legacy-гарды мигрируются постепенно, вне этого фикса.
+Зависимости: нет (domain purity — только stdlib).
+Основные сущности: ControlSource, resolve_control_source
+"""
+from enum import Enum
+
+
+class ControlSource(Enum):
+    """Источник агентности актора. Расширение (мультиплеер, звери-актёры) —
+    только через реестр ниже, не через новые строковые сравнения."""
+    PLAYER_INPUT = "player_input"            # решение производится player-input pipeline
+    NPC_DECISION = "npc_decision"            # автономный decision loop
+    SCRIPTED_SYSTEM = "scripted_system"      # системные/скриптовые механизмы
+    COMBAT_CONTROLLER = "combat_controller"  # зарезервировано: пошаговый бой (будущий ADR)
+
+
+_PLAYER_ACTORS = frozenset({"player"})
+
+
+def resolve_control_source(actor_id: str) -> ControlSource:
+    """Детерминированный резолв источника агентности."""
+    if actor_id in _PLAYER_ACTORS:
+        return ControlSource.PLAYER_INPUT
+    return ControlSource.NPC_DECISION
+
+=== S0.2: player_avatar_service value coupling ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:127:    def load_avatar(self, campaign_id: str, player_name: str) -> Optional[dict]:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:138:            if data.get("state", {}).get("npc_id") != player_name:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:141:                    f"{data.get('state', {}).get('npc_id')} != {player_name}"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:170:    def load_state(self, campaign_id: str, player_name: str) -> NPCState:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:171:        avatar = self.load_avatar(campaign_id, player_name)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:196:            npc_id=player_name,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:212:    def load_sheet(self, campaign_id: str, player_name: str) -> CharacterSheet:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:214:        avatar = self.load_avatar(campaign_id, player_name)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:220:        return CharacterSheet(name=player_name)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:222:    def load_profile(self, campaign_id: str, player_name: str) -> CharacterProfile:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:224:        avatar = self.load_avatar(campaign_id, player_name)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\player_avatar_service.py:230:        return CharacterProfile(character_id=player_name)
+
+=== S0.3: PlayerSession contract ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\schemas.py:46:    player_name: str
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\schemas.py:278:class PlayerSession(BaseModel):
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\schemas.py:282:    player_name: str
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\schemas.py:285:    session_id: str = ""
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\schemas.py:290:        По умолчанию 120 секунд - синхронизировано с player_session_service.ttl_seconds.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\schemas.py:306:    player_name: str
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\schemas.py:317:            data["player_name"] = data.pop("player")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\schemas.py:327:    player_name: str
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\schemas.py:345:class PlayerSessionResponse(BaseModel):
+
+=== S0.4: player_name vs session_id usage ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py:570:                    for player_name, data in engines.items():
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py:595:                                f"Игрок {player_name}:\n{_player_block}"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py:713:            # PlayerAction (инвариант C: player_name/action недоступны DM).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:42:from app.services.player_session_service import player_session_service
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:207:    active_campaigns = list(player_session_service._sessions.keys())
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:209:        bool(player_session_service.is_player_active(camp_id))
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:308:    memory_sessions = len(player_session_service._sessions)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:703:async def link_player_name(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:740:        player_name = request.actions[0].player_name
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:741:        if not player_session_service.is_player_active(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:742:            request.campaign_id, player_name
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:746:                detail=f"Игрок '{player_name}' не активен. Пожалуйста, выберите персонажа.",
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:963:        session = player_session_service.get_session(campaign_id)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:970:        if not player_session_service.is_player_active(campaign_id, player):
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:973:            if not player_session_service.is_player_active(campaign_id, player):
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1071:            actions=[PlayerAction(player_name=player, action=action_text)],
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1342:    if all(c.name != request.player_name for c in characters):
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1344:            status_code=412, detail=f"Персонаж '{request.player_name}' не найден"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1346:    session = player_session_service.heartbeat(request.campaign_id, request.player_name)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1349:        player_name=request.player_name,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1356:    return player_session_service.get_all_active_players(campaign_id)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1360:def get_player_session(campaign_id: str) -> PlayerSessionResponse:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1361:    if session := player_session_service.get_session(campaign_id):
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1363:            player=session.player_name,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1364:            active=player_session_service.is_player_active(campaign_id),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1427:def create_player_session(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1430:    player_name = request.get("player")
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1431:    if not player_name:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1434:    if all(c.name != player_name for c in characters):
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py:1436:            status_code=404, detail=f"Персонаж '{player_name}' не найден"
+
+=== S0.5: CharacterProfile character_id ===
+File: backend/app/models/character.py
+Start line: 102
+class CharacterProfile:
+    """
+    Полный психологический профиль персонажа игрока.
+    Мутирует в рантайме через CharacterFilter (RESIST действия).
+
+    СВЯЗЬ С D&D-ЛИСТОМ:
+    - character_id = CharacterSheet.name (ключ связки)
+    - CharacterSheet = механика (HP, AC, спеллы)
+    - CharacterProfile = психология (ценности, сопротивление, эрозия)
+    - Хранятся раздельно: characters.json (sheet) vs character_profile.json (profile)
+
+    МНОГОПОЛЬЗОВАТЕЛЬСКИЙ РЕЖИМ (hot-seat):
+    - В кампании несколько персонажей, каждый со своим профилем
+    - Активный персонаж определяется текущим ходом (не здесь)
+    - self_integrity — личный ресурс, не общий на партию
+    """
+
+    character_id: str
+
+    # ── ЯДРО СОПРОТИВЛЕНИЯ ──
+    # Способность персонажа противостоять давлению мира
+    # Начинается с 1.0, деградирует через erosion_accumulator
+    self_integrity: float = 1.0
+
+    # ── БАЗОВЫЕ ЦЕННОСТИ ──
+    # Формируются при создании персонажа. Frozen — меняются только через крупные события.
+    values: ValueSet = field(default_factory=ValueSet)
+
+    # ── СОЦИАЛЬНЫЕ ОГРАНИЧЕНИЯ ──
+    # Усвоенные нормы: "как благородный человек должен себя вести"
+    # Меняются быстрее чем values, но медленнее чем self_integrity
+
+=== S0.6: InterventionEvent contract ===
+File: backend/app/contracts/interventions.py
+Start line: 14
+class InterventionEvent:
+    """Внешнее вмешательство в мир (TZ-08 v0.2).
+
+    Ядро симуляции (TickOrchestrator) не знает 'player', 'CK successor' или 'world_scheduler'.
+    Ядро обрабатывает interventions как недифференцированный data stream.
+    Любая семантическая классификация переносится в downstream-слои.
+    """
+
+    source: str
+    payload: Dict[str, Any]
+    tick: int
+
+    @classmethod
+    def from_player_action(
+        cls, action_text: str, player_name: str, tick: int, **kwargs: Any
+    ) -> "InterventionEvent":
+        """Factory для player actions (backward compat для GameLoop)."""
+        return cls(
+            source="player",
+            payload={"text": action_text, "player_name": player_name, **kwargs},
+            tick=tick,
+        )
+

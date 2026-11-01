@@ -1,0 +1,562 @@
+﻿=== B4.1: ActionWindup full class ===
+"""
+path: backend/app/domain/action_windup.py
+Назначение: DTO для окна реактивности (Action Windup). Представляет собой фазу подготовки к действию, создавая окно для прерывания.
+Зависимости: typing
+Основные сущности: ActionWindup, WindupStatus
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Optional
+
+
+class WindupStatus(str, Enum):
+    """Статус окна подготовки."""
+
+    PENDING = "pending"  # Идёт подготовка
+    COMPLETED = "completed"  # Подготовка завершена, действие исполняется
+    INTERRUPTED = "interrupted"  # Подготовка сорвана внешним вмешательством
+
+
+@dataclass(frozen=True)
+class ActionWindup:
+    """Окно подготовки к значимому действию (DEBT-310.1).
+
+    Pure Temporal Gate (I-CORE-02/03).
+    Не хранит и не интерпретирует намерение. Хранит только ID отложенного интента.
+    Живёт в TickOrchestrator._windup_registry.
+    """
+
+    actor_id: str
+    target_id: str
+    action_type: str  # "attack", "cast", "steal"
+    started_tick: int
+    duration_ticks: int  # Сколько тиков длится подготовка
+    status: WindupStatus = WindupStatus.PENDING
+    # Условие прерывания: например, порог шока или уровня HP
+    interrupt_shock_threshold: float = 0.7
+    # DEBT-310.1: ID интента, отложенного в TickOrchestrator._pending_intents.
+    held_intent_id: Optional[str] = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """S203.4 (Э6, Н-40): JSON-сериализация для scene_state-персистентности.
+        Все поля — примитивы или str-Enum; round-trip без потерь (§12 WARA)."""
+        return {
+            "actor_id": self.actor_id,
+            "target_id": self.target_id,
+            "action_type": self.action_type,
+            "started_tick": self.started_tick,
+            "duration_ticks": self.duration_ticks,
+            "status": self.status.value,
+            "interrupt_shock_threshold": self.interrupt_shock_threshold,
+            "held_intent_id": self.held_intent_id,
+        }
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> "ActionWindup":
+        """S203.4 (Э6): восстановление из JSON (после atomic_commit → load)."""
+        return ActionWindup(
+            actor_id=d["actor_id"],
+            target_id=d["target_id"],
+            action_type=d["action_type"],
+            started_tick=d["started_tick"],
+            duration_ticks=d["duration_ticks"],
+            status=WindupStatus(d["status"]),
+            interrupt_shock_threshold=d.get("interrupt_shock_threshold", 0.7),
+            held_intent_id=d.get("held_intent_id"),
+        )
+
+=== B4.2: WindupStatus enum ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\action_windup.py:5:Основные сущности: ActionWindup, WindupStatus
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\action_windup.py:14:class WindupStatus(str, Enum):
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\action_windup.py:36:    status: WindupStatus = WindupStatus.PENDING
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\action_windup.py:65:            status=WindupStatus(d["status"]),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\temporal_specs.py:93:    return False  # Phase 2: wire to windup WindupStatus.COMPLETED
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\temporal_specs.py:141:    return False  # Phase 2: wire to windup WindupStatus.COMPLETED
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:303:            from app.domain.action_windup import ActionWindup, WindupStatus
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:319:                    and w["status"] == WindupStatus.PENDING.value
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:363:                        status=WindupStatus.PENDING,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:394:    from app.domain.action_windup import ActionWindup, WindupStatus
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:425:            if windup.status == WindupStatus.PENDING:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:506:                                    windup, status=WindupStatus.INTERRUPTED
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:527:                                        windup, status=WindupStatus.INTERRUPTED
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:534:                                        windup, status=WindupStatus.COMPLETED
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:538:                                windup, status=WindupStatus.COMPLETED
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:542:                            windup, status=WindupStatus.COMPLETED
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:546:            if windup.status == WindupStatus.INTERRUPTED:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:558:            elif windup.status == WindupStatus.COMPLETED:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:566:            if windup.status == WindupStatus.PENDING:
+
+=== B4.3: Windup cancel support ===
+
+=== B4.4: Windup interrupt conditions (G3 ADR-O-410) ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\action_windup.py:19:    INTERRUPTED = "interrupted"  # Подготовка сорвана внешним вмешательством
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:393:    from app.domain.action_commitment import INTERRUPT_G3_OBJECT_REJECT
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:397:    from app.services.world.g3_executor import (
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:398:        G3Status,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:422:            # G3 (ADR-O-410): причина INTERRUPTED этого windup
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:424:            _g3_interrupt_reason = ""
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:506:                                    windup, status=WindupStatus.INTERRUPTED
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:509:                                # G3 (ADR-O-410): объектная цель — исполнитель
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:513:                                _g3 = execute_object_action(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:520:                                if _g3.status is G3Status.G3_REJECT:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:522:                                        f"[PHASE_7][G3_REJECT] npc={_actor_id} "
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:523:                                        f"target={_target_id} reason={_g3.reason}"
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:525:                                    _g3_interrupt_reason = INTERRUPT_G3_OBJECT_REJECT
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:527:                                        windup, status=WindupStatus.INTERRUPTED
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:545:            # Одна точка после всего if/else (4 ветки COMPLETED + 1 INTERRUPTED).
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:546:            if windup.status == WindupStatus.INTERRUPTED:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:547:                from app.domain.action_commitment import INTERRUPT_WINDUP_STALE_INTENT
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:552:                    "INTERRUPTED",
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:553:                    interrupt_reason=(
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:554:                        _g3_interrupt_reason or INTERRUPT_WINDUP_STALE_INTENT
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:569:        # H-37 FIX: Сохраняем PENDING для audit trail (COMPLETED/INTERRUPTED
+
+=== B4.5: Held intent contract ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\action_commitment.py:164:        # S203.4: ссылка на объект исполнителя (task_id / held_intent_id) —
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\action_windup.py:40:    held_intent_id: Optional[str] = None
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\action_windup.py:53:            "held_intent_id": self.held_intent_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\action_windup.py:67:            held_intent_id=d.get("held_intent_id"),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\action\commitment_registry.py:442:        (шкала v1); held_intent_id вызывающая сторона берёт = commitment_id
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:12:_KEY_HELD_INTENTS = "windup_held_intents"  # НЕ "pending_tasks" — разные сущности
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:326:                    # становится held_intent_id (детерминизм, закон №4; Н-31 не
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:342:                    _held_store = ctx.scene_state.setdefault(_KEY_HELD_INTENTS, {})
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:343:                    _held_store[_intent_id] = intent.to_dict()
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:364:                        held_intent_id=_intent_id,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:408:    _held_store = ctx.scene_state.get(_KEY_HELD_INTENTS) or {}
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:428:                    if windup.held_intent_id:
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:429:                        _held_dict = _held_store.pop(windup.held_intent_id, None)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:433:                            _held_intent = CommunicationIntent.from_dict(_held_dict)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:434:                            _actor_id = getattr(_held_intent, "speaker", "")  # noqa: ENIGMA002
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:435:                            _target_id = getattr(_held_intent, "target_id", "")  # noqa: ENIGMA002
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:530:                                    event = adapter.to_event(_held_intent)
+
+=== B4.6: WindupWriteGate full logic ===
+File: backend/app/services/phases/post_decision.py
+Start line: 33
+    ADR-O-310: WindupWriteGate — перехват ATTACK для создания ActionWindup.
+    """
+    if not ctx.communication_intents:
+        return
+
+    from app.services.events.event_bus import get_event_bus
+    from app.services.events.intent_event_adapter import IntentEventAdapter
+
+    # S264 (выравнивание весов, приказ Мастера): activity — единственный
+    # поведенческий владелец на ВСЁМ стеке. Н-18-гейт (S261) глушит
+    # легаси-треки LifeEngine; ЭТОТ гейт — decision-слой: NPC с живой
+    # activity_state не порождает реплик (голодный трактирщик доедает,
+    # не отвлекаясь; EAT-диагноз: TALK конкурировал с eat-шагами →
+    # hunger 0.67 при DESTROYED=2). Желание остаётся давлением — не задачей.
+    _by_id = {
+        str(n.get("npc_id") or n.get("id") or ""): n
+        for n in (ctx.all_npcs_raw or [])
+    }
+    ctx.communication_intents = [
+        _i for _i in ctx.communication_intents
+        if not isinstance(
+            _by_id.get(str(getattr(_i, "speaker", "")), {}).get("activity_state"),  # noqa: ENIGMA002
+            dict,
+        )
+    ]
+    if not ctx.communication_intents:
+        return
+
+    bus = get_event_bus()
+    adapter = IntentEventAdapter()
+    converted = 0
+    windups_created = 0
+
+    for intent in ctx.communication_intents:
+        # ADR-O-391 (WORK, S256): INTENT→ORDER — единственная точка рождения
+        # заказа из TRADE-интента (L-W2: DecisionHub не тронут — он по-прежнему
+        # только выбирает). OFF (default) = ветка не исполняется, путь
+        # байт-идентичен легаси (L-W5). ORDER родился → диалоговый трек
+        # торга не нужен: сделка стала экономическим фактом, не репликой.
+        if getattr(intent, "intent_type", "") == "trade":  # noqa: ENIGMA002
+            from app.services.economy.work_orders import create_order_from_trade_intent
+
+            _seller_ref = str(
+                getattr(intent, "target_id", "")  # noqa: ENIGMA002
+                or getattr(intent, "audience", "")  # noqa: ENIGMA002
+                or ""
+            )
+            _order_id = create_order_from_trade_intent(
+                ctx,
+                speaker=str(getattr(intent, "speaker", "") or ""),  # noqa: ENIGMA002
+                seller_ref=_seller_ref,
+                orchestrator=orchestrator,
+            )
+
+            if _order_id:
+                continue
+
+        # ADR-O-313: Перехват разговорных интентов в Universal Task Layer.
+        # Разговор больше не является немедленным событием. Это задача (QueuedTask).
+        # Windowed-действия (attack, steal) уходят в Windup (S209), всё остальное —
+        # диалог/социальное действие.
+        if getattr(intent, "intent_type", "") not in ("attack", "steal"):  # noqa: ENIGMA002
+            from app.domain.communication import DialogueRequest
+            from app.domain.execution import QueuedTask, TaskKind, TaskPriority
+
+            # S118 (doc-drift fix S292): адресат РЕЧИ — только audience.
+            # Исторический комментарий «в CommunicationIntent нет поля target_id»
+            # устарел: GAP8/V8-MEM-2 добавили target_id (ЦЕЛЬ директивы, не адресат).
+            # Если audience="all", передаём None, чтобы TaskScheduler выбрал цель через SpatialQueryService.
+            _target_id = intent.audience if intent.audience != "all" else None  # noqa: ENIGMA001
+
+            _svc = ctx.npc_services
+            _memory_mgr = _svc.memory_manager if _svc else getattr(orchestrator, "_memory_manager", None)  # noqa: ENIGMA002
+            if _memory_mgr is None:
+                logger.error("MemoryManager missing in both NpcServices and Orchestrator. Check wiring.")
+            _intent_type = getattr(intent, "intent_type", "")  # noqa: ENIGMA002
+            # ADR-O-342: Hard Contract (Принцип 2). Если нет STM (истории разговора),
+            # нельзя начинать содержательный диалог. Принудительно меняем на approach.
+            # Исключение: soliloquy (разговор с самим собой) — STM не нужен.
+            from app.domain.communication import SELF_TALK_SENTINEL  # Р-А: доменный сентинел
+
+            if _memory_mgr and _target_id and _target_id not in ("all", SELF_TALK_SENTINEL):
+                _stm_check = _memory_mgr.get_stm_prompt_block_pair(
+                    ctx.campaign_id, intent.speaker, _target_id
+                )
+                # S199.2: Классификация интентов для обхода ADR-O-342.
+                # claim-producing действия (warn, intimidate) не требуют контекста диалога (STM)
+                # и могут быть материализованы детерминированно.
+                _CLAIM_PRODUCING_INTENTS = {"warn", "intimidate"}
+                if not _stm_check and _intent_type not in ("greeting", "approach") and _intent_type not in _CLAIM_PRODUCING_INTENTS:
+                    logger.debug(f"[POST_DECISION] Intercept {intent.speaker} -> {_target_id}: No STM, changing intent '{_intent_type}' to 'approach'")
+                    _intent_type = "approach"
+
+            # T-04: Формируем npc_npc_context (историю взаимодействий с целью)
+            _history_text = ""
+            if _svc and _svc.memory_manager and _target_id and _target_id != "all":
+                try:
+                    _cache = _svc.memory_manager.load_narrative_from_sqlite(
+                        ctx.campaign_id, intent.speaker
+                    )
+
+=== B4.7: Phase 7 Windup Resolution ===
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py
+Start line: 1081
+        self._phase_7_windup_resolution(ctx)  # 7 ADR-O-310: Execution Gate
+        self._phase_8_drain_secondary(ctx) # 8
+
+
+        # AUDIT #7: FrontEngine интегрирован выше по потоку — точка
+        # run_npc_orchestration (до ядрового цикла локаций), т.к. маска
+        # принадлежит игроку и мутируется один раз за ход.
+        # TODO (Фаза 2 / Эпоха 7): Интеграция FrontEngine.
+        # Здесь, после обработки событий (Фаза 8) и до интеграции (Фаза 9),
+        # должен вызываться apply_front_engine() из character/front_applicator.py.
+        # Он вычислит давление мира (WorldPressure) и обновит маску персонажа (Front).
+        # Поля для shared_context (front_description, world_pressure) уже готовы.
+
+        # AUDIT #8 VERDICT=DEFER (2026-08): DecisionHub не производит сигнала
+        # смены профессии; контракт RoleTransition требует реальной причины.
+        # Встраивание — при появлении источника причинности (needs/goals);
+        # фиктивный планировщик запрещён вердиктом владельца.
+        # TODO (Фаза 4 / Эпоха 9): Интеграция RoleTransition.
+        # Здесь, или в отдельном планировщике, должен вызываться RoleTransition
+        # для NPC, решивших сменить профессию. Требует проверки (стресс, целостность, золото).
+
+        # TODO (Фаза 4 / Эпоха 9): Интеграция MarketState / Traveller.
+        # Здесь, или в LifeEngine (Фаза 0), должен вызываться MarketState.tick()
+        # и Traveller.generate_visits() для спавна странников (торговцев, путников).
+        # Это обеспечит внешние экономические шоки для локации.
+        # AUDIT #6 VERDICT=BURIED (2026-08): runtime захоронен, точка возврата
+        # задокументирована в services/economy/__init__.py.
+
+        self._phase_9_integration(ctx) # 9
+        self._run_affective_pipeline(ctx) # 9.1
+
+        # Подсистема 2: Запись WorldSnapshot после Фазы 9
+        if _recorder:
+            _recorder.record_world_snapshot(ctx.tick_number, getattr(ctx, "world_snapshot", None)) # POST-9  # noqa: ENIGMA002
+
+        self._resolve_cross_location_transfers(ctx) # POST-9: Extract BEFORE Phase 10 to persist clean state
+        self._phase_10_persistence(ctx) # 10
+
+        # Подсистема 3: Causal Probes (real-time invariant monitor)
+        from app.services.probes.probe_registry import ProbeContext
+        from app.services.probes.probe_runner import ProbeRunner
+        from app.services.probes.probes.death_lock_probe import DeathLockProbe
+        from app.services.probes.probes.l3_ephemeral_probe import L3EphemeralProbe
+        from app.services.probes.probes.spatial_coherence_probe import SpatialCoherenceProbe
+        from app.services.probes.probes.traversal_fsm_probe import TraversalFSMProbe
+
+        _spatial_svc = self._resolve_spatial_service(ctx)
+        _probe_ctx = ProbeContext(
+            tick_id=ctx.tick_number,
+            game_time_seconds=ctx.scene_state.get("game_time_seconds", 0.0),
+            scene_state=ctx.scene_state,
+            all_npcs_raw=ctx.all_npcs_raw,
+            mvp_controller=ctx.mvp_controller,  # ENIGMA SELF-HEALING: Pass to probes
+            tick_mutation=getattr(ctx, "tick_mutation", None),  # Подсистема 3: Инвариант I  # noqa: ENIGMA002
+            tick_state_hash_before=getattr(ctx, "tick_state_hash_before", None),  # Инвариант III  # noqa: ENIGMA002
+            tick_state_hash_after=getattr(ctx, "tick_state_hash_after", None),     # Инвариант III  # noqa: ENIGMA002
+            tick_state_mutated_fields=getattr(ctx, "tick_state_mutated_fields", None), # S179 FIX  # noqa: ENIGMA002
+            effective_drives_map=getattr(ctx, "effective_drives_map", {}),         # Инвариант II  # noqa: ENIGMA002
+            spatial_service=_spatial_svc  # BUG-SPATIAL-036: Передаём сервис для SC-2..SC-8
+        )
+        from app.services.probes.probes.causal_provenance_probe import CausalProvenanceProbe
+        from app.services.probes.probes.historical_constraint_probe import HistoricalConstraintProbe
+        from app.services.probes.probes.mvp_pipeline_probe import MvpPipelineProbe
+        from app.services.probes.probes.somatic_gate_probe import SomaticGateProbe
+        from app.services.probes.probes.temporal_isolation_probe import TemporalIsolationProbe
+        _runner = ProbeRunner(probes=[
+            SpatialCoherenceProbe(), TraversalFSMProbe(), DeathLockProbe(), L3EphemeralProbe(),
+            CausalProvenanceProbe(), HistoricalConstraintProbe(), TemporalIsolationProbe(), SomaticGateProbe(),
+            MvpPipelineProbe()  # ENIGMA SELF-HEALING (Level 1)
+        ])
+        _probe_results = _runner.run_all(_probe_ctx)
+
+        # Подсистема 3: Запись результатов в ProbeAlertManager (Этап 3.6)
+        from app.services.probes.probe_alerts import probe_alerts
+        probe_alerts.record_results(ctx.tick_number, _probe_results)
+
+        # N2 FIX: Эмитим событие TICK_COMPLETED для подписчиков (например, MvpTavernController)
+        from app.domain.events import EventDTO
+        _tick_completed_event = EventDTO.create(
+            event_type=EventType.TICK_COMPLETED.value,
+
+=== B4.8: ActionCommitment FSM full transitions ===
+"""
+path: /project/backend/app/domain/action_commitment.py
+Назначение: Доменный контракт поведенческого владения (Commitment Layer, S203.1 / Stage 2A).
+    Commitment = "что NPC действительно обязан исполнять" — онтологический слой
+    между решением (Intent/Task) и физическим исполнением (Traversal/Windup/Task).
+    Три несводимых FSM: TaskState (работа) / TraversalState (физика) /
+    CommitmentState (владение) — объединение запрещено (матрица Мастера, №10).
+Зависимости: hashlib, typing (чистый домен — без сервисов и моделей)
+Основные сущности: COMMITMENT_STATUSES, COMMITMENT_TRANSITIONS,
+    COMMITMENT_TERMINAL_STATUSES, build_commitment_id, build_commitment_dict,
+    transition_commitment, CAUSE_UNKNOWN_LEGACY_SOURCE
+"""
+
+from __future__ import annotations
+
+import hashlib
+from typing import Any, Dict, Optional
+
+# ── Status FSM (Stage 2A: Unified Behavioral Ownership) ────────────────────
+# PROPOSED/COMMITTED — делиберативные фазы: зазор между решением и исполнением,
+# которого traversal никогда не имел (Н-50: PENDING виртуален, рождается MOVING).
+# EXECUTING/BLOCKED — фазы исполнения.
+# Терминалы — без исходящих переходов: только commitment_history (retained
+# bounded, решение Мастера №1) и новый commitment с parent_commitment_id (№3a).
+
+COMMITMENT_STATUSES: tuple[str, ...] = (
+    "PROPOSED",
+    "COMMITTED",
+    "EXECUTING",
+    "BLOCKED",
+    "COMPLETED",
+    "FAILED",
+    "INTERRUPTED",
+    "EXPIRED",
+    "CANCELLED",
+)
+
+COMMITMENT_TRANSITIONS: dict[str, set[str]] = {
+    "PROPOSED": {"COMMITTED", "CANCELLED"},
+    # COMMITTED->BLOCKED: TZ Scenario C (COMMITTED -> BLOCKED -> FAILED / REPLAN).
+    "COMMITTED": {"EXECUTING", "BLOCKED", "CANCELLED", "EXPIRED", "INTERRUPTED"},
+    # S203.1 fix: CANCELLED (сознательное снятие) доступен из ЛЮБОЙ активной фазы —
+    # передумал посреди исполнения = CANCELLED, а не INTERRUPTED (последний требует
+    # внешнего каузального события). Поймано test_terminal_variants (семантический
+    # слой vs контрактный: матрица тавтологична таблице и не видит таких дыр).
+    "EXECUTING": {"COMPLETED", "FAILED", "BLOCKED", "INTERRUPTED", "EXPIRED", "CANCELLED"},
+    # BLOCKED->INTERRUPTED: заблокированное обязательство обязано уметь уступать
+    # более высокой потребности (TZ §7), иначе BLOCKED = вечный лок.
+    # BLOCKED->CANCELLED: REPLAN из Scenario C TZ (BLOCKED -> FAILED / REPLAN).
+    "BLOCKED": {"EXECUTING", "FAILED", "EXPIRED", "INTERRUPTED", "CANCELLED"},
+    "COMPLETED": set(),  # terminal
+    "FAILED": set(),  # terminal
+    "INTERRUPTED": set(),  # terminal (№3: резюм = НОВЫЙ commitment, не продолжение)
+    "EXPIRED": set(),  # terminal
+    "CANCELLED": set(),  # terminal
+}
+
+COMMITMENT_TERMINAL_STATUSES: frozenset[str] = frozenset(
+    status for status, targets in COMMITMENT_TRANSITIONS.items() if not targets
+)
+
+# S203.2 (Мастер, обязательное решение): ACTIVE = статусы, в которых NPC ЗАНЯТ.
+# COMMITTED включён явно: обязательство между COMMIT и материализацией НЕ делает
+# NPC свободным (защита от commitment race). PROPOSED — превентивно: кандидат
+# в рассмотрении тоже занимает владельца (появится в S203.3/4; зеркала его не
+# создают). Терминалы в ACTIVE не входят по построению.
+ACTIVE_COMMITMENT_STATUSES: frozenset[str] = frozenset({
+    "PROPOSED",
+    "COMMITTED",
+    "EXECUTING",
+    "BLOCKED",
+})
+
+# Bounded retention терминальной истории на NPC (решение Мастера №1).
+# Прецедент: causal_ledger — bounded runtime history.
+COMMITMENT_HISTORY_CAP_PER_NPC: int = 10
+
+# Честный cause для legacy-материализаций без upstream provenance (№8).
+# Правило №7: слой проекции (SSM) НЕ придумывает behavioral семантику постфактум.
+CAUSE_UNKNOWN_LEGACY_SOURCE: str = "UNKNOWN_LEGACY_SOURCE"
+
+# ── S203.4 (ADR-O-365): реестры причинных констант ─────────────────────────
+# Закон №16: причины — реестры констант; расширение = мини-ADR (прецеденты:
+# _INTENT_EVENT_MAP ADR-O-349; _INTERRUPT_TRAVERSAL_REASONS S219).
+
+# interrupt_reason — ПОЧЕМУ ПРЕКРАЩЁН (внешнее каузальное событие):
+INTERRUPT_PRIORITY_SUPERSEDE: str = "PRIORITY_SUPERSEDE"  # арбитр-INTERRUPT (S203.4)
+INTERRUPT_TASK_VANISHED: str = "TASK_VANISHED"  # sweep: task-исполнитель исчез (grace)
+INTERRUPT_WINDUP_STALE_INTENT: str = "WINDUP_STALE_INTENT"  # Фаза 7: stale-интент
+INTERRUPT_G3_OBJECT_REJECT: str = "G3_OBJECT_REJECT"  # Фаза 7/G3 (ADR-O-410): FSM-отказ объектного действия — исполнитель принял ответственность, мутации не будет
+# [GC-I01-E2] GC-INTERRUPT-01: Фаза-5 intent владельца сменился на flee —
+# воля ушла из разговора, вербальная задача устарела (симметрия
+# WINDUP_STALE_INTENT: событие мира, не решение актора).
+INTERRUPT_TASK_STALE_INTENT: str = "TASK_STALE_INTENT"
+INTERRUPT_SLEEP_VANISHED: str = "SLEEP_VANISHED"  # reconciliation: спящий исчез
+
+# fail_reason — ПОЧЕМУ ПРОВАЛЕНО (D-6: отдельный контракт; №7 распространён:
+# cause ≠ interrupt_reason ≠ fail_reason, универсальное reason запрещено):
+FAIL_BLOCKED_TIMEOUT: str = "BLOCKED_TIMEOUT"  # BLOCKED дольше BLOCKED_TIMEOUT_TICKS (Ц5)
+FAIL_TASK_ERROR: str = "TASK_ERROR"  # task-исполнитель вернул error-artifact
+FAIL_TASK_CRASH: str = "TASK_CRASH"  # исключение в исполнении задачи
+# TZ Scenario C: pre-condition провален навсегда (цель уничтожена, путь
+# закрыт) — REPLAN-семантика; потребитель — Э5/C-сценарий гейта.
+FAIL_TASK_IMPOSSIBLE: str = "TASK_IMPOSSIBLE"
+
+
+def build_commitment_id(tick: int, npc_id: str, action: str, ordinal: int) -> str:
+    """Детерминированная идентичность обязательства.
+
+    same (tick, npc_id, action, ordinal) -> same commitment_id.
+    Прецедент: build_snapshot (md5-сид вместо uuid4). Нарушение детерминизма =
+    INV-REPLAY-DETERMINISM. Архитектурно важна воспроизводимость, не криптостойкость.
+    """
+    _seed = f"{tick}:{npc_id}:{action}:{ordinal}".encode("utf-8")
+    return f"cmt-{hashlib.md5(_seed).hexdigest()}"
+
+
+def build_commitment_dict(
+    tick: int,
+    npc_id: str,
+    action: str,
+    ordinal: int,
+    cause: str,
+    target_id: Optional[str] = None,
+    executor: str = "",
+    parent_commitment_id: Optional[str] = None,
+    initial_status: str = "PROPOSED",
+    # ── S203.4 (ADR-O-365): приоритетная политика + executor-ссылка ─────────
+    priority: int = 0,
+    priority_policy_version: Optional[str] = None,
+    executor_ref: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Единственный легальный способ создания commitment-записи.
+
+    №4: ordinal — часть персистентной монотонной последовательности идентичностей
+    NPC (никогда не уменьшается, никогда не переиспользуется).
+    №3a: parent_commitment_id — каузальная связь "новое обязательство произошло
+    из прерванного" (C2 произошёл из C1, а не "продолжает" его).
+    """
+    if initial_status not in COMMITMENT_STATUSES:
+        raise ValueError(
+            f"build_commitment_dict: unknown initial_status '{initial_status}'"
+        )
+    if not cause:
+        # Обязательство без причины возникновения запрещено (каузальная гигиена).
+        raise ValueError("build_commitment_dict: empty cause is forbidden")
+
+    return {
+        "commitment_id": build_commitment_id(tick, npc_id, action, ordinal),
+        "npc_id": npc_id,
+        "action": action,
+        "ordinal": ordinal,
+        "status": initial_status,
+        # cause: ПОЧЕМУ ВОЗНИК (будущая проекция в CausalLedger).
+        # interrupt_reason: ПОЧЕМУ ПРЕКРАЩЁН. Смешивание запрещено —
+        # универсальное поле reason = semantic sludge (матрица Мастера).
+        "cause": cause,
+        "interrupt_reason": None,
+        "parent_commitment_id": parent_commitment_id,
+        "target_id": target_id,
+        # Владелец исполнения: "traversal" (S203.1/S203.3) | "windup"/"task"
+        # (S203.4, ADR-O-365) | "sleep" (S203.4: state-based reconciliation).
+        "executor": executor,
+        # S203.4: ссылка на объект исполнителя (task_id / held_intent_id) —
+        # join терминальных зеркал и телеметрии с исполнителем.
+        "executor_ref": executor_ref,
+        # S203.4 (D-5): приоритет — РЕЗУЛЬТАТ policy на момент создания.
+        # Replay читает записанное число, пересчёт запрещён. 0 + None-версия
+        # = legacy-запись без заявленного права на прерывание.
+        "priority": priority,
+        "priority_policy_version": priority_policy_version,
+        "created_tick": tick,
+        "updated_tick": tick,
+        # S203.4: старт часов BLOCKED_TIMEOUT (Ц5). None вне фазы BLOCKED;
+        # ведётся transition_commitment (Э2-b: вход/выход из BLOCKED).
+        "blocked_since_tick": None,
+        # fail_reason: ПОЧЕМУ ПРОВАЛЕНО (D-6, №7: cause ≠ interrupt_reason
+        # ≠ fail_reason). Заполняется только при переходе в FAILED.
+        "fail_reason": None,
+    }
+
+
+def transition_commitment(
+    commitment: Dict[str, Any],
+    new_status: str,
+    tick: Optional[int] = None,
+    interrupt_reason: Optional[str] = None,
+    fail_reason: Optional[str] = None,
+) -> bool:
+    """FSM-переход обязательства. True = разрешён и выполнен.
+
+    INTERRUPTED без interrupt_reason запрещён: прерывание обязано нести
+    причину прекращения. S203.4 (D-6): FAILED без fail_reason запрещён —
+    симметрия; провал обязан нести причину (cause ≠ interrupt_reason
+    ≠ fail_reason, №7).
+    """
+    current: str = commitment.get("status", "")
+    allowed = COMMITMENT_TRANSITIONS.get(current, set())
+    if new_status not in allowed:
+        return False
+    if new_status == "INTERRUPTED" and not interrupt_reason:
+        return False
+    if new_status == "FAILED" and not fail_reason:
+        return False
+
+    commitment["status"] = new_status
+    if new_status == "INTERRUPTED":
+        commitment["interrupt_reason"] = interrupt_reason
+    if new_status == "FAILED":
+        commitment["fail_reason"] = fail_reason
+    # S203.4 (Ц5): часы BLOCKED-фазы для таймаут-продюсера (Э7). Вход в
+    # BLOCKED заводит часы (tick=None → часы не заведены: sweep такой записи
+    # не таймаутит — честное отсутствие сигнала, не ноль); любой выход из
+    # BLOCKED (EXECUTING/терминалы) — сброс.
+    if new_status == "BLOCKED":
+        commitment["blocked_since_tick"] = tick
+    elif current == "BLOCKED":
+        commitment["blocked_since_tick"] = None
+    if tick is not None:
+        commitment["updated_tick"] = tick
+    return True
+
+=== B4.9: Commit points / irreversibility ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\memory\event_semantic_tagger.py:41:    "npc_killed": frozenset({"social:extreme_harm", "social:irreversible"}),
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\social\dilemma_engine.py:41:            raise ValueError(f"Dilemma {dilemma_id} is already resolved. Irreversible.")
+
+=== B4.10: Multiple ATTACK intents same NPC ===
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\core\constants.py:186:ATTACK_WINDUP_DURATION_TICKS = 2
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\temporal_specs.py:139:    Phase 1: ActionWindup handles ATTACK execution; temporal success
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\calibration\config_overlay.py:247:        "ATTACK_WINDUP_DURATION_TICKS": profile.attack_windup_duration_ticks,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\calibration\profile.py:59:    attack_windup_duration_ticks: int = 2
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\decision_hub.py:361:            target_id=intent_target, # V8-MEM-2 FIX: Проброс target_id для Attack Windup
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:33:    ADR-O-310: WindupWriteGate — перехват ATTACK для создания ActionWindup.
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:92:        # Windowed-действия (attack, steal) уходят в Windup (S209), всё остальное —
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:300:        # ADR-O-310: Windup Write Gate (S209: параметризован attack|steal)
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:346:                        ATTACK_WINDUP_DURATION_TICKS,
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\post_decision.py:361:                            else ATTACK_WINDUP_DURATION_TICKS
+

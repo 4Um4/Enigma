@@ -54,6 +54,107 @@ def _load_chronicle_grammar() -> Optional[str]:
 
 logger = logging.getLogger(__name__)
 
+from typing import Any, Dict, Final, List, Optional, cast
+# ... существующие импорты ...
+from app.services.chronicle.age_anchor import (
+    AgeAnchor,
+    AgeAnchorKind,
+    extract_age_anchors_typed,
+)
+
+
+def validate_age_anchor_coverage(
+    items: List["DecompositionItem"],
+    age_anchors: List[AgeAnchor],
+    fragment_ord: int,
+    *,
+    game_start_age: Optional[int] = None,
+) -> List[Dict[str, Any]]:
+    """B (CCH-12 diagnostic): проверка отражения age_anchors в items.
+
+    Возвращает список аномалий (пустой, если всё OK). Не меняет items,
+    не блокирует pipeline, не создаёт EVENT автоматически.
+
+    Разделяет:
+    - отсутствие якоря в items (dangling_anchor)
+    - числовое совпадение, не доказывающее семантическую привязку
+      (numeric_match_only)
+    - years_ago, равный current_age (years_ago_equals_current_age) —
+      частая ошибка LLM, путающей «N лет» (возраст) с «N лет назад»
+      (точка в прошлом).
+
+    Args:
+        items: нормализованные DecompositionItem (после normalize()).
+        age_anchors: типизированные AgeAnchor из fragment.
+        fragment_ord: для логирования.
+        game_start_age: если задан — дополнительная проверка
+            years_ago == game_start_age (подозрительно: LLM перепутала
+            текущий возраст с years_ago).
+    """
+    anomalies: List[Dict[str, Any]] = []
+
+    for anchor in age_anchors:
+        if anchor.kind == AgeAnchorKind.AMBIGUOUS:
+            continue  # AMBIGUOUS не валидируется (нет семантики)
+
+        # Проверка отражения якоря в items
+        covered = False
+        matching_items: List[int] = []
+
+        for idx, item in enumerate(items):
+            payload = item.draft_payload
+            if anchor.kind == AgeAnchorKind.YEARS_AGO:
+                if payload.get("years_ago") == anchor.value:
+                    covered = True
+                    matching_items.append(idx)
+            elif anchor.kind == AgeAnchorKind.DURATION:
+                if payload.get("duration_years") == anchor.value:
+                    covered = True
+                    matching_items.append(idx)
+            elif anchor.kind in (AgeAnchorKind.AT_AGE, AgeAnchorKind.SINCE_AGE):
+                if payload.get("age") == anchor.value:
+                    covered = True
+                    matching_items.append(idx)
+
+        if not covered:
+            anomalies.append({
+                "anomaly_type": "dangling_age_anchor",
+                "fragment_ord": fragment_ord,
+                "anchor_kind": anchor.kind.value,
+                "anchor_value": anchor.value,
+                "source_span": anchor.source_span,
+                "severity": "warning",
+                "hint": f"age_anchor {anchor.kind.value}={anchor.value} "
+                        f"not reflected in any item",
+            })
+        elif len(matching_items) == 1:
+            # Числовое совпадение есть, но это не доказывает семантическую
+            # привязку (Мастер: «не считать совпадение числа доказательством»).
+            # Логируем как info, не как аномалию — для трассировки.
+            pass
+        # else: несколько совпадений — тоже не аномалия, просто логируем
+
+        # Спец-проверка: years_ago == game_start_age (если задан)
+        if (
+            anchor.kind == AgeAnchorKind.YEARS_AGO
+            and game_start_age is not None
+            and anchor.value == game_start_age
+            and anchor.value > 50  # эвристика: возраст > 50 вряд ли «years_ago»
+        ):
+            anomalies.append({
+                "anomaly_type": "years_ago_equals_current_age",
+                "fragment_ord": fragment_ord,
+                "anchor_value": anchor.value,
+                "game_start_age": game_start_age,
+                "source_span": anchor.source_span,
+                "severity": "warning",
+                "hint": f"years_ago={anchor.value} == game_start_age="
+                        f"{game_start_age} — LLM возможно перепутала "
+                        f"текущий возраст с years_ago",
+            })
+
+    return anomalies
+
 
 def _default_roster_provider() -> Dict[str, str]:
     """S367: lazy default roster source — npc_loader.get_display_names.

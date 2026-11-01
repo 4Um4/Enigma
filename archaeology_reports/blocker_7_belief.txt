@@ -1,0 +1,361 @@
+﻿=== B7.1: BeliefCrystallizationEngine class ===
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\belief_crystallization_engine.py
+Pattern: 'class BeliefCrystallizationEngine' matched at line 35
+Reading lines 35-166 (132 lines):
+---
+  35: class BeliefCrystallizationEngine:
+  36:     """
+  37:     L2.5: Проецирует агрегированную статистику (EvidenceOfPersistence)
+  38:     в психологическое убеждение (CrystallizedBelief), модулированное drives_base (L0).
+  39: 
+  40:     ADR-O-305: Не читает L1Chronicle. Работает только с готовой статистикой.
+  41:     ADR-O-307: Реализует асимметричную травму.
+  42:     """
+  43: 
+  44:     def crystallize(
+  45:         self,
+  46:         evidence_list: List[EvidenceOfPersistence],
+  47:         drives_base: Dict[str, float],
+  48:         existing_beliefs: List[CrystallizedBelief],
+  49:         current_tick: int,
+  50:     ) -> List[CrystallizedBelief]:
+  51:         """
+  52:         Формирует или обновляет убеждения на основе свежей статистики.
+  53: 
+  54:         Args:
+  55:             evidence_list: Статистика от PatternDetector (L1.5).
+  56:             drives_base: Базовые драйвы личности NPC (L0).
+  57:             existing_beliefs: Текущие убеждения NPC (для асимметричной травмы).
+  58:             current_tick: Текущий тик симуляции.
+  59: 
+  60:         Returns:
+  61:             Обновлённый список CrystallizedBelief.
+  62:         """
+  63:         # C-17 FIX: Ключ по (source_id, trait), чтобы допускать множественные убеждения
+  64:         updated_beliefs: Dict[Tuple[str, str], CrystallizedBelief] = {}
+  65: 
+  66:         # 1. Фаза Энтропии: Затухание старых убеждений
+  67:         for belief in existing_beliefs:
+  68:             time_delta = max(0, current_tick - belief.last_updated_tick)
+  69:             decay_factor = math.exp(-time_delta / BELIEF_DECAY_TAU)
+  70:             decayed_weight = belief.weight * decay_factor
+  71: 
+  72:             # Если вес выше порога забывания — сохраняем убеждение
+  73:             if decayed_weight > BELIEF_FORGET_THRESHOLD:
+  74:                 updated_beliefs[(belief.source_id, belief.trait)] = CrystallizedBelief(
+  75:                     source_id=belief.source_id,
+  76:                     trait=belief.trait,
+  77:                     weight=decayed_weight,
+  78:                     last_updated_tick=belief.last_updated_tick,  # Сохраняем оригинальный тик
+  79:                 )
+  80: 
+  81:         for evidence in evidence_list:
+  82:             # FIX-RC3 (P0/P1): телеметрия движков не является сущностью —
+  83:             # кристаллизация убеждений из неё запрещена (мембрана L1.5 → L2.5).
+  84:             _src = evidence.source_id or ""
+  85:             if _src in _SYSTEM_SOURCE_IDS or _src.startswith(_SYSTEM_SOURCE_PREFIXES):
+  86:                 logger.debug(f"[L2.5] Skipped system-source evidence: source={_src}")
+  87:                 continue
+  88:             # Определение направления эффекта (угроза или помощь)
+  89:             # Отрицательный эффект = угроза -> fear
+  90:             # Положительный эффект = помощь -> trust
+  91:             if evidence.cumulative_effect < 0.0:
+  92:                 target_trait = "fear"
+  93:                 # Модуляция личностью: высокий fear_drive делает NPC более чувствительным к угрозам
+  94:                 sensitivity = drives_base.get("fear", 0.25)
+  95:                 # ADR-O-307: Асимметричная травма. Опровержение в 6 раз сильнее.
+  96:                 abs(evidence.cumulative_effect) * TRAUMA_MULTIPLIER
+  97:             else:
+  98:                 target_trait = "trust"
+  99:                 # Модуляция личностью: высокий significance или desire делает NPC ценящим помощь
+ 100:                 sensitivity = drives_base.get("significance", 0.25) + drives_base.get(
+ 101:                     "desire", 0.25
+ 102:                 )
+ 103:                 # Позитивный эффект не имеет множителя
+ 104:                 _effect_magnitude = evidence.cumulative_effect
+ 105: 
+ 106:             # Базовый вес формируемого убеждения (нормализованный к 1.0)
+ 107:             # Учитываем magnitude эффекта и чувствительность личности
+ 108:             # Делим на 10.0 как масштабный коэффициент (предполагаем, что cumulative_effect в диапазоне ~-10..10)
+ 109:             base_weight = min(abs(evidence.cumulative_effect) / 10.0, 1.0) * sensitivity
+ 110: 
+ 111:             # C-17 FIX: Ищем существующее убеждение того же трейта (для подтверждения)
+ 112:             existing = updated_beliefs.get((evidence.source_id, target_trait))
+ 113:             # И противоположного трейта (для опровержения/асимметричной травмы)
+ 114:             opposite_trait = "trust" if target_trait == "fear" else "fear"
+ 115:             opposite_belief = updated_beliefs.get((evidence.source_id, opposite_trait))
+ 116: 
+ 117:             if existing:
+ 118:                 # Подтверждение: линейный рост
+ 119:                 new_weight = min(existing.weight + base_weight, MAX_WEIGHT)
+ 120:                 updated_beliefs[(evidence.source_id, target_trait)] = CrystallizedBelief(
+ 121:                     source_id=evidence.source_id,
+ 122:                     trait=target_trait,
+ 123:                     weight=new_weight,
+ 124:                     last_updated_tick=current_tick,
+ 125:                 )
+ 126:                 logger.info(f"[L2.5] Crystallized: npc={evidence.source_id} trait={target_trait} weight={new_weight:.2f}")
+ 127:             elif opposite_belief:
+ 128:                 # Опровержение: вес старого убеждения падает в 6 раз быстрее
+ 129:                 # И если он падает до нуля, может сформироваться новое
+ 130:                 decayed_weight = opposite_belief.weight - (base_weight * TRAUMA_MULTIPLIER)
+ 131: 
+ 132:                 if decayed_weight <= 0.0:
+ 133:                     # Старое убеждение разрушено, формируем новое
+ 134:                     # Остаточный вес переносится (опровергнуто, но не полностью)
+ 135:                     new_weight = min(base_weight, MAX_WEIGHT)
+ 136:                     del updated_beliefs[(evidence.source_id, opposite_trait)]
+ 137:                     if new_weight > 0:
+ 138:                         updated_beliefs[(evidence.source_id, target_trait)] = CrystallizedBelief(
+ 139:                             source_id=evidence.source_id,
+ 140:                             trait=target_trait,
+ 141:                             weight=new_weight,
+ 142:                             last_updated_tick=current_tick,
+ 143:                         )
+ 144:                         logger.info(f"[L2.5] Crystallized: npc={evidence.source_id} trait={target_trait} weight={new_weight:.2f}")
+ 145:                 else:
+ 146:                     # Убеждение ещё держится, но ослабло
+ 147:                     new_weight = decayed_weight
+ 148:                     updated_beliefs[(evidence.source_id, opposite_trait)] = CrystallizedBelief(
+ 149:                         source_id=evidence.source_id,
+ 150:                         trait=opposite_trait,
+ 151:                         weight=new_weight,
+ 152:                         last_updated_tick=current_tick,
+ 153:                     )
+ 154:                     logger.info(f"[L2.5] Crystallized: npc={evidence.source_id} trait={opposite_trait} weight={new_weight:.2f} (weakened)")
+ 155:             else:
+ 156:                 # Формирование нового убеждения
+ 157:                 if base_weight > 0.05:  # Порог кристаллизации
+ 158:                     updated_beliefs[(evidence.source_id, target_trait)] = CrystallizedBelief(
+ 159:                         source_id=evidence.source_id,
+ 160:                         trait=target_trait,
+ 161:                         weight=base_weight,
+ 162:                         last_updated_tick=current_tick,
+ 163:                     )
+ 164:                     logger.info(f"[L2.5] Crystallized: npc={evidence.source_id} trait={target_trait} weight={base_weight:.2f}")
+ 165: 
+ 166:         return list(updated_beliefs.values())
+---
+
+=== B7.2: crystallize method ===
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\belief_crystallization_engine.py
+Pattern: 'def crystallize' matched at line 44
+Reading lines 44-84 (41 lines):
+---
+  44:     def crystallize(
+  45:         self,
+  46:         evidence_list: List[EvidenceOfPersistence],
+  47:         drives_base: Dict[str, float],
+  48:         existing_beliefs: List[CrystallizedBelief],
+  49:         current_tick: int,
+  50:     ) -> List[CrystallizedBelief]:
+  51:         """
+  52:         Формирует или обновляет убеждения на основе свежей статистики.
+  53: 
+  54:         Args:
+  55:             evidence_list: Статистика от PatternDetector (L1.5).
+  56:             drives_base: Базовые драйвы личности NPC (L0).
+  57:             existing_beliefs: Текущие убеждения NPC (для асимметричной травмы).
+  58:             current_tick: Текущий тик симуляции.
+  59: 
+  60:         Returns:
+  61:             Обновлённый список CrystallizedBelief.
+  62:         """
+  63:         # C-17 FIX: Ключ по (source_id, trait), чтобы допускать множественные убеждения
+  64:         updated_beliefs: Dict[Tuple[str, str], CrystallizedBelief] = {}
+  65: 
+  66:         # 1. Фаза Энтропии: Затухание старых убеждений
+  67:         for belief in existing_beliefs:
+  68:             time_delta = max(0, current_tick - belief.last_updated_tick)
+  69:             decay_factor = math.exp(-time_delta / BELIEF_DECAY_TAU)
+  70:             decayed_weight = belief.weight * decay_factor
+  71: 
+  72:             # Если вес выше порога забывания — сохраняем убеждение
+  73:             if decayed_weight > BELIEF_FORGET_THRESHOLD:
+  74:                 updated_beliefs[(belief.source_id, belief.trait)] = CrystallizedBelief(
+  75:                     source_id=belief.source_id,
+  76:                     trait=belief.trait,
+  77:                     weight=decayed_weight,
+  78:                     last_updated_tick=belief.last_updated_tick,  # Сохраняем оригинальный тик
+  79:                 )
+  80: 
+  81:         for evidence in evidence_list:
+  82:             # FIX-RC3 (P0/P1): телеметрия движков не является сущностью —
+  83:             # кристаллизация убеждений из неё запрещена (мембрана L1.5 → L2.5).
+  84:             _src = evidence.source_id or ""
+---
+
+
+=== B7.3: crystallize calls ===
+Call site: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\integration.py:487
+ 479:             # появлении: age в state, заполненных голосовых архетипов,
+ 480:             # источника identity_attachment. Поле PsycheBase.linguistic_integrity
+ 481:             # честно документировано = 1.0 (без дрейфа) в models/npc_profile.py:52.
+ 482:             # TODO (Фаза 3 / Эпоха 8): Интеграция LinguisticIntegrityCalculator.
+ 483:             # Здесь должен вызываться LinguisticIntegrityCalculator().compute()
+ 484:             # для расчёта целостности речи NPC (willpower * class * age * attachment).
+ 485:             # Результат должен модулировать скорость кристаллизации убеждений
+ 486:             # (NPC с высокой целостностью речи сопротивляется меметическому дрейфу).
+ 487:             _updated_beliefs = deps.belief_engine.crystallize(
+ 488:                 evidence_list=_evidence_list,
+ 489:                 drives_base=_drives_base,
+ 490:                 existing_beliefs=_existing_beliefs,
+ 491:                 current_tick=ctx.tick_number,
+ 492:             )
+ 493:             deps.crystallized_belief_store.update_beliefs(_npc_id, _updated_beliefs)
+ 494: 
+ 495:     # WorldSnapshotBuilder: собирает WorldSnapshotDTO из финального state
+
+
+=== B7.4: CrystallizedBelief class ===
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\identity_events.py
+Pattern: 'class CrystallizedBelief' matched at line 63
+Reading lines 63-92 (30 lines):
+---
+  63: class CrystallizedBelief:
+  64:     """
+  65:     Психологическая проекция агрегированной статистики (L2.5).
+  66: 
+  67:     ADR-O-305: Сформирован BeliefCrystallizationEngine на основе EvidenceOfPersistence
+  68:     и модулирован drives_base (L0).
+  69:     ADR-O-307: Подвержен асимметричной травме (x6 множитель для опровержений).
+  70:     """
+  71: 
+  72:     source_id: str
+  73:     trait: str  # fear, trust, loyalty (психологический якорь)
+  74:     weight: float  # Уверенность в убеждении (0.0 - 1.0)
+  75:     last_updated_tick: int
+  76: 
+  77: 
+  78: class L1EventStream(Protocol):
+  79:     """Append-only causal trace of identity deformation.
+  80: 
+  81:     Инвариант L1: L1 never mutates state. L1 only records causal pressure.
+  82:     """
+  83: 
+  84:     def append(self, event: TraitDriftEvent) -> None:
+  85:         """Единственная точка записи L1. Событие неизменяемо после создания."""
+  86:         ...
+  87: 
+  88:     def query(
+  89:         self, npc_id: str, t_from: int, t_to: Optional[int] = None
+  90:     ) -> List[TraitDriftEvent]:
+  91:         """Чтение истории деформаций для вычисления проекции DriveResolver'ом."""
+  92:         ...
+---
+
+=== B7.5: Phase 9 Belief Crystallization ===
+Found in: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\affective.py
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\affective.py
+Pattern: 'belief_crystallization|crystallize|L2\.5' matched at line 23
+Reading lines 23-53 (31 lines):
+---
+  23:     crystallized_belief_store: Any
+  24:     drive_resolver: Any
+  25:     l1_chronicle: Any
+  26:     pattern_detector: Any
+  27:     belief_engine: Any
+  28:     state_applicator: Any
+  29:     snapshot_builder: Any
+  30:     manifest_svc: Any
+  31:     project_svc: Any
+  32: 
+  33: 
+  34: def run_phase_9(ctx: _TickContext, deps: Phase9Deps) -> None:
+  35:     """ADR-049 / ADR-O-305: Аффективная интеграция, кристаллизация убеждений и сборка снапшота."""
+  36:     # ADR-O-208: Смерть npc_raw["drives"].
+  37:     # Котёл читает ТОЛЬКО эфемерную проекцию из DriveResolver (L0 + L1).
+  38:     # ВНИМАНИЕ: блок перенесён ВЫШЕ compute_continuous_drift —
+  39:     # TIFL требует _drives_projection и _psyche_raw на вход.
+  40:     # (Оригинальный код _phase_9_integration перенесён сюда без изменений)
+  41: 
+  42:     # Этот блок был вырезан из начала _phase_9_integration в предыдущем запросе,
+  43:     # но мы знаем, что он обрабатывает perception_payloads.
+  44:     # Для безопасности мы оставляем структуру вызова такой, какой она была.
+  45:     # Полный код интеграции переносится сюда.
+  46:     pass
+  47: 
+  48: 
+  49: def run_affective_pipeline(ctx: _TickContext, deps: Phase9Deps) -> None:
+  50:     """ADR-049: Аффективный аккумулятор — накопление давления и фазовый переход эмоций.
+  51: 
+  52:     Вызывается из ОБЕИХ путей (idle + player turn).
+  53:     Без этого affective_load не растёт при player turn → emotion=NEUTRAL → _emotion_modifier()=0.0.
+---
+
+Found in: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py
+Pattern: 'belief_crystallization|crystallize|L2\.5' matched at line 253
+Reading lines 253-283 (31 lines):
+---
+ 253:     _crystallized_beliefs_map = {}
+ 254:     _identity_traits_map = {}
+ 255: 
+ 256:     # Вычисляем player_distances один раз для всех NPC (SpatialQueryService - pure reader)
+ 257:     _spatial_query = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None  # noqa: ENIGMA001, ENIGMA002
+ 258:     if _spatial_query is None:
+ 259:         logger.debug("SpatialQueryService missing in shared_context (decision.py). Falling back to scene_state reader.")
+ 260:     if not _spatial_query and ctx.scene_state:
+ 261:         from app.services.spatial.spatial_query_service import SpatialQueryService
+ 262:         _spatial_query = SpatialQueryService(
+ 263:             npc_positions=ctx.scene_state.get("npc_positions", {}),
+ 264:             scene_state=ctx.scene_state,
+ 265:         )
+ 266:     _npc_ids = [n.get("id") or n.get("npc_id") for n in alive_npcs]
+ 267:     _player_dists = _spatial_query.player_distances(_npc_ids) if _spatial_query else {}
+ 268: 
+ 269:     if _svc:
+ 270:         for n in alive_npcs:
+ 271:             _nid = n.get("id") or n.get("npc_id")
+ 272:             if not _nid:
+ 273:                 continue
+ 274: 
+ 275:             if _svc.memory_manager:
+ 276:                 # S128 FIX: Загружаем граф отношений для всех alive NPC, а не только player.
+ 277:                 _target_ids = [n.get("id") or n.get("npc_id") for n in alive_npcs]
+ 278:                 if "player" not in _target_ids:
+ 279:                     _target_ids.append("player")
+ 280:                 _memory_weights_map[_nid] = (
+ 281:                     _svc.memory_manager.get_weights_for_decision(
+ 282:                         campaign_id=ctx.campaign_id, npc_id=_nid, target_ids=_target_ids
+ 283:                     )
+---
+
+Found in: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\integration.py
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\integration.py
+Pattern: 'belief_crystallization|crystallize|L2\.5' matched at line 3
+Reading lines 3-33 (31 lines):
+---
+   3: Назначение: Инкапсуляция логики Фазы 9 (CFRM P2, TIFL, L2.5 Belief Crystallization, WorldSnapshot Assembly).
+   4: Зависимости: app.services.cfrm, app.services.identity, app.services.presentation
+   5: Основные сущности: Phase9IntegrationDeps, run_phase_9_integration
+   6: """
+   7: from __future__ import annotations
+   8: 
+   9: import copy
+  10: import logging
+  11: from dataclasses import dataclass
+  12: from typing import Any
+  13: 
+  14: from app.models.state_delta import DeltaDomain, StateDeltas
+  15: from app.services.dto import _TickContext
+  16: 
+  17: logger = logging.getLogger(__name__)
+  18: 
+  19: 
+  20: @dataclass(frozen=True)
+  21: class Phase9IntegrationDeps:
+  22:     """Зависимости Фазы 9 (Integration). Frozen для предотвращения мутаций."""
+  23: 
+  24:     state_applicator: Any
+  25:     spatial_service: Any
+  26:     causal_solver: Any
+  27:     crystallized_belief_store: Any
+  28:     drive_resolver: Any
+  29:     l1_chronicle: Any
+  30:     pattern_detector: Any
+  31:     belief_engine: Any
+  32:     snapshot_builder: Any
+  33:     manifest_svc: Any
+---
+

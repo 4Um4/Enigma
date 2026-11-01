@@ -1,0 +1,604 @@
+﻿============================================================
+STAGE 0 - CRITICAL FOLLOW-UP
+Priority 1: intent_identity.py FULL
+Priority 2: S0.1 truncated searches recovery
+Priority 3: S0.2 hotspot targeted reads
+Generated: 2026-11-01 19:41:04
+============================================================
+
+============================================================
+PRIORITY 1 - intent_identity.py FULL
+============================================================
+
+[READ] IntentIdentity contract  backend/app/domain/intent_identity.py (82 lines)
+  1: """
+  2: path: backend/app/domain/intent_identity.py
+  3: Назначение: 4 поля IntentIdentity (R5.4 verified contract).
+  4:     Разделяет "кто инициировал" (intent_owner), "кто исполнил" (actor_id),
+  5:     "через какое тело" (body_id), "тип контроля" (control_source).
+  6:     Принцип: Player может управлять телом. Но управление телом не означает
+  7:     владение сознанием Avatar.
+  8: Зависимости: domain/control_source.py (ControlSource)
+  9: Основные сущности: IntentIdentity
+  10: """
+  11: 
+  12: from __future__ import annotations
+  13: from dataclasses import dataclass
+  14: from typing import Optional
+  15: from app.domain.control_source import ControlSource
+  16: 
+  17: 
+  18: @dataclass(frozen=True)
+  19: class IntentIdentity:
+  20:     """R5.4: 4 поля Identity для event attribution.
+  21:     
+  22:     intent_owner: кто инициировал (player name/id ИЛИ character_id для autonomous)
+  23:     actor_id: кто исполняет действие (npc_id в мире)
+  24:     body_id: тело, через которое действуют (= actor_id для single-body)
+  25:     control_source: PLAYER_INPUT | NPC_DECISION | AVATAR_INITIATIVE
+  26:     """
+  27:     intent_owner: str
+  28:     actor_id: str
+  29:     body_id: str
+  30:     control_source: ControlSource
+  31:     
+  32:     @classmethod
+  33:     def for_npc(cls, npc_id: str) -> "IntentIdentity":
+  34:         """NPC autonomous action — owner = actor = body = npc_id."""
+  35:         return cls(
+  36:             intent_owner=npc_id,
+  37:             actor_id=npc_id,
+  38:             body_id=npc_id,
+  39:             control_source=ControlSource.NPC_DECISION,
+  40:         )
+  41:     
+  42:     @classmethod
+  43:     def for_player_input(cls, player_name: str, character_id: str) -> "IntentIdentity":
+  44:         """Player commands Avatar body.
+  45:         
+  46:         intent_owner = player_name (who decided)
+  47:         actor_id = character_id (who executes in the world)
+  48:         body_id = character_id (the body)
+  49:         control_source = PLAYER_INPUT
+  50:         """
+  51:         return cls(
+  52:             intent_owner=player_name,
+  53:             actor_id=character_id,
+  54:             body_id=character_id,
+  55:             control_source=ControlSource.PLAYER_INPUT,
+  56:         )
+  57:     
+  58:     @classmethod
+  59:     def for_avatar_initiative(cls, character_id: str) -> "IntentIdentity":
+  60:         """Avatar acts autonomously (not Player command).
+  61:         
+  62:         intent_owner = character_id (Avatar itself decided)
+  63:         actor_id = character_id
+  64:         body_id = character_id
+  65:         control_source = AVATAR_INITIATIVE
+  66:         """
+  67:         return cls(
+  68:             intent_owner=character_id,
+  69:             actor_id=character_id,
+  70:             body_id=character_id,
+  71:             control_source=ControlSource.AVATAR_INITIATIVE,
+  72:         )
+  73:     
+  74:     @classmethod
+  75:     def unknown(cls) -> "IntentIdentity":
+  76:         """Unidentified control source — honest UNKNOWN, not guess."""
+  77:         return cls(
+  78:             intent_owner="",
+  79:             actor_id="",
+  80:             body_id="",
+  81:             control_source=ControlSource.UNKNOWN,
+  82:         )
+
+[SEARCH] IntentIdentity consumers (imports/usage)  pattern: /IntentIdentity|intent_identity/
+  8 matches:
+  backend\app\domain\intent_identity.py:2 : path: backend/app/domain/intent_identity.py
+  backend\app\domain\intent_identity.py:3 : Назначение: 4 поля IntentIdentity (R5.4 verified contract).
+  backend\app\domain\intent_identity.py:9 : Основные сущности: IntentIdentity
+  backend\app\domain\intent_identity.py:19 : class IntentIdentity:
+  backend\app\domain\intent_identity.py:33 : def for_npc(cls, npc_id: str) -> "IntentIdentity":
+  backend\app\domain\intent_identity.py:43 : def for_player_input(cls, player_name: str, character_id: str) -> "IntentIdentity":
+  backend\app\domain\intent_identity.py:59 : def for_avatar_initiative(cls, character_id: str) -> "IntentIdentity":
+  backend\app\domain\intent_identity.py:75 : def unknown(cls) -> "IntentIdentity":
+
+[GIT] intent_identity.py tracking status:
+  error: pathspec 'backend/app/domain/intent_identity.py' did not match any file(s) known to git
+  Did you forget to 'git add'?
+  EXITCODE: 1
+
+============================================================
+PRIORITY 2 - S0.1 searches (recovered)
+============================================================
+
+[SEARCH] PlayerSession class definition  pattern: /class PlayerSession/
+  3 matches:
+  backend\app\models\schemas.py:278 : class PlayerSession(BaseModel):
+  backend\app\models\schemas.py:345 : class PlayerSessionResponse(BaseModel):
+  backend\app\services\player_session_service.py:19 : class PlayerSessionService:
+
+[SEARCH] player_name assignment/annotation  pattern: /player_name\s*[:=]/
+  80 matches:
+  backend\app\api\routes.py:740 : player_name = request.actions[0].player_name
+  backend\app\api\routes.py:1071 : actions=[PlayerAction(player_name=player, action=action_text)],
+  backend\app\api\routes.py:1349 : player_name=request.player_name,
+  backend\app\api\routes.py:1430 : player_name = request.get("player")
+  backend\app\api\routes.py:1431 : if not player_name:
+  backend\app\contracts\interventions.py:28 : cls, action_text: str, player_name: str, tick: int, **kwargs: Any
+  backend\app\domain\events.py:39 : player_name: str
+  backend\app\domain\intent_identity.py:43 : def for_player_input(cls, player_name: str, character_id: str) -> "IntentIdentity":
+  backend\app\models\pipeline_context.py:32 : player_name: str = "player"
+  backend\app\models\schemas.py:46 : player_name: str
+  backend\app\models\schemas.py:282 : player_name: str
+  backend\app\models\schemas.py:306 : player_name: str
+  backend\app\models\schemas.py:327 : player_name: str
+  backend\app\services\calibration\scenario_player.py:223 : player_name="player",
+  backend\app\services\character\character_filter_applicator.py:22 : player_name: str,
+  backend\app\services\character\front_applicator.py:23 : player_name: str,
+  backend\app\services\game_loop\game_loop.py:889 : if session and session.player_name:
+  backend\app\services\game_loop\game_loop.py:1746 : _player_name = req.actions[0].player_name if req.actions else None  # noqa: ENIGMA001
+  backend\app\services\game_loop\game_loop.py:1751 : player_name=_player_name,
+  backend\app\services\game_loop\game_loop.py:2038 : actions = [PlayerAction(player_name=player, action=action_text)]
+  backend\app\services\game_loop\game_loop.py:2220 : def _get_character_dict(self, campaign_id: str, player_name: str) -> dict:
+  backend\app\services\game_loop\game_loop.py:2225 : if char.name == player_name:
+  backend\app\services\game_loop\npc_orchestration.py:79 : _player_name = actions[0].player_name if actions else ""
+  backend\app\services\game_loop\npc_orchestration.py:80 : if _player_name:
+  backend\app\services\game_loop\npc_orchestration.py:87 : player_name=_player_name,
+  backend\app\services\game_loop\phase_1_input.py:446 : player_name: str,
+  backend\app\services\game_loop\phase_1_input.py:472 : player_name: str,
+  backend\app\services\game_loop\phase_6_avatar.py:24 : player_name: str,
+  backend\app\services\game_loop\turn_pipeline.py:201 : _player_name = actions[0].player_name if actions else ""
+  backend\app\services\game_loop\turn_pipeline.py:322 : _player_name = shared_context.player_name or "player"
+  backend\app\services\game_loop\turn_pipeline.py:572 : _player_name = actions[0].player_name if actions else ""
+  backend\app\services\game_loop\turn_pipeline.py:589 : _player_name: avatar_to_prompt(_avatar_state)
+  backend\app\services\game_loop\turn_pipeline.py:666 : _player_name: avatar_to_prompt(_avatar_state)
+  backend\app\services\memory\rce.py:49 : player_name: Optional[str] = None,
+  backend\app\services\memory\rce.py:97 : player_name=player_name,
+  backend\app\services\memory\rce.py:184 : player_name: Optional[str] = None,
+  backend\app\services\memory\rce.py:229 : player_name: Optional[str] = None,
+  backend\app\services\state\context_builder.py:54 : player_name=player,
+  backend\app\services\player_avatar_service.py:127 : def load_avatar(self, campaign_id: str, player_name: str) -> Optional[dict]:
+  backend\app\services\player_avatar_service.py:138 : if data.get("state", {}).get("npc_id") != player_name:
+  backend\app\services\player_avatar_service.py:170 : def load_state(self, campaign_id: str, player_name: str) -> NPCState:
+  backend\app\services\player_avatar_service.py:212 : def load_sheet(self, campaign_id: str, player_name: str) -> CharacterSheet:
+  backend\app\services\player_avatar_service.py:222 : def load_profile(self, campaign_id: str, player_name: str) -> CharacterProfile:
+  backend\app\services\player_session_service.py:93 : player_name=data["player_name"],
+  backend\app\services\player_session_service.py:119 : def select_player(self, campaign_id: str, player_name: str) -> PlayerSession:
+  backend\app\services\player_session_service.py:135 : player_name=player_name,
+  backend\app\services\player_session_service.py:158 : def heartbeat(self, campaign_id: str, player_name: str) -> PlayerSession:
+  backend\app\services\player_session_service.py:166 : if existing.player_name != player_name:
+  backend\app\services\player_session_service.py:184 : player_name=player_name,
+  backend\app\services\player_session_service.py:195 : def is_player_active(self, campaign_id: str, player_name: Optional[str] = None) -> bool:
+  backend\app\services\player_session_service.py:210 : if player_name and session.player_name != player_name:
+  backend\app\services\player_session_service.py:225 : player_name = self._sessions[campaign_id].player_name
+  backend\tests\gameplay\harness.py:276 : actions=[PlayerAction(player_name=_PLAYER, action=action_text)],
+  backend\tests\micro\test_dm_raw_leak_lock.py:21 : def __init__(self, player_name: str, action: str) -> None:
+  backend\tests\micro\test_dm_raw_leak_lock.py:22 : self.player_name = player_name
+  backend\tests\sandbox\micro\test_player_turn_headless.py:46 : player_name = "Tester"
+  backend\tests\sandbox\micro\test_recognition_and_eavesdrop.py:163 : actions=[PlayerAction(player_name="Tester", action="Привет")]
+  backend\tests\sandbox\micro\test_run_turn_e2e.py:51 : actions=[PlayerAction(player_name="Tester", action="Люся, привет")]
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:198 : actions = [SimpleNamespace(player_name="p", action="Не бей его.")]
+  backend\tests\sandbox\SUPERBOX\scenarios\activity_gap_probe.py:135 : actions=[PlayerAction(player_name="ВВорг", action="остаюсь на месте")],
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_attention_integration_test.py:235 : actions=[PlayerAction(player_name="ВВорг", action="остаюсь на месте")],
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_g3x_test.py:200 : actions=[PlayerAction(player_name="ВВорг", action="остаюсь на месте")],
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3d_test.py:208 : actions=[PlayerAction(player_name="ВВорг", action=action)],
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p3e_test.py:234 : actions=[PlayerAction(player_name="ВВорг", action="остаюсь на месте")],
+  backend\tests\sandbox\SUPERBOX\scenarios\d61_llm_outage_doctrine_test.py:27 : #   по harness.py:266-276 (player_name='player' — константа; при RED
+  backend\tests\sandbox\SUPERBOX\scenarios\d61_llm_outage_doctrine_test.py:87 : "run_turn-шейп по harness.py:266-276; player_name='player' — константа",
+  backend\tests\sandbox\SUPERBOX\scenarios\d61_llm_outage_doctrine_test.py:194 : actions=[PlayerAction(player_name=PLAYER, action=action_text)],
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:136 : actions=[PlayerAction(player_name="Tester", action=action_text)],
+  backend\tests\sandbox\SUPERBOX\player_stress_test.py:104 : player_name = "Tester"
+  backend\tests\sandbox\SUPERBOX\player_stress_test.py:118 : actions=[PlayerAction(player_name=player_name, action=action_text)],
+  backend\tests\sandbox\SUPERBOX\run_terminal_mvp.py:102 : player_name="ВВорг", # Имя игрока
+  backend\tests\sandbox\system\test_epistemology_pipeline.py:103 : player_name = "Венус"
+  backend\tests\sandbox\system\test_epistemology_pipeline.py:125 : player_action = PlayerAction(player_name=player_name, action=_actions[tick])
+  backend\tests\sandbox\system\test_homeostatic_dialogue_stability.py:99 : player_name = "Tester"
+  backend\tests\sandbox\system\test_homeostatic_dialogue_stability.py:126 : player_action = PlayerAction(player_name=player_name, action="осмотреться")
+  backend\tests\sandbox\phase_a_xray_test.py:50 : PLAYER_NAME = "XRayProbe"
+  backend\tests\sandbox\phase_a_xray_test.py:88 : actions=[PlayerAction(player_name=PLAYER_NAME, action=action_text)],
+  backend\tests\sandbox\terminal_cockpit.py:141 : actions=[PlayerAction(player_name=PLAYER, action=_action)],
+  backend\tests\test_game_loop_pipeline.py:60 : _mock_action = MagicMock(player_name="TestPlayer", raw_text="осмотреться")
+  backend\tests\test_r4_pat_x8.py:91 : actions=[PlayerAction(player_name="Tester", action="осмотреться")],
+
+[SEARCH] session_id usage  pattern: /session_id/
+  173 matches:
+  backend\app\models\schemas.py:285 : session_id: str = ""
+  backend\app\services\game_loop\game_loop.py:272 : _session_id = _replay_store.start_session(
+  backend\app\services\game_loop\game_loop.py:278 : session_id=_session_id
+  backend\app\services\game_loop\game_loop.py:280 : logger.info(f"[GAME_LOOP] Replay Recorder started. Session ID: {_session_id}")
+  backend\app\services\game_loop\game_loop.py:284 : _router.set_replay_context(store=_replay_store, session_id=_session_id)
+  backend\app\services\llm\provider_manager.py:185 : session_id: Optional[str] = None,
+  backend\app\services\llm\provider_manager.py:192 : session_log = f"[{session_id}]" if session_id else ""
+  backend\app\services\llm\provider_manager.py:211 : self._get_model_locked(key, session_id),
+  backend\app\services\llm\provider_manager.py:278 : self, key: str, session_id: Optional[str] = None
+  backend\app\services\llm\router.py:293 : def set_replay_context(self, store: Any, session_id: str) -> None:
+  backend\app\services\llm\router.py:299 : self._current_session_id = session_id
+  backend\app\services\llm\router.py:301 : logger.info(f"[LLM_CACHE] Replay context bound. Session: {session_id}")
+  backend\app\services\llm\router.py:520 : session_id=getattr(self, "_current_session_id", "unknown"),
+  backend\app\services\llm\router.py:809 : _current_session = getattr(self, "_current_session_id", "unknown")
+  backend\app\services\llm\router.py:826 : _current_session = getattr(self, "_current_session_id", "unknown")
+  backend\app\services\llm\router.py:887 : session_id=getattr(self, "_current_session_id", "unknown"),
+  backend\app\services\llm\router.py:969 : session_id=getattr(self, "_current_session_id", "unknown"),
+  backend\app\services\llm\router.py:1037 : session_id=getattr(self, "_current_session_id", "unknown"),
+  backend\app\services\llm\router.py:1079 : getattr(self, "_current_session_id", "unknown"), agent_name, _hash
+  backend\app\services\replay\llm_cache.py:29 : def record(self, session_id: str, tick_id: int, agent_name: str, prompt: str, response: str, model_name: str, latency_ms: int = 0)...
+  backend\app\services\replay\llm_cache.py:32 : session_id=session_id,
+  backend\app\services\replay\replay_player.py:24 : def __init__(self, store: ReplayStore, game_loop: Any, session_id: str, campaign_id: str, location_id: str):
+  backend\app\services\replay\replay_player.py:27 : self.session_id = session_id
+  backend\app\services\replay\replay_player.py:102 : "SELECT game_time_seconds, world_snapshot_json FROM tick_snapshots WHERE session_id = ? AND tick_id = ?",
+  backend\app\services\replay\replay_player.py:103 : (self.session_id, tick_id)
+  backend\app\services\replay\replay_recorder.py:15 : def __init__(self, store: Any, session_id: str):
+  backend\app\services\replay\replay_recorder.py:17 : self.session_id = session_id
+  backend\app\services\replay\replay_recorder.py:28 : session_id=self.session_id,
+  backend\app\services\replay\replay_recorder.py:40 : session_id=self.session_id,
+  backend\app\services\replay\replay_recorder.py:62 : session_id=self.session_id,
+  backend\app\services\replay\replay_recorder.py:78 : session_id=self.session_id,
+  backend\app\services\replay\replay_store.py:35 : session_id TEXT PRIMARY KEY,
+  backend\app\services\replay\replay_store.py:42 : session_id TEXT NOT NULL,
+  backend\app\services\replay\replay_store.py:48 : PRIMARY KEY (session_id, tick_id),
+  backend\app\services\replay\replay_store.py:49 : FOREIGN KEY (session_id) REFERENCES sessions(session_id)
+  backend\app\services\replay\replay_store.py:54 : session_id TEXT NOT NULL,
+  backend\app\services\replay\replay_store.py:59 : FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
+  backend\app\services\replay\replay_store.py:64 : session_id TEXT NOT NULL,
+  backend\app\services\replay\replay_store.py:72 : FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
+  backend\app\services\replay\replay_store.py:77 : session_id TEXT NOT NULL,
+  backend\app\services\replay\replay_store.py:82 : FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
+  backend\app\services\replay\replay_store.py:87 : session_id TEXT NOT NULL,
+  backend\app\services\replay\replay_store.py:91 : FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
+  backend\app\services\replay\replay_store.py:116 : session_id = str(uuid.uuid4())
+  backend\app\services\replay\replay_store.py:118 : "INSERT INTO sessions (session_id, campaign_id, commit_hash, started_at) VALUES (?, ?, ?, ?)",
+  backend\app\services\replay\replay_store.py:119 : (session_id, campaign_id, commit_hash, time.time())
+  backend\app\services\replay\replay_store.py:122 : return session_id
+  backend\app\services\replay\replay_store.py:124 : def count_ticks(self, session_id: str) -> int:
+  backend\app\services\replay\replay_store.py:127 : session_id существует ≠ запись произведена (start_session пишет
+  backend\app\services\replay\replay_store.py:132 : "SELECT COUNT(*) FROM tick_snapshots WHERE session_id = ?",
+  backend\app\services\replay\replay_store.py:133 : (session_id,)
+  backend\app\services\replay\replay_store.py:139 : session_id: str,
+  backend\app\services\replay\replay_store.py:151 : (session_id, tick_id, game_time_seconds, tick_state_json, tick_mutation_json, world_snapshot_json)
+  backend\app\services\replay\replay_store.py:153 : (session_id, tick_id, game_time_seconds, b'{}', b'{}', b'{}')
+  backend\app\services\replay\replay_store.py:162 : WHERE session_id = ? AND tick_id = ?""",
+  backend\app\services\replay\replay_store.py:168 : session_id, tick_id
+  backend\app\services\replay\replay_store.py:175 : session_id: str,
+  backend\app\services\replay\replay_store.py:183 : """INSERT INTO interventions (session_id, tick_id, source, payload_json, intent_compression_json)
+  backend\app\services\replay\replay_store.py:185 : (session_id, tick_id, source, self._to_json_bytes(payload), self._to_json_bytes(intent_compression))
+  backend\app\services\replay\replay_store.py:191 : session_id: str,
+  backend\app\services\replay\replay_store.py:206 : """INSERT INTO llm_calls (session_id, tick_id, agent_name, prompt_hash, prompt_json, response_json, model_name, latency_ms)
+  backend\app\services\replay\replay_store.py:208 : (session_id, tick_id, agent_name, prompt_hash, self._to_json_bytes(prompt), self._to_json_bytes(response), model_name, latency_ms)
+  backend\app\services\replay\replay_store.py:214 : session_id: str,
+  backend\app\services\replay\replay_store.py:222 : """INSERT INTO causal_probes (session_id, tick_id, probe_name, status, details_json)
+  backend\app\services\replay\replay_store.py:224 : (session_id, tick_id, probe_name, status, self._to_json_bytes(details))
+  backend\app\services\replay\replay_store.py:230 : session_id: str,
+  backend\app\services\replay\replay_store.py:237 : """INSERT INTO scene_changes (session_id, tick_id, change_json, applied)
+  backend\app\services\replay\replay_store.py:239 : (session_id, tick_id, self._to_json_bytes(change), applied)
+  backend\app\services\replay\replay_store.py:243 : def get_llm_call(self, session_id: str, agent_name: str, prompt_hash: str) -> Optional[Dict[str, Any]]:
+  backend\app\services\replay\replay_store.py:249 : "SELECT response_json, model_name FROM llm_calls WHERE session_id = ? AND agent_name = ? AND prompt_hash = ? ORDER BY call_id DESC...
+  backend\app\services\replay\replay_store.py:250 : (session_id, agent_name, prompt_hash)
+  backend\app\services\replay\replay_store.py:273 : Поля: session_id, campaign_id, commit_hash, started_at, pinned.
+  backend\app\services\replay\replay_store.py:277 : """SELECT session_id, campaign_id, commit_hash,
+  backend\app\services\replay\replay_store.py:292 : def pin_session(self, session_id: str) -> bool:
+  backend\app\services\replay\replay_store.py:300 : "UPDATE sessions SET pinned = 1 WHERE session_id = ? AND pinned = 0",
+  backend\app\services\replay\replay_store.py:301 : (session_id,),
+  backend\app\services\replay\replay_store.py:306 : def unpin_session(self, session_id: str) -> bool:
+  backend\app\services\replay\replay_store.py:310 : "UPDATE sessions SET pinned = 0 WHERE session_id = ? AND pinned = 1",
+  backend\app\services\replay\replay_store.py:311 : (session_id,),
+  backend\app\services\replay\replay_store.py:335 : scene_changes). Возвращает список удалённых session_id.
+  backend\app\services\replay\replay_store.py:337 : dry_run=True: возвращает список session_id для удаления БЕЗ
+  backend\app\services\replay\replay_store.py:351 : """SELECT session_id FROM sessions
+  backend\app\services\replay\replay_store.py:367 : "DELETE FROM scene_changes WHERE session_id = ?",
+  backend\app\services\replay\replay_store.py:371 : "DELETE FROM causal_probes WHERE session_id = ?",
+  backend\app\services\replay\replay_store.py:375 : "DELETE FROM llm_calls WHERE session_id = ?",
+  backend\app\services\replay\replay_store.py:379 : "DELETE FROM interventions WHERE session_id = ?",
+  backend\app\services\replay\replay_store.py:383 : "DELETE FROM tick_snapshots WHERE session_id = ?",
+  backend\app\services\replay\replay_store.py:387 : "DELETE FROM sessions WHERE session_id = ?",
+  backend\app\services\state\json_persistence_adapter.py:133 : self, session_id: str, npc_dicts: List[Dict[str, Any]]
+  backend\app\services\state\json_persistence_adapter.py:136 : if not session_id:
+  backend\app\services\state\json_persistence_adapter.py:138 : "[PERSISTENCE] save_npc_runtime вызван без session_id — пропуск"
+  backend\app\services\state\json_persistence_adapter.py:141 : runtime_path = self._saves_dir / session_id / "npc_runtime.json"
+  backend\app\services\state\json_persistence_adapter.py:147 : f"[PERSISTENCE] NPC runtime saved: {session_id} ({len(npc_dicts)} records)"
+  backend\app\services\state\json_persistence_adapter.py:152 : def load_npc_runtime(self, session_id: str) -> Optional[List[Dict[str, Any]]]:
+  backend\app\services\state\json_persistence_adapter.py:154 : if not session_id:
+  backend\app\services\state\json_persistence_adapter.py:156 : runtime_path = self._saves_dir / session_id / "npc_runtime.json"
+  backend\app\services\state\migration_runner.py:288 : session_id TEXT PRIMARY KEY,
+  backend\app\services\state\migration_runner.py:296 : session_id TEXT NOT NULL,
+  backend\app\services\state\migration_runner.py:302 : PRIMARY KEY (session_id, tick_id),
+  backend\app\services\state\migration_runner.py:303 : FOREIGN KEY (session_id) REFERENCES sessions(session_id)
+  backend\app\services\state\migration_runner.py:309 : session_id TEXT NOT NULL,
+  backend\app\services\state\migration_runner.py:314 : FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
+  backend\app\services\state\migration_runner.py:320 : session_id TEXT NOT NULL,
+  backend\app\services\state\migration_runner.py:328 : FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
+  backend\app\services\state\migration_runner.py:334 : session_id TEXT NOT NULL,
+  backend\app\services\state\migration_runner.py:339 : FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
+  backend\app\services\state\migration_runner.py:345 : session_id TEXT NOT NULL,
+  backend\app\services\state\migration_runner.py:349 : FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
+  backend\app\services\state\persistence_port.py:58 : self, session_id: str, npc_dicts: List[Dict[str, Any]]
+  backend\app\services\state\persistence_port.py:64 : def load_npc_runtime(self, session_id: str) -> Optional[List[Dict[str, Any]]]:
+  backend\app\services\state\sqlite_persistence_adapter.py:17 : Ключи: scene:{campaign_id}, runtime:{session_id}, npcs:{campaign_id}
+  backend\app\services\state\sqlite_persistence_adapter.py:170 : self, session_id: str, npc_dicts: List[Dict[str, Any]]
+  backend\app\services\state\sqlite_persistence_adapter.py:173 : if not session_id:
+  backend\app\services\state\sqlite_persistence_adapter.py:175 : "[SQLITE_PERSISTENCE] save_npc_runtime без session_id — пропуск"
+  backend\app\services\state\sqlite_persistence_adapter.py:180 : self._upsert(f"runtime:{session_id}", npc_dicts)
+  backend\app\services\state\sqlite_persistence_adapter.py:185 : f"[SQLITE_PERSISTENCE] NPC runtime saved: {session_id} ({len(npc_dicts)} records)"
+  backend\app\services\state\sqlite_persistence_adapter.py:266 : def load_npc_runtime(self, session_id: str) -> Optional[List[Dict[str, Any]]]:
+  backend\app\services\state\sqlite_persistence_adapter.py:268 : if not session_id:
+  backend\app\services\state\sqlite_persistence_adapter.py:270 : data = self._select(f"runtime:{session_id}")
+  backend\app\services\state\sqlite_persistence_adapter.py:276 : f"[SQLITE_PERSISTENCE] runtime:{session_id} не список, а {type(data)}"
+  backend\app\services\campaign_state_service.py:232 : session_id = f"session_{uuid4().hex[:8]}"
+  backend\app\services\campaign_state_service.py:236 : id=session_id,
+  backend\app\services\error_interpreter.py:59 : context: {'session_id', 'vram_before', ...}
+  backend\app\services\player_session_service.py:67 : "session_id": session.session_id,
+  backend\app\services\player_session_service.py:96 : session_id=data["session_id"],
+  backend\app\services\player_session_service.py:138 : session_id=str(uuid.uuid4()),
+  backend\app\services\player_session_service.py:143 : logger.debug(f"[PLAYER_SESSION_CREATED] Session ID: {session.session_id}")
+  backend\app\services\player_session_service.py:187 : session_id=str(uuid.uuid4()),
+  backend\tests\micro\test_d72_replay_budget.py:47 : "UPDATE sessions SET started_at = ? WHERE session_id = ?",
+  backend\tests\micro\test_d72_replay_budget.py:57 : store: ReplayStore, session_id: str, tick_id: int = 1
+  backend\tests\micro\test_d72_replay_budget.py:61 : session_id=session_id, tick_id=tick_id,
+  backend\tests\micro\test_d72_replay_budget.py:65 : session_id=session_id, tick_id=tick_id,
+  backend\tests\micro\test_d72_replay_budget.py:69 : session_id=session_id, tick_id=tick_id,
+  backend\tests\micro\test_d72_replay_budget.py:74 : session_id=session_id, tick_id=tick_id,
+  backend\tests\micro\test_d72_replay_budget.py:78 : session_id=session_id, tick_id=tick_id,
+  backend\tests\micro\test_d72_replay_budget.py:101 : "SELECT pinned FROM sessions WHERE session_id = ?", (sid,)
+  backend\tests\micro\test_d72_replay_budget.py:165 : "session_id", "campaign_id", "commit_hash",
+  backend\tests\micro\test_d72_replay_budget.py:185 : sid = store.list_sessions()[0]["session_id"]
+  backend\tests\micro\test_d72_replay_budget.py:264 : _add_all_dependent_rows(store, s["session_id"], tick_id=1)
+  backend\tests\micro\test_d72_replay_budget.py:277 : f"SELECT COUNT(*) FROM {table} WHERE session_id = ?",
+  backend\tests\micro\test_d72_replay_budget.py:285 : f"SELECT COUNT(*) FROM {table} WHERE session_id = ?",
+  backend\tests\micro\test_d72_replay_budget.py:286 : (remaining[0]["session_id"],),
+  backend\tests\micro\test_d72_replay_budget.py:307 : _add_all_dependent_rows(store, s["session_id"], tick_id=1)
+  backend\tests\micro\test_llm_resilience_v1.py:18 : def get_llm_call(self, session_id, agent_name, prompt_hash):
+  backend\tests\micro\test_llm_resilience_v1.py:19 : return self._entries.get((session_id, agent_name, prompt_hash))
+  backend\tests\micro\test_llm_resilience_v1.py:83 : assert calls[0]["session_id"] == "sess-t3"
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:233 : def run(self, mode: str, session_id: str = None) -> DriftResult:
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:235 : self._replay_session_id = session_id
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:266 : runner(result, self._replay_session_id)
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:442 : self._replay_session_id = self._orchestrator._replay_recorder.session_id
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:443 : # R2 (Phantom fix): session_id ≠ запись. Считаем фактические
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:449 : self._replay_session_id
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:1162 : def _mode_replay_compare(self, result: DriftResult, session_id: str) -> None:
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:1171 : print(f"\n--- MODE H: Replay Compare against session {session_id} ---")
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:1187 : session_id,
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:2141 : def main(mode: str = "long_horizon", session_id: str = None) -> None:
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:2170 : result = lab.run(mode, session_id=session_id)
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:2206 : if hasattr(lab, "_replay_session_id"):
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:2212 : print(f"   Session ID: {lab._replay_session_id}")
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:2215 : print(f"   python -m tests.sandbox.SUPERBOX.run drift replay_compare {lab._replay_session_id}")
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:2220 : print(f"   Session ID (пустая запись): {lab._replay_session_id}")
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:2225 : print(f"   Session ID: {lab._replay_session_id}")
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:2227 : print(f"   python -m tests.sandbox.SUPERBOX.run drift replay_compare {lab._replay_session_id}")
+  backend\tests\sandbox\SUPERBOX\run.py:46 : session_id = args[2] if len(args) > 2 else None
+  backend\tests\sandbox\SUPERBOX\run.py:47 : drift_main(mode, session_id=session_id)
+  backend\tests\IPT.py:869 : session_id = store.start_session("test_campaign", "test_hash")
+  backend\tests\IPT.py:870 : if not session_id:
+  backend\tests\IPT.py:874 : session_id=session_id,
+  backend\tests\IPT.py:881 : store.record_intervention(session_id, 1, "player", {"text": "test"})
+  backend\tests\IPT.py:882 : store.record_causal_probe(session_id, 1, "INV-TEST", "PASS", {"msg": "ok"})
+  backend\tests\IPT.py:1637 : _session_id = _recorder.session_id
+  backend\tests\IPT.py:1641 : "SELECT tick_id FROM tick_snapshots WHERE session_id = ? AND tick_id = ?",
+  backend\tests\IPT.py:1642 : (_session_id, world.tick)
+
+[SEARCH] InterventionEvent class  pattern: /class InterventionEvent/
+  1 matches:
+  backend\app\contracts\interventions.py:14 : class InterventionEvent:
+
+[SEARCH] Player input DTOs  pattern: /class PlayerInput|class PlayerAction|class PlayerCommand|class PlayerIntent/
+  3 matches:
+  backend\app\domain\events.py:33 : class PlayerActionPayload(TypedDict, total=False):
+  backend\app\models\player_action.py:24 : class PlayerAction:
+  backend\app\models\schemas.py:45 : class PlayerAction(BaseModel):
+
+[SEARCH] from_player_action factory  pattern: /from_player_action/
+  5 matches:
+  backend\app\contracts\interventions.py:27 : def from_player_action(
+  backend\app\services\calibration\scenario_player.py:221 : InterventionEvent.from_player_action(
+  backend\tests\gameplay\test_negative_paths.py:16 : e2: InterventionEvent schema (source/payload/tick + from_player_action),
+  backend\tests\gameplay\test_negative_paths.py:330 : assert hasattr(InterventionEvent, "from_player_action"), (
+  backend\tests\gameplay\test_negative_paths.py:331 : "InterventionEvent.from_player_action factory missing (TZ-08 v0.2)"
+
+============================================================
+PRIORITY 3 - S0.2 hotspot reads
+============================================================
+
+[READ] CharacterProfile class  backend/app/models/character.py L95-135
+  95:                 conflict = my_weight * violation_strength
+  96:                 max_conflict = max(max_conflict, conflict)
+  97: 
+  98:         return min(max_conflict, 1.0)
+  99: 
+  100: 
+  101: @dataclass
+  102: class CharacterProfile:
+  103:     """
+  104:     Полный психологический профиль персонажа игрока.
+  105:     Мутирует в рантайме через CharacterFilter (RESIST действия).
+  106: 
+  107:     СВЯЗЬ С D&D-ЛИСТОМ:
+  108:     - character_id = CharacterSheet.name (ключ связки)
+  109:     - CharacterSheet = механика (HP, AC, спеллы)
+  110:     - CharacterProfile = психология (ценности, сопротивление, эрозия)
+  111:     - Хранятся раздельно: characters.json (sheet) vs character_profile.json (profile)
+  112: 
+  113:     МНОГОПОЛЬЗОВАТЕЛЬСКИЙ РЕЖИМ (hot-seat):
+  114:     - В кампании несколько персонажей, каждый со своим профилем
+  115:     - Активный персонаж определяется текущим ходом (не здесь)
+  116:     - self_integrity — личный ресурс, не общий на партию
+  117:     """
+  118: 
+  119:     character_id: str
+  120: 
+  121:     # ── ЯДРО СОПРОТИВЛЕНИЯ ──
+  122:     # Способность персонажа противостоять давлению мира
+  123:     # Начинается с 1.0, деградирует через erosion_accumulator
+  124:     self_integrity: float = 1.0
+  125: 
+  126:     # ── БАЗОВЫЕ ЦЕННОСТИ ──
+  127:     # Формируются при создании персонажа. Frozen — меняются только через крупные события.
+  128:     values: ValueSet = field(default_factory=ValueSet)
+  129: 
+  130:     # ── СОЦИАЛЬНЫЕ ОГРАНИЧЕНИЯ ──
+  131:     # Усвоенные нормы: "как благородный человек должен себя вести"
+  132:     # Меняются быстрее чем values, но медленнее чем self_integrity
+  133:     # ∈ [0..1] для каждого constraint
+  134:     social_constraints: Dict[str, float] = field(default_factory=dict)
+  135: 
+
+[READ] BodyTopology.avatar_id field  backend/app/domain/body.py L140-165
+  140:     """
+  141: 
+  142:     eligible: bool
+  143:     tick: int
+  144:     reason: str = ""  # "" если eligible; иначе первая блокирующая причина
+  145: 
+  146: 
+  147: @dataclass
+  148: class BodyTopology:
+  149:     """Физическая модель тела для хранения предметов."""
+  150:     avatar_id: str
+  151:     strength_score: int = 10      # Базовая Сила для расчета перегрузки
+  152: 
+  153:     hands: Dict[str, BodySlot] = field(default_factory=dict)
+  154:     belt: List[BodySlot] = field(default_factory=list)
+  155:     pockets: List[BodySlot] = field(default_factory=list)
+  156:     backpack: List[BodySlot] = field(default_factory=list)
+  157:     worn: Dict[str, BodySlot] = field(default_factory=dict)
+  158:     hidden: List[BodySlot] = field(default_factory=list)
+  159: 
+  160:     # Состояние слотов: slot_id -> Tuple[Item, ...]
+  161:     contents: Dict[str, Tuple[Item, ...]] = field(default_factory=dict)
+  162: 
+  163:     def all_slots(self) -> List[BodySlot]:
+  164:         slots = list(self.hands.values())
+  165:         slots.extend(self.belt)
+
+[READ] create_topology factory  backend/app/services/body/body_topology_service.py L45-70
+  45: 
+  46:         with open(yaml_path, "r", encoding="utf-8") as f:
+  47:             data = yaml.safe_load(f)
+  48: 
+  49:         cls._topology_template = data.get(_YAML_TOPOLOGY_KEY, {})
+  50:         cls._encumbrance_rules = data.get(_YAML_ENCUMBRANCE_KEY, {})
+  51: 
+  52:     @classmethod
+  53:     def create_topology(cls, avatar_id: str, strength_score: int = 10) -> BodyTopology:
+  54:         """Создаёт экземпляр BodyTopology из загруженного шаблона."""
+  55:         template = cls._topology_template
+  56:         if template is None:
+  57:             cls.load_template()
+  58:             template = cls._topology_template
+  59:         assert template is not None  # mypy: load_template гарантирует непустой шаблон
+  60: 
+  61:         topology = BodyTopology(avatar_id=avatar_id, strength_score=strength_score)
+  62: 
+  63:         # Парсинг рук (Dict)
+  64:         hand_data = template.get(_YAML_HANDS)
+  65:         if hand_data is not None:
+  66:             for hand_data_item in hand_data:
+  67:                 slot = cls._parse_slot(hand_data_item)
+  68:                 topology.hands[slot.slot_id] = slot
+  69: 
+  70:         # Парсинг пояса (List)
+
+[READ] npc_id=player_name bridge  backend/app/services/player_avatar_service.py L185-210
+  185:         # дефолтов; задаётся construction-time (self-write легален в guard).
+  186:         #
+  187:         # Археологический вердикт (S208): SHI-FIX присвоения psyche/drives —
+  188:         # МЁРТВЫЙ КОД, удалён окончательно. Доказано: (1) save-путь их не
+  189:         # пишет; (2) _state_from_dict их не восстанавливает; (3) единственный
+  190:         # потребитель (game_loop, инъекция аватара) читает через getattr-
+  191:         # дефолты, ЗНАЧЕНИЯ КОТОРЫХ ИДЕНТИЧНЫ SHI-FIX (willpower=50.0 и т.д.).
+  192:         # С Stage 0 Task 0.4 default-ветка падала на этих присвоениях —
+  193:         # система всегда жила на fallback'ах потребителя.
+  194:         # Аватарная психика как домен — DEBT-R10 (vertical slice).
+  195:         _default = NPCState(
+  196:             npc_id=player_name,
+  197:             # AG1-D5 FIX (Stage B): NPC-паритет тела — аватар чистого мира
+  198:             # получает здоровое тело как NPC (game_loop:921, life_engine:749,
+  199:             # npc_loader:336), а не эконом-словарь. money — начальный капитал
+  200:             # поверх здоровья. Construction-time self-write легален (guard:
+  201:             # app.models.npc_state.__init__ — S208-прецедент этого же метода).
+  202:             # ДО: {'money': 48} → effective_hp=0.0 (fallback npc_state:796,
+  203:             # семантика DISABLED) + life_status ABSENT → Death Guard 'ALIVE'.
+  204:             body_state={**BODY_STATE_HEALTHY, "money": 48},
+  205:         )
+  206: 
+  207:         # S-93 AVATAR_RESISTANCE: аватар должен сопротивляться действиям, противоречащим его природе
+  208:         # (например, "оскорбить бога" для паладина). WillpowerGate вернёт RESIST и сгенерирует stress.
+  209:         # Пока заглушка, возвращающая корректный стейт. Полная логика будет в DecisionHub.
+  210:         return _default
+
+[READ] PlayerAvatarService production wiring  backend/app/services/game_loop_builder.py L18-65
+  18: from app.services.game_loop import GameLoop
+  19: from app.services.llm import initialize_router
+  20: from app.services.memory import LayeredMemory
+  21: from app.services.memory.memory_manager import MemoryManager
+  22: from app.services.memory.sqlite_store import SqliteMemoryStore
+  23: from app.services.player_avatar_service import PlayerAvatarService
+  24: from app.services.scene_state_manager import SceneStateManager
+  25: from app.services.state.sqlite_persistence_adapter import SqlitePersistenceAdapter
+  26: 
+  27: # AdventureLoader удалён (ADR-O-146)
+  28: from app.services.system_requirements import SystemRequirements
+  29: from app.services.world_scheduler import WorldScheduler
+  30: 
+  31: logger = logging.getLogger(__name__)
+  32: 
+  33: 
+  34: def build_game_loop(data_dir: Path) -> GameLoop:
+  35:     """Собирает GameLoop со всеми зависимостями. Вызывать ТОЛЬКО из startup."""
+  36:     # Гарантируем инициализацию LLM-роутера и пула моделей (важно для IPT и sandbox)
+  37:     initialize_router()
+  38:     saves_dir = Path(settings.saves_dir)
+  39:     # Закон 4.2.1: SQLite = runtime truth
+  40:     store = SqliteMemoryStore(saves_dir / "enigma_memory.db")
+  41:     layered_memory = LayeredMemory(store)
+  42:     # ADR-O-146: RelationshipStore пишет в saves/ (runtime world), не data/ (static world)
+  43:     memory_manager = MemoryManager(layered_memory, data_dir=str(saves_dir))
+  44:     persistence = SqlitePersistenceAdapter(saves_dir / "enigma_runtime.db")
+  45: 
+  46:     # ADR-128: Инжекция PersistencePort в LifeEngine для read-back
+  47:     # при cache miss. Без этого injuries теряются после TTL/LRU eviction.
+  48:     from app.services.npc.life_engine import get_life_engine
+  49: 
+  50:     get_life_engine().set_persistence(persistence)
+  51: 
+  52:     scene_manager = SceneStateManager(
+  53:         data_dir, persistence=persistence, saves_dir=saves_dir, life_engine=get_life_engine()
+  54:     )
+  55:     char_service = CharacterService(root=str(saves_dir))
+  56:     avatar_service = PlayerAvatarService(root=str(saves_dir))
+  57: 
+  58:     # NPC cache — замыкание, одно на весь lifecycle
+  59:     _cache: dict[str, Any] = {"npcs": None, "runtime_path": None}
+  60: 
+  61:     def load_npcs(runtime_path: Any = None) -> list[Any]:
+  62:         # Инвалидируем кэш если изменился runtime_path
+  63:         if _cache["runtime_path"] != runtime_path:
+  64:             _cache["npcs"] = None
+  65:             _cache["runtime_path"] = runtime_path
+
+[READ] load_avatar consumer  backend/app/services/game_loop/turn_pipeline.py L650-670
+  650:                     traces=[],
+  651:                 )
+  652: 
+  653:             _sheets = self.character_service.list_characters(campaign_id)
+  654:             _match = next((s for s in _sheets if s.name == _player_name), None)
+  655:             if (
+  656:                 _match
+  657:                 and self.avatar_service.load_avatar(campaign_id, _player_name) is None
+  658:             ):
+  659:                 self.avatar_service.migrate_from_characters_json(campaign_id, _match)
+  660:                 _avatar_state = self.avatar_service.load_state(
+  661:                     campaign_id, _player_name
+  662:                 )
+  663:             from app.services.game_loop.phase_6_avatar import avatar_to_prompt
+  664: 
+  665:             shared_context.player_state = {
+  666:                 _player_name: avatar_to_prompt(_avatar_state)
+  667:             }
+  668: 
+  669:             # ТЗ Presentation v2.0: Инициализация BodyTopology игрока
+  670:             from app.services.body.body_topology_service import BodyTopologyService
+
+

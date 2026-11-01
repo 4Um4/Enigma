@@ -5,24 +5,11 @@
       "statement": "Когда он не насилует Люсю, а видит её в таверне, испытывает сухое неприятное чувство вины - сразу перед девочкой, перед умершей женой и перед собой в том числе.",
       "traits": [
         "вины",
-        "неприятное",
-        "сухое"
+        "перед собой"
       ]
     },
-    "confidence": 0.5,
-    "needs_confirmation": true,
-    "question": null
-  },
-  {
-    "kind": "RELATIONSHIP",
-    "draft_payload": {
-      "summary": "Он испытывает вины перед Люсюю как девочкой, перед своей умершей женой и перед собой.",
-      "target_hint": "Люся",
-      "nature": "вины",
-      "valence": "negative"
-    },
-    "confidence": 0.5,
-    "needs_confirmation": true,
+    "confidence": 1.0,
+    "needs_confirmation": false,
     "question": null
   }
 ]

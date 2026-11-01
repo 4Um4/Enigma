@@ -1,0 +1,313 @@
+﻿=== B5.1: AffectiveIntegrator class ===
+NOT FOUND: class AffectiveIntegrator
+
+=== B5.2: integrate_affective_pressure ===
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\affective\affective_integrator.py
+Pattern: 'def integrate_affective_pressure' matched at line 27
+Reading lines 27-67 (41 lines):
+---
+  27: def integrate_affective_pressure(
+  28:     kernel: "PerceptualKernel",
+  29:     psyche: Dict[str, Any],
+  30:     current_load: float,
+  31:     current_memory: float,
+  32:     dt: float = 1.0,
+  33: ) -> Tuple[float, float]:
+  34:     """
+  35:     ADR-049 / ADR-O-206: Интегрирует давление во времени (Active Inference + Hysteresis).
+  36: 
+  37:     Возвращает:
+  38:         Tuple[new_load, new_affective_memory]
+  39:     """
+  40:     _w_threat = psyche.get("fear", 0.25)
+  41:     _w_uncertainty = psyche.get("control", 0.25)
+  42:     _w_anomaly = psyche.get("significance", 0.25)
+  43: 
+  44:     willpower_raw = psyche.get("willpower", 50.0)
+  45:     # M-26 FIX: willpower может приходить в шкале 0-100 (из decision.py) или 0-1 (из старых сейвов).
+  46:     # Нормализуем к 0-1, чтобы формула (1.0 - willpower * 0.5) работала корректно.
+  47:     willpower = willpower_raw / 100.0 if willpower_raw > 1.0 else willpower_raw
+  48:     _w_somatic = 1.0 - willpower * 0.5
+  49: 
+  50:     # 1. Мгновенное восприятие (pk_load)
+  51:     pk_load = min(
+  52:         1.0,
+  53:         getattr(kernel, "threat_gradient", 0.0) * _w_threat
+  54:         + getattr(kernel, "uncertainty", 0.0) * _w_uncertainty
+  55:         + getattr(kernel, "anomaly_score", 0.0) * _w_anomaly
+  56:         + getattr(kernel, "somatic_urgency", 0.0) * _w_somatic,
+  57:     )
+  58: 
+  59:     # M-25 FIX: Guard against NaN/Inf propagation
+  60:     import math
+  61:     if math.isnan(pk_load) or math.isinf(pk_load):
+  62:         logger.error("[AFFECTIVE] NaN/Inf detected in pk_load. Resetting to 0.0.")
+  63:         pk_load = 0.0
+  64: 
+  65:     # 2. Active Inference: Ошибка предсказания (Surprise)
+  66:     delta = pk_load - current_memory
+  67:     _abs_error = abs(delta)
+---
+
+
+=== B5.3: integrate_affective_pressure calls ===
+Call site: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\affective\affective_integrator.py:27
+  19: _MEMORY_DECAY_RATE: float = 0.85
+  20: _SURPRISE_GAIN: float = 1.2
+  21: 
+  22: def _compute_scar_rate(abs_error: float) -> float:
+  23:     """Вычисляет скорость формирования 'шрама памяти' на основе ошибки предсказания."""
+  24:     return float(0.1 + (0.4 * (abs_error**1.5)))
+  25: 
+  26: 
+  27: def integrate_affective_pressure(
+  28:     kernel: "PerceptualKernel",
+  29:     psyche: Dict[str, Any],
+  30:     current_load: float,
+  31:     current_memory: float,
+  32:     dt: float = 1.0,
+  33: ) -> Tuple[float, float]:
+  34:     """
+  35:     ADR-049 / ADR-O-206: Интегрирует давление во времени (Active Inference + Hysteresis).
+
+Call site: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\affective\__init__.py:8
+   1: from typing import Any, Dict, List, Optional
+   2: 
+   3: """
+   4: Affective Domain: Динамика внутреннего состояния субъекта.
+   5: ADR-049: От реактивных эмоций к аффективному аккумулятору (Интеграл угрозы по времени).
+   6: """
+   7: 
+   8: from app.services.affective.affective_integrator import integrate_affective_pressure
+   9: from app.services.affective.emotion_transition import resolve_emotion_transition
+
+Call site: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\affective.py:80
+  72:         logger.debug("[AFFECTIVE_PLAYER] SKIP: interpretation_snapshot is empty")
+  73:         return
+  74: 
+  75:     from dataclasses import replace as dataclass_replace
+  76: 
+  77:     from app.models.delta_payloads import EmotionPayload
+  78:     from app.models.npc_state import PerceptualKernel
+  79:     from app.models.state_delta import DeltaDomain, StateDeltas
+  80:     from app.services.affective.affective_integrator import integrate_affective_pressure
+  81:     from app.services.affective.emotion_transition import resolve_emotion_transition
+  82: 
+  83:     _snap_len = len(ctx.interpretation_snapshot) if ctx.interpretation_snapshot else 0
+  84:     logger.debug(f"[SEL_DIAG] Entering NPC loop. Snapshot count: {_snap_len}")
+  85:     # DSTC: Читаем ONLY из interpretation_snapshot (M₀ + deltas)
+  86:     # DSTC: Читаем ONLY из interpretation_snapshot (Pure Read)
+  87:     for npc_raw in ctx.interpretation_snapshot:
+  88:         entity_id = npc_raw.get("npc_id") or npc_raw.get("id")
+
+Call site: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\affective.py:136
+ 128:             aggression_inhibition=pk_dict.get("aggression_inhibition", 0.0),
+ 129:             initiative_suppression=pk_dict.get("initiative_suppression", 0.0),
+ 130:             somatic_urgency=_somatic_urg,  # ADR-O-143: воспринимаемый телесный дистресс
+ 131:         )
+ 132: 
+ 133:         # ADR-049: Единый интегратор аффективного давления
+ 134:         current_load = float(npc_raw.get("affective_load", 0.0))
+ 135:         current_memory = float(npc_raw.get("affective_memory", 0.0))
+ 136:         new_load, new_memory = integrate_affective_pressure(
+ 137:             kernel=projected_kernel,
+ 138:             psyche=psyche,
+ 139:             current_load=current_load,
+ 140:             current_memory=current_memory,
+ 141:         )
+ 142: 
+ 143:         emotion_payload = resolve_emotion_transition(new_load, current_load, psyche)
+ 144: 
+
+Call site: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\integration.py:173
+ 165:                     None,
+ 166:                 ):
+ 167:                     # ADR-O-208: Смерть npc_raw["drives"].
+ 168:                     # Котёл читает ТОЛЬКО эфемерную проекцию из DriveResolver (L0 + L1).
+ 169:                     # ВНИМАНИЕ: блок перенесён ВЫШЕ compute_continuous_drift —
+ 170:                     # TIFL требует _drives_projection и _psyche_raw на вход.
+ 171:                     from app.models.npc_state import PerceptualKernel, personality_from_legacy
+ 172:                     from app.services.affective.affective_integrator import (
+ 173:                         integrate_affective_pressure,
+ 174:                     )
+ 175:                     from app.services.affective.emotion_transition import (
+ 176:                         resolve_emotion_transition,
+ 177:                     )
+ 178: 
+ 179:                     _profile_l0 = personality_from_legacy(npc_raw)
+ 180:                     _beliefs = deps.crystallized_belief_store.get_beliefs(entity_id)
+ 181:                     _drives_projection = deps.drive_resolver.resolve_drives(
+
+Call site: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\integration.py:338
+ 330:                                 embodied_signal=signal,
+ 331:                                 expires_tick=ctx.tick_number + 3,
+ 332:                             )
+ 333:                         )
+ 334: 
+ 335:                     # ADR-049: Единый интегратор аффективного давления
+ 336:                     current_load = float(npc_raw.get("affective_load", 0.0))
+ 337:                     current_memory = float(npc_raw.get("affective_memory", 0.0))
+ 338:                     new_load, new_memory = integrate_affective_pressure(
+ 339:                         kernel=projected_kernel,
+ 340:                         psyche=psyche,
+ 341:                         current_load=current_load,
+ 342:                         current_memory=current_memory,
+ 343:                     )
+ 344: 
+ 345:                     # BUG FIX: Сохраняем обновлённые affective_load и memory обратно в npc_raw.
+ 346:                     # Без этого BreakProgressEngine видит 0.0 и не генерирует событие "pressure".
+
+
+=== B5.4: AffectiveImprint class ===
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\affect.py
+Pattern: 'class AffectiveImprint' matched at line 19
+Reading lines 19-59 (41 lines):
+---
+  19: class AffectiveImprint:
+  20:     """Единица аффективной памяти — остаточное давление опыта.
+  21: 
+  22:     Не хранит нарратив ("Бандит избил меня у моста").
+  23:     Хранит векторы давления и триггеры, чтобы LLM мог озвучить это как травму.
+  24:     Интегрируется перед WillpowerGate (Affect Resonance Scan).
+  25:     """
+  26: 
+  27:     # Источник возмущения (кто нанес травму / оказал давление)
+  28:     source_entity_id: str
+  29: 
+  30:     # Семантические теги события (для резонанса с IntentPressureProfile)
+  31:     trigger_tags: tuple[str, ...]  # например: ("violence", "public", "betrayal")
+  32: 
+  33:     # Сигнатуры давления (осколки пережитого)
+  34:     pain_signature: float  # 0.0-1.0, остаточная физическая боль
+  35:     fear_signature: float  # 0.0-1.0, остаточный страх
+  36:     humiliation_signature: float  # 0.0-1.0, остаточный стыд/унижение
+  37: 
+  38:     # Социальный сдвиг (как изменилось доверие к источнику)
+  39:     trust_shift: float  # дельта доверия (-1.0 ... +1.0)
+  40: 
+  41:     # Параметры инерции и затухания
+  42:     reinforcement: (
+  43:         float  # 0.0-1.0, насколько травма укрепилась при повторном воздействии
+  44:     )
+  45:     decay_rate: float  # 0.0-1.0, скорость затухания (0 = вечная травма, 1 = мгновенно забывается)
+  46: 
+  47:     # Временные метки (в game_time_seconds)
+  48:     created_at: int  # Когда произошло событие
+  49:     last_triggered_at: int  # Когда травма последний раз резонировала с новым действием
+  50: 
+  51: 
+  52: class ResponseBias(Enum):
+  53:     """Спектр реакций на травматический резонанс. Травма ≠ страх."""
+  54: 
+  55:     FEAR = "fear"  # Бегство, избегание
+  56:     AGGRESSION = "aggression"  # Ярость, нападение (конвертация страха в гнев)
+  57:     FREEZE = "freeze"  # Оцепенение, ступор
+  58:     SUBMISSION = "submission"  # Подчинение, гиперкомплаенс
+  59:     DISSOCIATION = "dissociation"  # Отчуждение, "это происходит не со мной"
+---
+
+=== B5.5: Phase 9.1 Affective Pipeline ===
+Found in: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py
+Pattern: 'phase_9_1|affective_pipeline|run_affective|_run_affective' matched at line 1110
+Reading lines 1110-1140 (31 lines):
+---
+1110:         self._run_affective_pipeline(ctx) # 9.1
+1111: 
+1112:         # Подсистема 2: Запись WorldSnapshot после Фазы 9
+1113:         if _recorder:
+1114:             _recorder.record_world_snapshot(ctx.tick_number, getattr(ctx, "world_snapshot", None)) # POST-9  # noqa: ENIGMA002
+1115: 
+1116:         self._resolve_cross_location_transfers(ctx) # POST-9: Extract BEFORE Phase 10 to persist clean state
+1117:         self._phase_10_persistence(ctx) # 10
+1118: 
+1119:         # Подсистема 3: Causal Probes (real-time invariant monitor)
+1120:         from app.services.probes.probe_registry import ProbeContext
+1121:         from app.services.probes.probe_runner import ProbeRunner
+1122:         from app.services.probes.probes.death_lock_probe import DeathLockProbe
+1123:         from app.services.probes.probes.l3_ephemeral_probe import L3EphemeralProbe
+1124:         from app.services.probes.probes.spatial_coherence_probe import SpatialCoherenceProbe
+1125:         from app.services.probes.probes.traversal_fsm_probe import TraversalFSMProbe
+1126: 
+1127:         _spatial_svc = self._resolve_spatial_service(ctx)
+1128:         _probe_ctx = ProbeContext(
+1129:             tick_id=ctx.tick_number,
+1130:             game_time_seconds=ctx.scene_state.get("game_time_seconds", 0.0),
+1131:             scene_state=ctx.scene_state,
+1132:             all_npcs_raw=ctx.all_npcs_raw,
+1133:             mvp_controller=ctx.mvp_controller,  # ENIGMA SELF-HEALING: Pass to probes
+1134:             tick_mutation=getattr(ctx, "tick_mutation", None),  # Подсистема 3: Инвариант I  # noqa: ENIGMA002
+1135:             tick_state_hash_before=getattr(ctx, "tick_state_hash_before", None),  # Инвариант III  # noqa: ENIGMA002
+1136:             tick_state_hash_after=getattr(ctx, "tick_state_hash_after", None),     # Инвариант III  # noqa: ENIGMA002
+1137:             tick_state_mutated_fields=getattr(ctx, "tick_state_mutated_fields", None), # S179 FIX  # noqa: ENIGMA002
+1138:             effective_drives_map=getattr(ctx, "effective_drives_map", {}),         # Инвариант II  # noqa: ENIGMA002
+1139:             spatial_service=_spatial_svc  # BUG-SPATIAL-036: Передаём сервис для SC-2..SC-8
+1140:         )
+---
+
+Found in: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\affective.py
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\affective.py
+Pattern: 'phase_9_1|affective_pipeline|run_affective|_run_affective' matched at line 5
+Reading lines 5-35 (31 lines):
+---
+   5: Основные сущности: Phase9Deps, run_phase_9, run_affective_pipeline
+   6: """
+   7: from __future__ import annotations
+   8: 
+   9: import copy
+  10: import logging
+  11: from dataclasses import dataclass
+  12: from typing import Any
+  13: 
+  14: from app.services.dto import SemanticFrame, _TickContext
+  15: 
+  16: logger = logging.getLogger(__name__)
+  17: 
+  18: 
+  19: @dataclass(frozen=True)
+  20: class Phase9Deps:
+  21:     """Зависимости Фазы 9. Frozen для предотвращения мутаций."""
+  22: 
+  23:     crystallized_belief_store: Any
+  24:     drive_resolver: Any
+  25:     l1_chronicle: Any
+  26:     pattern_detector: Any
+  27:     belief_engine: Any
+  28:     state_applicator: Any
+  29:     snapshot_builder: Any
+  30:     manifest_svc: Any
+  31:     project_svc: Any
+  32: 
+  33: 
+  34: def run_phase_9(ctx: _TickContext, deps: Phase9Deps) -> None:
+  35:     """ADR-049 / ADR-O-305: Аффективная интеграция, кристаллизация убеждений и сборка снапшота."""
+---
+
+Found in: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\idle_services.py
+File: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\idle_services.py
+Pattern: 'phase_9_1|affective_pipeline|run_affective|_run_affective' matched at line 169
+Reading lines 169-189 (21 lines):
+---
+ 169:     # Без этого _run_affective_pipeline (Фаза 9) пересчитывает affective_load
+ 170:     # из устаревшего PK, перезаписывая честный декей из AffectiveDecayHandler.
+ 171:     # Результат: Вечный Двигатель Страха (maid_lusya: 1.00/fearful навсегда).
+ 172:     _PERCEPTUAL_DECAY = {
+ 173:         "threat_gradient": 0.05,
+ 174:         "uncertainty": 0.03,
+ 175:         "anomaly_score": 0.02,
+ 176:     }
+ 177:     for npc_dict in ctx.all_npcs_raw:
+ 178:         pk = npc_dict.get("perceptual_kernel")
+ 179:         if pk and isinstance(pk, dict):
+ 180:             for _key, _rate in _PERCEPTUAL_DECAY.items():
+ 181:                 if _key in pk:
+ 182:                     pk[_key] = max(0.0, float(pk[_key]) - _rate)
+ 183: 
+ 184:     # S75-R1 FIX: Cache Desync (Техзадание S75).
+ 185:     # Синхронизация LifeEngine cache с применёнными idle-дельтами.
+ 186:     # Хотя Фаза 10 тоже вызывает update_cache, этот вызов гарантирует,
+ 187:     # что кэш обновлён ДО Фазы 9, предотвращая расхождение истин.
+ 188:     if ctx.all_npcs_raw:
+ 189:         deps.life_engine.update_cache(ctx.campaign_id, ctx.all_npcs_raw)
+---
+

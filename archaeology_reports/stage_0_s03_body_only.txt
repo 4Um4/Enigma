@@ -1,0 +1,605 @@
+﻿============================================================
+
+STAGE 0 - S0.3 BODY IDENTITY + S0.4 CONTROL SOURCE
+
+Mode: READ ONLY - per Master verdict 2026-11-01
+
+IntentIdentity: 4-field semantic APPROVED, implementation HOLD
+
+ControlSource expansion: NOT AUTHORIZED
+
+Generated: 2026-11-01 19:55:03
+
+============================================================
+
+============================================================
+
+S0.3 - BODY IDENTITY
+
+============================================================
+
+--- Q1: NPCState class definition ---
+
+[SEARCH] NPCState class definition  pattern: /class NPCState\b/
+  2 matches:
+  backend\app\models\npc_state.py:664 : class NPCState:
+  backend\app\models\schemas.py:117 : class NPCState(BaseModel):
+
+[READ] NPCState L1-250 of 1403 (class definition)  backend/app/models/npc_state.py L1-250
+  1: from __future__ import annotations
+  2: 
+  3: # backend/app/models/npc_state.py
+  4: """
+  5: Единый источник типов NPC. Жёсткие write-контракты:
+  6:   L0 NPCPersonality   — write: NEVER (frozen dataclass)
+  7:   L1 NPCIdentityL1    — write: ONLY ResonanceEngine
+  8:   L2 NPCState         — write: ONLY StateApplicator
+  9:   EventMemory         — write: ONLY MemoryManager
+  10: 
+  11: Файл: backend/app/models/npc_state.py
+  12: Назначение: Единый источник типов NPC (L0-L2, Enums, Memory)
+  13: Зависимости: app.models.behavior_mask (BehaviorMaskState)
+  14: Основные сущности: Intent, WillState, EmotionTag, NPCTier, EventMemory, NPCPersonality, NPCIdentityL1, NPCState, DecisionView
+  15: 
+  16: R2.1 — NPCState: единый источник правды о динамическом состоянии NPC.
+  17: NPCState — центральный узел всей психики.
+  18: 
+  19: Принципы:
+  20:   - NPCPersonality (frozen) — static, загружается из JSON один раз
+  21:   - NPCState (mutable) — dynamic, меняется через StateApplicator
+  22:   - DecisionHub читает оба объекта, но пишет только через StateApplicator
+  23:   - LLM получает только VerbalizationContext — не сам NPCState
+  24: 
+  25: """
+  26: 
+  27: 
+  28: import math
+  29: 
+  30: from app.models.affect import AffectiveImprint
+  31: 
+  32: _math = math
+  33: from dataclasses import dataclass, field
+  34: from enum import Enum
+  35: from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
+  36: from uuid import UUID
+  37: 
+  38: from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
+  39: 
+  40: if TYPE_CHECKING:
+  41:     from app.models.physical import Condition, Wound
+  42:     from app.models.psychological import CausalChain
+  43: import logging
+  44: 
+  45: from app.domain.traversal import BodyCapabilities
+  46: from app.models.npc.beliefs import BeliefState
+  47: from app.models.physical import ThreatAccumulator
+  48: from app.models.psychological import CausalEntry
+  49: 
+  50: logger = logging.getLogger(__name__)
+  51: 
+  52: 
+  53: # NPIC Sentinel: Отсутствие данных ≠ нейтральное состояние (§ENIGMA-003).
+  54: # Если body_state утерян при холодном старте, NPC переходит в DISABLED состояние.
+  55: # Это физический инвариант: агент существует как инертная материя, а не как логический призрак.
+  56: # ADR-O-146: IMMUTABLE sentinel — dict() копия обязательна при присвоении.
+  57: # Прямое присвоение _npc["body_state"] = BODY_STATE_DISABLED ЗАПРЕЩЕНО —
+  58: # shared reference мутируется StateApplicator, заражая ВСЕХ NPC.
+  59: BODY_STATE_DISABLED: Any = (
+  60:     dict  # 陷阱 guard, используйте dict(BODY_STATE_DISABLED_DATA)
+  61: )
+  62: BODY_STATE_DISABLED_DATA = {
+  63:     "disabled": True,
+  64:     "shock_impulse": 1.0,
+  65:     "pain": 100.0,
+  66:     "blood_loss": 1.0,
+  67:     "consciousness": 0.0,
+  68:     "current_hp": 0,
+  69:     "fatigue": 100.0,
+  70:     # S188 ARCH-SLEEP Phase A: Непрерывные оси телесного режима
+  71:     "sleep_pressure": 0.0,  # Накопленная потребность сна (0.0-1.0)
+  72:     "arousal": 1.0,         # Физиологическое возбуждение (у отключенного тела максимум)
+  73: }
+  74: 
+  75: # Здоровое тело — инжектируется при New Game для NPC из static config.
+  76: # Отсутствие body_state ≠ нейтральное состояние (§ENIGMA-003),
+  77: # но New Game = свежий мир, где все NPC живы и здоровы.
+  78: BODY_STATE_HEALTHY = {
+  79:     "current_hp": 100,
+  80:     # S2B.1: energy — искусственный variable для pipeline proof-of-concept.
+  81:     "energy": 100.0,  # 0-100; расход от activity, восстановление от rest
+  82:     "hydration": 100.0,  # S2B.3: 0-100; потеря от activity + baseline
+  83:     "nutrition": 100.0,  # S2B.4: 0-100; one-way loss (eating = action, future); stock ≠ hunger (S2B.10)
+  84:     "max_hp": 100,
+  85:     "pain": 0.0,
+  86:     "fatigue": 0.0,
+  87:     "blood_loss": 0.0,
+  88:     "consciousness": 1.0,
+  89:     "shock_impulse": 0.0,
+  90:     "injuries": [],
+  91:     "modifiers": {},
+  92:     "statuses": [],
+  93:     "life_status": "ALIVE",
+  94:     # S188 ARCH-SLEEP Phase A: Непрерывные оси телесного режима
+  95:     "sleep_pressure": 0.0,  # Накопленная потребность сна (0.0-1.0)
+  96:     "arousal": 0.0,         # Физиологическое возбуждение (покой = 0.0)
+  97: }
+  98: 
+  99: 
+  100: # ─────────────────────────────────────────────────────────────────────────────
+  101: # Enums
+  102: # ─────────────────────────────────────────────────────────────────────────────
+  103: 
+  104: 
+  105: class Intent(str, Enum):
+  106:     """Возможные намерения NPC. DecisionHub выбирает одно из них."""
+  107: 
+  108:     IDLE = "idle"  # нет активного намерения
+  109:     TALK = "talk"  # вступить в диалог
+  110:     WARN = "warn"  # предупредить
+  111:     INTIMIDATE = "intimidate"  # запугать
+  112:     FLEE = "flee"  # уйти / сбежать
+  113:     ATTACK = "attack"  # атаковать
+  114:     HELP = "help"  # помочь
+  115:     REPORT = "report"  # донести властям
+  116:     TRADE = "trade"  # предложить сделку
+  117:     OBSERVE = "observe"  # наблюдать, не действовать
+  118:     EXPLAIN = "explain"  # ответить "почему" — для диалога
+  119:     APPROACH = "approach"  # подойти к целевой сущности (игрок/NPC/объект)
+  120: 
+  121:     # ── Проактивные интенты (Фаза 3.4: Agenda Loop) ─────────────────────
+  122:     BLOCK_PATH = "block_path"  # преградить дорогу (шаг 9 из Мечты)
+  123:     AMBUSH = "ambush"  # устроить засаду
+  124:     SEEK_ALLY = "seek_ally"  # пойти за союзником
+  125:     OFFER_JOB = "offer_job"  # предложить работу (Economic Engine)
+  126:     REQUEST_SERVICE = "request_service"  # попросить об услуге
+  127:     SPREAD_RUMOR = "spread_rumor"  # распространить слух (Social Graph)
+  128:     CALL_FOR_HELP = "call_for_help"  # позвать на помощь
+  129:     CHANGE_ROLE = "change_role"  # сменить роль (Role Transition)
+  130:     STEAL = "steal"  # скрытое действие: кража (unlockable, OpportunityEngine, S209)
+  131: 
+  132: 
+  133: class WillState(str, Enum):
+  134:     """Единое состояние воли NPC. Объединяет базовые состояния и стадии слома."""
+  135: 
+  136:     # Базовые состояния
+  137:     FREE = "free"
+  138:     COERCED = "coerced"
+  139:     DECEPTIVE = "deceptive"
+  140:     LOYAL = "loyal"
+  141: 
+  142:     # Стадии слома и сопротивления (из app.models.will)
+  143:     COMPLY = "comply"
+  144:     RELUCTANT = "reluctant"
+  145:     DELAY = "delay"
+  146:     MISINTERPRET = "misinterpret"
+  147:     NEGOTIATE = "negotiate"
+  148:     PARTIAL_COMPLY = "partial_comply"
+  149:     DISTRESSED = "distressed"
+  150:     PANICKED = "panicked"
+  151:     DISSOCIATING = "dissociating"
+  152:     BROKEN = "broken"
+  153:     CONDITIONED = "conditioned"
+  154:     COUNTER_OFFER = "counter_offer"  # Аватар предлагает альтернативу выживания
+  155:     REFUSE = "refuse"  # Жесткий отказ, готовность к последствиям
+  156: 
+  157: 
+  158: class EmotionTag(str, Enum):
+  159:     """Текущая эмоция NPC — передаётся в VerbalizationContext."""
+  160: 
+  161:     NEUTRAL = "neutral"
+  162:     ANGRY = "angry"
+  163:     FEARFUL = "fearful"
+  164:     HAPPY = "happy"
+  165:     SUSPICIOUS = "suspicious"
+  166:     GRATEFUL = "grateful"
+  167:     DISGUSTED = "disgusted"
+  168:     SAD = "sad"
+  169: 
+  170: 
+  171: class NPCTier(str, Enum):
+  172:     """
+  173:     Статический уровень симуляции NPC.
+  174:     Назначается при создании кампании — не меняется в runtime.
+  175:     MASS  → только флаги присутствия
+  176:     MINOR → расписание + редкие события
+  177:     MAJOR → полная симуляция DecisionHub
+  178:     """
+  179: 
+  180:     MASS = "mass"
+  181:     MINOR = "minor"
+  182:     MAJOR = "major"
+  183: 
+  184: 
+  185: # ─────────────────────────────────────────────────────────────────────────────
+  186: # EventMemory — L2: смысловая память NPC (из Память.md R5.1)
+  187: # Lifecycle: Fresh → Detailed → Compressed → Abstract → Forgotten
+  188: # Не участвует в формуле score() — только для вербализации и EXPLAIN.
+  189: # ─────────────────────────────────────────────────────────────────────────────
+  190: 
+  191: 
+  192: class MemoryStage(str, Enum):
+  193:     """Стадия жизненного цикла события в памяти."""
+  194: 
+  195:     FRESH = "fresh"  # только что произошло — детальная
+  196:     DETAILED = "detailed"  # несколько тиков — ещё точная
+  197:     COMPRESSED = "compressed"  # сжатая — детали теряются
+  198:     ABSTRACT = "abstract"  # только смысл — уходит в L3 traits
+  199:     FORGOTTEN = "forgotten"  # importance < threshold — удаляется
+  200: 
+  201: 
+  202: class DiscoveryCrack(str, Enum):
+  203:     """Уровень трещины в секрете под давлением (Этап 5).
+  204:     NONE — NPC держится. CRACK — запинается. PARTIAL — часть правды. BROKEN — сломлен.
+  205:     """
+  206: 
+  207:     NONE = "none"
+  208:     CRACK = "crack"
+  209:     PARTIAL = "partial"
+  210:     BROKEN = "broken"
+  211: 
+  212: 
+  213: @dataclass(frozen=True)
+  214: class EventMemory:
+  215:     """
+  216:     R5.1 — L2: смысловая память о событии.
+  217:     Хранит clarity (чёткость восприятия) и confidence (уверенность в деталях).
+  218:     Decay переводит из Fresh → Forgotten через промежуточные стадии.
+  219:     """
+  220: 
+  221:     event_type: str
+  222:     target_id: str
+  223:     emotion_tag: str
+  224:     day: int
+  225:     importance: float  # 0.0–1.0, затухает со временем
+  226:     clarity: float = 1.0  # насколько чётко NPC воспринял событие
+  227:     confidence: float = 1.0  # уверенность в деталях (снижается при drift)
+  228:     decay_rate: float = 0.05  # потеря importance за тик
+  229:     stage: MemoryStage = MemoryStage.FRESH
+  230:     sequence_id: int = 0
+  231:     summary: str = ""  # R1: текст "игрок избил Люсю кулаками"
+  232:     npc_id: str = ""  # R1: какой NPC это запоминает
+  233: 
+  234:     # Фаза 0: Theatre — поля для origin_events и секретов
+  235:     tags: Tuple[str, ...] = ()  # для триггерного поиска (immutable для frozen)
+  236:     is_secret: bool = False
+  237:     known_by: Tuple[str, ...] = ()  # кто знает (immutable для frozen)
+  238:     hidden_from: Tuple[str, ...] = ()  # от кого скрыто (immutable для frozen)
+  239:     accessibility: float = 1.0  # 0..1, падает со временем отдельно от importance
+  240:     secret_id: Optional[str] = None  # M1/P1+P2: идентичность ФАКТА канона (не экземпляра памяти); (npc_id, secret_id) = отношение «знает»; один факт живёт во многих памятях (holders/поколения/хроника)
+  241: 
+  242:     # Этап 6: контракты и обязательства
+  243:     fulfilled: bool = False  # обещание выполнено / долг погашен
+  244:     contract_ref: str = ""  # ID связанного события (promise_given ↔ fulfilled)
+  245: 
+  246:     # Этап 9: сжатие
+  247:     is_compressed: bool = False  # это сжатая абстракция
+  248:     compressed_from: Tuple[str, ...] = ()  # ID исходных событий (immutable для frozen)
+  249: 
+  250:     # R8: субъект действия — онтологическая полнота наблюдения (кто совершил)
+
+--- Q2: body_state direct writes ---
+
+[SEARCH] body_state dict access  pattern: /\.body_state\s*\[/
+  31 matches:
+  backend\app\models\npc_state.py:830 : return float(self.body_state["current_hp"])
+  backend\app\models\npc_state.py:837 : return float(self.body_state["max_hp"])
+  backend\app\services\npc\state_applicator.py:450 : new_state.body_state["current_hp"] = min(_max_hp, _new_hp)
+  backend\app\services\npc\state_applicator.py:454 : new_state.body_state["current_hp"] = int(_new_hp)
+  backend\app\services\npc\state_applicator.py:1137 : state.body_state["current_hp"] = max(
+  backend\app\services\npc\state_applicator.py:1143 : state.body_state["pain"] = max(0.0, min(100.0, _cur_pain + pain_delta))
+  backend\app\services\npc\state_applicator.py:1147 : state.body_state["fatigue"] = max(
+  backend\app\services\npc\state_applicator.py:1155 : state.body_state["energy"] = max(
+  backend\app\services\npc\state_applicator.py:1162 : state.body_state["hydration"] = max(
+  backend\app\services\npc\state_applicator.py:1169 : state.body_state["nutrition"] = max(
+  backend\app\services\npc\state_applicator.py:1175 : state.body_state["blood_loss"] = max(
+  backend\app\services\npc\state_applicator.py:1199 : state.body_state["statuses"] = [
+  backend\app\services\npc\state_applicator.py:1208 : state.body_state["shock_impulse"] = max(
+  backend\app\services\npc\state_applicator.py:1218 : state.body_state["consciousness"] = round(
+  backend\app\services\npc\state_applicator.py:1222 : f"[CONSCIOUSNESS_DROP] npc={state.npc_id} bl={_bl:.3f} shock={_si:.3f} old={_cur_consciousness:.3f} new={state.body_state['conscio...
+  backend\app\services\npc\state_applicator.py:1230 : state.body_state["life_status"] = _life_status.value
+  backend\app\services\avatar_state_applicator.py:46 : avatar_state.body_state["current_hp"] = updated_avatar_dict.get(
+  backend\app\services\avatar_state_applicator.py:51 : avatar_state.body_state["current_hp"] = updated_avatar_dict["hp"]
+  backend\tests\sandbox\invariants\test_cross_layer_consistency.py:16 : ADR-HP-UNIFICATION: state.hp (deprecated) MUST mirror state.body_state["current_hp"].
+  backend\tests\sandbox\invariants\test_cross_layer_consistency.py:46 : state.body_state["current_hp"] = 75.0
+  backend\tests\sandbox\invariants\test_cross_layer_consistency.py:50 : assert state.effective_hp == state.body_state["current_hp"]
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:68 : t3a = s.body_state["current_hp"] == 5.0
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:70 : t3b = s.body_state["current_hp"] == 7
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:76 : t3c = (_fresh.body_state["current_hp"] == 3
+  backend\tests\test_action_commitment.py:1412 : assert _state.body_state["energy"] == 99.9  # 100 - 0.1
+  backend\tests\test_action_commitment.py:1429 : assert _state.body_state["energy"] == 0.0  # clamped, not -0.5
+  backend\tests\test_action_commitment.py:1630 : assert _state.body_state["nutrition"] == 0.0  # clamped, not -0.5
+  backend\tests\test_action_commitment.py:2042 : assert _state.body_state["fatigue"] == 100.0  # 103.215 → clamp
+  backend\tests\test_action_commitment.py:2049 : assert _state2.body_state["fatigue"] == 0.0  # −0.145 → clamp
+  backend\tests\test_relationship_state_store.py:277 : assert after.body_state["current_hp"] == 90.0
+  backend\tests\test_relationship_state_store.py:290 : assert after_wt.body_state["current_hp"] == 100.0
+
+[SEARCH] body_state assignment  pattern: /\.body_state\s*=\s*/
+  17 matches:
+  backend\app\services\npc\state_applicator.py:449 : new_state.body_state = {"current_hp": _max_hp, "max_hp": _max_hp}
+  backend\app\services\npc\state_applicator.py:1118 : state.body_state = {
+  backend\app\services\avatar_state_applicator.py:43 : avatar_state.body_state = updated_avatar_dict["body_state"]
+  backend\app\services\avatar_state_applicator.py:50 : avatar_state.body_state = dict(BODY_STATE_DISABLED_DATA)
+  backend\app\services\player_avatar_service.py:174 : # Пост-конструкционная запись _state.body_state = ... —
+  backend\tests\sandbox\invariants\test_cross_layer_consistency.py:56 : state.body_state = None
+  backend\tests\sandbox\micro\test_player_turn_headless.py:72 : _avatar_state.body_state = dict(BODY_STATE_HEALTHY)
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:8 : body_state={money: 48}. (Старый код: _state.body_state = {} → violation.)
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:94 : _avatar_state.body_state = dict(BODY_STATE_HEALTHY)
+  backend\tests\sandbox\system\test_t06_belief_pipeline.py:40 : state.body_state = {"current_hp": 10, "shock_impulse": 0.0, "pain": 0.0}
+  backend\tests\sandbox\re_gap1_production_probe.py:75 : _avatar.body_state = dict(BODY_STATE_HEALTHY)
+  backend\tests\test_action_commitment.py:1403 : _state.body_state = {"energy": 100.0, "current_hp": 100,
+  backend\tests\test_action_commitment.py:1421 : _state.body_state = {"energy": 0.5, "current_hp": 100, "pain": 0.0,
+  backend\tests\test_action_commitment.py:1622 : _state.body_state = {"nutrition": 0.5, "current_hp": 100, "pain": 0.0,
+  backend\tests\test_action_commitment.py:2035 : _state.body_state = {"fatigue": 98.0, "current_hp": 100, "pain": 0.0,
+  backend\tests\test_action_commitment.py:2045 : _state2.body_state = {"fatigue": 0.1, "current_hp": 100, "pain": 0.0,
+  backend\tests\test_s2b7_injury_chain.py:67 : self.body_state = body_state
+
+--- Q2: psyche direct writes ---
+
+[SEARCH] psyche dict access  pattern: /\.psyche\s*\[/
+  3 matches:
+  backend\tests\calibration_lab\test_m0_presets.py:41 : assert p.npc_overrides["*"].psyche["identity_rigidity"] == 0.95
+  backend\tests\calibration_lab\test_m0_presets.py:49 : assert p.npc_overrides["*"].psyche["identity_rigidity"] == 0.05
+  backend\tests\calibration_lab\test_m0_presets.py:58 : assert p.npc_overrides["*"].psyche["identity_rigidity"] == 0.42
+
+[SEARCH] psyche assignment  pattern: /\.psyche\s*=\s*/
+  3 matches:
+  backend\tests\sandbox\micro\test_player_turn_headless.py:71 : _avatar_state.psyche = {"willpower": 50, "breakpoint": 70, "loyalty_true": 0}
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:93 : _avatar_state.psyche = {"willpower": 50, "breakpoint": 70, "loyalty_true": 0}
+  backend\tests\sandbox\re_gap1_production_probe.py:74 : _avatar.psyche = {"willpower": 50, "breakpoint": 70, "loyalty_true": 0}
+
+--- Q2: drives direct writes ---
+
+[SEARCH] drives_base access  pattern: /\.drives_base\s*\[|\.drives_base\s*=/
+  4 matches:
+  backend\app\models\npc_state.py:796 : # NPCPersonality.drives_base = seed (Layer 1, read-only, used once at spawn).
+  backend\app\services\npc\npc_tick_pipeline.py:1481 : # profile_l0.drives_base = seed (Layer 1). state.drives_runtime = current (Layer 2).
+  backend\tests\test_npc_loader.py:53 : assert profile.drives_base["control"] == 0.5
+  backend\tests\test_npc_loader.py:54 : assert profile.drives_base["desire"] == 0.1
+
+--- Q2: StateApplicator class + methods ---
+
+[SEARCH] StateApplicator class  pattern: /class StateApplicator/
+  1 matches:
+  backend\app\services\npc\state_applicator.py:74 : class StateApplicator:
+
+[SEARCH] StateApplicator methods  pattern: /def apply_batch|def apply_state_delta|def apply_deltas|def apply_physiology/
+  5 matches:
+  backend\app\services\npc\state_applicator.py:635 : def apply_deltas_only(
+  backend\app\services\npc\state_applicator.py:1452 : def apply_batch(
+  backend\app\services\npc\state_applicator.py:1569 : def apply_deltas_and_commit(
+  backend\app\services\social\reputation_engine.py:290 : def apply_deltas(self, deltas: List[Any]) -> None:  # S313: legacy dict-формат легален (apply_event_impact возвращает List[dict])
+  backend\app\services\projection_engine.py:62 : def apply_batch(
+
+[READ] StateApplicator L1-80 of 1622 (class def)  backend/app/services/npc/state_applicator.py L1-80
+  1: from __future__ import annotations
+  2: 
+  3: # backend/app/services/npc/state_applicator.py
+  4: """
+  5: R2.3 — StateApplicator: единственный модуль с правом записи в NPCState.
+  6: 
+  7: Назначение: атомарно применять изменения к NPCState на основе DecisionResult.
+  8: Контракт:   - на вход: текущий NPCState (неизменённый) + DecisionResult
+  9:             - на выход: новый NPCState (старый не мутируется)
+  10:             - при ошибке: возвращает оригинальный NPCState без изменений
+  11: 
+  12: Принципы:
+  13:   - DecisionHub возвращает DecisionResult (read-only)
+  14:   - StateApplicator применяет его атомарно — всё или ничего
+  15:   - Если применение падает — NPCState не тронут (старые данные целы)
+  16:   - RelationshipStore обновляется здесь, а не в DecisionHub
+  17:   - python_engines.py подключается через NPCStateAdapter (инкрементально)
+  18: 
+  19: (ProactiveDecision.deltas_dict мигрировано в StateDeltas)
+  20: """
+  21: 
+  22: 
+  23: import copy
+  24: import logging
+  25: from dataclasses import asdict
+  26: from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
+  27: 
+  28: if TYPE_CHECKING:
+  29:     from app.models.npc.beliefs import BeliefDelta
+  30:     from app.services.npc.resolution_engine import ResolutionOutcome
+  31: 
+  32: from app.core.constants import TRAIT_DECAY_RATE
+  33: from app.domain.relationship_contracts import NeedLevel
+  34: from app.domain.vital_state import LifeStatus, evaluate_vital_state
+  35: from app.models.delta_payloads import (
+  36:     EconomicPayload,
+  37:     EmotionPayload,
+  38:     PerceptionPayload,
+  39:     PhysiologyPayload,
+  40:     SocialPayload,
+  41:     WillConflictPayload,
+  42: )
+  43: from app.models.event_resolution import StateChange
+  44: 
+  45: # Целевая архитектура данных (L2)
+  46: # Легаси-типы, используемые в логике (Enum'ы и контракты)
+  47: from app.models.npc_state import (
+  48:     MAX_ACTIVE_DRIVES,
+  49:     NPCState,
+  50:     TemporaryDrive,
+  51:     WillState,
+  52: )
+  53: from app.models.physical import (
+  54:     Condition,
+  55:     DamageType,
+  56:     PhysicalOutcome,
+  57:     Wound,
+  58:     WoundSeverity,
+  59: )
+  60: from app.models.psychological import CausalEntry, Cause
+  61: from app.models.state_delta import DeltaDomain, StateDeltas
+  62: from app.services.memory.relationship_store import RelationshipStore
+  63: from app.services.npc.decision_hub import DecisionResult
+  64: from app.services.npc.kernel_rng import KernelRNG
+  65: from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
+  66: from app.services.npc.math_utils import apply_saturation
+  67: from app.services.social.relationship_state_store import RelationshipStateStore
+  68: 
+  69: logger = logging.getLogger(__name__)
+  70: 
+  71: # Константы порогов удалены. Логика порогов перенесена в BreakProgressEngine.
+  72: 
+  73: 
+  74: class StateApplicator:
+  75:     """
+  76:     Атомарно применяет DecisionResult к NPCState.
+  77: 
+  78:     Контракт:
+  79:       - на вход: текущий NPCState (неизменённый) + DecisionResult
+  80:       - на выход: новый NPCState (старый не мутируется)
+
+[READ] StateApplicator L380-410 (player-specific site)  backend/app/services/npc/state_applicator.py L380-410
+  380:                             effect_value=-0.15,
+  381:                             tick_id=0,  # Tick будет проставлен Orchestratorом при коммите в L1EventStream
+  382:                             event_type="will_break",
+  383:                         )
+  384:                     )
+  385: 
+  386:             self._apply_trait_decay(new_state)
+  387: 
+  388:             # ADR-039: Записываем конфликт Волы в raw dict, чтобы AvatarPresentationAssembler его увидел
+  389:             if will_conflict_for_ui and new_state.npc_id == "player":
+  390:                 self._apply_delta_to_raw(
+  391:                     {
+  392:                         "npc_id": "player",
+  393:                         "will_conflict_data": {
+  394:                             "resistance": will_conflict_for_ui.resistance,
+  395:                             "embodied_vector": will_conflict_for_ui.embodied_vector,
+  396:                         },
+  397:                     },
+  398:                     StateDeltas(
+  399:                         npc_id="player",
+  400:                         domain=DeltaDomain.WILL,
+  401:                         target="player",
+  402:                         payload=will_conflict_for_ui,
+  403:                     ),
+  404:                     campaign_id,
+  405:                 )
+  406: 
+  407:             logger.info(
+  408:                 f"[STATE_APPLIED] {new_state.npc_id}: stress={new_state.stress:.1f} intent={new_state.intent}"
+  409:             )
+  410:             return new_state
+
+[READ] StateApplicator L1540-1560 (player-specific site)  backend/app/services/npc/state_applicator.py L1540-1560
+  1540:         # Единая точка обработки EconomicPayload.
+  1541:         # Пишем прямо в npc_dict, чтобы избежать потери данных при return.
+  1542:         if deltas.domain == DeltaDomain.ECONOMY and isinstance(deltas.payload, EconomicPayload):
+  1543:             _money_delta = float(deltas.payload.money_delta or 0.0)
+  1544:             if _money_delta != 0.0:
+  1545:                 if state.npc_id == "player":
+  1546:                     if "body_state" not in npc_dict:
+  1547:                         npc_dict["body_state"] = {}
+  1548:                     npc_dict["body_state"]["money"] = float(npc_dict["body_state"].get("money", 0.0)) + _money_delta
+  1549:                 else:
+  1550:                     npc_dict["gold"] = float(npc_dict.get("gold", 0.0)) + _money_delta
+  1551:             return
+  1552: 
+  1553:         # Делегирование в Commit Kernel
+  1554:         self.apply_deltas_and_commit(state, npc_dict, deltas, campaign_id, cause=cause)
+  1555: 
+  1556:     def apply_belief_delta(self, state: NPCState, delta: "BeliefDelta") -> None:
+  1557:         """Stage 1 Task 1.6: Единственный физический write-path в state.beliefs."""
+  1558:         from app.models.npc.beliefs import BeliefFragment
+  1559:         state.beliefs.update(
+  1560:             delta.belief_type,
+
+--- Q3: BodyTopology construction + avatar_id ---
+
+[SEARCH] BodyTopology construction  pattern: /BodyTopology\(/
+  2 matches:
+  backend\app\services\body\body_topology_service.py:61 : topology = BodyTopology(avatar_id=avatar_id, strength_score=strength_score)
+  backend\app\services\body\body_topology_service.py:233 : topology = BodyTopology(
+
+[SEARCH] avatar_id read/write  pattern: /\.avatar_id/
+  (no matches)
+
+[SEARCH] body_topology references  pattern: /body_topology/
+  43 matches:
+  backend\app\api\world_routes.py:66 : player_body_topology=scene_state.get("player_body_topology"),
+  backend\app\domain\snapshot.py:264 : player_body_topology: Optional[Dict[str, Any]] = (
+  backend\app\services\body\body_topology_service.py:2 : path: /project/backend/app/services/body/body_topology_service.py
+  backend\app\services\body\body_topology_service.py:14 : _YAML_TOPOLOGY_KEY = "human_body_topology"
+  backend\app\services\body\body_topology_service.py:40 : yaml_path = os.path.join(cls._REPO_ROOT, "architecture", "body_topology.yaml")
+  backend\app\services\game_loop\campaign_lifecycle.py:232 : scene_reinit, current_location_seed, body_topology, atomic_commit,
+  backend\app\services\game_loop\campaign_lifecycle.py:371 : # Было: player_body_topology=None из scene_factory → idle-тики до
+  backend\app\services\game_loop\campaign_lifecycle.py:380 : if isinstance(_scene_for_commit, dict) and not _scene_for_commit.get("player_body_topology"):
+  backend\app\services\game_loop\campaign_lifecycle.py:381 : from app.services.body.body_topology_service import BodyTopologyService
+  backend\app\services\game_loop\campaign_lifecycle.py:383 : _scene_for_commit["player_body_topology"] = BodyTopologyService.serialize(
+  backend\app\services\game_loop\campaign_lifecycle.py:386 : logger.info("[NEW_GAME] player_body_topology initialized at scene birth (F3)")
+  backend\app\services\game_loop\campaign_lifecycle.py:389 : raise CampaignResetError(campaign_id, "body_topology", str(_topo_err)) from _topo_err
+  backend\app\services\game_loop\game_loop.py:1065 : player_body_topology=result.final_state.get("player_body_topology"),
+  backend\app\services\game_loop\game_loop.py:1288 : if not _scene.get("player_body_topology"):
+  backend\app\services\game_loop\game_loop.py:1290 : logger.info("[IDLE_TICK] player_body_topology healed in-tick (F3)")
+  backend\app\services\game_loop\scene_init.py:425 : if not isinstance(scene_state, dict) or scene_state.get("player_body_topology"):
+  backend\app\services\game_loop\scene_init.py:428 : from app.services.body.body_topology_service import BodyTopologyService
+  backend\app\services\game_loop\scene_init.py:430 : scene_state["player_body_topology"] = BodyTopologyService.serialize(
+  backend\app\services\game_loop\scene_init.py:434 : logger.info("[SCENE_INIT] player_body_topology healed (F3)")
+  backend\app\services\game_loop\turn_pipeline.py:425 : _topo = scene_state.get("player_body_topology") or {}
+  backend\app\services\game_loop\turn_pipeline.py:435 : logger.warning("[WV] player_body_topology отсутствует — tool-check пропущен")
+  backend\app\services\game_loop\turn_pipeline.py:670 : from app.services.body.body_topology_service import BodyTopologyService
+  backend\app\services\game_loop\turn_pipeline.py:677 : if not _topo_data or not _topo_data.get("player_body_topology"):
+  backend\app\services\game_loop\turn_pipeline.py:689 : _tmp_scene["player_body_topology"] = BodyTopologyService.serialize(_topo)
+  backend\app\services\integration\avatar_status_builder.py:28 : body_topology: Optional[Dict[str, Any]] = None,
+  backend\app\services\integration\avatar_status_builder.py:39 : _weight, _max_weight = self._extract_weight(body_topology)
+  backend\app\services\integration\world_snapshot_builder.py:52 : player_body_topology: Optional[Dict] = None,  # ТЗ Presentation v2.0: Инвентарь
+  backend\app\services\integration\world_snapshot_builder.py:150 : player_body_topology=player_body_topology,  # ТЗ Presentation v2.0
+  backend\app\services\integration\world_snapshot_builder.py:152 : embodied_status=self._build_embodied_status(eco_profile, player_body_topology),  # S151
+  backend\app\services\phases\integration.py:652 : player_body_topology=ctx.scene_state.get("player_body_topology"),
+  backend\app\services\scene_state\scene_factory.py:223 : "player_body_topology": None,  # ТЗ Presentation v2.0: BodyTopology (сериализованный)
+  backend\app\services\simulation\world_state.py:126 : topo_data = scene_state.get("player_body_topology")
+  backend\app\services\simulation\world_state.py:128 : from app.services.body.body_topology_service import BodyTopologyService
+  backend\app\services\scene_state_manager.py:1078 : from app.services.body.body_topology_service import BodyTopologyService
+  backend\app\services\scene_state_manager.py:1080 : topo_data = scene_state.get("player_body_topology")
+  backend\app\services\scene_state_manager.py:1096 : scene_state["player_body_topology"] = BodyTopologyService.serialize(topo)
+  backend\tests\micro\test_d60_reset_fail_loud.py:12 : location_id (seed-ветка шага 6 не активируется) и с player_body_topology
+  backend\tests\micro\test_d60_reset_fail_loud.py:36 : "body_topology",
+  backend\tests\micro\test_d60_reset_fail_loud.py:63 : SCENE = {"player_body_topology": {"serialized": "stub"}}
+  backend\tests\sandbox\b1_4_push_probe.py:33 : "player_body_topology", "embodied_status", "visual_dto",
+  backend\tests\IPT.py:688 : _topo = _snap.get("player_body_topology")
+  backend\tests\IPT.py:690 : _topo = getattr(_snap, "player_body_topology", None) if _snap else None
+  backend\tests\IPT.py:694 : f"player_body_topology отсутствует в idle-снапшоте (type={type(_topo).__name__}). "
+
+[READ] BodyTopologyService L220-245 of 253 (from_dict / load)  backend/app/services/body/body_topology_service.py L220-245
+  220:         return asdict(topology)
+  221: 
+  222:     @staticmethod
+  223:     def deserialize(data: dict) -> BodyTopology:
+  224:         """Десериализует BodyTopology из dict."""
+  225:         # Восстанавливаем Tuple из List (JSON не поддерживает tuple)
+  226:         contents = {}
+  227:         for slot_id, items_list in data.get("contents", {}).items():
+  228:             contents[slot_id] = tuple(
+  229:                 Item(**item_data) if isinstance(item_data, dict) else item_data
+  230:                 for item_data in items_list
+  231:             )
+  232: 
+  233:         topology = BodyTopology(
+  234:             avatar_id=data.get("avatar_id", "player"),
+  235:             strength_score=data.get("strength_score", 10),
+  236:             contents=contents
+  237:         )
+  238: 
+  239:         # Восстанавливаем слоты (они frozen dataclass)
+  240:         for hand_id, hand_data in data.get("hands", {}).items():
+  241:             topology.hands[hand_id] = BodySlot(**hand_data)
+  242:         for belt_data in data.get("belt", []):
+  243:             topology.belt.append(BodySlot(**belt_data))
+  244:         for pocket_data in data.get("pockets", []):
+  245:             topology.pockets.append(BodySlot(**pocket_data))
+
+--- Q4: body swap / possession / control transfer ---
+
+[SEARCH] body swap/possession  pattern: /possess|body_swap|control_transfer|proxy_body|borrow_body|body_host/
+  2 matches:
+  backend\app\services\npc\knowledge_retrieval.py:5 : #   инферит possession (L-P4: Retrieval Is Observation). TruthState
+  backend\app\services\npc\knowledge_retrieval.py:36 : не является possession-записью."""
+
+[SEARCH] actor_id != body_id patterns  pattern: /actor_id.*!=.*body_id|body_id.*!=.*actor_id/
+  (no matches)
+
+============================================================

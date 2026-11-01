@@ -1,0 +1,750 @@
+﻿
+S0.4 - CONTROL SOURCE
+
+============================================================
+
+--- ControlSource enum full ---
+
+[READ] ControlSource FULL  backend/app/domain/control_source.py (31 lines)
+  1: """
+  2: path: /project/backend/app/domain/control_source.py
+  3: Назначение: Ось источника контроля актора (INV-PLAYER-AUTHORSHIP, мини-ADR F1).
+  4:     Различает «существует в мире» и «кто управляет действием»:
+  5:     Actor ≠ AutonomousDecisionAgent. Единственная точка знания о том,
+  6:     чьё решение производится autonomous decision loop; строка 'player'
+  7:     как предикат агентности живёт ЗДЕСЬ, новые строковые гарды запрещены.
+  8:     Legacy-гарды мигрируются постепенно, вне этого фикса.
+  9: Зависимости: нет (domain purity — только stdlib).
+  10: Основные сущности: ControlSource, resolve_control_source
+  11: """
+  12: from enum import Enum
+  13: 
+  14: 
+  15: class ControlSource(Enum):
+  16:     """Источник агентности актора. Расширение (мультиплеер, звери-актёры) —
+  17:     только через реестр ниже, не через новые строковые сравнения."""
+  18:     PLAYER_INPUT = "player_input"            # решение производится player-input pipeline
+  19:     NPC_DECISION = "npc_decision"            # автономный decision loop
+  20:     SCRIPTED_SYSTEM = "scripted_system"      # системные/скриптовые механизмы
+  21:     COMBAT_CONTROLLER = "combat_controller"  # зарезервировано: пошаговый бой (будущий ADR)
+  22: 
+  23: 
+  24: _PLAYER_ACTORS = frozenset({"player"})
+  25: 
+  26: 
+  27: def resolve_control_source(actor_id: str) -> ControlSource:
+  28:     """Детерминированный резолв источника агентности."""
+  29:     if actor_id in _PLAYER_ACTORS:
+  30:         return ControlSource.PLAYER_INPUT
+  31:     return ControlSource.NPC_DECISION
+
+--- Enum value usage (production creation?) ---
+
+[SEARCH] PLAYER_INPUT usage  pattern: /ControlSource\.PLAYER_INPUT/
+  2 matches:
+  backend\app\domain\control_source.py:30 : return ControlSource.PLAYER_INPUT
+  backend\app\domain\intent_identity.py:55 : control_source=ControlSource.PLAYER_INPUT,
+
+[SEARCH] NPC_DECISION usage  pattern: /ControlSource\.NPC_DECISION/
+  8 matches:
+  backend\app\domain\control_source.py:31 : return ControlSource.NPC_DECISION
+  backend\app\domain\intent_identity.py:39 : control_source=ControlSource.NPC_DECISION,
+  backend\app\domain\sanity_membrane.py:25 : return resolve_control_source(target_id) is ControlSource.NPC_DECISION
+  backend\app\services\npc\attention_reflex.py:215 : can_orient = resolve_control_source(observer_id) is ControlSource.NPC_DECISION and (
+  backend\app\services\npc\decision_hub.py:327 : if resolve_control_source(npc_id) is not ControlSource.NPC_DECISION:
+  backend\app\services\npc\npc_tick_pipeline.py:1087 : if resolve_control_source(npc_id) is not ControlSource.NPC_DECISION:
+  backend\app\services\npc\npc_tick_pipeline.py:1249 : if resolve_control_source(getattr(_ci, "speaker", "")) is not ControlSource.NPC_DECISION  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2233 : if resolve_control_source((n.get("npc_id") or n.get("id")) or "") is ControlSource.NPC_DECISION
+
+[SEARCH] SCRIPTED_SYSTEM usage  pattern: /ControlSource\.SCRIPTED_SYSTEM/
+  (no matches)
+
+[SEARCH] COMBAT_CONTROLLER usage  pattern: /ControlSource\.COMBAT_CONTROLLER/
+  (no matches)
+
+--- resolve_control_source call sites ---
+
+[SEARCH] resolve_control_source calls  pattern: /resolve_control_source/
+  19 matches:
+  backend\app\domain\control_source.py:10 : Основные сущности: ControlSource, resolve_control_source
+  backend\app\domain\control_source.py:27 : def resolve_control_source(actor_id: str) -> ControlSource:
+  backend\app\domain\sanity_membrane.py:15 : from app.domain.control_source import ControlSource, resolve_control_source
+  backend\app\domain\sanity_membrane.py:25 : return resolve_control_source(target_id) is ControlSource.NPC_DECISION
+  backend\app\services\npc\attention_reflex.py:57 : from app.domain.control_source import ControlSource, resolve_control_source
+  backend\app\services\npc\attention_reflex.py:215 : can_orient = resolve_control_source(observer_id) is ControlSource.NPC_DECISION and (
+  backend\app\services\npc\decision_hub.py:326 : from app.domain.control_source import ControlSource, resolve_control_source
+  backend\app\services\npc\decision_hub.py:327 : if resolve_control_source(npc_id) is not ControlSource.NPC_DECISION:
+  backend\app\services\npc\decision_hub.py:331 : f"{resolve_control_source(npc_id).value}), intent={intent_value!r} отклонён"
+  backend\app\services\npc\epistemic_store.py:42 : любого непустого не-player subject возвращал True (resolve_control_source
+  backend\app\services\npc\epistemic_store.py:50 : # возвращает True (resolve_control_source не различает NPC и узел
+  backend\app\services\npc\npc_tick_pipeline.py:1086 : from app.domain.control_source import ControlSource, resolve_control_source
+  backend\app\services\npc\npc_tick_pipeline.py:1087 : if resolve_control_source(npc_id) is not ControlSource.NPC_DECISION:
+  backend\app\services\npc\npc_tick_pipeline.py:1091 : f"(control_source={resolve_control_source(npc_id).value})"
+  backend\app\services\npc\npc_tick_pipeline.py:1244 : from app.domain.control_source import ControlSource, resolve_control_source
+  backend\app\services\npc\npc_tick_pipeline.py:1249 : if resolve_control_source(getattr(_ci, "speaker", "")) is not ControlSource.NPC_DECISION  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2229 : from app.domain.control_source import ControlSource, resolve_control_source
+  backend\app\services\tick_orchestrator.py:2233 : if resolve_control_source((n.get("npc_id") or n.get("id")) or "") is ControlSource.NPC_DECISION
+  backend\tests\IPT.py:645 : [("class ControlSource", 1), ("def resolve_control_source", 1)]),
+
+--- ControlSource persistence ---
+
+[SEARCH] control_source in persistence  pattern: /"control_source"|control_source.*=.*"|control_source.*to_dict|control_source.*from_dict/
+  3 matches:
+  backend\app\services\npc\decision_hub.py:330 : f"CommunicationIntent запрещён (control_source="
+  backend\app\services\npc\decision_hub.py:331 : f"{resolve_control_source(npc_id).value}), intent={intent_value!r} отклонён"
+  backend\app\services\npc\npc_tick_pipeline.py:1091 : f"(control_source={resolve_control_source(npc_id).value})"
+
+--- ENIGMA002 linter rule + suppressions ---
+
+[SEARCH] ENIGMA002 suppressions in .py  pattern: /ENIGMA002/
+  589 matches:
+  backend\app\agents\dm_agent.py:412 : getattr(context, "player_perception", None)  # noqa: ENIGMA002
+  backend\app\agents\dm_agent.py:452 : _anr = getattr(context, "all_npcs_raw_snapshot", None) if context else None  # noqa: ENIGMA001, ENIGMA002
+  backend\app\agents\dm_agent.py:603 : _combat_data = getattr(context, "combat_data", None) or (  # noqa: ENIGMA002
+  backend\app\agents\dm_agent.py:636 : _scene_state = getattr(context, "scene_state", None) if not isinstance(context, dict) else context.get("scene_state")  # noqa: ENI...
+  backend\app\agents\dm_agent.py:950 : mem_mgr = getattr(self, "_memory_manager", None)  # noqa: ENIGMA002
+  backend\app\api\routes.py:215 : startup_status = getattr(request.app.state, "startup_status", {})  # noqa: ENIGMA002
+  backend\app\api\routes.py:223 : mvp = getattr(game_loop, "mvp_controller", None)  # noqa: ENIGMA002
+  backend\app\api\routes.py:568 : else getattr(_result, "world_snapshot", None)  # noqa: ENIGMA002
+  backend\app\api\routes.py:574 : else getattr(_ws, "npc_positions", None)  # noqa: ENIGMA002
+  backend\app\api\routes.py:729 : _svc = getattr(_game_loop, "avatar_service", None)  # noqa: ENIGMA002
+  backend\app\api\routes.py:806 : _mm = getattr(game_loop, "memory_manager", None)  # noqa: ENIGMA002
+  backend\app\api\routes.py:898 : _tick_orch = getattr(game_loop, "_tick_orch", None)  # noqa: ENIGMA002
+  backend\app\api\routes.py:912 : _mm = getattr(game_loop, "memory_manager", None)  # noqa: ENIGMA002
+  backend\app\api\routes.py:914 : _sqlite_store = getattr(_mm._layered, "store", None)  # noqa: ENIGMA002
+  backend\app\api\routes.py:1135 : ) else getattr(_player_ws, "location_id", None)  # noqa: ENIGMA002
+  backend\app\api\routes.py:1162 : "active_pool_model": getattr(pool, "active_model_key", None),  # noqa: ENIGMA002
+  backend\app\core\schema_validator.py:55 : mvp = getattr(game_loop, "mvp_controller", None)  # noqa: ENIGMA002
+  backend\app\core\schema_validator.py:59 : ts = getattr(mvp, "truth_state", None)  # noqa: ENIGMA002
+  backend\app\core\schema_validator.py:75 : _handlers = getattr(_bus, "_handlers", {})  # noqa: ENIGMA002
+  backend\app\core\schema_validator.py:76 : subs = _handlers.get(EventType.TICK_COMPLETED.value, [])  # noqa: ENIGMA002
+  backend\app\services\action\commitment_arbiter.py:274 : getattr(intent, "actor_id", ""),  # noqa: ENIGMA002
+  backend\app\services\action\commitment_arbiter.py:275 : getattr(intent, "target_node_id", None),  # noqa: ENIGMA002
+  backend\app\services\action\commitment_arbiter.py:276 : getattr(intent, "reason", ""),  # noqa: ENIGMA002
+  backend\app\services\action\commitment_arbiter.py:279 : intent_type=getattr(intent, "intent_type", "") or "",  # noqa: ENIGMA002
+  backend\app\services\action\commitment_arbiter.py:280 : intent_domain=getattr(intent, "domain", None),  # noqa: ENIGMA002
+  backend\app\services\action\commitment_arbiter.py:291 : getattr(intent, "actor_id", ""),  # noqa: ENIGMA002
+  backend\app\services\action\dm_orchestrator.py:107 : _is_physical_contact = router_result.raw_event and getattr(  # noqa: ENIGMA002
+  backend\app\services\calibration\config_overlay.py:86 : current = getattr(module, attr_name, None)  # noqa: ENIGMA002
+  backend\app\services\calibration\config_overlay.py:103 : current = getattr(module, attr_name, None)  # noqa: ENIGMA002
+  backend\app\services\calibration\experiment_runner.py:189 : _orig_provider = getattr(_model_cfg, "provider_type", None) if _model_cfg else None  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\calibration\experiment_runner.py:224 : engine = game_loop._get_life_engine()  # noqa: ENIGMA002
+  backend\app\services\calibration\experiment_runner.py:273 : chron = getattr(game_loop._tick_orch, "l1_chronicle", None)  # noqa: ENIGMA002
+  backend\app\services\calibration\experiment_runner.py:386 : self._orig_provider = getattr(self._model_cfg, "provider_type", None) if self._model_cfg else None  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\calibration\experiment_runner.py:408 : _mvp_ctrl = getattr(self._active_game_loop, "mvp_controller", None)  # noqa: ENIGMA002
+  backend\app\services\calibration\experiment_runner.py:443 : engine = game_loop._get_life_engine()  # noqa: ENIGMA002 — домен-сосед (прецедент step)
+  backend\app\services\calibration\experiment_runner.py:444 : app = game_loop._svc.get_state_applicator(  # noqa: ENIGMA002
+  backend\app\services\calibration\experiment_runner.py:445 : relationship_store=getattr(game_loop, "_rel_store", None)  # noqa: ENIGMA002
+  backend\app\services\calibration\experiment_runner.py:451 : rel_store = getattr(game_loop, "_rel_store", None)  # noqa: ENIGMA002
+  backend\app\services\calibration\experiment_runner.py:488 : engine = game_loop._get_life_engine()  # noqa: ENIGMA002
+  backend\app\services\calibration\experiment_runner.py:501 : if self._ticks_executed == 0 and not getattr(  # noqa: ENIGMA002
+  backend\app\services\calibration\experiment_runner.py:550 : chron = getattr(game_loop._tick_orch, "l1_chronicle", None)  # noqa: ENIGMA002
+  backend\app\services\calibration\experiment_runner.py:636 : game_loop._get_task_scheduler().execute_pending(  # noqa: ENIGMA002
+  backend\app\services\calibration\experiment_runner.py:647 : tasks = getattr(game_loop, "_background_tasks", None)  # noqa: ENIGMA002
+  backend\app\services\calibration\experiment_runner.py:674 : tasks = getattr(game_loop, "_background_tasks", None)  # noqa: ENIGMA002
+  backend\app\services\calibration\observability_tap.py:74 : payload = getattr(event, "payload", None)  # noqa: ENIGMA002
+  backend\app\services\combat\combat_subscriber.py:284 : actor_id = str(payload.get("actor_id") or getattr(event, "source", "") or "player")  # noqa: ENIGMA002
+  backend\app\services\combat\combat_subscriber.py:313 : event_type_str = getattr(event, "type", "").lower()  # noqa: ENIGMA002
+  backend\app\services\economy\work_orders.py:85 : _svc = getattr(ctx, "npc_services", None)  # noqa: ENIGMA002
+  backend\app\services\economy\work_orders.py:86 : _getter = getattr(_svc, "get_or_create_economic_profiles", None)  # noqa: ENIGMA002
+  backend\app\services\economy\work_orders.py:88 : _getter = getattr(orchestrator, "_economic_profiles_getter", None)  # noqa: ENIGMA002
+  backend\app\services\economy\work_orders.py:145 : _s = getattr(_p, "stock_for_sale", None) if _p is not None else None  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\economy\work_orders.py:241 : _sm = getattr(orchestrator, "_scene_manager", None)  # noqa: ENIGMA002
+  backend\app\services\economy\work_orders.py:242 : _all = getattr(_sm, "_tick_scenes", None) or {}  # noqa: ENIGMA002
+  backend\app\services\economy\work_orders.py:354 : getattr(seller_p, "stock_for_sale", {}).get(_g, 0.0) or 0.0  # noqa: ENIGMA002
+  backend\app\services\economy\work_orders.py:391 : _tracker = getattr(getattr(ctx, "npc_services", None), "economy_tracker", None)  # noqa: ENIGMA002
+  backend\app\services\economy\work_orders.py:393 : _tracker = getattr(orchestrator, "_economy_tracker", None)  # noqa: ENIGMA002
+  backend\app\services\events\claim_event_subscriber.py:204 : _npc_positions = getattr(_sq, "_npc_positions", {})  # noqa: ENIGMA002
+  backend\app\services\events\dialogue_memory_subscriber.py:39 : payload = getattr(event, "payload", {}) or {}  # noqa: ENIGMA002
+  backend\app\services\events\dialogue_memory_subscriber.py:46 : speaker = payload.get("npc_id") or getattr(event, "source", "")  # noqa: ENIGMA002
+  backend\app\services\events\intent_event_adapter.py:60 : _intent_val = getattr(intent, "intent_type", "")  # noqa: ENIGMA002
+  backend\app\services\events\intent_event_adapter.py:81 : "semantic_action": getattr(intent, "semantic_action", None),  # noqa: ENIGMA002
+  backend\app\services\events\intent_event_adapter.py:82 : "target_id": getattr(intent, "target_id", None),  # noqa: ENIGMA002
+  backend\app\services\events\npc_dialogue_subscriber.py:188 : speaker = getattr(event, "source", "")  # noqa: ENIGMA002
+  backend\app\services\events\npc_dialogue_subscriber.py:189 : payload = getattr(event, "payload", {}) or {}  # noqa: ENIGMA002
+  backend\app\services\events\observation_subscriber.py:74 : event_type = getattr(event, "type", None)  # noqa: ENIGMA002
+  backend\app\services\events\observation_subscriber.py:84 : payload = getattr(event, "payload", None) or {}  # noqa: ENIGMA002
+  backend\app\services\events\observation_subscriber.py:85 : actor_id = getattr(event, "source", None)  # noqa: ENIGMA002
+  backend\app\services\events\observation_subscriber.py:108 : event_id=str(getattr(event, "id", "")),  # noqa: ENIGMA002
+  backend\app\services\events\observation_subscriber.py:109 : claim_id=f"observation-{getattr(event, 'id', '')}-{witness_id}",  # noqa: ENIGMA002
+  backend\app\services\events\observation_subscriber.py:138 : positions = getattr(sq, "_npc_positions", {})  # noqa: ENIGMA002
+  backend\app\services\events\player_speech_act_subscriber.py:44 : payload = getattr(event, "payload", {}) or {}  # noqa: ENIGMA002
+  backend\app\services\events\player_speech_act_subscriber.py:48 : event_id = str(getattr(event, "id", "") or "")  # noqa: ENIGMA002
+  backend\app\services\events\player_speech_act_subscriber.py:75 : for c in getattr(session, "claims", [])  # noqa: ENIGMA002
+  backend\app\services\events\reaction_subscriber.py:220 : getattr(ctx.shared_context, "spatial_query", None)  # noqa: ENIGMA001,ENIGMA002
+  backend\app\services\events\reaction_subscriber.py:239 : getattr(ctx.shared_context, "scene_state", None)  # noqa: ENIGMA002
+  backend\app\services\events\reaction_subscriber.py:240 : or getattr(getattr(ctx, "tick_ctx", None), "scene_state", None)  # noqa: ENIGMA002
+  backend\app\services\events\reaction_subscriber.py:242 : ),  # noqa: ENIGMA002
+  backend\app\services\events\reaction_subscriber.py:489 : _emo_tags = [getattr(d.payload, "emotion_tag", None) for d in _emo_deltas]  # noqa: ENIGMA002
+  backend\app\services\events\reaction_subscriber.py:516 : perceiving_list = getattr(ctx.shared_context, "perceiving_npcs", None)  # noqa: ENIGMA002
+  backend\app\services\events\rules_subscriber.py:108 : event_type = getattr(event, "type", None) or event.get("type", "")  # noqa: ENIGMA002
+  backend\app\services\events\rules_subscriber.py:151 : _event_id = getattr(event, "id", "") or str(event.get("id", ""))  # noqa: ENIGMA002
+  backend\app\services\events\social_input_projector.py:78 : or getattr(event, "source", None)  # noqa: ENIGMA002
+  backend\app\services\events\social_input_projector.py:91 : _sq = getattr(ctx.shared_context, "spatial_query", None)  # noqa: ENIGMA002
+  backend\app\services\events\social_input_projector.py:96 : scene_state=getattr(ctx.shared_context, "scene_state", None) or ctx.tick_ctx.scene_state or {},  # noqa: ENIGMA002
+  backend\app\services\events\social_input_projector.py:109 : _sq = getattr(ctx.shared_context, "spatial_query", None)  # noqa: ENIGMA002
+  backend\app\services\events\social_input_projector.py:114 : scene_state=getattr(ctx.shared_context, "scene_state", None) or ctx.tick_ctx.scene_state or {},  # noqa: ENIGMA002
+  backend\app\services\events\social_subscriber.py:130 : _campaign_id = ctx.campaign_id or getattr(ctx.shared_context, "campaign_id", None)  # noqa: ENIGMA002
+  backend\app\services\events\social_subscriber.py:139 : _tick_ctx = getattr(ctx, "tick_ctx", None)  # noqa: ENIGMA002
+  backend\app\services\events\social_subscriber.py:140 : _npc_services = getattr(_tick_ctx, "npc_services", None)  # noqa: ENIGMA002
+  backend\app\services\events\social_subscriber.py:142 : getattr(_npc_services, "relationship_store", None)  # noqa: ENIGMA002
+  backend\app\services\events\social_subscriber.py:143 : or getattr(ctx.shared_context, "relationship_store", None)  # noqa: ENIGMA002
+  backend\app\services\events\social_subscriber.py:145 : _gate = getattr(ctx.shared_context, "relationship_write_gate", None)  # noqa: ENIGMA002
+  backend\app\services\execution\dialogue_executor.py:130 : _proposition = getattr(req, "proposition", None)  # noqa: ENIGMA002
+  backend\app\services\execution\dialogue_executor.py:396 : if getattr(req, "npc_npc_context", ""):  # noqa: ENIGMA002
+  backend\app\services\game_loop\campaign_lifecycle.py:291 : _belief_store = getattr(self._tick_orch, "crystallized_belief_store", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\dialogue_log.py:59 : except Exception as _e:  # noqa: ENIGMA002 — громкий отказ, не тихий
+  backend\app\services\game_loop\dm_phase.py:110 : spatial_query=getattr(shared_context, "spatial_query", None),  # noqa: ENIGMA002
+  backend\app\services\game_loop\dm_phase.py:138 : f"[DIAG_DM_RESULT] is_valid={dm_result.is_valid} has_event_ctx={dm_result.event_context is not None} error={getattr(dm_result, 'er...
+  backend\app\services\game_loop\dm_phase.py:278 : _sa = getattr(_params, "semantic_action", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\dm_phase.py:279 : _tid = getattr(_params, "target_id", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\dm_phase.py:280 : _tref = getattr(_params, "target_reference", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\dm_phase.py:316 : if getattr(_base_event, "target_id", None) is None:  # noqa: ENIGMA002
+  backend\app\services\game_loop\e1_wiring.py:37 : _store = getattr(memory_manager, "_relationships", None) if memory_manager is not None else None  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\game_loop\game_loop.py:226 : lambda: getattr(  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:227 : getattr(self, "mvp_controller", None),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:349 : if getattr(self._tick_orch, "_epistemic_store", None) is None:  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:424 : _shared_ctx = getattr(self._tick_orch, "_shared_context", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:426 : _sq = getattr(_shared_ctx, "spatial_query", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:430 : _sq = getattr(self, "_current_spatial_query", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:456 : _npc_id = getattr(event, "source", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:515 : ),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:524 : discovery_bridge_provider=lambda: getattr(  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:525 : getattr(self, "mvp_controller", None), "discovery_bridge", None  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:542 : ),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:572 : claim_subscriber_provider=lambda: getattr(  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:692 : _mvp = getattr(self, "mvp_controller", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:693 : _compiler = getattr(_mvp, "action_compiler", None) if _mvp else None  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\game_loop\game_loop.py:798 : crystallized_belief_store=getattr(self._tick_orch, "crystallized_belief_store", None),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:906 : _live_body = getattr(_avatar_state, "body_state", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:913 : _avatar_psyche = getattr(_avatar_state, "psyche", {})  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:929 : "body_profile": getattr(player_char, "body_profile", {}),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1009 : spatial_query=getattr(self, "_current_spatial_query", None),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1010 : crystallized_belief_store=getattr(  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1011 : getattr(self, "_tick_orch", None),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1249 : _sm_persistence = getattr(self.scene_manager, "_persistence", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1254 : for _ploc in list(getattr(self._tick_orch, "_pending_transfers", {}).keys()):  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1340 : spatial_query=getattr(self, "_current_spatial_query", None),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1341 : relationship_store=getattr(self, "_rel_store", None),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1357 : spatial_query=getattr(self, "_current_spatial_query", None),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1358 : crystallized_belief_store=getattr(  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1359 : getattr(self, "_tick_orch", None),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1385 : shared_context=_idle_ctx,  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1474 : if getattr(self, "_npc_dialogue_subscriber", None):  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1483 : if getattr(self, "_npc_dialogue_subscriber", None):  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1632 : "observed_facts": getattr(state, "observed_facts", []),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1663 : _uir = getattr(state.shared_context, "intent_resolution", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1664 : _uip = getattr(getattr(_uir, "original_intent", None), "parameters", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1672 : "semantic_action": getattr(_uip, "semantic_action", None),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1673 : "target_id": getattr(_uip, "target_id", None),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1674 : "intent_readiness": getattr(_uip, "intent_readiness", None),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1675 : "acts": [a.get("type") for a in (getattr(_uip, "semantic_acts", None) or [])],  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1680 : except Exception as _dlg_log_err:  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1738 : _anr_rce = getattr(state.shared_context, "all_npcs_raw_snapshot", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1745 : _target_id = getattr(state.shared_context, "player_target_id", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1802 : _target_id = getattr(state.shared_context, "player_target_id", None) if state.shared_context else None  # noqa: ENIGMA001, ENIGMA0...
+  backend\app\services\game_loop\game_loop.py:1806 : _verbal = getattr(state.shared_context, "action_type", "") in (  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1810 : print(f"[DIAG-M17] action_type={getattr(state.shared_context, 'action_type', None)!r} "  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1857 : if getattr(self, "_npc_dialogue_subscriber", None) and _auth_scene is not None:  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1958 : _epi_final = getattr(self._tick_orch, "_epistemic_store", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1967 : _resp_facts = getattr(state, "observed_facts", [])  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1974 : _ir = getattr(state.shared_context, "intent_resolution", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1975 : _ip = getattr(getattr(_ir, "original_intent", None), "parameters", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1983 : "semantic_action": getattr(_ip, "semantic_action", None),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1984 : "target_id": getattr(_ip, "target_id", None),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1985 : "intent_readiness": getattr(_ip, "intent_readiness", None),  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1986 : "acts": [a.get("type") for a in (getattr(_ip, "semantic_acts", None) or [])],  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:1991 : except Exception as _dlg_log_err:  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:2210 : _cbs = getattr(self._tick_orch, "crystallized_belief_store", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:2213 : _cp = getattr(self.mvp_controller, "confession_parser", None) if self.mvp_controller else None  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\game_loop\game_loop.py:2318 : _sched = getattr(self, "_task_scheduler", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:2319 : _pool = getattr(_sched, "_executor_pool", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\game_loop.py:2333 : _persistence = getattr(self.scene_manager, "_persistence", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:181 : _intent_res = getattr(shared_context, "intent_resolution", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:182 : _orig_intent = getattr(_intent_res, "original_intent", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:183 : _params = getattr(_orig_intent, "parameters", None) if _orig_intent else None  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:185 : _sem_action = getattr(_params, "semantic_action", "") if _params else ""  # noqa: ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:186 : _target_ref = getattr(_params, "target_reference", "") if _params else ""  # noqa: ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:187 : _target_id = getattr(_params, "target_id", "") if _params else ""  # noqa: ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:292 : _sem_action = getattr(_params, "semantic_action", "").upper()  # noqa: ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:323 : _ue_ready = getattr(  # noqa: ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:324 : getattr(  # noqa: ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:325 : getattr(shared_context, "intent_resolution", None),  # noqa: ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:332 : _ue_ready = getattr(_ue_ready, "intent_readiness", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:360 : _ue_l1_ir = getattr(shared_context, "intent_resolution", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:361 : _ue_l1_params = getattr(getattr(_ue_l1_ir, "original_intent", None), "parameters", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:362 : _ue_l1_readiness = getattr(_ue_l1_params, "intent_readiness", "RESOLVED")  # noqa: ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:383 : npc_contexts=getattr(_tick_result, "npc_contexts", []) or [],  # noqa: ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:385 : activity_overrides=getattr(_tick_result, "activity_overrides", {}),  # noqa: ENIGMA002
+  backend\app\services\game_loop\npc_orchestration.py:457 : _orch_facts = getattr(_tick_result, "observed_facts", [])  # noqa: ENIGMA002
+  backend\app\services\game_loop\phase_1_input.py:620 : _readiness = getattr(_params, "intent_readiness", None) if (  # noqa: ENIGMA001,ENIGMA002
+  backend\app\services\game_loop\phase_6_avatar.py:43 : _intent_val = getattr(_npc_ctx["decision_result"], "intent", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\scene_init.py:269 : _mm = getattr(loop, "memory_manager", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\scene_init.py:270 : _rel = getattr(_mm, "_relationships", None) if _mm else None  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\game_loop\scene_init.py:283 : if _mm is not None and isinstance(getattr(_mm, "_v2_scene_ref", None), dict):  # noqa: ENIGMA002
+  backend\app\services\game_loop\scene_init.py:286 : _saves_dir = str(getattr(loop, "_saves_dir", ""))  # noqa: ENIGMA002
+  backend\app\services\game_loop\task_scheduler.py:316 : from app.domain.action_commitment import INTERRUPT_TASK_STALE_INTENT  # noqa: ENIGMA002
+  backend\app\services\game_loop\turn_pipeline.py:136 : _state_observed_facts = getattr(_player_result, "observed_facts", [])  # noqa: ENIGMA002
+  backend\app\services\game_loop\turn_pipeline.py:237 : shared_context.npc_contexts = getattr(_player_result, "npc_contexts", []) or []  # noqa: ENIGMA002
+  backend\app\services\game_loop\turn_pipeline.py:254 : for n in getattr(_ctx, "all_npcs_raw", [])  # noqa: ENIGMA002
+  backend\app\services\game_loop\turn_pipeline.py:504 : _sa = getattr(_params, "semantic_action", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\turn_pipeline.py:505 : _tid = getattr(_params, "target_id", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\turn_pipeline.py:506 : _tref = getattr(_params, "target_reference", None)  # noqa: ENIGMA002
+  backend\app\services\game_loop\turn_pipeline.py:672 : _sheet_str = getattr(_match, "stats", {}) if _match else {}  # noqa: ENIGMA002
+  backend\app\services\game_loop\turn_pipeline.py:675 : _persistence = self.scene_manager._persistence  # noqa: ENIGMA002
+  backend\app\services\game_loop\turn_pipeline.py:827 : _state_observed_facts = getattr(_player_result, "observed_facts", [])  # noqa: ENIGMA002
+  backend\app\services\input\intent_compressor.py:561 : and getattr(fast, "speech_act", None) is not None  # noqa: ENIGMA002
+  backend\app\services\input\intent_compressor.py:562 : and str(getattr(getattr(fast, "speech_act", None), "value", fast.speech_act) or "").lower() == "question"  # noqa: ENIGMA002
+  backend\app\services\input\intent_compressor.py:718 : and field.raw_text != getattr(self, "_last_recovery_raw", None)  # noqa: ENIGMA002
+  backend\app\services\input\intent_compressor.py:747 : _sa_raw = getattr(field, "speech_act", None)  # noqa: ENIGMA002
+  backend\app\services\input\intent_compressor.py:749 : _ro = str(getattr(field, "requested_outcome", None) or "").lower()  # noqa: ENIGMA002
+  backend\app\services\integration\journal_presentation.py:75 : "text": getattr(c, "text", ""),  # noqa: ENIGMA002
+  backend\app\services\integration\journal_presentation.py:76 : "speaker": getattr(c, "speaker", ""),  # noqa: ENIGMA002
+  backend\app\services\integration\journal_presentation.py:79 : "event_id": getattr(c, "event_id", ""),  # noqa: ENIGMA002
+  backend\app\services\integration\journal_presentation.py:82 : "provenance_complete": bool(getattr(c, "event_id", "")),  # noqa: ENIGMA002
+  backend\app\services\integration\world_snapshot_builder.py:74 : getattr(npc_data, "name", None)  # noqa: ENIGMA002
+  backend\app\services\integration\world_snapshot_builder.py:75 : or getattr(npc_data, "display_name", None)  # noqa: ENIGMA002
+  backend\app\services\integration\world_snapshot_builder.py:226 : for cue in getattr(domain_perception, "active_perceptions", []):  # noqa: ENIGMA002
+  backend\app\services\integration\world_snapshot_builder.py:238 : atm_key = getattr(domain_perception, "atmosphere_key", None)  # noqa: ENIGMA002
+  backend\app\services\integration\world_snapshot_builder.py:252 : _domain_manifests = getattr(domain_perception, "manifestations", {})  # noqa: ENIGMA002
+  backend\app\services\integration\world_snapshot_builder.py:263 : embodied_traces=getattr(domain_perception, "embodied_traces", []),  # noqa: ENIGMA002
+  backend\app\services\integration\world_snapshot_builder.py:264 : observed_facts=getattr(domain_perception, "observed_facts", []),  # noqa: ENIGMA002
+  backend\app\services\llm\openai_compatible_provider.py:82 : _top_p = getattr(params, "top_p", None)  # noqa: ENIGMA002
+  backend\app\services\llm\openai_compatible_provider.py:84 : _presence = getattr(params, "presence_penalty", None)  # noqa: ENIGMA002
+  backend\app\services\llm\openai_compatible_provider.py:86 : _frequency = getattr(params, "frequency_penalty", None)  # noqa: ENIGMA002
+  backend\app\services\llm\openai_compatible_provider.py:88 : _stop = getattr(params, "stop", None)  # noqa: ENIGMA002
+  backend\app\services\llm\openai_compatible_provider.py:90 : _resp_fmt = getattr(params, "response_format", None)  # noqa: ENIGMA002
+  backend\app\services\llm\provider_manager.py:598 : _use_server_mode = bool(getattr(settings, "llama_cpp_server_url", None)) and pt_str == "llama_cpp"  # noqa: ENIGMA002
+  backend\app\services\llm\router.py:517 : _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
+  backend\app\services\llm\router.py:807 : _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
+  backend\app\services\llm\router.py:824 : _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
+  backend\app\services\llm\router.py:883 : _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
+  backend\app\services\llm\router.py:965 : _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
+  backend\app\services\llm\router.py:1032 : _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
+  backend\app\services\llm\router.py:1069 : _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
+  backend\app\services\memory\conclusion_engine.py:75 : payload: Dict[str, Any] = getattr(event, "payload", None) or {}  # noqa: ENIGMA002
+  backend\app\services\memory\conclusion_runtime.py:49 : if getattr(orchestrator, "_conclusion_store", None) is None:  # noqa: ENIGMA002
+  backend\app\services\memory\conclusion_runtime.py:51 : if getattr(orchestrator, "_conclusion_gate", None) is None:  # noqa: ENIGMA002
+  backend\app\services\memory\conclusion_runtime.py:61 : if getattr(event, "type", None) == EventType.EXPERIENCE_DELTA_COMMITTED.value:  # noqa: ENIGMA002
+  backend\app\services\memory\conclusion_runtime.py:78 : collector = getattr(orchestrator, "_conclusion_collector", None) or []  # noqa: ENIGMA002
+  backend\app\services\memory\conclusion_runtime.py:81 : store = getattr(orchestrator, "_conclusion_store", None)  # noqa: ENIGMA002
+  backend\app\services\memory\conclusion_runtime.py:82 : gate = getattr(orchestrator, "_conclusion_gate", None)  # noqa: ENIGMA002
+  backend\app\services\memory\intelligence_queue.py:275 : getattr(t, "speaker", None) == task.speaker  # noqa: ENIGMA002
+  backend\app\services\memory\intelligence_queue.py:276 : and getattr(t, "text", None) == task.text  # noqa: ENIGMA002
+  backend\app\services\memory\intelligence_queue.py:278 : for t in getattr(session, "buffer", [])  # noqa: ENIGMA002
+  backend\app\services\memory\intelligence_queue.py:309 : getattr(update, "topic", None)  # noqa: ENIGMA002
+  backend\app\services\memory\intelligence_queue.py:310 : or getattr(update, "new_claims", None)  # noqa: ENIGMA002
+  backend\app\services\memory\intelligence_queue.py:311 : or getattr(update, "raised_questions", None)  # noqa: ENIGMA002
+  backend\app\services\memory\intelligence_queue.py:312 : or getattr(update, "answered_questions", None)  # noqa: ENIGMA002
+  backend\app\services\memory\intelligence_queue.py:325 : if getattr(update, "topic", None):  # noqa: ENIGMA002
+  backend\app\services\memory\layered_memory.py:33 : _model_dump = getattr(o, "model_dump", None)  # noqa: ENIGMA002
+  backend\app\services\memory\layered_memory.py:37 : _dict_method = getattr(o, "dict", None)  # noqa: ENIGMA002
+  backend\app\services\memory\memory_manager.py:356 : _save_mem = getattr(_store, "save_event_memory", None)  # noqa: ENIGMA002
+  backend\app\services\memory\memory_manager.py:391 : _load_mems = getattr(_store, "load_event_memories", None)  # noqa: ENIGMA002
+  backend\app\services\npc\decision\risk.py:90 : _type = getattr(_m, "event_type", "")  # noqa: ENIGMA002
+  backend\app\services\npc\activity_lifecycle_service.py:329 : or getattr(_target_obj, "state", "") == "DESTROYED"  # noqa: ENIGMA002
+  backend\app\services\npc\activity_lifecycle_service.py:331 : getattr(_target_obj, "holder", None) not in (None, "", _owner)  # noqa: ENIGMA002
+  backend\app\services\npc\activity_lifecycle_service.py:486 : _canon = getattr(ctx, "_canon_npcs", None) or {}  # noqa: ENIGMA002
+  backend\app\services\npc\activity_lifecycle_service.py:500 : if _need_name == "hunger" and _bs_hunger_tick > 1e-9 and getattr(ctx, "delta_buffer", None) is not None:  # noqa: ENIGMA002
+  backend\app\services\npc\activity_lifecycle_service.py:642 : _sm = getattr(orchestrator, "_scene_manager", None)  # noqa: ENIGMA002
+  backend\app\services\npc\act_consumer.py:45 : if getattr(getattr(r, "proposition", None), "predicate", None) is not None  # noqa: ENIGMA002
+  backend\app\services\npc\act_consumer.py:83 : getattr(r.proposition, "object_id", "") for r in _records  # noqa: ENIGMA002
+  backend\app\services\npc\act_consumer.py:98 : if getattr(r.proposition, "object_id", "") == name),  # noqa: ENIGMA002
+  backend\app\services\npc\act_consumer.py:119 : provenance_hint=getattr(_latest, "source_id", "") if _latest else "",  # noqa: ENIGMA002
+  backend\app\services\npc\act_consumer.py:122 : getattr(_latest.proposition, "object_id", "") if _latest else ""  # noqa: ENIGMA002
+  backend\app\services\npc\act_consumer.py:138 : provenance_hint=getattr(_latest, "source_id", ""),  # noqa: ENIGMA002
+  backend\app\services\npc\act_consumer.py:140 : challenged_claim_object=getattr(  # noqa: ENIGMA002
+  backend\app\services\npc\causal_slice_grievance.py:48 : kernel = getattr(state, "perceptual_kernel", None)  # noqa: ENIGMA002
+  backend\app\services\npc\causal_slice_grievance.py:66 : drives: Dict[str, float] = getattr(state, "drives", {}) or {}  # noqa: ENIGMA002
+  backend\app\services\npc\causal_slice_grievance.py:73 : _ehp = getattr(state, "effective_hp", None)  # noqa: ENIGMA002
+  backend\app\services\npc\causal_slice_grievance.py:74 : _max = getattr(state, "effective_max_hp", None)  # noqa: ENIGMA002
+  backend\app\services\npc\causal_slice_hunger.py:68 : and callable(getattr(own_profile, "has_good", None))  # noqa: ENIGMA002
+  backend\app\services\npc\causal_slice_hunger.py:78 : and callable(getattr(prof, "has_good", None))  # noqa: ENIGMA002
+  backend\app\services\npc\causal_slice_threat.py:51 : kernel = getattr(state, "perceptual_kernel", None)  # noqa: ENIGMA002
+  backend\app\services\npc\causal_slice_threat.py:73 : target_id = getattr(belief_source, "subject_id", None)  # noqa: ENIGMA002
+  backend\app\services\npc\causal_slice_threat.py:79 : drives: Dict[str, float] = getattr(state, "drives", {}) or {}  # noqa: ENIGMA002
+  backend\app\services\npc\causal_slice_threat.py:86 : _ehp = getattr(state, "effective_hp", None)  # noqa: ENIGMA002
+  backend\app\services\npc\causal_slice_threat.py:87 : _max = getattr(state, "effective_max_hp", None)  # noqa: ENIGMA002
+  backend\app\services\npc\causal_slice_threat.py:122 : return stop_hostile(who=getattr(state, "npc_id", ""), target=target_id,  # noqa: ENIGMA002
+  backend\app\services\npc\cognition_context.py:41 : c for c in getattr(session, "claims", []) if getattr(c, "status", "") == "open"  # noqa: ENIGMA002
+  backend\app\services\npc\cognition_context.py:48 : q for q in getattr(session, "open_questions", []) if not getattr(q, "answered", True)  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:442 : _body = getattr(state, "body_state", None) or {}  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:490 : _payload_pop = getattr(event, "payload", {}) or {}  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:509 : _kernel_pop = getattr(state, "perceptual_kernel", None)  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:636 : _conditions = getattr(state, "conditions", {})  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:637 : _threat_acc = getattr(state, "threat_accumulator", None)  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:638 : _wounds = getattr(state, "wounds", [])  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:657 : if "prone" in _conditions or getattr(state, "posture", "") == "prone":  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:861 : _obj_target = getattr(opportunity_ctx, "steal_target", None)  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:944 : _archetype = getattr(personality, "archetype", "") or ""  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:947 : (getattr(personality, "drives_base", None) or {}).get("desire", 0.25)  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:1316 : _payload = getattr(event, "payload", {})  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:1320 : _is_target = getattr(event, "target_id", None) == state.npc_id  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:1331 : _kernel = getattr(state, "perceptual_kernel", None)  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:1353 : _kernel_atk = getattr(state, "perceptual_kernel", None)  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:1927 : _prop = getattr(epistemic_context, "trigger_proposition", None) if epistemic_context else None  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\npc\decision_hub.py:1957 : _rel_store = getattr(self, "_rel_store", None)  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:1958 : _campaign_id = getattr(self, "_campaign_id", "")  # noqa: ENIGMA002
+  backend\app\services\npc\decision_hub.py:1978 : _causal_addr = getattr(self, "_causal_addressee", None)  # noqa: ENIGMA002
+  backend\app\services\npc\domain_phases.py:148 : _drives = getattr(state_l2, "temporary_drives", [])  # noqa: ENIGMA002
+  backend\app\services\npc\exploration_target_resolver.py:38 : getattr(spatial_service, "boundary_map", {}) or {}  # noqa: ENIGMA002
+  backend\app\services\npc\exploration_target_resolver.py:54 : prop = getattr(rec, "proposition", None)  # noqa: ENIGMA002
+  backend\app\services\npc\exploration_target_resolver.py:60 : subject = getattr(prop, "subject_id", "") or ""  # noqa: ENIGMA002
+  backend\app\services\npc\life_engine.py:717 : if _cur_loc and getattr(_loc_svc, "_location_id", "") != _cur_loc:  # noqa: ENIGMA002
+  backend\app\services\npc\life_engine.py:764 : _ep_recon = getattr(self, "_epistemic_store", None)  # noqa: ENIGMA002
+  backend\app\services\npc\life_engine.py:768 : _p = getattr(_r, "proposition", None)  # noqa: ENIGMA002
+  backend\app\services\npc\life_engine.py:771 : if str(getattr(_p.predicate, "value", "")) != "exits_to":  # noqa: ENIGMA002
+  backend\app\services\npc\life_engine.py:773 : _subj = str(getattr(_p, "subject_id", "") or "")  # noqa: ENIGMA002
+  backend\app\services\npc\life_engine.py:775 : and str(getattr(_p, "object_id", "")) == _unknown_sig.get("to")):  # noqa: ENIGMA002
+  backend\app\services\npc\life_engine.py:792 : "+relocation" in getattr(_i, "reason", "")  # noqa: ENIGMA002
+  backend\app\services\npc\life_engine.py:793 : and getattr(_i, "location_id", "") == _unknown_sig.get("to")  # noqa: ENIGMA002
+  backend\app\services\npc\life_engine.py:1295 : else getattr(_kernel, "recent_directive", None)  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\npc\life_engine.py:1790 : else getattr(_kernel, "recent_directive", None)  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\npc\life_engine.py:2012 : else getattr(_kernel, "recent_directive", None)  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\npc\life_engine.py:2507 : f"node={current_position} confidence={getattr(_ref, 'confidence', None)}"  # noqa: ENIGMA002
+  backend\app\services\npc\life_engine.py:2584 : else getattr(_kernel, "recent_directive", None)  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\npc\npc_loader.py:597 : _known = {getattr(_m, "secret_id", None) for _m in cache}  # noqa: ENIGMA002
+  backend\app\services\npc\npc_loader.py:709 : _nid = getattr(_st, "npc_id", "") or ""  # noqa: ENIGMA002
+  backend\app\services\npc\npc_loader.py:711 : if getattr(_m, "secret_id", None) == secret_id:  # noqa: ENIGMA002
+  backend\app\services\npc\npc_loader.py:721 : if (getattr(_st, "npc_id", "") or "") != npc_id:  # noqa: ENIGMA002
+  backend\app\services\npc\npc_loader.py:724 : _sid = getattr(_m, "secret_id", None)  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:470 : _drives = getattr(state_l2, "temporary_drives", [])  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:532 : _dir = getattr(  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:533 : getattr(state_l2, "perceptual_kernel", None), "recent_directive", None  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:547 : _body = getattr(state_l2, "body_state", None)  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:548 : _kernel = getattr(state_l2, "perceptual_kernel", None)  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:550 : _psyche = getattr(state_l2, "psyche", {})  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:631 : _belief_src = getattr(_epistemic_ctx, "trigger_proposition", None) if _epistemic_ctx else None  # noqa: ENIGMA001,ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:696 : _opp_will = getattr(state, "will_state", None)  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:703 : _eco_map = getattr(state, "economic_profiles_map", {}) or {}  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:810 : _eco_map = getattr(state, "economic_profiles_map", {}) or {}  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:915 : drives=dict(getattr(_effective_drives, "values", {}) or {}),  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:930 : drives=dict(getattr(_effective_drives, "values", {}) or {}),  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:957 : getattr(state, "affordance_facts_map", {}).get(npc_id, False)  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:962 : _steal_target_fact = getattr(state, "object_target_map", {}).get(  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:974 : _opp_will_state = getattr(state, "will_state", None)  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:1040 : _payload = getattr(state.hub_event, "payload", {})  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:1247 : getattr(_ci, "speaker", "")  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:1249 : if resolve_control_source(getattr(_ci, "speaker", "")) is not ControlSource.NPC_DECISION  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:1384 : _intent_val = getattr(decision.intent, "value", "") if decision.intent else ""  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:1777 : _claims: list = getattr(_goal, "causal_claims", [])  # noqa: ENIGMA002
+  backend\app\services\npc\personal_route_resolver.py:50 : prop = getattr(rec, "proposition", None)  # noqa: ENIGMA002
+  backend\app\services\npc\personal_route_resolver.py:56 : subject = getattr(prop, "subject_id", "") or ""  # noqa: ENIGMA002
+  backend\app\services\npc\personal_route_resolver.py:57 : obj = getattr(prop, "object_id", "") or ""  # noqa: ENIGMA002
+  backend\app\services\npc\sleep_lifecycle_service.py:186 : else getattr(_kernel, "recent_directive", None)  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\npc\sleep_lifecycle_service.py:374 : _rd = getattr(_kernel, "recent_directive", None)  # noqa: ENIGMA002
+  backend\app\services\npc\social_target_resolver.py:52 : _trust = getattr(state, "relationship_cache", {}).get(nid, {}).get("trust", SOCIAL_TRUST_NEUTRAL)  # noqa: ENIGMA002
+  backend\app\services\npc\state_applicator.py:229 : getattr(cause, "source_event_id", None),  # noqa: ENIGMA002
+  backend\app\services\npc\state_applicator.py:230 : getattr(cause, "source_action_id", None),  # noqa: ENIGMA002
+  backend\app\services\npc\state_applicator.py:359 : if getattr(_orig_delta.payload, "recent_directive_data", None):  # noqa: ENIGMA002
+  backend\app\services\npc\state_applicator.py:1242 : _payload_load = getattr(deltas.payload, "affective_load", None)  # noqa: ENIGMA002
+  backend\app\services\npc\state_applicator.py:1247 : _payload_memory = getattr(deltas.payload, "affective_memory", None)  # noqa: ENIGMA002
+  backend\app\services\npc\state_applicator.py:1273 : _payload_memory = getattr(deltas.payload, "affective_memory", None)  # noqa: ENIGMA002
+  backend\app\services\npc\state_applicator.py:1277 : _payload_load = getattr(deltas.payload, "affective_load", None)  # noqa: ENIGMA002
+  backend\app\services\npc\state_applicator.py:1317 : if _recent_dir := getattr(deltas.payload, "recent_directive_data", None):  # noqa: ENIGMA002
+  backend\app\services\npc\state_applicator.py:1381 : _chronicle = getattr(self, "_l1_chronicle", None)  # noqa: ENIGMA002
+  backend\app\services\npc\state_applicator.py:1593 : drives = getattr(state, "drives_runtime", None) or getattr(  # noqa: ENIGMA002
+  backend\app\services\offscreen\world_projection_buffer.py:43 : _ev_type = getattr(event, "type", None) or (event.get("type") if isinstance(event, dict) else None)  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\offscreen\world_projection_buffer.py:45 : _ev_source = getattr(event, "source", None) or (event.get("source", "world") if isinstance(event, dict) else "world")  # noqa: ENI...
+  backend\app\services\phases\decision.py:60 : _personality = getattr(_npc_state, "personality", None)  # noqa: ENIGMA002
+  backend\app\services\phases\decision.py:194 : _rel_cache = getattr(_npc_state, "relationship_cache", {})  # noqa: ENIGMA002
+  backend\app\services\phases\decision.py:212 : _has_hidden = bool(getattr(_npc_state, "hidden_truth", None))  # noqa: ENIGMA002
+  backend\app\services\phases\decision.py:257 : _spatial_query = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\phases\decision.py:299 : event_type=getattr(ctx.shared_context, "action_type", None) or "idle"  # noqa: ENIGMA002
+  backend\app\services\phases\decision.py:311 : _cstore = getattr(_svc, "crystallized_belief_store", None)  # noqa: ENIGMA002
+  backend\app\services\phases\idle_services.py:115 : _rel_store = getattr(ctx, "relationship_store", None)  # noqa: ENIGMA002
+  backend\app\services\phases\idle_services.py:117 : _rel_store = getattr(deps, "relationship_store", None)  # noqa: ENIGMA002
+  backend\app\services\phases\input.py:35 : _act = getattr(intent, "action", "") or ""  # noqa: ENIGMA002
+  backend\app\services\phases\input.py:38 : _params = getattr(intent, "parameters", None)  # noqa: ENIGMA002
+  backend\app\services\phases\input.py:39 : _target_id = getattr(_params, "target_id", "") if _params else ""  # noqa: ENIGMA002
+  backend\app\services\phases\input.py:40 : _target_ref = getattr(_params, "target_reference", "") if _params else ""  # noqa: ENIGMA002
+  backend\app\services\phases\input.py:49 : "target": getattr(intent, "target", "") or "",  # noqa: ENIGMA002
+  backend\app\services\phases\input.py:189 : "original_intent": getattr(intent, "parameters", None)  # noqa: ENIGMA002
+  backend\app\services\phases\input.py:235 : "original_intent": getattr(intent, "parameters", None)  # noqa: ENIGMA002
+  backend\app\services\phases\integration.py:378 : _emo_tag = getattr(emotion_payload, "emotion_tag", None)  # noqa: ENIGMA002
+  backend\app\services\phases\memory.py:100 : getattr(ctx.npc_services, "spatial_query", None)  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\phases\movement_bridge.py:41 : _nid = getattr(i, "npc_id", None)  # noqa: ENIGMA002
+  backend\app\services\phases\movement_bridge.py:73 : location_id=getattr(intent, 'location_id', None)  # noqa: ENIGMA002
+  backend\app\services\phases\movement_bridge.py:124 : _macro_target = getattr(intent, "target_node_id", None)  # noqa: ENIGMA002
+  backend\app\services\phases\movement_bridge.py:129 : f"[ARBITER_GATE_2] blocked passthrough npc={getattr(intent, 'actor_id', '')}"  # noqa: ENIGMA002
+  backend\app\services\phases\movement_bridge.py:144 : me.set_epistemic_store(getattr(orchestrator, "_epistemic_store", None))  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:54 : _by_id.get(str(getattr(_i, "speaker", "")), {}).get("activity_state"),  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:72 : if getattr(intent, "intent_type", "") == "trade":  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:76 : getattr(intent, "target_id", "")  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:77 : or getattr(intent, "audience", "")  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:82 : speaker=str(getattr(intent, "speaker", "") or ""),  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:94 : if getattr(intent, "intent_type", "") not in ("attack", "steal"):  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:105 : _memory_mgr = _svc.memory_manager if _svc else getattr(orchestrator, "_memory_manager", None)  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:108 : _intent_type = getattr(intent, "intent_type", "")  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:147 : _thread_id = getattr(intent, "thread_id", "") or f"thread-{uuid.uuid4().hex[:8]}"  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:166 : _raw_input = getattr(_hub_event, "payload", {}).get("raw_input", "") if _hub_event else ""  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:196 : _prop = getattr(intent, "proposition", None)  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:301 : _gate_intent_type = getattr(intent, "intent_type", "")  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:305 : _actor_id = getattr(intent, "speaker", "")  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:306 : _target_id = getattr(intent, "target_id", "")  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:434 : _actor_id = getattr(_held_intent, "speaker", "")  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:435 : _target_id = getattr(_held_intent, "target_id", "")  # noqa: ENIGMA002
+  backend\app\services\phases\reduction.py:58 : f"[DIAG_PHASE8] combat_result: deltas={len(combat_result.deltas or [])} missed={len(getattr(combat_result, 'missed_targets', []))}...
+  backend\app\services\phases\reduction.py:119 : _missed = getattr(combat_result, "missed_targets", [])  # noqa: ENIGMA002
+  backend\app\services\phases\reduction.py:162 : _pending = getattr(handler, "_pending_events", [])  # noqa: ENIGMA002
+  backend\app\services\phases\reduction.py:283 : _target_id = getattr(delta, "npc_id", None)  # noqa: ENIGMA002
+  backend\app\services\phases\simulation.py:38 : engine.set_epistemic_store(getattr(orchestrator, "_epistemic_store", None))  # noqa: ENIGMA002
+  backend\app\services\phases\simulation.py:102 : g.actor_id: str(getattr(g, "location_id", "") or "").split(":")[0]  # noqa: ENIGMA002
+  backend\app\services\phases\simulation.py:107 : if getattr(_i, "actor_id", "") not in _activity_actors  # noqa: ENIGMA002
+  backend\app\services\phases\simulation.py:108 : or str(getattr(_i, "location_id", "") or "").split(":")[0]  # noqa: ENIGMA002
+  backend\app\services\phases\simulation.py:109 : != _activity_loc_by_actor.get(getattr(_i, "actor_id", ""), "")  # noqa: ENIGMA002
+  backend\app\services\phases\simulation.py:115 : if getattr(_di, "actor_id", "") == "guard_borko":  # noqa: ENIGMA002
+  backend\app\services\phases\simulation.py:172 : _aid = getattr(_i, "actor_id", "")  # noqa: ENIGMA002
+  backend\app\services\phases\simulation.py:173 : _reason = str(getattr(_i, "reason", "") or "")  # noqa: ENIGMA002
+  backend\app\services\phases\simulation.py:202 : me.set_epistemic_store(getattr(orchestrator, "_epistemic_store", None))  # noqa: ENIGMA002
+  backend\app\services\phases\traversal.py:123 : _scene_ref = getattr(ctx, "scene_state", None)  # noqa: ENIGMA002
+  backend\app\services\phases\traversal.py:220 : _snapshot = getattr(ctx, "tick_snapshot", None)  # noqa: ENIGMA002
+  backend\app\services\phases\validation.py:77 : _legacy_is_boundary = "cross_loc_materialize" in getattr(thick, "cause", "")  # noqa: ENIGMA002
+  backend\app\services\player_cognition\legacy_bridge.py:43 : participants = getattr(secret, "participants", [])  # noqa: ENIGMA002
+  backend\app\services\player_cognition\legacy_bridge.py:47 : canon = getattr(secret, "canonical_truth", "").lower()  # noqa: ENIGMA002
+  backend\app\services\probes\probes\causal_provenance_probe.py:19 : l1_npc_ids = {getattr(e, "target_id", None) for e in getattr(mutation, "l1_drift_events", [])}  # noqa: ENIGMA002
+  backend\app\services\probes\probes\causal_provenance_probe.py:22 : for delta in getattr(mutation, "npc_deltas", []):  # noqa: ENIGMA002
+  backend\app\services\probes\probes\causal_provenance_probe.py:23 : delta_npc_id = getattr(delta, "npc_id", None)  # noqa: ENIGMA002
+  backend\app\services\probes\probes\historical_constraint_probe.py:22 : for intent in getattr(mutation, "communication_intents", []) + getattr(mutation, "movement_intents", []):  # noqa: ENIGMA002
+  backend\app\services\probes\probes\historical_constraint_probe.py:23 : npc_id = getattr(intent, "speaker", None) or getattr(intent, "actor_id", None)  # noqa: ENIGMA002
+  backend\app\services\probes\probes\temporal_isolation_probe.py:19 : _mutated = getattr(ctx, "tick_state_mutated_fields", None) or []  # noqa: ENIGMA002
+  backend\app\services\replay\replay_recorder.py:76 : payload = getattr(interv, "payload", {})  # noqa: ENIGMA002
+  backend\app\services\scene\r3_direct_builder.py:51 : _spatial_query = getattr(shared_context, "spatial_query", None)  # noqa: ENIGMA002
+  backend\app\services\scene\r3_direct_builder.py:140 : _ws = getattr(shared_context, "world_snapshot", None)  # noqa: ENIGMA002
+  backend\app\services\scene\r3_direct_builder.py:142 : _observed_facts = getattr(_ws.player_perception, "observed_facts", [])  # noqa: ENIGMA002
+  backend\app\services\social\propagation.py:72 : getattr(shared_context, "player_target_id", "") if shared_context else ""  # noqa: ENIGMA002
+  backend\app\services\spatial\movement_engine.py:164 : _reason = getattr(intent, "reason", "")  # noqa: ENIGMA002
+  backend\app\services\spatial\movement_engine.py:172 : _existing_reason = getattr(_existing, "reason", "")  # noqa: ENIGMA002
+  backend\app\services\spatial\movement_engine.py:189 : if getattr(intent, "actor_id", "") not in _winning_actors  # noqa: ENIGMA002
+  backend\app\services\spatial\movement_engine.py:221 : and "interrupt" not in getattr(_it, "reason", "")  # noqa: ENIGMA002
+  backend\app\services\spatial\movement_engine.py:222 : and "+relocation" not in getattr(_it, "reason", "")  # noqa: ENIGMA002
+  backend\app\services\spatial\movement_engine.py:227 : f"'{getattr(_it, 'reason', '')}' отклонён (no-interrupt)"  # noqa: ENIGMA002
+  backend\app\services\spatial\movement_engine.py:242 : and "+relocation" in getattr(_it, "reason", "")  # noqa: ENIGMA002
+  backend\app\services\spatial\movement_engine.py:486 : _fin_loc = getattr(intent, "final_location_id", "") or ""  # noqa: ENIGMA002
+  backend\app\services\spatial\movement_engine.py:487 : _fin_node = getattr(intent, "final_node_id", "") or ""  # noqa: ENIGMA002
+  backend\app\services\spatial\movement_engine.py:572 : not getattr(intent, "final_location_id", "")  # noqa: ENIGMA002
+  backend\app\services\spatial\movement_engine.py:632 : needs_dynamic = location_id and getattr(svc, "_location_id", "") != location_id  # noqa: ENIGMA002
+  backend\app\services\spatial\movement_engine.py:656 : f"нет campaign_id или scene_state. Текущий граф '{getattr(svc, '_location_id', '')}' отклонён."  # noqa: ENIGMA002
+  backend\app\services\spatial\movement_engine.py:1036 : if getattr(next_node, "role", None) == NodeRole.BOUNDARY and _dist < 1.5:  # noqa: ENIGMA002
+  backend\app\services\verbalization\scene_outcome_builder.py:460 : if getattr(npc, "cognition", ""):  # noqa: ENIGMA002
+  backend\app\services\verbalization\scene_outcome_builder.py:645 : else getattr(_item, "summary", "")  # noqa: ENIGMA002
+  backend\app\services\verbalization\scene_outcome_builder.py:683 : name=(getattr(profile, "name", None) if profile else None)  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\verbalization\state_interpreter.py:230 : body_state = getattr(state, "body_state", {}) or {}  # noqa: ENIGMA002
+  backend\app\services\world\affordance_facts.py:88 : if snapshot is None or not getattr(snapshot, "world_objects", None):  # noqa: ENIGMA002
+  backend\app\services\world\affordance_shadow.py:76 : if snapshot is None or not getattr(snapshot, "world_objects", None):  # noqa: ENIGMA002
+  backend\app\services\world\object_target_facts.py:45 : if snapshot is None or not getattr(snapshot, "world_objects", None):  # noqa: ENIGMA002
+  backend\app\services\world\time_skip_executor.py:116 : event_type = getattr(delta, "source", None) or (  # noqa: ENIGMA002
+  backend\app\services\world\time_skip_executor.py:199 : event_type = getattr(event, "source", None) or (  # noqa: ENIGMA002
+  backend\app\services\world\world_tick_engine.py:156 : _npc_dict = getattr(_npc_state, "_legacy_dict", None) or {}  # noqa: ENIGMA002
+  backend\app\services\world\world_tick_engine.py:195 : _body = getattr(_npc_state, "body_state", None)  # noqa: ENIGMA002
+  backend\app\services\world\world_tick_engine.py:196 : _kernel = getattr(_npc_state, "perceptual_kernel", None)  # noqa: ENIGMA002
+  backend\app\services\affect.py:59 : getattr(intent, "parameters", None)  # noqa: ENIGMA002
+  backend\app\services\affect.py:61 : or getattr(intent, "action", "")  # noqa: ENIGMA002
+  backend\app\services\affect.py:65 : getattr(intent, "parameters", None)  # noqa: ENIGMA002
+  backend\app\services\affect.py:67 : or getattr(intent, "target", "")  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:83 : if getattr(change, "cause", "") == "traversal_complete":  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:89 : elif "boundary_arrival" in getattr(change, "cause", ""):  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:90 : _b_loc = getattr(change, "target_location_id", "") or snapshot.location_id  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:108 : _current_pos = getattr(change.traversal_proposal, "source_node", "") if change.traversal_proposal else ""  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:138 : f"cause={getattr(change, 'cause', '')} "  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:139 : f"target_loc={getattr(change, 'target_location_id', '')} type={change.type.value}"  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:165 : target_loc = getattr(change, "target_location_id", "") or snapshot.location_id  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:198 : _xy = getattr(change, "target_local_xy", None) or (0.0, 0.0)  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:206 : target_local_xy=getattr(change, "target_local_xy", None),  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:237 : target_local_xy=getattr(change, "target_local_xy", None),  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:241 : source_node=getattr(change.traversal_proposal, "source_node", "") if change.traversal_proposal else "",  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:270 : target_local_xy=getattr(change, "target_local_xy", None),  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:271 : target_location_id=getattr(change, "target_location_id", ""),  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:278 : target_loc = getattr(change, "target_location_id", "") or snapshot.location_id  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:296 : source_node=getattr(change.traversal_proposal, "source_node", "") if change.traversal_proposal else "",  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:321 : target_loc = getattr(change, "target_location_id", "") or snapshot.location_id  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:338 : "npc_positions": getattr(snapshot, "npc_positions", {}) or {},  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:339 : "world_objects": getattr(snapshot, "world_objects", {}) or {},  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:356 : if target_loc != snapshot.location_id or "cross_loc_materialize" in getattr(change, "cause", ""):  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:400 : _explicit_target_loc = getattr(change, "target_location_id", "")  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:403 : _is_cross_loc_snap = "cross_loc_materialize" in getattr(change, "cause", "")  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:450 : target_local_xy=getattr(change, "target_local_xy", None),  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:493 : _explicit_target_loc = getattr(change, "target_location_id", "")  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:504 : target_loc = getattr(change, "target_location_id", "") or snapshot.location_id  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:510 : else (getattr(change, "target_local_xy", None) or (0.0, 0.0))  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:520 : target_local_xy=getattr(change, "target_local_xy", None),  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:525 : source_node=getattr(change.traversal_proposal, "source_node", "") if change.traversal_proposal else "",  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:554 : source_node = getattr(change.traversal_proposal, "source_node", "") if change.traversal_proposal else ""  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:579 : source_node=getattr(change.traversal_proposal, "source_node", "") if change.traversal_proposal else "",  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:589 : proposal = getattr(change, "traversal_proposal", None)  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:611 : target_local_xy=getattr(change, "target_local_xy", None),  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:632 : target_local_xy=getattr(change, "target_local_xy", None),  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:685 : _target_loc_restored = getattr(change, "target_location_id", "") or snapshot.location_id  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:687 : proposal = getattr(change, "traversal_proposal", None)  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:695 : if getattr(change, "cause", "").startswith("cross_loc_materialize"):  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:696 : _target_loc = str(getattr(change, "target_location_id", None) or "")  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:708 : target_local_xy=getattr(change, "target_local_xy", None),  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:791 : target_local_xy=getattr(change, "target_local_xy", None),  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:952 : exact_xy = getattr(change, "target_local_xy", None)  # noqa: ENIGMA002
+  backend\app\services\pipeline_runner.py:83 : hub_event=getattr(ctx, "hub_event", None),  # noqa: ENIGMA002
+  backend\app\services\pipeline_runner.py:84 : player_target_id=getattr(_shared, "player_target_id", "") or "",  # noqa: ENIGMA002
+  backend\app\services\pipeline_runner.py:90 : scene_continuity=getattr(_shared, "scene_continuity", None),  # noqa: ENIGMA002
+  backend\app\services\pipeline_runner.py:91 : spatial_events=getattr(_shared, "spatial_events", []),  # noqa: ENIGMA002
+  backend\app\services\pipeline_runner.py:135 : _cog_mm = getattr(ctx, "memory_manager", None)  # noqa: ENIGMA002
+  backend\app\services\pipeline_runner.py:143 : _phase_0_intents = getattr(ctx, 'movement_intents', []) or []  # noqa: ENIGMA002
+  backend\app\services\pipeline_runner.py:159 : _actor_id = getattr(_intent, "actor_id", None)  # noqa: ENIGMA002
+  backend\app\services\pipeline_runner.py:161 : _reason = getattr(_intent, "reason", "")  # noqa: ENIGMA002
+  backend\app\services\pipeline_runner.py:178 : d for d in (mutation.npc_deltas or []) if getattr(d, "intent", None) is not None  # noqa: ENIGMA002
+  backend\app\services\pipeline_runner.py:185 : _chronicle = getattr(_svc.memory_manager, "l1_chronicle", None) or getattr(_svc.memory_manager, "_l1_chronicle", None)  # noqa: EN...
+  backend\app\services\pipeline_runner.py:197 : _spatial_query: Any = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None  # noqa: ENIGMA001, ENIGM...
+  backend\app\services\pipeline_runner.py:294 : _speaker = getattr(_intent, "speaker", "") or getattr(_intent, "npc_id", "")  # noqa: ENIGMA002
+  backend\app\services\pipeline_runner.py:308 : _topic = getattr(_intent, "topic", "") or getattr(_intent, "intent_type", "")  # noqa: ENIGMA002
+  backend\app\services\projection_engine.py:163 : cause=(getattr(thick, "cause", "") or "").__str__(),  # noqa: ENIGMA002
+  backend\app\services\readiness.py:54 : gate_result = getattr(app_state, "startup_gate", None) if app_state else None  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\readiness.py:87 : game_loop = getattr(app_state, "game_loop", None) if app_state else None  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\readiness.py:111 : startup_status = getattr(app_state, "startup_status", {}) if app_state else {}  # noqa: ENIGMA002
+  backend\app\services\readiness.py:226 : models = getattr(pool, "models", {})  # noqa: ENIGMA002
+  backend\app\services\scene_state_manager.py:898 : and not getattr(change, "cause", "").startswith(  # noqa: ENIGMA002
+  backend\app\services\scene_state_manager.py:905 : f"cause='{getattr(change, 'cause', '')}' — отклонено (torn-write)"  # noqa: ENIGMA002
+  backend\app\services\scene_state_manager.py:914 : and getattr(change, "cause", "") != "traversal_complete"  # noqa: ENIGMA002
+  backend\app\services\scene_state_manager.py:923 : getattr(change, "target_location_id", "") or location_id  # noqa: ENIGMA002
+  backend\app\services\scene_state_manager.py:929 : if target_loc != location_id and getattr(change, "cause", "").startswith("cross_loc_materialize"):  # noqa: ENIGMA002
+  backend\app\services\scene_state_manager.py:952 : exact_xy = getattr(change, "target_local_xy", None)  # noqa: ENIGMA002
+  backend\app\services\scene_state_manager.py:971 : getattr(change, "cause", "") != "traversal_complete"  # noqa: ENIGMA002
+  backend\app\services\scene_state_manager.py:981 : _proposal = getattr(change, "traversal_proposal", None)  # noqa: ENIGMA002
+  backend\app\services\scene_state_manager.py:1023 : cause=getattr(change, "cause", ""),  # noqa: ENIGMA002
+  backend\app\services\scene_state_manager.py:1026 : elif change.field == "position" and getattr(change, "cause", "") != "traversal_complete" and not getattr(change, "cause", "").star...
+  backend\app\services\scene_state_manager.py:1352 : _cached = getattr(self, "_last_committed_npcs", None)  # noqa: ENIGMA002
+  backend\app\services\scene_state_manager.py:1356 : _copy_list = _copy.deepcopy(getattr(self, "_last_committed_npcs_src", []))  # noqa: ENIGMA002
+  backend\app\services\scene_state_manager.py:1747 : _saves = getattr(self, "_saves_dir", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:661 : mvp_controller=getattr(self, "_mvp_controller", None),  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:662 : epistemic_store=getattr(self, "_epistemic_store", None),  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:663 : epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None),  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:702 : mvp_controller=getattr(self, "_mvp_controller", None),  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:703 : epistemic_store=getattr(self, "_epistemic_store", None),  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:704 : epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None),  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:828 : getattr(self, "_conclusion_store", None) is not None  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:835 : if getattr(ctx, "scene_overlay", None) is not None:  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:840 : _final_facts = getattr(ctx, "observed_facts_for_dm", [])  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:845 : if getattr(v, "status", None) == "MOVING"  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:848 : 1 for i in getattr(ctx, "movement_intents", []) if i  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:922 : _ep_store = getattr(self, "_epistemic_store", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:989 : and getattr(ctx, "active_location_id", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1056 : _recorder = getattr(self, "_replay_recorder", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1078 : _recorder.record_tick_mutation(ctx.tick_number, getattr(ctx, "tick_mutation", None))  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1114 : _recorder.record_world_snapshot(ctx.tick_number, getattr(ctx, "world_snapshot", None)) # POST-9  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1134 : tick_mutation=getattr(ctx, "tick_mutation", None),  # Подсистема 3: Инвариант I  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1135 : tick_state_hash_before=getattr(ctx, "tick_state_hash_before", None),  # Инвариант III  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1136 : tick_state_hash_after=getattr(ctx, "tick_state_hash_after", None),     # Инвариант III  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1137 : tick_state_mutated_fields=getattr(ctx, "tick_state_mutated_fields", None), # S179 FIX  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1138 : effective_drives_map=getattr(ctx, "effective_drives_map", {}),         # Инвариант II  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1168 : "active_location": getattr(ctx, "active_location_id", None) or getattr(ctx, "active_location", None),  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1169 : "npc_count": len(ctx.all_npcs_raw) if getattr(ctx, "all_npcs_raw", None) else 0,  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1170 : "all_npcs_raw": getattr(ctx, "all_npcs_raw", []) or [],  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1213 : _ep_store = getattr(self, "_epistemic_store", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1409 : _payload = getattr(interv, "payload", None) or {}  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1411 : _res = getattr(_payload.get("dm_ctx"), "intent_resolution", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1413 : _res = getattr(  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1414 : getattr(ctx, "shared_context", None), "intent_resolution", None  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1416 : _params = getattr(getattr(_res, "original_intent", None), "parameters", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1417 : return getattr(_params, "intent_readiness", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1499 : _target_id = getattr(_params, "target_id", None) if _params else None  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\tick_orchestrator.py:1500 : _movement_req = getattr(_intent_res, "movement_request", None) # V8-TICK-1 FIX  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1503 : _sem_action = getattr(_params, "semantic_action", "") if _params else ""  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1504 : _sem_target = getattr(_params, "target_reference", "") if _params else ""  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1553 : _rdd = getattr(_pl, "recent_directive_data", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1636 : _payload = getattr(interv, "payload", {})  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1652 : _mvp_ctrl = getattr(ctx, "mvp_controller", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1653 : _compiler = getattr(_mvp_ctrl, "action_compiler", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1698 : if getattr(getattr(ctx, "shared_context", None), "action_rejected", False):  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1702 : f"{getattr(ctx.shared_context, 'rejection_reason', '')})"  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:1797 : _rdd = getattr(_pl, "recent_directive_data", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2036 : _data_dir = getattr(ctx, "_cached_data_dir", None) or str(settings.data_dir)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2268 : _rel_store = getattr(self._state_applicator, "_rel_store", None) if self._state_applicator else None  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\tick_orchestrator.py:2276 : l1_chronicle=getattr(self, "l1_chronicle", None),  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2284 : _spatial_query_for_pipeline = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None  # noqa: ENIGMA00...
+  backend\app\services\tick_orchestrator.py:2352 : l1_chronicle=getattr(self, "l1_chronicle", None), # V8-PSY-1 FIX  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2354 : epistemic_store=getattr(self, "_epistemic_store", None), # S189: Epistemic Core  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2355 : epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None), # S189: Epistemic Core  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2449 : _attention_delta = getattr(ctx.tick_mutation, "attention_states_delta", None) or {}  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2450 : _orient_changes = getattr(ctx.tick_mutation, "orient_scene_changes", None) or []  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2477 : for _d in (getattr(ctx.tick_mutation, "npc_deltas", None) or []):  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2478 : _d_intent = getattr(_d, "intent", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2479 : _d_npc = getattr(_d, "npc_id", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2530 : l1_chronicle=getattr(self, "l1_chronicle", None),  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2599 : _l1 = getattr(self, "l1_chronicle", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2675 : manifest_svc=getattr(self, "_manifest_svc", None),  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2676 : project_svc=getattr(self, "_project_svc", None),  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2694 : _d_npc_id = getattr(_d, "npc_id", None)  # noqa: ENIGMA002
+  backend\app\services\tick_orchestrator.py:2748 : _reason = getattr(_intent, "reason", "")  # noqa: ENIGMA002
+  backend\app\services\tick_utils.py:108 : and getattr(relationship_store, "_campaign_id", None) == campaign_id  # noqa: ENIGMA002
+  backend\app\services\tick_utils.py:444 : _sq = getattr(shared_context, "spatial_query", None)  # noqa: ENIGMA002
+  backend\app\services\tick_utils.py:455 : if getattr(_interv, "source", "") == "player":  # noqa: ENIGMA002
+  backend\app\services\tick_utils.py:456 : _payload = getattr(_interv, "payload", {})  # noqa: ENIGMA002
+  backend\app\services\tick_utils.py:474 : _is_player = any(getattr(i, "source", "") == "player" for i in interventions)  # noqa: ENIGMA002
+  backend\app\services\tick_utils.py:475 : _spatial_query = getattr(shared_context, "spatial_query", None) if shared_context else None  # noqa: ENIGMA001, ENIGMA002
+  backend\app\services\tick_utils.py:516 : _pending = getattr(shared_context, "pending_movement_intents", None)  # noqa: ENIGMA002
+  backend\app\services\tick_utils.py:524 : print(f"[Z-DIAG] is_player=False interventions={[(getattr(i,'source','?'), getattr(i,'payload',{}).get('semantic_action','?')) for...
+  backend\app\services\will.py:41 : getattr(intent, "parameters", None)  # noqa: ENIGMA002
+  backend\app\services\will.py:43 : or getattr(intent, "action", "")  # noqa: ENIGMA002
+  backend\app\services\will.py:47 : getattr(intent, "parameters", None)  # noqa: ENIGMA002
+  backend\app\services\will.py:49 : or getattr(intent, "target", "")  # noqa: ENIGMA002
+  backend\lint\custom_rules.py:6 : ENIGMA002: Запрет `getattr(X, "y", None)` без логирования (§1.2)
+  backend\lint\custom_rules.py:46 : """ENIGMA002: Запрет `getattr(X, "y", None)` без логирования"""
+  backend\lint\custom_rules.py:60 : "ENIGMA002: Silent getattr default. If default is valid state, log first occurrence (§1.2)",
+
+--- ENIGMA rule definitions in config files ---
+
+--- EventDTO.source usage (control vs authorship vs attribution) ---
+
+[SEARCH] event.source access  pattern: /event\.source\b/
+  42 matches:
+  backend\app\domain\idle_projection.py:24 : target — наблюдаемый актор (event.source — кто совершил/пережил);
+  backend\app\models\npc_state.py:251 : actor_id: str = ""  # event.source при создании; "" если неизвестен
+  backend\app\models\npc_state.py:656 : return bool(observer_id == event.source)
+  backend\app\models\npc_state.py:658 : return bool(observer_id == event.source or observer_id == target_id)
+  backend\app\services\combat\combat_subscriber.py:266 : payload.actor_id → actor_id (fallback на event.source)
+  backend\app\services\events\claim_event_subscriber.py:58 : speaker_id = event.source
+  backend\app\services\events\claim_event_subscriber.py:179 : if not can_address(event.source, str(prop.subject_id)) and str(prop.subject_id) != "player":
+  backend\app\services\events\claim_event_subscriber.py:196 : _origin_id = event.source
+  backend\app\services\events\claim_event_subscriber.py:199 : _origin_id = payload.get("target_id", event.source)
+  backend\app\services\events\claim_event_subscriber.py:248 : speaker_id=event.source,
+  backend\app\services\events\event_bus.py:102 : _tick, _ordinal = self._identity_provider(event.type, event.source)
+  backend\app\services\events\event_bus.py:107 : f"[EVENT_IDENTITY] no scene for {event.type}/{event.source} — provisional id"
+  backend\app\services\events\event_bus.py:110 : _tick, _ordinal = self._identity_provider(event.type, event.source)
+  backend\app\services\events\event_bus.py:111 : _seed = f"{event.type}:{event.source}:{_tick}:{_ordinal}".encode("utf-8")
+  backend\app\services\events\event_bus.py:203 : f"от {event.source!r} → "
+  backend\app\services\events\npc_addressing_delivery_subscriber.py:78 : event.source,
+  backend\app\services\events\npc_addressing_delivery_subscriber.py:142 : "npc_id": event.source,
+  backend\app\services\events\reaction_subscriber.py:328 : source = event.source
+  backend\app\services\events\relationship_event_semantics.py:95 : source_id = (event.source or "").strip() or str(payload.get("source_id") or "")
+  backend\app\services\events\social_action_subscriber.py:30 : logger.debug(f"[SOCIAL_ACTION_SUB] Received action={action} from={event.source} to={target}")
+  backend\app\services\events\social_action_subscriber.py:36 : source=event.source,
+  backend\app\services\events\social_action_subscriber.py:53 : source=event.source,
+  backend\app\services\events\social_action_subscriber.py:70 : source=event.source,
+  backend\app\services\game_loop\idle_event_projection.py:222 : _dist = sq.distance(_PLAYER_ID, event.source)
+  backend\app\services\game_loop\idle_event_projection.py:224 : logger.error(f"[IDLE_PROJECTION] distance({event.source}) failed: {exc}")
+  backend\app\services\game_loop\idle_event_projection.py:229 : return bool(sq.visibility(_PLAYER_ID, event.source))
+  backend\app\services\game_loop\idle_event_projection.py:231 : logger.error(f"[IDLE_PROJECTION] visibility({event.source}) failed: {exc}")
+  backend\app\services\game_loop\idle_event_projection.py:279 : IdleEventProjection(cause=_event.type, target=_event.source, value=_value)
+  backend\app\services\memory\event_semantic_tagger.py:74 : actor_id:   кто совершил (event.source)
+  backend\app\services\memory\memory_manager.py:296 : actor_id=event.source or "",
+  backend\app\services\memory\memory_manager.py:309 : target_id=payload.get("target_id", event.source),
+  backend\app\services\memory\memory_manager.py:327 : or f"[{event.type}] {event.source or 'мир'}"
+  backend\app\services\memory\memory_manager.py:332 : actor_id=event.source or "",
+  backend\app\services\npc\perception_filter.py:260 : actor = event.source or "кто-то"
+  backend\app\services\tick_orchestrator.py:735 : ctx.cluster_occupancy.get_cluster(event.source) or "world:unknown"
+  backend\app\services\tick_orchestrator.py:757 : source_entity=event.source,
+  backend\app\services\tick_orchestrator.py:2060 : source=_event.source,
+  backend\app\services\tick_utils.py:46 : affected.append(event.source)
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:137 : print(f"[GC05-A] injected NPC_SPOKE: source={_event.source} "
+  backend\tests\gameplay\test_lc_impl2_telegraph_reaches_client.py:93 : тремя ключами: cause (EventType), target (event.source),
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_world_event_test.py:113 : if event.type == EventType.NPC_SPOKE.value and event.source == NPC_C:
+  backend\tests\sandbox\test_dialogue_task_layer.py:65 : assert event.source == "npc_1"
+
+[SEARCH] source == literal comparisons  pattern: /\.source\s*==\s*.player.|\.source\s*==\s*.npc.|\.source\s*==\s*.system./
+  7 matches:
+  backend\app\services\pipeline_runner.py:52 : if interv.source == "player":
+  backend\app\services\tick_orchestrator.py:1463 : if interv.source == "player":
+  backend\app\services\tick_orchestrator.py:1472 : if interv.source == "player" and "dm_ctx" in interv.payload:
+  backend\app\services\tick_orchestrator.py:1476 : elif interv.source == "player":
+  backend\app\services\tick_orchestrator.py:2215 : if interv.source == "player" and "dm_ctx" in interv.payload:
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_world_event_test.py:113 : if event.type == EventType.NPC_SPOKE.value and event.source == NPC_C:
+  backend\tests\sandbox\test_dialogue_task_layer.py:65 : assert event.source == "npc_1"
+
+

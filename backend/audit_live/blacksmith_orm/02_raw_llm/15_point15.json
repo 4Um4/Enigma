@@ -6,48 +6,15 @@
   ],
   "items": [
     {
-      "kind": "EVENT",
-      "draft_payload": {
-        "summary": "Орм стал кузнецом",
-        "day": null,
-        "duration_years": 57,
-        "_provenance": {
-          "duration_years": 57,
-          "note": "duration present but historical_age not derived — requires author confirmation of interval boundary"
-        }
-      },
-      "confidence": 1.0,
-      "needs_confirmation": false,
-      "question": null
-    },
-    {
-      "kind": "TRAIT_SEED",
-      "draft_payload": {
-        "trait": "увлечён работой",
-        "evidence": "Баланс Орма между Гильдией воров и городским правительством — это не двойная игра и не хитрый расчёт. Это стратегия выживания гнома, который живёт в этом городе 57 лет"
-      },
-      "confidence": 1.0,
-      "needs_confirmation": false,
-      "question": null
-    },
-    {
-      "kind": "TRAIT_SEED",
-      "draft_payload": {
-        "trait": "увлечён выпивкой",
-        "evidence": "Баланс Орма между Гильдией воров и городским правительством — это не двойная игра и не хитрый расчёт. Это стратегия выживания гнома, который живёт в этом городе 57 лет"
-      },
-      "confidence": 1.0,
-      "needs_confirmation": false,
-      "question": null
-    },
-    {
       "kind": "PORTRET",
       "draft_payload": {
-        "statement": "Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+        "statement": "Орм не выбирает сторону. Орм выбирает себя. Гильдия терпит его, потому что он их кузнец, информатор, удобный гном, который знает всё, что происходит не только в таверне, но и во всём городе. Правительство терпит его, потому что он не опасен, не амбициозен и один раз уже доказал, что предупредит, если начнётся резня.",
         "traits": [
-          "старая",
-          "полезная",
-          "не трогать"
+          "кузнец",
+          "информатор",
+          "удобный гном",
+          "не опасен",
+          "не амбициозен"
         ]
       },
       "confidence": 1.0,
@@ -55,13 +22,10 @@
       "question": null
     },
     {
-      "kind": "PORTRET",
+      "kind": "BELIEF_SEED",
       "draft_payload": {
-        "statement": "Орм знает: кто молчит — тот первый, кого убирают.",
-        "traits": [
-          "знает",
-          "молчание опасно"
-        ]
+        "statement": "кто молчит — тот первый, кого убирают",
+        "belief_type": "danger"
       },
       "confidence": 1.0,
       "needs_confirmation": false,
@@ -70,7 +34,7 @@
   ],
   "coverage": {
     "fragment_ord": 15,
-    "items_count": 5,
+    "items_count": 2,
     "fragment_text_preview": "15. Баланс Орма между Гильдией воров и городским правительством — это не двойная",
     "critical_topic_warning": null
   }
