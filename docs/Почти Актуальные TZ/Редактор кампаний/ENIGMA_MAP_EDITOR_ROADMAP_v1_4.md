@@ -715,7 +715,7 @@ P0 здесь означает не «немедленно написать ве
   - [x] **D. ResourceValidator** (828ec573, 16 тестов) — 4 уровня валидации
   - [x] **F. Catalog UI** (70fc1341 + 4 фикса, 20 тестов) — CatalogPanel F3 toggle
   - [x] **E. Hierarchy** (3cfb374e, 11 тестов) — categories[] + prefix-match + multiple membership
-  - [ ] **G. Blueprint Editor** — G-1..G-7 + G-8 (S405, 29f0fa77, 17 тестов: new_from clone — save_new_blueprint_atomic, SessionState.NEW, is_new routing) закрыты. G-9..G-10 ждут GO Master.
+  - [ ] **G. Blueprint Editor** — G-1..G-8 + G-9 (S406, cb3febad, 10 тестов: propagation hint — toast после save, без auto-update) закрыты. G-10 ждёт GO Master.
   - [ ] **H. Import UI** | **I. Campaign Assets** | **J. Selective Propagation** | **K. Pre-placement Gate** | **L. NPC Catalog**
   Базлайн: 111 тестов, ruff clean. Game Preview (F11) и World Map Audit — вне нумерации, см. журнал.
 - [ ] **ME-2.2** Material & Texture Studio v1: библиотека материалов, варианты одного материала, назначение на чертёж; `VisualCastingEditor` вливается как спрайтовый редактор (§4.Б).
@@ -1133,6 +1133,7 @@ ender/placement_diagnostic.py (новый) — rectangles_2d_overlap, detect_2d_
 | 2026-10-31 | **ME-2.1-G-6 Metadata + default_properties** (S403, 22c75d00, 14 тестов): _DefaultPropertiesField — raw JSON editor с проверкой синтаксиса; cross-check durability/visibility_through (дубликаты → warning); open/locked — не формализованы (warning); нет авто-синхронизации; save заблокирован при JSON ошибке. Таблица доказательств: durability/visibility_through — доказано (уже в physics/semantics); open/locked — НЕ доказано (components пустые). Базлайн: 390 passed (376+14), ruff clean. G-7..G-10 ждут GO Master. | 7.2 / 10.4 | Код + тесты | G-7 |
 | 2026-10-31 | **ME-2.1-G-7 History + Override** (S404, 370b4f02, 12 тестов): _detect_override_banner (record.source → campaign banner); _load_history_versions (.history/<id>.*.json → version list, read-only); override banner в draw (жёлтый campaign / красный парадокс); history versions в draw. Базлайн: 402 passed (390+12), ruff clean. G-8..G-10 ждут GO Master. | 7.2 / 10.4 | Код + тесты | G-8 |
 | 2026-10-31 | **ME-2.1-G-8 New-from clone** (S405, 29f0fa77, 17 тестов): save_new_blueprint_atomic (slug validation, race protection); SessionState.NEW; is_new routing в save(); BlueprintEditor.new_from (deepcopy → new_id → v1 → compat=1). Базлайн: 419 passed (402+17), ruff clean. G-9..G-10 ждут GO Master. | 7.2 / 10.4 | Код + тесты | G-9 |
+| 2026-10-31 | **ME-2.1-G-9 Propagation hint** (S406, cb3febad, 10 тестов): count_instances callback + show_toast callback; _on_save → count → toast «N экземпляров не обновлены»; ошибка подсчёта не влияет на save; нет auto-update; нет записи в location.json. Базлайн: 429 passed (419+10), ruff clean. G-10 ждёт GO Master. | 7.2 / 10.4 | Код + тесты | G-10 |
 
 
 ### 10.5. ME-R — реестр требований расширения v1.1/v1.2/v1.4
