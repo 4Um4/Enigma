@@ -23,6 +23,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Optional
 
 import pygame
@@ -265,6 +266,133 @@ class _CategoriesField(_FieldControl):
         self._checkbox_rects.append((path, rect, is_unknown))
 
 
+class _DefaultPropertiesField(_FieldControl):
+    """Raw JSON editor для metadata.default_properties (ME-2.1-G-6).
+
+    Контракт Master:
+    - Редактирование JSON с проверкой синтаксиса
+    - Предупреждение о неформализованной семантике
+    - Сохранение неизвестных ключей
+    - Сохранение исходных значений без автоматического преобразования
+    - Cross-check с physics.durability / semantics.perceivability / function.components
+    - Никакой автоматической синхронизации
+    """
+
+    # Ключи с доказанной формализацией (дубликаты в канонических слоях)
+    _FORMALIZED = {
+        "durability": "physics.durability",
+        "visibility_through": "semantics.perceivability.visibility_through",
+    }
+
+    # Ключи с неподтверждённой формализацией (function.components пуст)
+    _UNFORMALIZED = {
+        "open": "function.components.opener",
+        "locked": "function.components.lockable",
+    }
+
+    def __init__(self, path: str, label: str, x: int, y: int, w: int):
+        super().__init__(path, label, None)
+        self._text = ""
+        self._original_text = ""
+        self._error = None
+        self._warnings: list = []
+        self._text_rect = pygame.Rect(x, y + 18, w, 120)
+        self._active = False
+        self._cursor = 0
+
+    def set_value(self, value) -> None:
+        if value is None:
+            value = {}
+        self._text = json.dumps(value, indent=2, ensure_ascii=False)
+        self._original_text = self._text
+        self._validate_json()
+
+    def get_value(self):
+        if self._error:
+            return None
+        try:
+            return json.loads(self._text)
+        except (json.JSONDecodeError, ValueError):
+            return None
+
+    def handle_event(self, event) -> bool:
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mx, my = pygame.mouse.get_pos()
+            if self._text_rect.collidepoint(mx, my):
+                self._active = True
+                return True
+            self._active = False
+        elif event.type == pygame.KEYDOWN and self._active:
+            if event.key == pygame.K_BACKSPACE:
+                self._text = self._text[:-1]
+                self._validate_json()
+                return True
+            if event.key == pygame.K_RETURN:
+                self._text += "\n"
+                self._validate_json()
+                return True
+            if event.unicode and event.unicode.isprintable():
+                self._text += event.unicode
+                self._validate_json()
+                return True
+        return False
+
+    def draw(self, screen, font, font_small, x: int, y: int) -> int:
+        header_surf = font_small.render(self.label, True, (140, 140, 140))
+        screen.blit(header_surf, (x, y))
+
+        self._text_rect.x = x
+        self._text_rect.y = y + 18
+
+        bg_color = (55, 65, 80) if self._active else (45, 45, 55)
+        pygame.draw.rect(screen, bg_color, self._text_rect)
+        border_color = (220, 80, 80) if self._error else (60, 60, 80)
+        pygame.draw.rect(screen, border_color, self._text_rect, 1)
+
+        display_text = self._text
+        if self._active:
+            display_text += "|"
+        for i, line in enumerate(display_text.split("\n")[:8]):
+            surf = font_small.render(line, True, (200, 200, 220))
+            screen.blit(surf, (self._text_rect.x + 4, self._text_rect.y + 4 + i * 14))
+
+        cy = self._text_rect.y + self._text_rect.h + 4
+
+        if self._error:
+            err_surf = font_small.render(f"✗ {self._error}", True, (220, 80, 80))
+            screen.blit(err_surf, (x, cy))
+            cy += 14
+
+        for warning in self._warnings[:3]:
+            warn_surf = font_small.render(f"⚠ {warning}", True, (220, 180, 80))
+            screen.blit(warn_surf, (x, cy))
+            cy += 14
+
+        return cy - y + 4
+
+    def _validate_json(self) -> None:
+        """Проверка синтаксиса JSON + cross-check предупреждения."""
+        self._error = None
+        self._warnings = []
+        try:
+            data = json.loads(self._text) if self._text.strip() else {}
+        except (json.JSONDecodeError, ValueError) as e:
+            self._error = f"Невалидный JSON: {e}"
+            return
+
+        if not isinstance(data, dict):
+            self._error = "default_properties должен быть JSON-объектом"
+            return
+
+        for key, canonical in self._FORMALIZED.items():
+            if key in data:
+                self._warnings.append(f"'{key}' уже формализован в {canonical} — дубликат")
+
+        for key, target in self._UNFORMALIZED.items():
+            if key in data:
+                self._warnings.append(f"'{key}' не формализован (нет {target}) — raw JSON")
+
+
 class BlueprintInspectorPanel:
     """Редактор Blueprint через EditSession (ME-2.1-G-4).
 
@@ -388,6 +516,10 @@ class BlueprintInspectorPanel:
 
         # G-5: Categories (tree-view multi-select)
         self._controls.append(_CategoriesField("categories", "Categories", x, y, w, self._catalog_index))
+        y += 200
+
+        # G-6: Default Properties (raw JSON editor)
+        self._controls.append(_DefaultPropertiesField("metadata.default_properties", "Default Properties", x, y, w))
 
     def _refresh_controls(self) -> None:
         """Обновить виджеты из session.get_field()."""
@@ -419,13 +551,17 @@ class BlueprintInspectorPanel:
             self._status_message = ""
 
     def _can_save(self) -> bool:
-        """Save доступен если: сессия OPEN, dirty, нет ошибок валидации."""
+        """Save доступен если: сессия OPEN, dirty, нет ошибок валидации, нет JSON ошибок."""
         if self._session is None or self._session.state != SessionState.OPEN:
             return False
         if not self._session.dirty:
             return False
         if self._validation is not None and len(self._validation.errors) > 0:
             return False
+        # G-6: блокировать save при ошибке JSON в default_properties
+        for control in self._controls:
+            if isinstance(control, _DefaultPropertiesField) and control._error:
+                return False
         return True
 
     def _on_save(self) -> None:
