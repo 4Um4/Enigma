@@ -259,3 +259,30 @@ def test_no_automatic_canon_migration():
     # Документ не мутирован (consistency_service — read-only)
     assert doc.entries[0].object_id is None, "entry must remain unresolved"
     assert doc.entries[0].payload["target_hint"] == "Орм", "payload must be untouched"
+
+
+def test_effect_trauma_with_triggers_seeds_5tuple():
+    """EFFECT trauma + triggers → _classify_seed_entry возвращает 5-tuple со статусом SEEDED.
+
+    Адресная проверка ветки EFFECT trauma+triggers (L570): до фикса возвращала
+    4-tuple, что приводило бы к ValueError при unpacking в build_seed_report.
+    Тест проходит через реальную ветку кода, не анализирует исходник."""
+    e = _entry(
+        "blacksmith_orm",
+        eid="trauma_ok",
+        kind=EntryKind.EFFECT,
+        payload={
+            "summary": "звон кружки вызывает страх",
+            "effect_kind": "trauma",
+            "triggers": ["звон кружки", "грохот"],
+            "target_hint": None,
+        },
+    )
+    doc = _doc("blacksmith_orm", [e])
+    result = _classify_seed_entry(e, doc, "EFFECT")
+    # Контракт: 5-tuple (seed_result, skip_reason, day, day_anomaly, skip_detail)
+    assert len(result) == 5, f"expected 5-tuple, got {len(result)}-tuple: {result}"
+    seed_result, skip_reason, day, day_anomaly, skip_detail = result
+    assert seed_result == "SEEDED", f"expected SEEDED, got {seed_result}"
+    assert skip_reason is None
+    assert skip_detail is None

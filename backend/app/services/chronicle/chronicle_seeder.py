@@ -567,12 +567,12 @@ def _classify_seed_entry(
         triggers = payload.get(_PL_TRIGGERS)
         if not triggers or not isinstance(triggers, (list, tuple)):
             return ("SKIPPED", "trauma without triggers", None, None, None)
-        return ("SEEDED", None, None, None)
+        return ("SEEDED", None, None, None, None)
     if kind_str == "KNOWLEDGE_LINK":
         # build_seed_knowledge skip'ит источник не из канона (L229),
         # но внутри одного канона все KL прошли строгую валидацию store
-        return ("SEEDED", None, None, None)
-    return ("NOT_APPLICABLE", None, None, None)
+        return ("SEEDED", None, None, None, None)
+    return ("NOT_APPLICABLE", None, None, None, None)
 
 
 def build_seed_report(npc_id: str) -> Optional[SeedReport]:
