@@ -425,6 +425,10 @@ class BlueprintInspectorPanel:
         self._status_message = ""
         self._status_color = (140, 140, 140)
 
+        # G-7: Override banner + history
+        self._override_banner: Optional[str] = None
+        self._history_versions: list[int] = []
+
         # Layout
         pad = 8
         self._close_rect = pygame.Rect(w - 24 - pad, pad, 24, 22)
@@ -458,7 +462,52 @@ class BlueprintInspectorPanel:
         self._build_controls()
         self._refresh_controls()
         self._status_message = ""
+        self._override_banner = self._detect_override_banner(blueprint_id)
+        self._history_versions = self._load_history_versions(blueprint_id)
         self.active = True
+
+    def _detect_override_banner(self, blueprint_id: str) -> Optional[str]:
+        """G-7: Определить override banner по record.source.
+
+        Если get_blueprint возвращает campaign version — показать баннер.
+        Если global — проверить overrides (парадокс: get_blueprint должен
+        вернуть campaign, но проверяем на всякий случай).
+        """
+        if self._session is None:
+            return None
+        record = self._editor._store.get_blueprint(blueprint_id)
+        if record is None:
+            return None
+        if record.source.startswith("campaign:"):
+            campaign_id = record.source.split(":", 1)[1]
+            return f"📋 Campaign версия ({campaign_id}) — перекрывает global"
+        # Проверить overrides — если ID есть, но get_blueprint вернул global
+        for override in self._editor._store.overrides:
+            if override.startswith(f"{blueprint_id}:"):
+                return "⚠ Внимание: global версия, но есть campaign override"
+        return None
+
+    def _load_history_versions(self, blueprint_id: str) -> list[int]:
+        """G-7: Загрузить список доступных исторических версий.
+
+        .history/<id>.<version>.json — только просмотр, не восстановление.
+        """
+        if self._session is None:
+            return []
+        record = self._editor._store.get_blueprint(blueprint_id)
+        if record is None:
+            return []
+        history_dir = record.path.parent / ".history"
+        if not history_dir.is_dir():
+            return []
+        versions = []
+        for f in sorted(history_dir.glob(f"{blueprint_id}.*.json")):
+            try:
+                version = int(f.stem.split(".")[-1])
+                versions.append(version)
+            except ValueError:
+                continue
+        return versions
 
     def close(self) -> None:
         """Закрыть редактор. Завершает сессию через session.close()."""
@@ -646,6 +695,18 @@ class BlueprintInspectorPanel:
         screen.blit(title_surf, (rx + 8, ry + 6))
         dirty_surf = font_small.render(dirty_text, True, dirty_color)
         screen.blit(dirty_surf, (rx + 8 + title_surf.get_width() + 8, ry + 10))
+
+        # G-7: Override banner
+        if self._override_banner:
+            banner_color = (220, 180, 80) if "Campaign" in self._override_banner else (220, 80, 80)
+            banner_surf = font_small.render(self._override_banner, True, banner_color)
+            screen.blit(banner_surf, (rx + 8, ry + 52))
+
+        # G-7: History versions
+        if self._history_versions:
+            hist_text = "История: " + ", ".join(f"v{v}" for v in self._history_versions)
+            hist_surf = font_small.render(hist_text, True, self._text_dim)
+            screen.blit(hist_surf, (rx + 8, ry + 68))
 
         # Кнопка закрытия
         close_abs = self._close_rect.move(rx, ry)
