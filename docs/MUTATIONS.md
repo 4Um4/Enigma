@@ -450,3 +450,48 @@
 5. **МЕТА — только счётчик**, проверяемый грепом `^- \*\*S[0-9]`.
 6. **Сжатие файла** — по решению Мастера; архив всегда = git-хэш в шапке.
 
+---
+
+## S380 — USL-1.1/1.2/1.3/1.4: Universal Semantic Layer (ветвь А, 2026-11-02)
+
+**Сессия:** S380 (номер по ЗАВЕЩАНИЕ max+1; MUTATIONS.md max=S341 — расхождение зафиксировано, Мастеру рекомендуется синхронизировать при слиянии параллельных ветвей)
+**Ветвь:** А («Субъект»)
+**Дата:** 2026-11-02
+**Коммиты:** `fe50b3be` (additive) + `8caefebc` (production)
+
+### Артефакты
+
+| Файл | Тип | SHA |
+|---|---|---|
+| `backend/app/domain/usl.py` | новый | `fe50b3be` |
+| `backend/app/services/chronicle/biography_adapter.py` | новый | `fe50b3be` |
+| `backend/app/services/input/interactive_language_adapter.py` | новый | `fe50b3be` |
+| `backend/tests/micro/test_usl_types.py` | новый (21 тест) | `fe50b3be` |
+| `backend/tests/micro/test_usl_biography_adapter.py` | новый (29 тестов) | `fe50b3be` |
+| `backend/tests/micro/test_usl_interactive_adapter.py` | новый (22 теста) | `fe50b3be` |
+| `backend/app/services/events/claim_event_subscriber.py:104-105` | патч (free ASSERT path) | `8caefebc` |
+| `backend/tests/micro/test_usl_free_assert.py` | новый (10 тестов) | `8caefebc` |
+| `docs/ADR (Architecture Decision Records).md` | ADR-O-437 entry | `fe50b3be` |
+| `docs/audits/ADR-O-437_IMPACT.md` | новый + обновление R2 | `fe50b3be` + этот коммит |
+| `docs/USL — Universal Semantic Layer.md` | §13 + статус R2 | этот коммит |
+| `docs/ЗАВЕЩАНИЕ_АРХИТЕКТОРОВ.md` | Письмо №14 | этот коммит |
+
+### Тесты
+
+- USL pytest: 82 passed (21 + 29 + 22 + 10)
+- Регрессия claim-контура: 16 passed (test_player_speech_claim, test_claim_guard, test_player_self_intro_claim, test_claim_bridge_chain)
+- IPT baseline: 0 новых красных (5 существующих сохранены как долг: INV-RE-CACHE-ALLOWLIST, INV-FLAG-REGISTRY ×2, INV-SILENT-FAILURE ×3)
+
+### ADR
+
+- **ADR-O-437** [ONTO] Universal Semantic Layer — ACTIVE (USL-1.1/1.2/1.3/1.4 GREEN; USL-1.5/1.6 pending)
+- IMPACT: `docs/audits/ADR-O-437_IMPACT.md`
+
+### Что доказано (с оговоркой)
+
+Инварианты USL-1…USL-6 проверены на конкретных тестовых данных (orm.json 53 entries, конкретные фразы ввода). Полная семантическая эквивалентность всех возможных биографий и высказываний требует корпусной проверки USL-2/USL-3.
+
+### Pending (следующая сессия)
+
+- USL-1.5: CanonicalRegistry bridge — `registry_builder.CanonicalRegistry` → input-контур
+- USL-1.6: Regression + Activation — финальные тесты, флаги, DTO Registry
