@@ -1,4 +1,4 @@
-﻿# ENIGMA — Канонический порядок построения игровой сущности (редактор)
+# ENIGMA — Канонический порядок построения игровой сущности (редактор)
 
 **Главный принцип:** автор создаёт не декорацию, а новую часть причинно-следственной системы мира. Редактор проверяет не только внешний вид, но и игровую состоятельность созданного: предмет должен уметь то, для чего существует, и вести себя согласованно с архитектурой истины ENIGMA.
 
@@ -716,7 +716,7 @@ P0 здесь означает не «немедленно написать ве
   - [x] **F. Catalog UI** (70fc1341 + 4 фикса, 20 тестов) — CatalogPanel F3 toggle
   - [x] **E. Hierarchy** (3cfb374e, 11 тестов) — categories[] + prefix-match + multiple membership
   - [x] **G. Blueprint Editor** — G-1..G-10 закрыты (S397-S407, 148 тестов: save_blueprint_atomic → EditSession → inspector/editor → categories → default_properties → history/override → new_from → propagation hint → E2E). Базлайн: 444 passed, ruff clean.
-  - [ ] **H. Import UI** | **I. Campaign Assets** | **J. Selective Propagation** | **K. Pre-placement Gate** | **L. NPC Catalog**
+  - [x] **H. Import UI** (H-1 closed: ResourceResolver, 65 tests, S409) | **I. Campaign Assets** | **J. Selective Propagation** | **K. Pre-placement Gate** | **L. NPC Catalog**
   Базлайн: 111 тестов, ruff clean. Game Preview (F11) и World Map Audit — вне нумерации, см. журнал.
 - [ ] **ME-2.2** Material & Texture Studio v1: библиотека материалов, варианты одного материала, назначение на чертёж; `VisualCastingEditor` вливается как спрайтовый редактор (§4.Б).
 - [ ] **ME-2.3** Составные объекты: `parts[]` с собственными спрайтами/материалами; предпросмотр и выбор частей в рабочей сцене.
@@ -1135,6 +1135,7 @@ ender/placement_diagnostic.py (новый) — rectangles_2d_overlap, detect_2d_
 | 2026-10-31 | **ME-2.1-G-8 New-from clone** (S405, 29f0fa77, 17 тестов): save_new_blueprint_atomic (slug validation, race protection); SessionState.NEW; is_new routing в save(); BlueprintEditor.new_from (deepcopy → new_id → v1 → compat=1). Базлайн: 419 passed (402+17), ruff clean. G-9..G-10 ждут GO Master. | 7.2 / 10.4 | Код + тесты | G-9 |
 | 2026-10-31 | **ME-2.1-G-9 Propagation hint** (S406, cb3febad, 10 тестов): count_instances callback + show_toast callback; _on_save → count → toast «N экземпляров не обновлены»; ошибка подсчёта не влияет на save; нет auto-update; нет записи в location.json. Базлайн: 429 passed (419+10), ruff clean. G-10 ждёт GO Master. | 7.2 / 10.4 | Код + тесты | G-10 |
 | 2026-10-31 | **ME-2.1-G-10 E2E Integration** (S407, dd4a1f13, 15 тестов): полный сквозной контракт — open→edit→validate→save→refresh→place→verify old unchanged→history→propagation→new-from. AssetStore SSOT, CatalogIndex+OBJECT_PRESETS refresh, old instance unchanged, new instance gets updated data, geometry path for Game Preview. Базлайн: 444 passed (429+15), ruff clean. **ME-2.1-G ПОЛНОСТЬЮ ЗАКРЫТ.** | 7.2 / 10.4 | Код + тесты | ME-2.1 закрыт |
+| 2026-11-02 | **ME-2.1-H-1 ResourceResolver** (S409, 556d239e, 65 тестов): единая точка разрешения resource_id -> файл. LegacyDirResolver (pixels/, R2 path traversal + R3 .png-add semantic) + ResourceResolver (canonical AssetStore + legacy fallback, возвращает ResourceRecord.path). SpriteRegistry.set_resolver + clear_cache (R1). ResourceValidator L2 через resolve() (единый механизм, default LegacyDirResolver). editor_core wiring + _invalidate_sprite_cache в 3 точках смены кампании. Базлайн: 509 passed (444+65), ruff clean. H-2..H-5 ждут GO Master. | 7.2 / 10.4 | Код + тесты | H-2 |
 
 
 ### 10.5. ME-R — реестр требований расширения v1.1/v1.2/v1.4
