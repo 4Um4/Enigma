@@ -13,6 +13,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import pygame
+
+# ME-2.1-H-1: ResourceResolver — единая точка разрешения resource_id → файл.
+# Wiring в __init__ (после CatalogPanel) + инвалидация при смене кампании (R1).
+from assets.resource_resolver import LegacyDirResolver, ResourceResolver
 from campaign_manager import CampaignManager
 from core.commands import (
     PasteCommand,
@@ -421,6 +425,15 @@ class EditorCore:
         # Double-click в каталоге → открыть редактор
         self.catalog_panel.on_inspect = lambda bp_id: self.inspector_panel.open(bp_id)
 
+        # ME-2.1-H-1: ResourceResolver wiring.
+        # Создаётся ОДИН раз в __init__ после CatalogPanel (store готов).
+        # Default = LegacyDirResolver(pixels/). ResourceResolver(store, legacy)
+        # делегирует canonical -> AssetStore, fallback -> pixels/.
+        # При смене кампании (R1) — вызывается _invalidate_sprite_cache().
+        self._legacy_resolver = LegacyDirResolver(Path(__file__).parent / "pixels")
+        self._resolver = ResourceResolver(self.catalog_panel.store, self._legacy_resolver)
+        sprite_registry.set_resolver(self._resolver)
+
         # === Дропдауны для типов объектов ===
         self.object_dropdown: Optional[Dropdown] = None
 
@@ -563,6 +576,19 @@ class EditorCore:
         btn_rect = self.btn_file.rect
         self.dialog = DropDownMenu(btn_rect.x, btn_rect.bottom, items)
 
+    def _invalidate_sprite_cache(self) -> None:
+        """ME-2.1-H-1: инвалидация кэша SpriteRegistry (R1).
+
+        Вызывается после смены кампании (cm.open_campaign / open_campaign_from_path).
+        Контракт: set_resolver всегда вызывает clear_cache, поэтому повторная
+        установка того же resolver инвалидирует кэш Surface'ов.
+
+        Пересоздаёт ResourceResolver с текущим catalog_panel.store — если store
+        был обновлён (долг ME-2.1-I: campaign_id), новый resolver подхватит его.
+        """
+        self._resolver = ResourceResolver(self.catalog_panel.store, self._legacy_resolver)
+        sprite_registry.set_resolver(self._resolver)
+
     def _dialog_create_campaign(self):
         """Диалог создания новой кампании"""
         fields = [
@@ -575,6 +601,8 @@ class EditorCore:
             ok, err = self.cm.create_campaign(inputs["folder"], inputs["name"], inputs["desc"])
             if ok:
                 self.cm.open_campaign(inputs["folder"])
+                # ME-2.1-H-1: инвалидация кэша спрайтов при смене кампании (R1)
+                self._invalidate_sprite_cache()
                 self.current_file = None
                 self.mode = MODE_WORLD
                 self.undo.clear()
@@ -615,6 +643,8 @@ class EditorCore:
                 return
             ok, err = self.cm.open_campaign(folders[idx])
             if ok:
+                # ME-2.1-H-1: инвалидация кэша спрайтов при смене кампании (R1)
+                self._invalidate_sprite_cache()
                 self.current_file = None
                 self.mode = MODE_WORLD
                 self.undo.clear()
@@ -645,6 +675,8 @@ class EditorCore:
             return
         ok, err = self.cm.open_campaign_from_path(folder)
         if ok:
+            # ME-2.1-H-1: инвалидация кэша спрайтов при смене кампании (R1)
+            self._invalidate_sprite_cache()
             self.current_file = None
             self.mode = MODE_WORLD
             self.undo.clear()

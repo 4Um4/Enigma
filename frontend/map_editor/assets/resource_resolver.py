@@ -1,4 +1,4 @@
-﻿"""path: /frontend/map_editor/assets/resource_resolver.py
+"""path: /frontend/map_editor/assets/resource_resolver.py
 
 ME-2.1-H-1: ResourceResolver — единая точка разрешения resource_id → файл.
 
@@ -209,11 +209,7 @@ class ResourceResolver:
         #    Не конструируем путь самостоятельно — берём record.path.
         if self._store is not None:
             record = self._store.get_resource(resource_id)
-            if (
-                record is not None
-                and hasattr(record, "path")
-                and record.path is not None
-            ):
+            if record is not None and hasattr(record, "path") and record.path is not None:
                 return record.path
 
         # 2. Legacy fallback (read-only, R2 защищён)

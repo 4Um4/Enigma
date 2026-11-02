@@ -18,6 +18,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from assets.resource_resolver import LegacyDirResolver
+
 
 @dataclass
 class ValidationIssue:
@@ -75,8 +77,22 @@ class ResourceValidator:
         }
     )
 
-    def __init__(self, pixels_dir: Path | str) -> None:
+    def __init__(
+        self,
+        pixels_dir: Path | str,
+        *,
+        resolver: LegacyDirResolver | None = None,
+    ) -> None:
+        """ME-2.1-H-1: L2 использует единый resolver.resolve().
+
+        Контракт Master §4: единый механизм, без if/else ветки.
+        - Если resolver передан — используется он.
+        - Если не передан — создаётся LegacyDirResolver(pixels_dir).
+        L2 _check_resources всегда вызывает resolve().
+        Backward compat: ResourceValidator(pixels_dir) — прежняя семантика.
+        """
         self._pixels_dir = Path(pixels_dir)
+        self._resolver = resolver if resolver is not None else LegacyDirResolver(self._pixels_dir)
 
     def validate_blueprint(self, bp_data: dict[str, Any]) -> ValidationResult:
         """Full validation: structural + resource + editor + runtime.
@@ -201,11 +217,12 @@ class ResourceValidator:
             )
             return
 
-        # Check file exists (don't use SpriteRegistry — just file check)
-        path_png = self._pixels_dir / f"{sheet_key}.png"
-        path_noext = self._pixels_dir / sheet_key
-
-        if not path_png.exists() and not path_noext.exists():
+        # ME-2.1-H-1: единый механизм разрешения через self._resolver.resolve().
+        # Backward compat: default resolver = LegacyDirResolver(pixels_dir),
+        # что воспроизводит прежнюю семантику (sheet_key.png или sheet_key без ext).
+        # R2 (path traversal) и R3 (.png semantic) — внутри resolver.
+        path = self._resolver.resolve(sheet_key)
+        if path is None:
             result.issues.append(
                 ValidationIssue(
                     level="error",

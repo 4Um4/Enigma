@@ -1,4 +1,4 @@
-﻿"""ME-2.1-H-1 Step 1: ResourceResolver contract tests.
+"""ME-2.1-H-1 Step 1: ResourceResolver contract tests.
 
 Тестирует только assets/resource_resolver.py (LegacyDirResolver + ResourceResolver).
 SpriteRegistry / ResourceValidator / editor_core wiring — отдельные шаги.
@@ -352,9 +352,7 @@ class TestResourceResolverCanonical:
 
     def test_resolve_canonical_global(self, tmp_path):
         """AssetStore.get_resource возвращает global record → вернуть record.path."""
-        canonical_path = (
-            tmp_path / "assets" / "catalogs" / "base" / "resources" / "chair.png"
-        )
+        canonical_path = tmp_path / "assets" / "catalogs" / "base" / "resources" / "chair.png"
         canonical_path.parent.mkdir(parents=True)
         canonical_path.write_bytes(b"PNG-global")
 
@@ -532,12 +530,8 @@ class TestResourceResolverLifecycle:
         store2_path.parent.mkdir(parents=True)
         store2_path.write_bytes(b"store2")
 
-        store1 = _FakeAssetStore(
-            {"chair": _FakeResourceRecord("chair", 1, "global:base", store1_path)}
-        )
-        store2 = _FakeAssetStore(
-            {"chair": _FakeResourceRecord("chair", 1, "global:base", store2_path)}
-        )
+        store1 = _FakeAssetStore({"chair": _FakeResourceRecord("chair", 1, "global:base", store1_path)})
+        store2 = _FakeAssetStore({"chair": _FakeResourceRecord("chair", 1, "global:base", store2_path)})
 
         legacy = LegacyDirResolver(tmp_path / "pixels")
 
@@ -729,3 +723,451 @@ class TestContractSummary:
         assert len(self.CONTRACTS) == 9
         for name, tests in self.CONTRACTS.items():
             assert len(tests) > 0, f"Контракт {name} без тестов"
+
+
+# ═══════════════════════════════════════════════════════════════════
+# SpriteRegistry integration (Step 2)
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestSpriteRegistryDefaultResolver:
+    """Step 2: SpriteRegistry default resolver = LegacyDirResolver.
+
+    Без вызова set_resolver поведение как до H-1 (backward compat).
+    """
+
+    def test_default_resolver_is_legacy(self):
+        """Без set_resolver — _resolver это LegacyDirResolver."""
+        from sprite_registry import SpriteRegistry
+
+        sr = SpriteRegistry(base_dir="/tmp/test_pixels")
+        assert isinstance(sr._resolver, LegacyDirResolver)
+
+    def test_default_resolver_uses_base_dir(self):
+        """LegacyDirResolver.root_dir == base_dir из конструктора."""
+        from sprite_registry import SpriteRegistry
+
+        sr = SpriteRegistry(base_dir="/tmp/test_pixels")
+        assert sr._resolver.root_dir == Path("/tmp/test_pixels")
+
+    def test_base_dir_attribute_preserved(self):
+        """Q3 Master: base_dir сохранён для Visual Casting Lab."""
+        from sprite_registry import SpriteRegistry
+
+        sr = SpriteRegistry(base_dir="/tmp/test_pixels")
+        assert sr.base_dir == "/tmp/test_pixels"
+
+
+class TestSpriteRegistrySetResolver:
+    """Step 2 + R1: set_resolver меняет resolver и инвалидирует кэш."""
+
+    def test_set_resolver_changes_resolver(self):
+        """После set_resolver — _resolver это новый объект."""
+        from sprite_registry import SpriteRegistry
+
+        sr = SpriteRegistry(base_dir="/tmp/test_pixels")
+        new_resolver = LegacyDirResolver("/tmp/other_pixels")
+        sr.set_resolver(new_resolver)
+        assert sr._resolver is new_resolver
+
+    def test_set_resolver_clears_sheets_cache(self):
+        """R1: set_resolver сбрасывает _sheets."""
+        from sprite_registry import SpriteRegistry
+
+        sr = SpriteRegistry(base_dir="/tmp/test_pixels")
+        sr._sheets["fake_sheet"] = "fake_surface"  # type: ignore[assignment]
+        assert len(sr._sheets) == 1
+        sr.set_resolver(LegacyDirResolver("/tmp/other"))
+        assert len(sr._sheets) == 0
+
+    def test_set_resolver_clears_tiles_cache(self):
+        """R1: set_resolver сбрасывает _tiles."""
+        from sprite_registry import SpriteRegistry
+
+        sr = SpriteRegistry(base_dir="/tmp/test_pixels")
+        sr._tiles["fake_tile"] = "fake_surface"  # type: ignore[assignment]
+        assert len(sr._tiles) == 1
+        sr.set_resolver(LegacyDirResolver("/tmp/other"))
+        assert len(sr._tiles) == 0
+
+    def test_set_resolver_with_resource_resolver(self):
+        """set_resolver принимает ResourceResolver (не только LegacyDirResolver)."""
+        from sprite_registry import SpriteRegistry
+
+        sr = SpriteRegistry(base_dir="/tmp/test_pixels")
+        legacy = LegacyDirResolver("/tmp/other")
+        rr = ResourceResolver(None, legacy)
+        sr.set_resolver(rr)
+        assert sr._resolver is rr
+
+
+class TestSpriteRegistryLoadSheetDelegates:
+    """Step 2: _load_sheet делегирует в resolver.resolve.
+
+    Тесты не требуют реального pygame display — используют мок-резолверы
+    которые возвращают None (не вызывают pygame.image.load) или
+    проверяют кэш _sheets (не вызывают resolve вообще).
+    """
+
+    def test_load_sheet_returns_none_when_resolver_returns_none(self):
+        """Если resolver.resolve возвращает None — _load_sheet тоже None.
+
+        pygame.image.load НЕ вызывается (нет файла).
+        """
+        from sprite_registry import SpriteRegistry
+
+        sr = SpriteRegistry(base_dir="/tmp/test_pixels")
+
+        class _NullResolver:
+            def resolve(self, resource_id):
+                return None
+
+        sr.set_resolver(_NullResolver())
+        result = sr._load_sheet("anything")
+        assert result is None
+
+    def test_load_sheet_passes_sheet_key_to_resolver(self):
+        """_load_sheet передаёт sheet_key в resolver.resolve."""
+        from sprite_registry import SpriteRegistry
+
+        sr = SpriteRegistry(base_dir="/tmp/test_pixels")
+
+        received = []
+
+        class _RecordingResolver:
+            def resolve(self, resource_id):
+                received.append(resource_id)
+                return None  # None → _load_sheet вернёт None без pygame
+
+        sr.set_resolver(_RecordingResolver())
+        sr._load_sheet("my_sheet_key")
+        assert received == ["my_sheet_key"]
+
+    def test_load_sheet_uses_cache_when_sheet_exists(self):
+        """Если sheet уже в кэше _sheets — resolver НЕ вызывается."""
+        from sprite_registry import SpriteRegistry
+
+        sr = SpriteRegistry(base_dir="/tmp/test_pixels")
+
+        class _FailResolver:
+            def resolve(self, resource_id):
+                raise AssertionError(f"resolve не должен вызываться для кэшированного {resource_id}")
+
+        sr.set_resolver(_FailResolver())  # clears cache
+        sentinel = object()
+        sr._sheets["cached"] = sentinel  # add AFTER set_resolver (clear_cache)
+        result = sr._load_sheet("cached")
+        assert result is sentinel
+
+
+# ═══════════════════════════════════════════════════════════════════
+# ResourceValidator integration (Step 3)
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestResourceValidatorDefaultResolver:
+    """Step 3: ResourceValidator default resolver = LegacyDirResolver(pixels_dir).
+
+    Без передачи resolver — backward compat (прежняя семантика поиска .png).
+    """
+
+    def test_default_resolver_is_legacy(self, tmp_path):
+        """Без resolver — создаётся LegacyDirResolver(pixels_dir)."""
+        from assets.resource_validator import ResourceValidator
+
+        v = ResourceValidator(tmp_path)
+        assert isinstance(v._resolver, LegacyDirResolver)
+
+    def test_default_resolver_uses_pixels_dir(self, tmp_path):
+        """LegacyDirResolver.root_dir == pixels_dir."""
+        from assets.resource_validator import ResourceValidator
+
+        v = ResourceValidator(tmp_path)
+        assert v._resolver.root_dir == tmp_path
+
+    def test_pixels_dir_attribute_preserved(self, tmp_path):
+        """_pixels_dir сохранён для backward compat."""
+        from assets.resource_validator import ResourceValidator
+
+        v = ResourceValidator(tmp_path)
+        assert v._pixels_dir == tmp_path
+
+
+class TestResourceValidatorWithExplicitResolver:
+    """Step 3: ResourceValidator принимает внешний resolver (контракт Master §4)."""
+
+    def test_explicit_resolver_used(self, tmp_path):
+        """Если resolver передан — используется он, не создаётся новый."""
+        from assets.resource_validator import ResourceValidator
+
+        custom = LegacyDirResolver(tmp_path / "custom_pixels")
+        v = ResourceValidator(tmp_path, resolver=custom)
+        assert v._resolver is custom
+
+    def test_explicit_resolver_takes_precedence(self, tmp_path):
+        """Внешний resolver приоритетнее default LegacyDirResolver(pixels_dir)."""
+        from assets.resource_validator import ResourceValidator
+
+        # pixels_dir указывает на одно место, resolver — на другое
+        pixels_dir = tmp_path / "default_pixels"
+        pixels_dir.mkdir()
+        (pixels_dir / "sheet.png").write_bytes(b"PNG")
+
+        custom_root = tmp_path / "custom_pixels"
+        custom_root.mkdir()
+        (custom_root / "sheet.png").write_bytes(b"PNG-custom")
+
+        custom_resolver = LegacyDirResolver(custom_root)
+        v = ResourceValidator(pixels_dir, resolver=custom_resolver)
+        # resolver.resolve должен вернуть custom, не default
+        result = v._resolver.resolve("sheet")
+        assert result is not None
+        assert result.parent == custom_root
+
+
+class TestResourceValidatorL2UsesResolver:
+    """Step 3: L2 _check_resources использует resolver.resolve (единый механизм).
+
+    Backward compat: ResourceValidator(pixels_dir) — прежняя семантика.
+    """
+
+    def _make_bp(self, sheet_key):
+        """Минимальный валидный blueprint для L2 проверки."""
+        return {
+            "blueprint_id": "test",
+            "version": 1,
+            "compat": 1,
+            "type": "test",
+            "geometry": {"source": "primitive", "size": {"w": 1, "h": 1, "d": 1}},
+            "appearance": {"sprite": [sheet_key, 0, 0], "color": "#FFFFFF"},
+            "physics": {
+                "passability": {
+                    "walk": True,
+                    "jump_over": False,
+                    "crawl_under": False,
+                    "climb_on": False,
+                    "walk_around": True,
+                },
+                "cover": 0.0,
+                "height": 1.0,
+            },
+        }
+
+    def test_l2_uses_default_resolver_finds_sprite(self, tmp_path):
+        """L2 через default resolver находит sprite в pixels_dir (backward compat)."""
+        from assets.resource_validator import ResourceValidator
+
+        pixels = tmp_path / "pixels"
+        pixels.mkdir()
+        (pixels / "Deadbeat").mkdir()
+        (pixels / "Deadbeat" / "deadbeat_b.png").write_bytes(b"PNG")
+
+        v = ResourceValidator(pixels)
+        result = v.validate_blueprint(self._make_bp("Deadbeat/deadbeat_b"))
+        # L2 не должен дать error для существующего sprite
+        resource_errors = [i for i in result.errors if i.category == "resource"]
+        assert resource_errors == [], f"L2 не должен давать error: {resource_errors}"
+
+    def test_l2_uses_default_resolver_missing_sprite(self, tmp_path):
+        """L2 через default resolver: missing sprite → error (backward compat)."""
+        from assets.resource_validator import ResourceValidator
+
+        pixels = tmp_path / "pixels"
+        pixels.mkdir()
+
+        v = ResourceValidator(pixels)
+        result = v.validate_blueprint(self._make_bp("Nonexistent/sheet"))
+        resource_errors = [i for i in result.errors if i.category == "resource"]
+        assert len(resource_errors) == 1
+        assert "Sprite file not found" in resource_errors[0].message
+
+    def test_l2_with_custom_resolver_finds_in_custom(self, tmp_path):
+        """L2 с custom resolver: sprite найден через custom, не pixels_dir."""
+        from assets.resource_validator import ResourceValidator
+
+        # pixels_dir пуст
+        pixels = tmp_path / "pixels"
+        pixels.mkdir()
+
+        # custom resolver указывает на другое место с sprite
+        custom_root = tmp_path / "custom"
+        custom_root.mkdir()
+        (custom_root / "custom_sheet.png").write_bytes(b"PNG")
+
+        custom_resolver = LegacyDirResolver(custom_root)
+        v = ResourceValidator(pixels, resolver=custom_resolver)
+
+        result = v.validate_blueprint(self._make_bp("custom_sheet"))
+        resource_errors = [i for i in result.errors if i.category == "resource"]
+        assert resource_errors == [], f"L2 должен найти sprite через custom resolver: {resource_errors}"
+
+    def test_l2_path_traversal_blocked_by_resolver(self, tmp_path):
+        """R2: L2 с default resolver блокирует traversal (через LegacyDirResolver)."""
+        from assets.resource_validator import ResourceValidator
+
+        # Создаём файл вне pixels_dir
+        outside = tmp_path / "secret.png"
+        outside.write_bytes(b"SECRET")
+
+        pixels = tmp_path / "pixels"
+        pixels.mkdir()
+
+        v = ResourceValidator(pixels)
+        # Попытка traversal — resolver вернёт None → L2 даст error
+        result = v.validate_blueprint(self._make_bp("../secret"))
+        resource_errors = [i for i in result.errors if i.category == "resource"]
+        assert len(resource_errors) == 1, f"R2: traversal должен быть заблокирован, got: {resource_errors}"
+
+
+class TestResourceValidatorBackwardCompatG:
+    """Step 3: существующие тесты G (ResourceValidator(pixels_dir)) проходят.
+
+    Все 10 тестовых файлов G-1…G-10 создают ResourceValidator(pixels_dir)
+    без resolver. После H-1 они должны работать как прежде (default resolver).
+    """
+
+    def test_g_pattern_validator_creation(self, tmp_path):
+        """Паттерн из G-тестов: ResourceValidator(pixels_dir) без resolver."""
+        from assets.resource_validator import ResourceValidator
+
+        # Точно как в test_me21_g1_write_api.py:62
+        pixels_dir = tmp_path / "pixels"
+        pixels_dir.mkdir()
+        (pixels_dir / "Deadbeat").mkdir()
+        (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+
+        v = ResourceValidator(pixels_dir)
+        assert v._pixels_dir == pixels_dir
+        assert isinstance(v._resolver, LegacyDirResolver)
+        assert v._resolver.root_dir == pixels_dir
+
+
+# ═══════════════════════════════════════════════════════════════════
+# EditorCore wiring (Step 4)
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestEditorCoreResolverWiring:
+    """Step 4: editor_core создаёт ResourceResolver в __init__ и wiring'ит sprite_registry.
+
+    Тесты проверяют КОНТРАКТ wiring через исходный код editor_core.py
+    (без создания реального EditorCore — он требует pygame display).
+    """
+
+    def test_editor_core_imports_resource_resolver(self):
+        """editor_core.py импортирует ResourceResolver + LegacyDirResolver."""
+        from pathlib import Path
+
+        ec_path = Path(__file__).resolve().parents[1] / "editor_core.py"
+        src = ec_path.read_text(encoding="utf-8")
+        assert "from assets.resource_resolver import" in src, (
+            "editor_core должен импортировать ResourceResolver для wiring"
+        )
+        assert "LegacyDirResolver" in src
+        assert "ResourceResolver" in src
+
+    def test_editor_core_creates_resolver_in_init(self):
+        """__init__ создаёт self._resolver = ResourceResolver(store, legacy)."""
+        from pathlib import Path
+
+        ec_path = Path(__file__).resolve().parents[1] / "editor_core.py"
+        src = ec_path.read_text(encoding="utf-8")
+        assert "self._resolver = ResourceResolver(" in src, (
+            "__init__ должен создавать self._resolver = ResourceResolver(store, legacy)"
+        )
+        assert "self._legacy_resolver = LegacyDirResolver(" in src
+        assert "sprite_registry.set_resolver(self._resolver)" in src
+
+    def test_editor_core_has_invalidate_helper(self):
+        """editor_core имеет метод _invalidate_sprite_cache."""
+        from pathlib import Path
+
+        ec_path = Path(__file__).resolve().parents[1] / "editor_core.py"
+        src = ec_path.read_text(encoding="utf-8")
+        assert "def _invalidate_sprite_cache(self)" in src, "editor_core должен иметь _invalidate_sprite_cache для R1"
+
+    def test_editor_core_invalidates_on_create_campaign(self):
+        """_dialog_create_campaign вызывает _invalidate_sprite_cache."""
+        from pathlib import Path
+
+        ec_path = Path(__file__).resolve().parents[1] / "editor_core.py"
+        src = ec_path.read_text(encoding="utf-8")
+        idx = src.find("def _dialog_create_campaign")
+        assert idx != -1, "_dialog_create_campaign не найден"
+        body = src[idx : idx + 2000]
+        assert "_invalidate_sprite_cache()" in body, (
+            "_dialog_create_campaign должен вызывать _invalidate_sprite_cache после open_campaign"
+        )
+
+    def test_editor_core_invalidates_on_open_campaign(self):
+        """_dialog_open_campaign вызывает _invalidate_sprite_cache."""
+        from pathlib import Path
+
+        ec_path = Path(__file__).resolve().parents[1] / "editor_core.py"
+        src = ec_path.read_text(encoding="utf-8")
+        idx = src.find("def _dialog_open_campaign")
+        assert idx != -1, "_dialog_open_campaign не найден"
+        body = src[idx : idx + 2000]
+        assert "_invalidate_sprite_cache()" in body
+
+    def test_editor_core_invalidates_on_open_from_folder(self):
+        """_open_campaign_from_folder вызывает _invalidate_sprite_cache.
+
+        Метод может называться _dialog_open_folder или _open_campaign_from_folder —
+        ищем любой, содержащий open_campaign_from_path.
+        """
+        from pathlib import Path
+
+        ec_path = Path(__file__).resolve().parents[1] / "editor_core.py"
+        src = ec_path.read_text(encoding="utf-8")
+        # Найти блок с open_campaign_from_path
+        idx = src.find("open_campaign_from_path(folder)")
+        assert idx != -1, "open_campaign_from_path(folder) не найден в editor_core"
+        # Взять 1500 символов после — тело метода
+        body = src[idx : idx + 1500]
+        assert "_invalidate_sprite_cache()" in body, (
+            "Метод с open_campaign_from_path должен вызывать _invalidate_sprite_cache"
+        )
+
+    def test_editor_core_no_duplicate_if_ok_in_create_campaign(self):
+        """Регрессия: в _dialog_create_campaign нет дублированного if ok:.
+
+        После фикса шага 4f — invalidate внутри ОДНОГО if ok:, не двух.
+        """
+        from pathlib import Path
+
+        ec_path = Path(__file__).resolve().parents[1] / "editor_core.py"
+        src = ec_path.read_text(encoding="utf-8")
+        idx = src.find("def _dialog_create_campaign")
+        body = src[idx : idx + 2000]
+        # Считаем количество "if ok:" в теле — должно быть 1
+        count = body.count("if ok:")
+        assert count == 1, (
+            f"_dialog_create_campaign должен иметь 1 'if ok:', найдено {count} — возможно дублирование после фикса H-1"
+        )
+
+
+class TestEditorCoreWiringContract:
+    """Step 4: контракт R1 — _invalidate_sprite_cache пересоздаёт resolver.
+
+    Доказывает, что при смене store (если CatalogPanel пересоздаст store с
+    campaign_id в будущем) — resolver получит новый store.
+    """
+
+    def test_invalidate_recreates_resolver_with_current_store(self):
+        """_invalidate_sprite_cache берёт catalog_panel.store заново.
+
+        Если store изменился (campaign lifecycle), новый resolver подхватит его.
+        """
+        from pathlib import Path
+
+        ec_path = Path(__file__).resolve().parents[1] / "editor_core.py"
+        src = ec_path.read_text(encoding="utf-8")
+        idx = src.find("def _invalidate_sprite_cache")
+        assert idx != -1
+        body = src[idx : idx + 800]
+        assert "ResourceResolver(self.catalog_panel.store" in body, (
+            "_invalidate_sprite_cache должен пересоздавать resolver с текущим store "
+            "(контракт R1: новый store → новый resolver)"
+        )
+        assert "sprite_registry.set_resolver(self._resolver)" in body

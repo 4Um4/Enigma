@@ -17,6 +17,14 @@ from typing import Dict, Optional, Tuple
 
 import pygame
 
+# ME-2.1-H-1: ResourceResolver — единая точка разрешения resource_id -> файл.
+# SpriteRegistry делегирует разрешение пути в resolver, не знает о структуре
+# каталогов AssetStore. Default = LegacyDirResolver(pixels/) для backward compat.
+# editor_core вызывает set_resolver(ResourceResolver(store, legacy)) после
+# создания AssetStore; при смене кампании — set_resolver с новым resolver
+# (контракт R1: всегда clear_cache).
+from assets.resource_resolver import LegacyDirResolver, ResourceResolver
+
 # ME-D5: дома определений спрайтов (деривация ниже; цикла нет — data_manager
 # не импортирует sprite_registry, проверено S348 командой 91/92)
 from data.npc_data import NPC_SPRITE_MAP
@@ -32,33 +40,51 @@ class SpriteRegistry:
     """Кэширующий провайдер тайлов из спрайтшитов."""
 
     def __init__(self, base_dir: str = _BASE_DIR, tile_size: int = _DEFAULT_TILE_SIZE):
-        self.base_dir = base_dir
+        self.base_dir = base_dir  # сохранён для Visual Casting Lab (Q3 Master, вне H-1)
         self.tile_size = tile_size
         # Кэш: ключ "Папка/Файл" -> pygame.Surface (весь лист)
         self._sheets: Dict[str, pygame.Surface] = {}
         # Кэш: ключ "Папка/Файл:col:row" -> pygame.Surface (отдельный тайл)
         self._tiles: Dict[str, pygame.Surface] = {}
+        # ME-2.1-H-1: resolver для разрешения resource_id -> физический файл.
+        # Default = LegacyDirResolver(base_dir) — backward compat (поведение
+        # до H-1: поиск в pixels/ с добавлением .png).
+        # editor_core вызывает set_resolver(ResourceResolver(store, legacy))
+        # после создания AssetStore.
+        self._resolver: LegacyDirResolver | ResourceResolver = LegacyDirResolver(base_dir)
+
+    def set_resolver(self, resolver: LegacyDirResolver | ResourceResolver) -> None:
+        """ME-2.1-H-1: Инъекция resolver (R1 — всегда clear_cache).
+
+        Контракт: при смене AssetStore (campaign lifecycle) editor_core создаёт
+        НОВЫЙ ResourceResolver(new_store, legacy) и передаёт через set_resolver.
+        Старый resolver более не используется. clear_cache гарантирует, что
+        Surface'ы из старого resolver не протекут в новое состояние.
+
+        Args:
+            resolver: LegacyDirResolver (только pixels/) или ResourceResolver
+                (canonical AssetStore + legacy fallback).
+        """
+        self._resolver = resolver
+        self.clear_cache()
 
     def _load_sheet(self, sheet_key: str) -> Optional[pygame.Surface]:
-        """Загружает спрайтшит с диска, если его нет в кэше."""
+        """Загружает спрайтшит с диска, если его нет в кэше.
+
+        ME-2.1-H-1: путь к файлу определяется через self._resolver.resolve(sheet_key).
+        SpriteRegistry не знает о структуре каталогов AssetStore — только
+        загружает Surface по пути, который вернул resolver.
+        R2 (path traversal) и R3 (.png semantic) — внутри resolver.
+        """
         if sheet_key in self._sheets:
             return self._sheets[sheet_key]
 
-        # S176 FIX: Поддержка произвольной вложенности папок (Pers/traktir/Трактирщик)
-        parts = sheet_key.replace("\\", "/").strip("/").split("/")
-        if not parts:
+        path = self._resolver.resolve(sheet_key)
+        if path is None:
             return None
 
-        path = os.path.join(self.base_dir, *parts)
-
-        if not os.path.exists(path):
-            path_png = path + ".png"
-            if not os.path.exists(path_png):
-                return None
-            path = path_png
-
         try:
-            sheet = pygame.image.load(path).convert_alpha()
+            sheet = pygame.image.load(str(path)).convert_alpha()
             self._sheets[sheet_key] = sheet
             return sheet
         except pygame.error:
