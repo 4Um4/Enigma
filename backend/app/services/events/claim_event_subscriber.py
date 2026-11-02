@@ -102,7 +102,30 @@ class ClaimEventSubscriber:
         payload = event.payload
         semantic_action = payload.get("semantic_action")
         if not semantic_action:
-            return  # G1: без DM-вектора нет утверждения — слышимость живёт в LISTEN-дельтах
+            # USL-1.4 (ADR-O-437): free ASSERT path — игрок сказал что-то без
+            # DM-вектора. Строим proposition(speaker, ASSERTS, content) и
+            # делегируем on_claim_event. Существующие гейты эпистемики
+            # (Proposition-guard line 154-189, can_observe line 217,
+            # BeliefRevisionEngine + trust) фильтруют невалидные утверждения.
+            # PLAYER_ASSERTION → CANON запрещён (USL-2) — on_claim_event
+            # не пишет в канон/TruthState. Вердикт Мастера: не ограничивать
+            # ASSERT временными маркерами — пусть все свободные утверждения
+            # проходят через гейты.
+            _content = payload.get("content") or ""
+            if _content:
+                _speaker = getattr(event, "source", "player")
+                _new_payload = dict(payload)
+                _new_payload["proposition"] = {
+                    "subject_id": _speaker,
+                    "predicate": Predicate.ASSERTS.value,
+                    "object_id": str(_content)[:300],
+                    "polarity": True,
+                }
+                _new_payload.setdefault("claim_id", f"player-claim-{event.id}")
+                _new_payload.setdefault("speech_act", "assert")
+                _new_event = dataclasses.replace(event, payload=_new_payload)
+                self.on_claim_event(_new_event)
+            return  # G1: без DM-вектора обработка завершена
 
         subject_of_claim = payload.get("target_reference") or payload.get("target_id")
         speaker = getattr(event, "source", "player")
