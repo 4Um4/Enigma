@@ -1,0 +1,839 @@
+﻿============================================================
+
+STAGE 2.3 - EXECUTION BOUNDARY
+
+Trace: Player IntentDTO -> body_state change
+
+Trace: NPC CommunicationIntent -> body_state change
+
+Mode: READ ONLY - per Master verdict
+
+Generated: 2026-11-02 18:44:41
+
+============================================================
+
+============================================================
+
+1. PLAYER PATH: IntentDTO -> EventDTO
+
+============================================================
+
+[READ] publish_player_intent + phase_1_input  backend/app/services/phases/input.py L25-100
+  25: def publish_player_intent(ctx: _TickContext, intent: Any) -> None:
+  26:     """Публикация разрешенного намерения игрока в шину."""
+  27:     from app.domain.events import EventDTO
+  28:     from app.services.events.event_bus import get_event_bus
+  29:     from app.services.events.event_types import EventType
+  30: 
+  31:     _evt_map = {
+  32:         "attack": EventType.PLAYER_ATTACKS,
+  33:         "player_attacks": EventType.PLAYER_ATTACKS,
+  34:     }
+  35:     _act = getattr(intent, "action", "") or ""  # noqa: ENIGMA002
+  36:     _resolved_type = _evt_map.get(_act, EventType.PLAYER_INTERACTS)
+  37: 
+  38:     _params = getattr(intent, "parameters", None)  # noqa: ENIGMA002
+  39:     _target_id = getattr(_params, "target_id", "") if _params else ""  # noqa: ENIGMA002
+  40:     _target_ref = getattr(_params, "target_reference", "") if _params else ""  # noqa: ENIGMA002
+  41:     _sem_action = getattr(_params, "semantic_action", _act) if _params else _act
+  42: 
+  43:     get_event_bus().publish(
+  44:         EventDTO.create(
+  45:             event_type=_resolved_type.value,
+  46:             source="player",
+  47:             payload={
+  48:                 "action": _sem_action,
+  49:                 "target": getattr(intent, "target", "") or "",  # noqa: ENIGMA002
+  50:                 "target_id": _target_id,
+  51:                 "target_reference": _target_ref,
+  52:                 "semantic_action": _sem_action,
+  53:             },
+  54:         )
+  55:     )
+  56: 
+  57: 
+  58: def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
+  59:     """Фильтрация воли игрока через WillpowerGate (ADR-031).
+  60: 
+  61:     Если интент угрожает идентичности аватара — возникает конфликт воли.
+  62:     """
+  63:     logger.debug(
+  64:         f"[WILL_TRACE] _phase_1_input CALLED. Has intent: {ctx.player_intent is not None}"
+  65:     )
+  66: 
+  67:     if not ctx.player_intent:
+  68:         return  # Idle-тик или нет ввода от игрока
+  69: 
+  70:     intent = ctx.player_intent
+  71:     _sem_action = (
+  72:         intent.parameters.semantic_action
+  73:         if hasattr(intent, "parameters") and intent.parameters
+  74:         else intent.action
+  75:     )
+  76:     _sem_target = (
+  77:         intent.target if hasattr(intent, "target") else "UNKNOWN"
+  78:     )  # ADR-125: DTO.target_id deprecated. Truth is in intent.target
+  79:     logger.warning(
+  80:         f"[WILL_TRACE] 1. Intent action: '{_sem_action}', target: '{_sem_target}', NPCs in raw: {len(ctx.all_npcs_raw)}"
+  81:     )
+  82: 
+  83:     # Извлекаем снапшот аватара из симуляции
+  84:     player_dict = next(
+  85:         (n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None
+  86:     )
+  87: 
+  88:     if not player_dict:
+  89:         logger.error(
+  90:             f"[WILL_TRACE] FAIL: Аватар 'player' НЕ НАЙДЕН в all_npcs_raw (len={len(ctx.all_npcs_raw)}). Воля отключена!"
+  91:         )
+  92:         publish_player_intent(ctx, intent)
+  93:         return
+  94: 
+  95:     logger.warning(
+  96:         f"[WILL_TRACE] 2. Avatar found. Psyche: {player_dict.get('psyche', {})}"
+  97:     )
+  98: 
+  99:     # 1. Вектор давления берется из результата Фазы 1 (Единая точка вычисления)
+  100:     # Повторный вызов resolve_intent_pressure ЗАПРЕЩЕН (каузальная integrity)
+
+[SEARCH] Player intent resolution + publish  pattern: /def resolve_player_intent|def publish_player_intent/
+  2 matches:
+  backend\app\services\game_loop\phase_1_input.py:276 : def resolve_player_intent(
+  backend\app\services\phases\input.py:25 : def publish_player_intent(ctx: _TickContext, intent: Any) -> None:
+
+[SEARCH] player_intent / IntentDTO usage  pattern: /player_intent\b|IntentDTO\b/
+  116 matches:
+  backend\app\domain\intent.py:5 : Основные сущности: IntentDTO
+  backend\app\domain\intent.py:57 : class IntentDTO:
+  backend\app\domain\intent_profile.py:48 : Вычисляется ТОЛЬКО на границе resolve_player_intent — ПОСЛЕ резолва ссылок
+  backend\app\domain\observatory.py:29 : class ObservatorySpatialIntentDTO:
+  backend\app\domain\observatory.py:67 : intent: Optional[ObservatorySpatialIntentDTO] = None
+  backend\app\models\impact.py:7 : Основные сущности: ImpactIntentDTO, ContactResult
+  backend\app\models\impact.py:9 : - В будущем можно расширить ImpactIntentDTO, добавив поля для более сложных взаимодействий (например, area_of_effect для взрывов, ...
+  backend\app\models\impact.py:30 : class ImpactIntentDTO:
+  backend\app\models\will.py:18 : from app.domain.intent import IntentDTO
+  backend\app\models\will.py:75 : counter_offer: Optional[IntentDTO] = None  # Аватар предлагает альтернативу
+  backend\app\models\will.py:94 : original_intent: IntentDTO
+  backend\app\services\combat\combat_subscriber.py:6 : Зависимости: EventBus, Phase8Context, Phase8Result, ImpactEngine, ImpactIntentDTO
+  backend\app\services\combat\combat_subscriber.py:10 : Он только транслирует EventDTO → ImpactIntentDTO → ImpactEngine.
+  backend\app\services\combat\combat_subscriber.py:16 : - В будущем можно расширить ImpactIntentDTO, добавив поля для более сложных взаимодействий (например, area_of_effect для взрывов, ...
+  backend\app\services\combat\combat_subscriber.py:32 : from app.models.impact import ImpactIntentDTO
+  backend\app\services\combat\combat_subscriber.py:262 : ) -> Optional[ImpactIntentDTO]:
+  backend\app\services\combat\combat_subscriber.py:263 : """Извлекает ImpactIntentDTO из EventDTO.payload.
+  backend\app\services\combat\combat_subscriber.py:283 : # (контракт ImpactIntentDTO требует str, не Optional).
+  backend\app\services\combat\combat_subscriber.py:317 : return ImpactIntentDTO(
+  backend\app\services\combat\impact_engine.py:19 : - В будущем можно расширить ImpactIntentDTO, добавив поля для более сложных взаимодействий (например, area_of_effect для взрывов, ...
+  backend\app\services\combat\impact_engine.py:29 : from app.models.impact import ContactLevel, ImpactIntentDTO
+  backend\app\services\combat\impact_engine.py:46 : attacker: NPCStateSnapshot, intent: ImpactIntentDTO, defender: NPCStateSnapshot, rng: random.Random
+  backend\app\services\combat\impact_engine.py:99 : def _resolve_target_zone(intent: ImpactIntentDTO, rng: random.Random) -> str:
+  backend\app\services\combat\impact_engine.py:127 : intent: ImpactIntentDTO,
+  backend\app\services\game_loop\phase_1_input.py:10 : Основные сущности: resolve_player_intent, publish_player_action, publish_player_speech
+  backend\app\services\game_loop\phase_1_input.py:33 : from app.domain.intent import IntentDTO, IntentParametersDTO
+  backend\app\services\game_loop\phase_1_input.py:276 : def resolve_player_intent(
+  backend\app\services\game_loop\phase_1_input.py:312 : # Формируем канонический IntentDTO
+  backend\app\services\game_loop\phase_1_input.py:353 : intent = IntentDTO(
+  backend\app\services\game_loop\phase_1_input.py:370 : # а не IntentDTO, чтобы использовать physical_force и emotional_charge.
+  backend\app\services\game_loop\phase_1_input.py:396 : Читает frozen IntentResolution (создаётся в resolve_player_intent ДО
+  backend\app\services\game_loop\phase_1_input.py:619 : # resolve_player_intent (после резолва ссылок).
+  backend\app\services\game_loop\turn_pipeline.py:32 : resolve_player_intent,
+  backend\app\services\game_loop\turn_pipeline.py:405 : _resolution = resolve_player_intent(
+  backend\app\services\phases\input.py:5 : Основные сущности: Phase1InputDeps, run_phase_1_input, publish_player_intent
+  backend\app\services\phases\input.py:25 : def publish_player_intent(ctx: _TickContext, intent: Any) -> None:
+  backend\app\services\phases\input.py:64 : f"[WILL_TRACE] _phase_1_input CALLED. Has intent: {ctx.player_intent is not None}"
+  backend\app\services\phases\input.py:67 : if not ctx.player_intent:
+  backend\app\services\phases\input.py:70 : intent = ctx.player_intent
+  backend\app\services\phases\input.py:92 : publish_player_intent(ctx, intent)
+  backend\app\services\phases\input.py:153 : publish_player_intent(ctx, intent)
+  backend\app\services\player_cognition\legacy_bridge.py:20 : """Семантический матч IntentDTO.proposition с TruthState.secrets через Embedding Similarity (Stub)."""
+  backend\app\services\player_cognition\legacy_bridge.py:59 : """Временный мост: конвертирует расширенный IntentDTO в PlayerAction для MvpTavernController.
+  backend\app\services\player_cognition\legacy_bridge.py:63 : # В будущем PlayerAction будет удалён, а MvpTavernController будет принимать IntentDTO напрямую.
+  backend\app\services\spatial\spatial_observatory_service.py:17 : ObservatorySpatialIntentDTO,
+  backend\app\services\spatial\spatial_observatory_service.py:151 : intent=ObservatorySpatialIntentDTO(
+  backend\app\services\affect.py:22 : from app.domain.intent import IntentDTO
+  backend\app\services\affect.py:34 : intent: IntentDTO,
+  backend\app\services\affect.py:303 : intent: IntentDTO,
+  backend\app\services\affect.py:317 : # C5 FIX: Извлечение action и target из IntentDTO для инференса унижения
+  backend\app\services\dto.py:15 : from app.domain.intent import IntentDTO
+  backend\app\services\dto.py:188 : player_intent: Optional["IntentDTO"] = None  # ADR-031: Канонический интент
+  backend\app\services\tick_orchestrator.py:2010 : # S118 FIX: Удалена мёртвая заглушка _publish_player_intent (Vulture).
+  backend\app\services\tick_utils.py:451 : # Извлекаем player_intent (IntentDTO) из interventions (если есть действие игрока)
+  backend\app\services\tick_utils.py:452 : _player_intent = None
+  backend\app\services\tick_utils.py:458 : # Мапим строковое действие в стандартный формат IntentDTO
+  backend\app\services\tick_utils.py:459 : from app.domain.intent import IntentDTO, IntentParametersDTO
+  backend\app\services\tick_utils.py:466 : _player_intent = IntentDTO(
+  backend\app\services\tick_utils.py:488 : player_intent=_player_intent,
+  backend\app\services\will.py:15 : from app.domain.intent import IntentDTO, IntentParametersDTO
+  backend\app\services\will.py:30 : intent: IntentDTO,
+  backend\app\services\will.py:243 : ) -> Optional[IntentDTO]:
+  backend\app\services\will.py:250 : return IntentDTO(
+  backend\app\services\will.py:256 : return IntentDTO(
+  backend\app\services\will.py:262 : return IntentDTO(action="yield", target="", parameters=IntentParametersDTO())
+  backend\tests\sandbox\micro\test_multi_act.py:5 : Основные сущности: resolve_player_intent, IntentSemanticField
+  backend\tests\sandbox\micro\test_multi_act.py:10 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\micro\test_multi_act.py:18 : return resolve_player_intent(
+  backend\tests\sandbox\micro\test_player_intent_projection.py:5 : Основные сущности: build_intent_projection, resolve_player_intent
+  backend\tests\sandbox\micro\test_player_intent_projection.py:15 : resolve_player_intent,
+  backend\tests\sandbox\micro\test_player_intent_projection.py:40 : return resolve_player_intent(
+  backend\tests\sandbox\micro\test_player_intent_projection.py:89 : resolution = resolve_player_intent(
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:22 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:46 : return resolve_player_intent(
+  backend\tests\sandbox\micro\test_ue_safety_red.py:13 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\micro\test_ue_safety_red.py:30 : res = resolve_player_intent(
+  backend\tests\sandbox\micro\test_ue_safety_red.py:43 : res = resolve_player_intent(
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:18 : resolve_player_intent,
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:33 : """Фабрика (§13.4): живой IntentResolution через resolve_player_intent."""
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:34 : return resolve_player_intent(
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:5 : Основные сущности: resolve_player_intent
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:11 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:27 : resolution = resolve_player_intent(
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:44 : resolution = resolve_player_intent(
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:59 : resolution = resolve_player_intent(
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:10 : from app.domain.intent import IntentDTO
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:16 : intent_approach = IntentDTO(action="player_moves", target="npc_test")
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:20 : intent_halt = IntentDTO(action="player_threatens", target="npc_test")
+  backend\tests\sandbox\phenomenology\test_will_directive_conflict.py:10 : from app.domain.intent import IntentDTO
+  backend\tests\sandbox\phenomenology\test_will_directive_conflict.py:15 : intent_move = IntentDTO(action="player_moves", target="npc_test")
+  backend\tests\sandbox\phenomenology\test_will_directive_conflict.py:19 : intent_defy = IntentDTO(action="player_social", target="npc_test")
+  backend\tests\sandbox\SUPERBOX\scenarios\ue0_baseline_probe.py:119 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\SUPERBOX\scenarios\ue0_baseline_probe.py:120 : resolution = resolve_player_intent(
+  backend\tests\sandbox\sandbox_combat_vertical.py:29 : from app.models.impact import ImpactIntentDTO
+  backend\tests\sandbox\sandbox_combat_vertical.py:64 : impact_intent = ImpactIntentDTO(
+  backend\tests\sandbox\sandbox_will_vertical.py:39 : from app.domain.intent import IntentDTO
+  backend\tests\sandbox\sandbox_will_vertical.py:83 : intent = IntentDTO(action=action, target="borko", text=action)
+  backend\tests\sandbox\test_causal_movement.py:17 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\test_causal_movement.py:36 : resolution = resolve_player_intent(
+  backend\tests\IPT.py:409 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\IPT.py:429 : # resolve_player_intent возвращает словарь с pressure и intent
+  backend\tests\IPT.py:430 : _intent_data = resolve_player_intent([action], world.campaign_id, world._get_scene())
+  backend\tests\IPT.py:436 : f"Игрок→NPC: resolve_player_intent вернул пустой результат для цели {target_npc}. Ввод игрока не обрабатывается.",
+  backend\tests\IPT.py:444 : f"Игрок→NPC: resolve_player_intent упал с ошибкой: {e}",
+  backend\tests\test_combat_subscriber.py:14 : 3. Извлечение ImpactIntentDTO из EventDTO.payload
+  backend\tests\test_combat_subscriber.py:245 : """Извлечение ImpactIntentDTO из payload."""
+  backend\tests\test_impact_engine.py:25 : from app.models.impact import ImpactIntentDTO
+  backend\tests\test_impact_engine.py:58 : ) -> ImpactIntentDTO:
+  backend\tests\test_impact_engine.py:59 : return ImpactIntentDTO(
+  backend\tests\test_physiology_flow.py:20 : from app.models.impact import ImpactIntentDTO
+  backend\tests\test_physiology_flow.py:74 : intent = ImpactIntentDTO(
+  backend\tests\test_physiology_flow.py:116 : intent = ImpactIntentDTO(
+  backend\tests\test_will.py:14 : from app.domain.intent import IntentDTO
+  backend\tests\test_will.py:23 : intent = IntentDTO(action="attack", target="guard")
+  backend\tests\test_will.py:29 : intent = IntentDTO(action="talk", target="npc_lucy")
+  backend\tests\test_will.py:35 : intent = IntentDTO(action="flee", target="")
+
+============================================================
+
+2. NPC PATH: CommunicationIntent -> EventDTO -> body_state
+
+============================================================
+
+[READ] CombatSubscriber handle/drain  backend/app/services/combat/combat_subscriber.py L98-180
+  98: 
+  99:     def handle(
+  100:         self,
+  101:         events: List,
+  102:         ctx: Phase8Context,
+  103:     ) -> Phase8Result:
+  104:         """ФАЗА 8: транслирует боевые события в физические воздействия.
+  105: 
+  106:         events — из drain_events(), может быть пустым.
+  107:         ctx — READ-ONLY.
+  108:         Возвращает Phase8Result(deltas) — оркестратор маршрутизирует
+  109:         через delta_buffer → apply_batch.
+  110: 
+  111:         PHYSICS_COMPOSITE: дельты обходят _aggregate_deltas merge,
+  112: 
+  113:         S91: Эмит стигмергического следа (safety_confidence) при акте насилия.
+  114:         """
+  115:         # S91: Эмит стигмергического следа (safety_confidence)
+  116:         # В будущем будет вызывать DynamicAffordanceField.apply_trace()
+  117:         if not events:
+  118:             return Phase8Result()
+  119: 
+  120:         logger.debug(
+  121:             f"[COMBAT_HANDLE] events={len(events)} types={[getattr(e, 'type', '?') for e in events[:3]]}"
+  122:         )
+  123: 
+  124:         # Строим dict npc_id → npc_dict для быстрого доступа
+  125:         npc_by_id: dict[str, dict] = {}
+  126:         _player_dict_for_snapshot = None  # P1: Для передачи в _make_player_snapshot
+  127:         for npc in ctx.all_npcs_raw:
+  128:             npc_id = npc.get("id") or npc.get("npc_id")
+  129:             if npc_id:
+  130:                 npc_by_id[npc_id] = npc
+  131:                 # Сохраняем player_dict для боевого снапшота (ADR-128, Rule 60)
+  132:                 if npc_id == "player":
+  133:                     _player_dict_for_snapshot = npc
+  134: 
+  135:         deltas = []
+  136:         events_processed = 0
+  137:         missed_targets: list[dict] = []  # Цели вне досягаемости — для DM: {npc_id, distance, max_range}
+  138: 
+  139:         # WV (вердикт Q1): дубль 5.0/2.0 устранён — SSOT досягаемости в dom.constants.
+  140:         # reach предмета войдёт, когда tool_reference дойдёт до combat-pipe payload.
+  141:         from app.domain.constants import BODY_REACH_M
+  142:         _MAX_MELEE_RANGE = BODY_REACH_M
+  143: 
+  144:         # A1-FIX: zombie reader → SpatialQueryService (ADR-048 single authority).
+  145:         # Раньше: scene_state["player_distances"] — поле не пишется с ADR-048,
+  146:         # _distances всегда {} → range gate всегда пропускает атаки сквозь карту.
+  147:         # Теперь: SpatialQueryService.player_distances() — canonical source.
+  148:         _distances = {}
+  149:         if ctx.shared_context and hasattr(ctx.shared_context, "spatial_query"):
+  150:             _sq = ctx.shared_context.spatial_query
+  151:             if _sq is not None:
+  152:                 _npc_ids = list(npc_by_id.keys())
+  153:                 _distances = _sq.player_distances(_npc_ids)
+  154:             else:
+  155:                 logger.debug("[COMBAT_SUB] spatial_query is None — range gate DISABLED")
+  156:         else:
+  157:             logger.debug(
+  158:                 "[COMBAT_SUB] shared_context has no spatial_query — range gate DISABLED"
+  159:             )
+  160: 
+  161:         logger.debug(
+  162:             f"[COMBAT_SUB] npc_by_id keys={list(npc_by_id.keys())[:10]} distances={bool(_distances)}"
+  163:         )
+  164: 
+  165:         for event in events:
+  166:             intent = self._extract_impact_intent(event, npc_by_id)
+  167:             if intent is None:
+  168:                 logger.debug(
+  169:                     f"[COMBAT_SUB] intent=None for event type={getattr(event, 'type', '?')}"
+  170:                 )
+  171:                 continue
+  172: 
+  173:             logger.debug(
+  174:                 f"[COMBAT_SUB] intent OK: actor={intent.actor_id} target={intent.target_id} force={intent.force:.1f}"
+  175:             )
+  176: 
+  177:             # Range gate (WV-1, реактивация; MVP-костыль «временно отключено» снят):
+  178:             # атака не достигает цели за пределами _MAX_MELEE_RANGE + weapon_reach.
+  179:             # Канон дистанции — SpatialQueryService.player_distances() (ADR-048),
+  180:             # источник починен. miss уходит в missed_targets → DM-канал отказа (WV-2).
+
+[READ] Class pattern not found: class ImpactEngine\b
+
+[SEARCH] PhysiologyPayload  pattern: /class PhysiologyPayload|PhysiologyPayload\b/
+  69 matches:
+  backend\app\models\delta_payloads.py:96 : class PhysiologyPayload:
+  backend\app\models\state_delta.py:25 : PhysiologyPayload,
+  backend\app\models\state_delta.py:87 : PhysiologyPayload,
+  backend\app\models\state_delta.py:161 : DeltaDomain.PHYSIOLOGY: PhysiologyPayload,
+  backend\app\models\state_delta.py:207 : "PhysiologyPayload",
+  backend\app\services\body\body_engine.py:4 : Pure calculator: body_state + activity + Δt → PhysiologyPayload(energy_delta).
+  backend\app\services\body\body_engine.py:117 : from app.models.delta_payloads import PhysiologyPayload
+  backend\app\services\body\body_engine.py:197 : payload=PhysiologyPayload(
+  backend\app\services\combat\impact_engine.py:15 : 2. НЕ пишет эмоции. Пишет PhysiologyPayload + shock_impulse.
+  backend\app\services\combat\impact_engine.py:27 : from app.models.delta_payloads import InjuryDTO, PhysiologyPayload
+  backend\app\services\combat\impact_engine.py:151 : payload=PhysiologyPayload(fatigue_delta=2.0),
+  backend\app\services\combat\impact_engine.py:215 : payload=PhysiologyPayload(
+  backend\app\services\combat\impact_engine.py:233 : payload=PhysiologyPayload(fatigue_delta=5.0 + (structural_damage * 0.1)),
+  backend\app\services\combat\injury_processor.py:75 : from app.models.delta_payloads import PhysiologyPayload
+  backend\app\services\combat\injury_processor.py:277 : payload=PhysiologyPayload(
+  backend\app\services\combat\physiology_decay_handler.py:29 : from app.models.delta_payloads import PhysiologyPayload
+  backend\app\services\combat\physiology_decay_handler.py:231 : payload=PhysiologyPayload(
+  backend\app\services\events\reaction_subscriber.py:41 : PhysiologyPayload,
+  backend\app\services\events\reaction_subscriber.py:198 : and isinstance(delta.payload, PhysiologyPayload)
+  backend\app\services\game_loop\game_loop.py:363 : # reads body_state SSOT + activity → PhysiologyPayload + Cause).
+  backend\app\services\npc\activity_lifecycle_service.py:501 : from app.models.delta_payloads import PhysiologyPayload
+  backend\app\services\npc\activity_lifecycle_service.py:506 : payload=PhysiologyPayload(nutrition_delta=+_bs_hunger_tick),
+  backend\app\services\npc\state_applicator.py:39 : PhysiologyPayload,
+  backend\app\services\npc\state_applicator.py:809 : and isinstance(deltas.payload, PhysiologyPayload)
+  backend\app\services\npc\state_applicator.py:815 : and isinstance(deltas.payload, PhysiologyPayload)
+  backend\app\services\npc\state_applicator.py:821 : and isinstance(deltas.payload, PhysiologyPayload)
+  backend\app\services\npc\state_applicator.py:827 : and isinstance(deltas.payload, PhysiologyPayload)
+  backend\app\services\npc\state_applicator.py:833 : and isinstance(deltas.payload, PhysiologyPayload)
+  backend\app\services\npc\state_applicator.py:839 : and isinstance(deltas.payload, PhysiologyPayload)
+  backend\app\services\npc\state_applicator.py:845 : and isinstance(deltas.payload, PhysiologyPayload)
+  backend\app\services\npc\state_applicator.py:851 : and isinstance(deltas.payload, PhysiologyPayload)
+  backend\app\services\npc\state_applicator.py:924 : # energy_delta ещё не в PhysiologyPayload текущего коммита.
+  backend\app\services\npc\state_applicator.py:928 : and isinstance(deltas.payload, PhysiologyPayload)
+  backend\app\services\npc\state_applicator.py:933 : # hydration/energy в PhysiologyPayload текущего коммита НЕТ — прямой
+  backend\app\services\npc\state_applicator.py:942 : and isinstance(deltas.payload, PhysiologyPayload)
+  backend\app\services\npc\state_applicator.py:947 : # PhysiologyPayload существует с S2B.4, default 0.0 — getattr сохранён
+  backend\app\services\npc\state_applicator.py:952 : and isinstance(deltas.payload, PhysiologyPayload)
+  backend\app\services\phases\reduction.py:15 : from app.models.delta_payloads import PhysiologyPayload
+  backend\app\services\phases\reduction.py:73 : and isinstance(d.payload, PhysiologyPayload)
+  backend\app\services\phases\reduction.py:133 : "[DIAG_PHASE8] combat_data EMPTY — no PhysiologyPayload in deltas"
+  backend\tests\gameplay\perturbation_harness.py:177 : from app.models.delta_payloads import PhysiologyPayload
+  backend\tests\gameplay\perturbation_harness.py:185 : _payload_factories: Dict[str, Callable[[float], PhysiologyPayload]] = {
+  backend\tests\gameplay\perturbation_harness.py:186 : "fatigue": lambda v: PhysiologyPayload(fatigue_delta=v),
+  backend\tests\gameplay\perturbation_harness.py:187 : "energy": lambda v: PhysiologyPayload(energy_delta=v),
+  backend\tests\gameplay\perturbation_harness.py:188 : "pain": lambda v: PhysiologyPayload(pain_delta=v),
+  backend\tests\gameplay\perturbation_harness.py:189 : "blood_loss": lambda v: PhysiologyPayload(blood_loss_delta=v),
+  backend\tests\gameplay\perturbation_harness.py:190 : "shock_impulse": lambda v: PhysiologyPayload(shock_impulse=v),
+  backend\tests\gameplay\perturbation_harness.py:191 : "hydration": lambda v: PhysiologyPayload(hydration_delta=v),
+  backend\tests\gameplay\perturbation_harness.py:192 : "nutrition": lambda v: PhysiologyPayload(nutrition_delta=v),
+  backend\tests\gameplay\test_gc09_body_causality.py:6 : PhysiologyPayload → StateApplicator → body_state-мутация. One-way-законы
+  backend\tests\sandbox\sandbox_combat_vertical.py:3 : # Проверяет: EventDTO(PLAYER_ATTACKED) -> ImpactEngine -> PhysiologyPayload(shock_impulse) -> ReactionSubscriber -> EmotionPayload...
+  backend\tests\sandbox\sandbox_combat_vertical.py:27 : from app.models.delta_payloads import PhysiologyPayload
+  backend\tests\sandbox\sandbox_combat_vertical.py:114 : if isinstance(payload, PhysiologyPayload):
+  backend\tests\test_action_commitment.py:1998 : from app.models.delta_payloads import PhysiologyPayload
+  backend\tests\test_action_commitment.py:2005 : payload=PhysiologyPayload(fatigue_delta=5.0),
+  backend\tests\test_action_commitment.py:2010 : payload=PhysiologyPayload(fatigue_delta=0.215),
+  backend\tests\test_combat_pipeline_e2e.py:8 : EventDTO(PLAYER_ATTACKS) → CombatSubscriber → ImpactEngine → PhysiologyPayload(shock_impulse)
+  backend\tests\test_combat_pipeline_e2e.py:28 : from app.models.delta_payloads import EmotionPayload, PhysiologyPayload
+  backend\tests\test_combat_pipeline_e2e.py:100 : 1. CombatSubscriber генерирует PhysiologyPayload с shock_impulse.
+  backend\tests\test_combat_pipeline_e2e.py:130 : assert isinstance(phys_payload, PhysiologyPayload)
+  backend\tests\test_combat_subscriber.py:27 : from app.models.delta_payloads import PhysiologyPayload
+  backend\tests\test_combat_subscriber.py:269 : assert isinstance(d.payload, PhysiologyPayload)
+  backend\tests\test_physiology_flow.py:18 : from app.models.delta_payloads import PhysiologyPayload
+  backend\tests\test_physiology_flow.py:70 : """Удар должен порождать PhysiologyPayload(shock_impulse > 0),
+  backend\tests\test_physiology_flow.py:87 : # 3. Проверка PhysiologyPayload
+  backend\tests\test_physiology_flow.py:94 : if isinstance(payload, PhysiologyPayload):
+  backend\tests\test_physiology_flow.py:130 : total_shock = sum(d.payload.shock_impulse for d in phys_deltas if isinstance(d.payload, PhysiologyPayload))
+  backend\tests\test_relationship_state_store.py:254 : from app.models.delta_payloads import PhysiologyPayload
+  backend\tests\test_relationship_state_store.py:268 : payload = PhysiologyPayload(hp_delta=-10.0, pain_delta=5.0)
+
+============================================================
+
+3. STATE APPLICATOR: entry points to body_state
+
+============================================================
+
+[READ] apply_batch  backend/app/services/npc/state_applicator.py L1452-1520
+  1452:     def apply_batch(
+  1453:         self,
+  1454:         deltas: List[StateDeltas],
+  1455:         all_npcs_raw: List[dict[str, Any]],
+  1456:         campaign_id: str,
+  1457:         cause: Optional[Cause] = None,
+  1458:     ) -> None:
+  1459:         """Единая точка применения всех накопленных дельт.
+  1460: 
+  1461:         Оркестратор вызывает вместо прямых мутаций all_npcs_raw.
+  1462:         Порядок: фракции → NPC (группировка по npc_id).
+  1463:         """
+  1464:         if not deltas:
+  1465:             return
+  1466: 
+  1467:         # Разделение: фракции (v2 domain + v1 fallback) vs NPC
+  1468:         faction_deltas = [
+  1469:             d
+  1470:             for d in deltas
+  1471:             if d.domain == DeltaDomain.REPUTATION
+  1472:             or (d.domain is None and d.faction_id is not None)
+  1473:         ]
+  1474:         npc_deltas = [d for d in deltas if d not in faction_deltas]
+  1475: 
+  1476:         # Фракции → ReputationEngine
+  1477:         if faction_deltas and self._reputation_engine:
+  1478:             self._reputation_engine.apply_deltas(faction_deltas)
+  1479: 
+  1480:         # NPC: группировка по npc_id
+  1481:         by_npc: Dict[str, List[StateDeltas]] = {}
+  1482:         for d in npc_deltas:
+  1483:             if d.npc_id:
+  1484:                 by_npc.setdefault(d.npc_id, []).append(d)
+  1485:         if by_npc:
+  1486:             _phys_npcs = [
+  1487:                 nid
+  1488:                 for nid, ds in by_npc.items()
+  1489:                 if any(d.domain == DeltaDomain.PHYSIOLOGY for d in ds)
+  1490:             ]
+  1491:             if _phys_npcs:
+  1492:                 logger.debug(
+  1493:                     f"[APPLY_BATCH] npc_count={len(by_npc)} physiology_npcs={_phys_npcs}"
+  1494:                 )
+  1495: 
+  1496:         # DEBT-DET-01: Детерминированный порядок применения дельт.
+  1497:         # Физика (PHYSICS_COMPOSITE) -> Когнитив (EMOTION, PERCEPTION) -> Социум (SOCIAL).
+  1498:         _DOMAIN_APPLICATION_ORDER = {
+  1499:             DeltaDomain.PHYSIOLOGY: 0,
+  1500:             DeltaDomain.PERCEPTION: 10,
+  1501:             DeltaDomain.EMOTION: 20,
+  1502:             DeltaDomain.IDENTITY: 30,
+  1503:             DeltaDomain.SOCIAL: 40,
+  1504:             DeltaDomain.REPUTATION: 50,
+  1505:             DeltaDomain.WILL: 60,
+  1506:             DeltaDomain.DOPAMINE: 70,
+  1507:             DeltaDomain.SPATIAL: 80,
+  1508:         }
+  1509:         _DEFAULT_ORDER = 100
+  1510: 
+  1511:         # Применяем через тонкий мост: Dict[str, Any] → NPCState → _apply_deltas → dict
+  1512:         for npc_dict in all_npcs_raw:
+  1513:             npc_id = npc_dict.get("id") or npc_dict.get("npc_id")
+  1514:             if npc_id not in by_npc:
+  1515:                 continue
+  1516:             # Сортируем дельты по домену для предсказуемого результата
+  1517:             sorted_deltas = sorted(
+  1518:                 by_npc[npc_id],
+  1519:                 key=lambda d: _DOMAIN_APPLICATION_ORDER.get(d.domain if d.domain else DeltaDomain.PERCEPTION, _DEFAULT_ORDER),
+  1520:             )
+
+[READ] apply_deltas_and_commit  backend/app/services/npc/state_applicator.py L1569-1622
+  1569:     def apply_deltas_and_commit(
+  1570:         self,
+  1571:         state: NPCState,
+  1572:         npc_dict: Dict[str, Any],
+  1573:         deltas: StateDeltas,
+  1574:         campaign_id: str,
+  1575:         cause: Optional[Cause] = None,
+  1576:     ) -> None:
+  1577:         """Commit Kernel (L3/L4/L5): Чистый редьюсер, L5 пост-чек, строгий коммит.
+  1578: 
+  1579:         Никакой бизнес-логики, исправлений или try/except.
+  1580:         Ошибка мутации = смерть тика (causal consistency).
+  1581:         """
+  1582:         import math
+  1583: 
+  1584:         from app.domain.exceptions import OntologyViolationError
+  1585: 
+  1586:         # L3: Pure fold (мутация state)
+  1587:         # try/except УНИЧТОЖЕН. Если _apply_deltas падает — падает весь тик.
+  1588:         self._apply_deltas(state, deltas, campaign_id, cause=cause)
+  1589: 
+  1590:         # L5: Post-Commit Validation Gate (No Repair Principle)
+  1591:         # L5A: Structural Existence — ADR-139 Single Write Authority.
+  1592:         # ADR-O-208: L3-P1. drives_runtime — эфемерный кэш. Если он пуст, валидируем L0 (drives_base).
+  1593:         drives = getattr(state, "drives_runtime", None) or getattr(  # noqa: ENIGMA002
+  1594:             state, "drives_base", None
+  1595:         )
+  1596:         if not drives or not isinstance(drives, dict):
+  1597:             raise OntologyViolationError(
+  1598:                 f"NPC '{state.npc_id}': Нарушение структурного контракта (L5A). "
+  1599:                 f"drives_base и drives_runtime отсутствуют. Личность не существует."
+  1600:             )
+  1601: 
+  1602:         total_mass = sum(drives.values())
+  1603:         if abs(total_mass - 1.0) > 1e-6:
+  1604:             raise OntologyViolationError(
+  1605:                 f"NPC '{state.npc_id}': Закон Сохранения Я нарушен. "
+  1606:                 f"Сумма драйвов = {total_mass:.6f}, ожидается 1.0"
+  1607:             )
+  1608: 
+  1609:         for drive_name, value in drives.items():
+  1610:             if math.isnan(value) or math.isinf(value):
+  1611:                 raise OntologyViolationError(
+  1612:                     f"NPC '{state.npc_id}': Драйв '{drive_name}' содержит невалидное значение ({value}). "
+  1613:                     f"Термоядерный распад личности."
+  1614:                 )
+  1615:             if not (0.0 <= value <= 1.0):
+  1616:                 raise OntologyViolationError(
+  1617:                     f"NPC '{state.npc_id}': Драйв '{drive_name}'={value:.4f} вышел за физические пределы [0, 1]. "
+  1618:                     f"Нарушение онтологии мира."
+  1619:                 )
+  1620: 
+  1621:         # L4: Commit (проекция в транспортный формат)
+  1622:         NPCState.to_persistence_dict(state, npc_dict)
+
+[READ] body_state write logic  backend/app/services/npc/state_applicator.py L1120-1240
+  1120:                 "pain": 0.0,
+  1121:                 "fatigue": 0.0,
+  1122:                 "blood_loss": 0.0,
+  1123:                 "consciousness": 1.0,
+  1124:                 "shock_impulse": 0.0,
+  1125:                 "injuries": [],
+  1126:                 "modifiers": {},
+  1127:                 "statuses": [],
+  1128:                 # S2B.1: energy — proof-of-concept variable.
+  1129:                 "energy": 100.0,  # 0-100
+  1130:                 "hydration": 100.0,  # S2B.3: 0-100
+  1131:                 "nutrition": 100.0,  # S2B.4: 0-100
+  1132:             }
+  1133: 
+  1134:         if hp_delta != 0.0:
+  1135:             _max_hp = state.body_state.get("max_hp", 100.0)
+  1136:             _cur_hp = state.body_state.get("current_hp", _max_hp)
+  1137:             state.body_state["current_hp"] = max(
+  1138:                 0.0, min(_max_hp, _cur_hp + hp_delta)
+  1139:             )
+  1140: 
+  1141:         if pain_delta != 0.0:
+  1142:             _cur_pain = state.body_state.get("pain", 0.0)
+  1143:             state.body_state["pain"] = max(0.0, min(100.0, _cur_pain + pain_delta))
+  1144: 
+  1145:         if fatigue_delta != 0.0:
+  1146:             _cur_fat = state.body_state.get("fatigue", 0.0)
+  1147:             state.body_state["fatigue"] = max(
+  1148:                 0.0, min(100.0, _cur_fat + fatigue_delta)
+  1149:             )
+  1150: 
+  1151:         # S2B.1: energy — artificial variable for pipeline proof.
+  1152:         # Same clamp pattern as pain/fatigue (0-100).
+  1153:         if energy_delta != 0.0:
+  1154:             _cur_energy = state.body_state.get("energy", 100.0)
+  1155:             state.body_state["energy"] = max(
+  1156:                 0.0, min(100.0, _cur_energy + energy_delta)
+  1157:             )
+  1158: 
+  1159:         # S2B.3: hydration — same clamp pattern (0-100).
+  1160:         if hydration_delta != 0.0:
+  1161:             _cur_hydration = state.body_state.get("hydration", 100.0)
+  1162:             state.body_state["hydration"] = max(
+  1163:                 0.0, min(100.0, _cur_hydration + hydration_delta)
+  1164:             )
+  1165: 
+  1166:         # S2B.4: nutrition — same clamp pattern (0-100).
+  1167:         if nutrition_delta != 0.0:
+  1168:             _cur_nutrition = state.body_state.get("nutrition", 100.0)
+  1169:             state.body_state["nutrition"] = max(
+  1170:                 0.0, min(100.0, _cur_nutrition + nutrition_delta)
+  1171:             )
+  1172: 
+  1173:         if blood_loss_delta != 0.0:
+  1174:             _cur_blood = state.body_state.get("blood_loss", 0.0)
+  1175:             state.body_state["blood_loss"] = max(
+  1176:                 0.0, min(1.0, _cur_blood + blood_loss_delta)
+  1177:             )
+  1178: 
+  1179:         if add_injuries:
+  1180:             # Конвертируем InjuryDTO в dict для JSON-сериализации.
+  1181:             # S2B.7-G: received_tick — дата эпизода раны: возраст раны =
+  1182:             # now − received_tick (структура для S2B.8 Recovery; лечение
+  1183:             # в S2B.7 НЕ реализуется — мост только). Аддитивный ключ,
+  1184:             # round-trip-safe: injuries — свободные dict-поля body_state.
+  1185:             state.body_state.setdefault("injuries", []).extend(
+  1186:                 [
+  1187:                     dict(asdict(inj), received_tick=current_tick)
+  1188:                     for inj in add_injuries
+  1189:                 ]
+  1190:             )
+  1191:             logger.debug(
+  1192:                 f"[INJURY_APPLIED] npc={state.npc_id} total_injuries={len(state.body_state.get('injuries', []))} new={[i.damage_type for i in add_injuries]}"
+  1193:             )
+  1194: 
+  1195:         if add_statuses:
+  1196:             state.body_state.setdefault("statuses", []).extend(add_statuses)
+  1197: 
+  1198:         if remove_statuses:
+  1199:             state.body_state["statuses"] = [
+  1200:                 s
+  1201:                 for s in state.body_state.get("statuses", [])
+  1202:                 if s not in remove_statuses
+  1203:             ]
+  1204: 
+  1205:         # Шоковый импульс: аддитивный с потолком 1.0, decay даёт отрицательную дельту
+  1206:         if shock_impulse != 0.0:
+  1207:             _cur_shock = state.body_state.get("shock_impulse", 0.0)
+  1208:             state.body_state["shock_impulse"] = max(
+  1209:                 0.0, min(1.0, _cur_shock + shock_impulse)
+  1210:             )
+  1211: 
+  1212:         # ADR-124: Consciousness derivation из физиологии
+  1213:         _bl = state.body_state.get("blood_loss", 0.0)
+  1214:         _si = state.body_state.get("shock_impulse", 0.0)
+  1215:         _physiological_consciousness = max(0.0, 1.0 - (_bl**1.5) * 2.0 - _si * 1.5)
+  1216:         _cur_consciousness = state.body_state.get("consciousness", 1.0)
+  1217:         if _physiological_consciousness < _cur_consciousness:
+  1218:             state.body_state["consciousness"] = round(
+  1219:                 _physiological_consciousness, 4
+  1220:             )
+  1221:             logger.debug(
+  1222:                 f"[CONSCIOUSNESS_DROP] npc={state.npc_id} bl={_bl:.3f} shock={_si:.3f} old={_cur_consciousness:.3f} new={state.body_state['consciousness']:.3f}"
+  1223:             )
+  1224: 
+  1225:         # §ENIGMA-AFFECTIVE-SOVEREIGNTY v2: PHYSIOLOGY fallback УБИТ.
+  1226:         pass
+  1227: 
+  1228:         # Transitional: vital_state evaluation
+  1229:         _life_status = evaluate_vital_state(state.body_state)
+  1230:         state.body_state["life_status"] = _life_status.value
+  1231:         if _life_status == LifeStatus.DEAD:
+  1232:             logger.warning(
+  1233:                 f"[DEATH_CERTIFIED] npc={state.npc_id} bl={state.body_state.get('blood_loss', 0):.3f} structural={sum(float(i.get('structural_damage', 0)) for i in state.body_state.get('injuries', [])):.3f}"
+  1234:             )
+  1235: 
+  1236:     def _apply_emotion_social_deltas(
+  1237:         self, state: NPCState, domain: DeltaDomain, deltas: StateDeltas
+  1238:     ) -> None:
+  1239:         """Применяет дельты эмоций (SCC) и социального давления (EMA)."""
+  1240:         # SCC: affective_load — интеграл давления. Пишется в M ТОЛЬКО через decay.
+
+============================================================
+
+4. AVATAR STATE APPLICATOR
+
+============================================================
+
+[READ] AvatarStateApplicator FULL  backend\app\services\avatar_state_applicator.py L19-64 (class at L19)
+  19: class AvatarStateApplicator:
+  20:     """Каноническая граница мутации runtime-состояния аватара игрока.
+  21: 
+  22:     Ownership model (S208, P0):
+  23:       - Construction/restore      → PlayerAvatarService (NPCState(...), self-write)
+  24:       - Runtime full-sync         → ЭТОТ класс (whitelist: body_state, stress, emotion)
+  25:       - Trade money-дельты        → StateApplicator (существующий путь, TRADE_FIX)
+  26:       - GameLoop                  → оркестрирует, запрашивает применение, НЕ пишет
+  27: 
+  28:     Двойной бухгалтерии нет: whitelist NPCState._ALLOWED_WRITERS дополнен
+  29:     ТОЛЬКО этим модулем (узко, по полям) — см. патч в npc_state.py.
+  30:     """
+  31: 
+  32:     @staticmethod
+  33:     def apply_pipeline_result(
+  34:         avatar_state: NPCState,
+  35:         updated_avatar_dict: dict[str, Any],
+  36:     ) -> None:
+  37:         """Фазовый write-back: применяет pipeline-результат к аватару.
+  38: 
+  39:         Заменяет прямые присвоения game_loop:1777-1788. Семантика сохранена
+  40:         байт-в-байт (body_state full-sync, hp→current_hp, DISABLED-ветка).
+  41:         """
+  42:         if "body_state" in updated_avatar_dict:
+  43:             avatar_state.body_state = updated_avatar_dict["body_state"]
+  44:         if "hp" in updated_avatar_dict:
+  45:             if avatar_state.body_state:
+  46:                 avatar_state.body_state["current_hp"] = updated_avatar_dict.get(
+  47:                     "hp", updated_avatar_dict.get("current_hp", 0)
+  48:                 )
+  49:             else:
+  50:                 avatar_state.body_state = dict(BODY_STATE_DISABLED_DATA)
+  51:                 avatar_state.body_state["current_hp"] = updated_avatar_dict["hp"]
+  52: 
+  53:     @staticmethod
+  54:     def apply_reaction(
+  55:         avatar_state: NPCState,
+  56:         stress_delta: float = 0.0,
+  57:         emotion: Any = None,
+  58:     ) -> None:
+  59:         """P0-C: реакция аватара на интенты NPC (бывший object.__setattr__
+  60:         в phase_6_avatar). Границы значений соблюдаются вызывающим."""
+  61:         if stress_delta:
+  62:             avatar_state.stress = min(100.0, max(0.0, avatar_state.stress + stress_delta))
+  63:         if emotion is not None:
+  64:             avatar_state.emotion = emotion
+
+============================================================
+
+5. ALTERNATIVE BODY CHANGE PATHS (bypass detection)
+
+============================================================
+
+[SEARCH] conditions writes  pattern: /\.conditions\s*\[|\.conditions\s*=/
+  4 matches:
+  backend\app\services\npc\state_applicator.py:485 : new_state.conditions[cond_type] = Condition(
+  backend\tests\sandbox\persistence\test_player_wounds_conditions_drives_roundtrip.py:28 : state.conditions["bleeding"] = Condition(
+  backend\tests\sandbox\persistence\test_player_wounds_conditions_drives_roundtrip.py:65 : assert restored.conditions["bleeding"].tick_applied == 7
+  backend\tests\sandbox\system\test_t06_belief_pipeline.py:46 : state.conditions = {}
+
+[SEARCH] wounds writes  pattern: /\.wounds\s*\.append|\.wounds\s*=/
+  3 matches:
+  backend\app\services\npc\state_applicator.py:510 : new_state.wounds.append(wound)
+  backend\tests\sandbox\persistence\test_player_wounds_conditions_drives_roundtrip.py:31 : state.wounds.append(
+  backend\tests\sandbox\system\test_t06_belief_pipeline.py:48 : state.wounds = []
+
+[SEARCH] life_engine body changes  pattern: /def evaluate_vital_state|def apply_vital|life_engine.*body/
+  2 matches:
+  backend\app\domain\vital_state.py:94 : def evaluate_vital_state(body_state: Dict[str, Any]) -> LifeStatus:
+  backend\tests\sandbox\SUPERBOX\scenarios\sleep_forensic.py:8 : LIFE_ENGINE ±1 тик); (3) body_state NPC из runtime — интроспекция
+
+[SEARCH] ALL body_state dict access  pattern: /body_state\s*\[\s*.current_hp|body_state\s*\[\s*.pain|body_state\s*\[\s*.fatigue/
+  23 matches:
+  backend\app\models\npc_state.py:814 : # ADR-HP-UNIFICATION: hp/max_hp — deprecated. Canonical source = body_state["current_hp"]
+  backend\app\models\npc_state.py:830 : return float(self.body_state["current_hp"])
+  backend\app\services\game\combat_math.py:311 : # BUG-PERC-005 FIX: Пишем HP в body_state["current_hp"] (SSOT, ADR-HP-UNIFICATION)
+  backend\app\services\npc\state_applicator.py:450 : new_state.body_state["current_hp"] = min(_max_hp, _new_hp)
+  backend\app\services\npc\state_applicator.py:454 : new_state.body_state["current_hp"] = int(_new_hp)
+  backend\app\services\npc\state_applicator.py:1137 : state.body_state["current_hp"] = max(
+  backend\app\services\npc\state_applicator.py:1143 : state.body_state["pain"] = max(0.0, min(100.0, _cur_pain + pain_delta))
+  backend\app\services\npc\state_applicator.py:1147 : state.body_state["fatigue"] = max(
+  backend\app\services\avatar_state_applicator.py:46 : avatar_state.body_state["current_hp"] = updated_avatar_dict.get(
+  backend\app\services\avatar_state_applicator.py:51 : avatar_state.body_state["current_hp"] = updated_avatar_dict["hp"]
+  backend\app\services\player_avatar_service.py:287 : # ADR-HP-UNIFICATION: HP аватара живёт в body_state["current_hp"].
+  backend\tests\sandbox\invariants\test_cross_layer_consistency.py:16 : ADR-HP-UNIFICATION: state.hp (deprecated) MUST mirror state.body_state["current_hp"].
+  backend\tests\sandbox\invariants\test_cross_layer_consistency.py:46 : state.body_state["current_hp"] = 75.0
+  backend\tests\sandbox\invariants\test_cross_layer_consistency.py:50 : assert state.effective_hp == state.body_state["current_hp"]
+  backend\tests\sandbox\invariants\test_cross_layer_consistency.py:52 : "DOUBLE TRUTH DETECTED: state.hp diverged from body_state['current_hp']"
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:68 : t3a = s.body_state["current_hp"] == 5.0
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:70 : t3b = s.body_state["current_hp"] == 7
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:76 : t3c = (_fresh.body_state["current_hp"] == 3
+  backend\tests\test_action_commitment.py:2042 : assert _state.body_state["fatigue"] == 100.0  # 103.215 → clamp
+  backend\tests\test_action_commitment.py:2049 : assert _state2.body_state["fatigue"] == 0.0  # −0.145 → clamp
+  backend\tests\test_causal_contract_sandboxes.py:30 : """Запрет 4.6.43: Прямая запись в state.hp в обход body_state["current_hp"] (HP Double Truth)."""
+  backend\tests\test_relationship_state_store.py:277 : assert after.body_state["current_hp"] == 90.0
+  backend\tests\test_relationship_state_store.py:290 : assert after_wt.body_state["current_hp"] == 100.0
+
+============================================================
+
+6. PHASE 7 WINDUP RESOLUTION
+
+============================================================
+
+[SEARCH] Phase 7 windup resolution  pattern: /def _phase_7_windup|windup_resolution|Phase 7/
+  9 matches:
+  backend\app\domain\temporal_specs.py:114 : Destination reachability = existing TraversalState (Phase 7 checks).
+  backend\app\domain\temporal_specs.py:130 : Target alive = Phase 7 Stale Intent Validation (existing).
+  backend\app\services\action\commitment_registry.py:400 : """Терминал task/windup-исполнителя (D-2 outbox / Phase 7 sync).
+  backend\app\services\phases\post_decision.py:5 : Основные сущности: run_phase_6_post_decision, run_phase_7_windup_resolution
+  backend\app\services\phases\post_decision.py:386 : def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
+  backend\app\services\tick_orchestrator.py:1081 : self._phase_7_windup_resolution(ctx)  # 7 ADR-O-310: Execution Gate
+  backend\app\services\tick_orchestrator.py:2492 : def _phase_7_windup_resolution(self, ctx: _TickContext) -> None:
+  backend\app\services\tick_orchestrator.py:2494 : from app.services.phases.post_decision import run_phase_7_windup_resolution
+  backend\app\services\tick_orchestrator.py:2496 : run_phase_7_windup_resolution(ctx, self)
+
+============================================================
+
+7. EVENT TYPE → SUBSCRIBER MAPPING
+
+============================================================
+
+[SEARCH] Event subscriptions  pattern: /subscribe.*PLAYER_|subscribe.*NPC_|subscribe.*ACTOR_|_COMBAT_EVENT_TYPES/
+  64 matches:
+  backend\app\services\combat\combat_subscriber.py:41 : _COMBAT_EVENT_TYPES: list[EventType] = [
+  backend\app\services\combat\combat_subscriber.py:74 : for et in _COMBAT_EVENT_TYPES:
+  backend\app\services\events\event_bus.py:41 : bus.subscribe(EventType.PLAYER_ATTACKED, my_handler)
+  backend\app\services\events\npc_addressing_delivery_subscriber.py:3 : Назначение: C3-A1 delivery subscriber для NPC_ADDRESSES_PLAYER.
+  backend\app\services\events\npc_addressing_delivery_subscriber.py:36 : """Delivery subscriber для NPC_ADDRESSES_PLAYER (C3-A1).
+  backend\app\services\events\npc_speech_act_subscriber.py:9 : - ClaimEventSubscriber НЕ трогается (его on_npc_spoke для Proposition-фолбэка);
+  backend\app\services\events\npc_speech_act_subscriber.py:63 : # Guards (симметрия с NpcDialogueSubscriber.on_npc_spoke:210)
+  backend\app\services\events\reaction_subscriber.py:210 : # «PerceptionSubscriber») не имел реализации: perceiving_npc_ids
+  backend\app\services\game_loop\game_loop.py:466 : """Регистрирует NpcDialogueSubscriber на события NPC_SPOKE."""
+  backend\app\services\game_loop\game_loop.py:549 : _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
+  backend\app\services\game_loop\game_loop.py:550 : _bus.subscribe(EventType.NPC_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
+  backend\app\services\game_loop\game_loop.py:559 : _bus.subscribe(EventType.NPC_SPOKE, _npc_speech_act_sub.on_npc_spoke)
+  backend\app\services\game_loop\game_loop.py:560 : _bus.subscribe(EventType.PLAYER_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
+  backend\app\services\game_loop\game_loop.py:576 : _bus.subscribe(EventType.PLAYER_SPOKE, _speech_act_sub.on_player_spoke)
+  backend\app\services\game_loop\game_loop.py:579 : _bus.subscribe(EventType.NPC_SPOKE, self._on_npc_spoke_economy_tracker)
+  backend\app\services\game_loop\game_loop.py:621 : _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
+  backend\app\services\game_loop\game_loop.py:627 : _bus.subscribe(EventType.PLAYER_SPOKE, _subscriber.on_player_spoke)
+  backend\app\services\game_loop\game_loop.py:649 : _bus.subscribe(EventType.PLAYER_ATTACKED, _obs_sub.on_world_event)
+  backend\app\services\memory\memory_manager.py:224 : # Subscribe невозможен: EventDTO не содержит npc_state,
+  backend\app\services\tick_orchestrator.py:179 : # C3-A1: Delivery subscriber for NPC_ADDRESSES_PLAYER.
+  backend\tests\gameplay\test_gc05_production_path_testimony.py:40 : - ClaimEventSubscriber.on_npc_spoke / on_claim_event
+  backend\tests\gameplay\test_gc05_production_path_testimony.py:135 : _bus.subscribe(EventType.NPC_SPOKE, _spy_npc_spoke)
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:26 : - ClaimEventSubscriber.on_npc_spoke: fallback Proposition из intent_type
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:71 : ClaimEventSubscriber.on_npc_spoke (claim_event_subscriber.py:41):
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:116 : Контракт: ClaimEventSubscriber.on_npc_spoke → fallback Proposition
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:176 : def _make_subscriber(bridge, dist, npc_states=None, resolver=None):
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:332 : sub = _make_subscriber(spy, dist=2.0)  # без npc_states/resolver
+  backend\tests\micro\test_claim_bridge_chain.py:124 : bus.subscribe(EventType.NPC_SPOKE, sub.on_npc_spoke)
+  backend\tests\micro\test_utterance_identity_chain.py:114 : bus.subscribe(EventType.NPC_SPOKE, sub.on_npc_spoke)
+  backend\tests\sandbox\micro\test_directive_npc_state_required.py:3 : Назначение: Верификация Rule 10 (DirectiveSubscriber требует npc_state) и NPIC Gate
+  backend\tests\sandbox\micro\test_directive_npc_state_required.py:32 : """Rule 10: DirectiveInterpretationSubscriber не работает без валидного npc_state."""
+  backend\tests\sandbox\micro\test_directive_npc_state_required.py:34 : def test_directive_subscriber_requires_npc_state(self):
+  backend\tests\sandbox\persistence\test_wounds_not_used_as_physiology_source.py:94 : snap = CombatSubscriber._build_snapshot(npc_id, npc_by_id)
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:38 : subscriber.on_npc_spoke(event_npc_reply)
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:71 : subscriber.on_npc_spoke(event_q)
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:82 : subscriber.on_npc_spoke(event_w)
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:7 : - PASS-кандидаты вызывают реальный PlayerSpeechActSubscriber.on_player_spoke
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_test.py:93 : bus.subscribe(EventType.NPC_MOVED, _spy_moved)
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_test.py:94 : bus.subscribe(EventType.NPC_PROXIMITY_CLOSE, _spy_proximity)
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_player_belief_test.py:80 : subscriber.on_npc_spoke(event_friend)
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_player_belief_test.py:93 : subscriber.on_npc_spoke(event_enemy)
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_reliability_baseline_test.py:168 : _publish_claim(subscriber, "npc_enemy", tick=2)  # cross-source confirm
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_reliability_baseline_test.py:170 : _publish_claim(subscriber, "npc_enemy", tick=3)  # same-source repeat
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_reliability_baseline_test.py:257 : _publish_claim(subscriber, "npc_stranger", tick=1)
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_runtime_closure_test.py:65 : bus.subscribe(EventType.NPC_SPOKE, subscriber.on_npc_spoke)
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_scheduler_closure_test.py:69 : bus.subscribe(EventType.NPC_SPOKE, subscriber.on_npc_spoke)
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_world_event_test.py:117 : bus.subscribe(EventType.NPC_SPOKE, _catcher)
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:159 : _bus.subscribe(EventType.PLAYER_SPOKE, _spy)
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:160 : _bus.subscribe(EventType.NPC_SPOKE, _spy)
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_interrupt_test.py:176 : _bus.subscribe(EventType.NPC_SPOKE, _spy)
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:102 : _bus.subscribe(EventType.PLAYER_SPOKE, _spy)
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:103 : _bus.subscribe(EventType.NPC_SPOKE, _spy)
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:122 : bus.subscribe(EventType.NPC_SPOKE, _spy)
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:433 : bus2.subscribe(EventType.NPC_SPOKE, _spy)
+  backend\tests\sandbox\superbox_social_deterministic.py:108 : _bus.subscribe(EventType.NPC_SPOKE, _spy)
+  backend\tests\sandbox\test_legitimacy_gate.py:39 : deltas = subscriber.handle(event, npc_states)
+  backend\tests\sandbox\test_legitimacy_gate.py:67 : deltas = subscriber.handle(event, npc_states)
+  backend\tests\test_combat_pipeline_e2e.py:138 : # ReactionSubscriber реагирует на PLAYER_ATTACKS
+  backend\tests\test_combat_subscriber.py:88 : def test_subscribes_to_player_attacks(self):
+  backend\tests\test_ft3_empty_speech_guard.py:35 : bus.subscribe(EventType.NPC_SPOKE, _rec)
+  backend\tests\test_mvp_simulation_validation.py:131 : if hasattr(loop, "_npc_dialogue_subscriber") and loop._npc_dialogue_subscriber:
+  backend\tests\test_mvp_simulation_validation.py:132 : loop._npc_dialogue_subscriber.on_npc_spoke(event)
+  backend\tests\test_phase_a_memory_fixes.py:147 : """dialogue_materializer и social_action_subscriber публикуют NPC_SPOKE
+  backend\tests\test_phase_a_memory_fixes.py:518 : bus.subscribe(EventType.NPC_SPOKE, sub.on_event)
+
+

@@ -122,11 +122,26 @@ def age_anchors_to_hint(anchors: List[AgeAnchor]) -> str:
     """Типизированная подсказка для LLM-промпта.
 
     Заменяет плоский «Возрастные якоря: [146, 57]» на семантически явную форму.
+
+    CCH-12 anti-hallucination (Fix 1): для AMBIGUOUS якорей («N лет» без
+    маркера «назад»/«уже»/«в течение») добавляет предупреждение — LLM
+    НЕ должна создавать EVENT с years_ago=N или duration_years=N без
+    явного маркера в тексте. «146 лет» — это, вероятно, текущий
+    возраст, а не «146 лет назад».
     """
     if not anchors:
         return ""
     lines = ["Возрастные якоря фрагмента (типизированные):"]
     for a in anchors:
         lines.append(f"  - {a.kind.value}: {a.value} («{a.source_span}»)")
+        # CCH-12 Fix 1: AMBIGUOUS без контекста — НЕ years_ago/duration_years
+        if a.kind is AgeAnchorKind.AMBIGUOUS:
+            lines.append(
+                f"    ВНИМАНИЕ: «{a.value} лет» без явного маркера "
+                f"(«назад»/«уже»/«в течение»/«в N лет»/«с N лет») — "
+                f"это, вероятно, текущий возраст или упоминание возраста "
+                f"в описании. НЕ создавай EVENT с years_ago={a.value} "
+                f"или duration_years={a.value} без явного маркера в тексте."
+            )
     return "\n".join(lines) + "\n\n"
 

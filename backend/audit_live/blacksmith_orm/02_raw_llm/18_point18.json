@@ -3,31 +3,60 @@
   "age_anchors": [],
   "items": [
     {
-      "kind": "PORTRET",
+      "kind": "LOCATION",
       "draft_payload": {
-        "statement": "Орм знает, что угроза Борко бьёт не по самолюбию, а по крыше, принадлежащей Торнину. Это единственное, что делает его хоть немного осторожнее.",
-        "traits": [
-          "осторожный"
-        ]
+        "summary": "кузня — пристройка таверны",
+        "name_hint": "кузня"
       },
-      "confidence": 1.0,
-      "needs_confirmation": false,
+      "confidence": 0.5,
+      "needs_confirmation": true,
       "question": null
     },
     {
-      "kind": "TRAIT_SEED",
+      "kind": "RELATIONSHIP",
       "draft_payload": {
-        "trait": "мечта о собственной кузне",
-        "evidence": "его мечта о собственной кузне (п.14) — не про статус, а про то, чтобы наконец никому не быть должным за место, где стоишь"
+        "summary": "угроза Борко \"посаду и сдам Торнину\"",
+        "target_hint": "Борко",
+        "nature": "враждебное предупреждение",
+        "valence": "negative"
       },
-      "confidence": 1.0,
-      "needs_confirmation": false,
+      "confidence": 0.4,
+      "needs_confirmation": true,
+      "question": {
+        "question_id": "roster_mismatch_1",
+        "target_span": "Борко",
+        "options": [
+          "SELECT_EXISTING_NPC",
+          "CREATE_NEW_NPC",
+          "UNKNOWN_PERSON",
+          "LEAVE_WHITE_SPOT"
+        ]
+      }
+    },
+    {
+      "kind": "PORTRET",
+      "draft_payload": {
+        "statement": "Орм это знает — и это единственное, что делает его хоть немного осторожнее, хотя он никогда не признался бы, что хоть что-то в этой сцене может его потревожить.",
+        "traits": []
+      },
+      "confidence": 0.5,
+      "needs_confirmation": true,
+      "question": null
+    },
+    {
+      "kind": "DESIRE_SEED",
+      "draft_payload": {
+        "statement": "его мечта о собственной кузне (п.14) — не про статус, а про то, чтобы наконец никому не быть должным за место, где стоишь",
+        "about_hint": "собственная кузня"
+      },
+      "confidence": 0.5,
+      "needs_confirmation": true,
       "question": null
     }
   ],
   "coverage": {
     "fragment_ord": 18,
-    "items_count": 2,
+    "items_count": 4,
     "fragment_text_preview": "18. Крыша. Кузня — пристройка таверны: над головой гнома кровля, по сути принадл",
     "critical_topic_warning": null
   }

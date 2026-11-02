@@ -1,0 +1,477 @@
+﻿============================================================
+
+STAGE 2.1-R3 — 5 INVESTIGATION ITEMS
+
+Mode: READ ONLY
+
+Generated: 2026-11-02 20:31:51
+
+============================================================
+
+============================================================
+
+1. IDENTITY DAMAGE — BreakProgressEngine + player
+
+============================================================
+
+[READ] BreakProgressEngine  backend\app\services\npc\break_progress_engine.py L70-129 (class at L70)
+  70: class BreakProgressEngine:
+  71:     """
+  72:     Чистая функция: state + event → дельты слома.
+  73:     Вызывается перед DecisionHub для обновления психологических параметров.
+  74:     """
+  75: 
+  76:     @staticmethod
+  77:     def calculate(
+  78:         state: NPCState,
+  79:         willpower: float = 50.0,  # из NPCPersonality
+  80:         recent_failures: int = 0,
+  81:         support_present: bool = False,
+  82:         social_pressure: float = 0.0,  # Шаг 1.1: Социальный стресс
+  83:     ) -> BreakDeltas:
+  84:         """
+  85:         Тик-независимый расчёт давления на личность NPC.
+  86:         Формула: pressure = fear + stress + failures - support
+  87:         Вызывается ДО DecisionHub — в python_engines, для всех NPC в локации.
+  88:         """
+  89:         # ADR-O-146: Давление вычисляется из восприятия (affective_load, threat)
+  90:         # и физиологии (stress), а не из сырого кэша отношений.
+  91:         _threat = (
+  92:             state.perceptual_kernel.threat_gradient * 100
+  93:             if state.perceptual_kernel
+  94:             else 0.0
+  95:         )
+  96:         _affect = state.affective_load * 100
+  97:         fear = max(_threat, _affect)  # Берём доминирующий источник страха
+  98:         stress = state.stress
+  99:         failures = recent_failures * 10  # каждая неудача +10 к давлению
+  100: 
+  101:         # Willpower снижает эффективное давление
+  102:         # Шаг 1.1: social_pressure добавляется к сыромy давлению
+  103:         raw_pressure = fear + stress + failures + social_pressure
+  104: 
+  105:         # Willpower ослабляет давление, а не обнуляет его
+  106:         willpower_factor = willpower / 100  # 0–1
+  107:         effective_pressure = raw_pressure / (1 + willpower_factor)
+  108:         if support_present:
+  109:             effective_pressure -= BREAK_SUPPORT_PRESSURE_REDUCTION
+  110: 
+  111:         pressure = max(0, min(100, effective_pressure))
+  112: 
+  113:         # Текущая целостность определяет стадию
+  114:         integrity = state.identity_integrity
+  115: 
+  116:         # Базовые дельты стадий (инвариант поведения)
+  117:         if integrity > BREAK_STAGE_CRACKS:
+  118:             stage = "resistance"
+  119:             base_delta = BREAK_DELTA_RESISTANCE
+  120:         elif integrity > BREAK_STAGE_RATIONALIZATION:
+  121:             stage = "cracks"
+  122:             base_delta = BREAK_DELTA_CRACKS
+  123:         elif integrity > BREAK_STAGE_ADAPTATION:
+  124:             stage = "rationalization"
+  125:             base_delta = BREAK_DELTA_RATIONALIZATION
+  126:         elif integrity > BREAK_STAGE_DEFORMATION:
+  127:             stage = "adaptation"
+  128:             base_delta = BREAK_DELTA_ADAPTATION
+  129:         else:
+
+[SEARCH] BreakProgress + player  pattern: /break_progress.*player|BreakProgress.*player|player.*break_progress/
+  (no matches)
+
+[SEARCH] BreakProgress call sites  pattern: /BreakProgressEngine|break_progress_engine|_break_progress/
+  52 matches:
+  backend\app\models\behavior_mask.py:61 : applied_at_day нужен BreakProgressEngine для расчёта
+  backend\app\models\behavior_mask.py:70 : # Игровой день наложения маски (для decay и BreakProgressEngine)
+  backend\app\models\npc_state.py:745 : # Уменьшается ТОЛЬКО через BreakProgressEngine (R6.4).
+  backend\app\models\npc_state.py:751 : # L2.7: Счётчик недавних неудач (для BreakProgressEngine).
+  backend\app\services\events\reaction_subscriber.py:280 : # Без этого affective_load остаётся 0, и BreakProgressEngine не фиксирует давление.
+  backend\app\services\npc\belief_crystallization_engine.py:27 : # (стадии BreakProgressEngine, combat-события) кристаллизовалась как
+  backend\app\services\npc\break_progress_engine.py:1 : # backend\app\services\npc\break_progress_engine.py
+  backend\app\services\npc\break_progress_engine.py:49 : # EventContext не нужен — BreakProgressEngine работает на накопленном состоянии,
+  backend\app\services\npc\break_progress_engine.py:70 : class BreakProgressEngine:
+  backend\app\services\npc\decision_hub.py:428 : Принимает state уже после применения BreakProgressEngine
+  backend\app\services\npc\state_applicator.py:71 : # Константы порогов удалены. Логика порогов перенесена в BreakProgressEngine.
+  backend\app\services\npc\state_applicator.py:1365 : from app.services.npc.break_progress_engine import compute_mutation
+  backend\app\services\phases\decision.py:6 : Назначение: Расчёт BreakProgressEngine и BehaviorMask для NPC.
+  backend\app\services\phases\decision.py:7 : Зависимости: app.services.npc.break_progress_engine, app.models.npc_state, app.models.behavior_mask, app.models.will, app.domain.i...
+  backend\app\services\phases\decision.py:18 : from app.services.npc.break_progress_engine import BreakProgressEngine
+  backend\app\services\phases\decision.py:99 : _break_deltas = BreakProgressEngine.calculate(
+  backend\app\services\phases\integration.py:200 : from app.services.npc.break_progress_engine import (
+  backend\app\services\phases\integration.py:346 : # Без этого BreakProgressEngine видит 0.0 и не генерирует событие "pressure".
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:326 : # P8: BreakProgressEngine — деформация идентичности от стресса
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:327 : from app.services.npc.break_progress_engine import BreakProgressEngine
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:329 : _break_deltas = BreakProgressEngine.calculate(
+  backend\tests\sandbox\system\test_life_direction_crisis.py:4 : Кризис (BreakProgressEngine) -> Смена LifeDirection (LifeProjectResolver) -> Изменение решений (DecisionHub).
+  backend\tests\sandbox\system\test_life_direction_crisis.py:5 : Зависимости: pytest, app.services.npc.decision_hub, app.services.npc.break_progress_engine, app.services.npc.life_project_resolver
+  backend\tests\sandbox\system\test_life_direction_crisis.py:16 : from app.services.npc.break_progress_engine import BreakProgressEngine
+  backend\tests\sandbox\system\test_life_direction_crisis.py:48 : 1. BreakProgressEngine фиксирует кризис.
+  backend\tests\sandbox\system\test_life_direction_crisis.py:76 : # --- СИМУЛЯЦИЯ КРИЗИСА (BreakProgressEngine -> LifeProjectResolver) ---
+  backend\tests\sandbox\system\test_life_direction_crisis.py:87 : deltas = BreakProgressEngine.calculate(
+  backend\tests\test_behavior_mask_r62.py:118 : BreakProgressEngine — он перебирает маски при переходах.
+  backend\tests\test_break_progress_engine_r64.py:1 : # backend/tests/test_break_progress_engine_r64.py
+  backend\tests\test_break_progress_engine_r64.py:2 : # $env:PYTHONPATH="."; pytest tests/test_break_progress_engine_r64.py -v
+  backend\tests\test_break_progress_engine_r64.py:4 : Назначение: Unit-тесты R6.4 — BreakProgressEngine и BreakDeltas,
+  backend\tests\test_break_progress_engine_r64.py:10 : Зависимости: pytest, break_progress_engine.py, npc_state.py
+  backend\tests\test_break_progress_engine_r64.py:21 : from app.services.npc.break_progress_engine import BreakDeltas, BreakProgressEngine
+  backend\tests\test_break_progress_engine_r64.py:39 : # FIX: Добавлен perceptual_kernel, требуемый BreakProgressEngine (атрибут + dict-семантика)
+  backend\tests\test_break_progress_engine_r64.py:53 : deltas = BreakProgressEngine.calculate(npc_state)
+  backend\tests\test_break_progress_engine_r64.py:72 : deltas = BreakProgressEngine.calculate(npc_state)
+  backend\tests\test_break_progress_engine_r64.py:83 : d1 = BreakProgressEngine.calculate(npc_state)
+  backend\tests\test_break_progress_engine_r64.py:86 : d2 = BreakProgressEngine.calculate(npc_state)
+  backend\tests\test_break_progress_engine_r64.py:89 : d3 = BreakProgressEngine.calculate(npc_state)
+  backend\tests\test_break_progress_engine_r64.py:105 : low = BreakProgressEngine.calculate(npc_state)
+  backend\tests\test_break_progress_engine_r64.py:109 : high = BreakProgressEngine.calculate(npc_state)
+  backend\tests\test_break_progress_engine_r64.py:118 : no_support = BreakProgressEngine.calculate(npc_state, support_present=False)
+  backend\tests\test_break_progress_engine_r64.py:119 : with_support = BreakProgressEngine.calculate(npc_state, support_present=True)
+  backend\tests\test_break_progress_engine_r64.py:127 : no_fail = BreakProgressEngine.calculate(npc_state, recent_failures=0)
+  backend\tests\test_break_progress_engine_r64.py:128 : with_fail = BreakProgressEngine.calculate(npc_state, recent_failures=5)
+  backend\tests\test_break_progress_engine_r64.py:142 : deltas = BreakProgressEngine.calculate(npc_state, recent_failures=5)
+  backend\tests\test_break_progress_engine_r64.py:153 : deltas = BreakProgressEngine.calculate(npc_state)
+  backend\tests\test_break_progress_engine_r64.py:163 : deltas = BreakProgressEngine.calculate(npc_state)
+  backend\tests\test_break_progress_engine_r64.py:174 : low = BreakProgressEngine.calculate(npc_state)
+  backend\tests\test_break_progress_engine_r64.py:178 : high = BreakProgressEngine.calculate(npc_state)
+  backend\tests\test_break_progress_engine_r64.py:189 : deltas = BreakProgressEngine.calculate(state)
+  backend\tests\test_tz6_cleanup.py:46 : from app.services.npc.break_progress_engine import compute_continuous_drift
+
+============================================================
+
+2. STABLE IDENTITY — sessions/saves/replay
+
+============================================================
+
+[SEARCH] player_name save/load  pattern: /player_name.*save|save.*player_name|player_name.*load|load.*player_name/
+  16 matches:
+  backend\app\contracts\interventions.py:33 : payload={"text": action_text, "player_name": player_name, **kwargs},
+  backend\app\services\game_loop\phase_6_avatar.py:36 : _avatar_state = avatar_service.load_state(campaign_id, player_name)
+  backend\app\services\game_loop\turn_pipeline.py:202 : _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
+  backend\app\services\game_loop\turn_pipeline.py:323 : _match = self.avatar_service.load_state(campaign_id, _player_name)
+  backend\app\services\game_loop\turn_pipeline.py:574 : _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
+  backend\app\services\game_loop\turn_pipeline.py:657 : and self.avatar_service.load_avatar(campaign_id, _player_name) is None
+  backend\app\services\player_avatar_service.py:127 : def load_avatar(self, campaign_id: str, player_name: str) -> Optional[dict]:
+  backend\app\services\player_avatar_service.py:170 : def load_state(self, campaign_id: str, player_name: str) -> NPCState:
+  backend\app\services\player_avatar_service.py:171 : avatar = self.load_avatar(campaign_id, player_name)
+  backend\app\services\player_avatar_service.py:212 : def load_sheet(self, campaign_id: str, player_name: str) -> CharacterSheet:
+  backend\app\services\player_avatar_service.py:214 : avatar = self.load_avatar(campaign_id, player_name)
+  backend\app\services\player_avatar_service.py:222 : def load_profile(self, campaign_id: str, player_name: str) -> CharacterProfile:
+  backend\app\services\player_avatar_service.py:224 : avatar = self.load_avatar(campaign_id, player_name)
+  backend\app\services\player_session_service.py:102 : f"[SESSION_LOADED] Campaign: {campaign_id}, Player: {session.player_name}"
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:77 : payload={"text": "stub", "player_name": "p", "semantic_action": sem_action,
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:140 : payload={"text": "stub", "player_name": "p", "semantic_action": "HELP",
+
+[SEARCH] character_id persistence  pattern: /character_id.*save|character_id.*load|character_id.*persist/
+  (no matches)
+
+[SEARCH] session_id persistence  pattern: /session_id.*persist|session_id.*restore|session_id.*replay/
+  2 matches:
+  backend\app\services\game_loop\game_loop.py:272 : _session_id = _replay_store.start_session(
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:442 : self._replay_session_id = self._orchestrator._replay_recorder.session_id
+
+[SEARCH] Avatar save/load by name  pattern: /player_avatar.*json|avatar.*save.*name|avatar.*load.*name/
+  23 matches:
+  backend\app\services\events\npc_dialogue_subscriber.py:162 : # player_recognition), SSOT — player_avatar.json.
+  backend\app\services\game_loop\campaign_lifecycle.py:258 : "player_avatar.json",
+  backend\app\services\game_loop\campaign_lifecycle.py:433 : # старый код удалял player_avatar.json по чужому пути, настоящий переживал new_game)
+  backend\app\services\game_loop\campaign_lifecycle.py:435 : removed.append("player_avatar.json")
+  backend\app\services\game_loop\phase_6_avatar.py:36 : _avatar_state = avatar_service.load_state(campaign_id, player_name)
+  backend\app\services\game_loop\turn_pipeline.py:202 : _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
+  backend\app\services\game_loop\turn_pipeline.py:323 : _match = self.avatar_service.load_state(campaign_id, _player_name)
+  backend\app\services\game_loop\turn_pipeline.py:574 : _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
+  backend\app\services\game_loop\turn_pipeline.py:657 : and self.avatar_service.load_avatar(campaign_id, _player_name) is None
+  backend\app\services\state\json_persistence_adapter.py:178 : "player_avatar.json",
+  backend\app\services\player_avatar_service.py:15 : - Хранение: player_avatar.json в папке кампании (единый файл, три слоя)
+  backend\app\services\player_avatar_service.py:103 : УСТРАНЁН DOUBLE TRUTH пути: ранее new_game удалял player_avatar.json
+  backend\app\services\player_avatar_service.py:118 : return self.root / campaign_id / "player_avatar.json"
+  backend\app\services\player_avatar_service.py:129 : Загружает полный аватар из player_avatar.json.
+  backend\app\services\player_avatar_service.py:171 : avatar = self.load_avatar(campaign_id, player_name)
+  backend\app\services\player_avatar_service.py:214 : avatar = self.load_avatar(campaign_id, player_name)
+  backend\app\services\player_avatar_service.py:224 : avatar = self.load_avatar(campaign_id, player_name)
+  backend\app\services\player_avatar_service.py:275 : # ── Миграция: characters.json → player_avatar.json ───────────────
+  backend\app\services\player_avatar_service.py:281 : Первичная миграция: создаёт player_avatar.json из CharacterSheet.
+  backend\tests\micro\test_d60_reset_fail_loud.py:171 : "player_avatar.json",
+  backend\tests\micro\test_name_gate.py:84 : """NAME-ось переживает новый инстанс (save/load player_avatar.json);
+  backend\tests\micro\test_name_gate.py:89 : _path = tmp_path / "c1" / "player_avatar.json"
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:51 : (broken_root / CAMP / "player_avatar.json").write_text(
+
+============================================================
+
+3. ORDINAL — DETERMINISTIC COUNTERS
+
+============================================================
+
+[SEARCH] ordinal generation  pattern: /ordinal\s*=|ordinal.*counter|ordinal.*sequence|ordinal.*increment/
+  76 matches:
+  backend\app\api\routes_chronicle.py:304 : # COV-12 (п.0): ordinal = fragment_ord*100 + idx → максимум 99 items на
+  backend\app\api\routes_chronicle.py:312 : "(ordinal = fragment_ord*100 + idx)"
+  backend\app\api\routes_chronicle.py:440 : ordinal=req.fragment_ord * 100 + _idx,
+  backend\app\domain\events.py:98 : # event_tick, ordinal). Payload — DATA, не identity. ordinal=0
+  backend\app\services\action\commitment_registry.py:188 : ordinal = CommitmentRegistry._next_ordinal(scene_state, npc_id)
+  backend\app\services\action\commitment_registry.py:193 : ordinal=ordinal,
+  backend\app\services\action\commitment_registry.py:203 : f"cause={cause} ordinal={ordinal} parent={_parent}"
+  backend\app\services\action\commitment_registry.py:346 : ordinal = CommitmentRegistry._next_ordinal(scene_state, npc_id)
+  backend\app\services\action\commitment_registry.py:351 : ordinal=ordinal,
+  backend\app\services\chronicle\biography_adapter.py:226 : ordinal=entry.ordinal,
+  backend\app\services\chronicle\chronicle_store.py:90 : _KEY_ORDINAL = "ordinal"
+  backend\app\services\chronicle\chronicle_store.py:289 : ordinal=data.get(_KEY_ORDINAL, 0),
+  backend\app\services\chronicle\origin_projection.py:49 : ordinal=ordinal,
+  backend\app\services\events\event_bus.py:102 : _tick, _ordinal = self._identity_provider(event.type, event.source)
+  backend\app\services\events\event_bus.py:110 : _tick, _ordinal = self._identity_provider(event.type, event.source)
+  backend\app\services\events\event_identity.py:26 : ordinal = int(ordinals.get(key, 0)) + 1
+  backend\scripts\crosswalk_canon.py:97 : ordinal=e.get("ordinal", 0),
+  backend\scripts\crosswalk_canon.py:237 : old_ordinal=old.ordinal,
+  backend\scripts\crosswalk_canon.py:240 : new_ordinal=new.ordinal,
+  backend\scripts\crosswalk_canon.py:287 : old_ordinal=old.ordinal,
+  backend\tests\micro\test_a2_self_reference.py:72 : ordinal=0,
+  backend\tests\micro\test_a2_self_reference.py:235 : ordinal=1501,
+  backend\tests\micro\test_a2_self_reference.py:243 : ordinal=1502,
+  backend\tests\micro\test_a2_self_reference.py:251 : ordinal=1700,
+  backend\tests\micro\test_belief_export.py:42 : ordinal=0,
+  backend\tests\micro\test_cch5_projections.py:76 : ordinal=0,
+  backend\tests\micro\test_cch5_projections.py:94 : ordinal=0,
+  backend\tests\micro\test_cch5_projections.py:119 : ordinal=0,
+  backend\tests\micro\test_cch5_projections.py:428 : ordinal=0,
+  backend\tests\micro\test_cch7_semantic_validation.py:38 : ordinal=kw.pop("ordinal", 0),
+  backend\tests\micro\test_cch7_semantic_validation.py:99 : _entry("maid_lusya", eid="e1", historical_age=10, ordinal=0),
+  backend\tests\micro\test_cch7_semantic_validation.py:100 : _entry("maid_lusya", eid="e2", ordinal=1),  # без даты → GAP
+  backend\tests\micro\test_cch7_semantic_validation.py:101 : _entry("maid_lusya", eid="e3", historical_age=14, ordinal=2),
+  backend\tests\micro\test_cch8_relationship_seed_contract.py:56 : ordinal=ordinal,
+  backend\tests\micro\test_chronicle_cch4_seed.py:44 : ordinal=0,
+  backend\tests\micro\test_chronicle_cch4_seed.py:112 : ordinal=1,
+  backend\tests\micro\test_chronicle_cch4_seed.py:171 : ordinal=2,
+  backend\tests\micro\test_chronicle_cch4_seed.py:202 : ordinal=3,
+  backend\tests\micro\test_chronicle_cch4_seed.py:223 : ordinal=4,
+  backend\tests\micro\test_chronicle_consistency.py:60 : _entry("a", eid="e1", historical_age=10, ordinal=0),
+  backend\tests\micro\test_chronicle_consistency.py:61 : _entry("a", eid="e2", ordinal=1),  # без даты → окно [10..14]
+  backend\tests\micro\test_chronicle_consistency.py:62 : _entry("a", eid="e3", historical_age=14, ordinal=2),
+  backend\tests\micro\test_chronicle_consistency.py:144 : [_entry("a", eid="e1", historical_age=10, ordinal=0), _entry("a", eid="e2", ordinal=1)],
+  backend\tests\micro\test_cov12_disarm_confirm.py:69 : ordinal=0,
+  backend\tests\micro\test_cov12_disarm_confirm.py:81 : ordinal=ordinal,
+  backend\tests\micro\test_cov12_disarm_confirm.py:107 : _save_draft(store, [_make_entry(open_questions=(q,), ordinal=0)])
+  backend\tests\micro\test_cov12_disarm_confirm.py:119 : _save_draft(store, [_make_entry(confidence=0.4, ordinal=0)])
+  backend\tests\micro\test_cov12_disarm_confirm.py:131 : _save_draft(store, [_make_entry(confidence=0.6, ordinal=0)])
+  backend\tests\micro\test_cov12_fragment_replacement.py:131 : ordinal=301,
+  backend\tests\micro\test_npc_addressing_delivery.py:44 : ordinal = int(ordinals.get(key, 0)) + 1
+  backend\tests\micro\test_s366_causal_linker.py:60 : ordinal=ordinal,
+  backend\tests\micro\test_s366_causal_linker.py:74 : ordinal=ordinal,
+  backend\tests\micro\test_s366_causal_linker.py:88 : ordinal=ordinal,
+  backend\tests\micro\test_s366_causal_linker.py:164 : ordinal=100,
+  backend\tests\micro\test_s366_causal_linker.py:173 : ordinal=101,
+  backend\tests\micro\test_trait_gap_detector.py:33 : ordinal=0,
+  backend\tests\micro\test_trait_gap_detector.py:44 : ordinal=1,
+  backend\tests\micro\test_trait_seed_qualifiers.py:64 : ordinal=ordinal,
+  backend\tests\micro\test_usl_biography_adapter.py:194 : ordinal=e.get("ordinal", 0),
+  backend\tests\sandbox\scenarios\chronicle_weave_probe.py:299 : ordinal=len(entries),
+  backend\tests\test_action_commitment.py:44 : def _mk(initial_status="PROPOSED", npc_id="npc1", tick=1, ordinal=1):
+  backend\tests\test_action_commitment.py:50 : ordinal=ordinal,
+  backend\tests\test_action_commitment.py:127 : build_commitment_dict(tick=1, npc_id="n", action="MOVE", ordinal=1, cause="")
+  backend\tests\test_action_commitment.py:131 : build_commitment_dict(tick=1, npc_id="n", action="MOVE", ordinal=1, cause="c", initial_status="MOVING")
+  backend\tests\test_action_commitment.py:134 : record = _mk(tick=7, npc_id="npcX", ordinal=3)
+  backend\tests\test_action_commitment.py:390 : tick=1, npc_id="n1", action="MOVE", ordinal=1, cause="schedule:patrol"
+  backend\tests\test_action_commitment.py:409 : ordinal=2,
+  backend\tests\test_action_commitment.py:425 : tick=1, npc_id="n1", action="MOVE", ordinal=3, cause="c", priority=1
+  backend\tests\test_action_commitment.py:428 : tick=1, npc_id="n1", action="MOVE", ordinal=3, cause="c", priority=7
+  backend\tests\test_action_commitment.py:455 : ordinal=1,
+  backend\tests\test_action_commitment.py:491 : tick=1, npc_id="n1", action="EAT", ordinal=1,
+  backend\tests\test_action_commitment.py:505 : tick=1, npc_id="n1", action="EAT", ordinal=1,
+  backend\tests\test_action_commitment.py:536 : tick=1, npc_id="n1", action="EAT", ordinal=1,
+  backend\tests\test_action_commitment.py:553 : tick=1, npc_id="n1", action="EAT", ordinal=1,
+  backend\tests\test_action_commitment.py:564 : tick=1, npc_id="n1", action="EAT", ordinal=1,
+  backend\tests\test_s2b7_injury_chain.py:84 : ordinal=ordinal,
+
+[SEARCH] event ordinal source  pattern: /next_event_identity|event_ordinals|_event_ordinal/
+  27 matches:
+  backend\app\services\events\event_bus.py:58 : # Провайдер — замыкание на scene_state через next_event_identity
+  backend\app\services\events\event_identity.py:2 : Назначение: Единственный писатель scene_state["event_ordinals"] — порядковый
+  backend\app\services\events\event_identity.py:5 : Основные сущности: next_event_identity
+  backend\app\services\events\event_identity.py:10 : _KEY_ORDINALS = "event_ordinals"
+  backend\app\services\events\event_identity.py:13 : def next_event_identity(
+  backend\app\services\game_loop\game_loop.py:329 : from app.services.events.event_identity import next_event_identity
+  backend\app\services\game_loop\game_loop.py:340 : return next_event_identity(_scene, event_type, source)
+  backend\app\services\phases\commit_phase.py:90 : # Идентичность события — Single Writer next_event_identity, не отдельная
+  backend\app\services\scene_state\scene_factory.py:252 : # next_event_identity (services/events/event_identity.py). Загруженные
+  backend\app\services\scene_state\scene_factory.py:255 : "event_ordinals": {},
+  backend\tests\micro\test_claim_bridge_chain.py:16 : from app.services.events.event_identity import next_event_identity
+  backend\tests\micro\test_claim_bridge_chain.py:111 : bus.set_identity_provider(lambda t, s: next_event_identity(scene, t, s))
+  backend\tests\micro\test_event_identity.py:13 : from app.services.events.event_identity import next_event_identity
+  backend\tests\micro\test_event_identity.py:18 : bus.set_identity_provider(lambda t, s: next_event_identity(scene, t, s))
+  backend\tests\micro\test_npc_addresses_player.py:21 : from app.services.events.event_identity import next_event_identity
+  backend\tests\micro\test_npc_addresses_player.py:32 : bus.set_identity_provider(lambda t, s: next_event_identity(scene, t, s))
+  backend\tests\micro\test_npc_addresses_player.py:344 : """Один и тот же поток → те же event_id (Single Writer next_event_identity).
+  backend\tests\micro\test_npc_addresses_player.py:346 : Ordinal-счётчик хранится в scene_state["event_ordinals"] и инкрементируется
+  backend\tests\micro\test_npc_addressing_delivery.py:42 : ordinals = _scene.setdefault("event_ordinals", {})
+  backend\tests\micro\test_semantic_span_chain.py:14 : from app.services.events.event_identity import next_event_identity
+  backend\tests\micro\test_semantic_span_chain.py:20 : bus.set_identity_provider(lambda t, s: next_event_identity(scene, t, s))
+  backend\tests\micro\test_utterance_identity_chain.py:14 : from app.services.events.event_identity import next_event_identity
+  backend\tests\micro\test_utterance_identity_chain.py:110 : bus.set_identity_provider(lambda t, s: next_event_identity(scene, t, s))
+  backend\tests\micro\test_utterance_identity_chain.py:160 : bus.set_identity_provider(lambda t, s: next_event_identity(scene, t, s))
+  backend\tests\IPT.py:1836 : from app.services.events.event_identity import next_event_identity
+  backend\tests\IPT.py:1840 : bus.set_identity_provider(lambda t, s: next_event_identity(scene, t, s))
+  backend\tests\IPT.py:1860 : bus2.set_identity_provider(lambda t, s: next_event_identity(scene2, t, s))
+
+[SEARCH] ordinal in scene_state  pattern: /event_ordinals|scene_state.*ordinal|ordinal.*scene_state/
+  15 matches:
+  backend\app\services\action\commitment_registry.py:7 : scene_state["commitment_ordinals"] — персистентные монотонные счётчики.
+  backend\app\services\action\commitment_registry.py:106 : def _next_ordinal(scene_state: Dict[str, Any], npc_id: str) -> int:
+  backend\app\services\action\commitment_registry.py:109 : ordinals = scene_state.setdefault(_KEY_ORDINALS, {})
+  backend\app\services\action\commitment_registry.py:188 : ordinal = CommitmentRegistry._next_ordinal(scene_state, npc_id)
+  backend\app\services\action\commitment_registry.py:346 : ordinal = CommitmentRegistry._next_ordinal(scene_state, npc_id)
+  backend\app\services\events\event_identity.py:2 : Назначение: Единственный писатель scene_state["event_ordinals"] — порядковый
+  backend\app\services\events\event_identity.py:10 : _KEY_ORDINALS = "event_ordinals"
+  backend\app\services\events\event_identity.py:24 : ordinals = scene_state.setdefault(_KEY_ORDINALS, {})
+  backend\app\services\scene_state\scene_factory.py:255 : "event_ordinals": {},
+  backend\tests\micro\test_npc_addresses_player.py:346 : Ordinal-счётчик хранится в scene_state["event_ordinals"] и инкрементируется
+  backend\tests\micro\test_npc_addressing_delivery.py:42 : ordinals = _scene.setdefault("event_ordinals", {})
+  backend\tests\test_commitment_ssm_integration.py:116 : assert scene_state["commitment_ordinals"][_NPC] == 1
+  backend\tests\test_commitment_ssm_integration.py:128 : ordinal_before = scene_state["commitment_ordinals"][_NPC]
+  backend\tests\test_commitment_ssm_integration.py:134 : assert scene_state["commitment_ordinals"][_NPC] == ordinal_before
+  backend\tests\test_commitment_ssm_integration.py:159 : assert scene_state["commitment_ordinals"][_NPC] == 2
+
+============================================================
+
+4. ACTION COMPATIBILITY — EXISTING CONTRACTS
+
+============================================================
+
+[SEARCH] Intent enum location  pattern: /class Intent\b/
+  1 matches:
+  backend\app\models\npc_state.py:105 : class Intent(str, Enum):
+
+[SEARCH] action requirements  pattern: /action.*requires|requires.*action|action.*capability|capability.*action/
+  5 matches:
+  backend\app\services\chronicle\biography_decomposer.py:380 : capability="fact_extraction",
+  backend\app\services\llm\provider.py:195 : Capability.FACT_EXTRACTION: ["qwen_7b", "saiga_llama3_8b"],
+  backend\app\services\llm\router.py:107 : Capability.FACT_EXTRACTION,
+  backend\app\services\llm\router.py:129 : Capability.FACT_EXTRACTION,
+  backend\tests\conftest.py:127 : return {"dm_response": f"Mock narrative for {capability}", "npc_reactions": [], "world_changes": []}
+
+[SEARCH] windup action types  pattern: /action_type.*attack|action_type.*steal|action_type.*cast/
+  22 matches:
+  backend\app\domain\action_windup.py:33 : action_type: str  # "attack", "cast", "steal"
+  backend\app\services\game_loop\phase_1_input.py:542 : shared_context.action_type = "attack"
+  backend\app\services\game_loop\time_advance.py:49 : elif action_type in ("move", "stealth", "player_moves"):
+  backend\app\services\npc\npc_tick_pipeline.py:142 : if state.action_type in ("player_attacks", "PLAYER_ATTACKED", "combat")
+  backend\app\services\phases\post_decision.py:383 : return action_type in ("steal",)
+  backend\tests\micro\test_attack_cardinality.py:35 : action_type="attack",
+  backend\tests\sandbox\micro\test_fast_path_emotional_vector_injection.py:34 : assert result.action_type == ActionType.ATTACK, f"Ожидался ATTACK, получен {result.action_type}"
+  backend\tests\sandbox\micro\test_player_intent_projection.py:42 : action_type="player_attacks",
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:47 : raw_action="Не бей его.", action_type="player_attacks", target="",
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:194 : action_type="player_attacks", intent_resolution=_res_stub(readiness),
+  backend\tests\sandbox\micro\test_ue_safety_red.py:31 : raw_action="Не бей его.", action_type="player_attacks", target="",
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:28 : raw_action="ткни ножом в глаз", action_type="player_attacks",
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_observation_test.py:52 : payload={"target_id": target_id, "action_type": "player_steals",
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:249 : if w.get("action_type") == "steal" and w.get("status") == "pending"
+  backend\tests\sandbox\SUPERBOX\scenarios\perception_topology_test.py:88 : payload={"target_id": "gold", "action_type": "player_steals",
+  backend\tests\sandbox\g3_execution_probe.py:56 : action_type="steal",
+  backend\tests\test_action_commitment.py:1300 : actor_id="n1", target_id="n2", action_type="steal",
+  backend\tests\test_action_commitment.py:1313 : actor_id="n1", target_id="n2", action_type="attack",
+  backend\tests\test_intent_compressor.py:42 : "action_type": "ATTACK",
+  backend\tests\test_intent_compressor.py:56 : assert result.action_type == ActionType.ATTACK
+  backend\tests\test_intent_compressor.py:78 : "action_type": "ATTACK",
+  backend\tests\test_p7_09_cognitive_dissonance.py:24 : PlayerAction(action_id="act_2", tick=2, actor_id="player", action_type=ActionType.ATTACK, target_id="merchant_goran"),
+
+============================================================
+
+5. SUSPENSION SEMANTICS — WHAT EACH STORAGE HOLDS
+
+============================================================
+
+[READ] windup_held_intents storage  backend/app/services/phases/post_decision.py L340-370
+  340:                     )
+  341:                     # S203.4 (Э6): held intent → scene_state (персистентность).
+  342:                     _held_store = ctx.scene_state.setdefault(_KEY_HELD_INTENTS, {})
+  343:                     _held_store[_intent_id] = intent.to_dict()
+  344: 
+  345:                     from app.core.constants import (
+  346:                         ATTACK_WINDUP_DURATION_TICKS,
+  347:                         STEAL_WINDUP_DURATION_TICKS,
+  348:                     )
+  349: 
+  350:                     # S209: steal — windowed action: 2 тика подкрадывания =
+  351:                     # окно, где свидетель может заметить подготовку (драматургия slice).
+  352:                     _is_steal = _gate_intent_type == "steal"
+  353:                     windup = ActionWindup(
+  354:                         actor_id=_actor_id,
+  355:                         target_id=_target_id,
+  356:                         action_type=_gate_intent_type,
+  357:                         started_tick=ctx.tick_number,
+  358:                         duration_ticks=(
+  359:                             STEAL_WINDUP_DURATION_TICKS
+  360:                             if _is_steal
+  361:                             else ATTACK_WINDUP_DURATION_TICKS
+  362:                         ),
+  363:                         status=WindupStatus.PENDING,
+  364:                         held_intent_id=_intent_id,
+  365:                     )
+  366:                     # S203.4 (Э6): windup → scene_state как dict (персистентность).
+  367:                     _windup_list.append(windup.to_dict())
+  368:                     windups_created += 1
+  369: 
+  370:                     continue
+
+[READ] active_commitments storage  backend/app/services/action/commitment_registry.py L145-185
+  145:             logger.error(
+  146:                 f"[COMMITMENT] transition rejected: npc={npc_id} "
+  147:                 f"{commitment.get('status')} -> {new_status} "
+  148:                 f"(interrupt_reason={interrupt_reason})"
+  149:             )
+  150:             return False
+  151:         active.pop(npc_id, None)
+  152:         CommitmentRegistry._to_history(scene_state, npc_id, commitment)
+  153:         return True
+  154: 
+  155:     # ── Публичные lifecycle-примитивы (арбитр S203.2 будет звать сам) ────
+  156: 
+  157:     @staticmethod
+  158:     def commit(
+  159:         scene_state: Dict[str, Any],
+  160:         tick: int,
+  161:         npc_id: str,
+  162:         action: str,
+  163:         cause: str,
+  164:         target_id: Optional[str] = None,
+  165:         executor: str = "traversal",
+  166:         parent_commitment_id: Optional[str] = None,
+  167:     ) -> Optional[Dict[str, Any]]:
+  168:         """Создаёт активное обязательство (status=COMMITTED).
+  169: 
+  170:         Если у NPC уже есть активное — оно INTERRUPTED(SUPERSEDED...) и
+  171:         становится parent нового: каузальная цепочка C1->C2 (№3a).
+  172:         Каждая суперсессия в shadow = измеренный факт двойного исполнения
+  173:         (baseline-метрика churn для S203.2).
+  174:         Пустой cause -> UNKNOWN_LEGACY_SOURCE (№8: не выдумывать семантику).
+  175:         """
+  176:         active = scene_state.setdefault(_KEY_ACTIVE, {})
+  177:         _parent = parent_commitment_id
+  178:         existing = active.get(npc_id)
+  179:         if existing is not None:
+  180:             _parent = existing.get("commitment_id")
+  181:             CommitmentRegistry._terminate(
+  182:                 scene_state,
+  183:                 npc_id,
+  184:                 tick,
+  185:                 "INTERRUPTED",
+
+[SEARCH] _pending_intents usage  pattern: /_pending_intents\s*\[|_pending_intents\s*=|_pending_intents\.append|_pending_intents\.set/
+  (no matches)
+
+[SEARCH] NPCState.intent assignments  pattern: /\.intent\s*=\s*Intent\.|state\.intent\s*=/
+  17 matches:
+  backend\app\models\npc_state.py:1020 : # читает, to_persistence_dict обязан писать). NPCState.intent = SSOT;
+  backend\app\services\events\npc_addressing_delivery_subscriber.py:10 : NPCState.intent = SSOT — subscriber хранит проекцию EventDTO, не intent.
+  backend\app\services\npc\decision_hub.py:1770 : if state.intent is None or state.intent == Intent.IDLE:
+  backend\app\services\npc\decision_hub.py:1806 : if state.intent is None or state.intent == Intent.IDLE:
+  backend\app\services\npc\decision_hub.py:1826 : if state.intent is None or state.intent == Intent.IDLE:
+  backend\app\services\npc\domain_phases.py:96 : state_l2.intent = Intent.IDLE
+  backend\app\services\npc\npc_loader.py:956 : state.intent = _intent_enum
+  backend\app\services\npc\state_applicator.py:671 : if state.intent == new_intent:
+  backend\app\services\npc\state_applicator.py:676 : state.intent = new_intent
+  backend\app\services\npc\state_applicator.py:771 : if state.intent == _intent_new:
+  backend\app\services\npc\state_applicator.py:778 : state.intent = _intent_new
+  backend\tests\micro\test_npc_addressing_delivery.py:6 : NPCState.intent = SSOT (subscriber хранит проекцию, не intent).
+  backend\tests\micro\test_npc_addressing_delivery.py:350 : # ── Контракт 13: NPCState.intent = SSOT ────────────────────────────────
+  backend\tests\sandbox\SUPERBOX\scenarios\_h1b2_neutrality_test.py:33 : state.intent = None
+  backend\tests\sandbox\SUPERBOX\scenarios\_h1b_mini_capture_test.py:77 : state.intent = None  # no inertia
+  backend\tests\sandbox\system\test_t06_belief_pipeline.py:49 : state.intent = None
+  backend\tests\test_state_applicator_pipeline.py:93 : assert new_state.intent == Intent.FLEE
+
+

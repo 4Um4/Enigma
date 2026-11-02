@@ -1,0 +1,1415 @@
+{
+  "summary": {
+    "old_count": 63,
+    "new_count": 63,
+    "rows": 63,
+    "by_status": {
+      "DUPLICATED": 20,
+      "PRESERVED": 38,
+      "AMBIGUOUS": 5
+    },
+    "by_old_kind": {
+      "LOCATION": {
+        "DUPLICATED": 1,
+        "PRESERVED": 2
+      },
+      "EFFECT": {
+        "PRESERVED": 13,
+        "DUPLICATED": 2
+      },
+      "TRAIT_SEED": {
+        "PRESERVED": 8,
+        "DUPLICATED": 7,
+        "AMBIGUOUS": 5
+      },
+      "RELATIONSHIP": {
+        "DUPLICATED": 7,
+        "PRESERVED": 3
+      },
+      "EVENT": {
+        "DUPLICATED": 1,
+        "PRESERVED": 5
+      },
+      "BELIEF_SEED": {
+        "PRESERVED": 6,
+        "DUPLICATED": 1
+      },
+      "PORTRET": {
+        "DUPLICATED": 1,
+        "PRESERVED": 1
+      }
+    }
+  },
+  "rows": [
+    {
+      "old_ordinal": 0,
+      "old_kind": "LOCATION",
+      "old_summary": "кузнец Орм: гном | Орм",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.20)",
+      "matches": [
+        {
+          "new_ordinal": 0,
+          "new_kind": "LOCATION",
+          "new_text": "кузнец Орм: гном | Орм",
+          "score": 1.0,
+          "reason": "tok=1.00"
+        },
+        {
+          "new_ordinal": 1507,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не герой | Орм не герой и не предатель.",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        },
+        {
+          "new_ordinal": 1508,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не предатель | Орм не герой и не предатель.",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 100,
+      "old_kind": "EFFECT",
+      "old_summary": "из которых он кузнец в городе уже 57 лет. | occupation",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EFFECT)",
+      "matches": [
+        {
+          "new_ordinal": 100,
+          "new_kind": "EFFECT",
+          "new_text": "из которых он кузнец в городе уже 57 лет. | occupation",
+          "score": 1.0,
+          "reason": "tok=1.00; effect_markers=['из которых', 'кузнец в городе']; loc_markers=['город']; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 200,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "занятость работой | Увлечён по-настоящему только своей работой",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 200,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "занятость работой | Увлечён по-настоящему только своей работой",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 201,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "пьянство | и выпивкой",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 201,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "пьянство | и выпивкой",
+          "score": 1.0,
+          "reason": "tok=1.00"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 300,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "напоминает старого друга | Торнин | идеализация | positive",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.22)",
+      "matches": [
+        {
+          "new_ordinal": 300,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "напоминает старого друга | Торнин | идеализация | positive",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        },
+        {
+          "new_ordinal": 1601,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "прежний друг | Торнин | привязанность | positive",
+          "score": 0.222,
+          "reason": "tok=0.22"
+        },
+        {
+          "new_ordinal": 1602,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "дальний родственник | Торнин | привязанность | positive",
+          "score": 0.222,
+          "reason": "tok=0.22"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 301,
+      "old_kind": "EVENT",
+      "old_summary": "умершего 70 лет назад",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.20)",
+      "matches": [
+        {
+          "new_ordinal": 301,
+          "new_kind": "EVENT",
+          "new_text": "умершего 70 лет назад",
+          "score": 1.0,
+          "reason": "tok=1.00; effect_markers=['умер']; substring_match"
+        },
+        {
+          "new_ordinal": 2103,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "старый | 57 лет привычки",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        },
+        {
+          "new_ordinal": 2106,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "привычный | 57 лет привычки",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 500,
+      "old_kind": "EVENT",
+      "old_summary": "Писарь сидит на содержании гильдии второй десяток лет.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EVENT)",
+      "matches": [
+        {
+          "new_ordinal": 500,
+          "new_kind": "EVENT",
+          "new_text": "Писарь сидит на содержании гильдии второй десяток лет.",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 501,
+      "old_kind": "EFFECT",
+      "old_summary": "Мастер гильдии знал о предупреждении слово в слово и от кого оно исходило. | knowledge",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EFFECT)",
+      "matches": [
+        {
+          "new_ordinal": 501,
+          "new_kind": "EFFECT",
+          "new_text": "Мастер гильдии знал о предупреждении слово в слово и от кого оно исходило. | knowledge",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 502,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "подозрительность | Это единственная дыра в его системе: он учёл все силы города, кроме мелкого чиновника, которого считал такой же мебелью, какой все считают его самого.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 502,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "подозрительность | Это единственная дыра в его системе: он учёл все силы города, кроме мелкого чиновника, которого считал такой же мебелью, какой все считают его самого.",
+          "score": 1.0,
+          "reason": "tok=1.00; loc_markers=['город']; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 600,
+      "old_kind": "EFFECT",
+      "old_summary": "учился кузнечному делу | skill",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EFFECT)",
+      "matches": [
+        {
+          "new_ordinal": 600,
+          "new_kind": "EFFECT",
+          "new_text": "учился кузнечному делу | skill",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 700,
+      "old_kind": "EVENT",
+      "old_summary": "последняя жена Эльра умерла от бреда и лихорадки",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EVENT)",
+      "matches": [
+        {
+          "new_ordinal": 700,
+          "new_kind": "EVENT",
+          "new_text": "последняя жена Эльра умерла от бреда и лихорадки",
+          "score": 1.0,
+          "reason": "tok=1.00; effect_markers=['умер']; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 800,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "тихая | Орм давно заприметил Люсю — тихую, серьёзную и исполнительную.",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.78)",
+      "matches": [
+        {
+          "new_ordinal": 800,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "тихая | Орм давно заприметил Люсю — тихую, серьёзную и исполнительную.",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        },
+        {
+          "new_ordinal": 801,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "серьёзная | Орм давно заприметил Люсю — тихую, серьёзную и исполнительную.",
+          "score": 0.778,
+          "reason": "tok=0.78"
+        },
+        {
+          "new_ordinal": 802,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "исполнительная | Орм давно заприметил Люсю — тихую, серьёзную и исполнительную.",
+          "score": 0.778,
+          "reason": "tok=0.78"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 801,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "серьёзная | Орм давно заприметил Люсю — тихую, серьёзную и исполнительную.",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.78)",
+      "matches": [
+        {
+          "new_ordinal": 801,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "серьёзная | Орм давно заприметил Люсю — тихую, серьёзную и исполнительную.",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        },
+        {
+          "new_ordinal": 800,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "тихая | Орм давно заприметил Люсю — тихую, серьёзную и исполнительную.",
+          "score": 0.778,
+          "reason": "tok=0.78"
+        },
+        {
+          "new_ordinal": 802,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "исполнительная | Орм давно заприметил Люсю — тихую, серьёзную и исполнительную.",
+          "score": 0.778,
+          "reason": "tok=0.78"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 802,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "исполнительная | Орм давно заприметил Люсю — тихую, серьёзную и исполнительную.",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.78)",
+      "matches": [
+        {
+          "new_ordinal": 802,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "исполнительная | Орм давно заприметил Люсю — тихую, серьёзную и исполнительную.",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        },
+        {
+          "new_ordinal": 800,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "тихая | Орм давно заприметил Люсю — тихую, серьёзную и исполнительную.",
+          "score": 0.778,
+          "reason": "tok=0.78"
+        },
+        {
+          "new_ordinal": 801,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "серьёзная | Орм давно заприметил Люсю — тихую, серьёзную и исполнительную.",
+          "score": 0.778,
+          "reason": "tok=0.78"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 803,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "перенос | его жена | dependence | negative",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (RELATIONSHIP)",
+      "matches": [
+        {
+          "new_ordinal": 803,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "перенос | его жена | dependence | negative",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 804,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Орм в себе так и не разглядел перенос, потому что разглядывать себя не привык.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (BELIEF_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 804,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "Орм в себе так и не разглядел перенос, потому что разглядывать себя не привык.",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1000,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "не был напуган шантажом | Борко и заставил продолжать спать с Люсей, гном не был напуган шантажом — скорее это была дополнительная легальная причина повторять то, что приносит ему удовольствие.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1000,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не был напуган шантажом | Борко и заставил продолжать спать с Люсей, гном не был напуган шантажом — скорее это была дополнительная легальная причина повторять то, что приносит ему удовольствие.",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1100,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Только перед Торниным его грызла совесть: тот хоть и бил девочку, но по-своему хорошо к ней относился и уж точно не хотел бы, чтобы её насиловал старый гном.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (BELIEF_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1100,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "Только перед Торниным его грызла совесть: тот хоть и бил девочку, но по-своему хорошо к ней относился и уж точно не хотел бы, чтобы её насиловал старый гном.",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1200,
+      "old_kind": "EVENT",
+      "old_summary": "Горан понял, что заказ Торнина можно продать купцу.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EVENT)",
+      "matches": [
+        {
+          "new_ordinal": 1200,
+          "new_kind": "EVENT",
+          "new_text": "Горан понял, что заказ Торнина можно продать купцу.",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1300,
+      "old_kind": "EVENT",
+      "old_summary": "он не насилует Люсю, а видит её в таверне",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EVENT)",
+      "matches": [
+        {
+          "new_ordinal": 1300,
+          "new_kind": "EVENT",
+          "new_text": "он не насилует Люсю, а видит её в таверне",
+          "score": 1.0,
+          "reason": "tok=1.00; loc_markers=['таверн']; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1400,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Орм думает, когда всё закончится, получить оплату за информацию и с гильдии воров, и с правительства — и открыть нормальную личную кузню, а не пристройку у таверны, которую ему выделили много лет наза",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (BELIEF_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1400,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "Орм думает, когда всё закончится, получить оплату за информацию и с гильдии воров, и с правительства — и открыть нормальную личную кузню, а не пристройку у таверны, которую ему выделили много лет наза",
+          "score": 1.0,
+          "reason": "tok=1.00; loc_markers=['таверн', 'пристройк']; belief_markers=['думает', 'закон']; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1500,
+      "old_kind": "EVENT",
+      "old_summary": "Орм пережил трёх старейшин Гильдии, двух капитанов стражи и бесчисленное количество мелких интриг.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EVENT)",
+      "matches": [
+        {
+          "new_ordinal": 1500,
+          "new_kind": "EVENT",
+          "new_text": "Орм пережил трёх старейшин Гильдии, двух капитанов стражи и бесчисленное количество мелких интриг.",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1501,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Гильдия терпит Орма. | Орм | dependence | positive",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.71)",
+      "matches": [
+        {
+          "new_ordinal": 1501,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Гильдия терпит Орма. | Орм | dependence | positive",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        },
+        {
+          "new_ordinal": 1502,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Правительство терпит Орма. | Орм | dependence | positive",
+          "score": 0.714,
+          "reason": "tok=0.71"
+        },
+        {
+          "new_ordinal": 1902,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "поддерживает застолье | собутыльник | dependence | positive",
+          "score": 0.222,
+          "reason": "tok=0.22"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1502,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Правительство терпит Орма. | Орм | dependence | positive",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.71)",
+      "matches": [
+        {
+          "new_ordinal": 1502,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Правительство терпит Орма. | Орм | dependence | positive",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        },
+        {
+          "new_ordinal": 1501,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Гильдия терпит Орма. | Орм | dependence | positive",
+          "score": 0.714,
+          "reason": "tok=0.71"
+        },
+        {
+          "new_ordinal": 1902,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "поддерживает застолье | собутыльник | dependence | positive",
+          "score": 0.222,
+          "reason": "tok=0.22"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1503,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "старая мебель | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=1.00, 2nd=1.00)",
+      "matches": [
+        {
+          "new_ordinal": 1503,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "старая мебель | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+          "score": 1.0,
+          "reason": "tok=1.00; loc_markers=['город']; substring_match"
+        },
+        {
+          "new_ordinal": 1504,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "полезный | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+          "score": 1.0,
+          "reason": "tok=0.93; loc_markers=['город']"
+        },
+        {
+          "new_ordinal": 1505,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не трогаемый | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+          "score": 1.0,
+          "reason": "tok=0.93; loc_markers=['город']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1504,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "полезный | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=1.00, 2nd=1.00)",
+      "matches": [
+        {
+          "new_ordinal": 1503,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "старая мебель | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+          "score": 1.0,
+          "reason": "tok=0.93; loc_markers=['город']"
+        },
+        {
+          "new_ordinal": 1504,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "полезный | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+          "score": 1.0,
+          "reason": "tok=1.00; loc_markers=['город']; substring_match"
+        },
+        {
+          "new_ordinal": 1505,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не трогаемый | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+          "score": 1.0,
+          "reason": "tok=0.88; loc_markers=['город']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1505,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "не трогаемый | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=1.00, 2nd=1.00)",
+      "matches": [
+        {
+          "new_ordinal": 1503,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "старая мебель | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+          "score": 1.0,
+          "reason": "tok=0.93; loc_markers=['город']"
+        },
+        {
+          "new_ordinal": 1504,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "полезный | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+          "score": 1.0,
+          "reason": "tok=0.88; loc_markers=['город']"
+        },
+        {
+          "new_ordinal": 1505,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не трогаемый | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+          "score": 1.0,
+          "reason": "tok=1.00; loc_markers=['город']; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1506,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "не молчит | Орм это знает. Поэтому он говорит и тем и другим. Не из хитрости. Из привычки.",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.32)",
+      "matches": [
+        {
+          "new_ordinal": 1506,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не молчит | Орм это знает. Поэтому он говорит и тем и другим. Не из хитрости. Из привычки.",
+          "score": 1.0,
+          "reason": "tok=1.00; belief_markers=['знает']; substring_match"
+        },
+        {
+          "new_ordinal": 1803,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "осторожность | Орм это знает — и это единственное, что делает его хоть немного осторожнее",
+          "score": 0.317,
+          "reason": "tok=0.17; belief_markers=['знает']"
+        },
+        {
+          "new_ordinal": 1600,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "стражник, который прожил 146 лет, знает разницу между привязанностью и долгом",
+          "score": 0.206,
+          "reason": "tok=0.06; belief_markers=['знает']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1507,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "не герой | Орм не герой и не предатель.",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=1.00, 2nd=1.00)",
+      "matches": [
+        {
+          "new_ordinal": 1507,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не герой | Орм не герой и не предатель.",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        },
+        {
+          "new_ordinal": 1508,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не предатель | Орм не герой и не предатель.",
+          "score": 1.0,
+          "reason": "tok=1.00"
+        },
+        {
+          "new_ordinal": 0,
+          "new_kind": "LOCATION",
+          "new_text": "кузнец Орм: гном | Орм",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1508,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "не предатель | Орм не герой и не предатель.",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=1.00, 2nd=1.00)",
+      "matches": [
+        {
+          "new_ordinal": 1507,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не герой | Орм не герой и не предатель.",
+          "score": 1.0,
+          "reason": "tok=1.00"
+        },
+        {
+          "new_ordinal": 1508,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не предатель | Орм не герой и не предатель.",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        },
+        {
+          "new_ordinal": 0,
+          "new_kind": "LOCATION",
+          "new_text": "кузнец Орм: гном | Орм",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1509,
+      "old_kind": "PORTRET",
+      "old_summary": "Орм — мебель этого города.",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.74)",
+      "matches": [
+        {
+          "new_ordinal": 1509,
+          "new_kind": "PORTRET",
+          "new_text": "Орм — мебель этого города.",
+          "score": 1.0,
+          "reason": "tok=1.00; loc_markers=['город']; substring_match"
+        },
+        {
+          "new_ordinal": 1503,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "старая мебель | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+          "score": 0.736,
+          "reason": "tok=0.29; loc_markers=['город']; substring_match"
+        },
+        {
+          "new_ordinal": 1504,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "полезный | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+          "score": 0.717,
+          "reason": "tok=0.27; loc_markers=['город']; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1600,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "стражник, который прожил 146 лет, знает разницу между привязанностью и долгом",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.21)",
+      "matches": [
+        {
+          "new_ordinal": 1600,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "стражник, который прожил 146 лет, знает разницу между привязанностью и долгом",
+          "score": 1.0,
+          "reason": "tok=1.00; belief_markers=['знает']; substring_match"
+        },
+        {
+          "new_ordinal": 1506,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не молчит | Орм это знает. Поэтому он говорит и тем и другим. Не из хитрости. Из привычки.",
+          "score": 0.206,
+          "reason": "tok=0.06; belief_markers=['знает']"
+        },
+        {
+          "new_ordinal": 1803,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "осторожность | Орм это знает — и это единственное, что делает его хоть немного осторожнее",
+          "score": 0.203,
+          "reason": "tok=0.05; belief_markers=['знает']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1601,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "прежний друг | Торнин | привязанность | positive",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.43)",
+      "matches": [
+        {
+          "new_ordinal": 1601,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "прежний друг | Торнин | привязанность | positive",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        },
+        {
+          "new_ordinal": 1602,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "дальний родственник | Торнин | привязанность | positive",
+          "score": 0.429,
+          "reason": "tok=0.43"
+        },
+        {
+          "new_ordinal": 300,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "напоминает старого друга | Торнин | идеализация | positive",
+          "score": 0.222,
+          "reason": "tok=0.22"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1602,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "дальний родственник | Торнин | привязанность | positive",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.43)",
+      "matches": [
+        {
+          "new_ordinal": 1602,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "дальний родственник | Торнин | привязанность | positive",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        },
+        {
+          "new_ordinal": 1601,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "прежний друг | Торнин | привязанность | positive",
+          "score": 0.429,
+          "reason": "tok=0.43"
+        },
+        {
+          "new_ordinal": 300,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "напоминает старого друга | Торнин | идеализация | positive",
+          "score": 0.222,
+          "reason": "tok=0.22"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1603,
+      "old_kind": "EFFECT",
+      "old_summary": "предупредил Гильдию, чтобы не винить кузнеца | Торнин | guardianship",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.75)",
+      "matches": [
+        {
+          "new_ordinal": 1603,
+          "new_kind": "EFFECT",
+          "new_text": "предупредил Гильдию, чтобы не винить кузнеца | Торнин | guardianship",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        },
+        {
+          "new_ordinal": 1604,
+          "new_kind": "EFFECT",
+          "new_text": "предупредил правительство, чтобы не винить кузнеца | Торнин | guardianship",
+          "score": 0.75,
+          "reason": "tok=0.75"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1604,
+      "old_kind": "EFFECT",
+      "old_summary": "предупредил правительство, чтобы не винить кузнеца | Торнин | guardianship",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.75)",
+      "matches": [
+        {
+          "new_ordinal": 1604,
+          "new_kind": "EFFECT",
+          "new_text": "предупредил правительство, чтобы не винить кузнеца | Торнин | guardianship",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        },
+        {
+          "new_ordinal": 1603,
+          "new_kind": "EFFECT",
+          "new_text": "предупредил Гильдию, чтобы не винить кузнеца | Торнин | guardianship",
+          "score": 0.75,
+          "reason": "tok=0.75"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1605,
+      "old_kind": "EFFECT",
+      "old_summary": "защитил себя от возможной вины | residence",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EFFECT)",
+      "matches": [
+        {
+          "new_ordinal": 1605,
+          "new_kind": "EFFECT",
+          "new_text": "защитил себя от возможной вины | residence",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1606,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "гном привык хранить многое",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (BELIEF_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1606,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "гном привык хранить многое",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1607,
+      "old_kind": "EFFECT",
+      "old_summary": "спрятал сожаление о Торнине | сожаление о Торнине | secret",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EFFECT)",
+      "matches": [
+        {
+          "new_ordinal": 1607,
+          "new_kind": "EFFECT",
+          "new_text": "спрятал сожаление о Торнине | сожаление о Торнине | secret",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1700,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Борко не имеет власти над Ормом. | Орм | dependence | negative",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (RELATIONSHIP)",
+      "matches": [
+        {
+          "new_ordinal": 1700,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Борко не имеет власти над Ормом. | Орм | dependence | negative",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1701,
+      "old_kind": "EFFECT",
+      "old_summary": "Орм не испугался шантажа стражника. | gain",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EFFECT)",
+      "matches": [
+        {
+          "new_ordinal": 1701,
+          "new_kind": "EFFECT",
+          "new_text": "Орм не испугался шантажа стражника. | gain",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1702,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "непроницаемость | Орм не понимает, почему он напал на девочку тем вечером",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1702,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "непроницаемость | Орм не понимает, почему он напал на девочку тем вечером",
+          "score": 1.0,
+          "reason": "tok=1.00; belief_markers=['понимает']; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1703,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "закрытость | гному, который привык держать всё в себе",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1703,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "закрытость | гному, который привык держать всё в себе",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1704,
+      "old_kind": "EFFECT",
+      "old_summary": "Орм просто пользуется Борко как инструментом для собственного молчания. | gain",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EFFECT)",
+      "matches": [
+        {
+          "new_ordinal": 1704,
+          "new_kind": "EFFECT",
+          "new_text": "Орм просто пользуется Борко как инструментом для собственного молчания. | gain",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1705,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Борко думает, что он хозяин. | THEORY_OF_MIND | Чужое убеждение о себе. Не подходит под BELIEF_SEED (danger/player_hostile) — это не убеждение Орма о мире. Требует ToM-механизма для runtime. Сохранено",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (BELIEF_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1705,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "Борко думает, что он хозяин. | THEORY_OF_MIND | Чужое убеждение о себе. Не подходит под BELIEF_SEED (danger/player_hostile) — это не убеждение Орма о мире. Требует ToM-механизма для runtime. Сохранено",
+          "score": 1.0,
+          "reason": "tok=1.00; belief_markers=['думает']; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1800,
+      "old_kind": "LOCATION",
+      "old_summary": "Крыша.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (LOCATION)",
+      "matches": [
+        {
+          "new_ordinal": 1800,
+          "new_kind": "LOCATION",
+          "new_text": "Крыша.",
+          "score": 1.0,
+          "reason": "tok=1.00"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1801,
+      "old_kind": "EFFECT",
+      "old_summary": "принадлежащая Торнину и оплаченная молчанием и починкой утвари. | residence",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EFFECT)",
+      "matches": [
+        {
+          "new_ordinal": 1801,
+          "new_kind": "EFFECT",
+          "new_text": "принадлежащая Торнину и оплаченная молчанием и починкой утвари. | residence",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1802,
+      "old_kind": "EFFECT",
+      "old_summary": "угроза Борко «посажу и сдам Торнину» бьёт не по самолюбию, а по крыше. | loss",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EFFECT)",
+      "matches": [
+        {
+          "new_ordinal": 1802,
+          "new_kind": "EFFECT",
+          "new_text": "угроза Борко «посажу и сдам Торнину» бьёт не по самолюбию, а по крыше. | loss",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1803,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "осторожность | Орм это знает — и это единственное, что делает его хоть немного осторожнее",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.32)",
+      "matches": [
+        {
+          "new_ordinal": 1803,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "осторожность | Орм это знает — и это единственное, что делает его хоть немного осторожнее",
+          "score": 1.0,
+          "reason": "tok=1.00; belief_markers=['знает']; substring_match"
+        },
+        {
+          "new_ordinal": 1506,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не молчит | Орм это знает. Поэтому он говорит и тем и другим. Не из хитрости. Из привычки.",
+          "score": 0.317,
+          "reason": "tok=0.17; belief_markers=['знает']"
+        },
+        {
+          "new_ordinal": 1600,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "стражник, который прожил 146 лет, знает разницу между привязанностью и долгом",
+          "score": 0.203,
+          "reason": "tok=0.05; belief_markers=['знает']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1804,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "его мечта о собственной кузне (п.14) — не про статус, а про то, чтобы наконец никому не быть должным за место, где стоишь.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (BELIEF_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1804,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "его мечта о собственной кузне (п.14) — не про статус, а про то, чтобы наконец никому не быть должным за место, где стоишь.",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1900,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "медленно и ровно | Орм пьёт медленно, ровно и не пьянеет до конца вечера",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1900,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "медленно и ровно | Орм пьёт медленно, ровно и не пьянеет до конца вечера",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1901,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "в отключку | Торнин пьёт в отключку",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1901,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "в отключку | Торнин пьёт в отключку",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1902,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "поддерживает застолье | собутыльник | dependence | positive",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.22)",
+      "matches": [
+        {
+          "new_ordinal": 1902,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "поддерживает застолье | собутыльник | dependence | positive",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        },
+        {
+          "new_ordinal": 1501,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Гильдия терпит Орма. | Орм | dependence | positive",
+          "score": 0.222,
+          "reason": "tok=0.22"
+        },
+        {
+          "new_ordinal": 1502,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Правительство терпит Орма. | Орм | dependence | positive",
+          "score": 0.222,
+          "reason": "tok=0.22"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1903,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "выключается из него | собутыльник | disengagement | neutral",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (RELATIONSHIP)",
+      "matches": [
+        {
+          "new_ordinal": 1903,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "выключается из него | собутыльник | disengagement | neutral",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1904,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "лучший слушатель из всех возможных | собутыльник | superiority | positive",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.20)",
+      "matches": [
+        {
+          "new_ordinal": 1904,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "лучший слушатель из всех возможных | собутыльник | superiority | positive",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        },
+        {
+          "new_ordinal": 1902,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "поддерживает застолье | собутыльник | dependence | positive",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2000,
+      "old_kind": "PORTRET",
+      "old_summary": "Сидит спиной к стене, лицом к залу: за 57 лет это рефлекс, а не осторожность — просто так устроено его место у стойки. Он видит весь зал, включая коридор на кухню.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (PORTRET)",
+      "matches": [
+        {
+          "new_ordinal": 2000,
+          "new_kind": "PORTRET",
+          "new_text": "Сидит спиной к стене, лицом к залу: за 57 лет это рефлекс, а не осторожность — просто так устроено его место у стойки. Он видит весь зал, включая коридор на кухню.",
+          "score": 1.0,
+          "reason": "tok=1.00; loc_markers=['стойк', 'зал', 'кухн']; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2100,
+      "old_kind": "EFFECT",
+      "old_summary": "руки и речь | trauma",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EFFECT)",
+      "matches": [
+        {
+          "new_ordinal": 2100,
+          "new_kind": "EFFECT",
+          "new_text": "руки и речь | trauma",
+          "score": 1.0,
+          "reason": "tok=1.00"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2101,
+      "old_kind": "EFFECT",
+      "old_summary": "говорит односложно: «Да». «Нет». «Жди». | loss",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EFFECT)",
+      "matches": [
+        {
+          "new_ordinal": 2101,
+          "new_kind": "EFFECT",
+          "new_text": "говорит односложно: «Да». «Нет». «Жди». | loss",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2102,
+      "old_kind": "EFFECT",
+      "old_summary": "матерится только по-гномьи | trauma",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EFFECT)",
+      "matches": [
+        {
+          "new_ordinal": 2102,
+          "new_kind": "EFFECT",
+          "new_text": "матерится только по-гномьи | trauma",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2103,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "старый | 57 лет привычки",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.50)",
+      "matches": [
+        {
+          "new_ordinal": 2103,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "старый | 57 лет привычки",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        },
+        {
+          "new_ordinal": 2106,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "привычный | 57 лет привычки",
+          "score": 0.5,
+          "reason": "tok=0.50"
+        },
+        {
+          "new_ordinal": 301,
+          "new_kind": "EVENT",
+          "new_text": "умершего 70 лет назад",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2104,
+      "old_kind": "LOCATION",
+      "old_summary": "кузнице",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (LOCATION)",
+      "matches": [
+        {
+          "new_ordinal": 2104,
+          "new_kind": "LOCATION",
+          "new_text": "кузнице",
+          "score": 1.0,
+          "reason": "tok=1.00"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2105,
+      "old_kind": "EFFECT",
+      "old_summary": "спит на лежанке у остывающего горна | residence",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EFFECT)",
+      "matches": [
+        {
+          "new_ordinal": 2105,
+          "new_kind": "EFFECT",
+          "new_text": "спит на лежанке у остывающего горна | residence",
+          "score": 1.0,
+          "reason": "tok=1.00; loc_markers=['горн', 'лежанк']; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2106,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "привычный | 57 лет привычки",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.50)",
+      "matches": [
+        {
+          "new_ordinal": 2106,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "привычный | 57 лет привычки",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        },
+        {
+          "new_ordinal": 2103,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "старый | 57 лет привычки",
+          "score": 0.5,
+          "reason": "tok=0.50"
+        },
+        {
+          "new_ordinal": 301,
+          "new_kind": "EVENT",
+          "new_text": "умершего 70 лет назад",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    }
+  ],
+  "lost": [],
+  "ambiguous": [
+    {
+      "ordinal": 1503,
+      "kind": "TRAIT_SEED",
+      "summary": "старая мебель | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+      "candidates_count": 3
+    },
+    {
+      "ordinal": 1504,
+      "kind": "TRAIT_SEED",
+      "summary": "полезный | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+      "candidates_count": 3
+    },
+    {
+      "ordinal": 1505,
+      "kind": "TRAIT_SEED",
+      "summary": "не трогаемый | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+      "candidates_count": 3
+    },
+    {
+      "ordinal": 1507,
+      "kind": "TRAIT_SEED",
+      "summary": "не герой | Орм не герой и не предатель.",
+      "candidates_count": 3
+    },
+    {
+      "ordinal": 1508,
+      "kind": "TRAIT_SEED",
+      "summary": "не предатель | Орм не герой и не предатель.",
+      "candidates_count": 3
+    }
+  ]
+}

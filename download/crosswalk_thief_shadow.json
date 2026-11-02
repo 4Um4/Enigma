@@ -1,0 +1,736 @@
+{
+  "summary": {
+    "old_count": 39,
+    "new_count": 38,
+    "rows": 39,
+    "by_status": {
+      "MERGED": 4,
+      "RECLASSIFIED": 7,
+      "DUPLICATED": 2,
+      "LOST": 21,
+      "AMBIGUOUS": 4,
+      "PRESERVED": 1
+    },
+    "by_old_kind": {
+      "TRAIT_SEED": {
+        "MERGED": 2,
+        "RECLASSIFIED": 1,
+        "LOST": 3
+      },
+      "PORTRET": {
+        "DUPLICATED": 1
+      },
+      "EVENT": {
+        "LOST": 6,
+        "RECLASSIFIED": 2
+      },
+      "EFFECT": {
+        "LOST": 5,
+        "AMBIGUOUS": 4,
+        "RECLASSIFIED": 3,
+        "MERGED": 1
+      },
+      "RELATIONSHIP": {
+        "LOST": 5
+      },
+      "BELIEF_SEED": {
+        "LOST": 2,
+        "MERGED": 1,
+        "RECLASSIFIED": 1,
+        "PRESERVED": 1
+      },
+      "OBSERVATION": {
+        "DUPLICATED": 1
+      }
+    }
+  },
+  "rows": [
+    {
+      "old_ordinal": 0,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "убийца гильдии воров | Убийца гильдии воров, соглядатай: человек",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 2 new entries (top=0.57, 2nd=0.25)",
+      "matches": [
+        {
+          "new_ordinal": 0,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Убийца гильдии воров, соглядатай | враждебный | negative",
+          "score": 0.571,
+          "reason": "tok=0.57"
+        },
+        {
+          "new_ordinal": 300,
+          "new_kind": "EVENT",
+          "new_text": "стал работать для гильдии воров",
+          "score": 0.25,
+          "reason": "tok=0.25"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "соглядатай | Убийца гильдии воров, соглядатай: человек",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 2 new entries (top=0.57, 2nd=0.25)",
+      "matches": [
+        {
+          "new_ordinal": 0,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Убийца гильдии воров, соглядатай | враждебный | negative",
+          "score": 0.571,
+          "reason": "tok=0.57"
+        },
+        {
+          "new_ordinal": 300,
+          "new_kind": "EVENT",
+          "new_text": "стал работать для гильдии воров",
+          "score": 0.25,
+          "reason": "tok=0.25"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "человек | Убийца гильdии воров, соглядатай: человек",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 0,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Убийца гильдии воров, соглядатай | враждебный | negative",
+          "score": 0.375,
+          "reason": "tok=0.38"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 100,
+      "old_kind": "PORTRET",
+      "old_summary": "Человек, 60 лет. Лицо всегда прикрыто капюшоном; никто не дал бы ему шестидесяти — максимум тридцать. Возраст выдают только глаза — и то если поймать прямой взгляд, чего ещё никому не удавалось.",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.23)",
+      "matches": [
+        {
+          "new_ordinal": 100,
+          "new_kind": "PORTRET",
+          "new_text": "Лицо всегда прикрыто капюшоном; никто не дал бы ему шестидесяти — максимум тридцать. Возраст выдают только глаза — и то если поймать прямой взгляд, чего ещё никому не удавалось.",
+          "score": 1.0,
+          "reason": "tok=0.92; substring_match"
+        },
+        {
+          "new_ordinal": 102,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "молодо-больно-молодо | никто не дал бы ему шестидесяти — максимум тридцать",
+          "score": 0.231,
+          "reason": "tok=0.23"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 400,
+      "old_kind": "EVENT",
+      "old_summary": "гильдия послала его не убивать сразу — ни кого-то одного, ни всех: ему велено выяснить, кого действительно нужно убить",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 500,
+      "old_kind": "EVENT",
+      "old_summary": "начало процесса проверки виновности",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 501,
+      "old_kind": "EFFECT",
+      "old_summary": "проверка Люси | Люси | task",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 502,
+      "old_kind": "EVENT",
+      "old_summary": "обнаружение информации о Гросбухе и его значении",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 503,
+      "old_kind": "EFFECT",
+      "old_summary": "задача Люси | постоянные клиенты таверны и владелец | task",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.23, 2nd=0.22)",
+      "matches": [
+        {
+          "new_ordinal": 503,
+          "new_kind": "EVENT",
+          "new_text": "Люся выясняет у клиентов и владельца таверны о Гросбухе и похитителях",
+          "score": 0.227,
+          "reason": "tok=0.08; loc_markers=['таверн']"
+        },
+        {
+          "new_ordinal": 502,
+          "new_kind": "EVENT",
+          "new_text": "гильдия выносит книгу Гросбух через подвал таверны \"Красный Гросбух\"",
+          "score": 0.221,
+          "reason": "tok=0.07; loc_markers=['таверн']"
+        },
+        {
+          "new_ordinal": 1501,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Красный Гросбух поручает Тени убийство и передачу Таверны | Красный Гросбух | враждебное",
+          "score": 0.221,
+          "reason": "tok=0.07; loc_markers=['таверн']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 600,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Борко является начальником на городских воротах. | стражник Борко | dependence | positive",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 601,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Тень может устранить стража Борко. | Тень | power | positive",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 602,
+      "old_kind": "EFFECT",
+      "old_summary": "Ей нужно доложить Тени о стражнике Борко. | guardianship",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 700,
+      "old_kind": "EVENT",
+      "old_summary": "Торнин Тень пришёл из гильдии",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EVENT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 501,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Тень рассказывает Люсе о плане гильдии | Тень",
+          "score": 0.286,
+          "reason": "tok=0.29"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 701,
+      "old_kind": "EFFECT",
+      "old_summary": "гном сдал их властям и уже точит меч против них | Торнин Тень | loss",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.30, 2nd=0.26)",
+      "matches": [
+        {
+          "new_ordinal": 702,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "Торнину Тень сказал, что пришёл из гильдии не просто за долгом: долги простят, если трактирщик поможет Тени с кузнецом Ормом — гильдия, мол, выяснила, что гном сдал их властям и уже точит меч против н",
+          "score": 0.3,
+          "reason": "tok=0.30"
+        },
+        {
+          "new_ordinal": 701,
+          "new_kind": "PORTRET",
+          "new_text": "Торнину Тень сказал, что пришёл из гильдии не просто за долгом: долги простят, если трактирщик поможет Тени с кузнецом Ормом — гильдия, мол, выяснила, что гном сдал их властям и уже точит меч против н",
+          "score": 0.256,
+          "reason": "tok=0.26"
+        },
+        {
+          "new_ordinal": 700,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Торнин Тень говорит о вражде с гильдией; Орм предатель и против них | Торнин",
+          "score": 0.25,
+          "reason": "tok=0.25"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 702,
+      "old_kind": "EFFECT",
+      "old_summary": "Тень прислали устранить гнома | Торнин Тень | gain",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 703,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "подозрительность | верить гному до конца не стоит",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 704,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 705,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "интерес | очень даже интересно",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 800,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Тень оставил вопрос открытым — открытый вопрос работает лучше приказа: человек, который «думает», уже согласился, просто ещё не сказал этого вслух. Он готов подождать до четвёртой ночи; на пятую слово",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 3 new entries (top=1.00, 2nd=0.23)",
+      "matches": [
+        {
+          "new_ordinal": 801,
+          "new_kind": "PORTRET",
+          "new_text": "Открытый вопрос работает лучше приказа: человек, который \"думает\", уже согласился, просто ещё не сказал этого вслух.",
+          "score": 1.0,
+          "reason": "tok=0.54; loc_markers=['зал']; belief_markers=['думает']; substring_match"
+        },
+        {
+          "new_ordinal": 702,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "Торнину Тень сказал, что пришёл из гильдии не просто за долгом: долги простят, если трактирщик поможет Тени с кузнецом Ормом — гильдия, мол, выяснила, что гном сдал их властям и уже точит меч против н",
+          "score": 0.227,
+          "reason": "tok=0.08; loc_markers=['зал']"
+        },
+        {
+          "new_ordinal": 701,
+          "new_kind": "PORTRET",
+          "new_text": "Торнину Тень сказал, что пришёл из гильдии не просто за долгом: долги простят, если трактирщик поможет Тени с кузнецом Ормом — гильдия, мол, выяснила, что гном сдал их властям и уже точит меч против н",
+          "score": 0.215,
+          "reason": "tok=0.06; loc_markers=['зал']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 900,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Борко Тень маленький человек. | Борко | dependence | negative",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 901,
+      "old_kind": "EFFECT",
+      "old_summary": "Тень предупредил Борко о грязи и зрелище ночью. | Борко | warning",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 900,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Борко Тень предупредил Орма не приближаться к таверне ночью, чтобы не создавать грязь и зрелище | Борко Тень",
+          "score": 0.385,
+          "reason": "tok=0.38"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 902,
+      "old_kind": "EVENT",
+      "old_summary": "Тень надеется, что Борко попадётся с поличным.",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1000,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "долги гильдии — не его ремесло, он отвечает за убийства, а не за то, чтобы вытряхивать деньги из мелких купцов",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: BELIEF_SEED → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 1000,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Тень отвечает за убийства в гильдии, а не за долги и вытряхивание денег у мелких купцов | Тень",
+          "score": 0.429,
+          "reason": "tok=0.43"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1001,
+      "old_kind": "OBSERVATION",
+      "old_summary": "купец знает, что Тень из гильдии | kupец",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=0.60, 2nd=0.22)",
+      "matches": [
+        {
+          "new_ordinal": 1001,
+          "new_kind": "OBSERVATION",
+          "new_text": "Купец Горан знает, что Тень из гильдии. Он часто улыбается в сторону Тени. | Купец Горан",
+          "score": 0.605,
+          "reason": "tok=0.45; belief_markers=['знает']"
+        },
+        {
+          "new_ordinal": 501,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Тень рассказывает Люсе о плане гильдии | Тень",
+          "score": 0.222,
+          "reason": "tok=0.22"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1002,
+      "old_kind": "EFFECT",
+      "old_summary": "Тень зафиксировал это в столбце «наблюдения»: купец либо должен и боится, либо что-то знает. | observation",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.37, 2nd=0.36)",
+      "matches": [
+        {
+          "new_ordinal": 1001,
+          "new_kind": "OBSERVATION",
+          "new_text": "Купец Горан знает, что Тень из гильдии. Он часто улыбается в сторону Тени. | Купец Горан",
+          "score": 0.372,
+          "reason": "tok=0.22; belief_markers=['знает']"
+        },
+        {
+          "new_ordinal": 1002,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "наблюдает за купцами | Тень зафиксировал это в столбце «наблюдения»",
+          "score": 0.357,
+          "reason": "tok=0.36"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1100,
+      "old_kind": "EVENT",
+      "old_summary": "Орма Тень попросил лишь об одном: не вмешиваться.",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1200,
+      "old_kind": "EVENT",
+      "old_summary": "Борко в последнее время слишком счастлив; так улыбаются, только если ждёт золотой куш или если влюбился",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1201,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "постоянных девушек у стражника гильдия проверяла — нет | стражник | dependence | negative",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1202,
+      "old_kind": "EFFECT",
+      "old_summary": "значит, это он подговорил пьяного трактирщика напасть на гильдию и сдать всех страже | стражник | action",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1203,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "постоянных девушек у стражника гильдия проверяла — нет | стражник | dependence | negative",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1204,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "предатель — стражник",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1300,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "счастье Борко — вуайеризм, знание, которого у Тени нет и быть не может, пока правда о кухне не выйдет наружу",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (BELIEF_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1301,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "счастье Борко — вуайеризм, знание, которого у Тени нет и быть не может, пока правда о кухне не выйдет наружу | danger",
+          "score": 1.0,
+          "reason": "tok=0.93; loc_markers=['кухн']; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1400,
+      "old_kind": "EVENT",
+      "old_summary": "сидит в тёмном углу, лицом к двери подвала",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EVENT → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 1400,
+          "new_kind": "PORTRET",
+          "new_text": "Сидит в тёмном углу, лицом к двери подвала — не потому, что следит за ней, а потому что за 12 лет работы он всегда садится лицом к самой опасной двери в помещении. Заказывает еду и питьё — и почти не ",
+          "score": 0.514,
+          "reason": "tok=0.21; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1401,
+      "old_kind": "EFFECT",
+      "old_summary": "заказывает еду и питьё — и почти не ест и не пьёт: к закрытию его кружка стоит полная | custom",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 2 new entries (top=1.00, 2nd=0.68)",
+      "matches": [
+        {
+          "new_ordinal": 1401,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не ест и не пьёт | Заказывает еду и питьё — и почти не ест и не пьёт: к закрытию его кружка стоит полная.",
+          "score": 1.0,
+          "reason": "tok=0.92; substring_match"
+        },
+        {
+          "new_ordinal": 1400,
+          "new_kind": "PORTRET",
+          "new_text": "Сидит в тёмном углу, лицом к двери подвала — не потому, что следит за ней, а потому что за 12 лет работы он всегда садится лицом к самой опасной двери в помещении. Заказывает еду и питьё — и почти не ",
+          "score": 0.679,
+          "reason": "tok=0.38; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1402,
+      "old_kind": "EFFECT",
+      "old_summary": "платит не глядя, отсчитывая больше, чем нужно | custom",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 1402,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "платит не глядя | Платит не глядя, отсчитывая больше, чем нужно,",
+          "score": 0.857,
+          "reason": "tok=0.86"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1403,
+      "old_kind": "EFFECT",
+      "old_summary": "единственный человек в этой таверне, которому от её посетителей не нужно ничего, — только время и поле для наблюдения | custom",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 1403,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Он единственный человек в этой таверне, которому от её посетителей не нужно ничего, — только время и поле для наблюдения. | таверна | одиночество",
+          "score": 1.0,
+          "reason": "tok=0.81; loc_markers=['таверн']; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1404,
+      "old_kind": "EFFECT",
+      "old_summary": "его неуязвимость в этой сцене: его нельзя напоить, подкупить или купить | custom",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1405,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "слабость | его единственная слабость в том, что он ошибается",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1500,
+      "old_kind": "EFFECT",
+      "old_summary": "Красный «Гросбух» сейчас в руках у Тени, ему поручили не только убийство, но и передачу собственности – Таверны в случае смерти торнина – нынешнего владельца. | occupation",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.45, 2nd=0.36)",
+      "matches": [
+        {
+          "new_ordinal": 1501,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Красный Гросбух поручает Тени убийство и передачу Таверны | Красный Гросбух | враждебное",
+          "score": 0.45,
+          "reason": "tok=0.30; loc_markers=['таверн']"
+        },
+        {
+          "new_ordinal": 1500,
+          "new_kind": "EVENT",
+          "new_text": "Тень получил задание от Красного Гросбуха на убийство и передачу Таверны после смерти Торнина | Тень",
+          "score": 0.358,
+          "reason": "tok=0.21; loc_markers=['таверн']"
+        },
+        {
+          "new_ordinal": 502,
+          "new_kind": "EVENT",
+          "new_text": "гильдия выносит книгу Гросбух через подвал таверны \"Красный Гросбух\"",
+          "score": 0.28,
+          "reason": "tok=0.13; loc_markers=['таверн']"
+        }
+      ]
+    }
+  ],
+  "lost": [
+    {
+      "ordinal": 400,
+      "kind": "EVENT",
+      "summary": "гильдия послала его не убивать сразу — ни кого-то одного, ни всех: ему велено выяснить, кого действительно нужно убить"
+    },
+    {
+      "ordinal": 500,
+      "kind": "EVENT",
+      "summary": "начало процесса проверки виновности"
+    },
+    {
+      "ordinal": 501,
+      "kind": "EFFECT",
+      "summary": "проверка Люси | Люси | task"
+    },
+    {
+      "ordinal": 502,
+      "kind": "EVENT",
+      "summary": "обнаружение информации о Гросбухе и его значении"
+    },
+    {
+      "ordinal": 600,
+      "kind": "RELATIONSHIP",
+      "summary": "Борко является начальником на городских воротах. | стражник Борко | dependence | positive"
+    },
+    {
+      "ordinal": 601,
+      "kind": "RELATIONSHIP",
+      "summary": "Тень может устранить стража Борко. | Тень | power | positive"
+    },
+    {
+      "ordinal": 602,
+      "kind": "EFFECT",
+      "summary": "Ей нужно доложить Тени о стражнике Борко. | guardianship"
+    },
+    {
+      "ordinal": 702,
+      "kind": "EFFECT",
+      "summary": "Тень прислали устранить гнома | Торнин Тень | gain"
+    },
+    {
+      "ordinal": 703,
+      "kind": "TRAIT_SEED",
+      "summary": "подозрительность | верить гному до конца не стоит"
+    },
+    {
+      "ordinal": 704,
+      "kind": "BELIEF_SEED",
+      "summary": ""
+    },
+    {
+      "ordinal": 705,
+      "kind": "TRAIT_SEED",
+      "summary": "интерес | очень даже интересно"
+    },
+    {
+      "ordinal": 900,
+      "kind": "RELATIONSHIP",
+      "summary": "Борко Тень маленький человек. | Борко | dependence | negative"
+    },
+    {
+      "ordinal": 902,
+      "kind": "EVENT",
+      "summary": "Тень надеется, что Борко попадётся с поличным."
+    },
+    {
+      "ordinal": 1100,
+      "kind": "EVENT",
+      "summary": "Орма Тень попросил лишь об одном: не вмешиваться."
+    },
+    {
+      "ordinal": 1200,
+      "kind": "EVENT",
+      "summary": "Борко в последнее время слишком счастлив; так улыбаются, только если ждёт золотой куш или если влюбился"
+    },
+    {
+      "ordinal": 1201,
+      "kind": "RELATIONSHIP",
+      "summary": "постоянных девушек у стражника гильдия проверяла — нет | стражник | dependence | negative"
+    },
+    {
+      "ordinal": 1202,
+      "kind": "EFFECT",
+      "summary": "значит, это он подговорил пьяного трактирщика напасть на гильдию и сдать всех страже | стражник | action"
+    },
+    {
+      "ordinal": 1203,
+      "kind": "RELATIONSHIP",
+      "summary": "постоянных девушек у стражника гильдия проверяла — нет | стражник | dependence | negative"
+    },
+    {
+      "ordinal": 1204,
+      "kind": "BELIEF_SEED",
+      "summary": "предатель — стражник"
+    },
+    {
+      "ordinal": 1404,
+      "kind": "EFFECT",
+      "summary": "его неуязвимость в этой сцене: его нельзя напоить, подкупить или купить | custom"
+    },
+    {
+      "ordinal": 1405,
+      "kind": "TRAIT_SEED",
+      "summary": "слабость | его единственная слабость в том, что он ошибается"
+    }
+  ],
+  "ambiguous": [
+    {
+      "ordinal": 503,
+      "kind": "EFFECT",
+      "summary": "задача Люси | постоянные клиенты таверны и владелец | task",
+      "candidates_count": 3
+    },
+    {
+      "ordinal": 701,
+      "kind": "EFFECT",
+      "summary": "гном сдал их властям и уже точит меч против них | Торнин Тень | loss",
+      "candidates_count": 3
+    },
+    {
+      "ordinal": 1002,
+      "kind": "EFFECT",
+      "summary": "Тень зафиксировал это в столбце «наблюдения»: купец либо должен и боится, либо что-то знает. | observation",
+      "candidates_count": 2
+    },
+    {
+      "ordinal": 1500,
+      "kind": "EFFECT",
+      "summary": "Красный «Гросбух» сейчас в руках у Тени, ему поручили не только убийство, но и передачу собственности – Таверны в случае смерти торнина – нынешнего владельца. | occupation",
+      "candidates_count": 3
+    }
+  ]
+}

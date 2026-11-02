@@ -1,7 +1,7 @@
 {
-  "total_files": 564,
+  "total_files": 580,
   "skipped_files": 0,
-  "nodes": 593,
+  "nodes": 610,
   "top_bottlenecks": [
     [
       "app.models.npc_state",
@@ -31,6 +31,7 @@
           "app.services.calibration.experiment_runner",
           "app.services.cfrm.local_causal_solver",
           "app.services.cfrm.pressure_translator",
+          "app.services.chronicle.chronicle_seeder",
           "app.services.economy.opportunity_engine",
           "app.services.events.claim_event_subscriber",
           "app.services.events.dialogue_memory_subscriber",
@@ -73,8 +74,70 @@
           "app.services.world.world_tick_engine"
         ],
         "fan_out": 14,
-        "fan_in": 48,
-        "bottleneck_score": 672
+        "fan_in": 49,
+        "bottleneck_score": 686
+      }
+    ],
+    [
+      "app.core.config",
+      {
+        "imports": [
+          "app.core.config",
+          "app.core.content_policy",
+          "pydantic",
+          "pydantic_settings",
+          "runtime_config",
+          "sys",
+          "typing"
+        ],
+        "imported_by": [
+          "app.agents.dm_agent",
+          "app.api.routes",
+          "app.api.routes_board",
+          "app.api.routes_chronicle",
+          "app.core.config",
+          "app.core.startup_gate",
+          "app.main",
+          "app.services.calibration.experiment_runner",
+          "app.services.campaign_state_service",
+          "app.services.chronicle.chronicle_projections",
+          "app.services.chronicle.chronicle_seeder",
+          "app.services.chronicle.decomposition_normalizer",
+          "app.services.chronicle.registry_builder",
+          "app.services.chronicle.trait_gap_detector",
+          "app.services.error_interpreter",
+          "app.services.game_loop.game_loop",
+          "app.services.game_loop.service_factories",
+          "app.services.game_loop.turn_pipeline",
+          "app.services.game_loop_builder",
+          "app.services.input.llm_compressor_client",
+          "app.services.llm.downloader",
+          "app.services.llm.factory",
+          "app.services.llm.health",
+          "app.services.llm.llama_cpp_provider",
+          "app.services.llm.mock_provider",
+          "app.services.llm.provider_manager",
+          "app.services.llm.router",
+          "app.services.llm.server_lifecycle",
+          "app.services.logging_tools",
+          "app.services.npc.life_engine",
+          "app.services.npc.npc_loader",
+          "app.services.player_cognition.action_semantic_resolver",
+          "app.services.player_session_service",
+          "app.services.replay.replay_cli",
+          "app.services.replay.replay_player",
+          "app.services.scene_state_manager",
+          "app.services.social.mvp_tavern_controller",
+          "app.services.state.migration_runner",
+          "app.services.tick_orchestrator",
+          "app.services.tick_utils",
+          "app.services.verbalization.dm_contract_builder",
+          "app.services.verbalization.dm_response_normalizer",
+          "app.services.verbalization.prompt_loader"
+        ],
+        "fan_out": 7,
+        "fan_in": 43,
+        "bottleneck_score": 301
       }
     ],
     [
@@ -111,10 +174,12 @@
           "app.services.event_compiler",
           "app.services.events.event_bus",
           "app.services.events.event_types",
+          "app.services.events.npc_addressing_delivery_subscriber",
           "app.services.events.reaction_subscriber",
           "app.services.events.relationship_event_semantics",
           "app.services.events.social_input_projector",
           "app.services.events.social_subscriber",
+          "app.services.events.tick_campaign_context",
           "app.services.integration.world_snapshot_builder",
           "app.services.memory.conclusion_runtime",
           "app.services.npc.belief_crystallization_engine",
@@ -172,6 +237,7 @@
           "app.services.world.affordance_shadow",
           "app.services.world.object_target_facts",
           "dataclasses",
+          "hashlib",
           "types",
           "typing",
           "uuid"
@@ -181,9 +247,9 @@
           "app.services.game_loop.npc_orchestration",
           "app.services.game_loop.turn_pipeline"
         ],
-        "fan_out": 94,
+        "fan_out": 97,
         "fan_in": 3,
-        "bottleneck_score": 282
+        "bottleneck_score": 291
       }
     ],
     [
@@ -234,56 +300,48 @@
       }
     ],
     [
-      "app.core.config",
+      "app.services.npc.npc_loader",
       {
         "imports": [
-          "app.core.content_policy",
-          "pydantic",
-          "pydantic_settings",
-          "runtime_config",
-          "sys",
+          "__future__",
+          "app.core.config",
+          "app.domain.memetic.voice_archetype",
+          "app.models.behavior_mask",
+          "app.models.npc.beliefs",
+          "app.models.npc_profile",
+          "app.models.npc_state",
+          "app.models.truth_state",
+          "app.services.chronicle",
+          "app.services.truth_state_loader",
+          "app.services.world.world_ontology",
           "typing"
         ],
         "imported_by": [
-          "app.agents.dm_agent",
           "app.api.routes",
-          "app.api.routes_board",
           "app.api.routes_chronicle",
-          "app.main",
-          "app.services.calibration.experiment_runner",
-          "app.services.campaign_state_service",
-          "app.services.error_interpreter",
+          "app.core.schema_validator",
+          "app.services.chronicle.biography_decomposer",
+          "app.services.chronicle.chronicle_projections",
+          "app.services.chronicle.registry_builder",
+          "app.services.events.dialogue_memory_subscriber",
+          "app.services.events.npc_dialogue_subscriber",
+          "app.services.execution.dialogue_executor",
           "app.services.game_loop.game_loop",
+          "app.services.game_loop.scene_init",
           "app.services.game_loop.service_factories",
-          "app.services.game_loop.turn_pipeline",
           "app.services.game_loop_builder",
-          "app.services.input.llm_compressor_client",
-          "app.services.llm.downloader",
-          "app.services.llm.factory",
-          "app.services.llm.health",
-          "app.services.llm.llama_cpp_provider",
-          "app.services.llm.mock_provider",
-          "app.services.llm.provider_manager",
-          "app.services.llm.router",
-          "app.services.llm.server_lifecycle",
-          "app.services.logging_tools",
+          "app.services.input.intent_compressor",
           "app.services.npc.life_engine",
-          "app.services.npc.npc_loader",
-          "app.services.player_cognition.action_semantic_resolver",
-          "app.services.player_session_service",
-          "app.services.replay.replay_cli",
-          "app.services.replay.replay_player",
-          "app.services.scene_state_manager",
-          "app.services.social.mvp_tavern_controller",
-          "app.services.tick_orchestrator",
-          "app.services.tick_utils",
-          "app.services.verbalization.dm_contract_builder",
-          "app.services.verbalization.dm_response_normalizer",
-          "app.services.verbalization.prompt_loader"
+          "app.services.npc.npc_tick_pipeline",
+          "app.services.phases.memory",
+          "app.services.phases.post_decision",
+          "app.services.pipeline_runner",
+          "app.services.scene_state.npc_display_name",
+          "app.services.world.world_tick_engine"
         ],
-        "fan_out": 6,
-        "fan_in": 35,
-        "bottleneck_score": 210
+        "fan_out": 12,
+        "fan_in": 21,
+        "bottleneck_score": 252
       }
     ],
     [
@@ -304,6 +362,7 @@
           "app.services.calibration.observability_tap",
           "app.services.combat.combat_subscriber",
           "app.services.events.__init__",
+          "app.services.events.npc_addressing_delivery_subscriber",
           "app.services.events.reaction_subscriber",
           "app.services.events.relationship_event_semantics",
           "app.services.events.social_action_subscriber",
@@ -319,6 +378,7 @@
           "app.services.memory.delta_gate",
           "app.services.memory.working_memory_tick",
           "app.services.npc.sleep_lifecycle_service",
+          "app.services.phases.commit_phase",
           "app.services.phases.input",
           "app.services.phases.post_decision",
           "app.services.spatial.player_target_pipeline",
@@ -326,47 +386,8 @@
           "app.services.tick_orchestrator"
         ],
         "fan_out": 7,
-        "fan_in": 25,
-        "bottleneck_score": 175
-      }
-    ],
-    [
-      "app.services.npc.npc_loader",
-      {
-        "imports": [
-          "__future__",
-          "app.core.config",
-          "app.domain.memetic.voice_archetype",
-          "app.models.npc.beliefs",
-          "app.models.npc_profile",
-          "app.models.npc_state",
-          "app.models.truth_state",
-          "app.services.truth_state_loader",
-          "app.services.world.world_ontology",
-          "typing"
-        ],
-        "imported_by": [
-          "app.api.routes",
-          "app.core.schema_validator",
-          "app.services.events.dialogue_memory_subscriber",
-          "app.services.events.npc_dialogue_subscriber",
-          "app.services.execution.dialogue_executor",
-          "app.services.game_loop.game_loop",
-          "app.services.game_loop.scene_init",
-          "app.services.game_loop.service_factories",
-          "app.services.game_loop_builder",
-          "app.services.input.intent_compressor",
-          "app.services.npc.life_engine",
-          "app.services.npc.npc_tick_pipeline",
-          "app.services.phases.memory",
-          "app.services.phases.post_decision",
-          "app.services.pipeline_runner",
-          "app.services.scene_state.npc_display_name",
-          "app.services.world.world_tick_engine"
-        ],
-        "fan_out": 10,
-        "fan_in": 17,
-        "bottleneck_score": 170
+        "fan_in": 27,
+        "bottleneck_score": 189
       }
     ],
     [
@@ -421,6 +442,56 @@
       }
     ],
     [
+      "app.domain.events",
+      {
+        "imports": [
+          "__future__",
+          "dataclasses",
+          "hashlib",
+          "typing",
+          "uuid"
+        ],
+        "imported_by": [
+          "app.models.phase8",
+          "app.services.combat.combat_subscriber",
+          "app.services.economy.work_orders",
+          "app.services.events.event_bus",
+          "app.services.events.intent_event_adapter",
+          "app.services.events.npc_addressing_delivery_subscriber",
+          "app.services.events.npc_dialogue_subscriber",
+          "app.services.events.reaction_subscriber",
+          "app.services.events.relationship_event_semantics",
+          "app.services.events.social_action_subscriber",
+          "app.services.events.social_input_projector",
+          "app.services.events.social_subscriber",
+          "app.services.execution.dialogue_materializer",
+          "app.services.game_loop.game_loop",
+          "app.services.game_loop.idle_event_projection",
+          "app.services.game_loop.phase_1_input",
+          "app.services.game_loop.turn_pipeline",
+          "app.services.memory.conclusion_gate",
+          "app.services.memory.delta_gate",
+          "app.services.memory.memory_manager",
+          "app.services.memory.working_memory_tick",
+          "app.services.npc.activity_lifecycle_service",
+          "app.services.npc.npc_tick_pipeline",
+          "app.services.npc.perception_filter",
+          "app.services.npc.sleep_lifecycle_service",
+          "app.services.phases.commit_phase",
+          "app.services.phases.input",
+          "app.services.simulation.world_state",
+          "app.services.social.directive_interpretation_subscriber",
+          "app.services.spatial.player_target_pipeline",
+          "app.services.spatial.spatial_event_detector",
+          "app.services.tick_orchestrator",
+          "app.services.world.world_tick_engine"
+        ],
+        "fan_out": 5,
+        "fan_in": 33,
+        "bottleneck_score": 165
+      }
+    ],
+    [
       "app.services.scene_state_manager",
       {
         "imports": [
@@ -445,6 +516,7 @@
           "app.services.spatial.spatial_factory",
           "app.services.spatial.spatial_registry",
           "app.services.state.persistence_port",
+          "app.services.state.save_migrations",
           "copy",
           "datetime",
           "inspect",
@@ -459,57 +531,9 @@
           "app.services.game_loop_builder",
           "app.services.player_cognition.recognition_layer"
         ],
-        "fan_out": 26,
+        "fan_out": 27,
         "fan_in": 6,
-        "bottleneck_score": 156
-      }
-    ],
-    [
-      "app.domain.events",
-      {
-        "imports": [
-          "__future__",
-          "dataclasses",
-          "hashlib",
-          "typing",
-          "uuid"
-        ],
-        "imported_by": [
-          "app.models.phase8",
-          "app.services.combat.combat_subscriber",
-          "app.services.economy.work_orders",
-          "app.services.events.event_bus",
-          "app.services.events.intent_event_adapter",
-          "app.services.events.npc_dialogue_subscriber",
-          "app.services.events.reaction_subscriber",
-          "app.services.events.relationship_event_semantics",
-          "app.services.events.social_action_subscriber",
-          "app.services.events.social_input_projector",
-          "app.services.events.social_subscriber",
-          "app.services.execution.dialogue_materializer",
-          "app.services.game_loop.game_loop",
-          "app.services.game_loop.idle_event_projection",
-          "app.services.game_loop.phase_1_input",
-          "app.services.game_loop.turn_pipeline",
-          "app.services.memory.conclusion_gate",
-          "app.services.memory.delta_gate",
-          "app.services.memory.memory_manager",
-          "app.services.memory.working_memory_tick",
-          "app.services.npc.activity_lifecycle_service",
-          "app.services.npc.npc_tick_pipeline",
-          "app.services.npc.perception_filter",
-          "app.services.npc.sleep_lifecycle_service",
-          "app.services.phases.input",
-          "app.services.simulation.world_state",
-          "app.services.social.directive_interpretation_subscriber",
-          "app.services.spatial.player_target_pipeline",
-          "app.services.spatial.spatial_event_detector",
-          "app.services.tick_orchestrator",
-          "app.services.world.world_tick_engine"
-        ],
-        "fan_out": 5,
-        "fan_in": 31,
-        "bottleneck_score": 155
+        "bottleneck_score": 162
       }
     ],
     [

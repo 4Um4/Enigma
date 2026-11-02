@@ -15,14 +15,11 @@
     {
       "kind": "TRAIT_SEED",
       "draft_payload": {
-        "trait": "увлечён выпивкой",
-        "evidence": "и выпивкой",
+        "trait": "увлекается выпивкой",
+        "evidence": "Увлечён по-настоящему только своей работой и выпивкой",
         "qualifiers": [
           "только"
-        ],
-        "_provenance": {
-          "qualifier_basis": "Увlechён по-настоящему только своей работой и выпивкой"
-        }
+        ]
       },
       "confidence": 0.5,
       "needs_confirmation": true,

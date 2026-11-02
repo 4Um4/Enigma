@@ -1,0 +1,540 @@
+﻿============================================================
+
+STAGE 2.2-B PRE-AUDIT — WillpowerGate + Psyche + counter_offer + Identity
+
+Mode: READ ONLY
+
+4 Questions per Master verdict
+
+Generated: 2026-11-02 19:07:33
+
+============================================================
+
+============================================================
+
+Q1: WILLPOWERGATE FULL L250-360
+
+============================================================
+
+[READ] run_phase_1_input L250-360  backend/app/services/phases/input.py L250-360
+  250:         # Публикуем событие блокировки для других систем (DM, NPC реакция)
+  251:         from app.services.events.event_bus import get_event_bus
+  252: 
+  253:         get_event_bus().publish(
+  254:             EventDTO.create(
+  255:                 event_type=EventType.WILL_CONFLICT.value,
+  256:                 source="player",
+  257:                 payload={
+  258:                     "state": will_response.state.value,
+  259:                     "resistance": will_response.resistance,
+  260:                 },
+  261:             )
+  262:         )
+  263: 
+  264:         # Эмоциональный отклик аватара на давление
+  265:         if will_response.fear_delta > 0:
+  266:             ctx.delta_buffer.append(
+  267:                 StateDeltas(
+  268:                     npc_id="player",
+  269:                     domain=DeltaDomain.EMOTION,
+  270:                     target="player",
+  271:                     payload=EmotionPayload(
+  272:                         stress_delta=will_response.fear_delta * 50, emotion_tag="fear"
+  273:                     ),
+  274:                 )
+  275:             )
+  276: 
+  277:         # WillpowerGate stress: моральное нарушение генерирует стресс аватара
+  278:         if will_response.stress_delta > 0:
+  279:             logger.info(
+  280:                 f"[WILL] Moral stress applied: {will_response.stress_delta:.1f} points (resistance={will_response.resistance:.2f})"
+  281:             )
+  282:             ctx.delta_buffer.append(
+  283:                 StateDeltas(
+  284:                     npc_id="player",
+  285:                     domain=DeltaDomain.EMOTION,
+  286:                     target="player",
+  287:                     payload=EmotionPayload(
+  288:                         stress_delta=will_response.stress_delta, emotion_tag="distress"
+  289:                     ),
+  290:                 )
+  291:             )
+  292: 
+  293:     # ADR-036: Affective Conditioning (Sensitization & New Trauma)
+  294:     # Аватар учится через боль. Травма укрепляется при подавлении воли.
+  295:     if will_response.identity_damage > 0 or resonance.trigger_strength > 0.1:
+  296:         from dataclasses import asdict
+  297: 
+  298:         from app.services.affect import apply_conditioning
+  299: 
+  300:         current_game_time = ctx.scene_state.get("game_time_seconds", 0)
+  301:         updated_imprints = apply_conditioning(
+  302:             imprints, resonance, will_response, intent, current_game_time
+  303:         )
+  304:         player_dict["affective_imprints"] = [asdict(imp) for imp in updated_imprints]
+
+============================================================
+
+Q2: PSYCHE DEFAULTS — compute_willpower FULL
+
+============================================================
+
+[READ] compute_willpower FULL  backend/app/services/will.py L135-280
+  135: def compute_willpower(
+  136:     pressure: IntentPressureProfile,
+  137:     # NOTE(mypy): psyche в рантайме несёт non-float поля (trauma_markers: list и т.п.),
+  138:     # контрактен Dict[str, Any], а не Dict[str, float].
+  139:     psyche: Dict[str, Any],
+  140: ) -> WillResponseDTO:
+  141:     """Вычисляет реакцию аватара на давление (Cumulative Strain Model).
+  142: 
+  143:     НЕ ЗНАЕТ о типе действия. Работает ТОЛЬКО с вектором давления и психикой.
+  144:     Формула (ADR-031):
+  145:     resistance = pressure.identity_deviation * psyche.identity_rigidity
+  146:                + pressure.self_risk * psyche.fear
+  147:                + pressure.moral_violation * psyche.conviction
+  148:                + pressure.social_exposure * psyche.shame
+  149:                - pressure.violence * psyche.aggression
+  150:                - pressure.taboo_intensity * psyche.curiosity
+  151:     """
+  152:     # Извлечение черт с безопасными дефолтами
+  153:     identity_rigidity = psyche.get("identity_rigidity", 0.5)
+  154:     fear = psyche.get("fear", 0.5)
+  155:     conviction = psyche.get("conviction", 0.5)
+  156:     shame = psyche.get("shame", 0.5)
+  157:     aggression = psyche.get("aggression", 0.5)
+  158:     curiosity = psyche.get("curiosity", 0.5)
+  159:     # V8-PSY-31 FIX: gregariousness удалён (dead variable, не использовался в resistance formula)
+  160: 
+  161:     # GAP2 FIX: Амнезия Воли. Травмы закаляют идентичность.
+  162:     # Обиженный NPC упрямее. Каждая травма повышает resistance к давлению.
+  163:     trauma_markers = psyche.get("trauma_markers", [])
+  164:     if isinstance(trauma_markers, (list, set, tuple)) and len(trauma_markers) > 0:
+  165:         # Каждая травма добавляет 0.1 к rigidity (максимум +0.3, чтобы не стать бессмертным)
+  166:         identity_rigidity = min(
+  167:             1.0, identity_rigidity + min(len(trauma_markers) * 0.1, 0.3)
+  168:         )
+  169: 
+  170:     # Расчет кумулятивного напряжения
+  171:     resistance = (
+  172:         pressure.identity_deviation * identity_rigidity
+  173:         + pressure.self_risk * fear
+  174:         + pressure.moral_violation * conviction
+  175:         + pressure.social_exposure * shame
+  176:         - pressure.violence
+  177:         * aggression  # Склонность к насилию снижает сопротивление ему
+  178:         - pressure.taboo_intensity * curiosity  # Любопытство снижает страх табу
+  179:     )
+  180: 
+  181:     # Clamp 0.0 - 1.0
+  182:     resistance = max(0.0, min(1.0, resistance))
+  183: 
+  184:     # Определение WillState на основе напряжения
+  185:     state = _map_resistance_to_state(resistance)
+  186: 
+  187:     # Расчет побочных эффектов (Урон идентичности, страх, стресс от морального конфликта)
+  188:     identity_damage = (
+  189:         resistance * pressure.identity_deviation * 0.2 if resistance > 0.4 else 0.0
+  190:     )
+  191:     fear_delta = resistance * pressure.self_risk * 0.3
+  192:     # Стресс аватара: моральное нарушение + сопротивление = внутренний конфликт
+  193:     # Масштаб 0-10 за действие (NPCState.stress = 0-100)
+  194:     stress_delta = resistance * pressure.moral_violation * 10.0
+  195: 
+  196:     # Генерация Counter-Offer (Аватар пытается выжить)
+  197:     counter_offer = _generate_counter_offer(pressure, state)
+  198: 
+  199:     # Нарративные хуки для LLM
+  200:     hooks = _generate_narration_hooks(state, pressure)
+  201: 
+  202:     # Вычисление моторного импульса (ADR-037)
+  203:     # The Fool Phase 2: Безопасная распаковка 3 слоёв
+  204:     _embodied_result = _resolve_embodied_vector(pressure, state)
+  205:     embodied_vector = _embodied_result[0] if _embodied_result else None  # noqa: ENIGMA001
+  206:     social_signal = _embodied_result[1] if _embodied_result else SocialSignal.NONE
+  207:     crowd_threat = _embodied_result[2] if _embodied_result else CrowdThreatLevel.NONE
+  208: 
+  209:     return WillResponseDTO(
+  210:         state=state,
+  211:         resistance=resistance,
+  212:         fear_delta=fear_delta,
+  213:         stress_delta=stress_delta,
+  214:         identity_damage=identity_damage,
+  215:         counter_offer=counter_offer,
+  216:         narration_hooks=hooks,
+  217:         embodied_vector=embodied_vector,
+  218:         social_signal=social_signal.value,  # Проброс для CFRM
+  219:         crowd_threat_level=crowd_threat.value,  # Проброс для CFRM
+  220:     )
+  221: 
+  222: 
+  223: def _map_resistance_to_state(resistance: float) -> WillState:
+  224:     """Маппинг кумулятивного напряжения в шкалу деградации."""
+  225:     if resistance < 0.15:
+  226:         return WillState.COMPLY
+  227:     elif resistance < 0.35:
+  228:         return WillState.RELUCTANT
+  229:     elif resistance < 0.55:
+  230:         return WillState.DISTRESSED
+  231:     elif resistance < 0.75:
+  232:         return WillState.PANICKED
+  233:     elif resistance < 0.90:
+  234:         return WillState.DISSOCIATING
+  235:     elif resistance < 1.0:
+  236:         return WillState.BROKEN
+  237:     else:
+  238:         return WillState.CONDITIONED
+  239: 
+  240: 
+  241: def _generate_counter_offer(
+  242:     pressure: IntentPressureProfile, state: WillState
+  243: ) -> Optional[IntentDTO]:
+  244:     """Аватар ищет альтернативу, чтобы сохранить Я."""
+  245:     if state in (WillState.COMPLY, WillState.RELUCTANT):
+  246:         return None  # Согласие или легкая неохота не требуют компромисса
+  247: 
+  248:     if pressure.violence > 0.6:
+  249:         # Предлагает избежать прямого насилия
+  250:         return IntentDTO(
+  251:             action="flee", target="", parameters=IntentParametersDTO()
+  252:         )
+  253: 
+  254:     if pressure.social_exposure > 0.6:
+  255:         # Предлагает скрытный путь
+  256:         return IntentDTO(
+  257:             action="stealth", target="", parameters=IntentParametersDTO()
+  258:         )
+  259: 
+  260:     if pressure.self_risk > 0.6:
+  261:         # Предлагает переговоры или подчинение ради выживания
+  262:         return IntentDTO(action="yield", target="", parameters=IntentParametersDTO())
+  263: 
+  264:     return None
+  265: 
+  266: 
+  267: def _generate_narration_hooks(
+  268:     state: WillState, pressure: IntentPressureProfile
+  269: ) -> list[str]:
+  270:     """Генерирует подсказки для LLM-вербализации."""
+  271:     hooks = []
+  272:     if state == WillState.DISTRESSED:
+  273:         hooks.extend(["дрожит", "голос срывается"])
+  274:     elif state == WillState.PANICKED:
+  275:         hooks.extend(["пятится", "расширенные глаза", "частое дыхание"])
+  276:     elif state == WillState.DISSOCIATING:
+  277:         hooks.extend(["взгляд пустеет", "движения механические", "отстраненный вид"])
+  278:     elif state == WillState.BROKEN:
+  279:         hooks.extend(["опускает голову", "безвольная поза", "слезы без звука"])
+  280: 
+
+[READ] Avatar psyche/will_state loading  backend/app/services/player_avatar_service.py L455-480
+  455:         except Exception:
+  456:             mask = BehaviorMaskState()
+  457: 
+  458:         return NPCState(
+  459:             npc_id=data.get("npc_id", "unknown"),
+  460:             stress=float(data.get("stress", 0.0)),
+  461:             resentment=float(data.get("resentment", 0.0)),
+  462:             dependency=float(data.get("dependency", 0.0)),
+  463:             identity_integrity=float(data.get("identity_integrity", 1.0)),
+  464:             pressure_resistance=float(data.get("pressure_resistance", 0.0)),
+  465:             will_state=_will_state_from_str(data.get("will_state", "free")),
+  466:             behavior_mask=mask,
+  467:             trauma_markers=set(data.get("trauma_markers") or []),
+  468:             current_role=data.get("current_role", ""),
+  469:             conditions=conditions,
+  470:             wounds=wounds,
+  471:             posture=data.get("posture", "standing"),
+  472:             # ADR-HP-UNIFICATION: hp/max_hp убраны из конструктора NPCState.
+  473:             # Значения берутся из body_state (если есть) или из legacy hp/max_hp.
+  474:             # ADR-128: body_state — SSOT физиологии. Без этого injuries,
+  475:             # blood_loss, pain, shock_impulse теряются при каждой загрузке.
+  476:             body_state={**{"current_hp": float(data.get("hp", 0)), "max_hp": float(data.get("max_hp", 0))}, **dict(data.get("body_state") or {})},
+  477:             # ADR-128: affective_load — интеграл давления. Без этого
+  478:             # эмоциональный pipeline сбрасывается в 0.0 при каждой загрузке.
+  479:             affective_load=float(data.get("affective_load", 0.0)),
+  480:             emotion=_emotion_from_str(data.get("emotion", "neutral")),
+
+[SEARCH] psyche defaults  pattern: /willpower.*=.*50|willpower.*default|breakpoint.*=|loyalty_true.*=/
+  57 matches:
+  backend\app\models\causality_manifest.py:90 : "npc_personality.breakpoint": FieldCausality("DEBT", organ=None, terminal="decision", authority="CG-D-10"),
+  backend\app\models\npc_state.py:1370 : willpower=float(psyche.get("willpower", 50)),
+  backend\app\models\npc_state.py:1371 : breakpoint=float(psyche.get("breakpoint", 80)),
+  backend\app\services\affective\affective_integrator.py:44 : willpower_raw = psyche.get("willpower", 50.0)
+  backend\app\services\events\reaction_subscriber.py:99 : Average NPC (stress=50, fear=0.25, willpower=50) → modifier ≈ 0.5
+  backend\app\services\events\reaction_subscriber.py:105 : willpower = float(psyche.get("willpower", 50.0))
+  backend\app\services\events\reaction_subscriber.py:117 : willpower_factor = 1.0 - willpower / 150.0  # 0.33-1.0
+  backend\app\services\npc\break_progress_engine.py:79 : willpower: float = 50.0,  # из NPCPersonality
+  backend\app\services\npc\npc_loader.py:449 : willpower=int(psyche_raw.get("willpower", 50)),
+  backend\app\services\npc\npc_loader.py:450 : breakpoint=int(psyche_raw.get("breakpoint", 80)),
+  backend\app\services\perception\manifestation_physics_engine.py:59 : willpower = float(personality.get("willpower", 50.0)) / 100.0
+  backend\app\services\phases\decision.py:61 : _willpower = getattr(_personality, "willpower", 50.0) if _personality else 50.0
+  backend\app\services\player_avatar_service.py:191 : # дефолты, ЗНАЧЕНИЯ КОТОРЫХ ИДЕНТИЧНЫ SHI-FIX (willpower=50.0 и т.д.).
+  backend\tests\pbt\strategies.py:14 : "loyalty_true": st.floats(min_value=0.0, max_value=1.0)
+  backend\tests\sandbox\legacy\decision_hub_sandbox.py:113 : breakpoint=random.randint(10, 100),
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:47 : willpower=50.0,
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:48 : breakpoint=70.0,
+  backend\tests\sandbox\SUPERBOX\scenarios\bm_bprime_framework.py:14 : Д-4: willpower=60 пишется, потребляется 50 — вне контраста, но в H1-требования);
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:415 : willpower_before = getattr(avatar, "willpower", 50)
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:328 : _willpower_val = getattr(new_state, "willpower", 50) or 50
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:395 : _willpower_val = getattr(new_state, "willpower", 50) or 50
+  backend\tests\sandbox\system\test_causal_closure.py:30 : psyche_base=PsycheBase(willpower=3, breakpoint=4, loyalty_base=60),
+  backend\tests\sandbox\system\test_causal_closure.py:43 : psyche_base=PsycheBase(willpower=9, breakpoint=9, loyalty_base=20),
+  backend\tests\sandbox\system\test_life_direction_crisis.py:31 : psyche_base=PsycheBase(willpower=35, breakpoint=55, loyalty_base=0),
+  backend\tests\sandbox\test_7_3_threat_scenario.py:40 : breakpoint=85.0,
+  backend\tests\test_build_npc_snapshots.py:45 : loyalty_true: float = 50.0,
+  backend\tests\test_build_npc_snapshots.py:107 : npc = _make_npc(loyalty_true=60.0)
+  backend\tests\test_build_npc_snapshots.py:205 : npc = _make_npc(trust=30.0, loyalty_true=50.0)
+  backend\tests\test_build_npc_snapshots.py:218 : npc = _make_npc(trust=50.0, loyalty_true=50.0)
+  backend\tests\test_combat_pipeline_e2e.py:53 : def _make_npc(npc_id: str = "npc_1", dexterity: float = 10.0, willpower: float = 50.0) -> dict:
+  backend\tests\test_combat_pipeline_e2e.py:184 : npc_witness = _make_npc(npc_id="npc_witness", willpower=50.0)
+  backend\tests\test_combat_pipeline_e2e.py:203 : # Для witness с willpower=50 это около 6.6, точно < 10.0
+  backend\tests\test_contracts_stage6.py:206 : psyche_base=PsycheBase(willpower=50, breakpoint=80),
+  backend\tests\test_contracts_stage6.py:235 : psyche_base=PsycheBase(willpower=50, breakpoint=80),
+  backend\tests\test_decision_calibration.py:51 : breakpoint=85.0,
+  backend\tests\test_decision_calibration.py:64 : breakpoint=55.0,
+  backend\tests\test_decision_calibration.py:77 : breakpoint=75.0,
+  backend\tests\test_decision_hub_goal_boost.py:24 : psyche_base=PsycheBase(willpower=70, breakpoint=80, loyalty_base=50),
+  backend\tests\test_event_memory.py:260 : willpower=50.0,
+  backend\tests\test_event_memory.py:261 : breakpoint=80.0,
+  backend\tests\test_g3_will_integration.py:39 : psyche_base=PsycheBase(willpower=40, breakpoint=75),
+  backend\tests\test_npc_loader.py:61 : assert profile.psyche_base.breakpoint == 80
+  backend\tests\test_npc_npc_stage7.py:69 : psyche_base=PsycheBase(willpower=50, breakpoint=80),
+  backend\tests\test_npc_social_enrichment.py:41 : loyalty_true: float = 50.0,
+  backend\tests\test_npc_social_enrichment.py:220 : npc = _make_npc(npc_id="tavern_keeper_tornin", trust=30.0, loyalty_true=60.0)
+  backend\tests\test_npc_social_enrichment.py:255 : npc = _make_npc(npc_id="npc_a", trust=30.0, loyalty_true=60.0)
+  backend\tests\test_npc_social_enrichment.py:274 : npc = _make_npc(npc_id="npc_a", loyalty_true=70.0)
+  backend\tests\test_npc_social_enrichment.py:300 : npc = _make_npc(npc_id="tavern_keeper_tornin", trust=30.0, loyalty_true=60.0)
+  backend\tests\test_npc_social_enrichment.py:326 : npc = _make_npc(npc_id="tavern_keeper_tornin", trust=30.0, loyalty_true=60.0)
+  backend\tests\test_npc_social_enrichment.py:370 : npcs = [_make_npc(npc_id="tavern_keeper_tornin", trust=30.0, loyalty_true=60.0)]
+  backend\tests\test_phase3_spatial_social.py:81 : breakpoint=80.0,
+  backend\tests\test_r2_r5_math.py:26 : breakpoint=80.0,
+  backend\tests\test_reaction_subscriber.py:67 : willpower: float = 50.0,
+  backend\tests\test_reaction_subscriber.py:185 : """Средний NPC: stress=50, fear=0.25, willpower=50 → modifier ≈ 0.5."""
+  backend\tests\test_reaction_subscriber.py:186 : npc = _make_npc(stress=50.0, willpower=50.0, fear_drive=0.25)
+  backend\tests\test_reaction_subscriber.py:195 : average = _make_npc(stress=30.0, willpower=50.0, fear_drive=0.25)
+  backend\tests\test_reaction_subscriber.py:201 : average = _make_npc(stress=30.0, willpower=50.0, fear_drive=0.25)
+
+[SEARCH] NPCState psyche field  pattern: /psyche.*Dict|psyche.*field|psyche:.*=.*field/
+  44 matches:
+  backend\app\api\routes_chronicle.py:871 : psyche = npc_dict.get("psyche", {})
+  backend\app\api\routes_chronicle.py:909 : if isinstance(_psyche_beliefs, dict) else None
+  backend\app\models\npc_state.py:1007 : psyche = npc_dict.setdefault("psyche", {})
+  backend\app\models\npc_state.py:1221 : psyche = npc_dict.get("psyche", {})
+  backend\app\models\npc_state.py:1254 : _life_project = psyche.get("life_project", psyche.get("life_direction", npc_dict.get("core_orientation", "survival")))
+  backend\app\models\npc_state.py:1305 : # V8-PSY-5 FIX: Восстановление behavior_mask из psyche sub-dict
+  backend\app\models\npc_state.py:1349 : psyche = npc_dict.get("psyche", {})
+  backend\app\models\schemas.py:97 : psyche: Dict[str, Any] = Field(default_factory=dict)  # fear, impulsivity, willpower
+  backend\app\services\affective\affective_integrator.py:29 : psyche: Dict[str, Any],
+  backend\app\services\affective\emotion_transition.py:20 : affective_load: float, prev_load: float, psyche: Dict[str, Any]
+  backend\app\services\calibration\preset_io.py:51 : _PSYCHE_PARAMS: dict[str, tuple[float, float]] = {
+  backend\app\services\calibration\preset_io.py:73 : psyche: dict[str, float] = field(default_factory=dict)
+  backend\app\services\calibration\preset_io.py:161 : def _validate_psyche(raw: Any, errors: list[str], npc_key: str) -> dict[str, float]:
+  backend\app\services\calibration\preset_materializer.py:116 : isinstance(psyche, dict),
+  backend\app\services\events\reaction_subscriber.py:103 : psyche = npc_dict.get("psyche", {})
+  backend\app\services\game_loop\game_loop.py:912 : # V8-WL-3 FIX: fear и willpower лежат внутри psyche dict, а не в корне NPCState
+  backend\app\services\npc\break_progress_engine.py:228 : # V8-PSY-1 FIX: Читаем identity_rigidity из personality (SSOT), с фолбэком на psyche dict
+  backend\app\services\npc\break_progress_engine.py:233 : if isinstance(state.psyche, dict):
+  backend\app\services\npc\homeostasis_projector.py:54 : _psyche = npc_dict.get("psyche", {})
+  backend\app\services\npc\npc_loader.py:648 : def _apply_chronicle_seed_to_dict(raw_data: Dict[str, Any], psyche: Dict[str, Any]) -> None:
+  backend\app\services\npc\npc_tick_pipeline.py:552 : _psyche.get("gregariousness", 0.5) if isinstance(_psyche, dict) else 0.5
+  backend\app\services\perception\behavior_manifestation_service.py:121 : psyche_map: dict[str, dict] = {}
+  backend\app\services\perception\behavior_manifestation_service.py:150 : self, npc_id: str, data: Dict[str, Any], body_state: Optional[Dict[str, Any]] = None, psyche: Optional[Dict[str, Any]] = None
+  backend\app\services\phases\input.py:96 : f"[WILL_TRACE] 2. Avatar found. Psyche: {player_dict.get('psyche', {})}"
+  backend\app\services\phases\input.py:107 : psyche = player_dict.get("psyche", {})
+  backend\app\services\presentation\avatar_presentation_assembler.py:32 : psyche = player_dict.get("psyche", {})
+  backend\app\services\social\mvp_tavern_controller.py:158 : _psyche = npc.get("psyche", {}) if isinstance(npc.get("psyche"), dict) else {}
+  backend\app\services\social\propagation.py:47 : psyche — dict из all_npcs_raw (канонический сериализат NPCState).
+  backend\app\services\social\propagation.py:50 : if not isinstance(psyche, dict):
+  backend\app\services\social\propagation.py:131 : _psyche_by_id: dict = {}
+  backend\app\services\affect.py:146 : psyche: Dict[str, float],
+  backend\app\services\tick_orchestrator.py:1560 : # V8-TICK-5 / V8-PSY-21 FIX: stress пишется в psyche sub-dict, а не в emotion (строка)
+  backend\app\services\tick_orchestrator.py:1804 : # V8-TICK-5 / V8-PSY-21 FIX: stress пишется в psyche sub-dict, а не в emotion (строка)
+  backend\app\services\will.py:139 : psyche: Dict[str, Any],
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:7 : - psyche_beliefs_types (from npc_dict.psyche.beliefs keys)
+  backend\tests\pbt\strategies.py:9 : # Базовая стратегия: генерирует валидный psyche dict
+  backend\tests\pbt\strategies.py:10 : psyche_strategy = st.fixed_dictionaries({
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:156 : # psyche в legacy-dict бывает СТРОКОЙ (S55-археология) — нормализуем в dict
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:158 : _psyche = _thief_dict.get("psyche")
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:159 : if not isinstance(_psyche, dict):
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:191 : if not isinstance(_psyche, dict):
+  backend\tests\sandbox\lab_r003_gc11_causal_delta.py:62 : psyche = npc_dict.get("psyche", {}) or {}
+  backend\tests\sandbox\sandbox_will_vertical.py:78 : def simulate_will_tick(tick_num: int, action: str, psyche: Dict[str, float]) -> WillResponseDTO:
+  backend\tests\test_npc_state_r6.py:147 : assert legacy_data["psyche"].get("life_project") == "isolation", "life_project не записан в psyche dict"
+
+============================================================
+
+Q3: counter_offer TRACE
+
+============================================================
+
+[READ] _generate_counter_offer  backend/app/services/will.py L241-300
+  241: def _generate_counter_offer(
+  242:     pressure: IntentPressureProfile, state: WillState
+  243: ) -> Optional[IntentDTO]:
+  244:     """Аватар ищет альтернативу, чтобы сохранить Я."""
+  245:     if state in (WillState.COMPLY, WillState.RELUCTANT):
+  246:         return None  # Согласие или легкая неохота не требуют компромисса
+  247: 
+  248:     if pressure.violence > 0.6:
+  249:         # Предлагает избежать прямого насилия
+  250:         return IntentDTO(
+  251:             action="flee", target="", parameters=IntentParametersDTO()
+  252:         )
+  253: 
+  254:     if pressure.social_exposure > 0.6:
+  255:         # Предлагает скрытный путь
+  256:         return IntentDTO(
+  257:             action="stealth", target="", parameters=IntentParametersDTO()
+  258:         )
+  259: 
+  260:     if pressure.self_risk > 0.6:
+  261:         # Предлагает переговоры или подчинение ради выживания
+  262:         return IntentDTO(action="yield", target="", parameters=IntentParametersDTO())
+  263: 
+  264:     return None
+  265: 
+  266: 
+  267: def _generate_narration_hooks(
+  268:     state: WillState, pressure: IntentPressureProfile
+  269: ) -> list[str]:
+  270:     """Генерирует подсказки для LLM-вербализации."""
+  271:     hooks = []
+  272:     if state == WillState.DISTRESSED:
+  273:         hooks.extend(["дрожит", "голос срывается"])
+  274:     elif state == WillState.PANICKED:
+  275:         hooks.extend(["пятится", "расширенные глаза", "частое дыхание"])
+  276:     elif state == WillState.DISSOCIATING:
+  277:         hooks.extend(["взгляд пустеет", "движения механические", "отстраненный вид"])
+  278:     elif state == WillState.BROKEN:
+  279:         hooks.extend(["опускает голову", "безвольная поза", "слезы без звука"])
+  280: 
+  281:     if pressure.violence > 0.7:
+  282:         hooks.append("отшатывается от крови")
+  283: 
+  284:     return hooks
+  285: 
+  286: 
+  287: _EMBODIED_TEXT_MAP = {
+  288:     EmbodiedVector.AVOIDANCE: "Убежать...",
+  289:     EmbodiedVector.DESTROY: "Ударить...",
+  290:     EmbodiedVector.COLLAPSE: "Упасть...",
+  291:     EmbodiedVector.SUBMIT: "Подчиниться...",
+  292:     EmbodiedVector.FREEZE: "Замереть...",
+  293: }
+  294: 
+  295: 
+  296: def get_embodied_impulse_text(vector: Optional[EmbodiedVector]) -> str:
+  297:     """Транслирует моторный вектор в текст для Resistance Medium (фронтенд)."""
+  298:     if vector is None:
+  299:         return "Сопротивляться..."
+  300:     return _EMBODIED_TEXT_MAP.get(vector, "Сопротивляться...")
+
+[SEARCH] counter_offer all usage  pattern: /counter_offer\b/
+  13 matches:
+  backend\app\models\npc_state.py:154 : COUNTER_OFFER = "counter_offer"  # Аватар предлагает альтернативу выживания
+  backend\app\models\will.py:75 : counter_offer: Optional[IntentDTO] = None  # Аватар предлагает альтернативу
+  backend\app\services\will.py:197 : counter_offer = _generate_counter_offer(pressure, state)
+  backend\app\services\will.py:215 : counter_offer=counter_offer,
+  backend\app\services\will.py:241 : def _generate_counter_offer(
+  backend\tests\pbt\strategies.py:13 : "state": st.sampled_from(["free", "coerced", "deceptive", "loyal", "comply", "reluctant", "delay", "misinterpret", "negotiate", "p...
+  backend\tests\sandbox\sandbox_will_vertical.py:6 : и генерацией артефактов конфликта (narration_hooks, counter_offer).
+  backend\tests\sandbox\sandbox_will_vertical.py:97 : if will_response.counter_offer:
+  backend\tests\sandbox\sandbox_will_vertical.py:98 : log.info(f"[WILL] Counter-Offer: {will_response.counter_offer.action}")
+  backend\tests\sandbox\sandbox_will_vertical.py:108 : "counter_offer_action": will_response.counter_offer.action if will_response.counter_offer else None,
+  backend\tests\sandbox\sandbox_will_vertical.py:149 : assert p5.counter_offer is not None, "При диссоциации аватар должен предлагать альтернативу (counter_offer)"
+  backend\tests\test_will.py:83 : assert response.counter_offer is not None
+  backend\tests\test_will.py:84 : assert response.counter_offer.action == "flee"
+
+============================================================
+
+Q4: IDENTITY — npc_id=='player' vs player_name
+
+============================================================
+
+[SEARCH] npc_id literal vs player_name  pattern: /npc_id.*==.*"player"|npc_id.*==.*player_name|n\.get\("npc_id"\).*==.*"player"/
+  25 matches:
+  backend\app\services\affective\affective_decay_handler.py:54 : if not npc_id or npc_id == "player":
+  backend\app\services\combat\combat_subscriber.py:132 : if npc_id == "player":
+  backend\app\services\events\rules_subscriber.py:229 : if n.get("npc_id") == "player" or n.get("id") == "player"
+  backend\app\services\game_loop\turn_pipeline.py:220 : _player_dict = next((n for n in _ctx.all_npcs_raw if n.get("npc_id") == "player"), None)
+  backend\app\services\game_loop\turn_pipeline.py:255 : if n.get("npc_id") == "player"
+  backend\app\services\integration\world_snapshot_builder.py:281 : if npc_id == "player":
+  backend\app\services\integration\world_snapshot_builder.py:417 : if npc.get("npc_id") == "player":
+  backend\app\services\npc\homeostasis_projector.py:51 : if not _npc_id or _npc_id == "player":
+  backend\app\services\npc\npc_tick_pipeline.py:91 : if other_id == npc_id or other_id == "player":
+  backend\app\services\npc\npc_tick_pipeline.py:1589 : if npc_id == "player":
+  backend\app\services\npc\state_applicator.py:389 : if will_conflict_for_ui and new_state.npc_id == "player":
+  backend\app\services\npc\state_applicator.py:1545 : if state.npc_id == "player":
+  backend\app\services\offscreen\world_projection_buffer.py:70 : if not npc_id or npc_id == "player":
+  backend\app\services\perception\behavior_manifestation_service.py:135 : if npc_id == "player":
+  backend\app\services\phases\input.py:85 : (n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None
+  backend\app\services\phases\integration.py:508 : (n for n in _npc_truth_source if n.get("npc_id") == "player"), None
+  backend\app\services\phases\simulation.py:57 : (n for n in (ctx.all_npcs_raw or []) if n.get("npc_id") == "player"), None
+  backend\app\services\tick_orchestrator.py:987 : (n.get("npc_id") or n.get("id")) == "player"
+  backend\app\services\tick_orchestrator.py:1430 : (n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None
+  backend\tests\sandbox\micro\test_player_turn_headless.py:97 : if not any(n.get("npc_id") == "player" for n in all_npcs_raw):
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:246 : player_npc = next((n for n in npcs if n.get("npc_id") == "player" or n.get("id") == "player"), None)
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:617 : if _npc_id == "player":
+  backend\tests\sandbox\sandbox_sprint_27.py:108 : if npc.get("npc_id") == "player":
+  backend\tests\sandbox\test_causal_bridge_integration.py:296 : player_entry = next((n for n in result["npcs"] if n["npc_id"] == "player"), None)
+  backend\tests\IPT.py:1596 : if _npc_id == "player":
+
+[READ] Avatar psyche persistence  backend/app/services/player_avatar_service.py L340-370
+  340:             )
+  341: 
+  342:         # BehaviorMaskState
+  343:         mask = state.behavior_mask
+  344:         mask_dict = {
+  345:             "mask": mask.mask.value if hasattr(mask.mask, "value") else str(mask.mask),
+  346:             "applied_at_day": mask.applied_at_day,
+  347:             "intensity": mask.intensity,
+  348:         }
+  349: 
+  350:         return {
+  351:             "npc_id": state.npc_id,
+  352:             # Психика
+  353:             "stress": state.stress,
+  354:             "resentment": state.resentment,
+  355:             "dependency": state.dependency,
+  356:             "identity_integrity": state.identity_integrity,
+  357:             "pressure_resistance": state.pressure_resistance,
+  358:             "will_state": state.will_state.value
+  359:             if hasattr(state.will_state, "value")
+  360:             else str(state.will_state),
+  361:             "behavior_mask": mask_dict,
+  362:             "trauma_markers": list(state.trauma_markers),
+  363:             "current_role": state.current_role,
+  364:             # Физика
+  365:             "hp": state.effective_hp,
+  366:             "max_hp": state.effective_max_hp,
+  367:             "conditions": conditions,
+  368:             "wounds": wounds,
+  369:             "posture": state.posture,
+  370:             # ADR-128: body_state — SSOT физиологии (injuries, blood_loss, pain, shock_impulse).
+
+[SEARCH] Avatar in all_npcs_raw  pattern: /all_npcs_raw.*player|player.*all_npcs_raw|_avatar_state.*npc_id/
+  21 matches:
+  backend\app\services\combat\combat_subscriber.py:409 : P1 FIX: Если player_dict доступен из all_npcs_raw — читаем живой body_state.
+  backend\app\services\combat\combat_subscriber.py:415 : # Извлекаем body_state из player_dict, если он есть в all_npcs_raw
+  backend\app\services\game_loop\turn_pipeline.py:220 : _player_dict = next((n for n in _ctx.all_npcs_raw if n.get("npc_id") == "player"), None)
+  backend\app\services\game_loop\turn_pipeline.py:233 : n for n in _ctx.all_npcs_raw if n.get("npc_id") != "player"
+  backend\app\services\npc\npc_tick_pipeline.py:151 : _npcs_to_process = state.nearby_npcs if _is_player_turn else state.all_npcs_raw
+  backend\app\services\npc\npc_tick_pipeline.py:159 : f"[SHI_TRACE_2] NpcTickPipeline.run ENTERED. is_player_turn={_is_player_turn} npcs_to_process={len(_npcs_to_process or [])} nearby...
+  backend\app\services\phases\input.py:85 : (n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None
+  backend\app\services\phases\input.py:90 : f"[WILL_TRACE] FAIL: Аватар 'player' НЕ НАЙДЕН в all_npcs_raw (len={len(ctx.all_npcs_raw)}). Воля отключена!"
+  backend\app\services\phases\simulation.py:57 : (n for n in (ctx.all_npcs_raw or []) if n.get("npc_id") == "player"), None
+  backend\app\services\phases\simulation.py:62 : n for n in ctx.all_npcs_raw if n.get("npc_id") != "player"
+  backend\app\services\phases\simulation.py:64 : ctx.all_npcs_raw.append(_player_entry)
+  backend\app\services\tick_orchestrator.py:1430 : (n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None
+  backend\app\services\tick_orchestrator.py:1450 : n for n in ctx.all_npcs_raw if n.get("npc_id") != "player"
+  backend\app\services\tick_orchestrator.py:1452 : ctx.all_npcs_raw.append(_player_entry)
+  backend\tests\micro\test_npc_addresses_player.py:251 : """NPC с id=player в all_npcs_raw пропускается (defensive)."""
+  backend\tests\sandbox\micro\test_player_turn_headless.py:69 : _avatar_state = NPCState(npc_id=player_name)
+  backend\tests\sandbox\micro\test_player_turn_headless.py:97 : if not any(n.get("npc_id") == "player" for n in all_npcs_raw):
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:91 : _avatar_state = NPCState(npc_id="Tester")
+  backend\tests\sandbox\test_causal_movement.py:110 : minimal_world["all_npcs_raw"][1]["social_stats"] = {"fear_of_player": 0.0}
+  backend\tests\test_reaction_subscriber.py:355 : # player не в all_npcs_raw
+  backend\tests\test_s2b7_injury_chain.py:134 : # player отсутствует в all_npcs_raw → _make_player_snapshot строит
+
+

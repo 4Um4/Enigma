@@ -1,0 +1,420 @@
+﻿============================================================
+
+STAGE 2.3-R — EXECUTION BOUNDARY REMAINING QUESTIONS
+
+1. combat_math.py:311 — real HP write or comment?
+
+2. AvatarStateApplicator — full call chain + comparison
+
+Mode: READ ONLY
+
+Generated: 2026-11-02 19:23:27
+
+============================================================
+
+============================================================
+
+1. combat_math.py:311 — REAL HP WRITE OR COMMENT?
+
+============================================================
+
+[INFO] File: backend\app\services\game\combat_math.py (547 lines)
+
+[READ] combat_math.py L290-340  C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game\combat_math.py L290-340
+  290:     return total
+  291: 
+  292: 
+  293: def sort_initiative(combatants: List[Dict], rng: Optional[random.Random] = None) -> List[Dict]:
+  294:     """Сортировка по инициативе. Игроки идут раньше при равенстве."""
+  295:     for c in combatants:
+  296:         if "initiative" not in c:
+  297:             c["initiative"] = roll_initiative(c, rng=rng)
+  298:     return sorted(
+  299:         combatants,
+  300:         key=lambda c: (-c["initiative"], 0 if c.get("type") == "player" else 1),
+  301:     )
+  302: 
+  303: 
+  304: # ──────────────────────────────────────────────────────────────────────────────
+  305: # 7. HP и состояния
+  306: # ──────────────────────────────────────────────────────────────────────────────
+  307: 
+  308: 
+  309: def apply_damage(target: Dict, damage: int) -> Dict:
+  310:     """Применяет урон. Возвращает изменения."""
+  311:     # BUG-PERC-005 FIX: Пишем HP в body_state["current_hp"] (SSOT, ADR-HP-UNIFICATION)
+  312:     body = target.setdefault("body_state", {})
+  313:     before = body.get("current_hp", target.get("hp", 0))  # Fallback на legacy hp для старых сейвов
+  314:     body["current_hp"] = max(0, before - damage)
+  315: 
+  316:     if body["current_hp"] <= 0:
+  317:         # ADR-123: life_status — единственный источник истины о смерти
+  318:         body["life_status"] = "DEAD"
+  319:         target["status"] = (
+  320:             "dead" if target.get("tier") in ("minor", "mass") else "incapacitated"
+  321:         )
+  322: 
+  323:     _log_event(
+  324:         "damage_applied",
+  325:         {
+  326:             "target": target.get("name", "?"),
+  327:             "damage": damage,
+  328:             "hp_before": before,
+  329:             "hp_after": body["current_hp"],
+  330:             "status": target.get("status", "alive"),
+  331:         },
+  332:     )
+  333:     return {
+  334:         "hp_before": before,
+  335:         "hp_after": body["current_hp"],
+  336:         "status": target.get("status", "alive"),
+  337:     }
+  338: 
+  339: 
+  340: def apply_healing(target: Dict, amount: int) -> Dict:
+
+[SEARCH] body_state current_hp in combat_math  pattern: /body_state.*current_hp|current_hp.*body_state/
+  50 matches:
+  backend\app\models\causality_manifest.py:309 : "body_state.current_hp": FieldCausality("DEBT", organ="body", terminal="decision", authority="ADR-123"),
+  backend\app\models\npc_state.py:814 : # ADR-HP-UNIFICATION: hp/max_hp — deprecated. Canonical source = body_state["current_hp"]
+  backend\app\models\npc_state.py:829 : if self.body_state and "current_hp" in self.body_state:
+  backend\app\models\npc_state.py:830 : return float(self.body_state["current_hp"])
+  backend\app\services\combat\combat_subscriber.py:346 : _current_hp = float(body_state.get("current_hp", _max_hp))
+  backend\app\services\game\combat_math.py:311 : # BUG-PERC-005 FIX: Пишем HP в body_state["current_hp"] (SSOT, ADR-HP-UNIFICATION)
+  backend\app\services\npc\state_applicator.py:449 : new_state.body_state = {"current_hp": _max_hp, "max_hp": _max_hp}
+  backend\app\services\npc\state_applicator.py:450 : new_state.body_state["current_hp"] = min(_max_hp, _new_hp)
+  backend\app\services\npc\state_applicator.py:454 : new_state.body_state["current_hp"] = int(_new_hp)
+  backend\app\services\npc\state_applicator.py:1136 : _cur_hp = state.body_state.get("current_hp", _max_hp)
+  backend\app\services\npc\state_applicator.py:1137 : state.body_state["current_hp"] = max(
+  backend\app\services\avatar_state_applicator.py:40 : байт-в-байт (body_state full-sync, hp→current_hp, DISABLED-ветка).
+  backend\app\services\avatar_state_applicator.py:46 : avatar_state.body_state["current_hp"] = updated_avatar_dict.get(
+  backend\app\services\avatar_state_applicator.py:51 : avatar_state.body_state["current_hp"] = updated_avatar_dict["hp"]
+  backend\app\services\player_avatar_service.py:287 : # ADR-HP-UNIFICATION: HP аватара живёт в body_state["current_hp"].
+  backend\app\services\player_avatar_service.py:476 : body_state={**{"current_hp": float(data.get("hp", 0)), "max_hp": float(data.get("max_hp", 0))}, **dict(data.get("body_state") or {...
+  backend\app\services\tick_utils.py:147 : _current_hp = float(body_state.get("current_hp", _max_hp))
+  backend\tests\gameplay\harness.py:200 : f"hp={_avatar.body_state.get('current_hp', 'MISSING')}"
+  backend\tests\gameplay\test_tavern_vertical.py:264 : "AG1-D5: avatar default body_state без current_hp "
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:180 : "body_state": {"hp": 100, "current_hp": 100},
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:222 : "body_state": {"hp": 100, "current_hp": 100},
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:248 : "body_state": {"hp": 100, "current_hp": 100},
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:275 : "body_state": {"hp": 100, "current_hp": 100},
+  backend\tests\micro\test_dialogue_liveness_gate.py:54 : "body_state": {"life_status": life_status, "current_hp": 1},
+  backend\tests\pbt\properties\test_npc_state_roundtrip.py:32 : assert original_state.body_state.get("current_hp") == final_state.body_state.get("current_hp"), "current_hp lost in round-trip!"
+  backend\tests\sandbox\invariants\test_cross_layer_consistency.py:16 : ADR-HP-UNIFICATION: state.hp (deprecated) MUST mirror state.body_state["current_hp"].
+  backend\tests\sandbox\invariants\test_cross_layer_consistency.py:46 : state.body_state["current_hp"] = 75.0
+  backend\tests\sandbox\invariants\test_cross_layer_consistency.py:50 : assert state.effective_hp == state.body_state["current_hp"]
+  backend\tests\sandbox\invariants\test_cross_layer_consistency.py:52 : "DOUBLE TRUTH DETECTED: state.hp diverged from body_state['current_hp']"
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:67 : AvatarStateApplicator.apply_pipeline_result(s, {"body_state": {"current_hp": 5.0, "money": 48}})
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:68 : t3a = s.body_state["current_hp"] == 5.0
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:70 : t3b = s.body_state["current_hp"] == 7
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:76 : t3c = (_fresh.body_state["current_hp"] == 3
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:97 : t5 = (s3.body_state.get("current_hp") == 7.0
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:100 : print(f"[T5] Round-trip: hp={s3.body_state.get('current_hp')}, "
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_interrupt_test.py:265 : _hp0 = ((_n0 or {}).get("body_state") or {}).get("current_hp")
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_interrupt_test.py:285 : _hp1 = ((_n1 or {}).get("body_state") or {}).get("current_hp")
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:203 : assert npc_after.get("body_state", {}).get("current_hp", 100) < 100, "HP regenerated (should not)"
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:299 : hp_canon = npc.get("body_state", {}).get("current_hp", 0)
+  backend\tests\sandbox\system\test_t06_belief_pipeline.py:40 : state.body_state = {"current_hp": 10, "shock_impulse": 0.0, "pain": 0.0}
+  backend\tests\test_action_commitment.py:1403 : _state.body_state = {"energy": 100.0, "current_hp": 100,
+  backend\tests\test_action_commitment.py:1421 : _state.body_state = {"energy": 0.5, "current_hp": 100, "pain": 0.0,
+  backend\tests\test_action_commitment.py:1622 : _state.body_state = {"nutrition": 0.5, "current_hp": 100, "pain": 0.0,
+  backend\tests\test_action_commitment.py:2035 : _state.body_state = {"fatigue": 98.0, "current_hp": 100, "pain": 0.0,
+  backend\tests\test_action_commitment.py:2045 : _state2.body_state = {"fatigue": 0.1, "current_hp": 100, "pain": 0.0,
+  backend\tests\test_causal_contract_sandboxes.py:30 : """Запрет 4.6.43: Прямая запись в state.hp в обход body_state["current_hp"] (HP Double Truth)."""
+  backend\tests\test_relationship_state_store.py:263 : body_state={"current_hp": 100.0, "max_hp": 100.0},
+  backend\tests\test_relationship_state_store.py:277 : assert after.body_state["current_hp"] == 90.0
+  backend\tests\test_relationship_state_store.py:290 : assert after_wt.body_state["current_hp"] == 100.0
+  backend\tests\test_s2b7_injury_chain.py:161 : assert _wounded_raw["body_state"]["current_hp"] < 100.0
+
+============================================================
+
+2. AvatarStateApplicator — ALL CALL SITES
+
+============================================================
+
+[SEARCH] apply_pipeline_result calls  pattern: /apply_pipeline_result/
+  5 matches:
+  backend\app\services\game_loop\turn_pipeline.py:265 : AvatarStateApplicator.apply_pipeline_result(
+  backend\app\services\avatar_state_applicator.py:33 : def apply_pipeline_result(
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:67 : AvatarStateApplicator.apply_pipeline_result(s, {"body_state": {"current_hp": 5.0, "money": 48}})
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:69 : AvatarStateApplicator.apply_pipeline_result(s, {"hp": 7})
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:75 : AvatarStateApplicator.apply_pipeline_result(_fresh, {"hp": 3})
+
+[SEARCH] apply_reaction calls  pattern: /apply_reaction\b/
+  6 matches:
+  backend\app\services\game_loop\phase_6_avatar.py:53 : AvatarStateApplicator.apply_reaction(_avatar_state, stress_delta=+5.0, emotion=_new_emotion)
+  backend\app\services\game_loop\phase_6_avatar.py:65 : AvatarStateApplicator.apply_reaction(_avatar_state, stress_delta=+2.0, emotion=_new_emotion)
+  backend\app\services\game_loop\phase_6_avatar.py:73 : AvatarStateApplicator.apply_reaction(_avatar_state, stress_delta=-3.0, emotion=_new_emotion)
+  backend\app\services\avatar_state_applicator.py:54 : def apply_reaction(
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:84 : AvatarStateApplicator.apply_reaction(s, stress_delta=+200.0)   # clamp 100
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:86 : AvatarStateApplicator.apply_reaction(s, stress_delta=-300.0, emotion=EmotionTag.NEUTRAL)
+
+[SEARCH] AvatarStateApplicator all refs  pattern: /AvatarStateApplicator|avatar_state_applicator/
+  19 matches:
+  backend\app\models\npc_state.py:694 : "app.services.avatar_state_applicator": {"body_state", "stress", "emotion"},
+  backend\app\services\game_loop\phase_6_avatar.py:16 : from app.services.avatar_state_applicator import AvatarStateApplicator
+  backend\app\services\game_loop\phase_6_avatar.py:53 : AvatarStateApplicator.apply_reaction(_avatar_state, stress_delta=+5.0, emotion=_new_emotion)
+  backend\app\services\game_loop\phase_6_avatar.py:65 : AvatarStateApplicator.apply_reaction(_avatar_state, stress_delta=+2.0, emotion=_new_emotion)
+  backend\app\services\game_loop\phase_6_avatar.py:73 : AvatarStateApplicator.apply_reaction(_avatar_state, stress_delta=-3.0, emotion=_new_emotion)
+  backend\app\services\game_loop\turn_pipeline.py:262 : # Каноническая граница мутации — AvatarStateApplicator.
+  backend\app\services\game_loop\turn_pipeline.py:263 : from app.services.avatar_state_applicator import AvatarStateApplicator
+  backend\app\services\game_loop\turn_pipeline.py:265 : AvatarStateApplicator.apply_pipeline_result(
+  backend\app\services\avatar_state_applicator.py:2 : path: /project/backend/app/services/avatar_state_applicator.py
+  backend\app\services\avatar_state_applicator.py:6 : Основные сущности: AvatarStateApplicator
+  backend\app\services\avatar_state_applicator.py:19 : class AvatarStateApplicator:
+  backend\app\services\tick_orchestrator.py:2226 : # AvatarStateApplicator (S208, DEBT-R10). Player остаётся в мире:
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:10 : через AvatarStateApplicator — без violation, значения корректны.
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:26 : from app.services.avatar_state_applicator import AvatarStateApplicator
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:67 : AvatarStateApplicator.apply_pipeline_result(s, {"body_state": {"current_hp": 5.0, "money": 48}})
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:69 : AvatarStateApplicator.apply_pipeline_result(s, {"hp": 7})
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:75 : AvatarStateApplicator.apply_pipeline_result(_fresh, {"hp": 3})
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:84 : AvatarStateApplicator.apply_reaction(s, stress_delta=+200.0)   # clamp 100
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:86 : AvatarStateApplicator.apply_reaction(s, stress_delta=-300.0, emotion=EmotionTag.NEUTRAL)
+
+============================================================
+
+3. CALL SITE CONTEXT
+
+============================================================
+
+[READ] game_loop L900-930  backend/app/services/game_loop/game_loop.py L900-930
+  900:                     # Шаблон персонажа (player_char) — это кости. Нам нужна живая ткань из avatar_service.
+  901:                     _avatar_state = self.avatar_service.load_state(
+  902:                         campaign_id, player_char.name
+  903:                     )
+  904:                     from app.models.npc_state import BODY_STATE_HEALTHY
+  905: 
+  906:                     _live_body = getattr(_avatar_state, "body_state", None)  # noqa: ENIGMA002
+  907:                     if (
+  908:                         not _live_body
+  909:                     ):  # None или {} — новый аватар без сохранённой физиологии
+  910:                         _live_body = dict(BODY_STATE_HEALTHY)
+  911: 
+  912:                     # V8-WL-3 FIX: fear и willpower лежат внутри psyche dict, а не в корне NPCState
+  913:                     _avatar_psyche = getattr(_avatar_state, "psyche", {})  # noqa: ENIGMA002
+  914:                     _live_psyche = {
+  915:                         "stress": getattr(_avatar_state, "stress", 0.0),
+  916:                         "fear": _avatar_psyche.get("fear", 0.5),
+  917:                         "willpower": _avatar_psyche.get("willpower", 50.0),
+  918:                         "emotion": getattr(_avatar_state, "emotion", "NEUTRAL"),
+  919:                         "identity_rigidity": _avatar_psyche.get("identity_rigidity", 0.5),
+  920:                     }
+  921: 
+  922:                     player_dict: Dict[str, Any] = {
+  923:                         "id": "player",
+  924:                         "npc_id": "player",
+  925:                         "name": player_char.name,
+  926:                         "type": "player_avatar",  # Маркер для WillpowerGate
+  927:                         "archetype": getattr(player_char, "archetype", "Drifter"),
+  928:                         "temperament": getattr(player_char, "temperament", "Stoic"),
+  929:                         "body_profile": getattr(player_char, "body_profile", {}),  # noqa: ENIGMA002
+  930:                         "body_state": _live_body,  # Живая плоть: pain, blood_loss
+
+[READ] game_loop L1770-1800  backend/app/services/game_loop/game_loop.py L1770-1800
+  1770:                         logger.warning(f"[RCE] STM write failed: {_rce_err}")
+  1771: 
+  1772:             # R2.1: NarrativeExtractor R2.2.8 — синхронный путь (REST)
+  1773:             try:
+  1774:                 from app.services.scene.narrative_extractor import get_extractor
+  1775: 
+  1776:                 dm_text = dm_result.get("dm_response", "")
+  1777:                 scene_state = state.shared_context.scene_state or {}
+  1778:                 if dm_text and scene_state:
+  1779:                     current_tick = self.get_current_tick(req.campaign_id)
+  1780:                     extraction = get_extractor().extract(dm_text, scene_state, current_tick)
+  1781:                     if (
+  1782:                         extraction.new_objects
+  1783:                         or extraction.new_events
+  1784:                         or extraction.updated_states
+  1785:                     ):
+  1786:                         self.scene_manager.apply_narrative_extractions(
+  1787:                             req.campaign_id, scene_state, extraction
+  1788:                         )
+  1789:                         if current_tick % 50 == 0:
+  1790:                             self.scene_manager.prune_dynamic_objects(
+  1791:                                 req.campaign_id, scene_state, current_tick
+  1792:                             )
+  1793:             except Exception as e:
+  1794:                 logger.warning(f"[R2.1] NarrativeExtractor REST error: {e}")
+  1795: 
+  1796:             # N-02 FIX: time.monotonic() для корректного elapsed_ms во время replay.
+  1797:             elapsed_ms = int(time.monotonic() * 1000 - state.start_ms)
+  1798:             traces = self._build_traces(state, dm_result, elapsed_ms)
+  1799: 
+  1800:             # NEW-8 FIX: Устанавливаем player_recognition ДО commit_tick_result,
+
+[SEARCH] phase_6_avatar body/apply  pattern: /avatar_state.*apply|apply.*avatar|phase_6_avatar.*body/
+  3 matches:
+  backend\app\services\game_loop\phase_6_avatar.py:53 : AvatarStateApplicator.apply_reaction(_avatar_state, stress_delta=+5.0, emotion=_new_emotion)
+  backend\app\services\game_loop\phase_6_avatar.py:65 : AvatarStateApplicator.apply_reaction(_avatar_state, stress_delta=+2.0, emotion=_new_emotion)
+  backend\app\services\game_loop\phase_6_avatar.py:73 : AvatarStateApplicator.apply_reaction(_avatar_state, stress_delta=-3.0, emotion=_new_emotion)
+
+============================================================
+
+4. AvatarStateApplicator vs StateApplicator
+
+============================================================
+
+[READ] AvatarStateApplicator FULL  backend/app/services/avatar_state_applicator.py L1-70
+  1: """
+  2: path: /project/backend/app/services/avatar_state_applicator.py
+  3: Назначение: P0-B (S208) — канонический владелец runtime-мутаций NPCState аватара
+  4:             игрока. GameLoop — оркестратор, не писатель (ownership model).
+  5: Зависимости: app.models.npc_state (NPCState, BODY_STATE_DISABLED_DATA)
+  6: Основные сущности: AvatarStateApplicator
+  7: """
+  8: 
+  9: from __future__ import annotations
+  10: 
+  11: import logging
+  12: from typing import Any
+  13: 
+  14: from app.models.npc_state import BODY_STATE_DISABLED_DATA, NPCState
+  15: 
+  16: logger = logging.getLogger(__name__)
+  17: 
+  18: 
+  19: class AvatarStateApplicator:
+  20:     """Каноническая граница мутации runtime-состояния аватара игрока.
+  21: 
+  22:     Ownership model (S208, P0):
+  23:       - Construction/restore      → PlayerAvatarService (NPCState(...), self-write)
+  24:       - Runtime full-sync         → ЭТОТ класс (whitelist: body_state, stress, emotion)
+  25:       - Trade money-дельты        → StateApplicator (существующий путь, TRADE_FIX)
+  26:       - GameLoop                  → оркестрирует, запрашивает применение, НЕ пишет
+  27: 
+  28:     Двойной бухгалтерии нет: whitelist NPCState._ALLOWED_WRITERS дополнен
+  29:     ТОЛЬКО этим модулем (узко, по полям) — см. патч в npc_state.py.
+  30:     """
+  31: 
+  32:     @staticmethod
+  33:     def apply_pipeline_result(
+  34:         avatar_state: NPCState,
+  35:         updated_avatar_dict: dict[str, Any],
+  36:     ) -> None:
+  37:         """Фазовый write-back: применяет pipeline-результат к аватару.
+  38: 
+  39:         Заменяет прямые присвоения game_loop:1777-1788. Семантика сохранена
+  40:         байт-в-байт (body_state full-sync, hp→current_hp, DISABLED-ветка).
+  41:         """
+  42:         if "body_state" in updated_avatar_dict:
+  43:             avatar_state.body_state = updated_avatar_dict["body_state"]
+  44:         if "hp" in updated_avatar_dict:
+  45:             if avatar_state.body_state:
+  46:                 avatar_state.body_state["current_hp"] = updated_avatar_dict.get(
+  47:                     "hp", updated_avatar_dict.get("current_hp", 0)
+  48:                 )
+  49:             else:
+  50:                 avatar_state.body_state = dict(BODY_STATE_DISABLED_DATA)
+  51:                 avatar_state.body_state["current_hp"] = updated_avatar_dict["hp"]
+  52: 
+  53:     @staticmethod
+  54:     def apply_reaction(
+  55:         avatar_state: NPCState,
+  56:         stress_delta: float = 0.0,
+  57:         emotion: Any = None,
+  58:     ) -> None:
+  59:         """P0-C: реакция аватара на интенты NPC (бывший object.__setattr__
+  60:         в phase_6_avatar). Границы значений соблюдаются вызывающим."""
+  61:         if stress_delta:
+  62:             avatar_state.stress = min(100.0, max(0.0, avatar_state.stress + stress_delta))
+  63:         if emotion is not None:
+  64:             avatar_state.emotion = emotion
+
+[READ] _ALLOWED_WRITERS  backend/app/models/npc_state.py L664-720
+  664: class NPCState:
+  665:     """
+  666:     Динамическое состояние NPC. Источник правды для DecisionHub.
+  667:     Изменяется только через StateApplicator — не напрямую.
+  668:     """
+  669: 
+  670:     # Stage 0 Task 0.4: Write Guard
+  671:     # Разрешённые модули для прямой записи в поля NPCState.
+  672:     _ALLOWED_WRITERS = {
+  673:         # Системные sandbox-тесты (класс E2.0-c, прецедент
+  674:         # test_cross_layer_consistency ниже): эмулируют давление через PK
+  675:         # напрямую — field-scoped "perceptual_kernel", не "*". Двойная форма
+  676:         # имён (conftest кладёт backend/ в sys.path → caller виден и как
+  677:         # "sandbox.*"). Расширение цензуса = mini-ADR, зафиксировано в отчёте
+  678:         # сессии. D-группа экзамена сюда НЕ вносится.
+  679:         "sandbox.system.test_causal_closure": {"perceptual_kernel"},
+  680:         "tests.sandbox.system.test_causal_closure": {"perceptual_kernel"},
+  681:         "sandbox.system.test_life_direction_crisis": {"perceptual_kernel"},
+  682:         "tests.sandbox.system.test_life_direction_crisis": {"perceptual_kernel"},
+  683:         "app.models.npc_state": {"*"},  # __init__ и внутренние методы
+  684:         "app.services.npc.state_applicator": {"*"},  # Единственный L2 writer
+  685:         "app.services.npc.belief_transition_engine": {"beliefs"},  # Epistemic SSOT
+  686:         "app.services.memory.memory_manager": {"narrative_cache", "affective_imprints"},  # Memory SSOT
+  687:         "app.services.npc.npc_loader": {"*"},  # TODO: Убрать после Task 0.9 (миграция на StateApplicator)
+  688:         "app.services.phases.decision": {"*"},  # TODO: Убрать после Task 0.9
+  689:         "app.services.phases.memory": {"*"},  # TODO: Убрать после Task 0.9
+  690:         "app.services.npc.life_engine": {"*"},  # TODO: Убрать после Task 0.9
+  691:         # S208 (P0-B): канонический владелец runtime-мутаций аватара игрока.
+  692:         # Узко, по полям; без "*" и без TODO — это постоянный контракт,
+  693:         # а не временная поблажка (см. ADR-запись сессии).
+  694:         "app.services.avatar_state_applicator": {"body_state", "stress", "emotion"},
+  695:         # P5-03 smoke-тест: сцена сравнивает DecisionHub-скор с/без
+  696:         # жизненного проекта — запись поля-входа узко по полям.
+  697:         # Имя модуля без префикса "tests." — фактический __name__ под pytest.
+  698:         "test_decision_hub_goal_boost": {"life_project", "life_project_state"},
+  699:         "tests.test_decision_hub_goal_boost": {"life_project", "life_project_state"},
+  700:         # ADR-HP-UNIFICATION инвариант: тест эмулирует dual-write
+  701:         # StateApplicator'а (hp + body_state), затем проверяет зеркальность —
+  702:         # иммунный контроль, узко по полям (два варианта __name__ под pytest).
+  703:         "sandbox.invariants.test_cross_layer_consistency": {"hp", "body_state"},
+  704:         "tests.sandbox.invariants.test_cross_layer_consistency": {"hp", "body_state"},
+  705:     }
+  706: 
+  707:     def __setattr__(self, name: str, value: Any) -> None:
+  708:         import sys
+  709:         _caller = sys._getframe(1).f_globals.get("__name__", "")
+  710: 
+  711:         for mod, fields in self._ALLOWED_WRITERS.items():
+  712:             if _caller == mod or _caller.startswith(mod + "."):
+  713:                 if "*" in fields or name in fields:
+  714:                     object.__setattr__(self, name, value)
+  715:                     return
+  716: 
+  717:         from app.errors import ArchitecturalViolationError
+  718:         raise ArchitecturalViolationError(name, _caller)
+  719: 
+  720:     npc_id: str
+
+[READ] StateApplicator player-specific L1545  backend/app/services/npc/state_applicator.py L1540-1560
+  1540:         # Единая точка обработки EconomicPayload.
+  1541:         # Пишем прямо в npc_dict, чтобы избежать потери данных при return.
+  1542:         if deltas.domain == DeltaDomain.ECONOMY and isinstance(deltas.payload, EconomicPayload):
+  1543:             _money_delta = float(deltas.payload.money_delta or 0.0)
+  1544:             if _money_delta != 0.0:
+  1545:                 if state.npc_id == "player":
+  1546:                     if "body_state" not in npc_dict:
+  1547:                         npc_dict["body_state"] = {}
+  1548:                     npc_dict["body_state"]["money"] = float(npc_dict["body_state"].get("money", 0.0)) + _money_delta
+  1549:                 else:
+  1550:                     npc_dict["gold"] = float(npc_dict.get("gold", 0.0)) + _money_delta
+  1551:             return
+  1552: 
+  1553:         # Делегирование в Commit Kernel
+  1554:         self.apply_deltas_and_commit(state, npc_dict, deltas, campaign_id, cause=cause)
+  1555: 
+  1556:     def apply_belief_delta(self, state: NPCState, delta: "BeliefDelta") -> None:
+  1557:         """Stage 1 Task 1.6: Единственный физический write-path в state.beliefs."""
+  1558:         from app.models.npc.beliefs import BeliefFragment
+  1559:         state.beliefs.update(
+  1560:             delta.belief_type,
+
+============================================================
+
+5. INDEPENDENT AVATAR EXECUTION PATH?
+
+============================================================
+
+[SEARCH] avatar execution paths  pattern: /avatar.*execute|execute.*avatar|avatar.*action.*apply|avatar.*physical/
+  (no matches)
+
+[SEARCH] direct Avatar body_state writes  pattern: /player.*body_state\s*\[|avatar.*body_state\s*\[/
+  2 matches:
+  backend\app\services\avatar_state_applicator.py:46 : avatar_state.body_state["current_hp"] = updated_avatar_dict.get(
+  backend\app\services\avatar_state_applicator.py:51 : avatar_state.body_state["current_hp"] = updated_avatar_dict["hp"]
+
+

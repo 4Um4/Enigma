@@ -1,0 +1,935 @@
+﻿============================================================
+
+STAGE 2.2-A - AVATAR PSYCHE AUDIT (READ ONLY)
+
+Goal: Can Avatar form own intentions from own psyche?
+
+Reuse: Blockers 5-7 (affective, resonance, belief)
+
+NEW: WillpowerGate full, WillState, IntentPressureProfile
+
+Generated: 2026-11-02 18:57:38
+
+============================================================
+
+============================================================
+
+1. WILLPOWERGATE — run_phase_1_input FULL (L100+)
+
+============================================================
+
+[READ] run_phase_1_input L100-250  backend/app/services/phases/input.py L100-250
+  100:     # Повторный вызов resolve_intent_pressure ЗАПРЕЩЕН (каузальная integrity)
+  101:     from app.services.will import compute_willpower, resolve_intent_pressure
+  102: 
+  103:     # V8-WL-6 FIX: Вычисляем pressure один раз и сохраняем в ctx как SSOT
+  104:     if not ctx.player_pressure:
+  105:         ctx.player_pressure = resolve_intent_pressure(intent)
+  106:     pressure = ctx.player_pressure
+  107:     psyche = player_dict.get("psyche", {})
+  108: 
+  109:     # 2. Affect Resonance Scan (Искажение интерпретации реальности)
+  110:     # Травма - это не бафф, это искажение. Resonance -> Distortion -> Will.
+  111:     from app.models.affect import AffectiveImprint
+  112:     from app.services.affect import distort_pressure, scan_affective_resonance
+  113: 
+  114:     imprints = tuple(
+  115:         AffectiveImprint(**imp) for imp in player_dict.get("affective_imprints", [])
+  116:     )
+  117: 
+  118:     # TODO: Передать PsychologicalPressure и PerceivedPhenomenon от CFRM P2, когда LocalCausalSolver будет генерировать их для хода игрока
+  119:     resonance = scan_affective_resonance(intent, None, None, imprints)
+  120:     distorted_pressure = distort_pressure(pressure, resonance, psyche)
+  121: 
+  122:     # 3. Вычисление реакции аватара (Cumulative Strain Model на искаженном давлении)
+  123:     will_response = compute_willpower(distorted_pressure, psyche)
+  124: 
+  125:     # ДИАГНОСТИКА: Почему нет конфликта?
+  126:     logger.warning(
+  127:         f"[WILL_TRACE] 2. Pressure: identity={pressure.identity_deviation:.2f}, humiliation={pressure.humiliation:.2f}"
+  128:     )
+  129:     logger.warning(
+  130:         f"[WILL_TRACE] 3. Will state: {will_response.state.value}, Resistance: {will_response.resistance:.2f}"
+  131:     )
+  132: 
+  133:     # 4. Маршрутизация исходов
+  134:     from app.models.delta_payloads import (
+  135:         EmotionPayload,
+  136:         IdentityPayload,
+  137:         WillConflictPayload,
+  138:     )
+  139:     from app.models.state_delta import DeltaDomain, StateDeltas
+  140:     from app.models.will import WillState
+  141: 
+  142:     if resonance.trigger_strength > 0.1:
+  143:         logger.info(
+  144:             f"[AFFECT] Resonance detected: strength={resonance.trigger_strength:.2f}, bias={resonance.dominant_bias.value}, triggered={resonance.triggered_imprints}"
+  145:         )
+  146: 
+  147:     if will_response.state in (
+  148:         WillState.COMPLY,
+  149:         WillState.RELUCTANT,
+  150:         WillState.CONDITIONED,
+  151:     ):
+  152:         # Аватар подчиняется (возможно, с неохотой или привыканием)
+  153:         publish_player_intent(ctx, intent)
+  154: 
+  155:         # Фиксация урона идентичности
+  156:         if will_response.identity_damage > 0:
+  157:             ctx.delta_buffer.append(
+  158:                 StateDeltas(
+  159:                     npc_id="player",
+  160:                     domain=DeltaDomain.IDENTITY,
+  161:                     target="player",
+  162:                     payload=IdentityPayload(
+  163:                         identity_integrity_delta=-will_response.identity_damage
+  164:                     ),
+  165:                 )
+  166:             )
+  167: 
+  168:         # ADR-039 FIX: Если Аватар подчинился неохотно (RELUCTANT+) или получил урон —
+  169:         # это каузальное событие Воли. Пишем в ОБЕ трубы: DeltaBuffer (для NPC/истории) и shared_context (для API Игрока)
+  170:         if will_response.state != WillState.COMPLY or will_response.identity_damage > 0:
+  171:             ctx.delta_buffer.append(
+  172:                 StateDeltas(
+  173:                     npc_id="player",
+  174:                     domain=DeltaDomain.WILL,
+  175:                     target="player",
+  176:                     payload=WillConflictPayload(
+  177:                         state=will_response.state.value,
+  178:                         resistance=will_response.resistance,
+  179:                         embodied_vector=will_response.embodied_vector.value  # noqa: ENIGMA001
+  180:                         if will_response.embodied_vector
+  181:                         else None,
+  182:                         identity_damage=will_response.identity_damage,
+  183:                     ),
+  184:                 )
+  185:             )
+  186:             from app.services.will import get_embodied_impulse_text
+  187: 
+  188:             ctx.shared_context.will_conflict_data = {
+  189:                 "original_intent": getattr(intent, "parameters", None)  # noqa: ENIGMA002
+  190:                 and intent.parameters.semantic_action
+  191:                 or getattr(intent, "action", "UNKNOWN"),
+  192:                 "state": will_response.state.value,
+  193:                 "resistance": will_response.resistance,
+  194:                 "embodied_vector": will_response.embodied_vector.value  # noqa: ENIGMA001
+  195:                 if will_response.embodied_vector
+  196:                 else None,
+  197:                 "counter_offer_text": get_embodied_impulse_text(  # noqa: ENIGMA001
+  198:                     will_response.embodied_vector
+  199:                 )
+  200:                 if will_response.embodied_vector
+  201:                 else None,
+  202:             }
+  203:             logger.info(
+  204:                 f"[WILL] Conflict data written: state={will_response.state.value}, R={will_response.resistance:.2f}"
+  205:             )
+  206:     else:
+  207:         # Аватар сопротивляется. Действие блокируется, публикуется WILL_CONFLICT
+  208:         logger.info(
+  209:             f"[WILL] Аватар сопротивляется! State={will_response.state.value}, R={will_response.resistance:.2f}"
+  210:         )
+  211:         from app.domain.events import EventDTO
+  212:         from app.services.events.event_types import EventType
+  213: 
+  214:         # Генерируем структурный конфликт Воли через DeltaBuffer
+  215:         ctx.delta_buffer.append(
+  216:             StateDeltas(
+  217:                 npc_id="player",
+  218:                 domain=DeltaDomain.WILL,
+  219:                 target="player",
+  220:                 payload=WillConflictPayload(
+  221:                     state=will_response.state.value,
+  222:                     resistance=will_response.resistance,
+  223:                     embodied_vector=will_response.embodied_vector.value  # noqa: ENIGMA001
+  224:                     if will_response.embodied_vector
+  225:                     else None,
+  226:                     identity_damage=will_response.identity_damage,
+  227:                 ),
+  228:             )
+  229:         )
+  230: 
+  231:         # Восстанавливаем запись в shared_context для API ответа
+  232:         from app.services.will import get_embodied_impulse_text
+  233: 
+  234:         ctx.shared_context.will_conflict_data = {
+  235:             "original_intent": getattr(intent, "parameters", None)  # noqa: ENIGMA002
+  236:             and intent.parameters.semantic_action
+  237:             or getattr(intent, "action", "UNKNOWN"),
+  238:             "state": will_response.state.value,
+  239:             "resistance": will_response.resistance,
+  240:             "embodied_vector": will_response.embodied_vector.value  # noqa: ENIGMA001
+  241:             if will_response.embodied_vector
+  242:             else None,
+  243:             "counter_offer_text": get_embodied_impulse_text(  # noqa: ENIGMA001
+  244:                 will_response.embodied_vector
+  245:             )
+  246:             if will_response.embodied_vector
+  247:             else None,
+  248:         }
+  249: 
+  250:         # Публикуем событие блокировки для других систем (DM, NPC реакция)
+
+============================================================
+
+2. WillState — definition + writers + readers
+
+============================================================
+
+[READ] WillState enum  backend/app/models/npc_state.py L133-170
+  133: class WillState(str, Enum):
+  134:     """Единое состояние воли NPC. Объединяет базовые состояния и стадии слома."""
+  135: 
+  136:     # Базовые состояния
+  137:     FREE = "free"
+  138:     COERCED = "coerced"
+  139:     DECEPTIVE = "deceptive"
+  140:     LOYAL = "loyal"
+  141: 
+  142:     # Стадии слома и сопротивления (из app.models.will)
+  143:     COMPLY = "comply"
+  144:     RELUCTANT = "reluctant"
+  145:     DELAY = "delay"
+  146:     MISINTERPRET = "misinterpret"
+  147:     NEGOTIATE = "negotiate"
+  148:     PARTIAL_COMPLY = "partial_comply"
+  149:     DISTRESSED = "distressed"
+  150:     PANICKED = "panicked"
+  151:     DISSOCIATING = "dissociating"
+  152:     BROKEN = "broken"
+  153:     CONDITIONED = "conditioned"
+  154:     COUNTER_OFFER = "counter_offer"  # Аватар предлагает альтернативу выживания
+  155:     REFUSE = "refuse"  # Жесткий отказ, готовность к последствиям
+  156: 
+  157: 
+  158: class EmotionTag(str, Enum):
+  159:     """Текущая эмоция NPC — передаётся в VerbalizationContext."""
+  160: 
+  161:     NEUTRAL = "neutral"
+  162:     ANGRY = "angry"
+  163:     FEARFUL = "fearful"
+  164:     HAPPY = "happy"
+  165:     SUSPICIOUS = "suspicious"
+  166:     GRATEFUL = "grateful"
+  167:     DISGUSTED = "disgusted"
+  168:     SAD = "sad"
+  169: 
+  170: 
+
+[SEARCH] will_state assignments  pattern: /will_state\s*=\s*|\.will_state\s*=/
+  51 matches:
+  backend\app\models\npc_state.py:1276 : will_state=WillState(psyche.get("state", "free")),
+  backend\app\services\npc\break_progress_engine.py:167 : elif stage == "resistance" and state.will_state == WillState.BROKEN:
+  backend\app\services\npc\decision_hub.py:465 : will_state=state.will_state.value
+  backend\app\services\npc\decision_hub.py:998 : if state.will_state == WillState.BROKEN:
+  backend\app\services\npc\decision_hub.py:1012 : if state.will_state == WillState.LOYAL:
+  backend\app\services\npc\npc_loader.py:919 : will_state=will_enum,
+  backend\app\services\npc\npc_tick_pipeline.py:724 : will_state=_will_str,
+  backend\app\services\npc\npc_tick_pipeline.py:974 : _opp_will_state = getattr(state, "will_state", None)  # noqa: ENIGMA002
+  backend\app\services\npc\npc_tick_pipeline.py:1529 : will_state=state_for_llm.will_state.value,
+  backend\app\services\npc\state_applicator.py:366 : new_state.will_state = d.will_state_override
+  backend\app\services\phases\decision.py:215 : if _npc_state.will_state == WillState.BROKEN:
+  backend\app\services\world\world_tick_engine.py:149 : if _npc_state.will_state == WillState.BROKEN:
+  backend\app\services\player_avatar_service.py:465 : will_state=_will_state_from_str(data.get("will_state", "free")),
+  backend\tests\gameplay\test_r6_causal_slice_hunger.py:54 : will_state="free",
+  backend\tests\gameplay\test_r6_causal_slice_hunger.py:148 : will_state="deceptive",
+  backend\tests\gameplay\test_r6_causal_slice_hunger.py:176 : dc = _resolve(archetype="thief", will_state="deceptive",
+  backend\tests\gameplay\test_r6_wiring_hunger_pipeline.py:50 : s.will_state = "free"
+  backend\tests\gameplay\test_r6_wiring_hunger_pipeline.py:79 : will_state="free",
+  backend\tests\gameplay\test_r6_wiring_hunger_pipeline.py:98 : will_state="free",
+  backend\tests\gameplay\test_r6_wiring_hunger_pipeline.py:140 : will_state=str(getattr(state, "will_state", "free")),
+  backend\tests\gameplay\test_r6_wiring_hunger_pipeline.py:176 : will_state="free",
+  backend\tests\pbt\properties\test_npc_state_roundtrip.py:36 : assert original_state.will_state == final_state.will_state, f"will_state lost in round-trip! {original_state.will_state} -> {final...
+  backend\tests\sandbox\legacy\decision_hub_sandbox.py:92 : will_state=random.choice(list(WillState)),
+  backend\tests\sandbox\legacy\decision_hub_sandbox.py:167 : will_state=state.will_state.value,
+  backend\tests\sandbox\persistence\test_dm_death_scene_includes_life_status.py:32 : will_state = type("W", (), {"value": "free"})()
+  backend\tests\sandbox\persistence\test_dm_death_scene_includes_life_status.py:49 : will_state = type("W", (), {"value": "broken"})()
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:719 : f"will_state={f70.get('will_state')}",
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:726 : f"fake_in_dump={f70.get('mask_in_dump')}; collapse_leg_will_state={col.get('will_state')}",
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:824 : f"will_state={col.get('will_state')}, mask={col.get('behavior_mask')}, "
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:834 : "will_state=BROKEN ⇒ маска collapse (0.8)",
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:144 : _opp_result = OpportunityEngine().calculate(ctx=_opp, will_state="deceptive")
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_alpha.py:6 : Режим α-M: принудительная установка will_state="deceptive" для thief_shadow
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:203 : _opp = OpportunityEngine().calculate(ctx=_OPP, will_state="deceptive")
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:384 : will_state = psy.get("state", "free")
+  backend\tests\sandbox\system\test_t06_belief_pipeline.py:41 : state.will_state = MagicMock(value="FREE")
+  backend\tests\test_break_progress_engine_r64.py:33 : self.will_state = kwargs.get("will_state", WillState.FREE)
+  backend\tests\test_break_progress_engine_r64.py:140 : npc_state.will_state = WillState.COERCED
+  backend\tests\test_decision_calibration.py:128 : will_state=WillState.FREE,
+  backend\tests\test_decision_hub_goal_boost.py:47 : state_with_project = NPCState(npc_id="test_npc", will_state=WillState.FREE, emotion=EmotionTag.NEUTRAL)
+  backend\tests\test_decision_hub_goal_boost.py:52 : state_without_project = NPCState(npc_id="test_npc", will_state=WillState.FREE, emotion=EmotionTag.NEUTRAL)
+  backend\tests\test_g3_will_integration.py:56 : return NPCState(npc_id="thief_shadow", will_state=WillState.DECEPTIVE)
+  backend\tests\test_npc_npc_stage7.py:135 : will_state="loyal",
+  backend\tests\test_npc_npc_stage7.py:150 : will_state="loyal",
+  backend\tests\test_opportunity_engine.py:27 : """Фикстура для типичного сломленного NPC (will_state = broken)."""
+  backend\tests\test_opportunity_engine.py:33 : """Фикстура для обычного NPC (will_state = free)."""
+  backend\tests\test_opportunity_engine.py:129 : """Даже при will_state=broken низкий score → отказ."""
+  backend\tests\test_phase3_spatial_social.py:69 : will_state=WillState.FREE,
+  backend\tests\test_r2_r5_math.py:36 : will_state=WillState.FREE,
+  backend\tests\test_social_homeostasis.py:137 : will_state="COMPLY",
+  backend\tests\test_state_applicator_pipeline.py:27 : will_state=WillState.FREE,
+  backend\tests\test_state_applicator_pipeline.py:75 : will_state=WillState.FREE,
+
+[SEARCH] will_state reads  pattern: /\.will_state\b/
+  29 matches:
+  backend\app\models\causality_manifest.py:111 : "npc_state.will_state": FieldCausality("DEBT", organ=None, terminal="decision", authority="ADR-O-414"),  # воля вне десятки
+  backend\app\models\npc_state.py:979 : "will_state": self.will_state.value,
+  backend\app\models\npc_state.py:1044 : psyche["state"] = state.will_state.value
+  backend\app\services\game_loop\phase_6_avatar.py:115 : "will_state": state.will_state.value
+  backend\app\services\game_loop\phase_6_avatar.py:116 : if hasattr(state.will_state, "value")
+  backend\app\services\game_loop\phase_6_avatar.py:117 : else str(state.will_state),
+  backend\app\services\npc\break_progress_engine.py:165 : if pressure > BREAK_WILL_BROKEN_PRESSURE_THRESHOLD and state.will_state != WillState.BROKEN:
+  backend\app\services\npc\break_progress_engine.py:167 : elif stage == "resistance" and state.will_state == WillState.BROKEN:
+  backend\app\services\npc\decision_hub.py:465 : will_state=state.will_state.value
+  backend\app\services\npc\decision_hub.py:466 : if hasattr(state.will_state, "value")
+  backend\app\services\npc\decision_hub.py:467 : else str(state.will_state),
+  backend\app\services\npc\decision_hub.py:998 : if state.will_state == WillState.BROKEN:
+  backend\app\services\npc\decision_hub.py:1012 : if state.will_state == WillState.LOYAL:
+  backend\app\services\npc\npc_tick_pipeline.py:1529 : will_state=state_for_llm.will_state.value,
+  backend\app\services\npc\state_applicator.py:366 : new_state.will_state = d.will_state_override
+  backend\app\services\phases\decision.py:215 : if _npc_state.will_state == WillState.BROKEN:
+  backend\app\services\verbalization\verbalization_context.py:151 : will_nuance = _WILL_STATE_NUANCE.get(state.will_state.value)
+  backend\app\services\world\world_tick_engine.py:149 : if _npc_state.will_state == WillState.BROKEN:
+  backend\app\services\player_avatar_service.py:358 : "will_state": state.will_state.value
+  backend\app\services\player_avatar_service.py:359 : if hasattr(state.will_state, "value")
+  backend\app\services\player_avatar_service.py:360 : else str(state.will_state),
+  backend\tests\gameplay\test_r6_wiring_hunger_pipeline.py:50 : s.will_state = "free"
+  backend\tests\pbt\properties\test_npc_state_roundtrip.py:36 : assert original_state.will_state == final_state.will_state, f"will_state lost in round-trip! {original_state.will_state} -> {final...
+  backend\tests\sandbox\legacy\decision_hub_sandbox.py:167 : will_state=state.will_state.value,
+  backend\tests\sandbox\system\test_t06_belief_pipeline.py:41 : state.will_state = MagicMock(value="FREE")
+  backend\tests\test_break_progress_engine_r64.py:33 : self.will_state = kwargs.get("will_state", WillState.FREE)
+  backend\tests\test_break_progress_engine_r64.py:140 : npc_state.will_state = WillState.COERCED
+  backend\tests\test_opportunity_engine.py:120 : result = OpportunityEngine.calculate(high_score_ctx, state.will_state)
+  backend\tests\test_opportunity_engine.py:199 : result = OpportunityEngine.calculate(ctx, broken_npc_state.will_state)
+
+[SEARCH] WillState values usage  pattern: /WillState\.|will_state.*transition|FREE|COERCED|DECEPTIVE|BROKEN|CONDITIONED/
+  557 matches:
+  backend\app\agents\dm_agent.py:375 : if pdata.get("will_state") and pdata["will_state"] != "free":
+  backend\app\api\routes.py:1419 : TIME-FREEZE) субсумирована by construction — кроме player-записи не
+  backend\app\api\routes_chronicle.py:885 : "will_state": psyche.get("state", "free"),
+  backend\app\api\routes_debug.py:90 : "will_state": npc_dict.get("psyche", {}).get("state", "free"),
+  backend\app\core\constants.py:393 : BREAK_WILL_BROKEN_PRESSURE_THRESHOLD: Final[float] = 80.0  # порог для перехода WillState.BROKEN
+  backend\app\domain\activity.py:225 : L-A2 (Catalog Freedom): каталог индексируется по потребностям желаний
+  backend\app\domain\constants.py:54 : # в CarrierMode.FREE: в HELD/CONTAINED/ATTACHED позиция объекта
+  backend\app\domain\object_fsms.py:15 : W1-модель строго БОГАЧЕ ТЗ-состояний: HELD+BROKEN представимо
+  backend\app\domain\object_fsms.py:16 : (state=BROKEN при живом holder; auto-release запрещён,
+  backend\app\domain\object_fsms.py:18 : приоритету BROKEN > HELD > OCCUPIED > AVAILABLE.
+  backend\app\domain\object_fsms.py:24 : state=BROKEN — ДОМЕННЫЙ ЗАКОН в одном месте, без рекурсии в
+  backend\app\domain\object_fsms.py:27 : урона; после BREAK FSM живёт по ТЗ (BROKEN→OPEN легален) при
+  backend\app\domain\object_fsms.py:99 : # ТЗ-точность: LOCKED→CLOSED только через UNLOCK; BROKEN→CLOSED
+  backend\app\domain\object_fsms.py:106 : WorldActionType.BREAK: "BROKEN",
+  backend\app\domain\object_fsms.py:111 : WorldActionType.BREAK: "BROKEN",
+  backend\app\domain\object_fsms.py:113 : "BROKEN": {
+  backend\app\domain\object_fsms.py:114 : WorldActionType.OPEN: "OPEN",      # ТЗ: BROKEN→{OPEN, CLOSED}
+  backend\app\domain\object_fsms.py:115 : WorldActionType.REPAIR: "CLOSED",  # CLOSED-цель из BROKEN = REPAIR
+  backend\app\domain\object_fsms.py:135 : # BROKEN: container DESTROYED — терминален и не ремонтопригоден (ТЗ
+  backend\app\domain\object_fsms.py:136 : # §22.1: из DESTROYED переходов нет); door/chair BROKEN — ремонтопригодны
+  backend\app\domain\object_fsms.py:141 : "door": "BROKEN",
+  backend\app\domain\object_fsms.py:142 : "chair": "BROKEN",
+  backend\app\domain\object_fsms.py:148 : _DAMAGE_TERMINAL_DEFAULT = "BROKEN"
+  backend\app\domain\object_fsms.py:202 : BREAK → state=BROKEN + damage=1.0 (отношения НЕ трогаем)
+  backend\app\domain\object_fsms.py:210 : if obj.state == "BROKEN":
+  backend\app\domain\object_fsms.py:220 : reason=f"IS_BROKEN({action.value} недоступен)")
+  backend\app\domain\object_fsms.py:228 : # effective_state приоритизирует BROKEN (ADR-O-372).
+  backend\app\domain\object_fsms.py:231 : new_obj=dataclass_replace(obj, state="BROKEN", damage=1.0))
+  backend\app\domain\object_fsms.py:240 : if obj.carrier_mode is not CarrierMode.FREE:
+  backend\app\domain\object_fsms.py:243 : reason=f"NOT_FREE({obj.carrier_mode.value})")
+  backend\app\domain\object_fsms.py:257 : if obj.carrier_mode is not CarrierMode.FREE:
+  backend\app\domain\object_fsms.py:260 : reason=f"NOT_FREE({obj.carrier_mode.value})")
+  backend\app\domain\object_fsms.py:321 : не рекурсия в transition_object): damage >= 1.0 → state=BROKEN —
+  backend\app\domain\object_fsms.py:323 : нанесении урона; после BREAK FSM живёт по ТЗ (BROKEN→OPEN), а
+  backend\app\domain\perception.py:21 : embodied_signal: str  # Социальный сигнал: "avoid_gaze", "freeze", "calm"
+  backend\app\domain\relationship_contracts.py:417 : "promise_broken": "F (TrustDeep evidence, отрицательный)",
+  backend\app\domain\snapshot.py:35 : BROKEN = "broken"
+  backend\app\domain\snapshot.py:70 : embodied_vector: Optional[str] = None  # Моторный импульс (AVOIDANCE, FREEZE)
+  backend\app\domain\snapshot.py:95 : 0.0  # Спринт 30: Cognitive Freeze (0.0-1.0), паралич воли
+  backend\app\domain\snapshot.py:155 : cue_key: str  # "FREEZE", "HURRY", "AVOID_GAZE" (renamed from cue_type)
+  backend\app\domain\world_object.py:9 : CarrierMode (FREE | HELD | CONTAINED | ATTACHED) — онтология
+  backend\app\domain\world_object.py:56 : BROKEN = "BROKEN"
+  backend\app\domain\world_object.py:80 : FREE = "FREE"              # авторитет позиции: location_id + position
+  backend\app\domain\world_object.py:105 : Позиция авторитетна ТОЛЬКО в carrier_mode == FREE; у производных
+  backend\app\domain\world_object.py:114 : position: Tuple[float, float]                 # мир (метры); авторитетна только в FREE
+  backend\app\domain\world_object.py:158 : # SUPPORTED_BY онтологически совместим только с FREE: держимая/
+  backend\app\domain\world_object.py:164 : # OCCUPIED_BY совместим только с FREE: сидящий NPC привязан к
+  backend\app\domain\world_object.py:180 : return CarrierMode.FREE
+  backend\app\domain\world_object.py:279 : конструктор-синтеза в тестах). Объект рождается ТОЛЬКО в FREE без
+  backend\app\domain\world_object.py:302 : # Не-carrier отношения: совместимы только с FREE (SUPPORTED, OCCUPIED)
+  backend\app\domain\world_object.py:304 : _FREE_ONLY_FIELDS: Dict[ObjectRelationKind, str] = {
+  backend\app\domain\world_object.py:329 : - SUPPORTED_BY / OCCUPIED_BY устанавливаются только в FREE;
+  backend\app\domain\world_object.py:348 : or _FREE_ONLY_FIELDS.get(kind)
+  backend\app\domain\world_object.py:365 : if obj.carrier_mode is not CarrierMode.FREE:
+  backend\app\domain\world_object.py:379 : if kind in _FREE_ONLY_FIELDS:
+  backend\app\domain\world_object.py:380 : if obj.carrier_mode is not CarrierMode.FREE:
+  backend\app\domain\world_object.py:383 : f"с FREE (carrier={obj.carrier_mode.value})")
+  backend\app\domain\world_object.py:384 : return dataclass_replace(obj, **{_FREE_ONLY_FIELDS[kind]: target_id})
+  backend\app\domain\world_object.py:396 : """Pure перемещение (LOCATED_AT). Требует чистого FREE: ни carrier,
+  backend\app\domain\world_object.py:401 : if obj.carrier_mode is not CarrierMode.FREE:
+  backend\app\models\affect.py:57 : FREEZE = "freeze"  # Оцепенение, ступор
+  backend\app\models\behavior_mask.py:7 : независимый от внутреннего WillState.
+  backend\app\models\behavior_mask.py:14 : WillState = что происходит внутри (broken, coerced...)
+  backend\app\models\behavior_mask.py:29 : Не является заменой WillState. Накладывается поверх него.
+  backend\app\models\character.py:50 : "freedom",  # свобода — независимость от контроля
+  backend\app\models\delta_payloads.py:135 : state: str  # WillState.value (RELUCTANT, DISTRESSED, etc.)
+  backend\app\models\delta_payloads.py:137 : embodied_vector: Optional[str]  # Моторный импульс (AVOIDANCE, FREEZE, etc.)
+  backend\app\models\fate.py:23 : BROKEN = "broken"
+  backend\app\models\front.py:36 : DECEPTIVE = "deceptive"  # обман — репутация ↔ истинные ценности
+  backend\app\models\front.py:45 : "value_conflict": FrontType.DECEPTIVE,
+  backend\app\models\front.py:121 : FrontType.DECEPTIVE: 0.010,  # самый дорогой — двойная жизнь
+  backend\app\models\last_words.py:16 : BROKEN = "broken"
+  backend\app\models\npc_state.py:137 : FREE = "free"
+  backend\app\models\npc_state.py:138 : COERCED = "coerced"
+  backend\app\models\npc_state.py:139 : DECEPTIVE = "deceptive"
+  backend\app\models\npc_state.py:152 : BROKEN = "broken"
+  backend\app\models\npc_state.py:153 : CONDITIONED = "conditioned"
+  backend\app\models\npc_state.py:204 : NONE — NPC держится. CRACK — запинается. PARTIAL — часть правды. BROKEN — сломлен.
+  backend\app\models\npc_state.py:210 : BROKEN = "broken"
+  backend\app\models\npc_state.py:755 : will_state: WillState = WillState.FREE
+  backend\app\models\npc_state.py:1276 : will_state=WillState(psyche.get("state", "free")),
+  backend\app\models\will.py:37 : FREEZE = "freeze"  # Оцепенение, столбняк
+  backend\app\services\action\commitment_arbiter.py:12 : существующий mirror при материализации (race-free by construction).
+  backend\app\services\calibration\preset_materializer.py:182 : broken = [f"{m.__name__}.{a}" for m, a in remaining]
+  backend\app\services\calibration\preset_materializer.py:184 : f"восстановление config/npc неполное, temp держат: {broken}"
+  backend\app\services\character\front_engine.py:60 : FrontType.DECEPTIVE: "персонаж играет роль, не соответствующую его истинным ценностям",
+  backend\app\services\character\front_engine.py:68 : FrontType.DECEPTIVE: "лицемерие раскрыто — окружение видит истинное лицо",
+  backend\app\services\economy\opportunity_engine.py:158 : # воли. BROKEN: отчаяние толкает на риск (R6.3-модель). DECEPTIVE:
+  backend\app\services\economy\opportunity_engine.py:159 : # обман — профессия/натура (вор; S209 thief-архетип). FREE/LOYAL/COERCED
+  backend\app\services\economy\opportunity_engine.py:161 : if will_state not in ("broken", "deceptive"):
+  backend\app\services\game_loop\pipeline_state.py:27 : # time.time() подменяется time_freezer во время replay, что ломает метрики.
+  backend\app\services\game_loop\turn_pipeline.py:598 : "mental_state": "broken",
+  backend\app\services\llm\llama_cpp_provider.py:186 : # Без этого llama-server работает в free-form режиме — мелкие модели могут остановиться
+  backend\app\services\llm\router.py:821 : raise RuntimeError("Replay determinism broken: LLM cache miss in playback")
+  backend\app\services\llm\router.py:928 : "Replay determinism broken: LLM cache miss in playback "
+  backend\app\services\llm\router.py:1072 : "Replay determinism broken: playback mode without replay store "
+  backend\app\services\llm\router.py:1084 : "Replay determinism broken: LLM stream cache miss in playback "
+  backend\app\services\llm\server_lifecycle.py:382 : return ("spawn", f"port {port} free, health silent")
+  backend\app\services\memory\memory_manager.py:513 : return DiscoveryCrack.PARTIAL if total > -0.1 else DiscoveryCrack.BROKEN
+  backend\app\services\npc\activity_catalog.py:3 : Назначение: Living Activity — каталог деятельностей (L-A2 Catalog Freedom:
+  backend\app\services\npc\activity_lifecycle_service.py:178 : лексикографический минимум id. Занятые (не-FREE) — не цель: контракт
+  backend\app\services\npc\break_progress_engine.py:7 : 1. Острые мутации (TRAUMA_TOPOLOGY): символические травмы (например, "will_broken"),
+  backend\app\services\npc\break_progress_engine.py:45 : BREAK_WILL_BROKEN_PRESSURE_THRESHOLD,
+  backend\app\services\npc\break_progress_engine.py:160 : # Переход в BROKEN только при deformation и высоком pressure
+  backend\app\services\npc\break_progress_engine.py:165 : if pressure > BREAK_WILL_BROKEN_PRESSURE_THRESHOLD and state.will_state != WillState.BROKEN:
+  backend\app\services\npc\break_progress_engine.py:166 : will_override = WillState.BROKEN
+  backend\app\services\npc\break_progress_engine.py:167 : elif stage == "resistance" and state.will_state == WillState.BROKEN:
+  backend\app\services\npc\break_progress_engine.py:168 : # V8-PSY-3 FIX: Recovery path from BROKEN to FREE
+  backend\app\services\npc\break_progress_engine.py:169 : will_override = WillState.FREE
+  backend\app\services\npc\break_progress_engine.py:177 : if will_override == WillState.BROKEN:
+  backend\app\services\npc\break_progress_engine.py:178 : logger.info(f"[BREAK] npc={state.npc_id} stage=deformation will_override=BROKEN")
+  backend\app\services\npc\break_progress_engine.py:199 : "will_broken": {
+  backend\app\services\npc\causal_slice_hunger.py:54 : will_state: str = "free",
+  backend\app\services\npc\causal_slice_hunger.py:109 : # S209: скрытное действие — привилегия broken/deceptive воли
+  backend\app\services\npc\causal_slice_hunger.py:110 : if will_state not in ("broken", "deceptive"):
+  backend\app\services\npc\decision_hub.py:868 : # = зеркало whitelist валидатора (target-free интенты легальны).
+  backend\app\services\npc\decision_hub.py:995 : R6.3: BROKEN NPC с активной маской получает скрытые интенты
+  backend\app\services\npc\decision_hub.py:998 : if state.will_state == WillState.BROKEN:
+  backend\app\services\npc\decision_hub.py:1012 : if state.will_state == WillState.LOYAL:
+  backend\app\services\npc\decision_hub.py:1026 : message=f"DecisionHub: effective_drives missing for {state.npc_id}. L3 pipeline broken.",
+  backend\app\services\npc\life_engine.py:1480 : # физически на need-driven позиции → DOUBLE TRUTH → Schedule Freeze
+  backend\app\services\npc\life_engine.py:2088 : # S89: Диагностика Schedule Freeze — отслеживание переходов активности
+  backend\app\services\npc\npc_loader.py:876 : will_str = psyche.get("state", "free")
+  backend\app\services\npc\npc_loader.py:880 : will_enum = WillState.FREE
+  backend\app\services\npc\npc_tick_contracts.py:66 : # Спринт 30: Когнитивное подавление для визуализации Cognitive Freeze во фронтенде
+  backend\app\services\npc\npc_tick_pipeline.py:701 : else str(_opp_will or "free")
+  backend\app\services\npc\perception_engine.py:60 : npc_freedom = npc.get("status_profile", {}).get("freedom", 50)
+  backend\app\services\npc\perception_engine.py:76 : if npc_freedom < 20:
+  backend\app\services\npc\reaction_priority.py:142 : if change.type == ChangeType.OBJECT_STATE and change.value in ("damaged", "broken"):
+  backend\app\services\npc\state_applicator.py:367 : if d.will_state_override == WillState.BROKEN:
+  backend\app\services\npc\state_applicator.py:368 : new_state.trauma_markers.add("will_broken")
+  backend\app\services\perception\perceptual_attention_service.py:101 : return "FREEZE"
+  backend\app\services\phases\decision.py:215 : if _npc_state.will_state == WillState.BROKEN:
+  backend\app\services\phases\input.py:148 : WillState.COMPLY,
+  backend\app\services\phases\input.py:149 : WillState.RELUCTANT,
+  backend\app\services\phases\input.py:150 : WillState.CONDITIONED,
+  backend\app\services\phases\input.py:170 : if will_response.state != WillState.COMPLY or will_response.identity_damage > 0:
+  backend\app\services\phases\integration.py:316 : "freeze"
+  backend\app\services\player_cognition\perception_layer.py:82 : if state in ("intact", "broken"):
+  backend\app\services\presentation\avatar_presentation_assembler.py:63 : mental_state = MentalPresentationState.BROKEN
+  backend\app\services\presentation\avatar_presentation_assembler.py:129 : mental_state = MentalPresentationState.BROKEN
+  backend\app\services\replay\replay_player.py:5 : Зависимости: app.services.replay.replay_store, app.services.replay.time_freezer
+  backend\app\services\replay\replay_player.py:13 : from app.services.replay.time_freezer import frozen_time
+  backend\app\services\replay\time_freezer.py:1 : # backend/app/services/replay/time_freezer.py
+  backend\app\services\replay\time_freezer.py:3 : path: backend/app/services/replay/time_freezer.py
+  backend\app\services\scene\narrative_extractor.py:11 : 3. State machine с приоритетами — broken не становится held
+  backend\app\services\scene\narrative_extractor.py:158 : "broken": 3,  # финальное состояние
+  backend\app\services\scene\narrative_extractor.py:320 : """Фикс #3: FSM. broken не становится held."""
+  backend\app\services\scene\salience_engine.py:57 : if state == "broken":
+  backend\app\services\scene_state\scene_factory.py:246 : # Foundation Freeze: scene_state round-trip без whitelist).
+  backend\app\services\scene_state\scene_factory.py:254 : # (прецедент commitment_ordinals, Foundation Freeze: без whitelist).
+  backend\app\services\scene_state\scene_factory.py:259 : # read-дефолты стора (Foundation Freeze, без whitelist).
+  backend\app\services\social\end_screen_narrator.py:28 : "broken": f"{npc_id} сломлен духовно и физически, его дни сочтены.",
+  backend\app\services\social\fate_tracker.py:18 : # Phase 8.2: Счётчик тиков в CRITICAL для инварианта INV-FATE-CRITICAL-BROKEN
+  backend\app\services\social\last_words_system.py:22 : FateOutcome.BROKEN: "Я не могу. Я больше не могу. Подвал... он всегда будет здесь. И я всегда буду здесь.",
+  backend\app\services\social\last_words_system.py:27 : FateOutcome.BROKEN: "Ты полезный инструмент. Инструменты ломаются.",
+  backend\app\services\social\last_words_system.py:33 : FateOutcome.BROKEN: "Всё кончено. Гильдия заберёт всё. Моя семья... что будет с ними?"
+  backend\app\services\social\last_words_system.py:62 : tone = LastWordTone.BROKEN
+  backend\app\services\social\mvp_tavern_controller.py:194 : # Phase 8.2: Инвариант INV-FATE-CRITICAL-BROKEN
+  backend\app\services\social\mvp_tavern_controller.py:195 : # BROKEN вызывается только если NPC пробыл в CRITICAL 5 тиков подряд
+  backend\app\services\social\mvp_tavern_controller.py:201 : npc_id=npc_id, outcome=FateOutcome.BROKEN,
+  backend\app\services\social\relationship_state_store.py:9 : диск — только через существующий atomic_commit_all (Foundation Freeze);
+  backend\app\services\social\v2_relationship_backend.py:16 : disk-on-update ЗАПРЕЩЁН (Foundation Freeze: диск — только
+  backend\app\services\social\v2_relationship_backend.py:22 : на диск существующим atomic_commit_all (Фаза 10, Foundation Freeze).
+  backend\app\services\spatial\graph_compiler.py:658 : logger.debug(f"[DIAG_RETURN_BROKEN_WALL] {w}")
+  backend\app\services\verbalization\verbalization_context.py:93 : WillState.BROKEN.value: "полностью сломлен — подчиняется из страха, голос дрожит",
+  backend\app\services\verbalization\verbalization_context.py:94 : WillState.COERCED.value: "внешне подчиняется, внутри затаил злость",
+  backend\app\services\verbalization\verbalization_context.py:95 : WillState.DECEPTIVE.value: "притворяется, ждёт момента для предательства",
+  backend\app\services\verbalization\verbalization_context.py:96 : WillState.LOYAL.value: "искренне предан, готов помочь",
+  backend\app\services\world\affordance_facts.py:7 : (CarrierMode.FREE ∧ IS_ADJACENT_TO). Предикат переиспользуется из
+  backend\app\services\world\affordance_facts.py:8 : закрытого реестра W2 (lockstep калибровки 1.5м/FREE — D2, ноль
+  backend\app\services\world\affordance_facts.py:63 : FREE + евклид ≤ AFFORDANCE_ADJACENCY_RADIUS_M (та же калибровка, что
+  backend\app\services\world\affordance_resolver.py:84 : Позиция авторитетна ТОЛЬКО в CarrierMode.FREE (ADR-O-371);
+  backend\app\services\world\affordance_resolver.py:87 : if obj.carrier_mode is not CarrierMode.FREE:
+  backend\app\services\world\affordance_resolver.py:136 : chair: производная — BROKEN(state) > HELD(holder) > OCCUPIED(occupancy)
+  backend\app\services\world\affordance_resolver.py:142 : if obj.state == "BROKEN":
+  backend\app\services\world\affordance_resolver.py:143 : return "BROKEN"
+  backend\app\services\world\affordance_resolver.py:154 : if obj.state in ("BROKEN", "DESTROYED", "DAMAGED"):
+  backend\app\services\world\affordance_resolver.py:230 : ("door", "BROKEN"): _actions(
+  backend\app\services\world\affordance_resolver.py:231 : ("door", "BROKEN"),
+  backend\app\services\world\affordance_resolver.py:263 : ("chair", "BROKEN"): _actions(
+  backend\app\services\world\affordance_resolver.py:264 : ("chair", "BROKEN"),
+  backend\app\services\world\object_target_facts.py:10 : #     Читает ТОЛЬКО freeze-проекцию снапшота (INV-III). Ничего не
+  backend\app\services\world\object_target_facts.py:35 : """Pure: freeze-снапшот → {npc_id: object_id}.
+  backend\app\services\world\object_target_facts.py:37 : Семантика: цель = ближайший FREE-объект targetable-архетипа в
+  backend\app\services\world\object_target_facts.py:56 : and _o.carrier_mode.value == "FREE"
+  backend\app\services\world\world_object_store.py:7 : существующий atomic_commit_all (Foundation Freeze), собственные
+  backend\app\services\world\world_object_store.py:289 : FREE: позиция HELD/CONTAINED/ATTACHED — производная владельца,
+  backend\app\services\world\world_object_store.py:298 : if obj.carrier_mode != CarrierMode.FREE:
+  backend\app\services\world\world_object_store.py:320 : Рождается ТОЛЬКО в FREE без отношений — связывание отдельной
+  backend\app\services\world\world_object_store.py:365 : # Опора обязана быть position-authoritative (FREE):
+  backend\app\services\world\world_object_store.py:367 : if target.carrier_mode != CarrierMode.FREE:
+  backend\app\services\world\world_object_store.py:369 : f"world_objects: опора '{target_id}' не FREE "
+  backend\app\services\world\world_object_store.py:464 : Доменный закон (damage >= 1.0 -> BROKEN) — в
+  backend\app\services\world\world_tick_engine.py:149 : if _npc_state.will_state == WillState.BROKEN:
+  backend\app\services\affect.py:191 : elif dominant_bias == ResponseBias.FREEZE:
+  backend\app\services\affect.py:250 : return ResponseBias.FREEZE
+  backend\app\services\affect.py:262 : # distort-ветке). FREEZE — безопасный дефолт неопределённости (ступор).
+  backend\app\services\affect.py:263 : return ResponseBias.FREEZE
+  backend\app\services\affect.py:346 : WillState.RELUCTANT,
+  backend\app\services\affect.py:347 : # FIX(mypy/runtime): WillState.SUBMISSION не существует (AttributeError
+  backend\app\services\affect.py:350 : WillState.COMPLY,
+  backend\app\services\affect.py:351 : WillState.BROKEN,
+  backend\app\services\affect.py:352 : WillState.CONDITIONED,
+  backend\app\services\player_avatar_service.py:48 : logger.debug(f"Invalid WillState, returning FREE: {e}")
+  backend\app\services\player_avatar_service.py:49 : return WillState.FREE
+  backend\app\services\player_avatar_service.py:465 : will_state=_will_state_from_str(data.get("will_state", "free")),
+  backend\app\services\scene_state_manager.py:1602 : f"Graph is broken. NPC skipped (no local_position assigned)."
+  backend\app\services\tick_orchestrator.py:2314 : # вход (freeze-снапшот), тот же флаг W3_G3_ENABLED (default OFF =
+  backend\app\services\tick_orchestrator.py:2570 : # INV-DEF: Проверка инварианта времени (INV-TIME-FREEZE)
+  backend\app\services\tick_orchestrator.py:2576 : invariant_id="INV-TIME-FREEZE",
+  backend\app\services\tick_utils.py:416 : # S83.1: Tick = Pure Function Evaluation. Freeze input snapshot.
+  backend\app\services\will.py:226 : return WillState.COMPLY
+  backend\app\services\will.py:228 : return WillState.RELUCTANT
+  backend\app\services\will.py:230 : return WillState.DISTRESSED
+  backend\app\services\will.py:232 : return WillState.PANICKED
+  backend\app\services\will.py:234 : return WillState.DISSOCIATING
+  backend\app\services\will.py:236 : return WillState.BROKEN
+  backend\app\services\will.py:238 : return WillState.CONDITIONED
+  backend\app\services\will.py:245 : if state in (WillState.COMPLY, WillState.RELUCTANT):
+  backend\app\services\will.py:272 : if state == WillState.DISTRESSED:
+  backend\app\services\will.py:274 : elif state == WillState.PANICKED:
+  backend\app\services\will.py:276 : elif state == WillState.DISSOCIATING:
+  backend\app\services\will.py:278 : elif state == WillState.BROKEN:
+  backend\app\services\will.py:292 : EmbodiedVector.FREEZE: "Замереть...",
+  backend\app\services\will.py:311 : if state in (WillState.COMPLY, WillState.RELUCTANT, WillState.PARTIAL_COMPLY):
+  backend\app\services\will.py:313 : return EmbodiedVector.FREEZE, SocialSignal.VIOLENCE, CrowdThreatLevel.MEDIUM
+  backend\app\services\will.py:317 : if state == WillState.PANICKED or pressure.self_risk > 0.7:
+  backend\app\services\will.py:325 : if state == WillState.DISSOCIATING or pressure.violence > 0.8:
+  backend\app\services\will.py:326 : return EmbodiedVector.FREEZE, SocialSignal.FEAR, CrowdThreatLevel.MEDIUM
+  backend\app\services\will.py:333 : if state == WillState.BROKEN or pressure.humiliation > 0.7:
+  backend\app\services\will.py:337 : if pressure.self_risk > 0.5 and state == WillState.DISTRESSED:
+  backend\app\services\will.py:341 : if state == WillState.DISTRESSED:
+  backend\app\services\will.py:342 : return EmbodiedVector.FREEZE, SocialSignal.DISCOMFORT, CrowdThreatLevel.LOW
+  backend\tests\calibration_lab\test_m0_acceptance.py:76 : assert r.nan_count == 0  # хаос ≠ слом (зона BROKEN)
+  backend\tests\gameplay\test_gc01_vertical_slice.py:13 : INV-TICK-CARDINALITY, ADR-002, ADR-O-344, INV-TIME-FREEZE,
+  backend\tests\gameplay\test_gc01_vertical_slice.py:117 : """INV-TIME-FREEZE: SimulationIntegrityError не выбрасывается в штатном idle.
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:5 : #   обходит DM-классификатор (LLM-free), идёт через production write-path:
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:28 : LLM-free: InterventionEvent с готовым payload.semantic_action обходит
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:43 : обходит DM-классификатор полностью (LLM-free path).
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:92 : """Production runtime; LLM-free path (не требует _ensure_llm)."""
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:122 : # 2. Inject HELP InterventionEvent через idle_tick (LLM-free path)
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:272 : "GC02-STEP3 FAIL: trust потерян после idle_tick (persistence broken)"
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:280 : f"threshold={_persistence_threshold}). Persistence broken: "
+  backend\tests\gameplay\test_gc05_production_path_testimony.py:30 : - _executor_pool = _SyncPool()  — sync-execution, timing-free
+  backend\tests\gameplay\test_gc05_production_path_testimony.py:31 : - _router = None                — LLM-free, stub-text (proposition preserved)
+  backend\tests\gameplay\test_gc05_production_path_testimony.py:124 : print("[WIRING] DialogueExecutor._router = None (LLM-free)")
+  backend\tests\gameplay\test_gc05_production_path_testimony.py:128 : print("[WIRING] _executor_pool = _SyncPool (sync, timing-free)")
+  backend\tests\gameplay\test_gc05_production_path_testimony.py:190 : LLM-free, produces_claim=True)
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:16 : 1. Игрок ACCUSE maid_lusya (InterventionEvent — production-path, LLM-free)
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:96 : """Production runtime; LLM-free path."""
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:225 : f"Persistence broken: epistemic_records не сохраняются "
+  backend\tests\gameplay\test_gc27_player_visible_consequence.py:31 : LLM-free: NPC движение — autonomous LifeEngine.tick() (schedule/need/random),
+  backend\tests\gameplay\test_gc27_player_visible_consequence.py:72 : """Production runtime; LLM-free path (NPC movement — LifeEngine autonomous)."""
+  backend\tests\gameplay\test_lc_impl2_telegraph_reaches_client.py:28 : LLM-free: idle_tick без interventions — autonomous NPC movement/activity.
+  backend\tests\gameplay\test_lc_impl2_telegraph_reaches_client.py:40 : """Production runtime; LLM-free path."""
+  backend\tests\gameplay\test_r6_causal_slice_hunger.py:54 : will_state="free",
+  backend\tests\gameplay\test_r6_causal_slice_hunger.py:82 : "food_price": 2.0, "archetype": "commoner", "will_state": "free",
+  backend\tests\gameplay\test_r6_causal_slice_hunger.py:139 : """W4b: тот же враг, но A=thief + deceptive → addressee=enemy,
+  backend\tests\gameplay\test_r6_causal_slice_hunger.py:148 : will_state="deceptive",
+  backend\tests\gameplay\test_r6_causal_slice_hunger.py:176 : dc = _resolve(archetype="thief", will_state="deceptive",
+  backend\tests\gameplay\test_r6_wiring_hunger_pipeline.py:50 : s.will_state = "free"
+  backend\tests\gameplay\test_r6_wiring_hunger_pipeline.py:79 : will_state="free",
+  backend\tests\gameplay\test_r6_wiring_hunger_pipeline.py:98 : will_state="free",
+  backend\tests\gameplay\test_r6_wiring_hunger_pipeline.py:140 : will_state=str(getattr(state, "will_state", "free")),
+  backend\tests\gameplay\test_r6_wiring_hunger_pipeline.py:176 : will_state="free",
+  backend\tests\gameplay\test_tavern_vertical.py:20 : _TICKS = 100  # GC-00: 100 LLM-free тиков
+  backend\tests\gameplay\test_tavern_vertical.py:45 : """GC-00 «Game is actually alive»: 100 LLM-free тиков через production
+  backend\tests\gameplay\test_tavern_vertical.py:79 : "INV-TIME-FREEZE либо idle_tick result-contract не распознан harness'ом; "
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:183 : "state": "free",
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:223 : "psyche": {"stress": 0.0, "state": "free", "affective_load": 0.0, "drives_base": {}},
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:249 : "psyche": {"stress": 0.0, "state": "free", "affective_load": 0.0, "drives_base": {}, "beliefs": {}},
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:278 : "state": "free",
+  backend\tests\micro\test_chronicle_roster.py:26 : (d / "broken.json").write_text("{ не-json", encoding="utf-8")
+  backend\tests\micro\test_d70_startup_gate.py:145 : return_value=["NPC X: broken", "EventBus: no subs"]):
+  backend\tests\micro\test_d72_replay_budget.py:366 : assert store.count_sessions() == 5, "atomicity broken: sessions deleted"
+  backend\tests\micro\test_d72_replay_budget.py:375 : assert n == 5, f"atomicity broken: {table} has {n} rows, expected 5"
+  backend\tests\micro\test_dlg0_corpus.py:14 : - Подмена результатов не допускается (broken expectation → FAIL)
+  backend\tests\micro\test_dlg0_corpus.py:96 : def test_no_result_substitution_broken_expectation_fails(self):
+  backend\tests\micro\test_dlg0_corpus.py:97 : """Broken expectation (expected=999) → FAIL — доказывает, что скорер
+  backend\tests\micro\test_dlg0_corpus.py:99 : s_broken = DLGScenario(
+  backend\tests\micro\test_dlg0_corpus.py:100 : scenario_id="dlg-test-broken",
+  backend\tests\micro\test_dlg0_corpus.py:102 : description="broken expectation — must FAIL",
+  backend\tests\micro\test_dlg0_corpus.py:107 : text="Мю", event_id="evt-broken",
+  backend\tests\micro\test_dlg0_corpus.py:114 : r = _run_scenario(s_broken)
+  backend\tests\micro\test_dlg0_corpus.py:117 : f"broken expectation must FAIL — proves no substitution; detail={claims_check.detail}"
+  backend\tests\micro\test_fast_phantom_attack.py:61 : def test_real_attack_not_broken():
+  backend\tests\micro\test_llm_resilience_v1.py:582 : _sl, "acquire_llama_server_lock", lambda port, url: ("spawn", "free")
+  backend\tests\micro\test_re_cache_allowlist.py:94 : """Боевой прогон на живом дереве: freeze соблюдён (ADR-O-415)."""
+  backend\tests\pbt\strategies.py:13 : "state": st.sampled_from(["free", "coerced", "deceptive", "loyal", "comply", "reluctant", "delay", "misinterpret", "negotiate", "p...
+  backend\tests\sandbox\micro\test_attention_reflex_fsm.py:121 : def test_lost_freezes_and_gc_removes() -> None:
+  backend\tests\sandbox\persistence\test_dm_death_scene_includes_life_status.py:32 : will_state = type("W", (), {"value": "free"})()
+  backend\tests\sandbox\persistence\test_dm_death_scene_includes_life_status.py:49 : will_state = type("W", (), {"value": "broken"})()
+  backend\tests\sandbox\persistence\test_dm_death_scene_includes_life_status.py:141 : "will_state": "broken",
+  backend\tests\sandbox\persistence\test_player_body_state_survives_save_load.py:36 : "will_state": "free",
+  backend\tests\sandbox\phenomenology\_skip_test_affective_pressure.py:78 : def test_broken_will_leads_to_panic(self):
+  backend\tests\sandbox\probes\llm_down_smoke_probe.py:212 : p4a_outcome = "timeout_after_freeze"
+  backend\tests\sandbox\probes\llm_down_smoke_probe.py:215 : REPORT["p4a_sync_freeze"] = {"outcome": p4a_outcome,
+  backend\tests\sandbox\probes\llm_down_smoke_probe.py:218 : _mark("P4a", **REPORT["p4a_sync_freeze"])
+  backend\tests\sandbox\probes\llm_down_smoke_probe.py:238 : # cancelled/freeze ~3с+ = real sync-заморозка внутри async (подтверждение D66).
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:3 : LLM-free, headless, детерминированный корпус для измерения baseline
+  backend\tests\sandbox\stress\test_schedule_override.py:51 : def free_npc() -> dict:
+  backend\tests\sandbox\stress\test_schedule_override.py:70 : def test_cognitive_override_guard_blocks_schedule(engine, suppressed_npc, free_npc):
+  backend\tests\sandbox\stress\test_schedule_override.py:82 : changes_free, intent_free = engine._simulate_minor(free_npc, current_time=current_time, tick=1)
+  backend\tests\sandbox\stress\test_schedule_override.py:90 : assert (len(changes_free) > 0) or (intent_free is not None), (
+  backend\tests\sandbox\stress\test_schedule_override.py:96 : print(f"Worker 02 (suppressed=0.10): changes={len(changes_free)} items (EXPECTED: >0)")
+  backend\tests\sandbox\SUPERBOX\scenarios\action_integrity_test.py:345 : _log("\n=== SCENARIO C: IMPOSSIBLE (broken activity_map) ===")
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:48 : broken_root = root / "broken"
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:49 : broken_root.mkdir()
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:50 : (broken_root / CAMP).mkdir()
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:51 : (broken_root / CAMP / "player_avatar.json").write_text(
+  backend\tests\sandbox\SUPERBOX\scenarios\avatar_ownership_sync_test.py:55 : svc2 = PlayerAvatarService(root=str(broken_root))
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:47 : "LEG-COLLAPSE": "config/calibration/test_presets/golden_collapse_broken.yaml",
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:525 : out["order_broken"] = bool(
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:597 : # ── COLLAPSE-unit: ветка BROKEN (isolated; вход ставится на реальном
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:610 : fin_broken = copy.deepcopy(f70_fin)
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:611 : _psy_broken = fin_broken.setdefault("psyche", {})
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:612 : _psy_broken["state"] = "broken"
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:613 : # В2: recovery (BROKEN→FREE) срабатывает ТОЛЬКО при stage="resistance"
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:617 : _psy_broken["identity_integrity"] = 0.4
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:618 : tapc = _phase_call(fin_broken, trust=0.0, fear=0.0)
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:712 : col_broken = col.get("will_state") == "broken"
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:715 : "Испуганный NPC изображает покорность, сохраняя намерения (will≠broken)",
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:717 : "fake_submission доставлена; will_state≠broken; TALK-буст",
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:724 : "in-game", _PASS if delivered and col_broken else _FAIL,
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:767 : col_broken = col.get("will_state") == "broken"
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:818 : _mk("B6a", "B", "COLLAPSE-нога: WillState.BROKEN возник (verify-first, Q1)",
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:820 : (_PASS if col_broken and col.get("behavior_mask") == "collapse"
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:821 : else (_FAIL if col_broken else _NOT_PROVEN)),
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:822 : "psyche.state=broken возник; маска collapse доставлена",
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:827 : "BREAK_WILL_BROKEN_PRESSURE_THRESHOLD=80 > максимума давления (social 40; "
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:831 : "BROKEN недостижим. Сценарный путь ADR-O-367 — кандидат этапа фикса.")),
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:832 : _mk("B6b", "B", "COLLAPSE-compute: ветка BROKEN в фазе",
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:834 : "will_state=BROKEN ⇒ маска collapse (0.8)",
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:863 : "isolated", _FAIL if units.get("order_broken") else _PASS,
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:868 : note=("Этап A/V3: order_broken=false — маска пишется ДО проекции. "
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:901 : "broken (S318): маска после проекции" if units.get("order_broken")
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:905 : ("broken (WARA): не пишутся " + ", ".join(mask_missing))
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:912 : else "broken: round-trip теряет маску"),
+  backend\tests\sandbox\SUPERBOX\scenarios\d61_llm_outage_doctrine_test.py:117 : """LLM-free шум (eat/lc-прецедент): глушим воркеров/роутер/очереди."""
+  backend\tests\sandbox\SUPERBOX\scenarios\eat_vertical_test.py:102 : """LLM-free прогон: глушим фоновый шум воркеров/роутера/очередей
+  backend\tests\sandbox\SUPERBOX\scenarios\ebm1_passport.py:7 : # Основные сущности: make_passport(), artifact_hashes(), freeze_valid(),
+  backend\tests\sandbox\SUPERBOX\scenarios\ebm1_passport.py:119 : def freeze_valid(passport: Dict[str, Any]) -> Tuple[bool, List[str]]:
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:363 : # (прецедент freeze β-харнесса S225) — гейт читает DEAD
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:238 : # witness и повторяем реплику (freeze не нужен: проверяем глухоту).
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:79 : def _freeze_spatial_consumers_v(world, frozen_sq, ev_bus=None) -> int:
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:85 : свидетелей из sight-radius в момент THEFT — freeze восстанавливает
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:144 : _opp_result = OpportunityEngine().calculate(ctx=_opp, will_state="deceptive")
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:153 : # ВНУТРИ с will_state ИЗ state — "free" гейтится движком (score=0).
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:161 : _psyche["state"] = "deceptive"
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:268 : _n_patched = _freeze_spatial_consumers_v(world, _frozen_sq, ev_bus=bus)
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:269 : print(f"[G2-FREEZE] spatial-потребители заморожены: {_n_patched}")
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:474 : # методы. Генерический freeze по bus2 закрывает ВСЕХ spatial-потребителей
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:478 : _freeze_spatial_consumers_v(world2, _ctrl_sq, ev_bus=bus2)
+  backend\tests\sandbox\SUPERBOX\scenarios\lc_gc01_world_speaks_test.py:71 : """LLM-free прогон (eat-прецедент): глушим шум воркеров/роутера/очередей."""
+  backend\tests\sandbox\SUPERBOX\scenarios\lc_gc01_world_speaks_test.py:259 : _leak_free = not _scene_has_projection_artifacts(world)
+  backend\tests\sandbox\SUPERBOX\scenarios\lc_gc01_world_speaks_test.py:266 : and _leak_free
+  backend\tests\sandbox\SUPERBOX\scenarios\lc_gc01_world_speaks_test.py:278 : + f", утечка={not _leak_free}",
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_alpha.py:6 : Режим α-M: принудительная установка will_state="deceptive" для thief_shadow
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:7 : (psyche["state"]="deceptive"), прямой production-compute с фиксированным
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:158 : def _freeze_spatial_consumers(world, sq) -> int:
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:193 : _psyche["state"] = "deceptive"
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:203 : _opp = OpportunityEngine().calculate(ctx=_OPP, will_state="deceptive")
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:293 : _patched = _freeze_spatial_consumers(world, _sq)
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:497 : print(" VERDICT: RED (Chain broken or Control failed)")
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:272 : assert psy.get("identity_integrity", 1.0) < 1.0 or psy.get("state") in ["STRAIN", "BROKEN"], "Will not degraded"
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:366 : """NPC признаётся в тайне только при WillState.BROKEN."""
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:384 : will_state = psy.get("state", "free")
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:388 : if will_state in ["STRAIN", "BROKEN"]:
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:392 : assert any("reveal_secret" in e.event_type for e in trace), "No reveal_secret event when broken"
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:422 : will_state_after = getattr(avatar_after, "will_state", "free")
+  backend\tests\sandbox\system\test_life_direction_crisis.py:77 : state_broken = NPCState(
+  backend\tests\sandbox\system\test_life_direction_crisis.py:85 : state_broken.perceptual_kernel = PerceptualKernel(threat_gradient=0.9)
+  backend\tests\sandbox\system\test_life_direction_crisis.py:88 : state=state_broken,
+  backend\tests\sandbox\system\test_life_direction_crisis.py:97 : LifeProjectResolver.resolve(state_broken, deltas.identity_pressure)
+  backend\tests\sandbox\system\test_life_direction_crisis.py:98 : assert state_broken.life_project_state == "COLLAPSING"
+  backend\tests\sandbox\system\test_life_direction_crisis.py:101 : LifeProjectResolver.resolve(state_broken, deltas.identity_pressure)
+  backend\tests\sandbox\system\test_life_direction_crisis.py:102 : assert state_broken.life_project_state == "LOST"
+  backend\tests\sandbox\system\test_life_direction_crisis.py:105 : LifeProjectResolver.resolve(state_broken, deltas.identity_pressure)
+  backend\tests\sandbox\system\test_life_direction_crisis.py:106 : assert state_broken.life_project_state == "SEARCHING"
+  backend\tests\sandbox\system\test_life_direction_crisis.py:109 : LifeProjectResolver.resolve(state_broken, deltas.identity_pressure)
+  backend\tests\sandbox\system\test_life_direction_crisis.py:110 : assert state_broken.life_project_state == "COMMITTED"
+  backend\tests\sandbox\system\test_life_direction_crisis.py:111 : assert state_broken.life_project == "isolation", "Family builder в кризисе должен уйти в изоляцию"
+  backend\tests\sandbox\system\test_life_direction_crisis.py:114 : LifeProjectResolver.resolve(state_broken, deltas.identity_pressure)
+  backend\tests\sandbox\system\test_life_direction_crisis.py:115 : assert state_broken.life_project_state == "ACTIVE"
+  backend\tests\sandbox\system\test_life_direction_crisis.py:116 : print(f"\n[CRISIS RESOLVED] life_project changed to: {state_broken.life_project}, state={state_broken.life_project_state}")
+  backend\tests\sandbox\system\test_life_direction_crisis.py:120 : state=state_broken,
+  backend\tests\sandbox\system\test_life_direction_crisis.py:125 : print(f"\n[POST-CRISIS] life_project={state_broken.life_project}, intent={post_crisis_result.intent.value}, score={post_crisis_res...
+  backend\tests\sandbox\system\test_t06_belief_pipeline.py:41 : state.will_state = MagicMock(value="FREE")
+  backend\tests\sandbox\b1_4_push_probe.py:25 : # Protected-лист routes.py:1254-1257 (TIME-FREEZE)
+  backend\tests\sandbox\b1_4_push_probe.py:111 : # Direct: полная замена — статически ожидаемый bypass TIME-FREEZE.
+  backend\tests\sandbox\f3_combat_smoke.py:18 : # LLM-free: глушим шум ДО сборки мира
+  backend\tests\sandbox\final10k.py:2 : живость мира). Прямой production-стек, полная изоляция, LLM-free."""
+  backend\tests\sandbox\g3_will_probe.py:63 : # могут перевести волю вора в deceptive/broken → R6.3-unlock
+  backend\tests\sandbox\sandbox_embodied_signal.py:44 : "psyche": {"willpower": 0.5, "fear": 0.0, "state": "free", "stress": 0.0},
+  backend\tests\sandbox\sandbox_sprint_27.py:36 : FREEZE = "freeze"
+  backend\tests\sandbox\sandbox_sprint_27.py:45 : BROKEN = "broken"
+  backend\tests\sandbox\sandbox_sprint_27.py:46 : CONDITIONED = "conditioned"
+  backend\tests\sandbox\sandbox_sprint_27.py:77 : EmbodiedVector.FREEZE: "Замереть...",
+  backend\tests\sandbox\sandbox_sprint_27.py:88 : if state in (WillState.COMPLY, WillState.RELUCTANT):
+  backend\tests\sandbox\sandbox_sprint_27.py:90 : if state == WillState.PANICKED or pressure.self_risk > 0.7:
+  backend\tests\sandbox\sandbox_sprint_27.py:92 : if state == WillState.DISSOCIATING or pressure.violence > 0.8:
+  backend\tests\sandbox\sandbox_sprint_27.py:93 : return EmbodiedVector.FREEZE
+  backend\tests\sandbox\sandbox_sprint_27.py:96 : if state == WillState.BROKEN or pressure.humiliation > 0.7:
+  backend\tests\sandbox\sandbox_sprint_27.py:98 : if pressure.self_risk > 0.5 and state == WillState.DISTRESSED:
+  backend\tests\sandbox\sandbox_sprint_27.py:174 : v1 = _resolve_embodied_vector(p1, WillState.PANICKED)
+  backend\tests\sandbox\sandbox_sprint_27.py:182 : v2 = _resolve_embodied_vector(p2, WillState.DISTRESSED)
+  backend\tests\sandbox\sandbox_sprint_27.py:184 : if v2 != EmbodiedVector.FREEZE or t2 != "Замереть...":
+  backend\tests\sandbox\sandbox_sprint_27.py:185 : print(f"[FAIL] Экстремальное насилие: Ожидался FREEZE/Замереть, получено {v2}/{t2}")
+  backend\tests\sandbox\sandbox_sprint_27.py:190 : v3 = _resolve_embodied_vector(p3, WillState.BROKEN)
+  backend\tests\sandbox\sandbox_sprint_27.py:198 : v4 = _resolve_embodied_vector(p4, WillState.COMPLY)
+  backend\tests\sandbox\sandbox_will_vertical.py:102 : if will_response.state not in (WillState.COMPLY, WillState.RELUCTANT):
+  backend\tests\sandbox\sandbox_will_vertical.py:122 : assert p1.state == WillState.COMPLY, "Стоик должен подчиняться безопасным действиям"
+  backend\tests\sandbox\sandbox_will_vertical.py:125 : assert p2.state in (WillState.RELUCTANT, WillState.DISTRESSED, WillState.PANICKED), (
+  backend\tests\sandbox\sandbox_will_vertical.py:135 : assert p3.state == WillState.COMPLY, "Трус должен подчиняться безопасным действиям"
+  backend\tests\sandbox\sandbox_will_vertical.py:138 : assert p4.state in (WillState.PANICKED, WillState.DISTRESSED, WillState.DISSOCIATING), (
+  backend\tests\sandbox\sandbox_will_vertical.py:144 : assert p5.state in (WillState.DISSOCIATING, WillState.BROKEN, WillState.PANICKED), (
+  backend\tests\sandbox\sandbox_will_vertical.py:148 : if p5.state == WillState.DISSOCIATING:
+  backend\tests\sandbox\superbox_social_deterministic.py:3 : Назначение: S262 / SOCIAL — ДЕТЕРМИНИРОВАННАЯ приёмочная труба (LLM-free,
+  backend\tests\sandbox\superbox_social_deterministic.py:4 : timing-free): синхронный executor (submit → result немедленно) в
+  backend\tests\sandbox\superbox_social_deterministic.py:99 : # router-stub (LLM-free) + SYNC-пул (timing-free)
+  backend\tests\IPT.py:811 : def inv_time_freezer(world: TestWorld) -> InvariantResult:
+  backend\tests\IPT.py:812 : """INV-TIME-FREEZER: TimeFreezer подменяет wall-clock (Этап 2.4)."""
+  backend\tests\IPT.py:823 : from app.services.replay.time_freezer import frozen_time
+  backend\tests\IPT.py:834 : return InvariantResult("INV-TIME-FREEZER", "CRITICAL", False, "Wall-clock не подменён.", [])
+  backend\tests\IPT.py:839 : return InvariantResult("INV-TIME-FREEZER", "CRITICAL", False, "Оригинальный time.time() не восстановлен.", [])
+  backend\tests\IPT.py:841 : return InvariantResult("INV-TIME-FREEZER", "CRITICAL", True, "TimeFreezer OK.", [])
+  backend\tests\IPT.py:844 : "INV-TIME-FREEZER",
+  backend\tests\IPT.py:847 : f"Ошибка TimeFreezer: {e}",
+  backend\tests\IPT.py:848 : ["backend/app/services/replay/time_freezer.py"]
+  backend\tests\IPT.py:1262 : """INV-RE-CACHE-ALLOWLIST: freeze-поверхность relationship_cache (ADR-O-415, M1b.3.7)."""
+  backend\tests\IPT.py:2134 : существуют, SUPPORTED-опора FREE и в той же локации, ноль presentation-
+  backend\tests\IPT.py:2177 : if _sup.carrier_mode != CarrierMode.FREE:
+  backend\tests\IPT.py:2179 : f"{_oid}: опора '{_obj.supported_by}' не FREE")
+  backend\tests\IPT.py:2428 : inv_re_cache_allowlist,  # ADR-O-415: freeze-поверхность relationship_cache (M1b.3.7)
+  backend\tests\IPT.py:2453 : inv_time_freezer,
+  backend\tests\test_action_commitment.py:2201 : assert ca.CommitmentArbiter.enforce(ss, "free_npc", "door", "s", 2) is True
+  backend\tests\test_affordance_facts.py:5 : Гварды: (1) truth table D6 (holder ∨ FREE∧adjacent≤1.5м) на РЕАЛЬНЫХ
+  backend\tests\test_affordance_facts.py:81 : # ── Truth table D6: holder ∨ (FREE ∧ adjacent ≤ 1.5м) ───────────────
+  backend\tests\test_affordance_facts.py:87 : ((1.0, 1.0), None, True),        # FREE, d=0.0
+  backend\tests\test_affordance_facts.py:88 : ((2.0, 1.0), None, True),        # FREE, d=1.0 <= 1.5
+  backend\tests\test_affordance_facts.py:89 : ((2.4, 1.0), None, True),        # FREE, d=1.4 <= 1.5
+  backend\tests\test_affordance_facts.py:90 : ((2.6, 1.0), None, False),       # FREE, d=1.6 > 1.5
+  backend\tests\test_affordance_facts.py:91 : ((3.0, 1.0), None, False),       # FREE, d=2.0 > 1.5
+  backend\tests\test_affordance_facts.py:93 : ((1.0, 1.0), "npc_b", False),    # HELD_BY чужим -> не FREE -> False
+  backend\tests\test_affordance_facts.py:220 : broken/deceptive воли (R6.3)."""
+  backend\tests\test_affordance_facts.py:227 : r0 = OpportunityEngine.calculate(base, "deceptive")
+  backend\tests\test_affordance_facts.py:228 : r1 = OpportunityEngine.calculate(with_weapon, "deceptive")
+  backend\tests\test_affordance_facts.py:235 : r_free = OpportunityEngine.calculate(with_weapon, "free")
+  backend\tests\test_affordance_facts.py:236 : assert r_free.score == 0.0
+  backend\tests\test_affordance_facts.py:237 : assert not r_free.hidden_action_allowed
+  backend\tests\test_affordance_resolver.py:140 : def test_door_locked_and_broken():
+  backend\tests\test_affordance_resolver.py:145 : AffordanceResolver.resolve(_door("BROKEN"), _healthy(), _HERE)
+  backend\tests\test_affordance_resolver.py:268 : broken = build_world_object("c2", "chair", "tavern", _NEAR, "BROKEN")
+  backend\tests\test_affordance_resolver.py:269 : assert effective_state(broken) == "BROKEN"
+  backend\tests\test_affordance_shadow.py:21 : """Мин. снапшот: 2 стула (FREE, AVAILABLE) + 1 дверь CLOSED."""
+  backend\tests\test_break_progress_engine_r64.py:33 : self.will_state = kwargs.get("will_state", WillState.FREE)
+  backend\tests\test_break_progress_engine_r64.py:140 : npc_state.will_state = WillState.COERCED
+  backend\tests\test_break_progress_engine_r64.py:148 : assert deltas.will_state_override in (None, WillState.BROKEN)
+  backend\tests\test_break_progress_engine_r64.py:205 : deltas.stage = "broken"
+  backend\tests\test_decision_calibration.py:128 : will_state=WillState.FREE,
+  backend\tests\test_decision_hub_goal_boost.py:47 : state_with_project = NPCState(npc_id="test_npc", will_state=WillState.FREE, emotion=EmotionTag.NEUTRAL)
+  backend\tests\test_decision_hub_goal_boost.py:52 : state_without_project = NPCState(npc_id="test_npc", will_state=WillState.FREE, emotion=EmotionTag.NEUTRAL)
+  backend\tests\test_discovery_mechanics.py:107 : _order = [DiscoveryCrack.BROKEN, DiscoveryCrack.PARTIAL, DiscoveryCrack.CRACK, DiscoveryCrack.NONE]
+  backend\tests\test_discovery_mechanics.py:130 : _order = [DiscoveryCrack.BROKEN, DiscoveryCrack.PARTIAL, DiscoveryCrack.CRACK, DiscoveryCrack.NONE]
+  backend\tests\test_discovery_mechanics.py:160 : _order = [DiscoveryCrack.BROKEN, DiscoveryCrack.PARTIAL, DiscoveryCrack.CRACK, DiscoveryCrack.NONE]
+  backend\tests\test_discovery_mechanics.py:243 : s2 = _make_secret(importance=0.05)  # микроскопический — broken (total ≈ -0.515)
+  backend\tests\test_discovery_mechanics.py:256 : assert _by_mem[s2] == DiscoveryCrack.BROKEN
+  backend\tests\test_g3_executor.py:94 : """PASS: FREE-стул + steal → HELD_BY актора. Мир ИЗМЕНИЛСЯ."""
+  backend\tests\test_g3_will_integration.py:55 : """Воля DECEPTIVE (R6.3: скрытность — натура; S212)."""
+  backend\tests\test_g3_will_integration.py:56 : return NPCState(npc_id="thief_shadow", will_state=WillState.DECEPTIVE)
+  backend\tests\test_life_engine.py:62 : "state": "free",
+  backend\tests\test_living_activity_domain.py:106 : broken = dict(REAL_ACTIVITY_DICT)
+  backend\tests\test_living_activity_domain.py:107 : broken["desire_id"] = ""
+  backend\tests\test_living_activity_domain.py:109 : ActivityState.from_dict(broken)
+  backend\tests\test_npc_loader.py:24 : "status_profile": {"freedom": 75, "wealth": 40},  # Мусор для L0
+  backend\tests\test_object_fsms.py:4 : (LOCKED/BROKEN без CLOSE), О1 NO_OP, О7 структурный вердикт
+  backend\tests\test_object_fsms.py:73 : assert res.new_obj.state == "BROKEN"
+  backend\tests\test_object_fsms.py:81 : def test_door_open_from_broken_keeps_damage():
+  backend\tests\test_object_fsms.py:82 : """ТЗ §22.1: BROKEN→OPEN легален; damage-track — физика (О6)."""
+  backend\tests\test_object_fsms.py:83 : broken = transition_object(
+  backend\tests\test_object_fsms.py:85 : res = transition_object(broken, WorldActionType.OPEN)
+  backend\tests\test_object_fsms.py:167 : broken = transition_object(held, WorldActionType.BREAK)
+  backend\tests\test_object_fsms.py:168 : assert broken.verdict == TransitionVerdict.PASS
+  backend\tests\test_object_fsms.py:169 : assert broken.new_obj.state == "BROKEN"
+  backend\tests\test_object_fsms.py:170 : assert broken.new_obj.damage == 1.0
+  backend\tests\test_object_fsms.py:171 : assert broken.new_obj.holder == "npc_1"
+  backend\tests\test_object_fsms.py:172 : repaired = transition_object(broken.new_obj, WorldActionType.REPAIR)
+  backend\tests\test_object_fsms.py:195 : def test_damage_object_to_broken():
+  backend\tests\test_object_fsms.py:197 : assert new_door.state == "BROKEN"
+  backend\tests\test_object_fsms.py:207 : assert full.state == "BROKEN"
+  backend\tests\test_object_fsms.py:218 : """ТЗ §22.1: терминальное состояние container — DESTROYED, не BROKEN."""
+  backend\tests\test_object_fsms.py:224 : def test_damage_door_still_broken():
+  backend\tests\test_object_fsms.py:226 : assert new_door.state == "BROKEN"
+  backend\tests\test_object_fsms.py:298 : assert WorldObjectStore.get(scene_state, "door_1").state == "BROKEN"
+  backend\tests\test_object_target_facts.py:4 : #     + лексикографический object_id tie-break; только carrier FREE;
+  backend\tests\test_object_target_facts.py:28 : "position": [x, y], "state": "AVAILABLE", "carrier_mode": "FREE",
+  backend\tests\test_object_target_facts.py:63 : def test_non_free_carrier_excluded(self):
+  backend\tests\test_opportunity_engine.py:26 : def broken_npc_state():
+  backend\tests\test_opportunity_engine.py:27 : """Фикстура для типичного сломленного NPC (will_state = broken)."""
+  backend\tests\test_opportunity_engine.py:28 : return type("NPCState", (), {"will_state": "broken"})()
+  backend\tests\test_opportunity_engine.py:32 : def free_npc_state():
+  backend\tests\test_opportunity_engine.py:33 : """Фикстура для обычного NPC (will_state = free)."""
+  backend\tests\test_opportunity_engine.py:34 : return type("NPCState", (), {"will_state": "free"})()
+  backend\tests\test_opportunity_engine.py:38 : def coerced_npc_state():
+  backend\tests\test_opportunity_engine.py:39 : """Фикстура для coerced NPC (не broken)."""
+  backend\tests\test_opportunity_engine.py:40 : return type("NPCState", (), {"will_state": "coerced"})()
+  backend\tests\test_opportunity_engine.py:59 : "broken",
+  backend\tests\test_opportunity_engine.py:71 : "broken",
+  backend\tests\test_opportunity_engine.py:83 : "broken",
+  backend\tests\test_opportunity_engine.py:95 : "broken",
+  backend\tests\test_opportunity_engine.py:110 : def test_non_broken_will_state_always_denied(broken_npc_state, free_npc_state, coerced_npc_state):
+  backend\tests\test_opportunity_engine.py:111 : """OpportunityEngine игнорирует любые высокие score, если will_state ≠ broken."""
+  backend\tests\test_opportunity_engine.py:119 : for state in [free_npc_state, coerced_npc_state]:
+  backend\tests\test_opportunity_engine.py:124 : # (opportunity_engine.py:161-166: broken/deceptive → pass, прочее → blocks).
+  backend\tests\test_opportunity_engine.py:128 : def test_broken_state_with_low_score_still_denied():
+  backend\tests\test_opportunity_engine.py:129 : """Даже при will_state=broken низкий score → отказ."""
+  backend\tests\test_opportunity_engine.py:136 : result = OpportunityEngine.calculate(low_ctx, "broken")
+  backend\tests\test_opportunity_engine.py:158 : result = OpportunityEngine.calculate(ctx, "broken")
+  backend\tests\test_opportunity_engine.py:176 : result = OpportunityEngine.calculate(ctx, "broken")
+  backend\tests\test_opportunity_engine.py:195 : def test_integration_with_npcstate_will_state(broken_npc_state):
+  backend\tests\test_opportunity_engine.py:199 : result = OpportunityEngine.calculate(ctx, broken_npc_state.will_state)
+  backend\tests\test_p7_11_last_words.py:45 : def test_broken_tone_for_low_trust(self):
+  backend\tests\test_p7_11_last_words.py:46 : """Тон broken при низком доверии."""
+  backend\tests\test_p7_11_last_words.py:52 : lw = system.get_last_word("maid_lusya", FateOutcome.BROKEN, fabric)
+  backend\tests\test_p7_11_last_words.py:53 : assert lw.tone == LastWordTone.BROKEN
+  backend\tests\test_phase3_spatial_social.py:69 : will_state=WillState.FREE,
+  backend\tests\test_r2_r5_math.py:36 : will_state=WillState.FREE,
+  backend\tests\test_relationship_state_store.py:261 : {"npc_id": "sanation_probe", "psyche": {"state": "free"}, "social_stats": {}}
+  backend\tests\test_relationship_state_store.py:620 : camp = d / "broken_campaign"
+  backend\tests\test_relationship_state_store.py:627 : store.get("broken_campaign", "player")
+  backend\tests\test_relationship_state_store.py:652 : {"npc_id": "maid_lusya", "psyche": {"state": "free"}, "social_stats": {}}
+  backend\tests\test_relationship_state_store.py:707 : {"npc_id": d.npc_id, "psyche": {"state": "free"}, "social_stats": {}}
+  backend\tests\test_scene_outcome_builder.py:288 : npc_id="broken",
+  backend\tests\test_scene_outcome_builder.py:289 : deltas=make_deltas(will_state_override=WillState.BROKEN),
+  backend\tests\test_scene_outcome_builder.py:431 : npc_id="broken",
+  backend\tests\test_scene_outcome_builder.py:432 : deltas=make_deltas(will_state_override=WillState.BROKEN),
+  backend\tests\test_state_applicator_pipeline.py:27 : will_state=WillState.FREE,
+  backend\tests\test_state_applicator_pipeline.py:61 : "psyche": {"stress": 10, "state": "free", "trauma_flags": []},
+  backend\tests\test_state_applicator_pipeline.py:75 : will_state=WillState.FREE,
+  backend\tests\test_tz3_contract_repair.py:57 : cue = PeripheralCueDTO(npc_id="test", cue_key="FREEZE", hover_text="Замер")
+  backend\tests\test_tz3_contract_repair.py:58 : assert cue.cue_key == "FREEZE"
+  backend\tests\test_will.py:49 : assert response.state in (WillState.PANICKED, WillState.DISTRESSED, WillState.BROKEN)
+  backend\tests\test_will.py:58 : assert response.state in (WillState.COMPLY, WillState.RELUCTANT)
+  backend\tests\test_will.py:66 : assert response.state in (WillState.DISTRESSED, WillState.PANICKED, WillState.DISSOCIATING)
+  backend\tests\test_will.py:74 : assert response.state == WillState.COMPLY
+  backend\tests\test_will.py:82 : if response.state not in (WillState.COMPLY, WillState.RELUCTANT):
+  backend\tests\test_world_object_topology.py:54 : def test_birth_is_free(self):
+  backend\tests\test_world_object_topology.py:55 : """Объект рождается в FREE без отношений — связывание отдельно."""
+  backend\tests\test_world_object_topology.py:57 : assert obj.carrier_mode == CarrierMode.FREE
+  backend\tests\test_world_object_topology.py:103 : def test_relocate_requires_free(self):
+  backend\tests\test_world_object_topology.py:165 : def test_non_free_support_target(self):
+  backend\tests\test_world_object_topology.py:166 : """Опора обязана владеть своей позицией (FREE)."""
+  backend\tests\test_world_object_topology.py:217 : def test_query_objects_at_free_only(self):
+  backend\tests\test_world_object_topology.py:224 : # bowl FREE+SUPPORTED — включён; coin CONTAINED — исключён
+  backend\tests\test_world_object_topology.py:284 : (Foundation Freeze, atomic_commit_all)."""
+  backend\tests\test_world_object_topology.py:337 : def test_freeze_and_immutability(self):
+
+============================================================
+
+3. IntentPressureProfile — class definition
+
+============================================================
+
+[READ] IntentPressureProfile class  backend\app\models\will.py L41-100 (class at L41)
+  41: class IntentPressureProfile:
+  42:     """Вектор давления намерения на психику аватара.
+  43:     Вычисляется IntentPressureResolver (ADR-031).
+  44:     """
+  45: 
+  46:     violence: float = 0.0  # 0.0-1.0, физическое насилие
+  47:     humiliation: float = 0.0  # 0.0-1.0, унижение (своё или чужое)
+  48:     self_risk: float = 0.0  # 0.0-1.0, риск для жизни/здоровья аватара
+  49:     social_exposure: float = 0.0  # 0.0-1.0, социальная угроза (позор, изгнание)
+  50:     moral_violation: float = 0.0  # 0.0-1.0, нарушение внутренних убеждений
+  51:     identity_deviation: float = 0.0  # 0.0-1.0, отклонение от текущей модели Я
+  52:     trauma_trigger: float = 0.0  # 0.0-1.0, активация прошлого травматического опыта
+  53:     taboo_intensity: float = 0.0  # 0.0-1.0, нарушение культурных/личных табу
+  54: 
+  55: 
+  56: # B9-FIX: WillState унифицирован и перенесён в app.models.npc_state для избежания DOUBLE TRUTH.
+  57: from app.models.npc_state import WillState
+  58: 
+  59: 
+  60: @dataclass(frozen=True)
+  61: class WillResponseDTO:
+  62:     """Результат работы WillpowerGate (Cumulative Strain Model)."""
+  63: 
+  64:     state: WillState
+  65:     resistance: float = 0.0  # 0.0-1.0, вычисленная сила сопротивления
+  66:     fear_delta: float = 0.0  # Прирост страха
+  67:     stress_delta: float = 0.0  # Стресс от морального конфликта (0-100 scale)
+  68:     identity_damage: float = 0.0  # Урон идентичности (травма)
+  69:     generated_emotions: List[EmotionPayload] = field(
+  70:         default_factory=list
+  71:     )  # Эмоции конфликта
+  72:     generated_memories: List[Dict[str, Any]] = field(
+  73:         default_factory=list
+  74:     )  # Следы в аффективной памяти
+  75:     counter_offer: Optional[IntentDTO] = None  # Аватар предлагает альтернативу
+  76:     narration_hooks: List[str] = field(default_factory=list)  # Подсказки для LLM
+  77:     origin_layer: OriginLayer = OriginLayer.WILL_CONFLICT  # Источник давления
+  78:     embodied_vector: Optional[EmbodiedVector] = None  # Моторный импульс (для UI)
+  79:     social_signal: Optional[str] = (
+  80:         None  # The Fool Phase 2: Социальный сигнал (для CFRM)
+  81:     )
+  82:     crowd_threat_level: Optional[float] = (
+  83:         None  # The Fool Phase 2: Уровень угрозы для толпы (0.0-1.0)
+  84:     )
+  85: 
+  86: 
+  87: @dataclass(frozen=True)
+  88: class IntentResolution:
+  89:     """Результат Фазы 1: Семантический перевод (ADR-031 Fix).
+  90:     Содержит ТОЛЬКО канонический интент и вектор давления.
+  91:     Вычисление воли (Causal Resolution) перенесено в TickOrchestrator.
+  92:     """
+  93: 
+  94:     original_intent: IntentDTO
+  95:     pressure_profile: IntentPressureProfile = field(
+  96:         default_factory=IntentPressureProfile
+  97:     )
+  98:     movement_request: Optional[Any] = (
+  99:         None  # ADR-O-315: Готовый контракт движения от Слоя 1 (TYPE_CHECKING не нужен, используем Any)
+  100:     )
+
+============================================================
+

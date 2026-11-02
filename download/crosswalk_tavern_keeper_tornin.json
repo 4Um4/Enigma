@@ -1,0 +1,1309 @@
+{
+  "summary": {
+    "old_count": 78,
+    "new_count": 55,
+    "rows": 78,
+    "by_status": {
+      "LOST": 29,
+      "MERGED": 7,
+      "RECLASSIFIED": 28,
+      "PRESERVED": 11,
+      "DUPLICATED": 2,
+      "AMBIGUOUS": 1
+    },
+    "by_old_kind": {
+      "PORTRET": {
+        "LOST": 1,
+        "RECLASSIFIED": 1,
+        "MERGED": 1,
+        "DUPLICATED": 1
+      },
+      "EFFECT": {
+        "MERGED": 2,
+        "RECLASSIFIED": 13,
+        "LOST": 9
+      },
+      "EVENT": {
+        "PRESERVED": 7,
+        "RECLASSIFIED": 5,
+        "DUPLICATED": 1,
+        "LOST": 4,
+        "MERGED": 1
+      },
+      "RELATIONSHIP": {
+        "LOST": 4,
+        "PRESERVED": 2,
+        "RECLASSIFIED": 3
+      },
+      "BELIEF_SEED": {
+        "MERGED": 1,
+        "LOST": 2,
+        "RECLASSIFIED": 1
+      },
+      "TRAIT_SEED": {
+        "RECLASSIFIED": 5,
+        "PRESERVED": 2,
+        "MERGED": 2,
+        "LOST": 9,
+        "AMBIGUOUS": 1
+      }
+    }
+  },
+  "rows": [
+    {
+      "old_ordinal": 0,
+      "old_kind": "PORTRET",
+      "old_summary": "человек",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 100,
+      "old_kind": "EFFECT",
+      "old_summary": "Хозяин таверны. | residence",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 2 new entries (top=0.82, 2nd=0.26)",
+      "matches": [
+        {
+          "new_ordinal": 100,
+          "new_kind": "LOCATION",
+          "new_text": "хозяин таверны | хозяин таверны",
+          "score": 0.817,
+          "reason": "tok=0.67; loc_markers=['таверн']"
+        },
+        {
+          "new_ordinal": 1303,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "получил шрам на щеке | в пьяной драке недалеко от таверны он получил шрам на щеке",
+          "score": 0.261,
+          "reason": "tok=0.11; loc_markers=['таверн']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 200,
+      "old_kind": "EFFECT",
+      "old_summary": "отстранена от службы из-за травмы ноги | trauma",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 200,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "прихрамывает | отстранён от службы из-за травмы ноги",
+          "score": 0.429,
+          "reason": "tok=0.43"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 300,
+      "old_kind": "PORTRET",
+      "old_summary": "На момент игры ему 45 лет.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: PORTRET → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 300,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "возраст | На момент игры ему 45 лет",
+          "score": 0.8,
+          "reason": "tok=0.80"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 400,
+      "old_kind": "EVENT",
+      "old_summary": "упала с лестницы у крепостной стены при штурме крепости",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EVENT)",
+      "matches": [
+        {
+          "new_ordinal": 400,
+          "new_kind": "EVENT",
+          "new_text": "получил травму ноги, упав с лестницы у крепостной стены при штурме крепости",
+          "score": 0.545,
+          "reason": "tok=0.55"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 500,
+      "old_kind": "EVENT",
+      "old_summary": "решено купить таверну",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EVENT → DESIRE_SEED",
+      "matches": [
+        {
+          "new_ordinal": 500,
+          "new_kind": "DESIRE_SEED",
+          "new_text": "купить таверну | собственная таверна",
+          "score": 0.55,
+          "reason": "tok=0.40; loc_markers=['таверн']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 600,
+      "old_kind": "EVENT",
+      "old_summary": "понял, что таверна не приносит дохода на её содержание",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=0.65, 2nd=0.26)",
+      "matches": [
+        {
+          "new_ordinal": 600,
+          "new_kind": "EVENT",
+          "new_text": "Орм понимает, что таверна не приносит дохода",
+          "score": 0.65,
+          "reason": "tok=0.50; loc_markers=['таверн']"
+        },
+        {
+          "new_ordinal": 500,
+          "new_kind": "DESIRE_SEED",
+          "new_text": "купить таверну | собственная таверна",
+          "score": 0.261,
+          "reason": "tok=0.11; loc_markers=['таверн']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 700,
+      "old_kind": "EFFECT",
+      "old_summary": "гильдия выделила ему неприличную сумму | gain",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → EVENT",
+      "matches": [
+        {
+          "new_ordinal": 700,
+          "new_kind": "EVENT",
+          "new_text": "Гильдия выделила ему неприличную сумму за договоренность построить подземный лаз в его трактире и за его молчание об этом",
+          "score": 0.357,
+          "reason": "tok=0.36"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 800,
+      "old_kind": "EVENT",
+      "old_summary": "старые сослуживцы перестали приходить",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EVENT)",
+      "matches": [
+        {
+          "new_ordinal": 800,
+          "new_kind": "EVENT",
+          "new_text": "старые сослуживцы перестают приходить",
+          "score": 0.6,
+          "reason": "tok=0.60"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 801,
+      "old_kind": "EFFECT",
+      "old_summary": "он не завёл новых близких связей | loss",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 801,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "отсутствие новых близких связей | не завёл новых близких связей, не считая посетителей",
+          "score": 0.5,
+          "reason": "tok=0.50"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 900,
+      "old_kind": "EVENT",
+      "old_summary": "ему стали угрожать, контролировать его жизнь и требовать вернуть с процентами всё, что когда-то дали",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EVENT)",
+      "matches": [
+        {
+          "new_ordinal": 900,
+          "new_kind": "EVENT",
+          "new_text": "ему стали угрожать, контролировать его жизнь и требовать вернуть с процентами всё, что когда-то дали, — иначе просто убьют",
+          "score": 1.0,
+          "reason": "tok=0.81; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1000,
+      "old_kind": "EFFECT",
+      "old_summary": "привело к алкоголизму | trauma",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1100,
+      "old_kind": "EVENT",
+      "old_summary": "В 40 лет Гильдия отправила к нему служанку Люсю: велели позаботиться о девочке, предоставить кров и работу — раз он не может в полной мере выплачивать долги.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EVENT)",
+      "matches": [
+        {
+          "new_ordinal": 1100,
+          "new_kind": "EVENT",
+          "new_text": "Гильдия отправила к Орму служанку Люсю для ухода и работы",
+          "score": 0.332,
+          "reason": "tok=0.18; belief_markers=['правил']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1200,
+      "old_kind": "EVENT",
+      "old_summary": "ударила по его финансам",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1201,
+      "old_kind": "EFFECT",
+      "old_summary": "его отношение к ней стало крайне недоброжелательным | loss",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1202,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "отношение было недоброжелательным | девочка | inimical | negative",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1203,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "ее прислали следить за ним | гильдия | dependence | negative",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1300,
+      "old_kind": "EVENT",
+      "old_summary": "в пьяной драке недалеко от таверны он получил шрам на щеке и убил двоих, зарезав кухонным ножом",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 5 new entries (top=1.00, 2nd=0.65)",
+      "matches": [
+        {
+          "new_ordinal": 1303,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "получил шрам на щеке | в пьяной драке недалеко от таверны он получил шрам на щеке",
+          "score": 1.0,
+          "reason": "tok=0.58; loc_markers=['таверн']; substring_match"
+        },
+        {
+          "new_ordinal": 1300,
+          "new_kind": "EVENT",
+          "new_text": "получил шрам на щеке и убил двоих в драке",
+          "score": 0.65,
+          "reason": "tok=0.50; effect_markers=['убил']"
+        },
+        {
+          "new_ordinal": 1304,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "убивает в самообороне | убил двоих, зарезав кухонным ножом",
+          "score": 0.507,
+          "reason": "tok=0.36; effect_markers=['убил']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1301,
+      "old_kind": "EFFECT",
+      "old_summary": "дело закрыли тихо, через Борко, которому приказали «драки не было». | loss",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1302,
+      "old_kind": "EFFECT",
+      "old_summary": "долг и вырос так резко, без объяснений. | должник | gain",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1400,
+      "old_kind": "EVENT",
+      "old_summary": "вернулся в таверну после драки",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EVENT → DESIRE_SEED",
+      "matches": [
+        {
+          "new_ordinal": 500,
+          "new_kind": "DESIRE_SEED",
+          "new_text": "купить таверну | собственная таверна",
+          "score": 0.293,
+          "reason": "tok=0.14; loc_markers=['таверн']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1401,
+      "old_kind": "EFFECT",
+      "old_summary": "посчитал это недобрым знаком («стража идёт, жизнь кончена») | belief_seed",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1402,
+      "old_kind": "EVENT",
+      "old_summary": "не просто избил Люсю, но долго пинал её ногами",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EVENT)",
+      "matches": [
+        {
+          "new_ordinal": 1400,
+          "new_kind": "EVENT",
+          "new_text": "долго избивает Люсю, пинает её ногами",
+          "score": 0.375,
+          "reason": "tok=0.38"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1403,
+      "old_kind": "EFFECT",
+      "old_summary": "бросил на её кровать, как мешок с картофелем | Люся | state",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1404,
+      "old_kind": "EVENT",
+      "old_summary": "вырубился на своей кровати",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1500,
+      "old_kind": "EFFECT",
+      "old_summary": "Люся ещё неделю не вставала с кровати. | loss",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 2 new entries (top=1.00, 2nd=0.23)",
+      "matches": [
+        {
+          "new_ordinal": 1500,
+          "new_kind": "EVENT",
+          "new_text": "Люся ещё неделю не вставала с кровати",
+          "score": 1.0,
+          "reason": "tok=0.83; substring_match"
+        },
+        {
+          "new_ordinal": 2202,
+          "new_kind": "EVENT",
+          "new_text": "Люся неделю не вставала после избиения; это нормально для его головы | Люся",
+          "score": 0.231,
+          "reason": "tok=0.23"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1600,
+      "old_kind": "EFFECT",
+      "old_summary": "долг возрос ещё больше | loss",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → EVENT",
+      "matches": [
+        {
+          "new_ordinal": 1600,
+          "new_kind": "EVENT",
+          "new_text": "Гильдия сказала, что долг возрос ещё больше и что, если девочка умрёт, это будет считаться нападением на саму гильдию",
+          "score": 0.235,
+          "reason": "tok=0.24"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1601,
+      "old_kind": "EFFECT",
+      "old_summary": "если девочка умрёт, это будет считаться нападением на саму гильдию | threatened_attack",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → EVENT",
+      "matches": [
+        {
+          "new_ordinal": 1600,
+          "new_kind": "EVENT",
+          "new_text": "Гильдия сказала, что долг возрос ещё больше и что, если девочка умрёт, это будет считаться нападением на саму гильдию",
+          "score": 0.8,
+          "reason": "tok=0.50; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1602,
+      "old_kind": "EFFECT",
+      "old_summary": "Торнин неделю сам кормил и выхаживал её | девочка | care",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 1601,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Торнин неделю сам кормил и выхаживал её — и понял, что Гильдия надавила и на стражу, а значит, его жизнь ещё меньше принадлежит ему | Гильдия воров | враждебное отношение | negative",
+          "score": 0.217,
+          "reason": "tok=0.22"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1603,
+      "old_kind": "EFFECT",
+      "old_summary": "понял, что Гильдия надавила и на стражу | стражу | realization",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 1601,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Торнин неделю сам кормил и выхаживал её — и понял, что Гильдия надавила и на стражу, а значит, его жизнь ещё меньше принадлежит ему | Гильдия воров | враждебное отношение | negative",
+          "score": 0.227,
+          "reason": "tok=0.23"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1604,
+      "old_kind": "EFFECT",
+      "old_summary": "его жизнь ещё меньше принадлежит ему | loss_of_control",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 1601,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Торнин неделю сам кормил и выхаживал её — и понял, что Гильдия надавила и на стражу, а значит, его жизнь ещё меньше принадлежит ему | Гильдия воров | враждебное отношение | negative",
+          "score": 0.261,
+          "reason": "tok=0.26"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1700,
+      "old_kind": "EVENT",
+      "old_summary": "Торнин попросил кузнеца Орма выковать ему тайно полуторный меч.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EVENT)",
+      "matches": [
+        {
+          "new_ordinal": 1700,
+          "new_kind": "EVENT",
+          "new_text": "Торнин заказывает у Орма полуторный меч",
+          "score": 0.4,
+          "reason": "tok=0.40"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1800,
+      "old_kind": "EVENT",
+      "old_summary": "Торнин собирается убить Люсю и других членов гильдии.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EVENT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 1801,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Торнин собирается убить Люсю и других членов гильдии, потому что видит в них источник своих бед. Он боится, что его самого убьют раньше. | Люся",
+          "score": 0.65,
+          "reason": "tok=0.35; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1900,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "но где-то внутри он понимает, что это самообман: даже когда меч будет выкован, он побоится им воспользоваться",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 2 new entries (top=1.00, 2nd=0.27)",
+      "matches": [
+        {
+          "new_ordinal": 1900,
+          "new_kind": "PORTRET",
+          "new_text": "Он понимает, что это самообман: даже когда меч будет выкован, он побоится им воспользоваться. Уйти не может — остаётся работать, пить и выплачивать долги.",
+          "score": 1.0,
+          "reason": "tok=0.55; belief_markers=['понимает']; substring_match"
+        },
+        {
+          "new_ordinal": 600,
+          "new_kind": "EVENT",
+          "new_text": "Орм понимает, что таверна не приносит дохода",
+          "score": 0.268,
+          "reason": "tok=0.12; belief_markers=['понимает']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1901,
+      "old_kind": "EFFECT",
+      "old_summary": "остается работать, пить и выплачивать долги | loss",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 1900,
+          "new_kind": "PORTRET",
+          "new_text": "Он понимает, что это самообман: даже когда меч будет выкован, он побоится им воспользоваться. Уйти не может — остаётся работать, пить и выплачивать долги.",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1902,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "побоится | даже когда меч будет выкован, он побоится им воспользоваться",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 1900,
+          "new_kind": "PORTRET",
+          "new_text": "Он понимает, что это самообман: даже когда меч будет выкован, он побоится им воспользоваться. Уйти не может — остаётся работать, пить и выплачивать долги.",
+          "score": 0.389,
+          "reason": "tok=0.39"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1903,
+      "old_kind": "EFFECT",
+      "old_summary": "не может уйти | residence",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1904,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "узнай Гильдия, что заказ от Торнина, от него незамедлительно избавятся",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1905,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "надо от него избавиться | если им не воспользоваться, надо от него избавиться",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → EFFECT",
+      "matches": [
+        {
+          "new_ordinal": 1901,
+          "new_kind": "EFFECT",
+          "new_text": "меч стал новой петлёй: если им не воспользоваться, надо от него избавиться | custom",
+          "score": 0.5,
+          "reason": "tok=0.50"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2000,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "старые собутыльники и товарищи | Орм | 依赖 | neutral",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (RELATIONSHIP)",
+      "matches": [
+        {
+          "new_ordinal": 2000,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "С Ормом они старые собутыльники и товарищи | дружба | neutral",
+          "score": 0.5,
+          "reason": "tok=0.50"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2001,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "не доверяет | Орму | 不信任 | negative",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2002,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "пьяница | такой пьяница, как этот гном",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 2001,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "продает за бутылку | Орму можно доверять: такой пьяница, как этот гном,",
+          "score": 0.5,
+          "reason": "tok=0.50"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2003,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "продаст Торнина за бутылку | Орму | 交易 | negative",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2004,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "продажный | Борко — продажный стражник",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 2003,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "подозрительный | Борко — продажный стражник, ещё более подозрительный,",
+          "score": 0.5,
+          "reason": "tok=0.50"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2005,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "более подозрительный, чем Люся | Борко | 怀疑 | negative",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: RELATIONSHIP → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 2003,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "подозрительный | Борко — продажный стражник, ещё более подозрительный,",
+          "score": 0.333,
+          "reason": "tok=0.33"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2006,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "вне контекста гильдии каждый несёт свою роль | все остальные для него клиенты",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 2 new entries (top=0.47, 2nd=0.33)",
+      "matches": [
+        {
+          "new_ordinal": 2004,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "вне контекста гильдии каждый несёт свою роль | сотрудничество в роли | neutral",
+          "score": 0.467,
+          "reason": "tok=0.47"
+        },
+        {
+          "new_ordinal": 2002,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Все остальные для него клиенты | клиент-участник | neutral",
+          "score": 0.333,
+          "reason": "tok=0.33"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2007,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "обращается к Борко при драках или спорных случаях | Торнин | 求助 | neutral",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: RELATIONSHIP → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 2005,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "обращается к Борко при драках или спорных случаях | Торнин сразу обращается к Борко — тем более что оба связаны с гильдией",
+          "score": 0.8,
+          "reason": "tok=0.50; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2008,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "связаны с гильдией | Борко и Торнин | 联系 | neutral",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: RELATIONSHIP → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 2005,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "обращается к Борко при драках или спорных случаях | Торнин сразу обращается к Борко — тем более что оба связаны с гильдией",
+          "score": 0.25,
+          "reason": "tok=0.25"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2100,
+      "old_kind": "PORTRET",
+      "old_summary": "Психика Торнина за годы алкоголизма приобрела двойственную структуру.",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 2 new entries (top=1.00, 2nd=0.40)",
+      "matches": [
+        {
+          "new_ordinal": 2101,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "двойственность | Психика Торнина за годы алкоголизма приобрела двойственную структуру.",
+          "score": 1.0,
+          "reason": "tok=0.88; substring_match"
+        },
+        {
+          "new_ordinal": 2100,
+          "new_kind": "PORTRET",
+          "new_text": "Психика Торнина за годы алкоголизма приобрела двойственную структуру. Одна его часть — бывший солдат, мужчина, который шутил с товарищами о таверне и мечтал о простой жизни. Эта часть ненавидит себя з",
+          "score": 0.401,
+          "reason": "tok=0.10; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2101,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "бывший солдат | одна его часть — бывший солдат",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2102,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "мужчина, который шутил с товарищами о таверне и мечтал о простой жизни | одна его часть — мужчина, который шутил с товарищами о таверне и мечтал о простой жизни",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 2 new entries (top=0.61, 2nd=0.28)",
+      "matches": [
+        {
+          "new_ordinal": 2100,
+          "new_kind": "PORTRET",
+          "new_text": "Психика Торнина за годы алкоголизма приобрела двойственную структуру. Одна его часть — бывший солдат, мужчина, который шутил с товарищами о таверне и мечтал о простой жизни. Эта часть ненавидит себя з",
+          "score": 0.609,
+          "reason": "tok=0.16; loc_markers=['таверн']; substring_match"
+        },
+        {
+          "new_ordinal": 501,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "товарищи шутят, придут выпить в его таверне | товарищи",
+          "score": 0.283,
+          "reason": "tok=0.13; loc_markers=['таверн']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2103,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "ненавидит себя | эта часть ненавидит себя за то, что он бьёт девочку",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2104,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "ненавидит себя | эта часть ненавидит себя за то, что убил двоих и не сдался страже",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.30, 2nd=0.29)",
+      "matches": [
+        {
+          "new_ordinal": 1300,
+          "new_kind": "EVENT",
+          "new_text": "получил шрам на щеке и убил двоих в драке",
+          "score": 0.304,
+          "reason": "tok=0.15; effect_markers=['убил']"
+        },
+        {
+          "new_ordinal": 1304,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "убивает в самообороне | убил двоих, зарезав кухонным ножом",
+          "score": 0.293,
+          "reason": "tok=0.14; effect_markers=['убил']"
+        },
+        {
+          "new_ordinal": 2100,
+          "new_kind": "PORTRET",
+          "new_text": "Психика Торнина за годы алкоголизма приобрела двойственную структуру. Одна его часть — бывший солдат, мужчина, который шутил с товарищами о таверне и мечтал о простой жизни. Эта часть ненавидит себя з",
+          "score": 0.28,
+          "reason": "tok=0.13; effect_markers=['убил']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2105,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "ненавидит себя | эта часть ненавидит себя за то, что продал себя Гильдии за лаз под полом",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2106,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "пьёт | другая часть — та, что пьёт",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2107,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "бьёт | другая часть — та, что бьёт",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2108,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "смотрит на Люсю и видит в ней причину всех бед | другая часть — та, что смотрит на Люсю и видит в ней причину всех бед",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2109,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "проще, чем видеть причину в себе | другая часть — та, что смотрит на Люсю и видит в ней причину всех бед, потому что так проще, чем видеть причину в себе",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 2100,
+          "new_kind": "PORTRET",
+          "new_text": "Психика Торнина за годы алкоголизма приобрела двойственную структуру. Одна его часть — бывший солдат, мужчина, который шутил с товарищами о таверне и мечтал о простой жизни. Эта часть ненавидит себя з",
+          "score": 0.232,
+          "reason": "tok=0.23"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2110,
+      "old_kind": "EFFECT",
+      "old_summary": "эти две части не разговаривают друг с другом. | conflict",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2111,
+      "old_kind": "EFFECT",
+      "old_summary": "они существуют параллельно, сменяясь в зависимости от того, сколько Торнин выпил и сколько дней прошло с последнего удара. | state",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 2100,
+          "new_kind": "PORTRET",
+          "new_text": "Психика Торнина за годы алкоголизма приобрела двойственную структуру. Одна его часть — бывший солдат, мужчина, который шутил с товарищами о таверне и мечтал о простой жизни. Эта часть ненавидит себя з",
+          "score": 0.486,
+          "reason": "tok=0.19; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2300,
+      "old_kind": "EVENT",
+      "old_summary": "Заказ меча",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EVENT → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 2300,
+          "new_kind": "PORTRET",
+          "new_text": "Заказ меча не был планом. Не был расчётом. Не был решением.",
+          "score": 0.333,
+          "reason": "tok=0.33"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2400,
+      "old_kind": "EVENT",
+      "old_summary": "Торнин не ответил на предложение Тени о прощении долгов за помощь с кузнецом.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EVENT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 2400,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Торнин не говорит однозначно на предложение Тени, но соглашается подумать | Торнин",
+          "score": 0.25,
+          "reason": "tok=0.25"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2401,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "подумает | Я подумаю",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2402,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Орм — собутыльник, а хоронить товарища по стойке — это уже не клетка, это могила.",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2403,
+      "old_kind": "EFFECT",
+      "old_summary": "Внутри Торнина спорят две части его сознания. | conflict",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 2401,
+          "new_kind": "PORTRET",
+          "new_text": "внутри него спорят две части: пьяная и трезвая; исход спора зависит от количества выпитого перед вопросом Тени",
+          "score": 0.211,
+          "reason": "tok=0.21"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2404,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "спорят каждую смену | спорят каждую смену",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2405,
+      "old_kind": "EFFECT",
+      "old_summary": "Исход спора зависит от количества выпитого Торниным перед тем, как Тень снова спросит. | condition",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 2401,
+          "new_kind": "PORTRET",
+          "new_text": "внутри него спорят две части: пьяная и трезвая; исход спора зависит от количества выпитого перед вопросом Тени",
+          "score": 0.273,
+          "reason": "tok=0.27"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2500,
+      "old_kind": "EVENT",
+      "old_summary": "Орму нужно ещё две-три недели.",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2501,
+      "old_kind": "EVENT",
+      "old_summary": "Ночь, когда он решится",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EVENT)",
+      "matches": [
+        {
+          "new_ordinal": 2500,
+          "new_kind": "EVENT",
+          "new_text": "Орм ждёт ночь, когда решится",
+          "score": 0.6,
+          "reason": "tok=0.60"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2502,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Торниным на день, который наступит позже «большого дела» гильдии. | Торнин | planned meeting | positive",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (RELATIONSHIP)",
+      "matches": [
+        {
+          "new_ordinal": 2501,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Торнин назначил день на неделю позже 'большого дела' гильдии | Торнин | влияние | neutral",
+          "score": 0.375,
+          "reason": "tok=0.38"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2503,
+      "old_kind": "EVENT",
+      "old_summary": "через его подвал пройдёт Гросбух",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2504,
+      "old_kind": "EFFECT",
+      "old_summary": "будет готова сталь, в которой он видит своё спасение. | сталь | gain",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2505,
+      "old_kind": "EFFECT",
+      "old_summary": "часы сцены тикают быстрее его плана | loss",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → BELIEF_SEED",
+      "matches": [
+        {
+          "new_ordinal": 2502,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "часы сцены тикают быстрее его плана | danger",
+          "score": 0.75,
+          "reason": "tok=0.75"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2600,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "строгость | Трезвый Торнин протирает стойку строевыми ровными движениями, рука не дрогнет, кружки стоят по линейке.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 2600,
+          "new_kind": "PORTRET",
+          "new_text": "Трезвый Торнин протирает стойку строевыми ровными движениями, рука не дрогнет, кружки стоят по линейке. Пьяный гоняет полотенце по одному и тому же месту по кругу; хромота к закрытию заметнее.",
+          "score": 0.972,
+          "reason": "tok=0.52; loc_markers=['стойк']; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2601,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "хромота | Пьяный гоняет полотенце по одному и тому же месту по кругу; хромота к закрытию заметнее.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 2600,
+          "new_kind": "PORTRET",
+          "new_text": "Трезвый Торнин протирает стойку строевыми ровными движениями, рука не дрогнет, кружки стоят по линейке. Пьяный гоняет полотенце по одному и тому же месту по кругу; хромота к закрытию заметнее.",
+          "score": 0.455,
+          "reason": "tok=0.45"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2602,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "привычка встречать рассвет на ногах | Солдат в нём не умер — даже запойный, он по привычке встречает рассвет на ногах,",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2603,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "армия подготовила его к осаде, а не к жизни в кредит.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: BELIEF_SEED → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 2601,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Торнин Серебряная Луна — солдат, подготовленный к осаде, но не к жизни в кредит. | Торнин Серебряная Луна | neutral | negative",
+          "score": 0.231,
+          "reason": "tok=0.23"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2700,
+      "old_kind": "PORTRET",
+      "old_summary": "Голос и мелочи. Короткие рубленые фразы с хрипотцой; за стойкой «твоё слово — закон»; злится — может грубо послать, перейдя на солдатский мат. Свою монету называет «медь» — как и Орм: два старейших че",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=0.73, 2nd=0.23)",
+      "matches": [
+        {
+          "new_ordinal": 2701,
+          "new_kind": "PORTRET",
+          "new_text": "за стойкой «твоё слово — закон»",
+          "score": 0.729,
+          "reason": "tok=0.13; loc_markers=['стойк']; belief_markers=['закон']; substring_match"
+        },
+        {
+          "new_ordinal": 2702,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "злится грубо | может грубо послать, перейдя на солдатский мат",
+          "score": 0.226,
+          "reason": "tok=0.23"
+        }
+      ]
+    }
+  ],
+  "lost": [
+    {
+      "ordinal": 0,
+      "kind": "PORTRET",
+      "summary": "человек"
+    },
+    {
+      "ordinal": 1000,
+      "kind": "EFFECT",
+      "summary": "привело к алкоголизму | trauma"
+    },
+    {
+      "ordinal": 1200,
+      "kind": "EVENT",
+      "summary": "ударила по его финансам"
+    },
+    {
+      "ordinal": 1201,
+      "kind": "EFFECT",
+      "summary": "его отношение к ней стало крайне недоброжелательным | loss"
+    },
+    {
+      "ordinal": 1202,
+      "kind": "RELATIONSHIP",
+      "summary": "отношение было недоброжелательным | девочка | inimical | negative"
+    },
+    {
+      "ordinal": 1203,
+      "kind": "RELATIONSHIP",
+      "summary": "ее прислали следить за ним | гильдия | dependence | negative"
+    },
+    {
+      "ordinal": 1301,
+      "kind": "EFFECT",
+      "summary": "дело закрыли тихо, через Борко, которому приказали «драки не было». | loss"
+    },
+    {
+      "ordinal": 1302,
+      "kind": "EFFECT",
+      "summary": "долг и вырос так резко, без объяснений. | должник | gain"
+    },
+    {
+      "ordinal": 1401,
+      "kind": "EFFECT",
+      "summary": "посчитал это недобрым знаком («стража идёт, жизнь кончена») | belief_seed"
+    },
+    {
+      "ordinal": 1403,
+      "kind": "EFFECT",
+      "summary": "бросил на её кровать, как мешок с картофелем | Люся | state"
+    },
+    {
+      "ordinal": 1404,
+      "kind": "EVENT",
+      "summary": "вырубился на своей кровати"
+    },
+    {
+      "ordinal": 1903,
+      "kind": "EFFECT",
+      "summary": "не может уйти | residence"
+    },
+    {
+      "ordinal": 1904,
+      "kind": "BELIEF_SEED",
+      "summary": "узнай Гильдия, что заказ от Торнина, от него незамедлительно избавятся"
+    },
+    {
+      "ordinal": 2001,
+      "kind": "RELATIONSHIP",
+      "summary": "не доверяет | Орму | 不信任 | negative"
+    },
+    {
+      "ordinal": 2003,
+      "kind": "RELATIONSHIP",
+      "summary": "продаст Торнина за бутылку | Орму | 交易 | negative"
+    },
+    {
+      "ordinal": 2101,
+      "kind": "TRAIT_SEED",
+      "summary": "бывший солдат | одна его часть — бывший солдат"
+    },
+    {
+      "ordinal": 2103,
+      "kind": "TRAIT_SEED",
+      "summary": "ненавидит себя | эта часть ненавидит себя за то, что он бьёт девочку"
+    },
+    {
+      "ordinal": 2105,
+      "kind": "TRAIT_SEED",
+      "summary": "ненавидит себя | эта часть ненавидит себя за то, что продал себя Гильдии за лаз под полом"
+    },
+    {
+      "ordinal": 2106,
+      "kind": "TRAIT_SEED",
+      "summary": "пьёт | другая часть — та, что пьёт"
+    },
+    {
+      "ordinal": 2107,
+      "kind": "TRAIT_SEED",
+      "summary": "бьёт | другая часть — та, что бьёт"
+    },
+    {
+      "ordinal": 2108,
+      "kind": "TRAIT_SEED",
+      "summary": "смотрит на Люсю и видит в ней причину всех бед | другая часть — та, что смотрит на Люсю и видит в ней причину всех бед"
+    },
+    {
+      "ordinal": 2110,
+      "kind": "EFFECT",
+      "summary": "эти две части не разговаривают друг с другом. | conflict"
+    },
+    {
+      "ordinal": 2401,
+      "kind": "TRAIT_SEED",
+      "summary": "подумает | Я подумаю"
+    },
+    {
+      "ordinal": 2402,
+      "kind": "BELIEF_SEED",
+      "summary": "Орм — собутыльник, а хоронить товарища по стойке — это уже не клетка, это могила."
+    },
+    {
+      "ordinal": 2404,
+      "kind": "TRAIT_SEED",
+      "summary": "спорят каждую смену | спорят каждую смену"
+    },
+    {
+      "ordinal": 2500,
+      "kind": "EVENT",
+      "summary": "Орму нужно ещё две-три недели."
+    },
+    {
+      "ordinal": 2503,
+      "kind": "EVENT",
+      "summary": "через его подвал пройдёт Гросбух"
+    },
+    {
+      "ordinal": 2504,
+      "kind": "EFFECT",
+      "summary": "будет готова сталь, в которой он видит своё спасение. | сталь | gain"
+    },
+    {
+      "ordinal": 2602,
+      "kind": "TRAIT_SEED",
+      "summary": "привычка встречать рассвет на ногах | Солдат в нём не умер — даже запойный, он по привычке встречает рассвет на ногах,"
+    }
+  ],
+  "ambiguous": [
+    {
+      "ordinal": 2104,
+      "kind": "TRAIT_SEED",
+      "summary": "ненавидит себя | эта часть ненавидит себя за то, что убил двоих и не сдался страже",
+      "candidates_count": 3
+    }
+  ]
+}

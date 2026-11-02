@@ -1,48 +1,66 @@
 [
   {
-    "kind": "PORTRET",
-    "draft_payload": {
-      "statement": "Гном понял: заказ Торнина можно продать купцу. Продать не сталь, а факт — кому, когда и зачем куется меч.",
-      "traits": [
-        "гном"
-      ]
-    },
-    "confidence": 1.0,
-    "needs_confirmation": false,
-    "question": null
-  },
-  {
     "kind": "TRAIT_SEED",
     "draft_payload": {
-      "trait": "продает информацию",
-      "evidence": "Продаст ли до конца — гном ещё взвешивает"
+      "trait": "продавец информации",
+      "evidence": "гном понял: заказ Торнина можно продать купцу"
     },
-    "confidence": 1.0,
-    "needs_confirmation": false,
-    "question": null
-  },
-  {
-    "kind": "RELATIONSHIP",
-    "draft_payload": {
-      "summary": "гном и купец Горан имеют устойчивое отношение друг к другу",
-      "target_hint": "Купец Горан",
-      "nature": "взаимовыгодное",
-      "valence": "neutral"
-    },
-    "confidence": 1.0,
-    "needs_confirmation": false,
+    "confidence": 0.5,
+    "needs_confirmation": true,
     "question": null
   },
   {
     "kind": "EVENT",
     "draft_payload": {
-      "summary": "гном живёт в этом городе 57 лет",
+      "summary": "купец Горан просит о мече у Торнина",
       "day": null,
-      "duration_years": null,
       "years_ago": null
     },
-    "confidence": 1.0,
-    "needs_confirmation": false,
+    "confidence": 0.5,
+    "needs_confirmation": true,
+    "question": null
+  },
+  {
+    "kind": "TRAIT_SEED",
+    "draft_payload": {
+      "trait": "сдает информацию гильдии бесплатно",
+      "evidence": "гильдии — уже сдано, по привычке, в обмен на спокойствие"
+    },
+    "confidence": 0.5,
+    "needs_confirmation": true,
+    "question": null
+  },
+  {
+    "kind": "TRAIT_SEED",
+    "draft_payload": {
+      "trait": "подарок правительству",
+      "evidence": "уже подарено, туда же"
+    },
+    "confidence": 0.5,
+    "needs_confirmation": true,
+    "question": null
+  },
+  {
+    "kind": "TRAIT_SEED",
+    "draft_payload": {
+      "trait": "торговец информацией с купцом",
+      "evidence": "купцу — в перспективе, за живые деньги или будущее одолжение"
+    },
+    "confidence": 0.5,
+    "needs_confirmation": true,
+    "question": null
+  },
+  {
+    "kind": "PORTRET",
+    "draft_payload": {
+      "statement": "гном ещё взвешивает: он 57 лет в этом городе и знает, что информация, отданная бесплатно, не покупает благодарность, а только разжигает аппетит",
+      "traits": [
+        "опытный",
+        "умеет ценить спокойствие"
+      ]
+    },
+    "confidence": 0.5,
+    "needs_confirmation": true,
     "question": null
   }
 ]

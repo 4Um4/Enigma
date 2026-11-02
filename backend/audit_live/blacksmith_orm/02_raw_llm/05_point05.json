@@ -3,16 +3,26 @@
   "age_anchors": [],
   "items": [
     {
+      "kind": "TRAIT_SEED",
+      "draft_payload": {
+        "trait": "не опасен",
+        "evidence": "Он учёл все силы города, кроме мелкого чиновника, которого считал такой же мебелью, какой все считают его самого."
+      },
+      "confidence": 0.5,
+      "needs_confirmation": true,
+      "question": null
+    },
+    {
       "kind": "RELATIONSHIP",
       "draft_payload": {
         "summary": "Писарь на содержании гильдии",
-        "target_hint": "Писарь"
+        "target_hint": "мелкий чиновник"
       },
       "confidence": 0.4,
       "needs_confirmation": true,
       "question": {
-        "question_id": "roster_mismatch_0",
-        "target_span": "Писарь",
+        "question_id": "roster_mismatch_1",
+        "target_span": "мелкий чиновник",
         "options": [
           "SELECT_EXISTING_NPC",
           "CREATE_NEW_NPC",
@@ -22,26 +32,15 @@
       }
     },
     {
-      "kind": "PORTRET",
+      "kind": "EVENT",
       "draft_payload": {
-        "statement": "Кузнец Орм об этом не знает. Это единственная дыра в его системе: он учёл все силы города, кроме мелкого чиновника, которого считал такой же мебелью, какой все считают его самого.",
-        "traits": [
-          "директность",
-          "системный подход"
-        ]
+        "summary": "Мастер гильдии узнал о предупреждении",
+        "day": null,
+        "years_ago": null,
+        "duration_years": null
       },
-      "confidence": 1.0,
-      "needs_confirmation": false,
-      "question": null
-    },
-    {
-      "kind": "BELIEF_SEED",
-      "draft_payload": {
-        "statement": "Все считают Орма такой же мебелью",
-        "belief_type": "danger"
-      },
-      "confidence": 1.0,
-      "needs_confirmation": false,
+      "confidence": 0.5,
+      "needs_confirmation": true,
       "question": null
     }
   ],

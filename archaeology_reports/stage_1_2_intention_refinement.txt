@@ -1,0 +1,1019 @@
+﻿============================================================
+
+STAGE 1.2 - INTENTION CONTRACT REFINEMENT (NEW DATA)
+
+Mode: READ ONLY - per Master verdict
+
+Identity Contract APPROVED: 4 fields semantic
+
+R5.4 IntentionLifecycleState: ACTIVE/SUSPENDED/SATISFIED/ABANDONED/SUPERSEDED/VOIDED
+
+Principle: IGROK = PARAZIT zakhvativshiy telo nositelya
+
+Generated: 2026-11-02 18:18:56
+
+============================================================
+
+============================================================
+
+1. TaskScheduler (execution binding for non-attack intents)
+
+============================================================
+
+[READ] TaskScheduler class  backend\app\services\game_loop\task_scheduler.py L52-111 (class at L52)
+  52: class TaskScheduler:
+  53:     """
+  54:     Инфраструктурный компонент. Живёт в game_loop.
+  55:     Читает scene_state["pending_tasks"], вызывает исполнителей, генерирует события.
+  56:     """
+  57: 
+  58:     def __init__(self, router: Any = None, context_provider: Any = None, economy_tracker: Any = None, belief_store: Any = None, memory_manager: Any = None, confession_parser: Any = None, npc_states_provider: Any = None) -> None:
+  59:         from app.services.execution.npc_conversation import NpcConversation
+  60:         self._executors: Dict[TaskKind, TaskExecutor] = {
+  61:             TaskKind.DIALOGUE: DialogueExecutor(router, context_provider, belief_store=belief_store, memory_manager=memory_manager, confession_parser=confession_parser)
+  62:         }
+  63:         # ADR-O-342: Сохраняем для проверки STM при резолве цели
+  64:         self._memory_manager = memory_manager
+  65:         # B (пункт 10, решение Мастера 2026-09-11): провайдер NPC-статов для
+  66:         # liveness-гейта диалоговых задач (Callable[[campaign_id], list[dict]]).
+  67:         # None = гейт выключен (fail-open) — sandbox/тесты без wiring как раньше.
+  68:         self._npc_states_provider = npc_states_provider
+  69:         # Блокер 5: Sims-слой для ambient-диалогов без LLM
+  70:         self._ambient_executor: NpcConversation = NpcConversation()
+  71:         self._materializers: Dict[str, Materializer] = {
+  72:             "dialogue_line": DialogueMaterializer()
+  73:         }
+  74:         # BUG-N8 FIX: Инъекция EconomyTracker для трекинга разговоров
+  75:         self._economy_tracker = economy_tracker
+  76:         # BUG-DL-12: Кэш последних реплик для Speech Bubbles (TTL 180 сек игрового времени)
+  77:         self._recent_dialogues: list = []
+  78:         self._dialogue_ttl = _DIALOGUE_TTL
+  79:         # ADR-O-343 FIX: Блокировка для защиты _recent_dialogues от гонки с ThreadPoolExecutor
+  80:         import threading
+  81:         self._dialogue_lock = threading.Lock()
+  82:         # P1 FIX: Асинхронный пул для неблокирающего выполнения LLM
+  83:         # ADR-O-343 FIX: Сериализация LLM-вызовов (max_workers=1).
+  84:         # router.py не поддерживает concurrency > 1 (aborting stuck request bug).
+  85:         # SpeechScheduler гарантирует отсутствие спама, поэтому 1 поток безопасен и стабилен.
+  86:         self._executor_pool = ThreadPoolExecutor(max_workers=1)
+  87:         # ADR-O-342: Счётчик тихих отказов (для Causal Probes / IPT)
+  88:         self.failed_tasks = 0
+  89:         # ADR-O-399: Task Worker Outbox. Lifetime = от submit до первой
+  90:         # разрешённой drain boundary (может пересекать несколько тиков —
+  91:         # completion-время воркера не является канонической категорией).
+  92:         # Писатель push — воркер (под локом), потребитель — main-thread drain.
+  93:         self._task_outbox: list = []
+  94:         self._task_outbox_lock = threading.Lock()
+  95:         # ADR-O-343: Счётчик всех задач, попавших в обработку (для IPT INV-DIALOGUE-INIT)
+  96:         self.total_processed_tasks = 0
+  97:         self._spatial_query_service = None
+  98:         from app.services.execution.dialogue_queue import DialogueQueue
+  99:         self._dialogue_queue = DialogueQueue()
+  100:         # S262: множество enqueue-дедупа (speaker, intent) — см. DLG_ENQ_DEDUP
+  101:         self._enqueued_keys: set = set()
+  102:         # S203.4 (ADR-O-365, D-2): outbox терминалов task-исполнителя.
+  103:         # Воркеры пула НИКОГДА не пишут реестр (single-writer); sync-применение —
+  104:         # drain_commitment_outbox (вход execute_pending + безусловно из idle_tick).
+  105:         self._commitment_outbox: list = []
+  106:         self._commitment_outbox_lock = threading.Lock()
+  107:         logger.info("[TASK_SCHED] DialogueQueue initialized")
+  108: 
+  109:     def _owner_is_dead(self, campaign_id: str, owner_id: str) -> bool:
+  110:         """B (пункт 10): True только при доказанном life_status=DEAD владельца
+  111:         задачи — канонический ADR-O-365 terminal-mapping «actor DEAD → EXPIRED»
+
+[SEARCH] QueuedTask / TaskKind / TaskPriority  pattern: /class QueuedTask\b|class TaskKind\b|class TaskPriority\b/
+  3 matches:
+  backend\app\domain\execution.py:20 : class TaskKind(Enum):
+  backend\app\domain\execution.py:37 : class TaskPriority(Enum):
+  backend\app\domain\execution.py:50 : class QueuedTask:
+
+============================================================
+
+2. R5.4 PROPOSED mechanisms (verify absence in production)
+
+============================================================
+
+[SEARCH] IntentionLifecycleState (R5.4: 6 states)  pattern: /IntentionLifecycleState|intention_lifecycle/
+  (no matches)
+
+[SEARCH] ExecutionLifecycleState (R5.4: with CANCELLED)  pattern: /ExecutionLifecycleState|execution_lifecycle/
+  (no matches)
+
+[SEARCH] BodyArbiter (R5.4 v4)  pattern: /BodyArbiter|body_arbiter/
+  (no matches)
+
+[SEARCH] IntentionRelevanceChecker (R5.4)  pattern: /IntentionRelevanceChecker|intention_relevance/
+  (no matches)
+
+[SEARCH] AvatarInitiativeEngine (R5.1)  pattern: /AvatarInitiativeEngine|avatar_initiative/
+  5 matches:
+  backend\app\domain\intent_identity.py:25 : control_source: PLAYER_INPUT | NPC_DECISION | AVATAR_INITIATIVE
+  backend\app\domain\intent_identity.py:59 : def for_avatar_initiative(cls, character_id: str) -> "IntentIdentity":
+  backend\app\domain\intent_identity.py:65 : control_source = AVATAR_INITIATIVE
+  backend\app\domain\intent_identity.py:71 : control_source=ControlSource.AVATAR_INITIATIVE,
+  backend\app\services\avatar_character_registry.py:6 : Позволяет Avatar действовать автономно (AVATAR_INITIATIVE).
+
+[SEARCH] IntentPressureProfile (R5.1)  pattern: /IntentPressureProfile|intent_pressure/
+  64 matches:
+  backend\app\models\affect.py:30 : # Семантические теги события (для резонанса с IntentPressureProfile)
+  backend\app\models\will.py:6 : # Основные сущности: IntentPressureProfile, WillState, WillResponseDTO
+  backend\app\models\will.py:41 : class IntentPressureProfile:
+  backend\app\models\will.py:95 : pressure_profile: IntentPressureProfile = field(
+  backend\app\models\will.py:96 : default_factory=IntentPressureProfile
+  backend\app\services\game_loop\phase_1_input.py:39 : from app.services.will import resolve_intent_pressure
+  backend\app\services\game_loop\phase_1_input.py:369 : # TODO: В будущем resolve_intent_pressure должен принимать IntentSemanticField,
+  backend\app\services\game_loop\phase_1_input.py:371 : pressure = resolve_intent_pressure(intent)
+  backend\app\services\phases\input.py:100 : # Повторный вызов resolve_intent_pressure ЗАПРЕЩЕН (каузальная integrity)
+  backend\app\services\phases\input.py:101 : from app.services.will import compute_willpower, resolve_intent_pressure
+  backend\app\services\phases\input.py:105 : ctx.player_pressure = resolve_intent_pressure(intent)
+  backend\app\services\affect.py:25 : from app.models.will import IntentPressureProfile, WillResponseDTO, WillState
+  backend\app\services\affect.py:144 : base_pressure: IntentPressureProfile,
+  backend\app\services\affect.py:147 : ) -> IntentPressureProfile:
+  backend\app\services\affect.py:215 : return IntentPressureProfile(
+  backend\app\services\dto.py:23 : from app.models.will import IntentPressureProfile
+  backend\app\services\dto.py:190 : player_pressure: Optional["IntentPressureProfile"] = (
+  backend\app\services\will.py:6 : # Основные сущности: resolve_intent_pressure, compute_willpower
+  backend\app\services\will.py:19 : IntentPressureProfile,
+  backend\app\services\will.py:29 : def resolve_intent_pressure(
+  backend\app\services\will.py:32 : ) -> IntentPressureProfile:
+  backend\app\services\will.py:38 : pressure = IntentPressureProfile()
+  backend\app\services\will.py:55 : pressure = IntentPressureProfile(
+  backend\app\services\will.py:64 : pressure = IntentPressureProfile(
+  backend\app\services\will.py:71 : pressure = IntentPressureProfile(
+  backend\app\services\will.py:79 : pressure = IntentPressureProfile(
+  backend\app\services\will.py:100 : pressure = IntentPressureProfile(
+  backend\app\services\will.py:117 : pressure = IntentPressureProfile(
+  backend\app\services\will.py:125 : pressure = IntentPressureProfile(
+  backend\app\services\will.py:136 : pressure: IntentPressureProfile,
+  backend\app\services\will.py:242 : pressure: IntentPressureProfile, state: WillState
+  backend\app\services\will.py:268 : state: WillState, pressure: IntentPressureProfile
+  backend\app\services\will.py:304 : pressure: IntentPressureProfile, state: WillState
+  backend\app\services\will.py:349 : base_pressure: IntentPressureProfile, tags: list[str]
+  backend\app\services\will.py:350 : ) -> IntentPressureProfile:
+  backend\app\services\will.py:364 : deltas = {k: 0.0 for k in IntentPressureProfile.__dataclass_fields__}
+  backend\app\services\will.py:369 : return IntentPressureProfile(
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:11 : from app.models.will import IntentPressureProfile
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:12 : from app.services.will import resolve_intent_pressure
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:17 : pressure_1 = resolve_intent_pressure(intent_approach)
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:18 : assert isinstance(pressure_1, IntentPressureProfile)
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:21 : pressure_2 = resolve_intent_pressure(intent_halt)
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:23 : pressure_3 = resolve_intent_pressure(intent_approach)
+  backend\tests\sandbox\phenomenology\test_will_directive_conflict.py:11 : from app.services.will import resolve_intent_pressure
+  backend\tests\sandbox\phenomenology\test_will_directive_conflict.py:16 : _pressure_move = resolve_intent_pressure(intent_move)
+  backend\tests\sandbox\phenomenology\test_will_directive_conflict.py:20 : pressure_defy = resolve_intent_pressure(intent_defy)
+  backend\tests\sandbox\sandbox_sprint_27.py:60 : class IntentPressureProfile:
+  backend\tests\sandbox\sandbox_sprint_27.py:87 : def _resolve_embodied_vector(pressure: IntentPressureProfile, state: WillState) -> Optional[EmbodiedVector]:
+  backend\tests\sandbox\sandbox_sprint_27.py:173 : p1 = IntentPressureProfile(self_risk=0.8)
+  backend\tests\sandbox\sandbox_sprint_27.py:181 : p2 = IntentPressureProfile(violence=0.9)
+  backend\tests\sandbox\sandbox_sprint_27.py:189 : p3 = IntentPressureProfile(humiliation=0.8)
+  backend\tests\sandbox\sandbox_sprint_27.py:197 : p4 = IntentPressureProfile()
+  backend\tests\sandbox\sandbox_will_vertical.py:44 : from app.services.will import compute_willpower, resolve_intent_pressure
+  backend\tests\sandbox\sandbox_will_vertical.py:84 : pressure = resolve_intent_pressure(intent)
+  backend\tests\test_will.py:15 : from app.models.will import IntentPressureProfile, WillState
+  backend\tests\test_will.py:16 : from app.services.will import compute_willpower, resolve_intent_pressure
+  backend\tests\test_will.py:24 : pressure = resolve_intent_pressure(intent)
+  backend\tests\test_will.py:30 : pressure = resolve_intent_pressure(intent)
+  backend\tests\test_will.py:36 : pressure = resolve_intent_pressure(intent)
+  backend\tests\test_will.py:46 : pressure = IntentPressureProfile(self_risk=0.8)
+  backend\tests\test_will.py:54 : pressure = IntentPressureProfile(violence=0.8, identity_deviation=0.5)
+  backend\tests\test_will.py:63 : pressure = IntentPressureProfile(humiliation=0.8, identity_deviation=0.7)
+  backend\tests\test_will.py:71 : pressure = IntentPressureProfile()
+  backend\tests\test_will.py:79 : pressure = IntentPressureProfile(violence=0.9)
+
+[SEARCH] PlayerIntent (R5.4 BodyArbiter input)  pattern: /PlayerIntent|player_intent/
+  67 matches:
+  backend\app\agents\dm_agent.py:705 : Источник — player_intent_projection (результат Understanding:
+  backend\app\agents\dm_agent.py:710 : _proj = (context or {}).get("player_intent_projection") or {}
+  backend\app\domain\intent_profile.py:48 : Вычисляется ТОЛЬКО на границе resolve_player_intent — ПОСЛЕ резолва ссылок
+  backend\app\models\schemas.py:82 : player_intent_projection: Optional[Dict[str, Any]] = None
+  backend\app\services\game_loop\dm_phase.py:297 : shared_context.player_intent_projection = build_intent_projection(
+  backend\app\services\game_loop\game_loop.py:1690 : player_intent_projection=_intent_projection,
+  backend\app\services\game_loop\game_loop.py:2005 : player_intent_projection=_intent_projection,
+  backend\app\services\game_loop\phase_1_input.py:10 : Основные сущности: resolve_player_intent, publish_player_action, publish_player_speech
+  backend\app\services\game_loop\phase_1_input.py:276 : def resolve_player_intent(
+  backend\app\services\game_loop\phase_1_input.py:396 : Читает frozen IntentResolution (создаётся в resolve_player_intent ДО
+  backend\app\services\game_loop\phase_1_input.py:619 : # resolve_player_intent (после резолва ссылок).
+  backend\app\services\game_loop\turn_pipeline.py:32 : resolve_player_intent,
+  backend\app\services\game_loop\turn_pipeline.py:405 : _resolution = resolve_player_intent(
+  backend\app\services\phases\input.py:5 : Основные сущности: Phase1InputDeps, run_phase_1_input, publish_player_intent
+  backend\app\services\phases\input.py:25 : def publish_player_intent(ctx: _TickContext, intent: Any) -> None:
+  backend\app\services\phases\input.py:64 : f"[WILL_TRACE] _phase_1_input CALLED. Has intent: {ctx.player_intent is not None}"
+  backend\app\services\phases\input.py:67 : if not ctx.player_intent:
+  backend\app\services\phases\input.py:70 : intent = ctx.player_intent
+  backend\app\services\phases\input.py:92 : publish_player_intent(ctx, intent)
+  backend\app\services\phases\input.py:153 : publish_player_intent(ctx, intent)
+  backend\app\services\dto.py:188 : player_intent: Optional["IntentDTO"] = None  # ADR-031: Канонический интент
+  backend\app\services\tick_orchestrator.py:1402 : def _player_intent_readiness(self, ctx: _TickContext, interv: Any) -> "str | None":
+  backend\app\services\tick_orchestrator.py:1464 : _ue_readiness = self._player_intent_readiness(ctx, interv)
+  backend\app\services\tick_orchestrator.py:2010 : # S118 FIX: Удалена мёртвая заглушка _publish_player_intent (Vulture).
+  backend\app\services\tick_utils.py:451 : # Извлекаем player_intent (IntentDTO) из interventions (если есть действие игрока)
+  backend\app\services\tick_utils.py:452 : _player_intent = None
+  backend\app\services\tick_utils.py:466 : _player_intent = IntentDTO(
+  backend\app\services\tick_utils.py:488 : player_intent=_player_intent,
+  backend\tests\micro\test_dm_raw_leak_lock.py:37 : {"player_intent_projection": _projection(
+  backend\tests\micro\test_dm_raw_leak_lock.py:48 : {"player_intent_projection": _projection(
+  backend\tests\sandbox\micro\test_multi_act.py:5 : Основные сущности: resolve_player_intent, IntentSemanticField
+  backend\tests\sandbox\micro\test_multi_act.py:10 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\micro\test_multi_act.py:18 : return resolve_player_intent(
+  backend\tests\sandbox\micro\test_player_intent_projection.py:2 : path: backend/tests/sandbox/micro/test_player_intent_projection.py
+  backend\tests\sandbox\micro\test_player_intent_projection.py:5 : Основные сущности: build_intent_projection, resolve_player_intent
+  backend\tests\sandbox\micro\test_player_intent_projection.py:7 : Запуск: cd backend; python -m pytest tests/sandbox/micro/test_player_intent_projection.py -v --tb=short; cd ..
+  backend\tests\sandbox\micro\test_player_intent_projection.py:15 : resolve_player_intent,
+  backend\tests\sandbox\micro\test_player_intent_projection.py:40 : return resolve_player_intent(
+  backend\tests\sandbox\micro\test_player_intent_projection.py:89 : resolution = resolve_player_intent(
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:22 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:46 : return resolve_player_intent(
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:86 : self_stub._player_intent_readiness = (
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:87 : lambda ctx, interv: TickOrchestrator._player_intent_readiness(self_stub, ctx, interv)
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:149 : self_stub._player_intent_readiness = (
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:150 : lambda ctx, interv: TickOrchestrator._player_intent_readiness(self_stub, ctx, interv)
+  backend\tests\sandbox\micro\test_ue_dm_rule.py:29 : return {"player_intent_projection": {
+  backend\tests\sandbox\micro\test_ue_safety_red.py:13 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\micro\test_ue_safety_red.py:30 : res = resolve_player_intent(
+  backend\tests\sandbox\micro\test_ue_safety_red.py:43 : res = resolve_player_intent(
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:18 : resolve_player_intent,
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:33 : """Фабрика (§13.4): живой IntentResolution через resolve_player_intent."""
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:34 : return resolve_player_intent(
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:5 : Основные сущности: resolve_player_intent
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:11 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:27 : resolution = resolve_player_intent(
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:44 : resolution = resolve_player_intent(
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:59 : resolution = resolve_player_intent(
+  backend\tests\sandbox\SUPERBOX\scenarios\ue0_baseline_probe.py:119 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\SUPERBOX\scenarios\ue0_baseline_probe.py:120 : resolution = resolve_player_intent(
+  backend\tests\sandbox\SUPERBOX\run_terminal_mvp.py:191 : _pip = getattr(response, "player_intent_projection", "<NO_FIELD>")
+  backend\tests\sandbox\test_causal_movement.py:17 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\test_causal_movement.py:36 : resolution = resolve_player_intent(
+  backend\tests\IPT.py:409 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\IPT.py:429 : # resolve_player_intent возвращает словарь с pressure и intent
+  backend\tests\IPT.py:430 : _intent_data = resolve_player_intent([action], world.campaign_id, world._get_scene())
+  backend\tests\IPT.py:436 : f"Игрок→NPC: resolve_player_intent вернул пустой результат для цели {target_npc}. Ввод игрока не обрабатывается.",
+  backend\tests\IPT.py:444 : f"Игрок→NPC: resolve_player_intent упал с ошибкой: {e}",
+
+============================================================
+
+3. Cancellation / lifecycle mechanisms
+
+============================================================
+
+[SEARCH] cancel/abandon/withdraw/supersede/void methods  pattern: /def cancel|cancel_intent|def abandon|def withdraw|def supersede|def void/
+  2 matches:
+  backend\app\services\action\commitment_registry.py:249 : def cancel(scene_state: Dict[str, Any], npc_id: str, tick: int) -> bool:
+  backend\app\services\llm\downloader.py:435 : def cancel_download(model_key: str) -> bool:
+
+[SEARCH] terminal status values  pattern: /CANCELLED|INTERRUPTED|EXPIRED|ABANDONED|SUPERSEDED|VOIDED/
+  244 matches:
+  backend\app\api\routes.py:431 : return {"status": "cancelled" if _ok else "not_downloading", "model": model_key}
+  backend\app\domain\action_commitment.py:33 : "INTERRUPTED",
+  backend\app\domain\action_commitment.py:34 : "EXPIRED",
+  backend\app\domain\action_commitment.py:35 : "CANCELLED",
+  backend\app\domain\action_commitment.py:39 : "PROPOSED": {"COMMITTED", "CANCELLED"},
+  backend\app\domain\action_commitment.py:41 : "COMMITTED": {"EXECUTING", "BLOCKED", "CANCELLED", "EXPIRED", "INTERRUPTED"},
+  backend\app\domain\action_commitment.py:42 : # S203.1 fix: CANCELLED (сознательное снятие) доступен из ЛЮБОЙ активной фазы —
+  backend\app\domain\action_commitment.py:43 : # передумал посреди исполнения = CANCELLED, а не INTERRUPTED (последний требует
+  backend\app\domain\action_commitment.py:46 : "EXECUTING": {"COMPLETED", "FAILED", "BLOCKED", "INTERRUPTED", "EXPIRED", "CANCELLED"},
+  backend\app\domain\action_commitment.py:47 : # BLOCKED->INTERRUPTED: заблокированное обязательство обязано уметь уступать
+  backend\app\domain\action_commitment.py:49 : # BLOCKED->CANCELLED: REPLAN из Scenario C TZ (BLOCKED -> FAILED / REPLAN).
+  backend\app\domain\action_commitment.py:50 : "BLOCKED": {"EXECUTING", "FAILED", "EXPIRED", "INTERRUPTED", "CANCELLED"},
+  backend\app\domain\action_commitment.py:53 : "INTERRUPTED": set(),  # terminal (№3: резюм = НОВЫЙ commitment, не продолжение)
+  backend\app\domain\action_commitment.py:54 : "EXPIRED": set(),  # terminal
+  backend\app\domain\action_commitment.py:55 : "CANCELLED": set(),  # terminal
+  backend\app\domain\action_commitment.py:192 : INTERRUPTED без interrupt_reason запрещён: прерывание обязано нести
+  backend\app\domain\action_commitment.py:201 : if new_status == "INTERRUPTED" and not interrupt_reason:
+  backend\app\domain\action_commitment.py:207 : if new_status == "INTERRUPTED":
+  backend\app\domain\action_windup.py:19 : INTERRUPTED = "interrupted"  # Подготовка сорвана внешним вмешательством
+  backend\app\domain\activity.py:59 : STUB — цель сохраняется и возобновляется (INTERRUPTED → parent_id);
+  backend\app\domain\temporal_specs.py:20 : 1. reactive preemption (hub_event ≠ WORLD_TICK) → CANCELLED
+  backend\app\domain\temporal_specs.py:22 : 3. validity_check → CANCELLED (if False)
+  backend\app\domain\temporal_specs.py:23 : 4. age >= max_duration_ticks → EXPIRED
+  backend\app\domain\temporal_specs.py:115 : If traversal fails (blocked, target gone) → existing CANCELLED path."""
+  backend\app\domain\traversal_schema.py:43 : "CANCELLED",
+  backend\app\domain\traversal_schema.py:49 : "MOVING": {"COMPLETED", "CANCELLED"},
+  backend\app\domain\traversal_schema.py:51 : "CANCELLED": set(),  # terminal — zombie cleanup only
+  backend\app\domain\traversal_schema.py:196 : True  = INTERRUPTED_NOW: traversal CANCELLED, commitment INTERRUPTED(reason),
+  backend\app\domain\traversal_schema.py:200 : legacy-GC/чужой путь — НЕ то же самое, что уже-interrupted) |
+  backend\app\domain\traversal_schema.py:217 : # ALREADY_TERMINAL (COMPLETED/CANCELLED): физика уже остановлена;
+  backend\app\domain\traversal_schema.py:225 : # INTERRUPTED разрешён из {COMMITTED, EXECUTING, BLOCKED} и требует
+  backend\app\domain\traversal_schema.py:230 : _cm_transition_ok = transition_commitment_preview(_probe, "INTERRUPTED", reason)
+  backend\app\domain\traversal_schema.py:237 : _trav_transition_ok = transition_traversal(_trav_probe, "CANCELLED")
+  backend\app\domain\traversal_schema.py:254 : transition_traversal(trav, "CANCELLED")
+  backend\app\domain\traversal_schema.py:256 : if not transition_commitment(cm, "INTERRUPTED", tick=tick,
+  backend\app\domain\traversal_schema.py:259 : # недостижим (CANCELLED terminal) — падаем громко (L4):
+  backend\app\domain\traversal_schema.py:291 : if new_status == "INTERRUPTED" and not interrupt_reason:
+  backend\app\models\economy.py:143 : def is_expired(self) -> bool:
+  backend\app\models\economy.py:573 : return [c for c in self.contracts if not c.is_expired]
+  backend\app\models\economy.py:582 : if not contract.is_expired:
+  backend\app\services\action\commitment_arbiter.py:106 : суперсессию выполнит существующий mirror (INTERRUPTED/SUPERSEDED).
+  backend\app\services\action\commitment_registry.py:39 : # Зеркало Н-46b: перезапись traversal без CANCELLED.
+  backend\app\services\action\commitment_registry.py:40 : _INTERRUPT_SUPERSEDED = "SUPERSEDED_BY_NEW_MATERIALIZATION"
+  backend\app\services\action\commitment_registry.py:170 : Если у NPC уже есть активное — оно INTERRUPTED(SUPERSEDED...) и
+  backend\app\services\action\commitment_registry.py:185 : "INTERRUPTED",
+  backend\app\services\action\commitment_registry.py:186 : interrupt_reason=_INTERRUPT_SUPERSEDED,
+  backend\app\services\action\commitment_registry.py:229 : INTERRUPTED). fail_reason ∈ FAIL_* — реестр констант, закон №16."""
+  backend\app\services\action\commitment_registry.py:238 : """-> INTERRUPTED (+history). Причина прекращения обязательна."""
+  backend\app\services\action\commitment_registry.py:240 : scene_state, npc_id, tick, "INTERRUPTED", interrupt_reason=interrupt_reason
+  backend\app\services\action\commitment_registry.py:245 : """-> EXPIRED (+history): срок истёк без исполнения."""
+  backend\app\services\action\commitment_registry.py:246 : return CommitmentRegistry._terminate(scene_state, npc_id, tick, "EXPIRED")
+  backend\app\services\action\commitment_registry.py:250 : """-> CANCELLED (+history): сознательное снятие (актор/арбитр).
+  backend\app\services\action\commitment_registry.py:251 : Отличается от INTERRUPTED: причина прекращения — решение, не событие."""
+  backend\app\services\action\commitment_registry.py:252 : return CommitmentRegistry._terminate(scene_state, npc_id, tick, "CANCELLED")
+  backend\app\services\action\commitment_registry.py:402 : outcome ∈ {EXECUTING, COMPLETED, FAILED, CANCELLED, EXPIRED, INTERRUPTED}.
+  backend\app\services\action\commitment_registry.py:403 : FAILED требует fail_reason (D-6); INTERRUPTED — interrupt_reason.
+  backend\app\services\action\commitment_registry.py:422 : if outcome == "INTERRUPTED":
+  backend\app\services\action\commitment_registry.py:426 : if outcome == "CANCELLED":
+  backend\app\services\action\commitment_registry.py:428 : if outcome == "EXPIRED":
+  backend\app\services\action\commitment_registry.py:457 : def mirror_task_expired_by_ref(
+  backend\app\services\action\commitment_registry.py:460 : """M-29 purge: EXPIRED строго по executor_ref — иначе можно убить
+  backend\app\services\action\commitment_registry.py:481 : мёртв/отсутствует → INTERRUPTED(SLEEP_VANISHED). Идемпотентно;
+  backend\app\services\action\commitment_registry.py:529 : NPC исчез → INTERRUPTED(ACTIVITY_VANISHED). Идемпотентно."""
+  backend\app\services\action\commitment_registry.py:562 : def mirror_traversal_interrupted(
+  backend\app\services\action\commitment_registry.py:573 : -> INTERRUPTED(TRAVERSAL_VANISHED).
+  backend\app\services\economy\work_orders.py:229 : №3: после INTERRUPTED — новая деятельность, не продолжение).
+  backend\app\services\execution\dialogue_executor.py:184 : error_message="LLM failed or returned empty text (stub avoided)."
+  backend\app\services\game_loop\game_loop.py:818 : if not t.cancelled() and t.exception():
+  backend\app\services\game_loop\task_scheduler.py:111 : задачи — канонический ADR-O-365 terminal-mapping «actor DEAD → EXPIRED»
+  backend\app\services\game_loop\task_scheduler.py:299 : # гейта execute_pending): мёртвый владелец → EXPIRED по каноническому
+  backend\app\services\game_loop\task_scheduler.py:307 : self._record_task_outcome(_own, "EXPIRED")
+  backend\app\services\game_loop\task_scheduler.py:310 : f"DEAD → task EXPIRED (mid-generation interrupt)"
+  backend\app\services\game_loop\task_scheduler.py:315 : # материализуется, задача INTERRUPTED(TASK_STALE_INTENT).
+  backend\app\services\game_loop\task_scheduler.py:319 : self._record_task_outcome(_own, "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+  backend\app\services\game_loop\task_scheduler.py:322 : f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
+  backend\app\services\game_loop\task_scheduler.py:382 : self._record_task_outcome(speaker_id, "EXPIRED")
+  backend\app\services\game_loop\task_scheduler.py:385 : f"DEAD → task EXPIRED (mid-generation interrupt)"
+  backend\app\services\game_loop\task_scheduler.py:392 : self._record_task_outcome(speaker_id, "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+  backend\app\services\game_loop\task_scheduler.py:395 : f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
+  backend\app\services\game_loop\task_scheduler.py:433 : # canonical → CANCELLED в реестре обязательств.
+  backend\app\services\game_loop\task_scheduler.py:435 : self._record_task_outcome(speaker_id, "CANCELLED")
+  backend\app\services\game_loop\task_scheduler.py:526 : # S203.4: DEDUP-смерть → CANCELLED (main-thread sync-путь;
+  backend\app\services\game_loop\task_scheduler.py:529 : task_dict.get("owner_id", ""), "CANCELLED"
+  backend\app\services\game_loop\task_scheduler.py:535 : # задача получает EXPIRED по каноническому ADR-O-365 мэппингу
+  backend\app\services\game_loop\task_scheduler.py:539 : self._record_task_outcome(task_dict.get("owner_id", ""), "EXPIRED")
+  backend\app\services\game_loop\task_scheduler.py:542 : f"DEAD → task EXPIRED (mid-generation interrupt)"
+  backend\app\services\game_loop\task_scheduler.py:549 : self._record_task_outcome(task_dict.get("owner_id", ""), "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+  backend\app\services\game_loop\task_scheduler.py:552 : f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
+  backend\app\services\game_loop\task_scheduler.py:599 : # закрыты by construction. EXPIRED — канонический ADR-O-365
+  backend\app\services\game_loop\task_scheduler.py:602 : self._record_task_outcome(task_dict.get("owner_id", ""), "EXPIRED")
+  backend\app\services\game_loop\task_scheduler.py:605 : f"DEAD → task EXPIRED (mid-generation interrupt)"
+  backend\app\services\game_loop\task_scheduler.py:612 : self._record_task_outcome(task_dict.get("owner_id", ""), "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+  backend\app\services\game_loop\task_scheduler.py:615 : f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
+  backend\app\services\game_loop\task_scheduler.py:634 : self._record_task_outcome(task_dict.get("owner_id", ""), "CANCELLED")
+  backend\app\services\game_loop\task_scheduler.py:796 : # S203.4 (terminal-mapping v2): drop-до-исполнения → CANCELLED
+  backend\app\services\game_loop\task_scheduler.py:798 : self._record_task_outcome(task_dict.get("owner_id", ""), "CANCELLED")
+  backend\app\services\game_loop\task_scheduler.py:810 : self._record_task_outcome(task_dict.get("owner_id", ""), "CANCELLED")
+  backend\app\services\game_loop\task_scheduler.py:841 : # S203.4 (terminal-mapping v2): drop-до-исполнения → CANCELLED.
+  backend\app\services\game_loop\task_scheduler.py:842 : self._record_task_outcome(task_dict.get("owner_id", ""), "CANCELLED")
+  backend\app\services\game_loop\turn_pipeline.py:716 : if not t.cancelled() and t.exception():
+  backend\app\services\llm\downloader.py:308 : raise RuntimeError("cancelled")
+  backend\app\services\llm\downloader.py:389 : _cancelled = False
+  backend\app\services\llm\downloader.py:394 : _cancelled = True
+  backend\app\services\llm\downloader.py:405 : if _cancelled:
+  backend\app\services\llm\llama_cpp_provider.py:416 : except subprocess.TimeoutExpired:
+  backend\app\services\npc\condition_engine.py:75 : expired: List[str] = []
+  backend\app\services\npc\condition_engine.py:82 : expired.append(cond_type)
+  backend\app\services\npc\condition_engine.py:88 : source="condition_expired",
+  backend\app\services\npc\condition_engine.py:172 : # Лог expired
+  backend\app\services\npc\condition_engine.py:173 : if expired:
+  backend\app\services\npc\condition_engine.py:175 : f"[CONDITION] {state.npc_id}: expired {expired}, "
+  backend\app\services\npc\domain_phases.py:169 : f"[DRIVE] {npc_id}: {len(_drives)}→{len(_aged)} drives (expired)"
+  backend\app\services\npc\life_engine.py:2289 : routine["interrupted"] = False
+  backend\app\services\npc\life_engine.py:2329 : if "interrupted" not in routine:
+  backend\app\services\npc\life_engine.py:2330 : routine["interrupted"] = False
+  backend\app\services\npc\life_engine.py:2335 : if "interrupted" not in routine:
+  backend\app\services\npc\life_engine.py:2336 : routine["interrupted"] = False
+  backend\app\services\phases\post_decision.py:237 : # S203.4 (terminal-mapping v2): вычищенные = тихая смерть → EXPIRED
+  backend\app\services\phases\post_decision.py:238 : # строго по executor_ref (mirror_task_expired_by_ref).
+  backend\app\services\phases\post_decision.py:243 : CommitmentRegistry.mirror_task_expired_by_ref(
+  backend\app\services\phases\post_decision.py:422 : # G3 (ADR-O-410): причина INTERRUPTED этого windup
+  backend\app\services\phases\post_decision.py:506 : windup, status=WindupStatus.INTERRUPTED
+  backend\app\services\phases\post_decision.py:527 : windup, status=WindupStatus.INTERRUPTED
+  backend\app\services\phases\post_decision.py:545 : # Одна точка после всего if/else (4 ветки COMPLETED + 1 INTERRUPTED).
+  backend\app\services\phases\post_decision.py:546 : if windup.status == WindupStatus.INTERRUPTED:
+  backend\app\services\phases\post_decision.py:552 : "INTERRUPTED",
+  backend\app\services\phases\post_decision.py:569 : # H-37 FIX: Сохраняем PENDING для audit trail (COMPLETED/INTERRUPTED
+  backend\app\services\probes\probes\traversal_fsm_probe.py:4 : Проверяет, что в active_traversals нет терминальных статусов (COMPLETED, CANCELLED).
+  backend\app\services\probes\probes\traversal_fsm_probe.py:18 : _terminal_statuses = {"COMPLETED", "CANCELLED"}
+  backend\app\services\spatial\movement_engine.py:260 : CommitmentRegistry.mirror_traversal_interrupted(
+  backend\app\services\spatial\movement_engine.py:521 : # (traversal CANCELLED + commitment INTERRUPTED), запись
+  backend\app\services\spatial\movement_engine.py:538 : CommitmentRegistry.mirror_traversal_interrupted(
+  backend\app\services\spatial\world_topology_provider.py:69 : expired_types = [
+  backend\app\services\spatial\world_topology_provider.py:74 : for t in expired_types:
+  backend\app\services\world\g3_executor.py:91 : REJECT     → вызывающий переводит windup в INTERRUPTED, событие
+  backend\app\services\player_session_service.py:232 : def cleanup_expired_sessions(self) -> int:
+  backend\app\services\player_session_service.py:237 : expired_keys = []
+  backend\app\services\player_session_service.py:241 : expired_keys.append(campaign_id)
+  backend\app\services\player_session_service.py:243 : f"[PLAYER_SESSION_EXPIRED] Campaign: {campaign_id}, Player: {session.player_name}"
+  backend\app\services\player_session_service.py:246 : for campaign_id in expired_keys:
+  backend\app\services\player_session_service.py:249 : return len(expired_keys)
+  backend\app\services\scene_state_manager.py:1156 : Удаляет terminal-статусы (COMPLETED/CANCELLED). Вызывается:
+  backend\app\services\tick_orchestrator.py:1047 : # Активный traversal-commitment без живого traversal -> INTERRUPTED
+  backend\app\services\tick_orchestrator.py:1374 : logger.info(f"[S186_TRANSFER] Interrupted traversal for NPC={npc_id} in {_current_loc}")
+  backend\app\main.py:333 : except asyncio.CancelledError as e:
+  backend\app\main.py:334 : logger.debug(f"Background task cancelled: {e}")
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:76 : except subprocess.TimeoutExpired:
+  backend\tests\micro\test_dialogue_liveness_gate.py:3 : owner DEAD → EXPIRED (ADR-O-365 terminal-mapping), посмертная реплика не
+  backend\tests\micro\test_dialogue_liveness_gate.py:58 : def _expired_entries(scheduler) -> list:
+  backend\tests\micro\test_dialogue_liveness_gate.py:60 : return [e for e in scheduler._commitment_outbox if "EXPIRED" in str(e)]
+  backend\tests\micro\test_dialogue_liveness_gate.py:67 : assert _expired_entries(sched), "B: DEAD → EXPIRED (ADR-O-365 mapping)"
+  backend\tests\micro\test_dialogue_liveness_gate.py:74 : assert not _expired_entries(sched), "B: живой владелец не получает EXPIRED"
+  backend\tests\micro\test_dialogue_liveness_gate.py:88 : assert _expired_entries(sched), "B: process_tasks-путь гейтится (точка №3)"
+  backend\tests\micro\test_dialogue_liveness_gate.py:96 : # видит DEAD → EXPIRED, реплика не материализуется (истинный mid-generation).
+  backend\tests\micro\test_dialogue_liveness_gate.py:104 : assert _expired_entries(sched), "B8: worker-гейт даёт EXPIRED in-flight задаче"
+  backend\tests\micro\test_dialogue_liveness_gate.py:115 : assert _expired_entries(sched), "B5/B8: очередь-путь гейтится (talk)"
+  backend\tests\micro\test_intent_liveness_gate.py:96 : s._record_task_outcome("npc_a", "INTERRUPTED", interrupt_reason="TASK_STALE_INTENT")
+  backend\tests\micro\test_intent_liveness_gate.py:98 : assert calls == [("npc_a", "INTERRUPTED", None, "TASK_STALE_INTENT")]
+  backend\tests\micro\test_intent_liveness_gate.py:114 : s._commitment_outbox.append(("npc_a", "CANCELLED", None))  # legacy-формат
+  backend\tests\micro\test_intent_liveness_gate.py:116 : assert calls == [("npc_a", "CANCELLED", None, None)]
+  backend\tests\micro\test_intent_liveness_gate.py:121 : def test_process_tasks_flee_owner_interrupted_not_dispatched():
+  backend\tests\micro\test_intent_liveness_gate.py:127 : assert ("npc_a", "INTERRUPTED", None, "TASK_STALE_INTENT") in _outbox(s)
+  backend\tests\micro\test_intent_liveness_gate.py:136 : assert not any(e[1] == "INTERRUPTED" for e in _outbox(s))
+  backend\tests\micro\test_intent_liveness_gate.py:143 : assert ("npc_a", "EXPIRED", None, None) in _outbox(s)
+  backend\tests\micro\test_intent_liveness_gate.py:144 : assert not any(e[1] == "INTERRUPTED" for e in _outbox(s))
+  backend\tests\pbt\properties\test_spatial_and_traversal.py:53 : status = draw(st.sampled_from(["PENDING", "MOVING", "COMPLETED", "CANCELLED"]))
+  backend\tests\pbt\properties\test_spatial_and_traversal.py:96 : if status in ["COMPLETED", "CANCELLED"]:
+  backend\tests\sandbox\probes\llm_down_smoke_probe.py:197 : p3 = "cancelled"
+  backend\tests\sandbox\probes\llm_down_smoke_probe.py:229 : outcome = "cancelled_at_1s"
+  backend\tests\sandbox\probes\llm_down_smoke_probe.py:238 : # cancelled/freeze ~3с+ = real sync-заморозка внутри async (подтверждение D66).
+  backend\tests\sandbox\SUPERBOX\scenarios\action_integrity_test.py:212 : # G7: no superseded при enforcement
+  backend\tests\sandbox\SUPERBOX\scenarios\action_integrity_test.py:216 : if e.get("interrupt_reason") == "SUPERSEDED_BY_NEW_MATERIALIZATION":
+  backend\tests\sandbox\SUPERBOX\scenarios\action_integrity_test.py:218 : f"G7 tick={tick}: npc={npc} superseded при enforcement"
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:11 : #       владельца DEAD → EXPIRED (ADR-O-365 terminal-mapping, гейт B,
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:395 : # зафиксирован: DEAD) → EXPIRED + маркер за один вызов.
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:421 : print(f"[D2] задача жертвы → EXPIRED (гейт, mid-generation interrupt) — "
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:446 : # commitment_history нет by design; канонический свидетель EXPIRED —
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:448 : print(f"[D2-DIAG] EXPIRED-свидетель: маркер гейта "
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:450 : f"{'запись есть' if 'EXPIRED' in _hist and _victim in _hist else 'отсутствует (ожидаемо, D-8)'}")
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_interrupt_test.py:228 : (e or {}).get("status") == "INTERRUPTED"
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_interrupt_test.py:233 : print(f"[I2b] реестр: INTERRUPTED(TASK_STALE_INTENT) — {_i2b_mark}")
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_interrupt_test.py:259 : print(f"[I4] DEAD+flee → EXPIRED (не INTERRUPTED) — {'✅' if i4 else '❌'}")
+  backend\tests\sandbox\SUPERBOX\scenarios\movement_comprehensive_test.py:89 : return "INTERRUPTED"
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:1018 : run_a_interrupted = False
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:1044 : run_a_interrupted = True
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:1045 : print(f"  [REPLAY] Run A INTERRUPTED at tick {tick}: {type(e).__name__}: {e}")
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:1068 : run_b_interrupted = False
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:1091 : run_b_interrupted = True
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:1092 : print(f"  [REPLAY] Run B INTERRUPTED at tick {tick}: {type(e).__name__}: {e}")
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:1112 : crashed_ticks=1 if run_a_interrupted or run_b_interrupted else 0,
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:1120 : _replayed_ticks = 0 if (run_a_interrupted or run_b_interrupted) else ticks * 2
+  backend\tests\sandbox\commitment_baseline.py:94 : superseded = reason_counts.get("SUPERSEDED_BY_NEW_MATERIALIZATION", 0)
+  backend\tests\sandbox\commitment_baseline.py:116 : print(f"superseded={superseded} vanished={vanished} cross_loc={cross_loc}")
+  backend\tests\sandbox\commitment_baseline.py:130 : f"superseded={superseded} vanished={vanished} cross_loc={cross_loc}",
+  backend\tests\IPT.py:552 : """INV-TRAV-ZOMBIE: В active_traversals нет терминальных статусов (COMPLETED, CANCELLED)."""
+  backend\tests\IPT.py:555 : _terminal = {"COMPLETED", "CANCELLED"}
+  backend\tests\test_action_commitment.py:73 : interrupt_reason="R" if to == "INTERRUPTED" else None,
+  backend\tests\test_action_commitment.py:75 : # параметризации INTERRUPTED в этом же вызове.
+  backend\tests\test_action_commitment.py:82 : "COMPLETED", "FAILED", "INTERRUPTED", "EXPIRED", "CANCELLED"
+  backend\tests\test_action_commitment.py:85 : def test_interrupted_requires_reason(self):
+  backend\tests\test_action_commitment.py:86 : """INTERRUPTED без причины прекращения = отказ, запись не мутирована."""
+  backend\tests\test_action_commitment.py:88 : assert transition_commitment(record, "INTERRUPTED") is False
+  backend\tests\test_action_commitment.py:92 : assert transition_commitment(record, "INTERRUPTED", interrupt_reason="THREAT") is True
+  backend\tests\test_action_commitment.py:96 : """S203.1: CANCELLED доступен из каждого не-терминального статуса —
+  backend\tests\test_action_commitment.py:100 : assert transition_commitment(record, "CANCELLED", tick=5) is True, phase
+  backend\tests\test_action_commitment.py:162 : assert ss["commitment_history"]["n1"][-1]["status"] == "INTERRUPTED"
+  backend\tests\test_action_commitment.py:178 : # INTERRUPTED) — терминал-цикл параметризует причину по статусу.
+  backend\tests\test_action_commitment.py:182 : for terminal in ("FAILED", "EXPIRED", "CANCELLED"):
+  backend\tests\test_action_commitment.py:190 : "EXPIRED": CommitmentRegistry.expire,
+  backend\tests\test_action_commitment.py:191 : "CANCELLED": CommitmentRegistry.cancel}[terminal](ss, "n1", 3, **_kwargs)
+  backend\tests\test_action_commitment.py:221 : def test_vanished_traversal_interrupted(self, flag_on):
+  backend\tests\test_action_commitment.py:444 : def test_interrupted_accepts_priority_supersede(self):
+  backend\tests\test_action_commitment.py:460 : cm, "INTERRUPTED", tick=2, interrupt_reason=INTERRUPT_PRIORITY_SUPERSEDE
+  backend\tests\test_action_commitment.py:476 : assert ss["active_traversals"]["n1"]["status"] == "CANCELLED"
+  backend\tests\test_action_commitment.py:477 : assert ss["commitment_history"]["n1"][-1]["status"] == "INTERRUPTED"
+  backend\tests\test_action_commitment.py:712 : assert ss["active_traversals"]["n1"]["status"] == "CANCELLED"
+  backend\tests\test_action_commitment.py:713 : assert ss["commitment_history"]["n1"][-1]["status"] == "INTERRUPTED"
+  backend\tests\test_action_commitment.py:913 : def test_expired_by_ref_strict(self, flag_on):
+  backend\tests\test_action_commitment.py:923 : # активен t-1. EXPIRED по t-2 (чужой ref) обязан отклонить.
+  backend\tests\test_action_commitment.py:924 : assert CommitmentRegistry.mirror_task_expired_by_ref(ss, "n1", "t-2", 3) is False
+  backend\tests\test_action_commitment.py:925 : assert CommitmentRegistry.mirror_task_expired_by_ref(ss, "n1", "t-1", 3) is True
+  backend\tests\test_action_commitment.py:926 : assert ss["commitment_history"]["n1"][-1]["status"] == "EXPIRED"
+  backend\tests\test_action_commitment.py:966 : assert ss["commitment_history"]["n1"][-1]["status"] == "INTERRUPTED"
+  backend\tests\test_action_commitment.py:1309 : def test_windup_roundtrip_interrupted(self):
+  backend\tests\test_action_commitment.py:1315 : status=WindupStatus.INTERRUPTED,
+  backend\tests\test_action_commitment.py:1319 : assert _restored.status == WindupStatus.INTERRUPTED
+  backend\tests\test_action_commitment.py:2094 : CommitmentRegistry.mirror_traversal_interrupted(ss, "n1", 2, "R")
+  backend\tests\test_action_commitment.py:2182 : ss = {"active_commitments": {"n1": {"status": "INTERRUPTED", "commitment_id": "x", "target_id": "bar"}}}
+  backend\tests\test_action_commitment.py:2236 : assert ss["active_traversals"]["n1"]["status"] == "CANCELLED"  # живёт
+  backend\tests\test_action_commitment.py:2238 : assert hist[-1]["status"] == "INTERRUPTED"
+  backend\tests\test_action_commitment.py:2243 : """CANCELLED traversal → False, БЕЗ мутаций (ALREADY_TERMINAL)."""
+  backend\tests\test_action_commitment.py:2286 : """Гарантия executor stopped: CANCELLED-запись не двигается TES
+  backend\tests\test_action_commitment.py:2297 : # запись всё ещё CANCELLED (GC не запускался — advance не удаляет)
+  backend\tests\test_action_commitment.py:2298 : assert ss["active_traversals"]["n1"]["status"] == "CANCELLED"
+  backend\tests\test_action_commitment.py:2311 : assert scene_a["active_traversals"]["n1"]["status"] == "CANCELLED"
+  backend\tests\test_action_commitment.py:2312 : assert scene_a["commitment_history"]["n1"][-1]["status"] == "INTERRUPTED"
+  backend\tests\test_action_commitment.py:2319 : assert scene_a["active_traversals"]["n1"]["status"] == "CANCELLED"  # A не ожил
+  backend\tests\test_commitment_ssm_integration.py:120 : def test_inflight_traversal_not_superseded(self, scene_state, stub_spatial):
+  backend\tests\test_commitment_ssm_integration.py:139 : def test_orphaned_commitment_superseded(self, scene_state, stub_spatial):
+  backend\tests\test_commitment_ssm_integration.py:142 : осиротел -> новая материализация прерывает его (INTERRUPTED/SUPERSEDED)
+  backend\tests\test_commitment_ssm_integration.py:157 : assert hist[-1]["status"] == "INTERRUPTED"
+  backend\tests\test_commitment_ssm_integration.py:158 : assert hist[-1]["interrupt_reason"] == "SUPERSEDED_BY_NEW_MATERIALIZATION"
+  backend\tests\test_life_engine.py:46 : "interrupted": False,
+  backend\tests\test_life_engine.py:76 : "interrupted": False,
+
+============================================================
+
+4. Conflict / competing intentions
+
+============================================================
+
+[SEARCH] conflict/competing intents  pattern: /conflict.*intent|intent.*conflict|competing.*intent|intent.*compete/
+  (no matches)
+
+[SEARCH] arbitration mechanisms  pattern: /def arbitrate|arbitration|ArbitrationDecision|arbiter/
+  130 matches:
+  backend\app\services\action\commitment_arbiter.py:3 : path: /project/backend/app/services/action/commitment_arbiter.py
+  backend\app\services\action\commitment_arbiter.py:4 : Назначение: S203.2 (Stage 2A, ADR-O-363) — Commitment Arbiter: gate перед
+  backend\app\services\action\commitment_arbiter.py:8 : Один arbiter, два invocation points (simulation.py / movement_bridge.py).
+  backend\app\services\action\commitment_arbiter.py:15 : Основные сущности: CommitmentArbiter, ARBITER_ENFORCEMENT
+  backend\app\services\action\commitment_arbiter.py:36 : ARBITER_ENFORCEMENT: bool = os.environ.get("ARBITER_ENFORCEMENT", "").strip().lower() in (
+  backend\app\services\action\commitment_arbiter.py:43 : # активна ТОЛЬКО при ARBITER_ENFORCEMENT=True ∧ S203.4_ARBITER_INTERRUPT=True.
+  backend\app\services\action\commitment_arbiter.py:46 : S203_4_ARBITER_INTERRUPT: bool = any(
+  backend\app\services\action\commitment_arbiter.py:48 : for _k in ("S203.4_ARBITER_INTERRUPT", "S203_4_ARBITER_INTERRUPT")
+  backend\app\services\action\commitment_arbiter.py:80 : class ArbitrationResult:
+  backend\app\services\action\commitment_arbiter.py:89 : class CommitmentArbiter:
+  backend\app\services\action\commitment_arbiter.py:93 : def arbitrate(
+  backend\app\services\action\commitment_arbiter.py:100 : ) -> ArbitrationResult:
+  backend\app\services\action\commitment_arbiter.py:115 : return ArbitrationResult(verdict=VERDICT_PASS)
+  backend\app\services\action\commitment_arbiter.py:126 : return ArbitrationResult(verdict=VERDICT_PASS)
+  backend\app\services\action\commitment_arbiter.py:131 : # Каскад D-4: только ENFORCEMENT ∧ S203.4_ARBITER_INTERRUPT. Любой
+  backend\app\services\action\commitment_arbiter.py:134 : if ARBITER_ENFORCEMENT and S203_4_ARBITER_INTERRUPT:
+  backend\app\services\action\commitment_arbiter.py:161 : f"[ARBITER_REJECT] tick={tick} npc={npc_id} "
+  backend\app\services\action\commitment_arbiter.py:170 : return ArbitrationResult(
+  backend\app\services\action\commitment_arbiter.py:186 : f"[ARBITER_INTERRUPT] tick={tick} npc={npc_id} "
+  backend\app\services\action\commitment_arbiter.py:197 : return ArbitrationResult(
+  backend\app\services\action\commitment_arbiter.py:214 : f"[ARBITER_REJECT] tick={tick} npc={npc_id} "
+  backend\app\services\action\commitment_arbiter.py:222 : return ArbitrationResult(
+  backend\app\services\action\commitment_arbiter.py:244 : result = CommitmentArbiter.arbitrate(
+  backend\app\services\action\commitment_arbiter.py:251 : if ARBITER_ENFORCEMENT:
+  backend\app\services\action\commitment_arbiter.py:268 : семантики разведены (queue TaskPriority | DRF float | arbitration int).
+  backend\app\services\action\commitment_arbiter.py:272 : _result = CommitmentArbiter.arbitrate(
+  backend\app\services\action\commitment_arbiter.py:298 : if ARBITER_ENFORCEMENT:
+  backend\app\services\action\commitment_registry.py:44 : # (точка неудобна в части шеллов) — прецедент S203_4_ARBITER_INTERRUPT.
+  backend\app\services\events\npc_dialogue_subscriber.py:29 : # флагов: d8p_enabled выше; ARBITER_ENFORCEMENT/COGNITION_V0.
+  backend\app\services\game_loop\speech_scheduler.py:3 : Назначение: Narrative Arbitration Layer. Арбитраж CommunicationIntent перед допуском к LLM.
+  backend\app\services\game_loop\task_scheduler.py:351 : # ADR-O-343: SpeechScheduler Arbitration инициализируется здесь
+  backend\app\services\game_loop\task_scheduler.py:500 : # ADR-O-343: Narrative Arbitration после извлечения из очереди
+  backend\app\services\input\intent_compressor.py:642 : # Это arbitration-коррекция доказанного конфликта, не второй
+  backend\app\services\npc\attention_config.py:6 : ARBITER_ENFORCEMENT (commitment_arbiter.py:35-39): значение читается при
+  backend\app\services\npc\exploration_target_resolver.py:13 : НЕ создаёт Intent; НЕ решает priority/arbitration.
+  backend\app\services\phases\movement_bridge.py:65 : from app.services.action.commitment_arbiter import CommitmentArbiter
+  backend\app\services\phases\movement_bridge.py:100 : if CommitmentArbiter.enforce_for_intent(
+  backend\app\services\phases\movement_bridge.py:106 : f"[ARBITER_GATE_2] blocked npc={intent.actor_id} "
+  backend\app\services\phases\movement_bridge.py:125 : if _macro_target and not CommitmentArbiter.enforce_for_intent(
+  backend\app\services\phases\movement_bridge.py:129 : f"[ARBITER_GATE_2] blocked passthrough npc={getattr(intent, 'actor_id', '')}"  # noqa: ENIGMA002
+  backend\app\services\phases\simulation.py:127 : # тождество, поведение байтово прежнее; телеметрия [ARBITER_REJECT].
+  backend\app\services\phases\simulation.py:128 : from app.services.action.commitment_arbiter import CommitmentArbiter
+  backend\app\services\phases\simulation.py:134 : if CommitmentArbiter.enforce_for_intent(ctx.scene_state, _i, ctx.tick_number)
+  backend\app\services\spatial\movement_engine.py:32 : # default OFF; прецедент ARBITER_ENFORCEMENT S203.2).
+  backend\app\services\spatial\movement_engine.py:96 : """Spatial Arbitration Layer: конвертация Desire → Spatial Commitment.
+  backend\app\services\spatial\movement_engine.py:156 : # S139.3: Total Intent Arbitration. Schedule (spatial commitment) beats Social (desire), but loses to Reactive (flee/combat).
+  backend\app\services\tick_orchestrator.py:46 : # default OFF; прецедент ARBITER_ENFORCEMENT S203.2).
+  backend\tests\micro\test_fast_incomplete_question.py:3 : Назначение: Canonicalization/arbitration boundary (вердикт Мастера):
+  backend\tests\sandbox\micro\test_attention_reflex_fsm.py:23 : # Флаг читается при импорте (прецедент commitment_arbiter.py:32-34:
+  backend\tests\sandbox\micro\test_lod_arbitration.py:2 : path: /project/backend/tests/sandbox/micro/test_lod_arbitration.py
+  backend\tests\sandbox\micro\test_lod_arbitration.py:6 : ЗАПУСК: python -m pytest backend/tests/sandbox/micro/test_lod_arbitration.py -v --tb=short
+  backend\tests\sandbox\micro\test_lod_arbitration.py:21 : def test_lod1_has_priority_over_lod0_in_arbitration():
+  backend\tests\sandbox\micro\test_speech_scheduler.py:3 : Назначение: Тестирование Narrative Arbitration Layer (ADR-O-343).
+  backend\tests\sandbox\SUPERBOX\scenarios\action_integrity_test.py:6 : Arbitration (S203.2, enforcement ON) на production-контуре.
+  backend\tests\sandbox\SUPERBOX\scenarios\action_integrity_test.py:411 : _log("Registry(S203.1) + Arbitration(S203.2, ENFORCEMENT=ON)")
+  backend\tests\sandbox\SUPERBOX\scenarios\action_integrity_test.py:415 : os.environ["ARBITER_ENFORCEMENT"] = "1"
+  backend\tests\sandbox\SUPERBOX\scenarios\action_integrity_test.py:418 : import app.services.action.commitment_arbiter as _ca
+  backend\tests\sandbox\SUPERBOX\scenarios\action_integrity_test.py:421 : _log(f"ENFORCEMENT = {_ca.ARBITER_ENFORCEMENT}")
+  backend\tests\sandbox\SUPERBOX\scenarios\cognition_p2_test.py:7 : импорте — прецедент commitment_arbiter).
+  backend\tests\sandbox\SUPERBOX\scenarios\movement_comprehensive_test.py:35 : _MARK_KEYS = ("ARBITER_REJECT", "INTENT_DEGRADE", "S186", "BOUNDARY_DWELL",
+  backend\tests\sandbox\SUPERBOX\scenarios\movement_comprehensive_test.py:88 : if "ARBITER_REJECT" in joined:
+  backend\tests\sandbox\SUPERBOX\scenarios\relocation_causal_bridge_test.py:43 : "cross-loc relocation", "ARBITER_REJECT",
+  backend\tests\sandbox\SUPERBOX\scenarios\s330_probe1_gate_trace.py:43 : "reason=PLAN_REJECTED", "ARBITER_GATE_2", "GATE_B1_ACCEPT",
+  backend\tests\sandbox\SUPERBOX\scenarios\same_loc_disappearance_forensic.py:29 : _MARK_KEYS = ("SCHED_TRACE", "INTENT_DEGRADE", "ARBITER_REJECT",
+  backend\tests\sandbox\SUPERBOX\scenarios\semantic_probe_corpus.py:5 : полный trace TEXT → FAST → ARBITRATION → LLM → CANONICAL → CONSUMER →
+  backend\tests\sandbox\SUPERBOX\scenarios\shadow_relocation_forensic.py:28 : "SPATIAL_KNOWLEDGE", "INTENT_DEGRADE", "ARBITER_REJECT",
+  backend\tests\sandbox\SUPERBOX\scenarios\sleep_forensic.py:44 : "ARBITER_REJECT", "GATE_B1", "GATE_B3", "NPC_MOVED",
+  backend\tests\test_action_commitment.py:31 : from app.services.action.commitment_arbiter import CommitmentArbiter
+  backend\tests\test_action_commitment.py:571 : class TestS2034ArbiterInterrupt:
+  backend\tests\test_action_commitment.py:575 : import app.services.action.commitment_arbiter as arb
+  backend\tests\test_action_commitment.py:577 : saved = (arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT)
+  backend\tests\test_action_commitment.py:578 : arb.ARBITER_ENFORCEMENT = on
+  backend\tests\test_action_commitment.py:579 : arb.S203_4_ARBITER_INTERRUPT = on
+  backend\tests\test_action_commitment.py:585 : from app.services.action.commitment_arbiter import (
+  backend\tests\test_action_commitment.py:588 : CommitmentArbiter,
+  backend\tests\test_action_commitment.py:593 : r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "src", 2, candidate_priority=99)
+  backend\tests\test_action_commitment.py:596 : arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+  backend\tests\test_action_commitment.py:601 : from app.services.action.commitment_arbiter import (
+  backend\tests\test_action_commitment.py:604 : CommitmentArbiter,
+  backend\tests\test_action_commitment.py:609 : r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "src", 2, candidate_priority=7)
+  backend\tests\test_action_commitment.py:614 : arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+  backend\tests\test_action_commitment.py:619 : from app.services.action.commitment_arbiter import (
+  backend\tests\test_action_commitment.py:622 : CommitmentArbiter,
+  backend\tests\test_action_commitment.py:628 : r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "src", 2, candidate_priority=3)
+  backend\tests\test_action_commitment.py:631 : arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+  backend\tests\test_action_commitment.py:636 : from app.services.action.commitment_arbiter import (
+  backend\tests\test_action_commitment.py:639 : CommitmentArbiter,
+  backend\tests\test_action_commitment.py:647 : r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "src", 2, candidate_priority=99)
+  backend\tests\test_action_commitment.py:651 : arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+  backend\tests\test_action_commitment.py:658 : from app.services.action.commitment_arbiter import (
+  backend\tests\test_action_commitment.py:661 : CommitmentArbiter,
+  backend\tests\test_action_commitment.py:669 : r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "src", 3, candidate_priority=99)
+  backend\tests\test_action_commitment.py:673 : arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+  backend\tests\test_action_commitment.py:678 : from app.services.action.commitment_arbiter import (
+  backend\tests\test_action_commitment.py:681 : CommitmentArbiter,
+  backend\tests\test_action_commitment.py:686 : r = CommitmentArbiter.arbitrate(ss, "n1", "gate", "src", 2, candidate_priority=99)
+  backend\tests\test_action_commitment.py:689 : arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+  backend\tests\test_action_commitment.py:698 : from app.services.action.commitment_arbiter import CommitmentArbiter
+  backend\tests\test_action_commitment.py:710 : assert CommitmentArbiter.enforce_for_intent(ss, _intent, 6) is True
+  backend\tests\test_action_commitment.py:716 : r2 = CommitmentArbiter.arbitrate(ss, "n1", "bar", "src", 7)
+  backend\tests\test_action_commitment.py:719 : arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+  backend\tests\test_action_commitment.py:728 : from app.services.action.commitment_arbiter import CommitmentArbiter
+  backend\tests\test_action_commitment.py:738 : assert CommitmentArbiter.enforce_for_intent(ss, _intent, 6) is False
+  backend\tests\test_action_commitment.py:741 : arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+  backend\tests\test_action_commitment.py:754 : from app.services.action.commitment_arbiter import (
+  backend\tests\test_action_commitment.py:757 : CommitmentArbiter,
+  backend\tests\test_action_commitment.py:769 : assert CommitmentArbiter.enforce_for_intent(ss, _intent, 6) is False
+  backend\tests\test_action_commitment.py:773 : r = CommitmentArbiter.arbitrate(
+  backend\tests\test_action_commitment.py:778 : arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+  backend\tests\test_action_commitment.py:2122 : # ── S203.2: Arbiter ─────────────────────────────────────────────────────────
+  backend\tests\test_action_commitment.py:2125 : class TestCommitmentArbiter:
+  backend\tests\test_action_commitment.py:2127 : from app.services.action.commitment_arbiter import (
+  backend\tests\test_action_commitment.py:2132 : r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "schedule:eating", 5)
+  backend\tests\test_action_commitment.py:2136 : from app.services.action.commitment_arbiter import (
+  backend\tests\test_action_commitment.py:2144 : r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "need:hunger", 2)
+  backend\tests\test_action_commitment.py:2149 : from app.services.action.commitment_arbiter import (
+  backend\tests\test_action_commitment.py:2157 : r = CommitmentArbiter.arbitrate(ss, "n1", "kitchen", "proactive_offer_job", 2)
+  backend\tests\test_action_commitment.py:2163 : from app.services.action.commitment_arbiter import (
+  backend\tests\test_action_commitment.py:2172 : r = CommitmentArbiter.arbitrate(ss, "n1", "kitchen", "any", 1)
+  backend\tests\test_action_commitment.py:2178 : from app.services.action.commitment_arbiter import (
+  backend\tests\test_action_commitment.py:2183 : r = CommitmentArbiter.arbitrate(ss, "n1", "kitchen", "any", 3)
+  backend\tests\test_action_commitment.py:2188 : import app.services.action.commitment_arbiter as ca
+  backend\tests\test_action_commitment.py:2194 : old = ca.ARBITER_ENFORCEMENT
+  backend\tests\test_action_commitment.py:2196 : ca.ARBITER_ENFORCEMENT = False
+  backend\tests\test_action_commitment.py:2197 : assert ca.CommitmentArbiter.enforce(ss, "n1", "kitchen", "s", 2) is True
+  backend\tests\test_action_commitment.py:2198 : ca.ARBITER_ENFORCEMENT = True
+  backend\tests\test_action_commitment.py:2199 : assert ca.CommitmentArbiter.enforce(ss, "n1", "kitchen", "s", 2) is False
+  backend\tests\test_action_commitment.py:2200 : assert ca.CommitmentArbiter.enforce(ss, "n1", "door", "s", 2) is False  # DUPLICATE тоже
+  backend\tests\test_action_commitment.py:2201 : assert ca.CommitmentArbiter.enforce(ss, "free_npc", "door", "s", 2) is True
+  backend\tests\test_action_commitment.py:2203 : ca.ARBITER_ENFORCEMENT = old
+
+[SEARCH] override/suppress intent  pattern: /override.*intent|intent.*override|suppress.*intent|intent.*suppress/
+  7 matches:
+  backend\app\services\game_loop\phase_1_input.py:591 : # ADR-091: IntentCompressor Priority Override
+  backend\app\services\game_loop\phase_1_input.py:607 : f"[ADR-091] IntentCompressor override: DM_Router='{_raw_type}' → IC='{_ic_override}'"
+  backend\app\services\npc\life_engine.py:1365 : # S89: Need override — если need_intent уже в кандидатах, schedule не генерируется
+  backend\app\services\tick_utils.py:352 : # [GC-I01-E1b] intent-перенос (мерж-семантика will_state_override:
+  backend\tests\gameplay\harness.py:267 : вектора. Тестовый override (setIntentParametersDTO) — production-объект
+  backend\tests\sandbox\micro\test_gate1_source.py:5 : предиката (SUPPRESS и PASS) на новом источнике scene_state["npc_intents"].
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:675 : suppressed = (Intent.ATTACK.value, Intent.INTIMIDATE.value, Intent.WARN.value)
+
+============================================================
+
+5. NPCState intent lifecycle fields
+
+============================================================
+
+[SEARCH] NPCState intent fields  pattern: /intent_formed_at|intent_target|intent_duration|intent_progress|last_intent_change|intent_tick/
+  318 matches:
+  backend\app\api\routes_chronicle.py:889 : "intent_target": npc_dict.get("intent_target"),
+  backend\app\models\causality_manifest.py:136 : "npc_state.intent_target": FieldCausality("INPUT"),
+  backend\app\models\causality_manifest.py:137 : "npc_state.intent_formed_at": FieldCausality("INPUT"),
+  backend\app\models\causality_manifest.py:138 : "npc_state.intent_duration": FieldCausality("DEBT", organ=None, terminal=None, authority="ADR-O-414"),
+  backend\app\models\causality_manifest.py:139 : "npc_state.intent_progress_ticks": FieldCausality("DEBT", organ=None, terminal=None, authority="ADR-O-414"),
+  backend\app\models\causality_manifest.py:140 : "npc_state.last_intent_change": FieldCausality("DEBT", organ=None, terminal=None, authority="CG-D-07"),
+  backend\app\models\causality_manifest.py:171 : "state_delta.intent_target": FieldCausality("INPUT"),
+  backend\app\models\causality_manifest.py:175 : "state_delta.intent_tick": FieldCausality("INPUT"),
+  backend\app\models\npc_state.py:855 : intent_target: Optional[str] = None
+  backend\app\models\npc_state.py:856 : intent_formed_at: int = 0
+  backend\app\models\npc_state.py:857 : intent_duration: int = 0  # тиков держится текущий intent
+  backend\app\models\npc_state.py:858 : intent_progress_ticks: int = 0  # тиков с реальным прогрессом (значимые дельты)
+  backend\app\models\npc_state.py:859 : last_intent_change: int = 0  # тик последней смены intent
+  backend\app\models\npc_state.py:893 : if self.intent is not None and self.intent_target is None:
+  backend\app\models\npc_state.py:992 : "intent_target": self.intent_target,
+  backend\app\models\npc_state.py:993 : "intent_duration": self.intent_duration,
+  backend\app\models\npc_state.py:994 : "intent_progress_ticks": self.intent_progress_ticks,
+  backend\app\models\npc_state.py:995 : "last_intent_change": self.last_intent_change,
+  backend\app\models\npc_state.py:1026 : npc_dict["intent_target"] = state.intent_target
+  backend\app\models\npc_state.py:1027 : npc_dict["intent_formed_at"] = state.intent_formed_at
+  backend\app\models\npc_state.py:1028 : npc_dict["intent_duration"] = state.intent_duration
+  backend\app\models\npc_state.py:1029 : npc_dict["intent_progress_ticks"] = state.intent_progress_ticks
+  backend\app\models\npc_state.py:1030 : npc_dict["last_intent_change"] = state.last_intent_change
+  backend\app\models\npc_state.py:1322 : intent_target=npc_dict.get("intent_target") or None,
+  backend\app\models\npc_state.py:1323 : intent_formed_at=int(npc_dict.get("intent_formed_at", 0) or 0),
+  backend\app\models\npc_state.py:1324 : intent_duration=int(npc_dict.get("intent_duration", 0) or 0),
+  backend\app\models\npc_state.py:1325 : intent_progress_ticks=int(
+  backend\app\models\npc_state.py:1326 : npc_dict.get("intent_progress_ticks", 0) or 0
+  backend\app\models\npc_state.py:1328 : last_intent_change=int(npc_dict.get("last_intent_change", 0) or 0),
+  backend\app\models\state_delta.py:116 : intent_target: Optional[str] = None  # DecisionHub → player-facing
+  backend\app\models\state_delta.py:143 : # Тик решения (для intent_formed_at/last_intent_change): apply_batch-
+  backend\app\models\state_delta.py:145 : intent_tick: Optional[int] = None  # W2: None=отсутствует, 0=валидный тик 0, N=тик N
+  backend\app\models\state_delta.py:179 : for t in (self.intent_target, self.social_target, self.faction_id)
+  backend\app\models\state_delta.py:185 : f"получено: intent={self.intent_target}, "
+  backend\app\services\events\npc_addressing_delivery_subscriber.py:144 : "intent_formed_at": event.payload.get("intent_formed_at"),
+  backend\app\services\events\reaction_subscriber.py:332 : trust_target_key = "social_target" if source_is_npc else "intent_target"
+  backend\app\services\game_loop\dm_phase.py:307 : _intent_target_id = _sem_payload.get("target_id")
+  backend\app\services\game_loop\dm_phase.py:314 : if _intent_target_id:
+  backend\app\services\game_loop\dm_phase.py:318 : _base_event, target_id=_intent_target_id
+  backend\app\services\npc\decision_hub.py:127 : intent_target: Optional[str]
+  backend\app\services\npc\decision_hub.py:166 : def intent_target(self) -> Optional[str]:
+  backend\app\services\npc\decision_hub.py:167 : return self.decision.intent_target
+  backend\app\services\npc\decision_hub.py:312 : intent_target: Optional[str],
+  backend\app\services\npc\decision_hub.py:356 : audience=intent_target or "all",
+  backend\app\services\npc\decision_hub.py:361 : target_id=intent_target, # V8-MEM-2 FIX: Проброс target_id для Attack Windup
+  backend\app\services\npc\decision_hub.py:449 : intent_target=None,
+  backend\app\services\npc\decision_hub.py:723 : intent_target=None,
+  backend\app\services\npc\decision_hub.py:844 : intent_target = self._resolve_target(
+  backend\app\services\npc\decision_hub.py:863 : intent_target = _obj_target
+  backend\app\services\npc\decision_hub.py:869 : if intent_target is None and best_intent not in (
+  backend\app\services\npc\decision_hub.py:899 : intent_target=intent_target,
+  backend\app\services\npc\decision_hub.py:915 : intent_target=str(intent_target) if intent_target else "all",
+  backend\app\services\npc\decision_hub.py:1773 : duration = state.intent_duration
+  backend\app\services\npc\decision_hub.py:1774 : progress = min(state.intent_progress_ticks, duration)
+  backend\app\services\npc\decision_hub.py:1809 : duration = state.intent_duration
+  backend\app\services\npc\decision_hub.py:1810 : progress = min(state.intent_progress_ticks, duration)
+  backend\app\services\npc\decision_hub.py:1829 : ratio = min(state.intent_duration / INTENT_INERTIA_MAX_TICKS, 1.0)
+  backend\app\services\npc\decision_hub.py:1832 : effective_stall = state.intent_duration - min(
+  backend\app\services\npc\decision_hub.py:1833 : state.intent_progress_ticks, state.intent_duration
+  backend\app\services\npc\decision_hub.py:2045 : intent_target=event.actor_id,
+  backend\app\services\npc\decision_hub.py:2055 : intent_target=event.actor_id,
+  backend\app\services\npc\domain_phases.py:93 : state_l2.intent_duration = 0
+  backend\app\services\npc\domain_phases.py:94 : state_l2.intent_formed_at = 0
+  backend\app\services\npc\legacy_delta_adapter.py:51 : collapsed = StateDeltas(source=source, intent_target=target)
+  backend\app\services\npc\npc_loader.py:957 : state.intent_target = raw_data.get("intent_target") or None
+  backend\app\services\npc\npc_loader.py:958 : state.intent_formed_at = int(raw_data.get("intent_formed_at", 0) or 0)
+  backend\app\services\npc\npc_loader.py:959 : state.intent_duration = int(raw_data.get("intent_duration", 0) or 0)
+  backend\app\services\npc\npc_loader.py:960 : state.intent_progress_ticks = int(raw_data.get("intent_progress_ticks", 0) or 0)
+  backend\app\services\npc\npc_loader.py:961 : state.last_intent_change = int(raw_data.get("last_intent_change", 0) or 0)
+  backend\app\services\npc\npc_tick_pipeline.py:49 : intent_target: str | None,
+  backend\app\services\npc\npc_tick_pipeline.py:59 : if intent_target and intent_target != "player":
+  backend\app\services\npc\npc_tick_pipeline.py:60 : target_pos = scene_state.get("npc_positions", {}).get(intent_target, {})
+  backend\app\services\npc\npc_tick_pipeline.py:1065 : decision.decision, intent=Intent.APPROACH, intent_target="player"
+  backend\app\services\npc\npc_tick_pipeline.py:1077 : decision.decision.intent_target = "player"
+  backend\app\services\npc\npc_tick_pipeline.py:1100 : audience=decision.intent_target or "player",
+  backend\app\services\npc\npc_tick_pipeline.py:1106 : target_id=decision.intent_target or "player",
+  backend\app\services\npc\npc_tick_pipeline.py:1121 : and not decision.intent_target
+  backend\app\services\npc\npc_tick_pipeline.py:1132 : decision = dataclasses.replace(decision, decision=dataclasses.replace(decision.decision, intent=Intent.OBSERVE, intent_target=None...
+  backend\app\services\npc\npc_tick_pipeline.py:1146 : intent_target=decision.intent_target or "player",
+  backend\app\services\npc\npc_tick_pipeline.py:1159 : intent_target=decision.intent_target,
+  backend\app\services\npc\npc_tick_pipeline.py:1194 : target=decision.intent_target,
+  backend\app\services\npc\npc_tick_pipeline.py:1195 : intent_tick=state.tick_id,
+  backend\app\services\npc\npc_tick_pipeline.py:1467 : intent_target: Optional[str],
+  backend\app\services\npc\npc_tick_pipeline.py:1532 : intent_target=intent_target,
+  backend\app\services\npc\npc_tick_pipeline.py:1564 : intent_target: Optional[str],
+  backend\app\services\npc\npc_tick_pipeline.py:1579 : - approach: идёт к intent_target (игрок/NPC) → ближайший к цели узел графа
+  backend\app\services\npc\npc_tick_pipeline.py:1580 : - flee: уходит от intent_target → find_furthest_node от позиции угрозы
+  backend\app\services\npc\npc_tick_pipeline.py:1629 : _target_id = intent_target or "player"
+  backend\app\services\npc\state_applicator.py:266 : if not hasattr(new_state, "intent_duration"):
+  backend\app\services\npc\state_applicator.py:673 : state.intent_duration += 1
+  backend\app\services\npc\state_applicator.py:677 : state.intent_target = result.intent_target
+  backend\app\services\npc\state_applicator.py:678 : state.intent_formed_at = current_tick
+  backend\app\services\npc\state_applicator.py:679 : state.intent_duration = 0
+  backend\app\services\npc\state_applicator.py:680 : state.intent_progress_ticks = int(state.intent_progress_ticks * 0.3)
+  backend\app\services\npc\state_applicator.py:681 : state.last_intent_change = current_tick
+  backend\app\services\npc\state_applicator.py:701 : state.intent_progress_ticks = min(
+  backend\app\services\npc\state_applicator.py:702 : state.intent_progress_ticks + 1,
+  backend\app\services\npc\state_applicator.py:703 : state.intent_duration,
+  backend\app\services\npc\state_applicator.py:772 : state.intent_duration += 1
+  backend\app\services\npc\state_applicator.py:774 : state.intent_progress_ticks + 1, state.intent_duration
+  backend\app\services\npc\state_applicator.py:776 : state.intent_progress_ticks = _prog
+  backend\app\services\npc\state_applicator.py:779 : state.intent_target = (
+  backend\app\services\npc\state_applicator.py:780 : deltas.target or state.intent_target
+  backend\app\services\npc\state_applicator.py:782 : # W2: guard intent_tick is not None — None=отсутствует (не трогать),
+  backend\app\services\npc\state_applicator.py:783 : # 0=валидный тик 0, N=тик N. Прежнее int(intent_tick or 0) маскировало
+  backend\app\services\npc\state_applicator.py:785 : if deltas.intent_tick is not None:
+  backend\app\services\npc\state_applicator.py:786 : _w2_tick = int(deltas.intent_tick)
+  backend\app\services\npc\state_applicator.py:787 : state.intent_formed_at = _w2_tick
+  backend\app\services\npc\state_applicator.py:788 : state.last_intent_change = _w2_tick
+  backend\app\services\npc\state_applicator.py:789 : state.intent_duration = 0
+  backend\app\services\npc\state_applicator.py:790 : state.intent_progress_ticks = int(
+  backend\app\services\npc\state_applicator.py:791 : state.intent_progress_ticks * 0.3
+  backend\app\services\npc\state_applicator.py:971 : # S2B.7-G: provenance-канон файла (intent_formed_at, как
+  backend\app\services\npc\state_applicator.py:974 : current_tick=getattr(state, "intent_formed_at", 0),
+  backend\app\services\npc\state_applicator.py:983 : _tick = getattr(state, "intent_formed_at", 0)
+  backend\app\services\npc\state_applicator.py:1083 : or deltas.intent_target
+  backend\app\services\npc\state_applicator.py:1084 : or state.intent_target
+  backend\app\services\npc\state_applicator.py:1369 : _tick = getattr(state, "intent_formed_at", 0)
+  backend\app\services\phases\commit_phase.py:84 : # когда intent/intent_target/intent_formed_at в all_npcs_raw зафиксированы
+  backend\app\services\phases\commit_phase.py:86 : # intent_formed_at == ctx.tick_number истинно ровно один раз на жизненный
+  backend\app\services\phases\commit_phase.py:106 : _addr_target = _addr_dict.get("intent_target")
+  backend\app\services\phases\commit_phase.py:107 : _addr_formed = _addr_dict.get("intent_formed_at")
+  backend\app\services\phases\commit_phase.py:130 : "intent_formed_at": _addr_formed_int,
+  backend\app\services\phases\post_decision.py:173 : intent_target=_target_id,
+  backend\app\services\scene\r3_direct_builder.py:214 : _target_name = _id_to_name.get(_pd.intent_target, _pd.intent_target or "")
+  backend\app\services\spatial\movement_engine.py:322 : _intent_target_loc = intent.target_node_id.split(":")[0]
+  backend\app\services\spatial\movement_engine.py:332 : target_loc = _intent_target_loc
+  backend\app\services\spatial\movement_engine.py:449 : (npc_positions or {})[intent.actor_id].pop("intent_target", None)
+  backend\app\services\spatial\movement_engine.py:473 : (npc_positions or {})[intent.actor_id].pop("intent_target", None)
+  backend\app\services\verbalization\scene_outcome_builder.py:737 : relevance = 1.0 if decision.intent_target == "player" else 0.0
+  backend\app\services\verbalization\verbalization_context.py:53 : intent_target: Optional[str] = None  # ADR-103: default для безопасности field order
+  backend\app\services\world\world_tick_engine.py:42 : intent_target: Optional[str]
+  backend\app\services\world\world_tick_engine.py:233 : intent_target=result.intent_target,
+  backend\app\services\world\world_tick_engine.py:247 : "target": result.intent_target,
+  backend\app\services\world\world_tick_engine.py:256 : f"(score={effective_score:.3f}, target={result.intent_target})"
+  backend\app\services\pipeline_runner.py:285 : intent_target: str = "player"
+  backend\app\services\pipeline_runner.py:329 : intent_target=getattr(_intent, "target_id", "player") or "player",
+  backend\app\services\tick_orchestrator.py:911 : _entry.pop("intent_target", None)
+  backend\app\services\tick_orchestrator.py:1353 : n.pop("intent_target", None)
+  backend\app\services\tick_utils.py:310 : key = (d.npc_id, None, d.intent_target or d.social_target or d.faction_id)
+  backend\app\services\tick_utils.py:342 : if d.intent_target is not None:
+  backend\app\services\tick_utils.py:343 : existing.intent_target = d.intent_target
+  backend\app\services\tick_utils.py:357 : if d.intent_tick:
+  backend\app\services\tick_utils.py:358 : existing.intent_tick = d.intent_tick
+  backend\tests\calibration_lab\e1_intent_liveness_check.py:4 : (1) NPC with intent per tick [WAS=0, S213 verdict]; (2) max intent_duration
+  backend\tests\calibration_lab\e1_intent_liveness_check.py:42 : d = n.get("intent_duration")
+  backend\tests\calibration_lab\e1_intent_liveness_check.py:49 : print(f"[E1-CHECK] max intent_duration={max_dur} (owner={dur_owner})  [inertia alive if >1]")
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:194 : "intent_target": None,
+  backend\tests\micro\test_cognition_dmframe_lock.py:57 : intent_target="player",
+  backend\tests\micro\test_intent_roundtrip.py:24 : intent_target="player",
+  backend\tests\micro\test_intent_roundtrip.py:25 : intent_formed_at=41,
+  backend\tests\micro\test_intent_roundtrip.py:26 : intent_duration=7,
+  backend\tests\micro\test_intent_roundtrip.py:27 : intent_progress_ticks=5,
+  backend\tests\micro\test_intent_roundtrip.py:28 : last_intent_change=42,
+  backend\tests\micro\test_intent_roundtrip.py:42 : assert d["intent_target"] == "player"
+  backend\tests\micro\test_intent_roundtrip.py:43 : assert d["intent_formed_at"] == 41
+  backend\tests\micro\test_intent_roundtrip.py:44 : assert d["intent_duration"] == 7
+  backend\tests\micro\test_intent_roundtrip.py:45 : assert d["intent_progress_ticks"] == 5
+  backend\tests\micro\test_intent_roundtrip.py:46 : assert d["last_intent_change"] == 42
+  backend\tests\micro\test_intent_roundtrip.py:60 : assert restored.intent_target == "player"
+  backend\tests\micro\test_intent_roundtrip.py:61 : assert restored.intent_formed_at == 41
+  backend\tests\micro\test_intent_roundtrip.py:62 : assert restored.intent_duration == 7
+  backend\tests\micro\test_intent_roundtrip.py:63 : assert restored.intent_progress_ticks == 5
+  backend\tests\micro\test_intent_roundtrip.py:64 : assert restored.last_intent_change == 42
+  backend\tests\micro\test_intent_roundtrip.py:70 : assert restored.intent_target is None
+  backend\tests\micro\test_intent_roundtrip.py:71 : assert restored.intent_formed_at == 0
+  backend\tests\micro\test_intent_roundtrip.py:72 : assert restored.intent_duration == 0
+  backend\tests\micro\test_intent_roundtrip.py:73 : assert restored.intent_progress_ticks == 0
+  backend\tests\micro\test_intent_roundtrip.py:74 : assert restored.last_intent_change == 0
+  backend\tests\micro\test_intent_roundtrip.py:111 : intent_tick=41, source="decision_hub")],
+  backend\tests\micro\test_intent_roundtrip.py:115 : assert dicts[0]["intent_target"] == "player"
+  backend\tests\micro\test_intent_roundtrip.py:116 : assert dicts[0]["intent_formed_at"] == 41
+  backend\tests\micro\test_intent_roundtrip.py:120 : d1 = StateDeltas(npc_id="npc_test", intent=Intent.TALK, intent_tick=40, target="player")
+  backend\tests\micro\test_intent_roundtrip.py:129 : app.apply_batch([StateDeltas(npc_id="npc_test", intent=Intent.TALK, target="player", intent_tick=41)], dicts, "t")  # [GC-I01-E1b-...
+  backend\tests\micro\test_intent_roundtrip.py:130 : app.apply_batch([StateDeltas(npc_id="npc_test", intent=Intent.TALK, target="player", intent_tick=42)], dicts, "t")
+  backend\tests\micro\test_intent_roundtrip.py:132 : assert dicts[0]["intent_duration"] == 1
+  backend\tests\micro\test_intent_roundtrip.py:137 : d.update({"intent": "flee", "intent_target": "player", "intent_formed_at": 41,
+  backend\tests\micro\test_intent_roundtrip.py:138 : "intent_duration": 7, "intent_progress_ticks": 5, "last_intent_change": 42})
+  backend\tests\micro\test_intent_roundtrip.py:142 : assert st.intent_duration == 7
+  backend\tests\micro\test_intent_tick_guard.py:2 : path: /project/backend/tests/micro/test_intent_tick_guard.py
+  backend\tests\micro\test_intent_tick_guard.py:3 : Назначение: W2 regression — intent_tick=0 guard в StateApplicator._apply_deltas.
+  backend\tests\micro\test_intent_tick_guard.py:5 : Баг: `int(deltas.intent_tick or 0)` маскировал default=0 как «не задано» и
+  backend\tests\micro\test_intent_tick_guard.py:6 : перезатирал валидный past formed_at при смене intent без intent_tick.
+  backend\tests\micro\test_intent_tick_guard.py:49 : "intent_target": target,
+  backend\tests\micro\test_intent_tick_guard.py:50 : "intent_formed_at": formed_at,
+  backend\tests\micro\test_intent_tick_guard.py:51 : "intent_duration": duration,
+  backend\tests\micro\test_intent_tick_guard.py:52 : "intent_progress_ticks": progress,
+  backend\tests\micro\test_intent_tick_guard.py:53 : "last_intent_change": formed_at,
+  backend\tests\micro\test_intent_tick_guard.py:62 : # ── Контракт 1: валидный intent_tick=0 ──────────────────────────────────
+  backend\tests\micro\test_intent_tick_guard.py:66 : """intent_tick=0 — валидный тик 0, должен записаться как 0.
+  backend\tests\micro\test_intent_tick_guard.py:77 : intent_tick=0,
+  backend\tests\micro\test_intent_tick_guard.py:83 : assert dicts[0]["intent_formed_at"] == 0
+  backend\tests\micro\test_intent_tick_guard.py:84 : assert dicts[0]["last_intent_change"] == 0
+  backend\tests\micro\test_intent_tick_guard.py:91 : """intent_tick=5 — валидный тик 5, должен записаться как 5."""
+  backend\tests\micro\test_intent_tick_guard.py:98 : intent_tick=5,
+  backend\tests\micro\test_intent_tick_guard.py:103 : assert dicts[0]["intent_formed_at"] == 5
+  backend\tests\micro\test_intent_tick_guard.py:104 : assert dicts[0]["last_intent_change"] == 5
+  backend\tests\micro\test_intent_tick_guard.py:107 : # ── Контракт 3: отсутствующий intent_tick (default None) ────────────────
+  backend\tests\micro\test_intent_tick_guard.py:110 : def test_3_missing_intent_tick_preserves_formed_at():
+  backend\tests\micro\test_intent_tick_guard.py:111 : """intent_tick не задан (default None) — formed_at не трогать.
+  backend\tests\micro\test_intent_tick_guard.py:115 : не штампует intent_tick (default None). Прежний код перезатирал
+  backend\tests\micro\test_intent_tick_guard.py:129 : assert dicts[0]["intent_formed_at"] == 99  # preserved
+  backend\tests\micro\test_intent_tick_guard.py:130 : assert dicts[0]["last_intent_change"] == 99  # preserved
+  backend\tests\micro\test_intent_tick_guard.py:136 : def test_4_explicit_none_intent_tick_preserves_formed_at():
+  backend\tests\micro\test_intent_tick_guard.py:137 : """intent_tick=None — явно отсутствует, formed_at не трогать.
+  backend\tests\micro\test_intent_tick_guard.py:148 : intent_tick=None,
+  backend\tests\micro\test_intent_tick_guard.py:154 : assert dicts[0]["intent_formed_at"] == 99
+  backend\tests\micro\test_intent_tick_guard.py:155 : assert dicts[0]["last_intent_change"] == 99
+  backend\tests\micro\test_intent_tick_guard.py:166 : intent_tick в дельте игнорируется (не доходит до guard).
+  backend\tests\micro\test_intent_tick_guard.py:174 : intent_tick=10,
+  backend\tests\micro\test_intent_tick_guard.py:180 : assert dicts[0]["intent_formed_at"] == 99  # preserved (same-intent branch)
+  backend\tests\micro\test_intent_tick_guard.py:181 : assert dicts[0]["last_intent_change"] == 99
+  backend\tests\micro\test_intent_tick_guard.py:182 : assert dicts[0]["intent_duration"] == 6  # 5 + 1
+  backend\tests\micro\test_intent_tick_guard.py:189 : """Смена intent + intent_tick=10 → formed_at=10, last_change=10."""
+  backend\tests\micro\test_intent_tick_guard.py:196 : intent_tick=10,
+  backend\tests\micro\test_intent_tick_guard.py:202 : assert dicts[0]["intent_formed_at"] == 10
+  backend\tests\micro\test_intent_tick_guard.py:203 : assert dicts[0]["last_intent_change"] == 10
+  backend\tests\micro\test_intent_tick_guard.py:210 : """Смена intent + intent_tick=None → formed_at preserved,
+  backend\tests\micro\test_intent_tick_guard.py:213 : W2 guard: `if deltas.intent_tick is not None:` защищает ТОЛЬКО
+  backend\tests\micro\test_intent_tick_guard.py:214 : intent_formed_at и last_intent_change. duration=0 и progress*0.3
+  backend\tests\micro\test_intent_tick_guard.py:223 : intent_tick=None,
+  backend\tests\micro\test_intent_tick_guard.py:229 : assert dicts[0]["intent_formed_at"] == 99  # preserved (guard)
+  backend\tests\micro\test_intent_tick_guard.py:230 : assert dicts[0]["last_intent_change"] == 99  # preserved (guard)
+  backend\tests\micro\test_intent_tick_guard.py:231 : assert dicts[0]["intent_duration"] == 0  # reset (outside guard)
+  backend\tests\micro\test_intent_tick_guard.py:232 : assert dicts[0]["intent_progress_ticks"] == 0  # int(3 * 0.3) = 0
+  backend\tests\micro\test_intent_tick_guard.py:235 : # ── Контракт 8: last_intent_change зеркалит intent_formed_at ────────────
+  backend\tests\micro\test_intent_tick_guard.py:238 : def test_8_last_intent_change_mirrors_intent_formed_at():
+  backend\tests\micro\test_intent_tick_guard.py:239 : """При любом обновлении formed_at, last_intent_change = same value.
+  backend\tests\micro\test_intent_tick_guard.py:251 : intent_tick=tick_val,
+  backend\tests\micro\test_intent_tick_guard.py:256 : assert dicts[0]["intent_formed_at"] == tick_val, f"tick={tick_val}"
+  backend\tests\micro\test_intent_tick_guard.py:257 : assert dicts[0]["last_intent_change"] == tick_val, f"tick={tick_val}"
+  backend\tests\micro\test_npc_addresses_player.py:47 : "intent_target": target,
+  backend\tests\micro\test_npc_addresses_player.py:48 : "intent_formed_at": formed_at,
+  backend\tests\micro\test_npc_addresses_player.py:49 : "intent_duration": 5,
+  backend\tests\micro\test_npc_addresses_player.py:50 : "intent_progress_ticks": 0,
+  backend\tests\micro\test_npc_addresses_player.py:51 : "last_intent_change": 100,
+  backend\tests\micro\test_npc_addresses_player.py:167 : "intent_formed_at": 100,
+  backend\tests\micro\test_npc_addresses_player.py:200 : npc.pop("intent_target")
+  backend\tests\micro\test_npc_addresses_player.py:207 : npc.pop("intent_formed_at")
+  backend\tests\micro\test_npc_addresses_player.py:223 : """intent_formed_at != tick_now — событие уже публиковалось в прошлом тике."""
+  backend\tests\micro\test_npc_addresses_player.py:262 : npc["intent_formed_at"] = "abc"
+  backend\tests\micro\test_npc_addresses_player.py:271 : """intent_formed_at=100, tick_now=101 — intent не сменился, formed_at не обновился.
+  backend\tests\micro\test_npc_addressing_ack.py:50 : payload={"intent": "talk", "target_id": "player", "intent_formed_at": tick_id},
+  backend\tests\micro\test_npc_addressing_ack.py:73 : payload={"intent": "talk", "target_id": "player", "intent_formed_at": 100},
+  backend\tests\micro\test_npc_addressing_ack.py:203 : payload={"intent": "talk", "target_id": "player", "intent_formed_at": 100},
+  backend\tests\micro\test_npc_addressing_ack.py:241 : payload={"intent": "talk", "target_id": "player", "intent_formed_at": 100},
+  backend\tests\micro\test_npc_addressing_delivery.py:70 : "intent_formed_at": formed_at,
+  backend\tests\micro\test_npc_addressing_lifecycle.py:5 : - Изменение intent_formed_at → устаревшее обращение удаляется
+  backend\tests\micro\test_npc_addressing_lifecycle.py:18 : (через intent_formed_at в payload) или по переключению кампании.
+  backend\tests\micro\test_npc_addressing_lifecycle.py:67 : addr_formed = addr.get("intent_formed_at")
+  backend\tests\micro\test_npc_addressing_lifecycle.py:79 : and ex.get("intent_formed_at") is not None
+  backend\tests\micro\test_npc_addressing_lifecycle.py:80 : and ex.get("intent_formed_at") > addr_formed
+  backend\tests\micro\test_npc_addressing_lifecycle.py:94 : and ex.get("intent_formed_at") is not None
+  backend\tests\micro\test_npc_addressing_lifecycle.py:95 : and ex.get("intent_formed_at") < addr_formed
+  backend\tests\micro\test_npc_addressing_lifecycle.py:112 : "evt_A": {"npc_id": "npc_1", "event_id": "evt_A", "intent": "talk", "intent_formed_at": 5},
+  backend\tests\micro\test_npc_addressing_lifecycle.py:115 : "npc_id": "npc_2", "event_id": "evt_B", "intent": "warn", "intent_formed_at": 10,
+  backend\tests\micro\test_npc_addressing_lifecycle.py:123 : def test_2_intent_formed_at_change_removes_stale():
+  backend\tests\micro\test_npc_addressing_lifecycle.py:124 : """Изменение intent_formed_at делает обращение устаревшим + stale re-delivery не восстанавливает."""
+  backend\tests\micro\test_npc_addressing_lifecycle.py:126 : "evt_A": {"npc_id": "npc_1", "event_id": "evt_A", "intent": "talk", "intent_formed_at": 5},
+  backend\tests\micro\test_npc_addressing_lifecycle.py:130 : "npc_id": "npc_1", "event_id": "evt_B", "intent": "warn", "intent_formed_at": 10,
+  backend\tests\micro\test_npc_addressing_lifecycle.py:132 : assert "evt_A" not in new_indicators, "Stale event (older intent_formed_at) must be removed"
+  backend\tests\micro\test_npc_addressing_lifecycle.py:138 : "npc_id": "npc_1", "event_id": "evt_A", "intent": "talk", "intent_formed_at": 5,
+  backend\tests\micro\test_npc_addressing_lifecycle.py:166 : "evt_A": {"npc_id": "npc_1", "event_id": "evt_A", "intent": "talk", "intent_formed_at": 5},
+  backend\tests\micro\test_npc_addressing_lifecycle.py:167 : "evt_B": {"npc_id": "npc_2", "event_id": "evt_B", "intent": "warn", "intent_formed_at": 5},
+  backend\tests\micro\test_npc_addressing_lifecycle.py:170 : "npc_id": "npc_1", "event_id": "evt_C", "intent": "trade", "intent_formed_at": 10,
+  backend\tests\micro\test_npc_addressing_lifecycle.py:181 : Событие без intent_formed_at (неизвестная актуальность) сохраняется
+  backend\tests\micro\test_npc_addressing_lifecycle.py:185 : "evt_A": {"npc_id": "npc_1", "event_id": "evt_A", "intent": "talk"},  # no intent_formed_at
+  backend\tests\micro\test_npc_addressing_lifecycle.py:188 : "npc_id": "npc_1", "event_id": "evt_B", "intent": "warn", "intent_formed_at": 10,
+  backend\tests\micro\test_npc_addressing_lifecycle.py:192 : assert removed == [], "Event with missing intent_formed_at must not be removed"
+  backend\tests\micro\test_npc_addressing_lifecycle.py:201 : "evt_A": {"npc_id": "npc_1", "event_id": "evt_A", "intent": "talk", "intent_formed_at": 5},
+  backend\tests\micro\test_npc_addressing_lifecycle.py:204 : "npc_id": "npc_1", "event_id": "evt_A", "intent": "talk", "intent_formed_at": 5,
+  backend\tests\micro\test_npc_addressing_lifecycle.py:230 : """Неизвестная актуальность (нет intent_formed_at) не приводит к удалению."""
+  backend\tests\micro\test_npc_addressing_lifecycle.py:232 : "evt_A": {"npc_id": "npc_1", "event_id": "evt_A", "intent": "talk"},  # no intent_formed_at
+  backend\tests\micro\test_npc_addressing_lifecycle.py:233 : "evt_B": {"npc_id": "npc_1", "event_id": "evt_B", "intent": "warn", "intent_formed_at": 5},
+  backend\tests\micro\test_npc_addressing_lifecycle.py:235 : # New event with intent_formed_at — removes evt_B (older) but NOT evt_A (unknown)
+  backend\tests\micro\test_npc_addressing_lifecycle.py:237 : "npc_id": "npc_1", "event_id": "evt_C", "intent": "trade", "intent_formed_at": 10,
+  backend\tests\micro\test_npc_addressing_lifecycle.py:240 : assert "evt_B" not in new_indicators, "Event with older intent_formed_at must be removed"
+  backend\tests\micro\test_npc_addressing_propagation.py:98 : payload={"intent": "talk", "target_id": "player", "intent_formed_at": 100},
+  backend\tests\micro\test_prefix_target_loc_gate.py:7 : — переменная-сирота _intent_target_loc) и умирал молчаливым NO_TARGET
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:41 : intent_target="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\borko_shadow_full_day_test.py:46 : "intent", "intent_target", "activity"):
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:1084 : intent_ticks = {intent: {npc: 0 for npc in self.npc_ids} for intent in intent_set}
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:1086 : intent_ticks[snap.intent][snap.npc_id] += 1
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:1091 : values = [intent_ticks[intent][npc] for npc in self.npc_ids]
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:1093 : bottom = {npc: bottom[npc] + intent_ticks[intent][npc] for npc in self.npc_ids}
+  backend\tests\sandbox\system\test_t06_belief_pipeline.py:50 : state.intent_duration = 0
+  backend\tests\sandbox\lab_r003_gc11_causal_delta.py:70 : "last_intent_change": npc_dict.get("last_intent_change"),
+  backend\tests\sandbox\lab_r003_gc11_causal_delta.py:71 : "intent_progress_ticks": npc_dict.get("intent_progress_ticks"),
+  backend\tests\sandbox\oscilloscope_closed_loop.py:103 : intent_target="player",
+  backend\tests\sandbox\test_micro_macro_locomotion.py:41 : intent_target="player",
+  backend\tests\sandbox\test_micro_macro_locomotion.py:60 : intent_target="player",
+  backend\tests\test_decision_calibration.py:360 : intent_target="player",
+  backend\tests\test_decision_calibration.py:361 : intent_duration=8,
+  backend\tests\test_decision_calibration.py:362 : intent_progress_ticks=8,  # Есть прогресс → нет exhaustion
+  backend\tests\test_decision_calibration.py:367 : intent_duration=0,
+  backend\tests\test_dm_frame.py:62 : intent_target=kwargs.get("intent_target"),
+  backend\tests\test_g3_will_integration.py:5 : #     делает STEAL доступным; при его победе intent_target обязан нести
+  backend\tests\test_g3_will_integration.py:90 : assert _res.intent_target == "wo_g3_tier_a_chair", (
+  backend\tests\test_g3_will_integration.py:91 : f"STEAL победил, но цель-канал пуст: target={_res.intent_target!r}"
+  backend\tests\test_g3_will_integration.py:105 : f"target={_res.intent_target!r} "
+  backend\tests\test_npc_npc_stage7.py:137 : intent_target="tavernkeeper",
+  backend\tests\test_npc_npc_stage7.py:152 : intent_target="tavernkeeper",
+  backend\tests\test_r2_r5_math.py:57 : print(f"Цель намерения: {decision.intent_target}")
+  backend\tests\test_reaction_subscriber.py:9 : 4. Маршрутизация trust_delta (intent_target для player, social_target для NPC)
+  backend\tests\test_reaction_subscriber.py:238 : assert social_d.intent_target == "player"
+  backend\tests\test_reaction_subscriber.py:296 : def test_player_source_uses_intent_target(self):
+  backend\tests\test_reaction_subscriber.py:297 : """Действие игрока → intent_target="player" (в SOCIAL дельте)."""
+  backend\tests\test_reaction_subscriber.py:306 : assert social_d.intent_target == "player"
+  backend\tests\test_reaction_subscriber.py:325 : assert social_d.intent_target is None
+  backend\tests\test_scene_outcome_builder.py:71 : intent_target: Optional[str] = None,
+  backend\tests\test_scene_outcome_builder.py:80 : intent_target=intent_target,
+  backend\tests\test_scene_outcome_builder.py:171 : intent_target=None,
+  backend\tests\test_scene_outcome_builder.py:176 : intent_target="player",
+  backend\tests\test_scene_outcome_builder.py:219 : intent_target="player",
+  backend\tests\test_scene_outcome_builder.py:501 : intent_target="player",
+  backend\tests\test_scene_outcome_builder.py:507 : intent_target="player",
+  backend\tests\test_state_applicator_pipeline.py:39 : intent_target="player",
+  backend\tests\test_state_applicator_pipeline.py:82 : intent_target="player",
+
+============================================================
+
+6. WindupWriteGate routing (from Blocker 4, context)
+
+============================================================
+
+WindupWriteGate (post_decision.py:33) routes CommunicationIntent:
+
+  - TRADE -> WorkOrder | attack/steal -> ActionWindup | other -> QueuedTask
+
+  - STM check: no STM -> changes intent to 'approach'
+
+  - actor_id = intent.speaker throughout
+
+
+
+============================================================
+
+7. IntentEventAdapter (from Stage 1, context)
+
+============================================================
+
+IntentEventAdapter: SINGLE LEGAL POINT CommunicationIntent -> EventDTO
+
+  source=intent.speaker, 13 intent_type->EventType mappings
+
+
+
+

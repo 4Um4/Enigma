@@ -1,0 +1,1154 @@
+{
+  "summary": {
+    "old_count": 63,
+    "new_count": 62,
+    "rows": 63,
+    "by_status": {
+      "RECLASSIFIED": 26,
+      "AMBIGUOUS": 5,
+      "DUPLICATED": 3,
+      "LOST": 17,
+      "PRESERVED": 9,
+      "MERGED": 3
+    },
+    "by_old_kind": {
+      "LOCATION": {
+        "RECLASSIFIED": 1,
+        "LOST": 2
+      },
+      "EFFECT": {
+        "AMBIGUOUS": 1,
+        "RECLASSIFIED": 9,
+        "PRESERVED": 1,
+        "LOST": 4
+      },
+      "TRAIT_SEED": {
+        "DUPLICATED": 2,
+        "LOST": 3,
+        "PRESERVED": 6,
+        "RECLASSIFIED": 6,
+        "AMBIGUOUS": 1,
+        "MERGED": 2
+      },
+      "RELATIONSHIP": {
+        "LOST": 6,
+        "AMBIGUOUS": 1,
+        "PRESERVED": 1,
+        "RECLASSIFIED": 2
+      },
+      "EVENT": {
+        "LOST": 1,
+        "RECLASSIFIED": 4,
+        "PRESERVED": 1
+      },
+      "BELIEF_SEED": {
+        "RECLASSIFIED": 4,
+        "LOST": 1,
+        "MERGED": 1,
+        "AMBIGUOUS": 1
+      },
+      "PORTRET": {
+        "AMBIGUOUS": 1,
+        "DUPLICATED": 1
+      }
+    }
+  },
+  "rows": [
+    {
+      "old_ordinal": 0,
+      "old_kind": "LOCATION",
+      "old_summary": "кузнец Орм: гном | Орм",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: LOCATION → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 0,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "гном | кузнец Орм: гном",
+          "score": 1.0,
+          "reason": "tok=1.00"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 100,
+      "old_kind": "EFFECT",
+      "old_summary": "из которых он кузнец в городе уже 57 лет. | occupation",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.25, 2nd=0.21)",
+      "matches": [
+        {
+          "new_ordinal": 1205,
+          "new_kind": "PORTRET",
+          "new_text": "гном ещё взвешивает: он 57 лет в этом городе и знает, что информация, отданная бесплатно, не покупает благодарность, а только разжигает аппетит",
+          "score": 0.25,
+          "reason": "tok=0.10; loc_markers=['город']"
+        },
+        {
+          "new_ordinal": 1500,
+          "new_kind": "PORTRET",
+          "new_text": "Баланс Орма между Гильдией воров и городским правительством — это не двойная игра и не хитрый расчёт. Это стратегия выживания гнома, который живёт в этом городе 57 лет и пережил трёх старейшин Гильдии",
+          "score": 0.207,
+          "reason": "tok=0.06; loc_markers=['город']"
+        },
+        {
+          "new_ordinal": 100,
+          "new_kind": "EVENT",
+          "new_text": "стал кузнецом в городе | duration present but historical_age not derived — requires author confirmation of interval boundary",
+          "score": 0.2,
+          "reason": "tok=0.05; loc_markers=['город']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 200,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "занятость работой | Увлечён по-настоящему только своей работой",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=0.83, 2nd=0.62)",
+      "matches": [
+        {
+          "new_ordinal": 200,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "увлечён работой | Увлечён по-настоящему только своей работой",
+          "score": 0.833,
+          "reason": "tok=0.83"
+        },
+        {
+          "new_ordinal": 201,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "увлекается выпивкой | Увлечён по-настоящему только своей работой и выпивкой",
+          "score": 0.625,
+          "reason": "tok=0.62"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 201,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "пьянство | и выпивкой",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 300,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "напоминает старого друга | Торнин | идеализация | positive",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 301,
+      "old_kind": "EVENT",
+      "old_summary": "умершего 70 лет назад",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 500,
+      "old_kind": "EVENT",
+      "old_summary": "Писарь сидит на содержании гильдии второй десяток лет.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EVENT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 501,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Писарь на содержании гильдии | мелкий чиновник",
+          "score": 0.333,
+          "reason": "tok=0.33"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 501,
+      "old_kind": "EFFECT",
+      "old_summary": "Мастер гильдии знал о предупреждении слово в слово и от кого оно исходило. | knowledge",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → EVENT",
+      "matches": [
+        {
+          "new_ordinal": 502,
+          "new_kind": "EVENT",
+          "new_text": "Мастер гильдии узнал о предупреждении",
+          "score": 0.3,
+          "reason": "tok=0.30"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 502,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "подозрительность | Это единственная дыра в его системе: он учёл все силы города, кроме мелкого чиновника, которого считал такой же мебелью, какой все считают его самого.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 500,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не опасен | Он учёл все силы города, кроме мелкого чиновника, которого считал такой же мебелью, какой все считают его самого.",
+          "score": 0.864,
+          "reason": "tok=0.71; loc_markers=['город']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 600,
+      "old_kind": "EFFECT",
+      "old_summary": "учился кузнечному делу | skill",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → EVENT",
+      "matches": [
+        {
+          "new_ordinal": 600,
+          "new_kind": "EVENT",
+          "new_text": "учился кузнечному делу у мастера Грунта | game_start_age - years_ago | point in past relative to game_start",
+          "score": 0.214,
+          "reason": "tok=0.21"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 700,
+      "old_kind": "EVENT",
+      "old_summary": "последняя жена Эльра умерла от бреда и лихорадки",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EVENT)",
+      "matches": [
+        {
+          "new_ordinal": 700,
+          "new_kind": "EVENT",
+          "new_text": "Последняя жена Эльра умерла от бреда и лихорадки | game_start_age - years_ago | point in past relative to game_start",
+          "score": 0.879,
+          "reason": "tok=0.43; effect_markers=['умер']; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 800,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "тихая | Орм давно заприметил Люсю — тихую, серьёзную и исполнительную.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 800,
+          "new_kind": "PORTRET",
+          "new_text": "Орм давно заприметил Люсю — тихую, серьёзную и исполнительную. Такой была его жена до болезни: молодой, покорной, зависящей от него.",
+          "score": 0.712,
+          "reason": "tok=0.41; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 801,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "серьёзная | Орм давно заприметил Люсю — тихую, серьёзную и исполнительную.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 800,
+          "new_kind": "PORTRET",
+          "new_text": "Орм давно заприметил Люсю — тихую, серьёзную и исполнительную. Такой была его жена до болезни: молодой, покорной, зависящей от него.",
+          "score": 0.712,
+          "reason": "tok=0.41; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 802,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "исполнительная | Орм давно заприметил Люсю — тихую, серьёзную и исполнительную.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 800,
+          "new_kind": "PORTRET",
+          "new_text": "Орм давно заприметил Люсю — тихую, серьёзную и исполнительную. Такой была его жена до болезни: молодой, покорной, зависящей от него.",
+          "score": 0.712,
+          "reason": "tok=0.41; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 803,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "перенос | его жена | dependence | negative",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 804,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Орм в себе так и не разглядел перенос, потому что разглядывать себя не привык.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: BELIEF_SEED → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 1605,
+          "new_kind": "PORTRET",
+          "new_text": "Орм привык хранить в себе многое. И это тоже спрятал.",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1000,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "не был напуган шантажом | Борко и заставил продолжать спать с Люсей, гном не был напуган шантажом — скорее это была дополнительная легальная причина повторять то, что приносит ему удовольствие.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1001,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не напуган шантажом | скорее это была дополнительной легальной причиной повторять то, что приносит ему удовольствие",
+          "score": 0.435,
+          "reason": "tok=0.43"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1100,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Только перед Торниным его грызла совесть: тот хоть и бил девочку, но по-своему хорошо к ней относился и уж точно не хотел бы, чтобы её насиловал старый гном.",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1200,
+      "old_kind": "EVENT",
+      "old_summary": "Горан понял, что заказ Торнина можно продать купцу.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EVENT → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 1200,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "продавец информации | гном понял: заказ Торнина можно продать купцу",
+          "score": 0.545,
+          "reason": "tok=0.55"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1300,
+      "old_kind": "EVENT",
+      "old_summary": "он не насилует Люсю, а видит её в таверне",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EVENT → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 1300,
+          "new_kind": "PORTRET",
+          "new_text": "Когда он не насилует Люсю, а видит её в таверне, испытывает сухое неприятное чувство вины — сразу перед девочкой, перед умершей женой и перед собой в том числе.",
+          "score": 0.672,
+          "reason": "tok=0.22; loc_markers=['таверн']; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1400,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Орм думает, когда всё закончится, получить оплату за информацию и с гильдии воров, и с правительства — и открыть нормальную личную кузню, а не пристройку у таверны, которую ему выделили много лет наза",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: BELIEF_SEED → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 1401,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "думает получить оплату | думает получить оплату за информацию и с гильдии воров, и с правительства",
+          "score": 0.454,
+          "reason": "tok=0.30; belief_markers=['думает', 'закон']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1500,
+      "old_kind": "EVENT",
+      "old_summary": "Орм пережил трёх старейшин Гильдии, двух капитанов стражи и бесчисленное количество мелких интриг.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EVENT → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 1500,
+          "new_kind": "PORTRET",
+          "new_text": "Баланс Орма между Гильдией воров и городским правительством — это не двойная игра и не хитрый расчёт. Это стратегия выживания гнома, который живёт в этом городе 57 лет и пережил трёх старейшин Гильдии",
+          "score": 0.344,
+          "reason": "tok=0.34"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1501,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Гильдия терпит Орма. | Орм | dependence | positive",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1502,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Правительство терпит Орма. | Орм | dependence | positive",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.25, 2nd=0.22)",
+      "matches": [
+        {
+          "new_ordinal": 1603,
+          "new_kind": "EVENT",
+          "new_text": "Орм предупредил правительство о Торнине",
+          "score": 0.25,
+          "reason": "tok=0.25"
+        },
+        {
+          "new_ordinal": 402,
+          "new_kind": "EVENT",
+          "new_text": "Орм предупредит городское правительство о Торнине",
+          "score": 0.222,
+          "reason": "tok=0.22"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1503,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "старая мебель | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → EVENT",
+      "matches": [
+        {
+          "new_ordinal": 402,
+          "new_kind": "EVENT",
+          "new_text": "Орм предупредит городское правительство о Торнине",
+          "score": 0.206,
+          "reason": "tok=0.06; loc_markers=['город']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1504,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "полезный | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → EVENT",
+      "matches": [
+        {
+          "new_ordinal": 402,
+          "new_kind": "EVENT",
+          "new_text": "Орм предупредит городское правительство о Торнине",
+          "score": 0.203,
+          "reason": "tok=0.05; loc_markers=['город']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1505,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "не трогаемый | Орм — мебель этого города. Старая, полезная, которую никто не трогает, пока она стоит на своём месте.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → EVENT",
+      "matches": [
+        {
+          "new_ordinal": 402,
+          "new_kind": "EVENT",
+          "new_text": "Орм предупредит городское правительство о Торнине",
+          "score": 0.203,
+          "reason": "tok=0.05; loc_markers=['город']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1506,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "не молчит | Орм это знает. Поэтому он говорит и тем и другим. Не из хитрости. Из привычки.",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.28, 2nd=0.26)",
+      "matches": [
+        {
+          "new_ordinal": 1802,
+          "new_kind": "PORTRET",
+          "new_text": "Орм это знает — и это единственное, что делает его хоть немного осторожнее, хотя он никогда не признался бы, что хоть что-то в этой сцене может его потревожить.",
+          "score": 0.275,
+          "reason": "tok=0.12; belief_markers=['знает']"
+        },
+        {
+          "new_ordinal": 1601,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "А гном, который прожил 146 лет, знает разницу между привязанностью и долгом | Орм",
+          "score": 0.261,
+          "reason": "tok=0.11; belief_markers=['знает']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1507,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "не герой | Орм не герой и не предатель.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 0,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "гном | кузнец Орм: гном",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1508,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "не предатель | Орм не герой и не предатель.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 0,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "гном | кузнец Орм: гном",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1509,
+      "old_kind": "PORTRET",
+      "old_summary": "Орм — мебель этого города.",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.28, 2nd=0.22)",
+      "matches": [
+        {
+          "new_ordinal": 402,
+          "new_kind": "EVENT",
+          "new_text": "Орм предупредит городское правительство о Торнине",
+          "score": 0.275,
+          "reason": "tok=0.12; loc_markers=['город']"
+        },
+        {
+          "new_ordinal": 404,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Орм советует правительству не вмешиваться, когда гильдия будет зачищать себя | городское правительство",
+          "score": 0.221,
+          "reason": "tok=0.07; loc_markers=['город']"
+        },
+        {
+          "new_ordinal": 500,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не опасен | Он учёл все силы города, кроме мелкого чиновника, которого считал такой же мебелью, какой все считают его самого.",
+          "score": 0.203,
+          "reason": "tok=0.05; loc_markers=['город']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1600,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "стражник, который прожил 146 лет, знает разницу между привязанностью и долгом",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 2 new entries (top=0.88, 2nd=0.24)",
+      "matches": [
+        {
+          "new_ordinal": 1601,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "А гном, который прожил 146 лет, знает разницу между привязанностью и долгом | Орм",
+          "score": 0.877,
+          "reason": "tok=0.73; belief_markers=['знает']"
+        },
+        {
+          "new_ordinal": 1205,
+          "new_kind": "PORTRET",
+          "new_text": "гном ещё взвешивает: он 57 лет в этом городе и знает, что информация, отданная бесплатно, не покупает благодарность, а только разжигает аппетит",
+          "score": 0.237,
+          "reason": "tok=0.09; belief_markers=['знает']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1601,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "прежний друг | Торнин | привязанность | positive",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (RELATIONSHIP)",
+      "matches": [
+        {
+          "new_ordinal": 300,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "хороший друг Орма | Торнин",
+          "score": 0.286,
+          "reason": "tok=0.29"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1602,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "дальний родственник | Торнин | привязанность | positive",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1603,
+      "old_kind": "EFFECT",
+      "old_summary": "предупредил Гильдию, чтобы не винить кузнеца | Торнин | guardianship",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → EVENT",
+      "matches": [
+        {
+          "new_ordinal": 1602,
+          "new_kind": "EVENT",
+          "new_text": "Орм предупредил Гильдию о Торнине",
+          "score": 0.222,
+          "reason": "tok=0.22"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1604,
+      "old_kind": "EFFECT",
+      "old_summary": "предупредил правительство, чтобы не винить кузнеца | Торнин | guardianship",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → EVENT",
+      "matches": [
+        {
+          "new_ordinal": 1603,
+          "new_kind": "EVENT",
+          "new_text": "Орм предупредил правительство о Торнине",
+          "score": 0.222,
+          "reason": "tok=0.22"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1605,
+      "old_kind": "EFFECT",
+      "old_summary": "защитил себя от возможной вины | residence",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EFFECT)",
+      "matches": [
+        {
+          "new_ordinal": 1604,
+          "new_kind": "EFFECT",
+          "new_text": "Орм защитил себя | Орм | guardianship",
+          "score": 0.286,
+          "reason": "tok=0.29"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1606,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "гном привык хранить многое",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.43, 2nd=0.33)",
+      "matches": [
+        {
+          "new_ordinal": 701,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "привык хранить в себе | многое с тех времён он привык хранить в себе",
+          "score": 0.429,
+          "reason": "tok=0.43"
+        },
+        {
+          "new_ordinal": 1605,
+          "new_kind": "PORTRET",
+          "new_text": "Орм привык хранить в себе многое. И это тоже спрятал.",
+          "score": 0.333,
+          "reason": "tok=0.33"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1607,
+      "old_kind": "EFFECT",
+      "old_summary": "спрятал сожаление о Торнине | сожаление о Торнине | secret",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1700,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Борко не имеет власти над Ормом. | Орм | dependence | negative",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1701,
+      "old_kind": "EFFECT",
+      "old_summary": "Орм не испугался шантажа стражника. | gain",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 1700,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Орм не испугался шантажа стражника Борко, понял что это разрешение а не приказ | враждебное | neutral",
+          "score": 0.308,
+          "reason": "tok=0.31"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1702,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "непроницаемость | Орм не понимает, почему он напал на девочку тем вечером",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 4 new entries (top=1.00, 2nd=0.45)",
+      "matches": [
+        {
+          "new_ordinal": 1703,
+          "new_kind": "PORTRET",
+          "new_text": "не понимает, почему он напал на девочку тем вечером,",
+          "score": 1.0,
+          "reason": "tok=0.75; belief_markers=['понимает']; substring_match"
+        },
+        {
+          "new_ordinal": 1701,
+          "new_kind": "PORTRET",
+          "new_text": "А гному, который 20 лет назад потерял жену в бреду и лихорадке, гному, который привык держать всё в себе, гному, который не понимает, почему он напал на девочку тем вечером,",
+          "score": 0.45,
+          "reason": "tok=0.30; belief_markers=['понимает']"
+        },
+        {
+          "new_ordinal": 900,
+          "new_kind": "PORTRET",
+          "new_text": "Непонятно, что тем вечером заставило его напасть на девочку и изнасиловать — то ли желание, то ли месть жене за тяжёлые последние годы с ней; даже он сам не понимает.",
+          "score": 0.324,
+          "reason": "tok=0.17; belief_markers=['понимает']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1703,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "закрытость | гному, который привык держать всё в себе",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=0.62, 2nd=0.32)",
+      "matches": [
+        {
+          "new_ordinal": 1702,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "привык держать всё в себе | гому, который привык держать всё в себе",
+          "score": 0.625,
+          "reason": "tok=0.62"
+        },
+        {
+          "new_ordinal": 1701,
+          "new_kind": "PORTRET",
+          "new_text": "А гному, который 20 лет назад потерял жену в бреду и лихорадке, гному, который привык держать всё в себе, гному, который не понимает, почему он напал на девочку тем вечером,",
+          "score": 0.316,
+          "reason": "tok=0.32"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1704,
+      "old_kind": "EFFECT",
+      "old_summary": "Орм просто пользуется Борко как инструментом для собственного молчания. | gain",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 1705,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Орм пользуется стражником Борко как инструментом для собственного молчания | взаимовыгодное | neutral",
+          "score": 0.615,
+          "reason": "tok=0.62"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1705,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Борко думает, что он хозяин.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: BELIEF_SEED → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 1401,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "думает получить оплату | думает получить оплату за информацию и с гильдии воров, и с правительства",
+          "score": 0.25,
+          "reason": "tok=0.10; belief_markers=['думает']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1800,
+      "old_kind": "LOCATION",
+      "old_summary": "Крыша.",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1801,
+      "old_kind": "EFFECT",
+      "old_summary": "принадлежащая Торнину и оплаченная молчанием и починкой утвари. | residence",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1802,
+      "old_kind": "EFFECT",
+      "old_summary": "угроза Борко «посажу и сдам Торнину» бьёт не по самолюбию, а по крыше. | loss",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 1801,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "угроза Борко \"посаду и сдам Торнину\" | Борко | враждебное предупреждение | negative",
+          "score": 0.308,
+          "reason": "tok=0.31"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1803,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "осторожность | Орм это знает — и это единственное, что делает его хоть немного осторожнее",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 3 new entries (top=1.00, 2nd=0.26)",
+      "matches": [
+        {
+          "new_ordinal": 1802,
+          "new_kind": "PORTRET",
+          "new_text": "Орм это знает — и это единственное, что делает его хоть немного осторожнее, хотя он никогда не признался бы, что хоть что-то в этой сцене может его потревожить.",
+          "score": 1.0,
+          "reason": "tok=0.56; belief_markers=['знает']; substring_match"
+        },
+        {
+          "new_ordinal": 1601,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "А гном, который прожил 146 лет, знает разницу между привязанностью и долгом | Орм",
+          "score": 0.255,
+          "reason": "tok=0.11; belief_markers=['знает']"
+        },
+        {
+          "new_ordinal": 1205,
+          "new_kind": "PORTRET",
+          "new_text": "гном ещё взвешивает: он 57 лет в этом городе и знает, что информация, отданная бесплатно, не покупает благодарность, а только разжигает аппетит",
+          "score": 0.23,
+          "reason": "tok=0.08; belief_markers=['знает']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1804,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "его мечта о собственной кузне (п.14) — не про статус, а про то, чтобы наконец никому не быть должным за место, где стоишь.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: BELIEF_SEED → DESIRE_SEED",
+      "matches": [
+        {
+          "new_ordinal": 1803,
+          "new_kind": "DESIRE_SEED",
+          "new_text": "его мечта о собственной кузне (п.14) — не про статус, а про то, чтобы наконец никому не быть должным за место, где стоишь | собственная кузня",
+          "score": 1.0,
+          "reason": "tok=0.88; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1900,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "медленно и ровно | Орм пьёт медленно, ровно и не пьянеет до конца вечера",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1901,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "питится медленно | Орм пьёт медленно, ровно и не пьянеет до конца вечера",
+          "score": 0.875,
+          "reason": "tok=0.88"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1901,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "в отключку | Торнин пьёт в отключку",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1902,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "питается в отключку | Торнин пьёт в отключку",
+          "score": 1.0,
+          "reason": "tok=0.75; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1902,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "поддерживает застолье | собутыльник | dependence | positive",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: RELATIONSHIP → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 1904,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "поддерживает застолье | один поддерживает застолье, другой выключается из него",
+          "score": 0.222,
+          "reason": "tok=0.22"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1903,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "выключается из него | собутыльник | disengagement | neutral",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: RELATIONSHIP → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 1904,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "поддерживает застолье | один поддерживает застолье, другой выключается из него",
+          "score": 0.222,
+          "reason": "tok=0.22"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1904,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "лучший слушатель из всех возможных | собутыльник | superiority | positive",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2000,
+      "old_kind": "PORTRET",
+      "old_summary": "Сидит спиной к стене, лицом к залу: за 57 лет это рефлекс, а не осторожность — просто так устроено его место у стойки. Он видит весь зал, включая коридор на кухню.",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.26)",
+      "matches": [
+        {
+          "new_ordinal": 2000,
+          "new_kind": "PORTRET",
+          "new_text": "Сидит спиной к стене, лицом к залу: за 57 лет это рефлекс, а не осторожность — просто так устроено его место у стойки. Он видит весь зал, включая коридор на кухню.",
+          "score": 1.0,
+          "reason": "tok=1.00; loc_markers=['стойк', 'зал', 'кухн']; substring_match"
+        },
+        {
+          "new_ordinal": 2102,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "матерится по-гномьи | Матерится только по-гномьи — зал не понимает ни слова, и его это устраивает.",
+          "score": 0.261,
+          "reason": "tok=0.11; loc_markers=['стойк', 'зал', 'кухн']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2100,
+      "old_kind": "EFFECT",
+      "old_summary": "руки и речь | trauma",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2101,
+      "old_kind": "EFFECT",
+      "old_summary": "говорит односложно: «Да». «Нет». «Жди». | loss",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 2101,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "говорит односложно | Говорит односложно: «Да». \"Нет\". \"Жди\".",
+          "score": 0.8,
+          "reason": "tok=0.80"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2102,
+      "old_kind": "EFFECT",
+      "old_summary": "матерится только по-гномьи | trauma",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 2102,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "матерится по-гномьи | Матерится только по-гномьи — зал не понимает ни слова, и его это устраивает.",
+          "score": 0.3,
+          "reason": "tok=0.30"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2103,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "старый | 57 лет привычки",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2104,
+      "old_kind": "LOCATION",
+      "old_summary": "кузнице",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2105,
+      "old_kind": "EFFECT",
+      "old_summary": "спит на лежанке у остывающего горна | residence",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2106,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "привычный | 57 лет привычки",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    }
+  ],
+  "lost": [
+    {
+      "ordinal": 201,
+      "kind": "TRAIT_SEED",
+      "summary": "пьянство | и выпивкой"
+    },
+    {
+      "ordinal": 300,
+      "kind": "RELATIONSHIP",
+      "summary": "напоминает старого друга | Торнин | идеализация | positive"
+    },
+    {
+      "ordinal": 301,
+      "kind": "EVENT",
+      "summary": "умершего 70 лет назад"
+    },
+    {
+      "ordinal": 803,
+      "kind": "RELATIONSHIP",
+      "summary": "перенос | его жена | dependence | negative"
+    },
+    {
+      "ordinal": 1100,
+      "kind": "BELIEF_SEED",
+      "summary": "Только перед Торниным его грызла совесть: тот хоть и бил девочку, но по-своему хорошо к ней относился и уж точно не хотел бы, чтобы её насиловал старый гном."
+    },
+    {
+      "ordinal": 1501,
+      "kind": "RELATIONSHIP",
+      "summary": "Гильдия терпит Орма. | Орм | dependence | positive"
+    },
+    {
+      "ordinal": 1602,
+      "kind": "RELATIONSHIP",
+      "summary": "дальний родственник | Торнин | привязанность | positive"
+    },
+    {
+      "ordinal": 1607,
+      "kind": "EFFECT",
+      "summary": "спрятал сожаление о Торнине | сожаление о Торнине | secret"
+    },
+    {
+      "ordinal": 1700,
+      "kind": "RELATIONSHIP",
+      "summary": "Борко не имеет власти над Ормом. | Орм | dependence | negative"
+    },
+    {
+      "ordinal": 1800,
+      "kind": "LOCATION",
+      "summary": "Крыша."
+    },
+    {
+      "ordinal": 1801,
+      "kind": "EFFECT",
+      "summary": "принадлежащая Торнину и оплаченная молчанием и починкой утвари. | residence"
+    },
+    {
+      "ordinal": 1904,
+      "kind": "RELATIONSHIP",
+      "summary": "лучший слушатель из всех возможных | собутыльник | superiority | positive"
+    },
+    {
+      "ordinal": 2100,
+      "kind": "EFFECT",
+      "summary": "руки и речь | trauma"
+    },
+    {
+      "ordinal": 2103,
+      "kind": "TRAIT_SEED",
+      "summary": "старый | 57 лет привычки"
+    },
+    {
+      "ordinal": 2104,
+      "kind": "LOCATION",
+      "summary": "кузнице"
+    },
+    {
+      "ordinal": 2105,
+      "kind": "EFFECT",
+      "summary": "спит на лежанке у остывающего горна | residence"
+    },
+    {
+      "ordinal": 2106,
+      "kind": "TRAIT_SEED",
+      "summary": "привычный | 57 лет привычки"
+    }
+  ],
+  "ambiguous": [
+    {
+      "ordinal": 100,
+      "kind": "EFFECT",
+      "summary": "из которых он кузнец в городе уже 57 лет. | occupation",
+      "candidates_count": 3
+    },
+    {
+      "ordinal": 1502,
+      "kind": "RELATIONSHIP",
+      "summary": "Правительство терпит Орма. | Орм | dependence | positive",
+      "candidates_count": 2
+    },
+    {
+      "ordinal": 1506,
+      "kind": "TRAIT_SEED",
+      "summary": "не молчит | Орм это знает. Поэтому он говорит и тем и другим. Не из хитрости. Из привычки.",
+      "candidates_count": 2
+    },
+    {
+      "ordinal": 1509,
+      "kind": "PORTRET",
+      "summary": "Орм — мебель этого города.",
+      "candidates_count": 3
+    },
+    {
+      "ordinal": 1606,
+      "kind": "BELIEF_SEED",
+      "summary": "гном привык хранить многое",
+      "candidates_count": 2
+    }
+  ]
+}

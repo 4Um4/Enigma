@@ -4,7 +4,7 @@
   "pipeline": "HTTP → uvicorn → ModelPool → qwen_7b (temperature=0.9)",
   "total_fragments": 22,
   "real_points_count": 21,
-  "total_items": 57,
+  "total_items": 62,
   "zero_items_points": 0,
   "http_failures": 0,
   "coverage_warnings_count": 0,
@@ -34,15 +34,14 @@
       "is_header": false,
       "text_preview": "1. 146 лет, из которых он кузнец в городе уже 57 лет.",
       "ok": true,
-      "items_count": 2,
+      "items_count": 1,
       "items_kinds": [
-        "EVENT",
         "EVENT"
       ],
       "critical_topic_warning": null,
       "coverage": {
         "fragment_ord": 1,
-        "items_count": 2,
+        "items_count": 1,
         "fragment_text_preview": "1. 146 лет, из которых он кузнец в городе уже 57 лет.",
         "critical_topic_warning": null
       }
@@ -90,17 +89,19 @@
       "is_header": false,
       "text_preview": "4. Когда Торнин заказал у него меч, он сразу же предупредил главу гильдии воров и городское правительство. Гильдии сказа",
       "ok": true,
-      "items_count": 4,
+      "items_count": 6,
       "items_kinds": [
         "EVENT",
         "RELATIONSHIP",
+        "EVENT",
         "RELATIONSHIP",
-        "TRAIT_SEED"
+        "RELATIONSHIP",
+        "EVENT"
       ],
       "critical_topic_warning": null,
       "coverage": {
         "fragment_ord": 4,
-        "items_count": 4,
+        "items_count": 6,
         "fragment_text_preview": "4. Когда Торнин заказал у него меч, он сразу же предупредил главу гильдии воров ",
         "critical_topic_warning": null
       }
@@ -113,9 +114,9 @@
       "ok": true,
       "items_count": 3,
       "items_kinds": [
+        "TRAIT_SEED",
         "RELATIONSHIP",
-        "PORTRET",
-        "BELIEF_SEED"
+        "EVENT"
       ],
       "critical_topic_warning": null,
       "coverage": {
@@ -152,7 +153,7 @@
       "items_count": 2,
       "items_kinds": [
         "EVENT",
-        "PORTRET"
+        "TRAIT_SEED"
       ],
       "critical_topic_warning": null,
       "coverage": {
@@ -243,17 +244,19 @@
       "is_header": false,
       "text_preview": "12. Когда ещё и Горан на следующий день после Торнина попросил о мече, гном понял: заказ Торнина можно продать купцу. Пр",
       "ok": true,
-      "items_count": 4,
+      "items_count": 6,
       "items_kinds": [
-        "PORTRET",
         "TRAIT_SEED",
-        "RELATIONSHIP",
-        "EVENT"
+        "EVENT",
+        "TRAIT_SEED",
+        "TRAIT_SEED",
+        "TRAIT_SEED",
+        "PORTRET"
       ],
       "critical_topic_warning": null,
       "coverage": {
         "fragment_ord": 12,
-        "items_count": 4,
+        "items_count": 6,
         "fragment_text_preview": "12. Когда ещё и Горан на следующий день после Торнина попросил о мече, гном поня",
         "critical_topic_warning": null
       }
@@ -285,7 +288,7 @@
       "items_count": 2,
       "items_kinds": [
         "DESIRE_SEED",
-        "PORTRET"
+        "TRAIT_SEED"
       ],
       "critical_topic_warning": null,
       "coverage": {
@@ -301,15 +304,14 @@
       "is_header": false,
       "text_preview": "15. Баланс Орма между Гильдией воров и городским правительством — это не двойная игра и не хитрый расчёт. Это стратегия ",
       "ok": true,
-      "items_count": 2,
+      "items_count": 1,
       "items_kinds": [
-        "PORTRET",
-        "BELIEF_SEED"
+        "PORTRET"
       ],
       "critical_topic_warning": null,
       "coverage": {
         "fragment_ord": 15,
-        "items_count": 2,
+        "items_count": 1,
         "fragment_text_preview": "15. Баланс Орма между Гильдией воров и городским правительством — это не двойная",
         "critical_topic_warning": null
       }
@@ -320,21 +322,19 @@
       "is_header": false,
       "text_preview": "16. Когда Торнин заказал меч, Орм не стал строить из себя верного друга. Торнин напоминает ему старого друга, который ум",
       "ok": true,
-      "items_count": 8,
+      "items_count": 6,
       "items_kinds": [
         "EVENT",
-        "PORTRET",
-        "EVENT",
         "RELATIONSHIP",
         "EVENT",
-        "RELATIONSHIP",
-        "PORTRET",
-        "DESIRE_SEED"
+        "EVENT",
+        "EFFECT",
+        "PORTRET"
       ],
       "critical_topic_warning": null,
       "coverage": {
         "fragment_ord": 16,
-        "items_count": 8,
+        "items_count": 6,
         "fragment_text_preview": "16. Когда Торнин заказал меч, Орм не стал строить из себя верного друга. Торнин ",
         "critical_topic_warning": null
       }
@@ -345,16 +345,20 @@
       "is_header": false,
       "text_preview": "17. Борко не имеет власти над Ормом. Орм не испугался шантажа стражника. Орм просто понял, что Борко даёт ему разрешение",
       "ok": true,
-      "items_count": 3,
+      "items_count": 7,
       "items_kinds": [
         "RELATIONSHIP",
         "PORTRET",
+        "TRAIT_SEED",
+        "PORTRET",
+        "TRAIT_SEED",
+        "RELATIONSHIP",
         "TRAIT_SEED"
       ],
       "critical_topic_warning": null,
       "coverage": {
         "fragment_ord": 17,
-        "items_count": 3,
+        "items_count": 7,
         "fragment_text_preview": "17. Борко не имеет власти над Ормом. Орм не испугался шантажа стражника. Орм про",
         "critical_topic_warning": null
       }
@@ -365,15 +369,17 @@
       "is_header": false,
       "text_preview": "18. Крыша. Кузня — пристройка таверны: над головой гнома кровля, по сути принадлежащая Торнину и оплаченная молчанием и ",
       "ok": true,
-      "items_count": 2,
+      "items_count": 4,
       "items_kinds": [
+        "LOCATION",
+        "RELATIONSHIP",
         "PORTRET",
-        "TRAIT_SEED"
+        "DESIRE_SEED"
       ],
       "critical_topic_warning": null,
       "coverage": {
         "fragment_ord": 18,
-        "items_count": 2,
+        "items_count": 4,
         "fragment_text_preview": "18. Крыша. Кузня — пристройка таверны: над головой гнома кровля, по сути принадл",
         "critical_topic_warning": null
       }
@@ -384,17 +390,19 @@
       "is_header": false,
       "text_preview": "19. Две техники питья. Орм пьёт медленно, ровно и не пьянеет до конца вечера; Торнин пьёт в отключку. Два собутыльника с",
       "ok": true,
-      "items_count": 4,
+      "items_count": 6,
       "items_kinds": [
         "RELATIONSHIP",
         "TRAIT_SEED",
         "TRAIT_SEED",
-        "PORTRET"
+        "RELATIONSHIP",
+        "TRAIT_SEED",
+        "RELATIONSHIP"
       ],
       "critical_topic_warning": null,
       "coverage": {
         "fragment_ord": 19,
-        "items_count": 4,
+        "items_count": 6,
         "fragment_text_preview": "19. Две техники питья. Орм пьёт медленно, ровно и не пьянеет до конца вечера; То",
         "critical_topic_warning": null
       }
@@ -424,19 +432,16 @@
       "is_header": false,
       "text_preview": "21. Руки и речь. Обожжённые руки в старых ожогах — рукопожатие, которого избегают. Говорит односложно: «Да». «Нет». «Жди",
       "ok": true,
-      "items_count": 6,
+      "items_count": 3,
       "items_kinds": [
+        "EFFECT",
         "TRAIT_SEED",
-        "TRAIT_SEED",
-        "TRAIT_SEED",
-        "TRAIT_SEED",
-        "TRAIT_SEED",
-        "EVENT"
+        "TRAIT_SEED"
       ],
       "critical_topic_warning": null,
       "coverage": {
         "fragment_ord": 21,
-        "items_count": 6,
+        "items_count": 3,
         "fragment_text_preview": "21. Руки и речь. Обожжённые руки в старых ожогах — рукопожатие, которого избегаю",
         "critical_topic_warning": null
       }

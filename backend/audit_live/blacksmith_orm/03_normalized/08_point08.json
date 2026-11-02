@@ -9,24 +9,18 @@
         "исполнительная"
       ]
     },
-    "confidence": 1.0,
-    "needs_confirmation": false,
+    "confidence": 0.5,
+    "needs_confirmation": true,
     "question": null
   },
   {
     "kind": "RELATIONSHIP",
     "draft_payload": {
-      "summary": "Орм видит в Люсии свою бывшую жену",
+      "summary": "Орм видит в Люсии перенос своей умершей жены",
       "target_hint": "Люся"
     },
-    "confidence": 0.9,
+    "confidence": 0.5,
     "needs_confirmation": true,
-    "question": {
-      "question_id": "select_existing_npc_for_orm_lusya_relationship",
-      "target_span": "Люся",
-      "options": [
-        "LEAVE_WHITE_SPOT"
-      ]
-    }
+    "question": null
   }
 ]

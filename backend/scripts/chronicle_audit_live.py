@@ -87,15 +87,22 @@ def _http_get(path: str) -> Dict[str, Any]:
 
 
 async def decompose_via_http(
-    npc_id: str, frag_ord: int, fragment_text: str
+    npc_id: str, frag_ord: int, fragment_text: str, author_text_full: str = ""
 ) -> Dict[str, Any]:
-    """POST /api/chronicle/{campaign_id}/{npc_id}/decompose — штатный pipeline."""
+    """POST /api/chronicle/{campaign_id}/{npc_id}/decompose — штатный pipeline.
+
+    CCH-12 Этап 2: author_text_full обязателен для инициализации draft
+    (routes_chronicle.py:282). Без него endpoint возвращает NOT_DECOMPOSED.
+    Передаём полный author_text при каждом вызове — store игнорирует
+    повторную установку для существующего draft (L297).
+    """
     path = f"/api/chronicle/{_CAMPAIGN}/{npc_id}/decompose"
     body = {
         "campaign_id": _CAMPAIGN,
         "npc_id": npc_id,
         "fragment_ord": frag_ord,
         "fragment": fragment_text,
+        "author_text_full": author_text_full,
     }
     return _http_post(path, body)
 
@@ -126,7 +133,7 @@ async def run_live_audit(npc_id: str) -> Dict[str, Any]:
 
     print(f"[{npc_id}] {len(fragments)} фрагментов (включая шапку)")
     print(f"[{npc_id}] Кампания: {_CAMPAIGN} (изолированная)")
-    print(f"[{npc_id}] Pipeline: HTTP → uvicorn → ModelPool → qwen_7b (temp=0.9)\n")
+    print(f"[{npc_id}] Pipeline: HTTP → uvicorn → ModelPool → primary (temp=0.0)\n")
 
     coverage_warnings: List[Dict[str, Any]] = []
     per_point: List[Dict[str, Any]] = []
@@ -136,7 +143,9 @@ async def run_live_audit(npc_id: str) -> Dict[str, Any]:
         label = "HEADER" if is_header else f"POINT_{point_n}"
         print(f"  [{npc_id}] frag_ord={frag_ord} {label} ({len(text)} chars)...", end=" ", flush=True)
 
-        result = await decompose_via_http(npc_id, frag_ord, text)
+        # CCH-12 Этап 2: передаём полный author_text для инициализации draft.
+        # Store игнорирует повторную установку для существующего draft.
+        result = await decompose_via_http(npc_id, frag_ord, text, author_text)
 
         (out_dir / "02_raw_llm" / f"{frag_ord:02d}_point{point_n:02d}.json").write_text(
             json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -232,8 +241,8 @@ async def run_live_audit(npc_id: str) -> Dict[str, Any]:
 
     md = [
         f"# Live audit: {npc_id}",
-        f"",
-        f"- Pipeline: HTTP → uvicorn → qwen_7b (temperature=0.9)",
+        "",
+        "- Pipeline: HTTP → uvicorn → qwen_7b (temperature=0.9)",
         f"- Campaign: {_CAMPAIGN} (изолированная, оригиналы не тронуты)",
         f"- Total fragments: {len(fragments)} (включая шапку)",
         f"- Real points: {len(real_points)}",
@@ -241,11 +250,11 @@ async def run_live_audit(npc_id: str) -> Dict[str, Any]:
         f"- Zero-items points: {zero_items_points}",
         f"- HTTP failures: {http_failures}",
         f"- Coverage warnings (critical topic + 0 items): {len(coverage_warnings)}",
-        f"",
-        f"## Per-point breakdown",
-        f"",
-        f"| point | frag | chars | items | kinds | warn |",
-        f"|-------|------|-------|-------|-------|------|",
+        "",
+        "## Per-point breakdown",
+        "",
+        "| point | frag | chars | items | kinds | warn |",
+        "|-------|------|-------|-------|-------|------|",
     ]
     for p in per_point:
         kinds = ", ".join(p.get("items_kinds", [])) or "—"
@@ -254,7 +263,7 @@ async def run_live_audit(npc_id: str) -> Dict[str, Any]:
         md.append(f"| {label} | {p['frag_ord']} | {len(p['text_preview'])}+ | {p.get('items_count', 0)} | {kinds} | {warn} |")
 
     if coverage_warnings:
-        md.append(f"\n## ⚠️ Critical topic warnings (zero items)\n")
+        md.append("\n## ⚠️ Critical topic warnings (zero items)\n")
         for w in coverage_warnings:
             md.append(f"- point {w['point_n']} (frag_ord={w['frag_ord']}): {w['text_preview']}...")
 
@@ -271,7 +280,7 @@ if __name__ == "__main__":
     print(f"=== Live audit: {npc_id} ===")
     print(f"=== Output dir: backend/audit_live/{npc_id}/ ===\n")
     summary = asyncio.run(run_live_audit(npc_id))
-    print(f"\n=== Summary ===")
+    print("\n=== Summary ===")
     print(f"Total items: {summary['total_items']}")
     print(f"Zero-items points: {summary['zero_items_points']} / {summary['real_points_count']}")
     print(f"HTTP failures: {summary['http_failures']}")

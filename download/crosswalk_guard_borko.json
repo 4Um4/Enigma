@@ -1,0 +1,1191 @@
+{
+  "summary": {
+    "old_count": 66,
+    "new_count": 67,
+    "rows": 66,
+    "by_status": {
+      "PRESERVED": 8,
+      "RECLASSIFIED": 20,
+      "DUPLICATED": 4,
+      "MERGED": 4,
+      "AMBIGUOUS": 4,
+      "LOST": 26
+    },
+    "by_old_kind": {
+      "RELATIONSHIP": {
+        "PRESERVED": 2,
+        "RECLASSIFIED": 3,
+        "LOST": 7
+      },
+      "EFFECT": {
+        "RECLASSIFIED": 8,
+        "MERGED": 3,
+        "LOST": 6
+      },
+      "EVENT": {
+        "DUPLICATED": 2,
+        "PRESERVED": 1,
+        "LOST": 6,
+        "RECLASSIFIED": 1
+      },
+      "LOCATION": {
+        "AMBIGUOUS": 1,
+        "PRESERVED": 1
+      },
+      "PORTRET": {
+        "AMBIGUOUS": 1,
+        "DUPLICATED": 1,
+        "LOST": 1,
+        "PRESERVED": 1,
+        "MERGED": 1
+      },
+      "BELIEF_SEED": {
+        "PRESERVED": 1,
+        "RECLASSIFIED": 4,
+        "AMBIGUOUS": 1,
+        "LOST": 1
+      },
+      "TRAIT_SEED": {
+        "PRESERVED": 2,
+        "RECLASSIFIED": 4,
+        "LOST": 5,
+        "DUPLICATED": 1,
+        "AMBIGUOUS": 1
+      }
+    }
+  },
+  "rows": [
+    {
+      "old_ordinal": 0,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "человек | Борко | dependence | positive",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (RELATIONSHIP)",
+      "matches": [
+        {
+          "new_ordinal": 0,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Борко — стражник, человек | Стражник Борко | человек",
+          "score": 0.4,
+          "reason": "tok=0.40"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 100,
+      "old_kind": "EFFECT",
+      "old_summary": "работал грузчиком на рынке | occupation",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → EVENT",
+      "matches": [
+        {
+          "new_ordinal": 100,
+          "new_kind": "EVENT",
+          "new_text": "работал грузчиком на рынке с детства",
+          "score": 0.6,
+          "reason": "tok=0.60"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 200,
+      "old_kind": "EVENT",
+      "old_summary": "пошла уборщицей, шестеркой, в городскую стражу",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=0.58, 2nd=0.26)",
+      "matches": [
+        {
+          "new_ordinal": 200,
+          "new_kind": "EVENT",
+          "new_text": "пошел уборщиком, шестеркой, в городскую стражу",
+          "score": 0.579,
+          "reason": "tok=0.43; loc_markers=['город']"
+        },
+        {
+          "new_ordinal": 400,
+          "new_kind": "EVENT",
+          "new_text": "ему доверили стражу городских ворот",
+          "score": 0.261,
+          "reason": "tok=0.11; loc_markers=['город']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 300,
+      "old_kind": "EVENT",
+      "old_summary": "стал патрульным на городских улицах",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.48)",
+      "matches": [
+        {
+          "new_ordinal": 300,
+          "new_kind": "EVENT",
+          "new_text": "стал патрульным на городских улицах",
+          "score": 1.0,
+          "reason": "tok=1.00; loc_markers=['город', 'улиц']; substring_match"
+        },
+        {
+          "new_ordinal": 1103,
+          "new_kind": "EVENT",
+          "new_text": "стал начальником на городских воротах",
+          "score": 0.483,
+          "reason": "tok=0.33; loc_markers=['город', 'улиц']"
+        },
+        {
+          "new_ordinal": 400,
+          "new_kind": "EVENT",
+          "new_text": "ему доверили стражу городских ворот",
+          "score": 0.275,
+          "reason": "tok=0.12; loc_markers=['город', 'улиц']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 400,
+      "old_kind": "EFFECT",
+      "old_summary": "с 22 лет доверили стражу городских ворот | occupation",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 4 new entries (top=0.72, 2nd=0.26)",
+      "matches": [
+        {
+          "new_ordinal": 400,
+          "new_kind": "EVENT",
+          "new_text": "ему доверили стражу городских ворот",
+          "score": 0.721,
+          "reason": "tok=0.57; loc_markers=['город']"
+        },
+        {
+          "new_ordinal": 300,
+          "new_kind": "EVENT",
+          "new_text": "стал патрульным на городских улицах",
+          "score": 0.261,
+          "reason": "tok=0.11; loc_markers=['город']"
+        },
+        {
+          "new_ordinal": 1103,
+          "new_kind": "EVENT",
+          "new_text": "стал начальником на городских воротах",
+          "score": 0.261,
+          "reason": "tok=0.11; loc_markers=['город']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 500,
+      "old_kind": "LOCATION",
+      "old_summary": "тахта пристрастилась заходить в таверну «Серебряный волк» есть днём и выпивать вечером | Серебряный волк",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.44, 2nd=0.40)",
+      "matches": [
+        {
+          "new_ordinal": 500,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "увлечение таверной | Тогда же пристрастился заходить в таверну «Серебряный волк»",
+          "score": 0.436,
+          "reason": "tok=0.29; loc_markers=['таверн']"
+        },
+        {
+          "new_ordinal": 501,
+          "new_kind": "EVENT",
+          "new_text": "начал посещать таверну днём и вечером",
+          "score": 0.4,
+          "reason": "tok=0.25; loc_markers=['таверн']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 600,
+      "old_kind": "EFFECT",
+      "old_summary": "понял, что те, кто вмешивается в чужие дела, долго не живут | belief_seed",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → BELIEF_SEED",
+      "matches": [
+        {
+          "new_ordinal": 600,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "те, кто вмешивается в чужие дела, долго не живут | danger",
+          "score": 0.545,
+          "reason": "tok=0.55"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 700,
+      "old_kind": "PORTRET",
+      "old_summary": "из-за внешности он производит хорошее впечатление на начальство, ему доверяют больше остальных и считают наивным добрячком, — хотя сам он себя таковым не считал.",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.59, 2nd=0.59)",
+      "matches": [
+        {
+          "new_ordinal": 700,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "производит хорошее впечатление | из-за внешности он производит хорошее впечатление на начальство",
+          "score": 0.594,
+          "reason": "tok=0.29; substring_match"
+        },
+        {
+          "new_ordinal": 702,
+          "new_kind": "PORTRET",
+          "new_text": "хотя сам он себя таковым не считал",
+          "score": 0.594,
+          "reason": "tok=0.29; substring_match"
+        },
+        {
+          "new_ordinal": 701,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "доверяют больше остальных | ему доверяют больше остальных",
+          "score": 0.235,
+          "reason": "tok=0.24"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 800,
+      "old_kind": "EFFECT",
+      "old_summary": "благодаря тяжёлой работе в молодости добился хорошего телосложения, что пошло на пользу в службе | gain",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → EVENT",
+      "matches": [
+        {
+          "new_ordinal": 800,
+          "new_kind": "EVENT",
+          "new_text": "добился хорошего телосложения от тяжелой работы в молодости",
+          "score": 0.286,
+          "reason": "tok=0.29"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 900,
+      "old_kind": "EFFECT",
+      "old_summary": "гильдия воров поняла, что он ничего собой не представляет | loss",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 900,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Гильдия воров прекрасно понимает, что Орм ничего собой не представляет, но все же считает его удобным гномом | Гильдия воров",
+          "score": 0.375,
+          "reason": "tok=0.38"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1000,
+      "old_kind": "EVENT",
+      "old_summary": "начал получать зарплату уже от гильдии воров",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EVENT)",
+      "matches": [
+        {
+          "new_ordinal": 1000,
+          "new_kind": "EVENT",
+          "new_text": "начинает получать зарплату от гильдии воров",
+          "score": 0.571,
+          "reason": "tok=0.57"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1100,
+      "old_kind": "EVENT",
+      "old_summary": "познакомился с Гораном",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1101,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "помогал ему скрывать контрабанду от другой стражи и властей | Горан | help | positive",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (RELATIONSHIP)",
+      "matches": [
+        {
+          "new_ordinal": 1100,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "помогал Горану скрывать контрабанду от стражи и властей, часто пил и ел в \"Серебряном волке\" за счёт Горана | взаимовыгодное сотрудничество | neutral",
+          "score": 0.25,
+          "reason": "tok=0.25"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1102,
+      "old_kind": "EFFECT",
+      "old_summary": "часто пил и ел в «Серебряном волке» за счёт Горана | custom",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 1100,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "помогал Горану скрывать контрабанду от стражи и властей, часто пил и ел в \"Серебряном волке\" за счёт Горана | взаимовыгодное сотрудничество | neutral",
+          "score": 0.375,
+          "reason": "tok=0.38"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1103,
+      "old_kind": "EFFECT",
+      "old_summary": "деньгами от купца не брал никогда | gain",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 1101,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не берет деньги от друзей | никому не брал никогда, но деньгами от купца не брал никогда",
+          "score": 0.444,
+          "reason": "tok=0.44"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1104,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "деньги — улика, а ужин — гостеприимство; с друзей не берут",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (BELIEF_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1102,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "деньги — улика, а ужин — гостеприимство; с друзей не берут | danger",
+          "score": 1.0,
+          "reason": "tok=0.86; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1105,
+      "old_kind": "EFFECT",
+      "old_summary": "стал начальником на городских воротах | residence",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 3 new entries (top=1.00, 2nd=0.44)",
+      "matches": [
+        {
+          "new_ordinal": 1103,
+          "new_kind": "EVENT",
+          "new_text": "стал начальником на городских воротах",
+          "score": 1.0,
+          "reason": "tok=0.80; loc_markers=['город']; substring_match"
+        },
+        {
+          "new_ordinal": 300,
+          "new_kind": "EVENT",
+          "new_text": "стал патрульным на городских улицах",
+          "score": 0.436,
+          "reason": "tok=0.29; loc_markers=['город']"
+        },
+        {
+          "new_ordinal": 400,
+          "new_kind": "EVENT",
+          "new_text": "ему доверили стражу городских ворот",
+          "score": 0.261,
+          "reason": "tok=0.11; loc_markers=['город']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1200,
+      "old_kind": "EVENT",
+      "old_summary": "Возрастные якоря фрагмента: [24]. В 24 застал изнасилование Люси Ормом",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1300,
+      "old_kind": "EVENT",
+      "old_summary": "застал насилие",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1301,
+      "old_kind": "EFFECT",
+      "old_summary": "хочет снова наблюдать и мастурбировать за этим зрелищем | desire",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 1303,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "хочет наблюдать за насилием | решился подсесть, чтобы снова наблюдать и мастурбировать за этим зрелищем",
+          "score": 0.545,
+          "reason": "tok=0.55"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1302,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "хочет снова наблюдать и мастурбировать за этим зрелищем | Орм | desire | positive",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: RELATIONSHIP → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 1303,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "хочет наблюдать за насилием | решился подсесть, чтобы снова наблюдать и мастурбировать за этим зрелищем",
+          "score": 0.462,
+          "reason": "tok=0.46"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1303,
+      "old_kind": "EVENT",
+      "old_summary": "решился подсесть за стол к Орму и заявил, что посадит его и сдаст Торнину",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1304,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "не будет сообщать ему заранее, когда снова будет насиловать Люсю | Орм | condition | negative",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1305,
+      "old_kind": "EVENT",
+      "old_summary": "предложил прекратить насильство",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1306,
+      "old_kind": "EFFECT",
+      "old_summary": "его жизнь тут же будет закончена | жизнь Борко | loss",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1400,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Не женился только потому, что сначала искал «ту самую», а сейчас «та самая» ему уже не нужна: он хочет наблюдать за насилием, не участвуя в нём напрямую.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: BELIEF_SEED → DESIRE_SEED",
+      "matches": [
+        {
+          "new_ordinal": 1400,
+          "new_kind": "DESIRE_SEED",
+          "new_text": "хочет наблюдать за насилием, не участвуя напрямую | наблюдение за насилием без участия",
+          "score": 0.238,
+          "reason": "tok=0.24"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1500,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "чувство страха | за лёгкой улыбкой и чувством того, как он преуспел в жизни в отличие от остальных",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1502,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "успел в жизни | чувством того, как он преуспел в жизни",
+          "score": 0.417,
+          "reason": "tok=0.42"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1501,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "чувство стыда | отпало всякое чувство стыда",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 1501,
+          "new_kind": "PORTRET",
+          "new_text": "со временем у стражника отпало всякое чувство стыда, осталось только чувство страха",
+          "score": 0.444,
+          "reason": "tok=0.44"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1700,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "счастлив | Счастливый от того, как он устроился",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1502,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "успел в жизни | чувством того, как он преуспел в жизни",
+          "score": 0.222,
+          "reason": "tok=0.22"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1701,
+      "old_kind": "EFFECT",
+      "old_summary": "отказывался от дополнительной работы стражника и не стремился к повышению на службе | custom",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 2 new entries (top=0.44, 2nd=0.33)",
+      "matches": [
+        {
+          "new_ordinal": 1700,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "отказывается от дополнительной работы | отказывался от дополнительной работы стражника",
+          "score": 0.444,
+          "reason": "tok=0.44"
+        },
+        {
+          "new_ordinal": 1701,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не стремится к повышению | не стремился к повышению на службе",
+          "score": 0.333,
+          "reason": "tok=0.33"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1800,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Новая мечта, к которой он, впрочем, и не стремится, — стать хозяином «Серебряного волка». Трактирщик Торнин, старый пьянчужка, ему никогда не нравился, но и говорить с ним приходилось редко.",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.32, 2nd=0.24)",
+      "matches": [
+        {
+          "new_ordinal": 1800,
+          "new_kind": "PORTRET",
+          "new_text": "Новая мечта Орма — стать хозяином \"Серебряного волка\". Он не стремится к этому.",
+          "score": 0.318,
+          "reason": "tok=0.32"
+        },
+        {
+          "new_ordinal": 1801,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Торнин, трактирщик, старый пьянчужка Орму не нравится. С ним разговаривать редко. | Торнин | вражда | negative",
+          "score": 0.24,
+          "reason": "tok=0.24"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1900,
+      "old_kind": "EVENT",
+      "old_summary": "По долгу службы орудует копьем на начальном уровне.",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2000,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Тень — просто мутный тип, скорее всего связанный с криминалом | Тень | dependence | negative",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: RELATIONSHIP → BELIEF_SEED",
+      "matches": [
+        {
+          "new_ordinal": 2000,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "Тень — скорее всего связанный с криминалом мутный тип | danger",
+          "score": 0.636,
+          "reason": "tok=0.64"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2001,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "не зарился на ЕГО Люсю! | Тень | protection | positive",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2002,
+      "old_kind": "EFFECT",
+      "old_summary": "появился в таверне | Тень | residence",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → LOCATION",
+      "matches": [
+        {
+          "new_ordinal": 2600,
+          "new_kind": "LOCATION",
+          "new_text": "Орм садится за угловой стол в таверне, лицом к коридору на кухню | угловой стол",
+          "score": 0.241,
+          "reason": "tok=0.09; loc_markers=['таверн']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2100,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Гильдия воров платит Борко зарплату. | Гильдия воров | dependence | positive",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: RELATIONSHIP → EVENT",
+      "matches": [
+        {
+          "new_ordinal": 1000,
+          "new_kind": "EVENT",
+          "new_text": "начинает получать зарплату от гильдии воров",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2101,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Борко боится потерять работу. | Гильдия воров | fear | negative",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2102,
+      "old_kind": "EVENT",
+      "old_summary": "Гильдия воров заявила стражнику, что двойное убийство Торнина не существует.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EVENT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 2100,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Борко прикрывает Торнина по приказу Гильдии воров, закрывая глаза на двойное убийство | взаимовыгодный | neutral",
+          "score": 0.235,
+          "reason": "tok=0.24"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2103,
+      "old_kind": "EFFECT",
+      "old_summary": "Борко подписывает документы и говорит, что драка закончилась ничем. | action",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2200,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Борко думает, что он кукловод.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: BELIEF_SEED → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 2200,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Борко думает, что имеет власть над Ормом | вражда | negative",
+          "score": 0.45,
+          "reason": "tok=0.30; belief_markers=['думает']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2201,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Борко думает, что без его разрешения Орм не посмеет.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: BELIEF_SEED → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 2200,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Борко думает, что имеет власть над Ормом | вражда | negative",
+          "score": 0.364,
+          "reason": "tok=0.21; belief_markers=['думает']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2202,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "заблуждение | Это заблуждение стражника, который в жизни не имел настоящей власти и впервые почувствовал её вкус — пусть и фальшивый.",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2203,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "безвластный | стражника, который в жизни не имел настоящей власти",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2204,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "надменный | что он теперь хозяин ситуации, что Орм у него на крючке",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2205,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "властолюбивый | что он теперь хозяин ситуации, что Орм у него на крючке",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2300,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "серый кардинал | Борко не серый кардинал.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 0,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Борко — стражник, человек | Стражник Борко | человек",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2301,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Борко вообразил себя акулой, потому что однажды увидел, как акула ест, и решил, что он тоже так умеет.",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2302,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Борко не контролирует Орма. | Орм | dependence | negative",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2303,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Борко не контролирует Гильдию. | Гильдия | dependence | negative",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2304,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Борко не контролирует Горана. | Горан | dependence | negative",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2305,
+      "old_kind": "PORTRET",
+      "old_summary": "Он просто стоит на воротах, улыбается, берёт взятки и смотрит.",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=0.62, 2nd=0.50)",
+      "matches": [
+        {
+          "new_ordinal": 2301,
+          "new_kind": "PORTRET",
+          "new_text": "Борко воображает себя акулой, контролирующим Орма, Гильдию и Горана, но на самом деле он просто стоит на воротах, улыбается, берёт взятки и смотрит. Эта картина его греет по ночам.",
+          "score": 0.618,
+          "reason": "tok=0.32; substring_match"
+        },
+        {
+          "new_ordinal": 2300,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Борко стоит на воротах, берёт взятки и смотрит | взаимовыгодный | neutral",
+          "score": 0.5,
+          "reason": "tok=0.50"
+        },
+        {
+          "new_ordinal": 2401,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "взятки за риск | Случайные взятки на воротах — \"компенсация за риск\"",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2306,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "хозяин таверны | он хозяин таверны",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → BELIEF_SEED",
+      "matches": [
+        {
+          "new_ordinal": 2302,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "Борко рисует себе картину, где он хозяин таверны, хозяин Люси, хозяин всего маленького мира «Серебряного волка» | danger",
+          "score": 0.293,
+          "reason": "tok=0.14; loc_markers=['таверн']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2307,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "хозяин Люси | хозяин Люси",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2308,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "хозяин всего маленького мира «Серебряного волка» | хозяин всего маленького мира «Серебряного волка»",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → BELIEF_SEED",
+      "matches": [
+        {
+          "new_ordinal": 2302,
+          "new_kind": "BELIEF_SEED",
+          "new_text": "Борко рисует себе картину, где он хозяин таверны, хозяин Люси, хозяин всего маленького мира «Серебряного волка» | danger",
+          "score": 0.429,
+          "reason": "tok=0.43"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2309,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Эта картина его греет по ночам.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: BELIEF_SEED → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 2301,
+          "new_kind": "PORTRET",
+          "new_text": "Борко воображает себя акулой, контролирующим Орма, Гильдию и Горана, но на самом деле он просто стоит на воротах, улыбается, берёт взятки и смотрит. Эта картина его греет по ночам.",
+          "score": 0.527,
+          "reason": "tok=0.23; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2310,
+      "old_kind": "EFFECT",
+      "old_summary": "И это всё, что у него есть. | gain",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2400,
+      "old_kind": "EFFECT",
+      "old_summary": "система грязи сформировалась в его понимании | custom",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2401,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "принципиальный | Случайные взятки на воротах — «компенсация за риск». Зарплата гильдии — «плата за покой» (и одновременно повод её бояться).",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=0.54, 2nd=0.38)",
+      "matches": [
+        {
+          "new_ordinal": 2402,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "плата за покой | Зарплата гильдии — \"плата за покой\" (и одновременно повод её бояться)",
+          "score": 0.538,
+          "reason": "tok=0.54"
+        },
+        {
+          "new_ordinal": 2401,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "взятки за риск | Случайные взятки на воротах — \"компенсация за риск\"",
+          "score": 0.385,
+          "reason": "tok=0.38"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2402,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "спокойный | У каждого вида грязи своя касса, и пока кассы не смешиваются, совесть спит.",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.38, 2nd=0.36)",
+      "matches": [
+        {
+          "new_ordinal": 2404,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "каждому виду грязи своя касса | У каждого вида грязи своя касса,",
+          "score": 0.385,
+          "reason": "tok=0.38"
+        },
+        {
+          "new_ordinal": 2405,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "сочетание денег и совести | пока кассы не смешиваются, совесть спит",
+          "score": 0.357,
+          "reason": "tok=0.36"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2403,
+      "old_kind": "EFFECT",
+      "old_summary": "грязь делает его равнодушным к деньгам до определенного момента | custom",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2600,
+      "old_kind": "PORTRET",
+      "old_summary": "Так удобнее зал видеть",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2601,
+      "old_kind": "LOCATION",
+      "old_summary": "угловой стол",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (LOCATION)",
+      "matches": [
+        {
+          "new_ordinal": 2600,
+          "new_kind": "LOCATION",
+          "new_text": "Орм садится за угловой стол в таверне, лицом к коридору на кухню | угловой стол",
+          "score": 0.25,
+          "reason": "tok=0.25"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2602,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Люся | Люся | внимание | positive",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2700,
+      "old_kind": "PORTRET",
+      "old_summary": "Он правда говорит с ней как с равной, правда слушает, правда улыбается ей как человеку, а не как вещи.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (PORTRET)",
+      "matches": [
+        {
+          "new_ordinal": 2700,
+          "new_kind": "PORTRET",
+          "new_text": "Он правда говорит с ней как с равной, правда слушает, правда улыбается ей как человеку, а не как вещи. В этой искренности нет расчёта — и именно поэтому она хуже всего остального: всё его поддельное ж",
+          "score": 0.59,
+          "reason": "tok=0.29; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2701,
+      "old_kind": "EFFECT",
+      "old_summary": "она хуже всего остального | emotion",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2800,
+      "old_kind": "PORTRET",
+      "old_summary": "Растягивает слова, зевает, 'Ааа, ну так и скажи'. Почуяв выгоду — даже мелкую, вроде лишней кружки за счёт купца, — говорит быстрее и тише. Свою монету называет 'медяк' — с удовольствием к мелочи.",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 3 new entries (top=0.46, 2nd=0.25)",
+      "matches": [
+        {
+          "new_ordinal": 2802,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "говорит быстрее и тише при выгоде | Почуяв выгоду — даже мелкую, вроде лишней кружки за счёт купца, — говорит быстрее и тише",
+          "score": 0.462,
+          "reason": "tok=0.46"
+        },
+        {
+          "new_ordinal": 2801,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "растягивает слова | Растягивает слова, зевает, \"Ааа, ну так и скажи\"",
+          "score": 0.25,
+          "reason": "tok=0.25"
+        },
+        {
+          "new_ordinal": 2803,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "называет монету \"медяк\" | Свою монету называет \"медяк\" — с удовольствием к мелочи",
+          "score": 0.25,
+          "reason": "tok=0.25"
+        }
+      ]
+    }
+  ],
+  "lost": [
+    {
+      "ordinal": 1100,
+      "kind": "EVENT",
+      "summary": "познакомился с Гораном"
+    },
+    {
+      "ordinal": 1200,
+      "kind": "EVENT",
+      "summary": "Возрастные якоря фрагмента: [24]. В 24 застал изнасилование Люси Ормом"
+    },
+    {
+      "ordinal": 1300,
+      "kind": "EVENT",
+      "summary": "застал насилие"
+    },
+    {
+      "ordinal": 1303,
+      "kind": "EVENT",
+      "summary": "решился подсесть за стол к Орму и заявил, что посадит его и сдаст Торнину"
+    },
+    {
+      "ordinal": 1304,
+      "kind": "RELATIONSHIP",
+      "summary": "не будет сообщать ему заранее, когда снова будет насиловать Люсю | Орм | condition | negative"
+    },
+    {
+      "ordinal": 1305,
+      "kind": "EVENT",
+      "summary": "предложил прекратить насильство"
+    },
+    {
+      "ordinal": 1306,
+      "kind": "EFFECT",
+      "summary": "его жизнь тут же будет закончена | жизнь Борко | loss"
+    },
+    {
+      "ordinal": 1900,
+      "kind": "EVENT",
+      "summary": "По долгу службы орудует копьем на начальном уровне."
+    },
+    {
+      "ordinal": 2001,
+      "kind": "RELATIONSHIP",
+      "summary": "не зарился на ЕГО Люсю! | Тень | protection | positive"
+    },
+    {
+      "ordinal": 2101,
+      "kind": "RELATIONSHIP",
+      "summary": "Борко боится потерять работу. | Гильдия воров | fear | negative"
+    },
+    {
+      "ordinal": 2103,
+      "kind": "EFFECT",
+      "summary": "Борко подписывает документы и говорит, что драка закончилась ничем. | action"
+    },
+    {
+      "ordinal": 2202,
+      "kind": "TRAIT_SEED",
+      "summary": "заблуждение | Это заблуждение стражника, который в жизни не имел настоящей власти и впервые почувствовал её вкус — пусть и фальшивый."
+    },
+    {
+      "ordinal": 2203,
+      "kind": "TRAIT_SEED",
+      "summary": "безвластный | стражника, который в жизни не имел настоящей власти"
+    },
+    {
+      "ordinal": 2204,
+      "kind": "TRAIT_SEED",
+      "summary": "надменный | что он теперь хозяин ситуации, что Орм у него на крючке"
+    },
+    {
+      "ordinal": 2205,
+      "kind": "TRAIT_SEED",
+      "summary": "властолюбивый | что он теперь хозяин ситуации, что Орм у него на крючке"
+    },
+    {
+      "ordinal": 2301,
+      "kind": "BELIEF_SEED",
+      "summary": "Борко вообразил себя акулой, потому что однажды увидел, как акула ест, и решил, что он тоже так умеет."
+    },
+    {
+      "ordinal": 2302,
+      "kind": "RELATIONSHIP",
+      "summary": "Борко не контролирует Орма. | Орм | dependence | negative"
+    },
+    {
+      "ordinal": 2303,
+      "kind": "RELATIONSHIP",
+      "summary": "Борко не контролирует Гильдию. | Гильдия | dependence | negative"
+    },
+    {
+      "ordinal": 2304,
+      "kind": "RELATIONSHIP",
+      "summary": "Борко не контролирует Горана. | Горан | dependence | negative"
+    },
+    {
+      "ordinal": 2307,
+      "kind": "TRAIT_SEED",
+      "summary": "хозяин Люси | хозяин Люси"
+    },
+    {
+      "ordinal": 2310,
+      "kind": "EFFECT",
+      "summary": "И это всё, что у него есть. | gain"
+    },
+    {
+      "ordinal": 2400,
+      "kind": "EFFECT",
+      "summary": "система грязи сформировалась в его понимании | custom"
+    },
+    {
+      "ordinal": 2403,
+      "kind": "EFFECT",
+      "summary": "грязь делает его равнодушным к деньгам до определенного момента | custom"
+    },
+    {
+      "ordinal": 2600,
+      "kind": "PORTRET",
+      "summary": "Так удобнее зал видеть"
+    },
+    {
+      "ordinal": 2602,
+      "kind": "RELATIONSHIP",
+      "summary": "Люся | Люся | внимание | positive"
+    },
+    {
+      "ordinal": 2701,
+      "kind": "EFFECT",
+      "summary": "она хуже всего остального | emotion"
+    }
+  ],
+  "ambiguous": [
+    {
+      "ordinal": 500,
+      "kind": "LOCATION",
+      "summary": "тахта пристрастилась заходить в таверну «Серебряный волк» есть днём и выпивать вечером | Серебряный волк",
+      "candidates_count": 2
+    },
+    {
+      "ordinal": 700,
+      "kind": "PORTRET",
+      "summary": "из-за внешности он производит хорошее впечатление на начальство, ему доверяют больше остальных и считают наивным добрячком, — хотя сам он себя таковым не считал.",
+      "candidates_count": 3
+    },
+    {
+      "ordinal": 1800,
+      "kind": "BELIEF_SEED",
+      "summary": "Новая мечта, к которой он, впрочем, и не стремится, — стать хозяином «Серебряного волка». Трактирщик Торнин, старый пьянчужка, ему никогда не нравился, но и говорить с ним приходилось редко.",
+      "candidates_count": 2
+    },
+    {
+      "ordinal": 2402,
+      "kind": "TRAIT_SEED",
+      "summary": "спокойный | У каждого вида грязи своя касса, и пока кассы не смешиваются, совесть спит.",
+      "candidates_count": 2
+    }
+  ]
+}

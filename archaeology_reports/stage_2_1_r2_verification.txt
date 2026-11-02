@@ -1,0 +1,378 @@
+﻿============================================================
+
+STAGE 2.1-R2 — TECHNICAL VERIFICATION (NEW data)
+
+Tasks: 3, 4, 5, 7, 8
+
+Mode: READ ONLY
+
+Generated: 2026-11-02 20:20:37
+
+============================================================
+
+============================================================
+
+TASK 3: PSYCHOLOGICAL CONSEQUENCES — DOUBLE APPLICATION
+
+============================================================
+
+[SEARCH] EmotionPayload stress_delta  pattern: /EmotionPayload.*stress_delta|stress_delta.*EmotionPayload/
+  7 matches:
+  backend\app\services\npc\legacy_delta_adapter.py:79 : #     → EmotionPayload.stress_delta
+  backend\app\services\npc\state_applicator.py:630 : payload=EmotionPayload(stress_delta=-recovery),
+  backend\app\services\social\propagation.py:179 : payload=EmotionPayload(stress_delta=_stress_100),
+  backend\tests\test_state_applicator_pipeline.py:34 : payload=EmotionPayload(stress_delta=15.0),
+  backend\tests\test_state_delta_v2.py:36 : delta = StateDeltas(npc_id="1", domain=DeltaDomain.EMOTION, payload=EmotionPayload(stress_delta=-5.0))
+  backend\tests\test_state_delta_v2.py:66 : npc_id="1", domain=DeltaDomain.SOCIAL, target="player", payload=EmotionPayload(stress_delta=5.0)
+  backend\tests\test_state_delta_v2.py:106 : payload = EmotionPayload(stress_delta=5.0)
+
+[SEARCH] IdentityPayload  pattern: /IdentityPayload|identity_integrity_delta/
+  66 matches:
+  backend\app\models\causality_manifest.py:186 : "state_delta.identity_integrity_delta": FieldCausality("DEBT", organ="experience", terminal="decision", authority="ADR-O-414"),
+  backend\app\models\causality_manifest.py:199 : "state_delta.identity_payload.identity_integrity_delta": FieldCausality("DEBT", organ="experience", terminal="decision", authority...
+  backend\app\models\delta_payloads.py:6 : Основные сущности: SocialPayload, EmotionPayload, ReputationPayload, IdentityPayload
+  backend\app\models\delta_payloads.py:52 : class IdentityPayload:
+  backend\app\models\delta_payloads.py:53 : identity_integrity_delta: float = 0.0
+  backend\app\models\state_delta.py:22 : IdentityPayload,
+  backend\app\models\state_delta.py:86 : IdentityPayload,
+  backend\app\models\state_delta.py:134 : identity_integrity_delta: float = 0.0
+  backend\app\models\state_delta.py:160 : DeltaDomain.IDENTITY: IdentityPayload,
+  backend\app\services\npc\break_progress_engine.py:59 : identity_integrity_delta: float = 0.0  # -0.01 до -0.3 за тик
+  backend\app\services\npc\break_progress_engine.py:181 : identity_integrity_delta=round(integrity_delta, 4),
+  backend\app\services\npc\state_applicator.py:299 : 0.0, min(1.0, new_state.identity_integrity + d.identity_integrity_delta)
+  backend\app\services\npc\state_applicator.py:310 : # SHI-FIX COMMAND: Применяем IdentityPayload (compliance_bias, recent_directive)
+  backend\app\services\npc\state_applicator.py:312 : from app.models.delta_payloads import IdentityPayload
+  backend\app\services\npc\state_applicator.py:318 : _orig_delta.payload, IdentityPayload
+  backend\app\services\npc\state_applicator.py:696 : or abs(deltas.identity_integrity_delta) > 0.01
+  backend\app\services\npc\state_applicator.py:795 : # SANATION-M1a: v2-поля IdentityPayload (identity_integrity_delta /
+  backend\app\services\npc\state_applicator.py:799 : # SANATION-M1a (окончание): v2-extraction IdentityPayload-полей удалён как
+  backend\app\services\npc\state_applicator.py:801 : # полям collapsed StateDeltas; v2-payload-путь IdentityPayload здесь не
+  backend\app\services\phases\decision.py:112 : + _break_deltas.identity_integrity_delta,
+  backend\app\services\phases\decision.py:153 : if _affect > 10.0 or _break_deltas.identity_integrity_delta < 0:
+  backend\app\services\phases\decision.py:159 : effect_value=_break_deltas.identity_integrity_delta,
+  backend\app\services\phases\input.py:136 : IdentityPayload,
+  backend\app\services\phases\input.py:162 : payload=IdentityPayload(
+  backend\app\services\phases\input.py:163 : identity_integrity_delta=-will_response.identity_damage
+  backend\app\services\social\directive_interpretation_subscriber.py:15 : from app.models.delta_payloads import EmotionPayload, IdentityPayload, SocialPayload
+  backend\app\services\social\directive_interpretation_subscriber.py:234 : payload=IdentityPayload(
+  backend\app\services\social\directive_interpretation_subscriber.py:258 : payload=IdentityPayload(
+  backend\app\services\verbalization\scene_outcome_builder.py:954 : if deltas.identity_integrity_delta < -0.2:
+  backend\app\services\verbalization\scene_outcome_builder.py:955 : crack_intensity = min(1.0, abs(deltas.identity_integrity_delta) / 0.5)
+  backend\app\services\verbalization\scene_outcome_builder.py:961 : description=f"трещины в личности (integrity -{abs(deltas.identity_integrity_delta):.1f})",
+  backend\app\services\pipeline_runner.py:274 : from app.models.delta_payloads import IdentityPayload
+  backend\app\services\pipeline_runner.py:323 : payload=IdentityPayload(),
+  backend\app\services\pipeline_runner.py:383 : payload=IdentityPayload(),
+  backend\app\services\tick_utils.py:23 : IdentityPayload,
+  backend\app\services\tick_utils.py:240 : if isinstance(p1, IdentityPayload):
+  backend\app\services\tick_utils.py:241 : return IdentityPayload(
+  backend\app\services\tick_utils.py:242 : identity_integrity_delta=p1.identity_integrity_delta
+  backend\app\services\tick_utils.py:243 : + p2.identity_integrity_delta,
+  backend\app\services\tick_utils.py:321 : existing.identity_integrity_delta += d.identity_integrity_delta
+  backend\app\services\tick_utils.py:327 : # инкремент frozen-полей IdentityPayload здесь падал бы с
+  backend\app\services\tick_utils.py:336 : existing.identity_integrity_delta += d.identity_integrity_delta
+  backend\tests\micro\test_cognition_dmframe_lock.py:51 : from app.models.delta_payloads import IdentityPayload
+  backend\tests\micro\test_cognition_dmframe_lock.py:61 : payload=IdentityPayload(),
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:337 : 0.0, min(1.0, new_state.identity_integrity + _break_deltas.identity_integrity_delta)
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:346 : if _break_deltas.identity_integrity_delta < -0.01:
+  backend\tests\sandbox\SUPERBOX\npc_sandbox.py:347 : print(f"[BREAK] {npc_id} integrity={new_state.identity_integrity:.3f} (Δ {_break_deltas.identity_integrity_delta:.4f})")
+  backend\tests\test_break_progress_engine_r64.py:5 : включая тик-независимый расчёт pressure, identity_integrity_delta,
+  backend\tests\test_break_progress_engine_r64.py:92 : assert d2.identity_integrity_delta < d1.identity_integrity_delta
+  backend\tests\test_break_progress_engine_r64.py:94 : assert d3.identity_integrity_delta > d2.identity_integrity_delta
+  backend\tests\test_break_progress_engine_r64.py:111 : assert high.identity_integrity_delta < low.identity_integrity_delta
+  backend\tests\test_break_progress_engine_r64.py:121 : assert with_support.identity_integrity_delta > no_support.identity_integrity_delta
+  backend\tests\test_break_progress_engine_r64.py:130 : assert with_fail.identity_integrity_delta < no_fail.identity_integrity_delta
+  backend\tests\test_break_progress_engine_r64.py:147 : assert deltas.identity_integrity_delta < -0.001
+  backend\tests\test_break_progress_engine_r64.py:155 : assert deltas.identity_integrity_delta < 0
+  backend\tests\test_break_progress_engine_r64.py:165 : assert deltas.identity_integrity_delta < 0
+  backend\tests\test_break_progress_engine_r64.py:192 : assert deltas.identity_integrity_delta < 0
+  backend\tests\test_break_progress_engine_r64.py:201 : identity_integrity_delta=-0.05, pressure_resistance_delta=0.01, stage="cracks", will_state_override=None
+  backend\tests\test_dm_frame.py:50 : identity_integrity_delta=kwargs.get("identity_integrity_delta", 0.0),
+  backend\tests\test_scene_outcome_builder.py:49 : identity_integrity_delta: float = 0.0,
+  backend\tests\test_scene_outcome_builder.py:62 : identity_integrity_delta=identity_integrity_delta,
+  backend\tests\test_scene_outcome_builder.py:447 : deltas=make_deltas(identity_integrity_delta=-0.4),
+  backend\tests\test_scene_outcome_builder.py:462 : deltas=make_deltas(identity_integrity_delta=-0.1),
+  backend\tests\test_state_delta_v2.py:18 : IdentityPayload,
+  backend\tests\test_state_delta_v2.py:52 : npc_id="1", domain=DeltaDomain.IDENTITY, payload=IdentityPayload(identity_integrity_delta=-0.1)
+  backend\tests\test_state_delta_v2.py:55 : assert delta.payload.identity_integrity_delta == -0.1
+
+[SEARCH] WillConflictPayload  pattern: /WillConflictPayload/
+  9 matches:
+  backend\app\models\delta_payloads.py:131 : class WillConflictPayload:
+  backend\app\models\state_delta.py:28 : WillConflictPayload,
+  backend\app\models\state_delta.py:90 : WillConflictPayload,
+  backend\app\services\npc\state_applicator.py:41 : WillConflictPayload,
+  backend\app\services\npc\state_applicator.py:275 : # ADR-039: Перехватываем WillConflictPayload до коллапса в v1, чтобы не потерять его
+  backend\app\services\npc\state_applicator.py:279 : d.payload, WillConflictPayload
+  backend\app\services\phases\input.py:137 : WillConflictPayload,
+  backend\app\services\phases\input.py:176 : payload=WillConflictPayload(
+  backend\app\services\phases\input.py:220 : payload=WillConflictPayload(
+
+[SEARCH] apply_conditioning  pattern: /apply_conditioning/
+  4 matches:
+  backend\app\services\phases\input.py:298 : from app.services.affect import apply_conditioning
+  backend\app\services\phases\input.py:301 : updated_imprints = apply_conditioning(
+  backend\app\services\affect.py:299 : def apply_conditioning(
+  backend\scripts\chronicle_audit.py:264 : "affect.py:299 — apply_conditioning (runtime producer of AffectiveImprint)",
+
+[SEARCH] affective_imprints writes  pattern: /affective_imprints.*=|affective_imprints.*append/
+  10 matches:
+  backend\app\api\routes_chronicle.py:878 : _affective_imprints = npc_dict.get("affective_imprints")
+  backend\app\models\causality_manifest.py:120 : "npc_state.affective_imprints": FieldCausality("DEBT", organ="memory", terminal=None, authority="CG-D-05"),  # двойной носитель
+  backend\app\models\npc_state.py:783 : affective_imprints: Tuple["AffectiveImprint", ...] = ()
+  backend\app\services\npc\npc_loader.py:670 : raw_data["affective_imprints"] = _imprints
+  backend\app\services\phases\idle_services.py:73 : npc_dict["affective_imprints"] = [asdict(d) for d in decayed]
+  backend\app\services\phases\input.py:304 : player_dict["affective_imprints"] = [asdict(imp) for imp in updated_imprints]
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:210 : assert now["affective_imprints_count"] == 3
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:263 : assert now["affective_imprints_count"] == 0
+  backend\tests\micro\test_cch8_character_debug_runtime_fields.py:299 : assert npc_dict["affective_imprints"] == imprints_before
+  backend\tests\micro\test_chronicle_cch4_seed.py:266 : assert len(raw["affective_imprints"]) == 1  # импринт в дикт-носитель
+
+============================================================
+
+TASK 4: SCENE_STATE — SERIALIZATION, LOADING, REPLAY
+
+============================================================
+
+[SEARCH] scene_state serialization  pattern: /scene_state.*to_dict|scene_state.*from_dict|scene_state.*save|scene_state.*load|serialize.*scene/
+  23 matches:
+  backend\app\services\game_loop\game_loop.py:1414 : result.final_scene_state["epistemic_records"] = self._tick_orch._epistemic_store.to_dict()
+  backend\app\services\game_loop\scene_init.py:130 : last_save_ts = scene_state.get("last_save_real_time", 0)
+  backend\app\services\game_loop\scene_init.py:290 : scene_state, campaign_id, _saves_dir
+  backend\app\services\game_loop\scene_init.py:335 : scene_state = _load_or_create_scene(
+  backend\app\services\memory\memory_manager.py:249 : scene_state = payload.get("scene_state", {})
+  backend\app\services\npc\conclusion_store.py:171 : """Восстановление из scene_state (прецедент EpistemicStore.from_dict:
+  backend\app\services\world\world_object_store.py:384 : _write_subtree(scene_state)[object_id] = new_obj.to_dict()
+  backend\app\services\world\world_object_store.py:397 : _write_subtree(scene_state)[object_id] = new_obj.to_dict()
+  backend\app\services\world\world_object_store.py:426 : _write_subtree(scene_state)[object_id] = new_obj.to_dict()
+  backend\app\services\world\world_object_store.py:453 : _write_subtree(scene_state)[object_id] = result.new_obj.to_dict()
+  backend\app\services\world\world_object_store.py:471 : _write_subtree(scene_state)[object_id] = new_obj.to_dict()
+  backend\app\services\scene_state_manager.py:1301 : scene_state["last_save_real_time"] = (
+  backend\app\services\tick_orchestrator.py:823 : ctx.scene_state["epistemic_records"] = self._epistemic_store.to_dict()
+  backend\app\services\tick_orchestrator.py:830 : ctx.scene_state["conclusions"] = self._conclusion_store.to_dict()
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_persistence_test.py:127 : print(f"  -> Убеждение сохранено в final_scene_state (records={len(_saved_records)})")
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_production_test.py:61 : # S199.9 FIX: Если scene_state содержит epistemic_records (после reload), загружаем их в store.
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_interrupt_test.py:11 : #   get_scene_state = копия — без save task/windup теряются); (R3)
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:242 : # scene_manager.save_scene_state (НЕ GameLoop.save_scene_state: тот после
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:400 : # Инициализируем доступ к scene_manager/scene_state (нужны для save_load_storm)
+  backend\tests\sandbox\SUPERBOX\drift_laboratory.py:749 : self._scene_state = _loaded_scene
+  backend\tests\sandbox\b1_4_push_probe.py:187 : _loop.save_scene_state(_CAMPAIGN, _payload)
+  backend\tests\sandbox\b1_4_push_probe.py:193 : campaign_id=_CAMPAIGN, scene_state=_payload, game_loop=_loop
+  backend\tests\test_relationship_state_store.py:1103 : v2_reloaded.bind("camp", scene_state=_saved)
+
+[SEARCH] scene_state JSON persistence  pattern: /scene_state.*json|json.*scene_state|atomic_commit.*scene/
+  25 matches:
+  backend\app\domain\action_windup.py:43 : """S203.4 (Э6, Н-40): JSON-сериализация для scene_state-персистентности.
+  backend\app\domain\communication.py:137 : """Э6 (Н-40): JSON-сериализация для scene_state-персистентности
+  backend\app\domain\world_object.py:218 : """Serialization для scene_state (только JSON-безопасные типы)."""
+  backend\app\services\body\body_topology_service.py:218 : """Сериализует BodyTopology в JSON-совместимый dict для scene_state."""
+  backend\app\services\game_loop\game_loop.py:2276 : # S85: Получаем scene_state из SceneStateManager (SSOT), а не из JSON.
+  backend\app\services\game_loop\scene_init.py:441 : """Гарантирует что scene_state существует и содержит стены из editor JSON.
+  backend\app\services\scene_state\scene_factory.py:3 : Назначение: сборка канонического scene_state новой сцены из editor-JSON/template (initialize-фабрика). DEGOD ITER4: байт-в-байт пе...
+  backend\app\services\social\relationship_state_store.py:282 : # Контракт (вердикт Мастера): legacy JSON → deterministic transform → v2 scene_state.
+  backend\app\services\social\relationship_state_store.py:296 : """Однократный перенос npc_relationships.json → scene_state["relationship_state"]["directed"].
+  backend\app\services\state\json_persistence_adapter.py:8 : - scene_state -> campaigns/{id}/campaign_state.json
+  backend\app\services\campaign_state_service.py:43 : # SceneStateManager владеет campaign_state.json (scene_state)
+  backend\app\services\scene_state_manager.py:130 : SceneState хранится как ключ "scene_state" внутри campaign_state.json.
+  backend\app\services\scene_state_manager.py:140 : 8. save_scene_state → сохранить в campaign_state.json
+  backend\tests\IPT.py:1979 : calls = {"atomic_commit": 0, "save_scene": 0, "save_scene_at": 0}
+  backend\tests\IPT.py:2006 : # Устав 4.2.1: всё или ничего. Допускается 1 atomic_commit или 1 save_scene.
+  backend\tests\IPT.py:2008 : _total_commits = calls["atomic_commit"] + calls["save_scene"] + calls["save_scene_at"]
+  backend\tests\IPT.py:2015 : f"Нарушение Устава 4.2.1: {_total_commits} коммитов за 1 тик (atomic={calls['atomic_commit']}, save={calls['save_scene']}, save_at...
+  backend\tests\test_action_commitment.py:2109 : """WARA (§12.2): atomic commit сериализует scene_state в JSON —
+  backend\tests\test_persistence_port.py:155 : state_file.write_text(json.dumps({"scene_state": {"location_id": "old", "stale": True}}), encoding="utf-8")
+  backend\tests\test_relationship_state_store.py:301 : """ADR-O-371 / M1b.1: legacy JSON → v2 scene_state. Только адаптер:
+  backend\tests\test_relationship_state_store.py:1026 : # v2-значения живут в scene_state, не в JSON:
+  backend\tests\test_world_object_topology.py:7 : atomic_commit_all -> load_scene_at -> ТОТ ЖЕ объект) + второй
+  backend\tests\test_world_object_topology.py:321 : adapter.atomic_commit_all(campaign_id="w1_c2", all_scenes={"tavern": scene})
+  backend\tests\test_world_object_topology.py:326 : adapter.atomic_commit_all(campaign_id="w1_c2", all_scenes={"tavern": loaded})
+  backend\r4_debug_idle.py:35 : print(f"[DEBUG] atomic_commit_all called: campaign_id={cid}, n_scenes={n_scenes}")
+
+[SEARCH] scene_state replay  pattern: /replay.*scene_state|scene_state.*replay|tick_snapshot.*scene/
+  1 matches:
+  backend\app\services\state\migration_runner.py:398 : {"sessions", "tick_snapshots", "interventions", "llm_calls", "causal_probes", "scene_changes"}
+
+============================================================
+
+TASK 5: TEMPORARY INTENTION STORAGE
+
+============================================================
+
+[SEARCH] active_commitments  pattern: /active_commitments.*scene_state|scene_state.*active_commitments/
+  10 matches:
+  backend\app\domain\activity.py:5 : npc["activity_state"]; владение/инерция — scene_state["active_commitments"]
+  backend\app\domain\traversal_schema.py:222 : _commitments = scene_state.get("active_commitments") or {}
+  backend\app\models\world_snapshot.py:118 : _active_commitments = _two_level_copy(scene_state.get("active_commitments", {}))
+  backend\app\services\action\commitment_registry.py:4 : scene_state["active_commitments"] — только АКТИВНЫЕ обязательства
+  backend\tests\test_commitment_ssm_integration.py:109 : cm = scene_state["active_commitments"][_NPC]
+  backend\tests\test_commitment_ssm_integration.py:127 : cm_id = scene_state["active_commitments"][_NPC]["commitment_id"]
+  backend\tests\test_commitment_ssm_integration.py:135 : assert scene_state["active_commitments"][_NPC]["commitment_id"] == cm_id
+  backend\tests\test_commitment_ssm_integration.py:137 : assert len(scene_state["active_commitments"]) == 1
+  backend\tests\test_commitment_ssm_integration.py:146 : first_id = scene_state["active_commitments"][_NPC]["commitment_id"]
+  backend\tests\test_commitment_ssm_integration.py:153 : cm2 = scene_state["active_commitments"][_NPC]
+
+[SEARCH] windup/pending intents  pattern: /windup_held_intents|_pending_intents|held_intent/
+  23 matches:
+  backend\app\domain\action_commitment.py:164 : # S203.4: ссылка на объект исполнителя (task_id / held_intent_id) —
+  backend\app\domain\action_windup.py:39 : # DEBT-310.1: ID интента, отложенного в TickOrchestrator._pending_intents.
+  backend\app\domain\action_windup.py:40 : held_intent_id: Optional[str] = None
+  backend\app\domain\action_windup.py:53 : "held_intent_id": self.held_intent_id,
+  backend\app\domain\action_windup.py:67 : held_intent_id=d.get("held_intent_id"),
+  backend\app\domain\communication.py:138 : (_pending_intents → scene_state). Все поля — примитивы или
+  backend\app\services\action\commitment_registry.py:442 : (шкала v1); held_intent_id вызывающая сторона берёт = commitment_id
+  backend\app\services\phases\post_decision.py:12 : _KEY_HELD_INTENTS = "windup_held_intents"  # НЕ "pending_tasks" — разные сущности
+  backend\app\services\phases\post_decision.py:326 : # становится held_intent_id (детерминизм, закон №4; Н-31 не
+  backend\app\services\phases\post_decision.py:342 : _held_store = ctx.scene_state.setdefault(_KEY_HELD_INTENTS, {})
+  backend\app\services\phases\post_decision.py:364 : held_intent_id=_intent_id,
+  backend\app\services\phases\post_decision.py:408 : _held_store = ctx.scene_state.get(_KEY_HELD_INTENTS) or {}
+  backend\app\services\phases\post_decision.py:428 : if windup.held_intent_id:
+  backend\app\services\phases\post_decision.py:429 : _held_dict = _held_store.pop(windup.held_intent_id, None)
+  backend\app\services\phases\post_decision.py:433 : _held_intent = CommunicationIntent.from_dict(_held_dict)
+  backend\app\services\phases\post_decision.py:434 : _actor_id = getattr(_held_intent, "speaker", "")  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:435 : _target_id = getattr(_held_intent, "target_id", "")  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:530 : event = adapter.to_event(_held_intent)
+  backend\app\services\tick_orchestrator.py:128 : self._pending_intents: Dict[str, Any] = {}
+  backend\tests\sandbox\g3_execution_probe.py:38 : для ядра достаточно windup+held). Возвращает held_intent_id."""
+  backend\tests\sandbox\g3_execution_probe.py:52 : scene.setdefault("windup_held_intents", {})[_intent_id] = _intent.to_dict()
+  backend\tests\sandbox\g3_execution_probe.py:60 : held_intent_id=_intent_id,
+  backend\tests\test_action_commitment.py:1303 : held_intent_id="cmt-abc123",
+
+[SEARCH] suspended/pending  pattern: /suspended.*intent|intent.*suspended|pending.*intent.*scene/
+  2 matches:
+  backend\app\domain\communication.py:138 : (_pending_intents → scene_state). Все поля — примитивы или
+  backend\tests\sandbox\g3_execution_probe.py:36 : """Инжект PENDING-steal-windup + held-intent в scene_state (Э6-путь
+
+============================================================
+
+TASK 7: PHYSICAL ACTION RESOURCES
+
+============================================================
+
+[READ] BodyCapabilities  backend\app\domain\traversal.py L64-103 (class at L64)
+  64: class BodyCapabilities:
+  65:     radius: float = 0.35
+  66:     height: float = 1.8
+  67:     can_walk: bool = True
+  68:     can_jump: bool = True
+  69:     max_jump_height: float = 1.0
+  70:     max_jump_distance: float = 2.0
+  71:     movement_speed: float = 2.0
+  72: 
+  73: @dataclass(frozen=True)
+  74: class TraversalQuery:
+  75:     source_pose: Pose
+  76:     target_pose: Pose
+  77:     body: BodyCapabilities
+  78:     allowed_modes: Tuple[TraversalMode, ...] = (TraversalMode.WALK,)
+  79: 
+  80: @dataclass(frozen=True)
+  81: class TraversalFeasibility:
+  82:     possible: bool
+  83:     mode: TraversalMode
+  84:     reason: Optional[str] = None
+  85:     available_clearance: Optional[float] = None
+  86:     required_capability: Optional[str] = None
+  87: 
+  88: @dataclass(frozen=True)
+  89: class TraversalSegment:
+  90:     """Режимный сегмент плана (Level 1).
+  91:     Описывает смену режима движения (WALK, JUMP), а не кинематическую траекторию (Level 2)."""
+  92:     mode: TraversalMode
+  93:     start_pose: Pose
+  94:     end_pose: Pose
+  95:     obstacle_id: Optional[str] = None
+  96: 
+  97: @dataclass(frozen=True)
+  98: class TraversalPlan:
+  99:     """Скомпилированный план локального движения тела через физическую геометрию."""
+  100:     possible: bool
+  101:     segments: Tuple[TraversalSegment, ...] = ()
+  102:     reason: Optional[str] = None
+  103:     required_capability: Optional[str] = None
+
+[SEARCH] action→resource  pattern: /body_capabilities|physical_requirement|action.*resource|resource.*action/
+  17 matches:
+  backend\app\domain\movement.py:65 : body_capabilities: BodyCapabilities = field(default_factory=BodyCapabilities)
+  backend\app\models\causality_manifest.py:126 : "npc_state.body_capabilities": FieldCausality("DEBT", organ="body", terminal="decision", authority="ADR-O-414"),
+  backend\app\models\economy.py:10 : Основные сущности: Need, Transaction, EconomicProfile, ResourceType
+  backend\app\models\npc_state.py:818 : body_capabilities: BodyCapabilities = field(default_factory=BodyCapabilities)
+  backend\app\models\npc_state.py:1117 : if state.body_capabilities:
+  backend\app\models\npc_state.py:1118 : _caps = state.body_capabilities
+  backend\app\models\npc_state.py:1119 : npc_dict["body_capabilities"] = {
+  backend\app\models\npc_state.py:1289 : body_capabilities=BodyCapabilities(
+  backend\app\models\npc_state.py:1292 : for k, v in npc_dict.get("body_capabilities", {}).items()
+  backend\app\services\npc\npc_tick_pipeline.py:1171 : body_capabilities=state_l2.body_capabilities
+  backend\app\services\spatial\movement_engine.py:802 : speed = intent.body_capabilities.movement_speed
+  backend\app\services\spatial\movement_engine.py:852 : if intent.body_capabilities.can_jump:
+  backend\app\services\spatial\movement_engine.py:859 : body=intent.body_capabilities,
+  backend\app\services\spatial\movement_engine.py:886 : arc_h = intent.body_capabilities.max_jump_height if seg.mode == TraversalMode.JUMP else 0.0
+  backend\app\services\spatial\movement_engine.py:892 : speed = intent.body_capabilities.movement_speed
+  backend\tests\sandbox\SUPERBOX\scenarios\s330_probe2_planner_trace.py:79 : _b = intent.body_capabilities
+  backend\tests\sandbox\SUPERBOX\scenarios\s330_probe3_fork_abc.py:114 : body=intent.body_capabilities,
+
+[SEARCH] body slots  pattern: /required_slots|body_slots|physical_slots|action_slots/
+  (no matches)
+
+============================================================
+
+TASK 8: INTENT_ID STABILITY
+
+============================================================
+
+[SEARCH] intent_id generation  pattern: /intent_id\s*=|intent_id.*uuid|intent_id.*md5|intent_id.*hash/
+  14 matches:
+  backend\app\domain\action_windup.py:67 : held_intent_id=d.get("held_intent_id"),
+  backend\app\domain\movement.py:57 : intent_id: str = field(default_factory=lambda: str(uuid.uuid4())) # P1-09: Уникальный ID для трекинга
+  backend\app\services\phases\post_decision.py:338 : _intent_id = (
+  backend\app\services\phases\post_decision.py:364 : held_intent_id=_intent_id,
+  backend\app\services\spatial\movement_engine.py:816 : source_intent_id=getattr(intent, "intent_id", f"{intent.actor_id}:{intent.reason}"),
+  backend\app\services\spatial\movement_engine.py:907 : source_intent_id=getattr(intent, "intent_id", f"{intent.actor_id}:{intent.reason}"),
+  backend\tests\sandbox\micro\test_dual_rail_phase1.py:45 : source_intent_id="intent_1",
+  backend\tests\sandbox\micro\test_event_compiler.py:53 : source_intent_id="intent_1",
+  backend\tests\sandbox\movement\test_movement_planner_contract.py:23 : source_intent_id="intent_1",
+  backend\tests\sandbox\movement\test_movement_planner_contract.py:71 : source_intent_id="intent_1",
+  backend\tests\sandbox\g3_execution_probe.py:51 : _intent_id = f"probe-{tick}-g3-{_ACTOR}"
+  backend\tests\sandbox\g3_execution_probe.py:60 : held_intent_id=_intent_id,
+  backend\tests\test_action_commitment.py:1303 : held_intent_id="cmt-abc123",
+  backend\tests\test_commitment_ssm_integration.py:54 : source_intent_id="test-intent-1",
+
+[SEARCH] commitment_id (deterministic)  pattern: /commitment_id\s*=|build_commitment_id/
+  9 matches:
+  backend\app\domain\action_commitment.py:10 : COMMITMENT_TERMINAL_STATUSES, build_commitment_id, build_commitment_dict,
+  backend\app\domain\action_commitment.py:107 : def build_commitment_id(tick: int, npc_id: str, action: str, ordinal: int) -> str:
+  backend\app\domain\action_commitment.py:149 : "commitment_id": build_commitment_id(tick, npc_id, action, ordinal),
+  backend\app\services\action\commitment_registry.py:197 : parent_commitment_id=_parent,
+  backend\app\services\action\commitment_registry.py:297 : parent_commitment_id=_parent,
+  backend\tests\test_action_commitment.py:27 : build_commitment_id,
+  backend\tests\test_action_commitment.py:113 : assert build_commitment_id(100, "n", "MOVE", 1) == build_commitment_id(100, "n", "MOVE", 1)
+  backend\tests\test_action_commitment.py:117 : build_commitment_id(t, "n", "MOVE", o)
+  backend\tests\test_action_commitment.py:135 : assert record["commitment_id"] == build_commitment_id(7, "npcX", "MOVE", 3)
+
+[SEARCH] uuid4 (non-deterministic)  pattern: /uuid\.uuid4|uuid4\(\)/
+  25 matches:
+  backend\app\domain\movement.py:57 : intent_id: str = field(default_factory=lambda: str(uuid.uuid4())) # P1-09: Уникальный ID для трекинга
+  backend\app\services\calibration\experiment_runner.py:198 : experiment_id = f"calib_{uuid.uuid4().hex[:12]}"
+  backend\app\services\calibration\experiment_runner.py:389 : self._experiment_id = f"calib_{uuid.uuid4().hex[:12]}"
+  backend\app\services\execution\dialogue_executor.py:76 : contract_id: str = field(default_factory=lambda: uuid4().hex[:8])
+  backend\app\services\memory\layered_memory.py:63 : entry_id = str(uuid4())
+  backend\app\services\memory\sqlite_store.py:202 : entry_id = str(uuid4())
+  backend\app\services\perception\fact_extractor.py:85 : fact_id=str(uuid.uuid4()),
+  backend\app\services\perception\inference_engine.py:73 : inference_id=str(uuid.uuid4()),
+  backend\app\services\perception\perception_physics_engine.py:195 : signal_id=str(uuid.uuid4()),
+  backend\app\services\phases\post_decision.py:147 : _thread_id = getattr(intent, "thread_id", "") or f"thread-{uuid.uuid4().hex[:8]}"  # noqa: ENIGMA002
+  backend\app\services\phases\post_decision.py:339 : _w_cm["commitment_id"] if _w_cm else uuid.uuid4().hex
+  backend\app\services\replay\replay_store.py:116 : session_id = str(uuid.uuid4())
+  backend\app\services\scene\narrative_extractor.py:421 : obj_id = f"{canonical}_{holder_part}_t{tick}_{uuid.uuid4().hex[:4]}"
+  backend\app\services\scene\narrative_extractor.py:439 : event_id=f"evt_{uuid.uuid4().hex[:6]}",
+  backend\app\services\verbalization\dm_contract_builder.py:55 : contract_id: str = field(default_factory=lambda: uuid4().hex[:8])
+  backend\app\services\campaign_state_service.py:179 : fact_id = f"fact_{uuid4().hex[:8]}"
+  backend\app\services\campaign_state_service.py:232 : session_id = f"session_{uuid4().hex[:8]}"
+  backend\app\services\player_session_service.py:138 : session_id=str(uuid.uuid4()),
+  backend\app\services\player_session_service.py:187 : session_id=str(uuid.uuid4()),
+  backend\tests\sandbox\micro\test_dual_rail_phase2.py:140 : self.snapshot_id = uuid4()
+  backend\tests\sandbox\micro\test_dual_rail_phase2.py:223 : self.snapshot_id = uuid4()
+  backend\tests\sandbox\micro\test_dual_rail_phase2.py:334 : self.snapshot_id = uuid4()
+  backend\tests\sandbox\runtime\causal_trace.py:22 : frame_id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
+  backend\tests\sandbox\oscilloscope_closed_loop.py:74 : id=uuid.uuid4(),
+  backend\tests\test_reaction_subscriber.py:53 : id=uuid.uuid4(),
+
+

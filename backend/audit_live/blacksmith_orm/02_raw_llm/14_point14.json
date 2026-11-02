@@ -6,23 +6,20 @@
       "kind": "DESIRE_SEED",
       "draft_payload": {
         "statement": "открыть нормальную личную кузню",
-        "about_hint": "личная кузня"
+        "about_hint": "собственная кузня"
       },
-      "confidence": 1.0,
-      "needs_confirmation": false,
+      "confidence": 0.5,
+      "needs_confirmation": true,
       "question": null
     },
     {
-      "kind": "PORTRET",
+      "kind": "TRAIT_SEED",
       "draft_payload": {
-        "statement": "Орм думает, когда всё закончится, получить оплату за информацию и с гильдии воров, и с правительства — и открыть нормальную личную кузню, а не пристройку у таверны, которую ему выделили много лет назад. Но для него это не вопрос жизни и смерти, а очередной закономерный этап его долгой жизни.",
-        "traits": [
-          "долгая жизнь",
-          "очередной закономерный этап"
-        ]
+        "trait": "думает получить оплату",
+        "evidence": "думает получить оплату за информацию и с гильдии воров, и с правительства"
       },
-      "confidence": 1.0,
-      "needs_confirmation": false,
+      "confidence": 0.5,
+      "needs_confirmation": true,
       "question": null
     }
   ],

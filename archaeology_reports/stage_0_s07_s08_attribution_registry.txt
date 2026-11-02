@@ -1,0 +1,867 @@
+﻿============================================================
+
+STAGE 0 - S0.7 PUBLIC ATTRIBUTION + S0.8 REGISTRY
+
+Mode: READ ONLY - per Master verdict
+
+Chain: Intent Owner -> Actor -> Event -> Observer Perception
+
+Generated: 2026-11-02 18:05:25
+
+============================================================
+
+============================================================
+
+S0.7 - PUBLIC ATTRIBUTION
+
+Chain: Intent Owner -> Actor -> Event -> Observer Perception
+
+============================================================
+
+--- Q1: EventDTO creation sites (where source is set) ---
+
+[SEARCH] EventDTO construction  pattern: /EventDTO\.create\(|EventDTO\(/
+  131 matches:
+  backend\app\services\economy\work_orders.py:467 : EventDTO.create(
+  backend\app\services\events\intent_event_adapter.py:70 : return EventDTO.create(
+  backend\app\services\events\npc_dialogue_subscriber.py:564 : _dialogue_event = EventDTO.create(
+  backend\app\services\events\social_action_subscriber.py:34 : claim_event = EventDTO.create(
+  backend\app\services\events\social_action_subscriber.py:51 : spoke_event = EventDTO.create(
+  backend\app\services\events\social_action_subscriber.py:68 : attack_event = EventDTO.create(
+  backend\app\services\execution\dialogue_materializer.py:54 : events.append(EventDTO.create(
+  backend\app\services\execution\dialogue_materializer.py:73 : events.append(EventDTO.create(
+  backend\app\services\game_loop\game_loop.py:1928 : _dm_evt = EventDTO.create(
+  backend\app\services\game_loop\phase_1_input.py:456 : EventDTO.create(
+  backend\app\services\game_loop\phase_1_input.py:495 : EventDTO.create(
+  backend\app\services\game_loop\phase_1_input.py:668 : _game_evt = EventDTO.create(
+  backend\app\services\memory\conclusion_gate.py:161 : EventDTO.create(
+  backend\app\services\memory\delta_gate.py:100 : EventDTO.create(
+  backend\app\services\memory\memory_manager.py:130 : EventDTO.create(
+  backend\app\services\memory\working_memory_tick.py:83 : EventDTO.create(
+  backend\app\services\npc\activity_lifecycle_service.py:283 : EventDTO.create(
+  backend\app\services\npc\npc_tick_pipeline.py:1343 : _evt_dto = EventDTO.create(
+  backend\app\services\npc\npc_tick_pipeline.py:1435 : _evt_dto = EventDTO.create(
+  backend\app\services\npc\sleep_lifecycle_service.py:389 : event = EventDTO.create(
+  backend\app\services\npc\sleep_lifecycle_service.py:400 : event = EventDTO.create(
+  backend\app\services\phases\commit_phase.py:124 : EventDTO.create(
+  backend\app\services\phases\input.py:44 : EventDTO.create(
+  backend\app\services\phases\input.py:254 : EventDTO.create(
+  backend\app\services\spatial\player_target_pipeline.py:123 : _ge = EventDTO.create(
+  backend\app\services\spatial\spatial_event_detector.py:90 : event = EventDTO.create(
+  backend\app\services\spatial\spatial_event_detector.py:121 : event = EventDTO.create(
+  backend\app\services\spatial\spatial_event_detector.py:143 : event = EventDTO.create(
+  backend\app\services\world\world_tick_engine.py:241 : EventDTO.create(
+  backend\app\services\tick_orchestrator.py:1159 : _tick_completed_event = EventDTO.create(
+  backend\app\services\tick_orchestrator.py:1716 : _attack_event = EventDTO(
+  backend\app\services\tick_orchestrator.py:2058 : _bleeded_event = EventDTO.create(
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:25 : - EventDTO.create(type="npc_spoke", source=speaker_id, payload={intent_type, target_id})
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:79 : _event = EventDTO.create(
+  backend\tests\gameplay\test_p6_e2_eavesdrop_channel.py:87 : return EventDTO.create(
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:159 : return EventDTO.create(
+  backend\tests\micro\test_claim_bridge_chain.py:126 : EventDTO.create(
+  backend\tests\micro\test_dlg1_speaker_symmetry.py:43 : return EventDTO.create(
+  backend\tests\micro\test_event_identity.py:24 : EventDTO.create(
+  backend\tests\micro\test_event_identity.py:96 : EventDTO.create(
+  backend\tests\micro\test_event_identity.py:106 : EventDTO.create(
+  backend\tests\micro\test_event_identity.py:115 : e = EventDTO.create(event_type="npc_spoke", source="lusya", payload={})
+  backend\tests\micro\test_f5_event_to_telegraph.py:15 : - A. THEFT: publish EventDTO(event_type="theft") → idle_tick returns events with cause="theft"
+  backend\tests\micro\test_f5_event_to_telegraph.py:16 : - B. ACTIVITY_OUTCOME: publish EventDTO(event_type="activity_outcome") → idle_tick returns events with cause="activity_outcome"
+  backend\tests\micro\test_f5_event_to_telegraph.py:63 : evt = EventDTO.create(
+  backend\tests\micro\test_f5_event_to_telegraph.py:105 : bus.publish(EventDTO.create(
+  backend\tests\micro\test_idle_event_projection.py:36 : return EventDTO.create(
+  backend\tests\micro\test_npc_addressing_ack.py:47 : EventDTO.create(
+  backend\tests\micro\test_npc_addressing_ack.py:70 : EventDTO.create(
+  backend\tests\micro\test_npc_addressing_ack.py:200 : EventDTO.create(
+  backend\tests\micro\test_npc_addressing_ack.py:238 : EventDTO.create(
+  backend\tests\micro\test_npc_addressing_delivery.py:64 : event = EventDTO.create(
+  backend\tests\micro\test_npc_addressing_delivery.py:114 : EventDTO.create(
+  backend\tests\micro\test_npc_addressing_delivery.py:396 : EventDTO.create(
+  backend\tests\micro\test_npc_addressing_propagation.py:95 : EventDTO.create(
+  backend\tests\micro\test_perception_witness.py:44 : return EventDTO.create(
+  backend\tests\micro\test_player_self_intro_claim.py:38 : return EventDTO.create(
+  backend\tests\micro\test_player_speech_claim.py:57 : return EventDTO.create(
+  backend\tests\micro\test_player_speech_claim.py:121 : evt = EventDTO.create(
+  backend\tests\micro\test_self_talk_sentinel.py:117 : return EventDTO.create(
+  backend\tests\micro\test_semantic_span_chain.py:22 : EventDTO.create(
+  backend\tests\micro\test_utterance_identity_chain.py:117 : EventDTO.create(
+  backend\tests\micro\test_utterance_identity_chain.py:162 : EventDTO.create(
+  backend\tests\sandbox\micro\test_observer_causality.py:68 : event = EventDTO.create(event_type="communication_claim", source="player", payload=payload, radius=10.0)
+  backend\tests\sandbox\micro\test_observer_causality.py:90 : event = EventDTO.create(event_type="communication_claim", source="player", payload=payload, radius=10.0)
+  backend\tests\sandbox\micro\test_re_event_semantics_m2d.py:39 : return EventDTO.create(etype, source, payload, timestamp=0.0)
+  backend\tests\sandbox\micro\test_run_turn_e2e.py:103 : event = EventDTO(
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:33 : event_npc_reply = EventDTO.create(
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:66 : event_q = EventDTO.create(
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:77 : event_w = EventDTO.create(
+  backend\tests\sandbox\phenomenology\test_memory_absurd_fixation.py:19 : event = EventDTO.create(
+  backend\tests\sandbox\phenomenology\test_memory_fixation.py:115 : event = EventDTO.create(
+  backend\tests\sandbox\phenomenology\test_memory_truth_decay.py:20 : event = EventDTO.create(
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:140 : return EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\agency_steal_test.py:18 : [A5] Релиз: после 2 тиков → IntentEventAdapter → EventDTO(THEFT, source=thief).
+  backend\tests\sandbox\SUPERBOX\scenarios\agency_steal_test.py:116 : print(f"[A5] Adapter: intent=steal → EventDTO(type={_ev.type}, source={_ev.source}) — "
+  backend\tests\sandbox\SUPERBOX\scenarios\bc1_conclusion_test.py:122 : EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\causal_state_test.py:162 : EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\d8p_intelligence_test.py:142 : ev = EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_action_causation_test.py:55 : lie_event = EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_causal_test.py:42 : lie_event = EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_decision_divergence_test.py:57 : lie_event = EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_divergence.py:72 : lie_event = EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_eventbus_test.py:64 : lie_event = EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_isolation_test.py:45 : lie_event = EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_membrane_hardening_test.py:53 : lie_event = EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_modifier_attribution_test.py:39 : lie_event = EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_observation_divergence_test.py:58 : lie_event = EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_observation_test.py:49 : return EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_persistence_test.py:54 : lie_event = EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_player_belief_test.py:71 : event_friend = EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_player_belief_test.py:84 : event_enemy = EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_reliability_baseline_test.py:91 : event = EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_world_event_test.py:56 : lie_event = EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\perception_topology_test.py:86 : ev = EventDTO.create(
+  backend\tests\sandbox\SUPERBOX\scenarios\re_m2d_needs_test.py:83 : ev = EventDTO.create(REJECTED, NPC_SOURCE, {"target_id": NPC_TARGET}, timestamp=0.0)
+  backend\tests\sandbox\SUPERBOX\scenarios\re_m2d_needs_test.py:104 : ev = EventDTO.create(REJECTED, NPC_SOURCE, {"target_id": NPC_TARGET}, timestamp=0.0)
+  backend\tests\sandbox\f3_combat_smoke.py:70 : _evt = EventDTO(
+  backend\tests\sandbox\oscilloscope_closed_loop.py:73 : event = EventDTO(
+  backend\tests\sandbox\sandbox_combat_vertical.py:3 : # Проверяет: EventDTO(PLAYER_ATTACKED) -> ImpactEngine -> PhysiologyPayload(shock_impulse) -> ReactionSubscriber -> EmotionPayload...
+  backend\tests\sandbox\test_causal_movement.py:77 : event = EventDTO.create(
+  backend\tests\sandbox\test_causal_movement.py:112 : event = EventDTO.create(
+  backend\tests\IPT.py:492 : event = EventDTO.create(
+  backend\tests\IPT.py:1453 : event = EventDTO.create(
+  backend\tests\IPT.py:1538 : event = EventDTO.create(
+  backend\tests\IPT.py:1843 : bus.publish(EventDTO.create(
+  backend\tests\IPT.py:1862 : bus2.publish(EventDTO.create(
+  backend\tests\test_cfrm_models.py:42 : return EventDTO.create(event_type=event_type, source=source, payload={"test": True})
+  backend\tests\test_combat_pipeline_e2e.py:8 : EventDTO(PLAYER_ATTACKS) → CombatSubscriber → ImpactEngine → PhysiologyPayload(shock_impulse)
+  backend\tests\test_combat_pipeline_e2e.py:40 : return EventDTO.create(
+  backend\tests\test_combat_subscriber.py:40 : return EventDTO.create(
+  backend\tests\test_contracts_stage6.py:85 : event = EventDTO.create(
+  backend\tests\test_contracts_stage6.py:107 : event = EventDTO.create(
+  backend\tests\test_contracts_stage6.py:126 : event = EventDTO.create(
+  backend\tests\test_mvp_simulation_validation.py:119 : event = EventDTO.create(
+  backend\tests\test_phase_a_memory_fixes.py:157 : event = EventDTO.create(
+  backend\tests\test_phase_a_memory_fixes.py:182 : evt_content = EventDTO.create(
+  backend\tests\test_phase_a_memory_fixes.py:190 : evt_priority = EventDTO.create(
+  backend\tests\test_phase_a_memory_fixes.py:453 : event = EventDTO.create(
+  backend\tests\test_phase_a_memory_fixes.py:477 : EventDTO.create(
+  backend\tests\test_phase_a_memory_fixes.py:521 : EventDTO.create(
+  backend\tests\test_phase_a_memory_fixes.py:988 : evt = EventDTO.create(
+  backend\tests\test_phase_a_memory_fixes.py:1083 : evt = EventDTO.create(
+  backend\tests\test_phase_a_memory_fixes.py:1133 : evt = EventDTO.create(
+  backend\tests\test_phase_a_memory_fixes.py:1187 : evt = EventDTO.create(
+  backend\tests\test_reaction_subscriber.py:52 : return EventDTO(
+  backend\tests\test_relationship_state_store.py:575 : return EventDTO.create(
+  backend\tests\test_s2b7_injury_chain.py:73 : return EventDTO.create(
+  backend\tests\test_social_homeostasis.py:56 : return EventDTO(
+  backend\tests\test_tick_orchestrator_full_loop.py:128 : event = EventDTO.create(
+  backend\tests\test_worker_outbox_determinism.py:83 : ev = EventDTO.create(
+
+--- Q2: PerceptionFilter class ---
+
+[READ] Class pattern not found: class PerceptionFilter\b
+
+--- Q3: ObservationSubscriber class ---
+
+[READ] ObservationSubscriber class  backend\app\services\events\observation_subscriber.py L51-110 (class at L51)
+  51: class ObservationSubscriber:
+  52:     """Phase C: WORLD EVENT → (LOS мембрана) → ClaimEvent(witness→witness) → Store.
+  53: 
+  54:     Эпистемические гарантии:
+  55:     - Truth Immutability: подписчик только читает событие, ничего не пишет в мир;
+  56:     - No Telepathy: убеждение получает только агент с visibility() == True;
+  57:     - Epistemic Isolation: подписчик не читает TruthState / RelationshipStore.
+  58:     """
+  59: 
+  60:     def __init__(
+  61:         self,
+  62:         engine: BeliefRevisionEngine,
+  63:         store: EpistemicStore,
+  64:         spatial_query_provider: Optional[Callable[[], Any]] = None,
+  65:         tick_provider: Optional[Callable[[], int]] = None,
+  66:     ) -> None:
+  67:         self._engine = engine
+  68:         self._store = store
+  69:         self._get_spatial_query = spatial_query_provider
+  70:         self._get_tick = tick_provider or (lambda: 0)
+  71: 
+  72:     def on_world_event(self, event: Any) -> None:
+  73:         """Точка входа EventBus. THEFT → убеждение свидетелей (player, STOLE, target)."""
+  74:         event_type = getattr(event, "type", None)  # noqa: ENIGMA002
+  75:         # [OBS_DIAG] временный зонд (санитарно, удаляется после G3-B закрытия)
+  76:         print(f"[OBS_DIAG] on_world_event: type={event_type!r}")
+  77:         if event_type is None:
+  78:             return
+  79: 
+  80:         predicate = _OBSERVABLE_EVENT_PREDICATES.get(event_type.lower())
+  81:         if predicate is None:
+  82:             return
+  83: 
+  84:         payload = getattr(event, "payload", None) or {}  # noqa: ENIGMA002
+  85:         actor_id = getattr(event, "source", None)  # noqa: ENIGMA002
+  86:         target_id = payload.get("target_id")
+  87:         if not actor_id or not target_id:
+  88:             logger.warning(
+  89:                 f"[OBSERVATION_SUB] {event_type}: нет actor/target — наблюдение пропущено"
+  90:             )
+  91:             return
+  92: 
+  93:         witnesses = self._get_witnesses(actor_id)
+  94:         # [OBS_DIAG] временный зонд
+  95:         print(f"[OBS_DIAG] witnesses={witnesses} (actor={actor_id}, target={target_id})")
+  96:         if not witnesses:
+  97:             return
+  98: 
+  99:         proposition = Proposition(
+  100:             subject_id=actor_id,
+  101:             predicate=predicate,
+  102:             object_id=target_id,
+  103:             polarity=True,
+  104:         )
+  105:         tick = self._get_tick()
+  106:         for witness_id in witnesses:
+  107:             claim = ClaimEvent(
+  108:                 event_id=str(getattr(event, "id", "")),  # noqa: ENIGMA002
+  109:                 claim_id=f"observation-{getattr(event, 'id', '')}-{witness_id}",  # noqa: ENIGMA002
+  110:                 speaker_id=witness_id,
+
+--- Q3: Perception methods ---
+
+[SEARCH] perception methods  pattern: /def perceive|def observe|def filter_event|def can_see|def can_perceive/
+  8 matches:
+  backend\app\services\npc\decision\risk.py:103 : def perceive_risk(event: Any, state: NPCState, drives_base: Dict[str, float]) -> float:
+  backend\app\services\npc\decision\risk_profile.py:61 : def perceive(self, base_risk: float) -> float:
+  backend\tests\gameplay\harness.py:86 : def observe_scene(self, scene_state: dict) -> None:
+  backend\tests\sandbox\probes\pressure_probe.py:19 : def observe_pressure(self, tick: int, entity_id: str, pressure_type: str, magnitude: float, parent_id: str):
+  backend\tests\sandbox\probes\traversal_probe.py:10 : def observe_traversal_started(
+  backend\tests\sandbox\probes\utility_probe.py:21 : def observe_utility_shift(
+  backend\tests\sandbox\runtime\causal_trace.py:37 : def observe(
+  backend\tests\sandbox\causal_oscilloscope.py:38 : def observe(self, tick: int, entity_id: str, event: str, data: Dict[str, Any]):
+
+--- Q4: Observer identity fields ---
+
+[SEARCH] observer identity  pattern: /observer_id|witness_id|perceiver_id|observer_npc/
+  63 matches:
+  backend\app\domain\attention_inference.py:272 : observer_id = кто выводит, subject_id = о ком. Слои различимы (3.2):
+  backend\app\domain\attention_inference.py:277 : observer_id: str
+  backend\app\domain\attention_inference.py:287 : if not self.observer_id or not self.subject_id:
+  backend\app\domain\attention_inference.py:288 : raise ValueError("CognitionSnapshot: пустой observer_id/subject_id")
+  backend\app\domain\attention_inference.py:289 : if self.observer_id == self.subject_id:
+  backend\app\domain\attention_inference.py:317 : _SNAP_OBSERVER = "observer_id"
+  backend\app\domain\attention_inference.py:334 : _SNAP_OBSERVER: s.observer_id,
+  backend\app\domain\snapshot.py:251 : # Содержит только убеждения observer_id="player" для вкладки "Мои убеждения".
+  backend\app\domain\tick.py:82 : # {observer_id: {subject_id: attention_to_dict(...)}} из scene_state["attention_states"].
+  backend\app\domain\tick.py:244 : # CognitionContext v0 (P1): дельты внимания {observer_id: {subject_id: dict}}.
+  backend\app\models\npc_state.py:649 : observer_id: str,
+  backend\app\models\npc_state.py:656 : return bool(observer_id == event.source)
+  backend\app\models\npc_state.py:658 : return bool(observer_id == event.source or observer_id == target_id)
+  backend\app\services\events\claim_event_subscriber.py:29 : S199 (Фаза 8.3): Поддержка игрока как наблюдателя (observer_id="player").
+  backend\app\services\events\observation_subscriber.py:106 : for witness_id in witnesses:
+  backend\app\services\events\observation_subscriber.py:109 : claim_id=f"observation-{getattr(event, 'id', '')}-{witness_id}",  # noqa: ENIGMA002
+  backend\app\services\events\observation_subscriber.py:110 : speaker_id=witness_id,
+  backend\app\services\events\observation_subscriber.py:111 : listener_id=witness_id,
+  backend\app\services\events\observation_subscriber.py:115 : existing = self._store.get(witness_id, proposition)
+  backend\app\services\events\observation_subscriber.py:117 : witness_id, claim, existing,
+  backend\app\services\events\observation_subscriber.py:122 : f"[OBSERVATION_SUB] {witness_id} наблюдал {actor_id} "
+  backend\app\services\memory\evidence_mapper.py:45 : observer_npc_id: str  # кто наблюдал
+  backend\app\services\memory\evidence_mapper.py:124 : observer_npc_id=memory.npc_id,
+  backend\app\services\npc\attention_reflex.py:101 : observer_id: str,
+  backend\app\services\npc\attention_reflex.py:111 : f"[ATT_DIAG] ORIENT obs={observer_id} subj={subject_id} "
+  backend\app\services\npc\attention_reflex.py:117 : target=observer_id,
+  backend\app\services\npc\attention_reflex.py:182 : for observer_id in sorted(positions.keys()):
+  backend\app\services\npc\attention_reflex.py:183 : obs_entry = positions.get(observer_id) or {}
+  backend\app\services\npc\attention_reflex.py:187 : print(f"[ATT_DIAG] obs={observer_id} SKIP no_xy keys={list(obs_entry.keys())[:8]}")
+  backend\app\services\npc\attention_reflex.py:189 : obs_body = (raw_by_id.get(observer_id) or {}).get("body_state") or {}
+  backend\app\services\npc\attention_reflex.py:194 : print(f"[ATT_DIAG] obs={observer_id} SKIP unconscious consciousness={obs_body.get('consciousness', 'ABSENT')}")
+  backend\app\services\npc\attention_reflex.py:207 : print(f"[ATT_DIAG] obs={observer_id} SKIP eyes_closed mode={_mode}")
+  backend\app\services\npc\attention_reflex.py:210 : print(f"[ATT_DIAG] obs={observer_id} mode={_mode} (graded-множитель не применяется, TZ-OBS-5)")
+  backend\app\services\npc\attention_reflex.py:215 : can_orient = resolve_control_source(observer_id) is ControlSource.NPC_DECISION and (
+  backend\app\services\npc\attention_reflex.py:216 : traversals.get(observer_id) or {}
+  backend\app\services\npc\attention_reflex.py:220 : prev_subs: Dict[str, Any] = prev_all.get(observer_id) or {}
+  backend\app\services\npc\attention_reflex.py:228 : if subject_id == observer_id:
+  backend\app\services\npc\attention_reflex.py:323 : observer_id,
+  backend\app\services\npc\attention_reflex.py:402 : observer_id,
+  backend\app\services\npc\attention_reflex.py:473 : observer_id=observer_id,
+  backend\app\services\npc\attention_reflex.py:560 : f"[ATT_DIAG] obs={observer_id} cand={len(candidates)} "
+  backend\app\services\npc\attention_reflex.py:572 : attention_delta[observer_id] = delta_subs
+  backend\app\services\npc\npc_tick_pipeline.py:913 : if _s.get("observer_id") == npc_id
+  backend\app\services\npc\npc_tick_pipeline.py:928 : if _s.get("observer_id") == npc_id
+  backend\app\services\perception\manifestation_physics_engine.py:29 : ЗАПРЕТ: Не читает observer_id, observer_position, environment.
+  backend\app\services\perception\perception_physics_engine.py:31 : self, observer_id: str, target_id: str, spatial_query: Any, scene_state: Dict[str, Any]
+  backend\app\services\perception\perception_physics_engine.py:35 : dist = spatial_query.distance(observer_id, target_id)
+  backend\app\services\perception\perception_physics_engine.py:39 : los = spatial_query.visibility(observer_id, target_id)
+  backend\app\services\phases\integration.py:563 : observer_id="player",
+  backend\app\services\social\propagation.py:114 : _witness_ids = {
+  backend\app\services\social\propagation.py:123 : witnesses=list(_witness_ids - {_target_id}),
+  backend\app\services\social\propagation.py:150 : if pr.npc_id in _witness_ids:
+  backend\tests\sandbox\micro\test_cognition_modifiers.py:26 : "observer_id": "orm",
+  backend\tests\sandbox\micro\test_cognition_snapshot.py:48 : pair = [s for s in snaps if s["observer_id"] == "orm" and s["subject_id"] == "player"]
+  backend\tests\sandbox\micro\test_cognition_snapshot.py:71 : p = [s for s in snaps if s["observer_id"] == "orm" and s["subject_id"] == "player"][0]
+  backend\tests\sandbox\micro\test_cognition_snapshot.py:83 : assert all(s["observer_id"] != s["subject_id"] for s in snaps)
+  backend\tests\sandbox\micro\test_cognition_snapshot.py:125 : if s["observer_id"] == "orm" and s["subject_id"] == "maid_lusya"
+  backend\tests\sandbox\micro\test_mutual_attention.py:37 : if s["observer_id"] == observer and s["subject_id"] == subject
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_alpha.py:140 : witness_id = c.source or c_payload.get("speaker_id")
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_alpha.py:143 : if epistemic_store and witness_id:
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_alpha.py:145 : recs = epistemic_store.get_all_for_agent(witness_id)
+  backend\tests\test_reaction_subscriber.py:313 : observer_npc = _make_npc("npc_observer")
+  backend\tests\test_reaction_subscriber.py:315 : all_npcs_raw=[source_npc, observer_npc],
+
+--- Q5: Events with empty/system source ---
+
+[SEARCH] empty/system source  pattern: /source.*=.*""|source.*=.*None|source.*=.*"world"|source.*=.*"system"|source.*=.*"ambient"/
+  71 matches:
+  backend\app\api\routes.py:1377 : source_campaign_id: Optional[str] = None
+  backend\app\api\routes_chronicle.py:918 : response["sources"] = None
+  backend\app\domain\chronicle.py:431 : created_by_tick_source: Optional[str] = None  # прологепистический якорь
+  backend\app\domain\decision_context.py:38 : source: Optional[str] = None
+  backend\app\domain\movement_contract.py:44 : source_position: Optional[Tuple[float, float]] = None
+  backend\app\domain\movement_contract.py:45 : source_node: Optional[Any] = None
+  backend\app\models\causality_manifest.py:270 : "state_delta.need_delta_payload.source_event_id": FieldCausality("DEBT", organ="provenance", terminal=None, authority="ADR-O-418")...
+  backend\app\models\causality_manifest.py:304 : "temporary_drive.source_npc_id": FieldCausality("DEBT", organ="desire", terminal=None, authority="ADR-O-414"),
+  backend\app\models\causality_manifest.py:407 : "epistemic_record.source_id": FieldCausality("DEBT", organ="knowledge", terminal=None, authority="ADR-O-360"),
+  backend\app\models\causality_manifest.py:408 : "epistemic_record.source_claim_id": FieldCausality("DEBT", organ="knowledge", terminal=None, authority="ADR-O-355"),
+  backend\app\models\causality_manifest.py:424 : "memory_crystal.source": FieldCausality("DEBT", organ="memory", terminal=None, authority="NL-D4"),
+  backend\app\models\causality_manifest.py:438 : "experience_trace.source_id": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+  backend\app\models\causality_manifest.py:439 : "experience_trace.source_type": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+  backend\app\models\delta_payloads.py:154 : source_event_id: Optional[str] = None
+  backend\app\models\front.py:68 : dominant_source: str = "none"
+  backend\app\models\psychological.py:64 : source_event_id: Optional[UUID] = None
+  backend\app\models\psychological.py:65 : source_action_id: Optional[UUID] = None
+  backend\app\models\psychological.py:66 : source_belief_id: Optional[UUID] = None
+  backend\app\models\psychological.py:67 : source_memory_id: Optional[UUID] = None
+  backend\app\models\psychological.py:74 : source_event: Optional[Any] = None
+  backend\app\models\psychological.py:111 : source_event_id: Optional[str] = None
+  backend\app\models\psychological.py:114 : source_action_id: Optional[str] = None
+  backend\app\models\psychological.py:142 : source_event_id: Optional[UUID] = None
+  backend\app\models\psychological.py:145 : source_action_id: Optional[UUID] = None
+  backend\app\models\psychological.py:156 : source=d.get("source", ""),
+  backend\app\models\schemas.py:252 : source: str = ""
+  backend\app\services\action\commitment_arbiter.py:97 : candidate_source: str = "",
+  backend\app\services\action\commitment_arbiter.py:234 : candidate_source: str = "",
+  backend\app\services\events\relationship_event_semantics.py:95 : source_id = (event.source or "").strip() or str(payload.get("source_id") or "")
+  backend\app\services\game_loop\campaign_lifecycle.py:218 : source_campaign_id: Optional[str] = None
+  backend\app\services\game_loop\game_loop.py:725 : source_campaign_id: Optional[str] = None
+  backend\app\services\llm\downloader.py:343 : """Скачивает модель по ключу из llm_sources.json. Если force=True — удаляет старый файл."""
+  backend\app\services\npc\belief_revision_engine.py:24 : def get_reliability(self, observer: str, source: str, context: Optional[dict] = None) -> float:
+  backend\app\services\npc\causal_slice_threat.py:44 : belief_source: Any = None,
+  backend\app\services\npc\epistemic_store.py:102 : source_id=item.get("source_id", ""),
+  backend\app\services\npc\epistemic_store.py:103 : source_claim_id=item.get("source_claim_id", ""),
+  backend\app\services\npc\npc_tick_pipeline.py:1762 : f"[DRF_EMIT] source=reactive npc={npc_id} tick={drf_ctx.tick_id if drf_ctx else '?'} vector={intent} ctx_bound={drf_ctx is not Non...
+  backend\app\services\npc\pattern_detector.py:27 : _INVALID_SOURCES = {"unknown", "", None}
+  backend\app\services\npc\pattern_detector.py:43 : self, npc_id: str, source_id: str = ""
+  backend\app\services\npc\pattern_state.py:28 : _INVALID_SOURCES = {"unknown", "", None}
+  backend\app\services\npc\trust_based_reliability_provider.py:64 : self, observer: str, source: str, context: Optional[dict] = None
+  backend\app\services\offscreen\world_projection_buffer.py:45 : _ev_source = getattr(event, "source", None) or (event.get("source", "world") if isinstance(event, dict) else "world")  # noqa: ENI...
+  backend\app\services\offscreen\world_projection_buffer.py:54 : source_id=event.get("source", "world"),
+  backend\app\services\phases\integration.py:508 : (n for n in _npc_truth_source if n.get("npc_id") == "player"), None
+  backend\app\services\player_cognition\observation_log.py:25 : source_id: Optional[str] = None,
+  backend\app\services\state\save_format_detector.py:61 : source: Optional[str] = None
+  backend\app\services\campaign_state_service.py:163 : source: str = "",
+  backend\app\services\event_compiler.py:210 : source_node="",
+  backend\app\services\event_compiler.py:241 : source_node=getattr(change.traversal_proposal, "source_node", "") if change.traversal_proposal else "",  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:296 : source_node=getattr(change.traversal_proposal, "source_node", "") if change.traversal_proposal else "",  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:419 : source_node="",
+  backend\app\services\event_compiler.py:525 : source_node=getattr(change.traversal_proposal, "source_node", "") if change.traversal_proposal else "",  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:554 : source_node = getattr(change.traversal_proposal, "source_node", "") if change.traversal_proposal else ""  # noqa: ENIGMA002
+  backend\app\services\event_compiler.py:579 : source_node=getattr(change.traversal_proposal, "source_node", "") if change.traversal_proposal else "",  # noqa: ENIGMA002
+  backend\app\services\scene_state_manager.py:1728 : _source = next((_get_directed(s) for s in scenes.values() if _get_directed(s)), None)
+  backend\tests\gameplay\perturbation_harness.py:76 : overwrite_source: Optional[str] = None        # causal_ledger-хвост при перезаписи
+  backend\tests\gameplay\test_negative_paths.py:335 : """S-UE/D4: source != 'player' → no exception, no dispatch."""
+  backend\tests\micro\test_act_consumer.py:29 : def get_reliability(self, observer: str, source: str, context=None) -> float:
+  backend\tests\micro\test_cch4_character_debugger.py:109 : """NOT_AUTHORED: канон-хроника отсутствует → sources=None, NOT_AUTHORED."""
+  backend\tests\micro\test_cch5_projections.py:261 : TruthRelation(source=E, target=C, DEPENDS_ON)."""
+  backend\tests\micro\test_cch5_projections.py:284 : Тест падает, если проекция вернёт source=event_c."""
+  backend\tests\micro\test_self_relevance_gate.py:38 : def get_reliability(self, observer: str, source: str, context=None) -> float:
+  backend\tests\sandbox\identity\test_pattern_detector.py:103 : """Test 5: События без source_id или с source_id='unknown' вызывают ошибку/игнорируются (запрет скалярного страха)."""
+  backend\tests\sandbox\micro\test_observer_causality.py:31 : def get_reliability(self, observer: str, source: str, context: Optional[dict] = None) -> float:
+  backend\tests\sandbox\SUPERBOX\scenarios\accusation_gate_test.py:73 : lambda observer, source, context=None: 0.9)})()
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_core_test.py:38 : def get_reliability(self, observer: str, source: str, context=None) -> float:
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_eventbus_test.py:37 : def get_reliability(self, observer: str, source: str, context=None) -> float:
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_player_belief_test.py:105 : belief_from_friend = next((b for b in player_beliefs if b.source_id == NPC_A), None)
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_player_belief_test.py:106 : belief_from_enemy = next((b for b in player_beliefs if b.source_id == NPC_B), None)
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_reliability_baseline_test.py:125 : """Сценарий A: единственный источник. create (tick=1) + same-source repeat (tick=2)."""
+  backend\tests\test_work_orders.py:238 : _sources = {getattr(e, "source", "") for e in bus.events}
+
+--- Q6: Visibility / hidden_from mechanisms ---
+
+[SEARCH] visibility mechanisms  pattern: /hidden_from|visibility\s*=|in_los|in_radius|can_witness/
+  146 matches:
+  backend\app\api\routes.py:830 : _recalled = _mm.recall(_cache, hidden_from_id="player", limit=5)
+  backend\app\domain\communication.py:27 : "secret": 1.5,  # собеседник вплотную (visibility=whisper, не private!)
+  backend\app\domain\events.py:112 : visibility=visibility,
+  backend\app\domain\events.py:128 : _visibility = payload.get("visibility", visibility)
+  backend\app\domain\events.py:134 : visibility=_visibility,
+  backend\app\models\causality_manifest.py:72 : "event_memory.hidden_from": FieldCausality("DEBT", organ="memory", terminal=None, authority="ADR-O-414"),
+  backend\app\models\npc_state.py:238 : hidden_from: Tuple[str, ...] = ()  # от кого скрыто (immutable для frozen)
+  backend\app\models\npc_state.py:314 : hidden_from=self.hidden_from,
+  backend\app\models\npc_state.py:655 : if event.visibility == "private":
+  backend\app\models\npc_state.py:657 : if event.visibility == "whisper":
+  backend\app\models\npc_state.py:1098 : if "hidden_from" in _d and isinstance(_d["hidden_from"], tuple):
+  backend\app\models\npc_state.py:1099 : _d["hidden_from"] = list(_d["hidden_from"])
+  backend\app\services\action\dm_scene_builder.py:122 : base_visibility = max(0.0, 1.0 - (distance / 20.0))
+  backend\app\services\action\dm_scene_builder.py:123 : visibility = base_visibility * light_level
+  backend\app\services\body\body_topology_service.py:115 : visibility=float(data.get("visibility", 1.0)),
+  backend\app\services\chronicle\chronicle_seeder.py:198 : hidden_from=(),
+  backend\app\services\chronicle\chronicle_seeder.py:213 : Секрет скрыт от игрока (hidden_from=('player',) — прецедент
+  backend\app\services\chronicle\chronicle_seeder.py:264 : hidden_from=("player",),
+  backend\app\services\events\intent_event_adapter.py:84 : visibility=_visibility_map.get(intent.exposure_level.semantic, "public"),  # type: ignore[arg-type]
+  backend\app\services\events\npc_dialogue_subscriber.py:429 : f"visibility={getattr(event, 'visibility', '?')})"
+  backend\app\services\events\npc_dialogue_subscriber.py:576 : visibility="public",
+  backend\app\services\events\social_action_subscriber.py:44 : visibility=event.visibility,
+  backend\app\services\events\social_action_subscriber.py:61 : visibility=event.visibility,
+  backend\app\services\events\social_action_subscriber.py:75 : visibility=event.visibility,
+  backend\app\services\execution\dialogue_materializer.py:31 : visibility = "public"
+  backend\app\services\execution\dialogue_materializer.py:33 : visibility = "whisper"
+  backend\app\services\execution\dialogue_materializer.py:35 : visibility = "private"
+  backend\app\services\execution\dialogue_materializer.py:45 : visibility = "whisper"
+  backend\app\services\execution\dialogue_materializer.py:65 : visibility=visibility,  # type: ignore[arg-type]
+  backend\app\services\execution\dialogue_materializer.py:85 : visibility=visibility,  # type: ignore[arg-type]
+  backend\app\services\game_loop\game_loop.py:1935 : visibility="private",
+  backend\app\services\game_loop\idle_event_projection.py:213 : if event.visibility == "private":
+  backend\app\services\game_loop\idle_event_projection.py:217 : if event.visibility == "whisper":
+  backend\app\services\game_loop\turn_pipeline.py:399 : visibility="public",
+  backend\app\services\memory\memory_manager.py:140 : visibility="private",
+  backend\app\services\memory\memory_manager.py:334 : hidden_from=tuple(payload.get("hidden_from", ())),
+  backend\app\services\memory\memory_manager.py:460 : hidden_from_id: str = "player",
+  backend\app\services\memory\memory_manager.py:466 : if m.is_secret and hidden_from_id in m.hidden_from and not m.is_forgotten
+  backend\app\services\memory\memory_manager.py:519 : hidden_from_id: str = "player",
+  backend\app\services\memory\memory_manager.py:530 : if hidden_from_id not in m.hidden_from:
+  backend\app\services\memory\memory_manager.py:553 : hidden_from_id: str = "",
+  backend\app\services\memory\memory_manager.py:572 : if hidden_from_id:
+  backend\app\services\memory\memory_manager.py:576 : if not (m.is_secret and hidden_from_id in m.hidden_from)
+  backend\app\services\memory\sqlite_store.py:172 : hidden_from_json TEXT DEFAULT '[]',
+  backend\app\services\memory\sqlite_store.py:433 : hidden_from = d.get("hidden_from", ())
+  backend\app\services\memory\sqlite_store.py:444 : known_by_json, hidden_from_json, fulfilled, contract_ref,
+  backend\app\services\memory\sqlite_store.py:466 : json.dumps(list(hidden_from)),
+  backend\app\services\memory\sqlite_store.py:501 : d["hidden_from"] = tuple(json.loads(d.pop("hidden_from_json")))
+  backend\app\services\memory\sqlite_store.py:530 : hidden_from = d.get("hidden_from", ())
+  backend\app\services\memory\sqlite_store.py:537 : known_by_json, hidden_from_json, fulfilled, contract_ref,
+  backend\app\services\memory\sqlite_store.py:559 : json.dumps(list(hidden_from)),
+  backend\app\services\memory\working_memory_tick.py:115 : visibility="public",
+  backend\app\services\memory\yaml_export.py:64 : hidden = d.get("hidden_from", ())
+  backend\app\services\npc\npc_loader.py:531 : tuple(_d["hidden_from"])
+  backend\app\services\npc\npc_loader.py:532 : if isinstance(_d.get("hidden_from"), list)
+  backend\app\services\npc\npc_loader.py:549 : hidden_from=_hidden,
+  backend\app\services\npc\npc_loader.py:619 : hidden_from=("player",),
+  backend\app\services\npc\npc_loader.py:810 : for _key in ("tags", "known_by", "hidden_from", "compressed_from"):
+  backend\app\services\npc\npc_tick_pipeline.py:1507 : hidden_from_id="player",
+  backend\app\services\perception\perception_physics_engine.py:69 : visibility = self._compute_visibility(relation)
+  backend\app\services\phases\commit_phase.py:132 : visibility="whisper",
+  backend\app\services\presentation\avatar_presentation_assembler.py:110 : blood_visibility = min(1.0, blood_loss * 1.5)
+  backend\app\services\presentation\avatar_presentation_assembler.py:151 : blood_visibility=blood_visibility,
+  backend\app\services\spatial\spatial_event_detector.py:99 : visibility="public",
+  backend\app\services\spatial\spatial_event_detector.py:129 : visibility="public",
+  backend\app\services\spatial\spatial_event_detector.py:151 : visibility="public",
+  backend\app\services\spatial\spatial_runtime.py:344 : nearby.append({"npc_id": other_id, "distance": round(d, 2), "in_los": los})
+  backend\app\services\spatial\spatial_runtime.py:360 : "in_los": los,
+  backend\app\services\state\migration_runner.py:242 : hidden_from_json TEXT DEFAULT '[]',
+  backend\app\services\verbalization\scene_outcome_builder.py:127 : visibility: Visibility = Visibility.DIRECT
+  backend\app\services\verbalization\scene_outcome_builder.py:598 : visibility = self._compute_visibility(npc_id, context)
+  backend\app\services\verbalization\scene_outcome_builder.py:653 : _hidden_from = (
+  backend\app\services\verbalization\scene_outcome_builder.py:654 : _item.get("hidden_from", [])
+  backend\app\services\verbalization\scene_outcome_builder.py:656 : else getattr(_item, "hidden_from", ())
+  backend\app\services\verbalization\scene_outcome_builder.py:658 : if isinstance(_hidden_from, tuple):
+  backend\app\services\verbalization\scene_outcome_builder.py:659 : _hidden_from = list(_hidden_from)
+  backend\app\services\verbalization\scene_outcome_builder.py:660 : if _is_secret and "player" in _hidden_from:
+  backend\app\services\verbalization\scene_outcome_builder.py:693 : visibility=visibility,
+  backend\app\services\tick_orchestrator.py:1731 : visibility="public",
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:86 : visibility="public",
+  backend\tests\gameplay\test_p6_e2_eavesdrop_channel.py:96 : visibility="public",
+  backend\tests\gameplay\test_p6_e2_eavesdrop_channel.py:147 : def test_t_e2_2_in_radius_delivery_and_observation() -> None:
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:170 : visibility=visibility,
+  backend\tests\micro\test_chronicle_cch1.py:261 : "known_by": ["x"], "hidden_from": ["y"], "decay_rate": 0.001},
+  backend\tests\micro\test_chronicle_cch4_seed.py:136 : assert lusya[0].hidden_from == ("player",)  # телепатия игроку запрещена
+  backend\tests\micro\test_chronicle_cch4_seed.py:296 : hidden_from=(),
+  backend\tests\micro\test_claim_bridge_chain.py:136 : visibility="public",
+  backend\tests\micro\test_idle_event_projection.py:40 : visibility=visibility,  # type: ignore[arg-type]
+  backend\tests\micro\test_idle_event_projection.py:154 : visibility="whisper",
+  backend\tests\micro\test_idle_event_projection.py:167 : visibility="whisper",
+  backend\tests\micro\test_idle_event_projection.py:179 : evt = _evt("activity_outcome", payload=_EAT_OK, visibility="private")
+  backend\tests\micro\test_materializer_radius.py:56 : assert _ev.visibility == "whisper"
+  backend\tests\micro\test_materializer_radius.py:66 : assert _ev.visibility == "whisper"
+  backend\tests\micro\test_npc_addresses_player.py:162 : assert e.visibility == "whisper"
+  backend\tests\micro\test_npc_addresses_player.py:306 : assert _addr_events(bus)[0].visibility == "whisper"
+  backend\tests\micro\test_npc_addressing_ack.py:51 : visibility="whisper",
+  backend\tests\micro\test_npc_addressing_ack.py:74 : visibility="whisper",
+  backend\tests\micro\test_npc_addressing_ack.py:204 : visibility="whisper",
+  backend\tests\micro\test_npc_addressing_ack.py:242 : visibility="whisper",
+  backend\tests\micro\test_npc_addressing_delivery.py:72 : visibility="whisper",
+  backend\tests\micro\test_npc_addressing_propagation.py:99 : visibility="whisper",
+  backend\tests\micro\test_player_speech_claim.py:65 : def test_player_speech_claim_in_radius_creates_belief():
+  backend\tests\micro\test_self_talk_sentinel.py:126 : visibility=visibility,
+  backend\tests\micro\test_utterance_identity_chain.py:127 : visibility="public",
+  backend\tests\sandbox\micro\test_observer_causality.py:5 : Основные сущности: test_observer_in_radius_gets_belief, test_observer_out_of_radius_no_belief
+  backend\tests\sandbox\micro\test_observer_causality.py:54 : def test_observer_in_radius_gets_belief(setup):
+  backend\tests\sandbox\micro\test_run_turn_e2e.py:114 : visibility="public",
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:36 : visibility="public"
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:69 : visibility="public"
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:80 : visibility="public"
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_divergence.py:82 : visibility="private",
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_eventbus_test.py:79 : visibility="private"
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:261 : def run_scenario(goran_in_los: bool, arm: str) -> dict:
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:291 : _goran_pos = POS_GORAN_EXP if goran_in_los else POS_GORAN_CTRL
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:506 : ctrl_res = run_scenario(goran_in_los=False, arm="ctrl")
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:511 : exp_res = run_scenario(goran_in_los=True, arm="exp")
+  backend\tests\sandbox\f3_combat_smoke.py:81 : visibility="public",
+  backend\tests\sandbox\oscilloscope_closed_loop.py:79 : visibility="public",
+  backend\tests\IPT.py:502 : visibility="public",
+  backend\tests\test_discovery_mechanics.py:40 : hidden_from=("player",),
+  backend\tests\test_discovery_mechanics.py:178 : hidden_from_id="player",
+  backend\tests\test_discovery_mechanics.py:207 : hidden_from_id="player",
+  backend\tests\test_discovery_mechanics.py:214 : def test_assess_skips_wrong_hidden_from() -> None:
+  backend\tests\test_discovery_mechanics.py:226 : hidden_from=("guard",),
+  backend\tests\test_discovery_mechanics.py:232 : hidden_from_id="player",
+  backend\tests\test_discovery_mechanics.py:248 : hidden_from_id="player",
+  backend\tests\test_perception_filter.py:156 : def test_awake_npc_hears_within_radius(self) -> None:
+  backend\tests\test_reaction_subscriber.py:58 : visibility="public",
+  backend\tests\test_scene_outcome_builder.py:357 : assert outcome.actors[0].visibility == Visibility.DIRECT
+  backend\tests\test_scene_outcome_builder.py:371 : assert outcome.actors[0].visibility == Visibility.INDIRECT
+  backend\tests\test_scene_outcome_builder.py:385 : assert outcome.actors[0].visibility == Visibility.HIDDEN
+  backend\tests\test_scene_outcome_builder.py:399 : assert outcome.actors[0].visibility == Visibility.HIDDEN
+  backend\tests\test_social_homeostasis.py:62 : visibility="public",
+  backend\tests\test_spatial_runtime_r4.py:59 : assert "in_los" in out["player"]
+  backend\tests\test_sqlite_store_stage11.py:105 : "hidden_from": (),
+  backend\tests\test_sqlite_store_stage11.py:123 : """tags, known_by, hidden_from должны быть tuple — как в EventMemory."""
+  backend\tests\test_sqlite_store_stage11.py:127 : hidden_from=("player",),
+  backend\tests\test_sqlite_store_stage11.py:133 : assert isinstance(loaded[0]["hidden_from"], tuple)
+  backend\tests\test_sqlite_store_stage11.py:155 : hidden_from=("player", "guard"),
+  backend\tests\test_sqlite_store_stage11.py:162 : assert loaded[0]["hidden_from"] == ("player", "guard")
+  backend\tests\test_sqlite_store_stage11.py:222 : "hidden_from": (),
+  backend\tests\test_sqlite_store_stage11.py:307 : "hidden_from": (),
+  backend\tests\test_sqlite_store_stage11.py:352 : "hidden_from": (),
+  backend\tests\test_sqlite_store_stage11.py:376 : "hidden_from": (),
+  backend\tests\test_sqlite_store_stage11.py:414 : "hidden_from": ("player",),
+  backend\tests\test_worker_outbox_determinism.py:87 : visibility="public",
+
+--- Q6: EpistemicRecord creation (observer belief) ---
+
+[SEARCH] EpistemicRecord creation  pattern: /EpistemicRecord\(|def upsert|def record_observation|def record_claim/
+  35 matches:
+  backend\app\api\routes.py:619 : def upsert_character(request: CharacterUpsertRequest) -> dict:
+  backend\app\services\npc\belief_revision_engine.py:67 : new_record = EpistemicRecord(
+  backend\app\services\npc\belief_revision_engine.py:88 : new_record = EpistemicRecord(
+  backend\app\services\npc\epistemic_store.py:39 : def upsert(self, record: EpistemicRecord) -> None:
+  backend\app\services\npc\epistemic_store.py:98 : record = EpistemicRecord(
+  backend\app\services\npc\exploration_target_resolver.py:8 : персональным EpistemicRecord(EXITS_TO, subject="<loc>:<node>") (пройденные).
+  backend\app\services\npc\personal_route_resolver.py:5 : ЛИЧНОМУ графу NPC, реконструированному из EpistemicRecord(EXITS_TO).
+  backend\app\services\character_service.py:42 : def upsert_character(
+  backend\app\services\character_service.py:92 : def upsert_profile(
+  backend\app\services\tick_orchestrator.py:961 : EpistemicRecord(
+  backend\app\services\tick_orchestrator.py:1237 : _ep_store.upsert(EpistemicRecord(
+  backend\tests\gameplay\test_gc05_production_path_testimony.py:167 : _record = EpistemicRecord(
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:20 : 5. guard_borko формирует EpistemicRecord(player, ATTACKED, source=maid_lusya)
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:242 : # 2. Проверить: нет EpistemicRecord(player, ATTACKED, maid_lusya)
+  backend\tests\micro\test_player_speech_claim.py:27 : def upsert(self, record):
+  backend\tests\micro\test_self_relevance_gate.py:168 : return EpistemicRecord(
+  backend\tests\micro\test_self_relevance_gate.py:195 : helped = EpistemicRecord(
+  backend\tests\micro\test_self_relevance_gate.py:208 : stole = EpistemicRecord(
+  backend\tests\micro\test_self_relevance_gate.py:232 : att = EpistemicRecord(
+  backend\tests\sandbox\SUPERBOX\scenarios\accusation_gate_test.py:99 : store.upsert(EpistemicRecord(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_context_test.py:63 : EpistemicRecord(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_context_test.py:72 : EpistemicRecord(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_decision_test.py:80 : record = EpistemicRecord(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_production_test.py:105 : _record = EpistemicRecord(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_resolver_test.py:41 : store.upsert(EpistemicRecord(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_resolver_test.py:52 : store.upsert(EpistemicRecord(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_resolver_test.py:63 : store.upsert(EpistemicRecord(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_second_order_attribution_test.py:100 : _record = EpistemicRecord(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_second_order_test.py:111 : _record = EpistemicRecord(
+  backend\tests\sandbox\SUPERBOX\scenarios\personal_epistemic_routing_test.py:28 : store.upsert(EpistemicRecord(
+  backend\tests\sandbox\SUPERBOX\scenarios\relocation_causal_bridge_test.py:110 : _ep.upsert(EpistemicRecord(
+  backend\tests\sandbox\SUPERBOX\scenarios\spatial_knowledge_divergence_test.py:56 : store.upsert(EpistemicRecord(
+  backend\tests\sandbox\SUPERBOX\scenarios\spatial_knowledge_divergence_test.py:114 : store.upsert(EpistemicRecord(
+  backend\tests\sandbox\SUPERBOX\scenarios\spatial_knowledge_divergence_test.py:130 : store.upsert(EpistemicRecord(
+  backend\tests\test_board_acceptance_gates.py:162 : _store.upsert(EpistemicRecord(
+
+--- Claim event subscriber (authorship propagation) ---
+
+[READ] ClaimEventSubscriber class  backend\app\services\events\claim_event_subscriber.py L24-73 (class at L24)
+  24: class ClaimEventSubscriber:
+  25:     """
+  26:     Слушает COMMUNICATION_CLAIM и NPC_SPOKE на EventBus.
+  27:     Преобразует EventDTO в ClaimEvent и передаёт в BeliefRevisionEngine.
+  28:     S192: Observation Divergence — фильтрует слушателей через пространственную мембрану (SpatialQueryService).
+  29:     S199 (Фаза 8.3): Поддержка игрока как наблюдателя (observer_id="player").
+  30:     """
+  31:     def __init__(
+  32:         self,
+  33:         engine: BeliefRevisionEngine,
+  34:         store: EpistemicStore,
+  35:         spatial_query_provider: Optional[Any] = None,
+  36:     ):
+  37:         self._engine = engine
+  38:         self._store = store
+  39:         self._get_spatial_query = spatial_query_provider
+  40: 
+  41:     def on_npc_spoke(self, event: Any) -> None:
+  42:         """
+  43:         Фаза 8.3: Детерминированный fallback для NPC_SPOKE.
+  44:         Если LLM не предоставила proposition, извлекает его из intent_type.
+  45:         """
+  46:         import dataclasses
+  47: 
+  48:         if not hasattr(event, 'payload'):
+  49:             return
+  50: 
+  51:         payload = event.payload
+  52:         # Если LLM уже предоставила proposition, COMMUNICATION_CLAIM обработает его.
+  53:         if payload.get("proposition"):
+  54:             return
+  55: 
+  56:         intent_type = payload.get("intent_type", "talk")
+  57:         target_id = payload.get("target_id")
+  58:         speaker_id = event.source
+  59: 
+  60:         # Маппинг интентов на пропозиции
+  61:         # subject_id — кто совершил действие, object_id — над кем/чем.
+  62:         prop = None
+  63:         if intent_type == "accuse" and target_id:
+  64:             # "Я обвиняю тебя в краже" -> target украл неизвестно что
+  65:             prop = Proposition(subject_id=target_id, predicate=Predicate.STOLE, object_id="unknown")
+  66:         elif intent_type == "praise" and target_id:
+  67:             # "Я хвалю тебя за помощь" -> target помог неизвестно кому
+  68:             prop = Proposition(subject_id=target_id, predicate=Predicate.HELPED, object_id="unknown")
+  69:         elif intent_type in ("intimidate", "attack") and target_id:
+  70:             # "Я угрожаю тебе" -> speaker напал на target
+  71:             prop = Proposition(subject_id=speaker_id, predicate=Predicate.ATTACKED, object_id=target_id)
+  72: 
+  73:         if prop:
+
+============================================================
+
+S0.8 - REGISTRY / IDENTITY RESOLUTION
+
+============================================================
+
+--- PlayerSession class ---
+
+[READ] PlayerSession class  backend\app\models\schemas.py L278-317 (class at L278)
+  278: class PlayerSession(BaseModel):
+  279:     """Сессия игрока для отслеживания активности."""
+  280: 
+  281:     campaign_id: str
+  282:     player_name: str
+  283:     active: bool = True
+  284:     last_heartbeat: datetime = Field(default_factory=datetime.now)
+  285:     session_id: str = ""
+  286: 
+  287:     def is_active(self, timeout_seconds: int = 120) -> bool:
+  288:         """
+  289:         Проверить, активна ли сессия (timestamp < timeout).
+  290:         По умолчанию 120 секунд - синхронизировано с player_session_service.ttl_seconds.
+  291:         """
+  292:         if not self.active:
+  293:             return False
+  294:         elapsed = (datetime.now() - self.last_heartbeat).total_seconds()
+  295:         # Защита от race condition: отрицательный elapsed из-за синхронизации часов
+  296:         # считаем как активную сессию
+  297:         if elapsed < 0:
+  298:             return True
+  299:         return elapsed < timeout_seconds
+  300: 
+  301: 
+  302: class HeartbeatRequest(BaseModel):
+  303:     """Запрос на обновление heartbeat."""
+  304: 
+  305:     campaign_id: str
+  306:     player_name: str
+  307: 
+  308:     # Поддержка старых клиентов с другими названиями полей
+  309:     player: Optional[str] = Field(None, alias="player")
+  310:     campaign: Optional[str] = Field(None, alias="campaign")
+  311: 
+  312:     model_config = {"populate_by_name": True}
+  313: 
+  314:     def __init__(self, **data: Any) -> None:
+  315:         # Если пришли старые поля - преобразуем
+  316:         if "player" in data and data["player"]:
+  317:             data["player_name"] = data.pop("player")
+
+--- CharacterSheet class ---
+
+[READ] CharacterSheet class  backend\app\models\schemas.py L91-130 (class at L91)
+  91: class CharacterSheet(BaseModel):
+  92:     name: str
+  93:     # ADR-030: Вектор Начальных Условий (Hybrid Consciousness)
+  94:     archetype: str = "Drifter"  # Laborer, Soldier, Merchant, Drifter, Noble
+  95:     temperament: str = "Stoic"  # Fearful, Stoic, Impulsive, Calculating
+  96:     body_profile: Dict[str, Any] = Field(default_factory=dict)  # max_hp, abilities
+  97:     psyche: Dict[str, Any] = Field(default_factory=dict)  # fear, impulsivity, willpower
+  98:     # Legacy поля (для совместимости со старыми загрузчиками)
+  99:     race: str = ""
+  100:     class_name: str = ""
+  101:     level: int = 1
+  102:     stats: Dict[str, int] = Field(default_factory=dict)
+  103:     skills: Dict[str, int] = Field(default_factory=dict)
+  104:     inventory: List[str] = Field(default_factory=list)
+  105:     spells: List[str] = Field(default_factory=list)
+  106:     portrait: Optional[str] = None
+  107:     backstory: Optional[str] = None
+  108:     hp: int = 10
+  109:     max_hp: int = 10
+  110:     ac: int = 10
+  111:     effects: List[str] = Field(default_factory=list)
+  112:     importance: Optional[str] = Field(
+  113:         default=None, description="major or mass for NPC importance"
+  114:     )
+  115: 
+  116: 
+  117: class NPCState(BaseModel):
+  118:     name: str
+  119:     motivation: str
+  120:     goals: List[str]
+  121:     memory: List[str] = Field(default_factory=list)
+  122:     faction: Optional[str] = None
+  123:     location: Optional[str] = None
+  124: 
+  125: 
+  126: class WorldEvent(BaseModel):
+  127:     timestamp: datetime
+  128:     title: str
+  129:     details: str
+  130:     visibility: str = "hidden"
+
+--- CharacterProfile class ---
+
+[READ] CharacterProfile class  backend\app\models\character.py L102-141 (class at L102)
+  102: class CharacterProfile:
+  103:     """
+  104:     Полный психологический профиль персонажа игрока.
+  105:     Мутирует в рантайме через CharacterFilter (RESIST действия).
+  106: 
+  107:     СВЯЗЬ С D&D-ЛИСТОМ:
+  108:     - character_id = CharacterSheet.name (ключ связки)
+  109:     - CharacterSheet = механика (HP, AC, спеллы)
+  110:     - CharacterProfile = психология (ценности, сопротивление, эрозия)
+  111:     - Хранятся раздельно: characters.json (sheet) vs character_profile.json (profile)
+  112: 
+  113:     МНОГОПОЛЬЗОВАТЕЛЬСКИЙ РЕЖИМ (hot-seat):
+  114:     - В кампании несколько персонажей, каждый со своим профилем
+  115:     - Активный персонаж определяется текущим ходом (не здесь)
+  116:     - self_integrity — личный ресурс, не общий на партию
+  117:     """
+  118: 
+  119:     character_id: str
+  120: 
+  121:     # ── ЯДРО СОПРОТИВЛЕНИЯ ──
+  122:     # Способность персонажа противостоять давлению мира
+  123:     # Начинается с 1.0, деградирует через erosion_accumulator
+  124:     self_integrity: float = 1.0
+  125: 
+  126:     # ── БАЗОВЫЕ ЦЕННОСТИ ──
+  127:     # Формируются при создании персонажа. Frozen — меняются только через крупные события.
+  128:     values: ValueSet = field(default_factory=ValueSet)
+  129: 
+  130:     # ── СОЦИАЛЬНЫЕ ОГРАНИЧЕНИЯ ──
+  131:     # Усвоенные нормы: "как благородный человек должен себя вести"
+  132:     # Меняются быстрее чем values, но медленнее чем self_integrity
+  133:     # ∈ [0..1] для каждого constraint
+  134:     social_constraints: Dict[str, float] = field(default_factory=dict)
+  135: 
+  136:     # ── CHARACTER→NPC TRUST (отдельный от NPC→player) ──
+  137:     # Влияет на то КАК персонаж интерпретирует действия NPC
+  138:     # Меняется через CharacterFilter, не через StateApplicator
+  139:     # npc_id → trust ∈ [-1.0, 1.0]
+  140:     npc_trust: Dict[str, float] = field(default_factory=dict)
+  141: 
+
+--- All Registry classes ---
+
+[SEARCH] All Registry classes  pattern: /class \w*Registry\b/
+  8 matches:
+  backend\app\services\action\commitment_registry.py:55 : class CommitmentRegistry:
+  backend\app\services\chronicle\consistency_service.py:60 : class CanonicalRegistry:
+  backend\app\services\chronicle\white_spot_registry.py:48 : class WhiteSpotRegistry:
+  backend\app\services\spatial\spatial_registry.py:66 : class SpatialRegistry:
+  backend\app\services\avatar_character_registry.py:16 : class AvatarCharacterRegistry:
+  backend\tests\gameplay\perturbation_harness.py:83 : class _TapRegistry:
+  backend\tests\sandbox\SUPERBOX\scenarios\bc1_conclusion_test.py:69 : class _TapRegistry:
+  backend\tests\sandbox\SUPERBOX\scenarios\causal_state_test.py:64 : class _TapRegistry:
+
+--- All Loader classes + load functions ---
+
+[SEARCH] Loader classes + load functions  pattern: /class \w*Loader\b|def load_npc|def load_character|def load_avatar|def load_player/
+  9 matches:
+  backend\app\services\npc\npc_loader.py:145 : def load_npc_profiles_from_config() -> Dict[str, NPCProfileL0]:
+  backend\app\services\npc\npc_loader.py:307 : def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]]:
+  backend\app\services\state\json_persistence_adapter.py:152 : def load_npc_runtime(self, session_id: str) -> Optional[List[Dict[str, Any]]]:
+  backend\app\services\state\persistence_port.py:64 : def load_npc_runtime(self, session_id: str) -> Optional[List[Dict[str, Any]]]:
+  backend\app\services\state\sqlite_persistence_adapter.py:266 : def load_npc_runtime(self, session_id: str) -> Optional[List[Dict[str, Any]]]:
+  backend\app\services\adaptive_tick_loader.py:11 : class AdaptiveTickLoader:
+  backend\app\services\game_loop_builder.py:61 : def load_npcs(runtime_path: Any = None) -> list[Any]:
+  backend\app\services\player_avatar_service.py:127 : def load_avatar(self, campaign_id: str, player_name: str) -> Optional[dict]:
+  backend\app\services\truth_state_loader.py:15 : class TruthStateLoader:
+
+--- PlayerAvatarService load_avatar method ---
+
+[READ] PlayerAvatarService load_avatar  backend/app/services/player_avatar_service.py L120-170
+  120:     def _ensure_campaign_dir(self, campaign_id: str) -> Path:
+  121:         campaign_dir = self.root / campaign_id
+  122:         campaign_dir.mkdir(parents=True, exist_ok=True)
+  123:         return campaign_dir
+  124: 
+  125:     # ── Загрузка ──────────────────────────────────────────────────────
+  126: 
+  127:     def load_avatar(self, campaign_id: str, player_name: str) -> Optional[dict]:
+  128:         """
+  129:         Загружает полный аватар из player_avatar.json.
+  130:         Returns dict с ключами 'sheet', 'profile', 'state' или None.
+  131:         """
+  132:         path = self._avatar_path(campaign_id)
+  133:         if not path.exists():
+  134:             return None
+  135:         try:
+  136:             data = json.loads(path.read_text(encoding="utf-8-sig"))
+  137:             # Проверка совпадения имени
+  138:             if data.get("state", {}).get("npc_id") != player_name:
+  139:                 logger.warning(
+  140:                     f"[AVATAR] имя не совпадает: "
+  141:                     f"{data.get('state', {}).get('npc_id')} != {player_name}"
+  142:                 )
+  143:                 return None
+  144:             # B1.3-FIX + J-FIX: загрузка журнала — MERGE, не перезапись.
+  145:             # RAM может быть новее диска (append персистит, но между append
+  146:             # и save_state диск отстаёт). Приоритет — более полный список.
+  147:             if "dialog_journal" in data:
+  148:                 _disk = data["dialog_journal"]
+  149:                 _ram = self._dialog_journals.get(campaign_id, [])
+  150:                 self._dialog_journals[campaign_id] = (
+  151:                     _ram if len(_ram) >= len(_disk) else _disk
+  152:                 )
+  153:             # ADR-O-409: NAME-оси merge не нужен (dict, не список):
+  154:             # RAM-версия всегда новее (note_* персистит сразу)
+  155:             if self._KEY_NAME_KNOWLEDGE in data and isinstance(
+  156:                     data[self._KEY_NAME_KNOWLEDGE], dict):
+  157:                 self._name_knowledge[campaign_id] = dict(
+  158:                     data[self._KEY_NAME_KNOWLEDGE])
+  159:             return cast(dict, data)
+  160:         except Exception as e:
+  161:             # P0-D (S208): violation обязан быть различим от игровой ошибки
+  162:             # до деградации в None (диагностический след для CDS).
+  163:             from app.errors import ArchitecturalViolationError
+  164:             if isinstance(e, ArchitecturalViolationError):
+  165:                 logger.critical(f"[ARCH_VIOLATION][AVATAR_LOAD] {e}", exc_info=True)
+  166:             else:
+  167:                 logger.error(f"[AVATAR] ошибка загрузки: {e}")
+  168:             return None
+  169: 
+  170:     def load_state(self, campaign_id: str, player_name: str) -> NPCState:
+
+--- BodyTopology.avatar_id verification (write-only?) ---
+
+[SEARCH] avatar_id read/write (verify write-only)  pattern: /\.avatar_id\b/
+  (no matches)
+
+--- NPC canon/registry mechanisms ---
+
+[SEARCH] NPC canon/registry  pattern: /canon_npcs|npc_registry|npc_canon|_canon_npcs|class NPCRegistry/
+  10 matches:
+  backend\app\services\npc\activity_lifecycle_service.py:485 : # через _canon_npcs (ссылки на оригиналы, run_activity_lifecycle).
+  backend\app\services\npc\activity_lifecycle_service.py:486 : _canon = getattr(ctx, "_canon_npcs", None) or {}  # noqa: ENIGMA002
+  backend\app\services\npc\activity_lifecycle_service.py:661 : setattr(ctx, "_canon_npcs", _by_id)
+  backend\tests\micro\test_cch8_seed_report.py:23 : CANON_NPCS = [
+  backend\tests\micro\test_cch8_seed_report.py:35 : for npc_id in CANON_NPCS:
+  backend\tests\micro\test_cch8_seed_report.py:47 : for npc_id in CANON_NPCS:
+  backend\tests\micro\test_cch8_seed_report.py:61 : for npc_id in CANON_NPCS:
+  backend\tests\micro\test_cch8_seed_report.py:74 : for npc_id in CANON_NPCS:
+  backend\tests\micro\test_cch8_seed_report.py:92 : for npc_id in CANON_NPCS:
+  backend\tests\micro\test_cch8_seed_report.py:134 : for npc_id in CANON_NPCS:
+
+

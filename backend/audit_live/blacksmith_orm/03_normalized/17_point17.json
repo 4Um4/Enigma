@@ -2,34 +2,73 @@
   {
     "kind": "RELATIONSHIP",
     "draft_payload": {
-      "summary": "Борко не имеет власти над Ормом, Орм понимает это как разрешение",
-      "target_hint": "Стражник Борко"
+      "summary": "Орм не испугался шантажа стражника Борко, понял что это разрешение а не приказ",
+      "nature": "враждебное",
+      "valence": "neutral"
     },
-    "confidence": 1.0,
-    "needs_confirmation": false,
+    "confidence": 0.5,
+    "needs_confirmation": true,
     "question": null
   },
   {
     "kind": "PORTRET",
     "draft_payload": {
       "statement": "А гному, который 20 лет назад потерял жену в бреду и лихорадке, гному, который привык держать всё в себе, гному, который не понимает, почему он напал на девочку тем вечером,",
-      "traits": [
-        "привык держать всё в себе",
-        "не понимает причины поступков"
-      ]
+      "traits": []
     },
-    "confidence": 1.0,
-    "needs_confirmation": false,
+    "confidence": 0.5,
+    "needs_confirmation": true,
+    "question": null
+  },
+  {
+    "kind": "TRAIT_SEED",
+    "draft_payload": {
+      "trait": "привык держать всё в себе",
+      "evidence": "гому, который привык держать всё в себе"
+    },
+    "confidence": 0.5,
+    "needs_confirmation": true,
+    "question": null
+  },
+  {
+    "kind": "PORTRET",
+    "draft_payload": {
+      "statement": "не понимает, почему он напал на девочку тем вечером,",
+      "traits": []
+    },
+    "confidence": 0.5,
+    "needs_confirmation": true,
+    "question": null
+  },
+  {
+    "kind": "TRAIT_SEED",
+    "draft_payload": {
+      "trait": "не надо объяснять себе, почему ты делаешь то, что делаешь",
+      "evidence": "С ним не надо объяснять себе, почему ты делаешь то, что делаешь."
+    },
+    "confidence": 0.5,
+    "needs_confirmation": true,
+    "question": null
+  },
+  {
+    "kind": "RELATIONSHIP",
+    "draft_payload": {
+      "summary": "Орм пользуется стражником Борко как инструментом для собственного молчания",
+      "nature": "взаимовыгодное",
+      "valence": "neutral"
+    },
+    "confidence": 0.5,
+    "needs_confirmation": true,
     "question": null
   },
   {
     "kind": "TRAIT_SEED",
     "draft_payload": {
       "trait": "пользуется разрешением для молчания",
-      "evidence": "Орм просто пользуется им как инструментом для собственного молчания"
+      "evidence": "с ним не надо объяснять себе, почему ты делаешь то, что делаешь. Борко сказал продолжать — значит, можно продолжать."
     },
-    "confidence": 1.0,
-    "needs_confirmation": false,
+    "confidence": 0.5,
+    "needs_confirmation": true,
     "question": null
   }
 ]

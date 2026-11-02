@@ -2,9 +2,8 @@
   {
     "kind": "EVENT",
     "draft_payload": {
-      "summary": "Жена умерла от бреда и лихорадки",
+      "summary": "Последняя жена Эльра умерла от бреда и лихорадки",
       "day": null,
-      "duration_years": null,
       "years_ago": 20,
       "_provenance": {
         "derived_from": "game_start_age - years_ago",
@@ -18,12 +17,10 @@
     "question": null
   },
   {
-    "kind": "PORTRET",
+    "kind": "TRAIT_SEED",
     "draft_payload": {
-      "statement": "многое с тех времён он привык хранить в себе",
-      "traits": [
-        "хранит в себе"
-      ]
+      "trait": "привык хранить в себе",
+      "evidence": "многое с тех времён он привык хранить в себе"
     },
     "confidence": 1.0,
     "needs_confirmation": false,

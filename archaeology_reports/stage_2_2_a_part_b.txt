@@ -1,0 +1,300 @@
+﻿4-5. compute_willpower + resolve_intent_pressure
+
+============================================================
+
+[SEARCH] compute_willpower definition  pattern: /def compute_willpower/
+  1 matches:
+  backend\app\services\will.py:135 : def compute_willpower(
+
+[READ] will.py L1-140  backend/app/services/will.py L1-140
+  1: from __future__ import annotations
+  2: 
+  3: # path: backend\app\services\will.py
+  4: # Назначение: Вычисление Воли и Давления (ADR-031). Pure Functions.
+  5: # Зависимости: app.domain.intent, app.models.will
+  6: # Основные сущности: resolve_intent_pressure, compute_willpower
+  7: """
+  8: TODO: В будущем этот слой может быть расширен до полноценного Will Engine, который будет учитывать не только давление от действий игрока, но и внутренние конфликты NPC, их прошлый опыт и динамические изменения психики. Но для MVP достаточно базового транслятора Intent → Pressure и простого Cumulative Strain Model для вычисления реакции NPC.
+  9: """
+  10: 
+  11: 
+  12: import logging
+  13: from typing import Any, Dict, Optional
+  14: 
+  15: from app.domain.intent import IntentDTO, IntentParametersDTO
+  16: from app.domain.intent_profile import CrowdThreatLevel, SocialSignal
+  17: from app.models.will import (
+  18:     EmbodiedVector,
+  19:     IntentPressureProfile,
+  20:     WillResponseDTO,
+  21:     WillState,
+  22: )
+  23: 
+  24: logger = logging.getLogger(__name__)
+  25: 
+  26: # --- СЛОЙ 1: СЕМАНТИЧЕСКИЙ ПЕРЕВОД (BOOTSTRAP) ---
+  27: 
+  28: 
+  29: def resolve_intent_pressure(
+  30:     intent: IntentDTO,
+  31:     context: Optional[Dict[str, Any]] = None,
+  32: ) -> IntentPressureProfile:
+  33:     """Транслирует синтаксис действия в семантику давления на психику.
+  34: 
+  35:     MVP (Bootstrap): маппит action + target на вектор давления.
+  36:     В будущем заменяется на LLM-экстрактор или CFRM-наследие.
+  37:     """
+  38:     pressure = IntentPressureProfile()
+  39:     # ADR-035: Приоритет semantic_action из parameters. Защита от AttributeError и None.
+  40:     action = (
+  41:         getattr(intent, "parameters", None)  # noqa: ENIGMA002
+  42:         and intent.parameters.semantic_action
+  43:         or getattr(intent, "action", "")  # noqa: ENIGMA002
+  44:         or ""
+  45:     ).lower()
+  46:     _target = (
+  47:         getattr(intent, "parameters", None)  # noqa: ENIGMA002
+  48:         and intent.parameters.target_reference
+  49:         or getattr(intent, "target", "")  # noqa: ENIGMA002
+  50:         or ""
+  51:     ).lower()
+  52: 
+  53:     # Базовые эвристики давления (Синхронизировано с _EVENT_AXIS_MAP и EventType)
+  54:     if action in ("attack", "player_attacks", "player_attack", "combat"):
+  55:         pressure = IntentPressureProfile(
+  56:             violence=0.8,
+  57:             self_risk=0.4,
+  58:             moral_violation=0.5,
+  59:             identity_deviation=0.6,
+  60:         )
+  61:         # TODO: В будущем использовать intent.parameters.physical_force для модуляции давления
+  62: 
+  63:     elif action == "flee":
+  64:         pressure = IntentPressureProfile(
+  65:             self_risk=0.1,
+  66:             identity_deviation=0.4,  # Страх ломает гордость
+  67:             social_exposure=0.6,  # Позор труса
+  68:         )
+  69: 
+  70:     elif action in ("threaten", "player_threatens", "intimidation", "player_insults"):
+  71:         pressure = IntentPressureProfile(
+  72:             violence=0.3,
+  73:             humiliation=0.6,
+  74:             social_exposure=0.5,
+  75:             moral_violation=0.4,
+  76:         )
+  77: 
+  78:     elif action == "steal":
+  79:         pressure = IntentPressureProfile(
+  80:             social_exposure=0.7,  # Позор вора
+  81:             moral_violation=0.6,
+  82:             taboo_intensity=0.5,
+  83:         )
+  84: 
+  85:     # ADR-031 & ADR-043: Социальные директивы и приказы.
+  86:     # The Fool Phase 2: Игрок — источник приказа, а не цель.
+  87:     # Подчинение чужой воле (identity_deviation) и социальный риск (social_exposure)
+  88:     # испытывает ЦЕЛЬ (NPC), а не ИСТОЧНИК (Игрок).
+  89:     # Для игрока, отдающего приказ, давление минимально, но моральная ответственность остаётся.
+  90:     elif action in (
+  91:         "player_social",
+  92:         "player_moves",
+  93:         "move",
+  94:         "approach",
+  95:         "halt",
+  96:         "order",
+  97:     ):
+  98:         # V8-WL-2 FIX: Приказ насилия/риска несёт моральную ответственность для игрока.
+  99:         _is_order = action == "order"
+  100:         pressure = IntentPressureProfile(
+  101:             identity_deviation=0.05,  # Игрок проявляет агентность, не подчиняется
+  102:             social_exposure=0.05,  # Минимальный социальный фрикшн
+  103:             humiliation=0.0,  # Игрок не унижается, отдавая приказ
+  104:             moral_violation=0.4 if _is_order else 0.0,  # Приказ = моральный выбор
+  105:             self_risk=0.3 if _is_order else 0.0,        # Приказ = ответственность за риск
+  106:         )
+  107: 
+  108:     elif action in (
+  109:         "talk",
+  110:         "player_talks",
+  111:         "player_spoke",
+  112:         "dialogue",
+  113:         "player_interacts",
+  114:         "idle",
+  115:     ):
+  116:         # Разговор обычно безопасен, но зависит от контекста
+  117:         pressure = IntentPressureProfile(
+  118:             identity_deviation=0.05,
+  119:             social_exposure=0.1,
+  120:         )
+  121: 
+  122:     # Модификаторы контекста (если переданы)
+  123:     if context:
+  124:         if context.get("is_desperate"):
+  125:             pressure = IntentPressureProfile(
+  126:                 **{k: getattr(pressure, k) * 0.7 for k in pressure.__dataclass_fields__}
+  127:             )
+  128: 
+  129:     return pressure
+  130: 
+  131: 
+  132: # --- СЛОЙ 2: CUMULATIVE STRAIN MODEL ---
+  133: 
+  134: 
+  135: def compute_willpower(
+  136:     pressure: IntentPressureProfile,
+  137:     # NOTE(mypy): psyche в рантайме несёт non-float поля (trauma_markers: list и т.п.),
+  138:     # контрактен Dict[str, Any], а не Dict[str, float].
+  139:     psyche: Dict[str, Any],
+  140: ) -> WillResponseDTO:
+
+============================================================
+
+6. WillResponseDTO + counter_offer
+
+============================================================
+
+[READ] WillResponseDTO class  backend\app\models\will.py L61-100 (class at L61)
+  61: class WillResponseDTO:
+  62:     """Результат работы WillpowerGate (Cumulative Strain Model)."""
+  63: 
+  64:     state: WillState
+  65:     resistance: float = 0.0  # 0.0-1.0, вычисленная сила сопротивления
+  66:     fear_delta: float = 0.0  # Прирост страха
+  67:     stress_delta: float = 0.0  # Стресс от морального конфликта (0-100 scale)
+  68:     identity_damage: float = 0.0  # Урон идентичности (травма)
+  69:     generated_emotions: List[EmotionPayload] = field(
+  70:         default_factory=list
+  71:     )  # Эмоции конфликта
+  72:     generated_memories: List[Dict[str, Any]] = field(
+  73:         default_factory=list
+  74:     )  # Следы в аффективной памяти
+  75:     counter_offer: Optional[IntentDTO] = None  # Аватар предлагает альтернативу
+  76:     narration_hooks: List[str] = field(default_factory=list)  # Подсказки для LLM
+  77:     origin_layer: OriginLayer = OriginLayer.WILL_CONFLICT  # Источник давления
+  78:     embodied_vector: Optional[EmbodiedVector] = None  # Моторный импульс (для UI)
+  79:     social_signal: Optional[str] = (
+  80:         None  # The Fool Phase 2: Социальный сигнал (для CFRM)
+  81:     )
+  82:     crowd_threat_level: Optional[float] = (
+  83:         None  # The Fool Phase 2: Уровень угрозы для толпы (0.0-1.0)
+  84:     )
+  85: 
+  86: 
+  87: @dataclass(frozen=True)
+  88: class IntentResolution:
+  89:     """Результат Фазы 1: Семантический перевод (ADR-031 Fix).
+  90:     Содержит ТОЛЬКО канонический интент и вектор давления.
+  91:     Вычисление воли (Causal Resolution) перенесено в TickOrchestrator.
+  92:     """
+  93: 
+  94:     original_intent: IntentDTO
+  95:     pressure_profile: IntentPressureProfile = field(
+  96:         default_factory=IntentPressureProfile
+  97:     )
+  98:     movement_request: Optional[Any] = (
+  99:         None  # ADR-O-315: Готовый контракт движения от Слоя 1 (TYPE_CHECKING не нужен, используем Any)
+  100:     )
+
+[SEARCH] counter_offer / WillResponse usage  pattern: /counter_offer|will_response|WillResponse/
+  78 matches:
+  backend\app\models\npc_state.py:154 : COUNTER_OFFER = "counter_offer"  # Аватар предлагает альтернативу выживания
+  backend\app\models\will.py:6 : # Основные сущности: IntentPressureProfile, WillState, WillResponseDTO
+  backend\app\models\will.py:61 : class WillResponseDTO:
+  backend\app\models\will.py:75 : counter_offer: Optional[IntentDTO] = None  # Аватар предлагает альтернативу
+  backend\app\services\phases\input.py:123 : will_response = compute_willpower(distorted_pressure, psyche)
+  backend\app\services\phases\input.py:130 : f"[WILL_TRACE] 3. Will state: {will_response.state.value}, Resistance: {will_response.resistance:.2f}"
+  backend\app\services\phases\input.py:147 : if will_response.state in (
+  backend\app\services\phases\input.py:156 : if will_response.identity_damage > 0:
+  backend\app\services\phases\input.py:163 : identity_integrity_delta=-will_response.identity_damage
+  backend\app\services\phases\input.py:170 : if will_response.state != WillState.COMPLY or will_response.identity_damage > 0:
+  backend\app\services\phases\input.py:177 : state=will_response.state.value,
+  backend\app\services\phases\input.py:178 : resistance=will_response.resistance,
+  backend\app\services\phases\input.py:179 : embodied_vector=will_response.embodied_vector.value  # noqa: ENIGMA001
+  backend\app\services\phases\input.py:180 : if will_response.embodied_vector
+  backend\app\services\phases\input.py:182 : identity_damage=will_response.identity_damage,
+  backend\app\services\phases\input.py:192 : "state": will_response.state.value,
+  backend\app\services\phases\input.py:193 : "resistance": will_response.resistance,
+  backend\app\services\phases\input.py:194 : "embodied_vector": will_response.embodied_vector.value  # noqa: ENIGMA001
+  backend\app\services\phases\input.py:195 : if will_response.embodied_vector
+  backend\app\services\phases\input.py:197 : "counter_offer_text": get_embodied_impulse_text(  # noqa: ENIGMA001
+  backend\app\services\phases\input.py:198 : will_response.embodied_vector
+  backend\app\services\phases\input.py:200 : if will_response.embodied_vector
+  backend\app\services\phases\input.py:204 : f"[WILL] Conflict data written: state={will_response.state.value}, R={will_response.resistance:.2f}"
+  backend\app\services\phases\input.py:209 : f"[WILL] Аватар сопротивляется! State={will_response.state.value}, R={will_response.resistance:.2f}"
+  backend\app\services\phases\input.py:221 : state=will_response.state.value,
+  backend\app\services\phases\input.py:222 : resistance=will_response.resistance,
+  backend\app\services\phases\input.py:223 : embodied_vector=will_response.embodied_vector.value  # noqa: ENIGMA001
+  backend\app\services\phases\input.py:224 : if will_response.embodied_vector
+  backend\app\services\phases\input.py:226 : identity_damage=will_response.identity_damage,
+  backend\app\services\phases\input.py:238 : "state": will_response.state.value,
+  backend\app\services\phases\input.py:239 : "resistance": will_response.resistance,
+  backend\app\services\phases\input.py:240 : "embodied_vector": will_response.embodied_vector.value  # noqa: ENIGMA001
+  backend\app\services\phases\input.py:241 : if will_response.embodied_vector
+  backend\app\services\phases\input.py:243 : "counter_offer_text": get_embodied_impulse_text(  # noqa: ENIGMA001
+  backend\app\services\phases\input.py:244 : will_response.embodied_vector
+  backend\app\services\phases\input.py:246 : if will_response.embodied_vector
+  backend\app\services\phases\input.py:258 : "state": will_response.state.value,
+  backend\app\services\phases\input.py:259 : "resistance": will_response.resistance,
+  backend\app\services\phases\input.py:265 : if will_response.fear_delta > 0:
+  backend\app\services\phases\input.py:272 : stress_delta=will_response.fear_delta * 50, emotion_tag="fear"
+  backend\app\services\phases\input.py:278 : if will_response.stress_delta > 0:
+  backend\app\services\phases\input.py:280 : f"[WILL] Moral stress applied: {will_response.stress_delta:.1f} points (resistance={will_response.resistance:.2f})"
+  backend\app\services\phases\input.py:288 : stress_delta=will_response.stress_delta, emotion_tag="distress"
+  backend\app\services\phases\input.py:295 : if will_response.identity_damage > 0 or resonance.trigger_strength > 0.1:
+  backend\app\services\phases\input.py:302 : imprints, resonance, will_response, intent, current_game_time
+  backend\app\services\affect.py:25 : from app.models.will import IntentPressureProfile, WillResponseDTO, WillState
+  backend\app\services\affect.py:302 : will_response: WillResponseDTO,
+  backend\app\services\affect.py:322 : if will_response.identity_damage > 0:
+  backend\app\services\affect.py:327 : 1.0, imp.reinforcement + 0.15 * will_response.identity_damage
+  backend\app\services\affect.py:340 : if will_response.identity_damage > 0.2 and resonance.trigger_strength < 0.1:
+  backend\app\services\affect.py:345 : is_submissive_state = will_response.state in (
+  backend\app\services\affect.py:368 : fear_signature=will_response.fear_delta,
+  backend\app\services\will.py:20 : WillResponseDTO,
+  backend\app\services\will.py:140 : ) -> WillResponseDTO:
+  backend\app\services\will.py:197 : counter_offer = _generate_counter_offer(pressure, state)
+  backend\app\services\will.py:209 : return WillResponseDTO(
+  backend\app\services\will.py:215 : counter_offer=counter_offer,
+  backend\app\services\will.py:241 : def _generate_counter_offer(
+  backend\tests\pbt\strategies.py:13 : "state": st.sampled_from(["free", "coerced", "deceptive", "loyal", "comply", "reluctant", "delay", "misinterpret", "negotiate", "p...
+  backend\tests\sandbox\sandbox_will_vertical.py:6 : и генерацией артефактов конфликта (narration_hooks, counter_offer).
+  backend\tests\sandbox\sandbox_will_vertical.py:41 : WillResponseDTO,
+  backend\tests\sandbox\sandbox_will_vertical.py:78 : def simulate_will_tick(tick_num: int, action: str, psyche: Dict[str, float]) -> WillResponseDTO:
+  backend\tests\sandbox\sandbox_will_vertical.py:91 : will_response = compute_willpower(pressure, psyche)
+  backend\tests\sandbox\sandbox_will_vertical.py:93 : log.info(f"[WILL] Result: State={will_response.state.value}, Resistance={will_response.resistance:.2f}")
+  backend\tests\sandbox\sandbox_will_vertical.py:95 : if will_response.narration_hooks:
+  backend\tests\sandbox\sandbox_will_vertical.py:96 : log.info(f"[WILL] Narration Hooks: {will_response.narration_hooks}")
+  backend\tests\sandbox\sandbox_will_vertical.py:97 : if will_response.counter_offer:
+  backend\tests\sandbox\sandbox_will_vertical.py:98 : log.info(f"[WILL] Counter-Offer: {will_response.counter_offer.action}")
+  backend\tests\sandbox\sandbox_will_vertical.py:102 : if will_response.state not in (WillState.COMPLY, WillState.RELUCTANT):
+  backend\tests\sandbox\sandbox_will_vertical.py:105 : "state": will_response.state.value,
+  backend\tests\sandbox\sandbox_will_vertical.py:106 : "resistance": will_response.resistance,
+  backend\tests\sandbox\sandbox_will_vertical.py:107 : "narration_hooks": will_response.narration_hooks,
+  backend\tests\sandbox\sandbox_will_vertical.py:108 : "counter_offer_action": will_response.counter_offer.action if will_response.counter_offer else None,
+  backend\tests\sandbox\sandbox_will_vertical.py:112 : return will_response
+  backend\tests\sandbox\sandbox_will_vertical.py:149 : assert p5.counter_offer is not None, "При диссоциации аватар должен предлагать альтернативу (counter_offer)"
+  backend\tests\test_will.py:77 : def test_counter_offer_on_resistance(self):
+  backend\tests\test_will.py:83 : assert response.counter_offer is not None
+  backend\tests\test_will.py:84 : assert response.counter_offer.action == "flee"
+
+============================================================
+
+7. Context from Blockers 5-7 (reuse)
+
+============================================================
+
+Blocker 5 (integrate_affective_pressure): module-level at affective_integrator.py:27
+
+  Inputs: PerceptualKernel + psyche Dict; 2 call sites; AffectiveImprint frozen dataclass
+
+Blocker 6 (scan_affective_resonance): affect.py:33, ONLY called from phases/input.py:119 (player)
+
+  psych_pressure=None; NOT called for NPC/Avatar ticks
+
+Blocker 7 (BeliefCrystallizationEngine): belief_crystallization_engine.py:35
+
+  crystallize(evidence_list, drives_base, existing_beliefs, tick); TRAUMA_MULTIPLIER x6 bug
+
+
+
+

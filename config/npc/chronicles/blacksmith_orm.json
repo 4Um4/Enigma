@@ -1014,7 +1014,9 @@
       },
       "object_id": null,
       "payload": {
-        "statement": "Борко думает, что он хозяин."
+        "statement": "Борко думает, что он хозяин.",
+        "_architectural_pending": "THEORY_OF_MIND",
+        "_note": "Чужое убеждение о себе. Не подходит под BELIEF_SEED (danger/player_hostile) — это не убеждение Орма о мире. Требует ToM-механизма для runtime. Сохранено как нерешённое семантическое утверждение."
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",

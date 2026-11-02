@@ -5,8 +5,8 @@
       "trait": "гном",
       "evidence": "кузнец Орм: гном"
     },
-    "confidence": 1.0,
-    "needs_confirmation": false,
+    "confidence": 0.5,
+    "needs_confirmation": true,
     "question": null
   }
 ]

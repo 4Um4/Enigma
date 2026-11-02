@@ -1,0 +1,255 @@
+﻿============================================================
+
+STAGE 1.2 - INTENTION CONTRACT REFINEMENT (NEW DATA)
+
+Mode: READ ONLY - per Master verdict
+
+Identity Contract APPROVED: 4 fields semantic
+
+R5.4 IntentionLifecycleState: ACTIVE/SUSPENDED/SATISFIED/ABANDONED/SUPERSEDED/VOIDED
+
+Principle: IGROK = PARAZIT zakhvativshiy telo nositelya
+
+Generated: 2026-11-02 18:18:56
+
+============================================================
+
+============================================================
+
+1. TaskScheduler (execution binding for non-attack intents)
+
+============================================================
+
+[READ] TaskScheduler class  backend\app\services\game_loop\task_scheduler.py L52-111 (class at L52)
+  52: class TaskScheduler:
+  53:     """
+  54:     Инфраструктурный компонент. Живёт в game_loop.
+  55:     Читает scene_state["pending_tasks"], вызывает исполнителей, генерирует события.
+  56:     """
+  57: 
+  58:     def __init__(self, router: Any = None, context_provider: Any = None, economy_tracker: Any = None, belief_store: Any = None, memory_manager: Any = None, confession_parser: Any = None, npc_states_provider: Any = None) -> None:
+  59:         from app.services.execution.npc_conversation import NpcConversation
+  60:         self._executors: Dict[TaskKind, TaskExecutor] = {
+  61:             TaskKind.DIALOGUE: DialogueExecutor(router, context_provider, belief_store=belief_store, memory_manager=memory_manager, confession_parser=confession_parser)
+  62:         }
+  63:         # ADR-O-342: Сохраняем для проверки STM при резолве цели
+  64:         self._memory_manager = memory_manager
+  65:         # B (пункт 10, решение Мастера 2026-09-11): провайдер NPC-статов для
+  66:         # liveness-гейта диалоговых задач (Callable[[campaign_id], list[dict]]).
+  67:         # None = гейт выключен (fail-open) — sandbox/тесты без wiring как раньше.
+  68:         self._npc_states_provider = npc_states_provider
+  69:         # Блокер 5: Sims-слой для ambient-диалогов без LLM
+  70:         self._ambient_executor: NpcConversation = NpcConversation()
+  71:         self._materializers: Dict[str, Materializer] = {
+  72:             "dialogue_line": DialogueMaterializer()
+  73:         }
+  74:         # BUG-N8 FIX: Инъекция EconomyTracker для трекинга разговоров
+  75:         self._economy_tracker = economy_tracker
+  76:         # BUG-DL-12: Кэш последних реплик для Speech Bubbles (TTL 180 сек игрового времени)
+  77:         self._recent_dialogues: list = []
+  78:         self._dialogue_ttl = _DIALOGUE_TTL
+  79:         # ADR-O-343 FIX: Блокировка для защиты _recent_dialogues от гонки с ThreadPoolExecutor
+  80:         import threading
+  81:         self._dialogue_lock = threading.Lock()
+  82:         # P1 FIX: Асинхронный пул для неблокирающего выполнения LLM
+  83:         # ADR-O-343 FIX: Сериализация LLM-вызовов (max_workers=1).
+  84:         # router.py не поддерживает concurrency > 1 (aborting stuck request bug).
+  85:         # SpeechScheduler гарантирует отсутствие спама, поэтому 1 поток безопасен и стабилен.
+  86:         self._executor_pool = ThreadPoolExecutor(max_workers=1)
+  87:         # ADR-O-342: Счётчик тихих отказов (для Causal Probes / IPT)
+  88:         self.failed_tasks = 0
+  89:         # ADR-O-399: Task Worker Outbox. Lifetime = от submit до первой
+  90:         # разрешённой drain boundary (может пересекать несколько тиков —
+  91:         # completion-время воркера не является канонической категорией).
+  92:         # Писатель push — воркер (под локом), потребитель — main-thread drain.
+  93:         self._task_outbox: list = []
+  94:         self._task_outbox_lock = threading.Lock()
+  95:         # ADR-O-343: Счётчик всех задач, попавших в обработку (для IPT INV-DIALOGUE-INIT)
+  96:         self.total_processed_tasks = 0
+  97:         self._spatial_query_service = None
+  98:         from app.services.execution.dialogue_queue import DialogueQueue
+  99:         self._dialogue_queue = DialogueQueue()
+  100:         # S262: множество enqueue-дедупа (speaker, intent) — см. DLG_ENQ_DEDUP
+  101:         self._enqueued_keys: set = set()
+  102:         # S203.4 (ADR-O-365, D-2): outbox терминалов task-исполнителя.
+  103:         # Воркеры пула НИКОГДА не пишут реестр (single-writer); sync-применение —
+  104:         # drain_commitment_outbox (вход execute_pending + безусловно из idle_tick).
+  105:         self._commitment_outbox: list = []
+  106:         self._commitment_outbox_lock = threading.Lock()
+  107:         logger.info("[TASK_SCHED] DialogueQueue initialized")
+  108: 
+  109:     def _owner_is_dead(self, campaign_id: str, owner_id: str) -> bool:
+  110:         """B (пункт 10): True только при доказанном life_status=DEAD владельца
+  111:         задачи — канонический ADR-O-365 terminal-mapping «actor DEAD → EXPIRED»
+
+[SEARCH] QueuedTask / TaskKind / TaskPriority  pattern: /class QueuedTask\b|class TaskKind\b|class TaskPriority\b/
+  3 matches:
+  backend\app\domain\execution.py:20 : class TaskKind(Enum):
+  backend\app\domain\execution.py:37 : class TaskPriority(Enum):
+  backend\app\domain\execution.py:50 : class QueuedTask:
+
+============================================================
+
+2. R5.4 PROPOSED mechanisms (verify absence in production)
+
+============================================================
+
+[SEARCH] IntentionLifecycleState (R5.4: 6 states)  pattern: /IntentionLifecycleState|intention_lifecycle/
+  (no matches)
+
+[SEARCH] ExecutionLifecycleState (R5.4: with CANCELLED)  pattern: /ExecutionLifecycleState|execution_lifecycle/
+  (no matches)
+
+[SEARCH] BodyArbiter (R5.4 v4)  pattern: /BodyArbiter|body_arbiter/
+  (no matches)
+
+[SEARCH] IntentionRelevanceChecker (R5.4)  pattern: /IntentionRelevanceChecker|intention_relevance/
+  (no matches)
+
+[SEARCH] AvatarInitiativeEngine (R5.1)  pattern: /AvatarInitiativeEngine|avatar_initiative/
+  5 matches:
+  backend\app\domain\intent_identity.py:25 : control_source: PLAYER_INPUT | NPC_DECISION | AVATAR_INITIATIVE
+  backend\app\domain\intent_identity.py:59 : def for_avatar_initiative(cls, character_id: str) -> "IntentIdentity":
+  backend\app\domain\intent_identity.py:65 : control_source = AVATAR_INITIATIVE
+  backend\app\domain\intent_identity.py:71 : control_source=ControlSource.AVATAR_INITIATIVE,
+  backend\app\services\avatar_character_registry.py:6 : Позволяет Avatar действовать автономно (AVATAR_INITIATIVE).
+
+[SEARCH] IntentPressureProfile (R5.1)  pattern: /IntentPressureProfile|intent_pressure/
+  64 matches:
+  backend\app\models\affect.py:30 : # Семантические теги события (для резонанса с IntentPressureProfile)
+  backend\app\models\will.py:6 : # Основные сущности: IntentPressureProfile, WillState, WillResponseDTO
+  backend\app\models\will.py:41 : class IntentPressureProfile:
+  backend\app\models\will.py:95 : pressure_profile: IntentPressureProfile = field(
+  backend\app\models\will.py:96 : default_factory=IntentPressureProfile
+  backend\app\services\game_loop\phase_1_input.py:39 : from app.services.will import resolve_intent_pressure
+  backend\app\services\game_loop\phase_1_input.py:369 : # TODO: В будущем resolve_intent_pressure должен принимать IntentSemanticField,
+  backend\app\services\game_loop\phase_1_input.py:371 : pressure = resolve_intent_pressure(intent)
+  backend\app\services\phases\input.py:100 : # Повторный вызов resolve_intent_pressure ЗАПРЕЩЕН (каузальная integrity)
+  backend\app\services\phases\input.py:101 : from app.services.will import compute_willpower, resolve_intent_pressure
+  backend\app\services\phases\input.py:105 : ctx.player_pressure = resolve_intent_pressure(intent)
+  backend\app\services\affect.py:25 : from app.models.will import IntentPressureProfile, WillResponseDTO, WillState
+  backend\app\services\affect.py:144 : base_pressure: IntentPressureProfile,
+  backend\app\services\affect.py:147 : ) -> IntentPressureProfile:
+  backend\app\services\affect.py:215 : return IntentPressureProfile(
+  backend\app\services\dto.py:23 : from app.models.will import IntentPressureProfile
+  backend\app\services\dto.py:190 : player_pressure: Optional["IntentPressureProfile"] = (
+  backend\app\services\will.py:6 : # Основные сущности: resolve_intent_pressure, compute_willpower
+  backend\app\services\will.py:19 : IntentPressureProfile,
+  backend\app\services\will.py:29 : def resolve_intent_pressure(
+  backend\app\services\will.py:32 : ) -> IntentPressureProfile:
+  backend\app\services\will.py:38 : pressure = IntentPressureProfile()
+  backend\app\services\will.py:55 : pressure = IntentPressureProfile(
+  backend\app\services\will.py:64 : pressure = IntentPressureProfile(
+  backend\app\services\will.py:71 : pressure = IntentPressureProfile(
+  backend\app\services\will.py:79 : pressure = IntentPressureProfile(
+  backend\app\services\will.py:100 : pressure = IntentPressureProfile(
+  backend\app\services\will.py:117 : pressure = IntentPressureProfile(
+  backend\app\services\will.py:125 : pressure = IntentPressureProfile(
+  backend\app\services\will.py:136 : pressure: IntentPressureProfile,
+  backend\app\services\will.py:242 : pressure: IntentPressureProfile, state: WillState
+  backend\app\services\will.py:268 : state: WillState, pressure: IntentPressureProfile
+  backend\app\services\will.py:304 : pressure: IntentPressureProfile, state: WillState
+  backend\app\services\will.py:349 : base_pressure: IntentPressureProfile, tags: list[str]
+  backend\app\services\will.py:350 : ) -> IntentPressureProfile:
+  backend\app\services\will.py:364 : deltas = {k: 0.0 for k in IntentPressureProfile.__dataclass_fields__}
+  backend\app\services\will.py:369 : return IntentPressureProfile(
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:11 : from app.models.will import IntentPressureProfile
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:12 : from app.services.will import resolve_intent_pressure
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:17 : pressure_1 = resolve_intent_pressure(intent_approach)
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:18 : assert isinstance(pressure_1, IntentPressureProfile)
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:21 : pressure_2 = resolve_intent_pressure(intent_halt)
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:23 : pressure_3 = resolve_intent_pressure(intent_approach)
+  backend\tests\sandbox\phenomenology\test_will_directive_conflict.py:11 : from app.services.will import resolve_intent_pressure
+  backend\tests\sandbox\phenomenology\test_will_directive_conflict.py:16 : _pressure_move = resolve_intent_pressure(intent_move)
+  backend\tests\sandbox\phenomenology\test_will_directive_conflict.py:20 : pressure_defy = resolve_intent_pressure(intent_defy)
+  backend\tests\sandbox\sandbox_sprint_27.py:60 : class IntentPressureProfile:
+  backend\tests\sandbox\sandbox_sprint_27.py:87 : def _resolve_embodied_vector(pressure: IntentPressureProfile, state: WillState) -> Optional[EmbodiedVector]:
+  backend\tests\sandbox\sandbox_sprint_27.py:173 : p1 = IntentPressureProfile(self_risk=0.8)
+  backend\tests\sandbox\sandbox_sprint_27.py:181 : p2 = IntentPressureProfile(violence=0.9)
+  backend\tests\sandbox\sandbox_sprint_27.py:189 : p3 = IntentPressureProfile(humiliation=0.8)
+  backend\tests\sandbox\sandbox_sprint_27.py:197 : p4 = IntentPressureProfile()
+  backend\tests\sandbox\sandbox_will_vertical.py:44 : from app.services.will import compute_willpower, resolve_intent_pressure
+  backend\tests\sandbox\sandbox_will_vertical.py:84 : pressure = resolve_intent_pressure(intent)
+  backend\tests\test_will.py:15 : from app.models.will import IntentPressureProfile, WillState
+  backend\tests\test_will.py:16 : from app.services.will import compute_willpower, resolve_intent_pressure
+  backend\tests\test_will.py:24 : pressure = resolve_intent_pressure(intent)
+  backend\tests\test_will.py:30 : pressure = resolve_intent_pressure(intent)
+  backend\tests\test_will.py:36 : pressure = resolve_intent_pressure(intent)
+  backend\tests\test_will.py:46 : pressure = IntentPressureProfile(self_risk=0.8)
+  backend\tests\test_will.py:54 : pressure = IntentPressureProfile(violence=0.8, identity_deviation=0.5)
+  backend\tests\test_will.py:63 : pressure = IntentPressureProfile(humiliation=0.8, identity_deviation=0.7)
+  backend\tests\test_will.py:71 : pressure = IntentPressureProfile()
+  backend\tests\test_will.py:79 : pressure = IntentPressureProfile(violence=0.9)
+
+[SEARCH] PlayerIntent (R5.4 BodyArbiter input)  pattern: /PlayerIntent|player_intent/
+  67 matches:
+  backend\app\agents\dm_agent.py:705 : Источник — player_intent_projection (результат Understanding:
+  backend\app\agents\dm_agent.py:710 : _proj = (context or {}).get("player_intent_projection") or {}
+  backend\app\domain\intent_profile.py:48 : Вычисляется ТОЛЬКО на границе resolve_player_intent — ПОСЛЕ резолва ссылок
+  backend\app\models\schemas.py:82 : player_intent_projection: Optional[Dict[str, Any]] = None
+  backend\app\services\game_loop\dm_phase.py:297 : shared_context.player_intent_projection = build_intent_projection(
+  backend\app\services\game_loop\game_loop.py:1690 : player_intent_projection=_intent_projection,
+  backend\app\services\game_loop\game_loop.py:2005 : player_intent_projection=_intent_projection,
+  backend\app\services\game_loop\phase_1_input.py:10 : Основные сущности: resolve_player_intent, publish_player_action, publish_player_speech
+  backend\app\services\game_loop\phase_1_input.py:276 : def resolve_player_intent(
+  backend\app\services\game_loop\phase_1_input.py:396 : Читает frozen IntentResolution (создаётся в resolve_player_intent ДО
+  backend\app\services\game_loop\phase_1_input.py:619 : # resolve_player_intent (после резолва ссылок).
+  backend\app\services\game_loop\turn_pipeline.py:32 : resolve_player_intent,
+  backend\app\services\game_loop\turn_pipeline.py:405 : _resolution = resolve_player_intent(
+  backend\app\services\phases\input.py:5 : Основные сущности: Phase1InputDeps, run_phase_1_input, publish_player_intent
+  backend\app\services\phases\input.py:25 : def publish_player_intent(ctx: _TickContext, intent: Any) -> None:
+  backend\app\services\phases\input.py:64 : f"[WILL_TRACE] _phase_1_input CALLED. Has intent: {ctx.player_intent is not None}"
+  backend\app\services\phases\input.py:67 : if not ctx.player_intent:
+  backend\app\services\phases\input.py:70 : intent = ctx.player_intent
+  backend\app\services\phases\input.py:92 : publish_player_intent(ctx, intent)
+  backend\app\services\phases\input.py:153 : publish_player_intent(ctx, intent)
+  backend\app\services\dto.py:188 : player_intent: Optional["IntentDTO"] = None  # ADR-031: Канонический интент
+  backend\app\services\tick_orchestrator.py:1402 : def _player_intent_readiness(self, ctx: _TickContext, interv: Any) -> "str | None":
+  backend\app\services\tick_orchestrator.py:1464 : _ue_readiness = self._player_intent_readiness(ctx, interv)
+  backend\app\services\tick_orchestrator.py:2010 : # S118 FIX: Удалена мёртвая заглушка _publish_player_intent (Vulture).
+  backend\app\services\tick_utils.py:451 : # Извлекаем player_intent (IntentDTO) из interventions (если есть действие игрока)
+  backend\app\services\tick_utils.py:452 : _player_intent = None
+  backend\app\services\tick_utils.py:466 : _player_intent = IntentDTO(
+  backend\app\services\tick_utils.py:488 : player_intent=_player_intent,
+  backend\tests\micro\test_dm_raw_leak_lock.py:37 : {"player_intent_projection": _projection(
+  backend\tests\micro\test_dm_raw_leak_lock.py:48 : {"player_intent_projection": _projection(
+  backend\tests\sandbox\micro\test_multi_act.py:5 : Основные сущности: resolve_player_intent, IntentSemanticField
+  backend\tests\sandbox\micro\test_multi_act.py:10 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\micro\test_multi_act.py:18 : return resolve_player_intent(
+  backend\tests\sandbox\micro\test_player_intent_projection.py:2 : path: backend/tests/sandbox/micro/test_player_intent_projection.py
+  backend\tests\sandbox\micro\test_player_intent_projection.py:5 : Основные сущности: build_intent_projection, resolve_player_intent
+  backend\tests\sandbox\micro\test_player_intent_projection.py:7 : Запуск: cd backend; python -m pytest tests/sandbox/micro/test_player_intent_projection.py -v --tb=short; cd ..
+  backend\tests\sandbox\micro\test_player_intent_projection.py:15 : resolve_player_intent,
+  backend\tests\sandbox\micro\test_player_intent_projection.py:40 : return resolve_player_intent(
+  backend\tests\sandbox\micro\test_player_intent_projection.py:89 : resolution = resolve_player_intent(
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:22 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:46 : return resolve_player_intent(
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:86 : self_stub._player_intent_readiness = (
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:87 : lambda ctx, interv: TickOrchestrator._player_intent_readiness(self_stub, ctx, interv)
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:149 : self_stub._player_intent_readiness = (
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:150 : lambda ctx, interv: TickOrchestrator._player_intent_readiness(self_stub, ctx, interv)
+  backend\tests\sandbox\micro\test_ue_dm_rule.py:29 : return {"player_intent_projection": {
+  backend\tests\sandbox\micro\test_ue_safety_red.py:13 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\micro\test_ue_safety_red.py:30 : res = resolve_player_intent(
+  backend\tests\sandbox\micro\test_ue_safety_red.py:43 : res = resolve_player_intent(
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:18 : resolve_player_intent,
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:33 : """Фабрика (§13.4): живой IntentResolution через resolve_player_intent."""
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:34 : return resolve_player_intent(
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:5 : Основные сущности: resolve_player_intent
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:11 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:27 : resolution = resolve_player_intent(
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:44 : resolution = resolve_player_intent(
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:59 : resolution = resolve_player_intent(
+  backend\tests\sandbox\SUPERBOX\scenarios\ue0_baseline_probe.py:119 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\SUPERBOX\scenarios\ue0_baseline_probe.py:120 : resolution = resolve_player_intent(
+  backend\tests\sandbox\SUPERBOX\run_terminal_mvp.py:191 : _pip = getattr(response, "player_intent_projection", "<NO_FIELD>")
+  backend\tests\sandbox\test_causal_movement.py:17 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\test_causal_movement.py:36 : resolution = resolve_player_intent(
+  backend\tests\IPT.py:409 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\IPT.py:429 : # resolve_player_intent возвращает словарь с pressure и intent
+  backend\tests\IPT.py:430 : _intent_data = resolve_player_intent([action], world.campaign_id, world._get_scene())
+  backend\tests\IPT.py:436 : f"Игрок→NPC: resolve_player_intent вернул пустой результат для цели {target_npc}. Ввод игрока не обрабатывается.",
+  backend\tests\IPT.py:444 : f"Игрок→NPC: resolve_player_intent упал с ошибкой: {e}",
+
+============================================================
+

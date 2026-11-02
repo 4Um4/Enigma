@@ -1,0 +1,630 @@
+
+
+========== 01-RESOURCE_RECORD_AND_API grep ==========
+frontend\map_editor\assets\asset_store.py:14: Основные сущности: AssetStore, BlueprintRecord, ResourceRecord, AssetStoreError.
+frontend\map_editor\assets\asset_store.py:147: class ResourceRecord:
+frontend\map_editor\assets\asset_store.py:176: self._resources: Dict[str, ResourceRecord] = {}
+frontend\map_editor\assets\asset_store.py:191: self._resources.clear()
+frontend\map_editor\assets\asset_store.py:215: len(self._resources),
+frontend\map_editor\assets\asset_store.py:225: def get_resource(self, resource_id: str) -> Optional[ResourceRecord]:
+frontend\map_editor\assets\asset_store.py:226: return self._resources.get(resource_id)
+frontend\map_editor\assets\asset_store.py:228: def list_resources(self) -> List[str]:
+frontend\map_editor\assets\asset_store.py:229: return sorted(self._resources.keys())
+frontend\map_editor\assets\asset_store.py:233: return len(self._blueprints), len(self._resources), len(self._overrides)
+frontend\map_editor\assets\asset_store.py:352: test_store._resources = {}
+frontend\map_editor\assets\asset_store.py:396: _old_resources = dict(self._resources)
+frontend\map_editor\assets\asset_store.py:415: self._resources = _old_resources
+frontend\map_editor\assets\asset_store.py:526: test_store._resources = {}
+frontend\map_editor\assets\asset_store.py:556: _old_resources = dict(self._resources)
+frontend\map_editor\assets\asset_store.py:568: self._resources = _old_resources
+frontend\map_editor\assets\asset_store.py:662: record = ResourceRecord(resource_id=rel.as_posix(), version=1, source=source, path=path)
+frontend\map_editor\assets\asset_store.py:663: existing = self._resources.get(record.resource_id)
+frontend\map_editor\assets\asset_store.py:665: self._resources[record.resource_id] = record
+frontend\map_editor\assets\asset_store.py:671: self._resources[record.resource_id] = record
+frontend\map_editor\assets\resource_resolver.py:7: - AssetStore владеет зарегистрированными ресурсами (ResourceRecord.path).
+frontend\map_editor\assets\resource_resolver.py:15: 1. AssetStore.get_resource(resource_id) — campaign override если есть,
+frontend\map_editor\assets\resource_resolver.py:16: иначе global. Возвращает ResourceRecord.path (не конструирует путь).
+frontend\map_editor\assets\resource_resolver.py:162: """Канонический resolver: AssetStore → ResourceRecord.path.
+frontend\map_editor\assets\resource_resolver.py:165: 1. AssetStore.get_resource(resource_id) — campaign override если есть,
+frontend\map_editor\assets\resource_resolver.py:166: иначе global. Возвращает ResourceRecord.path.
+frontend\map_editor\assets\resource_resolver.py:170: Возвращает ResourceRecord.path, не конструирует путь самостоятельно
+frontend\map_editor\assets\resource_resolver.py:187: get_resource(resource_id) -> ResourceRecord | None.
+frontend\map_editor\assets\resource_resolver.py:188: ResourceRecord должен иметь атрибут path (Path).
+frontend\map_editor\assets\resource_resolver.py:203: 1. AssetStore.get_resource(resource_id) → ResourceRecord.path
+frontend\map_editor\assets\resource_resolver.py:211: record = self._store.get_resource(resource_id)
+frontend\map_editor\assets\resource_validator.py:91: L2 _check_resources всегда вызывает resolve().
+frontend\map_editor\assets\resource_validator.py:109: self._check_resources(bp_data, result)
+frontend\map_editor\assets\resource_validator.py:180: def _check_resources(self, data: dict, result: ValidationResult) -> None:
+frontend\map_editor\assets\__init__.py:5: Основные сущности: реэкспорт AssetStore, AssetStoreError, BlueprintRecord, ResourceRecord.
+frontend\map_editor\assets\__init__.py:8: from .asset_store import AssetStore, AssetStoreError, BlueprintRecord, ResourceRecord
+frontend\map_editor\assets\__init__.py:10: __all__ = ["AssetStore", "AssetStoreError", "BlueprintRecord", "ResourceRecord"]
+frontend\map_editor\tests\test_me21_g1_write_api.py:132: store._resources.clear()
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:10: - Возврат ResourceRecord.path, не самостоятельное конструирование пути.
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:40: class _FakeResourceRecord:
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:41: """Duck-typed ResourceRecord для тестов (как asset_store.py:154-163)."""
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:50: """Duck-typed AssetStore: get_resource(resource_id) → record или None.
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:52: Воспроизводит контракт asset_store.py:213 (get_resource). Реальная
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:57: def __init__(self, records: dict[str, _FakeResourceRecord] | None = None) -> None:
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:58: self._records: dict[str, _FakeResourceRecord] = dict(records or {})
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:60: def get_resource(self, resource_id: str) -> _FakeResourceRecord | None:
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:63: def add_record(self, record: _FakeResourceRecord) -> None:
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:351: """Контракт: canonical resolution через AssetStore → ResourceRecord.path."""
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:354: """AssetStore.get_resource возвращает global record → вернуть record.path."""
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:361: "furniture/chair": _FakeResourceRecord(
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:385: "chair": _FakeResourceRecord(
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:413: "chair": _FakeResourceRecord(
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:432: ResourceResolver делегирует в get_resource, который уже возвращает
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:446: # AssetStore.get_resource("chair") возвращает campaign (override уже применён)
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:449: "chair": _FakeResourceRecord(
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:472: "chair": _FakeResourceRecord(
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:533: store1 = _FakeAssetStore({"chair": _FakeResourceRecord("chair", 1, "global:base", store1_path)})
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:534: store2 = _FakeAssetStore({"chair": _FakeResourceRecord("chair", 1, "global:base", store2_path)})
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:577: но корректно вызывает get_resource и читает record.path.
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:624: def test_resolve_with_real_store_having_resources(self, tmp_path):
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:657: assert "furniture/chair" in store.list_resources()
+frontend\map_editor\tests\test_me21_h1_resource_resolver.py:929: """Step 3: L2 _check_resources использует resolver.resolve (единый механизм).
+
+========== 02-RESOURCE_TESTS grep ==========
+--- test_me21_catalog_ui.py ---
+  24: _PIXELS_DIR = map_editor_root / "pixels"
+  28: return CatalogPanel(0, 80, 250, 600, _ASSETS_DIR, _PIXELS_DIR)
+--- test_me21_g10_e2e.py ---
+  26: from assets.resource_validator import ResourceValidator  # noqa: E402
+  35: pixels_dir = tmp_path / "pixels"
+  36: pixels_dir.mkdir()
+  37: (pixels_dir / "Deadbeat").mkdir()
+  38: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  42: validator = ResourceValidator(pixels_dir)
+  50: "pixels_dir": pixels_dir,
+--- test_me21_g1_write_api.py ---
+  41: from assets.resource_validator import ResourceValidator  # noqa: E402
+  52: # pixels_dir для L2 validation (sprite file exists)
+  53: pixels_dir = tmp_path / "pixels"
+  54: pixels_dir.mkdir()
+  55: (pixels_dir / "Deadbeat").mkdir()
+  56: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  62: validator = ResourceValidator(pixels_dir)
+  69: "pixels_dir": pixels_dir,
+  132: store._resources.clear()
+--- test_me21_g2_edit_session.py ---
+  49: from assets.resource_validator import ResourceValidator  # noqa: E402
+  60: pixels_dir = tmp_path / "pixels"
+  61: pixels_dir.mkdir()
+  62: (pixels_dir / "Deadbeat").mkdir()
+  63: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  69: validator = ResourceValidator(pixels_dir)
+  76: "pixels_dir": pixels_dir,
+--- test_me21_g3_inspector.py ---
+  37: from assets.resource_validator import ResourceValidator  # noqa: E402
+  48: pixels_dir = tmp_path / "pixels"
+  49: pixels_dir.mkdir()
+  50: (pixels_dir / "Deadbeat").mkdir()
+  51: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  57: validator = ResourceValidator(pixels_dir)
+  64: "pixels_dir": pixels_dir,
+--- test_me21_g4_editor.py ---
+  35: from assets.resource_validator import ResourceValidator  # noqa: E402
+  46: pixels_dir = tmp_path / "pixels"
+  47: pixels_dir.mkdir()
+  48: (pixels_dir / "Deadbeat").mkdir()
+  49: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  55: validator = ResourceValidator(pixels_dir)
+  62: "pixels_dir": pixels_dir,
+--- test_me21_g5_categories.py ---
+  36: from assets.resource_validator import ResourceValidator  # noqa: E402
+  47: pixels_dir = tmp_path / "pixels"
+  48: pixels_dir.mkdir()
+  49: (pixels_dir / "Deadbeat").mkdir()
+  50: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  56: validator = ResourceValidator(pixels_dir)
+  65: "pixels_dir": pixels_dir,
+--- test_me21_g6_metadata.py ---
+  37: from assets.resource_validator import ResourceValidator  # noqa: E402
+  47: pixels_dir = tmp_path / "pixels"
+  48: pixels_dir.mkdir()
+  49: (pixels_dir / "Deadbeat").mkdir()
+  50: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  56: validator = ResourceValidator(pixels_dir)
+  63: "pixels_dir": pixels_dir,
+--- test_me21_g7_history_override.py ---
+  35: from assets.resource_validator import ResourceValidator  # noqa: E402
+  52: pixels_dir = tmp_path / "pixels"
+  53: pixels_dir.mkdir()
+  54: (pixels_dir / "Deadbeat").mkdir()
+  55: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  71: validator = ResourceValidator(pixels_dir)
+  80: "pixels_dir": pixels_dir,
+--- test_me21_g8_new_from.py ---
+  20: from assets.resource_validator import ResourceValidator  # noqa: E402
+  29: pixels_dir = tmp_path / "pixels"
+  30: pixels_dir.mkdir()
+  31: (pixels_dir / "Deadbeat").mkdir()
+  32: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  36: validator = ResourceValidator(pixels_dir)
+--- test_me21_g9_propagation.py ---
+  33: from assets.resource_validator import ResourceValidator  # noqa: E402
+  43: pixels_dir = tmp_path / "pixels"
+  44: pixels_dir.mkdir()
+  45: (pixels_dir / "Deadbeat").mkdir()
+  46: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  52: validator = ResourceValidator(pixels_dir)
+  59: "pixels_dir": pixels_dir,
+--- test_me21_h1_resource_resolver.py ---
+  1: """ME-2.1-H-1 Step 1: ResourceResolver contract tests.
+  3: Тестирует только assets/resource_resolver.py (LegacyDirResolver + ResourceResolver).
+  4: SpriteRegistry / ResourceValidator / editor_core wiring — отдельные шаги.
+  7: - LegacyDirResolver: R2 (path traversal), R3 (точная legacy-семантика .png).
+  8: - ResourceResolver: canonical (AssetStore), campaign override, legacy fallback, None.
+  10: - Возврат ResourceRecord.path, не самостоятельное конструирование пути.
+  31: from assets.resource_resolver import LegacyDirResolver, ResourceResolver  # noqa: I001
+  40: class _FakeResourceRecord:
+  41: """Duck-typed ResourceRecord для тестов (как asset_store.py:154-163)."""
+  43: resource_id: str
+  50: """Duck-typed AssetStore: get_resource(resource_id) → record или None.
+  52: Воспроизводит контракт asset_store.py:213 (get_resource). Реальная
+  54: _register_resource; здесь она эмулируется словарём.
+  57: def __init__(self, records: dict[str, _FakeResourceRecord] | None = None) -> None:
+  58: self._records: dict[str, _FakeResourceRecord] = dict(records or {})
+  60: def get_resource(self, resource_id: str) -> _FakeResourceRecord | None:
+  61: return self._records.get(resource_id)
+  63: def add_record(self, record: _FakeResourceRecord) -> None:
+  64: self._records[record.resource_id] = record
+  69: pixels/Deadbeat/deadbeat_b.png
+  70: pixels/textures/Растения.png  (кириллица)
+  71: pixels/текстуры/пол/утоптанная земля.png  (кириллица + пробел)
+  72: pixels/deadbeat_a.png  (без поддиректории)
+  76: (root / "Deadbeat" / "deadbeat_b.png").write_bytes(b"PNG")
+  78: (root / "textures" / "Растения.png").write_bytes(b"PNG")
+  80: (root / "текстуры" / "пол" / "утоптанная земля.png").write_bytes(b"PNG")
+  81: (root / "deadbeat_a.png").write_bytes(b"PNG")
+  86: """Создать assets/.../resources/ дерево для canonical тестов:
+  87: assets/catalogs/base/resources/furniture/chair.png
+  88: assets/Open_road/resources/furniture/chair.png  (campaign override)
+  91: g = base / "catalogs" / "base" / "resources" / "furniture"
+  93: (g / "chair.png").write_bytes(b"PNG-global")
+  94: c = base / "Open_road" / "resources" / "furniture"
+  96: (c / "chair.png").write_bytes(b"PNG-campaign")
+  109: """Deadbeat/deadbeat_b → pixels/Deadbeat/deadbeat_b.png (добавлено .png)."""
+  114: assert result.name == "deadbeat_b.png"
+  118: """Файл без расширения: resource_id как полный путь к файлу.
+  120: R3 шаг 1: проверить файл без расширения ПЕРЕД добавлением .png.
+  131: """R3: если есть и noext и .png — возвращается noext (шаг 1 раньше шага 2).
+  134: path (без .png), потом path + ".png". Если есть оба — noext выигрывает.
+  139: (root / "sprite.png").write_bytes(b"png")  # шаг 2
+  156: """resource_id = "/" → после strip("/") → пусто → None."""
+  168: assert result.name == "deadbeat_b.png"
+  178: assert result.name == "deadbeat_b.png"
+  182: """R2/R3: кириллица в resource_id."""
+  198: assert "утоптанная земля.png" in result.name
+  258: assert r.resolve("../secret") is None  # + .png тоже не должен сработать
+  270: """resource_id указывает на директорию, не файл → None."""
+  284: # LegacyDirResolver: R3 (точная семантика .png, не with_suffix)
+  289: """R3 (корректировка Master): .png ДОБАВЛЯЕТСЯ, не заменяет расширение.
+  291: with_suffix(".png") заменил бы "v1.sheet" → "v1.png" (потеря .sheet).
+  292: Контракт: str(candidate) + ".png" → "v1.sheet.png".
+  296: """sprite → sprite.png (простой случай, with_suffix и + ".png" совпадают)."""
+  299: (root / "sprite.png").write_bytes(b"PNG")
+  303: assert result.name == "sprite.png"
+  306: """textures/v1.sheet → textures/v1.sheet.png (НЕ v1.png).
+  308: Критический тест R3: with_suffix дал бы v1.png, что неверно.
+  312: # Файл с точкой в имени, но без расширения .png
+  313: (root / "v1.sheet.png").write_bytes(b"PNG")
+  316: assert result is not None, "v1.sheet.png должен резолвиться через + .png"
+  317: assert result.name == "v1.sheet.png", (
+  318: f"Ожидалось v1.sheet.png (добавление .png), получено {result.name} "
+  323: """a.b.c → a.b.c.png (несколько точек — все сохранены)."""
+  326: (root / "a.b.c.png").write_bytes(b"PNG")
+  330: assert result.name == "a.b.c.png"
+  333: """Если файл без расширения существует — .png не добавляется."""
+  337: (root / "file.png").write_bytes(b"PNG")  # тоже есть
+  340: # R3: шаг 1 (noext) приоритет над шагом 2 (.png)
+  342: assert result.name == "file"  # без .png
+  346: # ResourceResolver: canonical (AssetStore)
+  350: class TestResourceResolverCanonical:
+  351: """Контракт: canonical resolution через AssetStore → ResourceRecord.path."""
+  354: """AssetStore.get_resource возвращает global record → вернуть record.path."""
+  355: canonical_path = tmp_path / "assets" / "catalogs" / "base" / "resources" / "chair.png"
+  361: "furniture/chair": _FakeResourceRecord(
+  362: resource_id="furniture/chair",
+  370: r = ResourceResolver(store, legacy)
+  377: """Контракт Master §3: ResourceResolver возвращает record.path, не
+  382: fake_path = tmp_path / "nonexistent" / "chair.png"
+  385: "chair": _FakeResourceRecord(
+  386: resource_id="chair",
+  394: r = ResourceResolver(store, legacy)
+  402: canonical_path = tmp_path / "canonical" / "chair.png"
+  406: # legacy (тот же resource_id)
+  409: (legacy_root / "chair.png").write_bytes(b"legacy")
+  413: "chair": _FakeResourceRecord(
+  414: resource_id="chair",
+  422: r = ResourceResolver(store, legacy)
+  428: class TestResourceResolverCampaignOverride:
+  432: ResourceResolver делегирует в get_resource, который уже возвращает
+  438: global_path = tmp_path / "global" / "chair.png"
+  442: campaign_path = tmp_path / "campaign" / "chair.png"
+  446: # AssetStore.get_resource("chair") возвращает campaign (override уже применён)
+  449: "chair": _FakeResourceRecord(
+  450: resource_id="chair",
+  458: r = ResourceResolver(store, legacy)
+  466: global_path = tmp_path / "global" / "chair.png"
+  472: "chair": _FakeResourceRecord(
+  473: resource_id="chair",
+  481: r = ResourceResolver(store, legacy)
+  487: class TestResourceResolverLegacyFallback:
+  495: (legacy_root / "Deadbeat" / "deadbeat_b.png").write_bytes(b"legacy")
+  499: r = ResourceResolver(store, legacy)
+  503: assert result.name == "deadbeat_b.png"
+  510: r = ResourceResolver(store, legacy)
+  515: class TestResourceResolverLifecycle:
+  519: ResourceResolver(new_store, legacy) и передаёт в set_resolver.
+  525: store1_path = tmp_path / "store1" / "chair.png"
+  529: store2_path = tmp_path / "store2" / "chair.png"
+  533: store1 = _FakeAssetStore({"chair": _FakeResourceRecord("chair", 1, "global:base", store1_path)})
+  534: store2 = _FakeAssetStore({"chair": _FakeResourceRecord("chair", 1, "global:base", store2_path)})
+  538: resolver1 = ResourceResolver(store1, legacy)
+  542: resolver2 = ResourceResolver(store2, legacy)
+  552: (legacy_root / "sprite.png").write_bytes(b"legacy")
+  555: r = ResourceResolver(None, legacy)  # type: ignore[arg-type]
+  559: assert result.name == "sprite.png"
+  565: ResourceResolver(store, None)  # type: ignore[arg-type]
+  573: class TestResourceResolverWithRealAssetStore:
+  574: """Smoke test: ResourceResolver работает с реальным AssetStore.
+  576: Подтверждает duck-typing: ResourceResolver не импортирует AssetStore,
+  577: но корректно вызывает get_resource и читает record.path.
+  581: """Пустой AssetStore (нет resources/) → legacy fallback."""
+  584: # Создаём assets/ с базовой структурой, но без resources/
+  614: (legacy_root / "Deadbeat" / "deadbeat_b.png").write_bytes(b"PNG")
+  617: r = ResourceResolver(store, legacy)
+  619: # Нет в store (resources/ не создан) → legacy
+  622: assert result.name == "deadbeat_b.png"
+  624: def test_resolve_with_real_store_having_resources(self, tmp_path):
+  625: """AssetStore с resources/ → canonical resolution."""
+  630: res_dir = assets_dir / "catalogs" / "base" / "resources" / "furniture"
+  650: chair_png = res_dir / "chair.png"
+  657: assert "furniture/chair" in store.list_resources()
+  660: r = ResourceResolver(store, legacy)
+  699: "TestResourceResolverCanonical.test_resolve_canonical_global",
+  700: "TestResourceResolverCanonical.test_resolve_returns_record_path_not_constructed",
+  701: "TestResourceResolverCanonical.test_resolve_canonical_takes_precedence_over_legacy",
+  704: "TestResourceResolverCampaignOverride.test_campaign_override_wins",
+  705: "TestResourceResolverCampaignOverride.test_global_when_no_campaign",
+  708: "TestResourceResolverLegacyFallback.test_legacy_fallback_when_not_in_store",
+  709: "TestResourceResolverLegacyFallback.test_none_when_neither_canonical_nor_legacy",
+  712: "TestResourceResolverLifecycle.test_new_resolver_uses_new_store",
+  713: "TestResourceResolverLifecycle.test_resolver_with_none_store_uses_only_legacy",
+  793: def test_set_resolver_with_resource_resolver(self):
+  794: """set_resolver принимает ResourceResolver (не только LegacyDirResolver)."""
+  799: rr = ResourceResolver(None, legacy)
+  822: def resolve(self, resource_id):
+  838: def resolve(self, resource_id):
+  839: received.append(resource_id)
+  853: def resolve(self, resource_id):
+  854: raise AssertionError(f"resolve не должен вызываться для кэшированного {resource_id}")
+  864: # ResourceValidator integration (Step 3)
+  868: class TestResourceValidatorDefaultResolver:
+  869: """Step 3: ResourceValidator default resolver = LegacyDirResolver(pixels_dir).
+  871: Без передачи resolver — backward compat (прежняя семантика поиска .png).
+  875: """Без resolver — создаётся LegacyDirResolver(pixels_dir)."""
+  876: from assets.resource_validator import ResourceValidator
+  878: v = ResourceValidator(tmp_path)
+  881: def test_default_resolver_uses_pixels_dir(self, tmp_path):
+  882: """LegacyDirResolver.root_dir == pixels_dir."""
+  883: from assets.resource_validator import ResourceValidator
+  885: v = ResourceValidator(tmp_path)
+  888: def test_pixels_dir_attribute_preserved(self, tmp_path):
+  889: """_pixels_dir сохранён для backward compat."""
+  890: from assets.resource_validator import ResourceValidator
+  892: v = ResourceValidator(tmp_path)
+  893: assert v._pixels_dir == tmp_path
+  896: class TestResourceValidatorWithExplicitResolver:
+  897: """Step 3: ResourceValidator принимает внешний resolver (контракт Master §4)."""
+  901: from assets.resource_validator import ResourceValidator
+  904: v = ResourceValidator(tmp_path, resolver=custom)
+  908: """Внешний resolver приоритетнее default LegacyDirResolver(pixels_dir)."""
+  909: from assets.resource_validator import ResourceValidator
+  911: # pixels_dir указывает на одно место, resolver — на другое
+  912: pixels_dir = tmp_path / "default_pixels"
+  913: pixels_dir.mkdir()
+  914: (pixels_dir / "sheet.png").write_bytes(b"PNG")
+  918: (custom_root / "sheet.png").write_bytes(b"PNG-custom")
+  921: v = ResourceValidator(pixels_dir, resolver=custom_resolver)
+  928: class TestResourceValidatorL2UsesResolver:
+  929: """Step 3: L2 _check_resources использует resolver.resolve (единый механизм).
+  931: Backward compat: ResourceValidator(pixels_dir) — прежняя семантика.
+  957: """L2 через default resolver находит sprite в pixels_dir (backward compat)."""
+  958: from assets.resource_validator import ResourceValidator
+  963: (pixels / "Deadbeat" / "deadbeat_b.png").write_bytes(b"PNG")
+  965: v = ResourceValidator(pixels)
+  968: resource_errors = [i for i in result.errors if i.category == "resource"]
+  969: assert resource_errors == [], f"L2 не должен давать error: {resource_errors}"
+  973: from assets.resource_validator import ResourceValidator
+  978: v = ResourceValidator(pixels)
+  980: resource_errors = [i for i in result.errors if i.category == "resource"]
+  981: assert len(resource_errors) == 1
+  982: assert "Sprite file not found" in resource_errors[0].message
+  985: """L2 с custom resolver: sprite найден через custom, не pixels_dir."""
+  986: from assets.resource_validator import ResourceValidator
+  988: # pixels_dir пуст
+  995: (custom_root / "custom_sheet.png").write_bytes(b"PNG")
+  998: v = ResourceValidator(pixels, resolver=custom_resolver)
+  1001: resource_errors = [i for i in result.errors if i.category == "resource"]
+  1002: assert resource_errors == [], f"L2 должен найти sprite через custom resolver: {resource_errors}"
+  1006: from assets.resource_validator import ResourceValidator
+  1008: # Создаём файл вне pixels_dir
+  1009: outside = tmp_path / "secret.png"
+  1015: v = ResourceValidator(pixels)
+  1018: resource_errors = [i for i in result.errors if i.category == "resource"]
+  1019: assert len(resource_errors) == 1, f"R2: traversal должен быть заблокирован, got: {resource_errors}"
+  1022: class TestResourceValidatorBackwardCompatG:
+  1023: """Step 3: существующие тесты G (ResourceValidator(pixels_dir)) проходят.
+  1025: Все 10 тестовых файлов G-1…G-10 создают ResourceValidator(pixels_dir)
+  1030: """Паттерн из G-тестов: ResourceValidator(pixels_dir) без resolver."""
+  1031: from assets.resource_validator import ResourceValidator
+  1034: pixels_dir = tmp_path / "pixels"
+  1035: pixels_dir.mkdir()
+  1036: (pixels_dir / "Deadbeat").mkdir()
+  1037: (pixels_dir / "Deadbeat" / "deadbeat_b.png").write_bytes(b"")
+  1039: v = ResourceValidator(pixels_dir)
+  1040: assert v._pixels_dir == pixels_dir
+  1042: assert v._resolver.root_dir == pixels_dir
+  1051: """Step 4: editor_core создаёт ResourceResolver в __init__ и wiring'ит sprite_registry.
+  1057: def test_editor_core_imports_resource_resolver(self):
+  1058: """editor_core.py импортирует ResourceResolver + LegacyDirResolver."""
+  1063: assert "from assets.resource_resolver import" in src, (
+  1064: "editor_core должен импортировать ResourceResolver для wiring"
+  1067: assert "ResourceResolver" in src
+  1070: """__init__ создаёт self._resolver = ResourceResolver(store, legacy)."""
+  1075: assert "self._resolver = ResourceResolver(" in src, (
+  1076: "__init__ должен создавать self._resolver = ResourceResolver(store, legacy)"
+  1169: assert "ResourceResolver(self.catalog_panel.store" in body, (
+--- test_me21_populate.py ---
+  198: """Sprite references must point to existing files."""
+  200: def test_sprite_files_exist(self):
+  201: pixels_dir = frontend_root / "map_editor" / "pixels"
+  208: path_png = pixels_dir / f"{sheet_key}.png"
+  209: path_noext = pixels_dir / sheet_key
+  210: assert path_png.exists() or path_noext.exists(), f"{type_name}: sprite file not found: {sheet_key}"
+--- test_me21_validator.py ---
+  1: """ME-2.1 Step D: ResourceValidator tests."""
+  21: from assets.resource_validator import ResourceValidator, ValidationResult
+  23: _PIXELS_DIR = map_editor_root / "pixels"
+  28: return ResourceValidator(_PIXELS_DIR)
+  84: class TestResourceValidation:
+  88: resource_errors = [i for i in result.errors if i.category == "resource"]
+  89: assert resource_errors == []
+  91: def test_missing_sprite_file(self):
+  97: assert any("Sprite file not found" in i.message for i in result.errors)
+
+========== 03-SAVE_NEW_BLUEPRINT_ATOMIC full (референс) ==========
+ 526:         test_store._resources = {}
+ 527:         test_store._overrides = []
+ 528:         test_store._register_blueprint(tmp_path, "test", problems)
+ 529:         if problems:
+ 530:             try:
+ 531:                 tmp_path.unlink(missing_ok=True)
+ 532:             except OSError:
+ 533:                 pass
+ 534:             raise AssetStoreError(f"Test-load tmp упал для '{new_id}':\n  " + "\n  ".join(problems))
+ 535: 
+ 536:         # 9. Гонка: повторная проверка перед rename
+ 537:         if target_path.exists():
+ 538:             try:
+ 539:                 tmp_path.unlink(missing_ok=True)
+ 540:             except OSError:
+ 541:                 pass
+ 542:             raise AssetStoreError(f"Файл '{target_path}' создан другой сессией — отказ без перезаписи")
+ 543: 
+ 544:         # 10. Atomic rename (нет оригинала — нет backup/recovery оригинала)
+ 545:         try:
+ 546:             tmp_path.replace(target_path)
+ 547:         except OSError as exc:
+ 548:             try:
+ 549:                 tmp_path.unlink(missing_ok=True)
+ 550:             except OSError:
+ 551:                 pass
+ 552:             raise AssetStoreError(f"Atomic rename упал для '{new_id}': {exc}") from exc
+ 553: 
+ 554:         # 11. Пересборка реестра с recovery (как G-1, но нет original_bytes)
+ 555:         _old_blueprints = dict(self._blueprints)
+ 556:         _old_resources = dict(self._resources)
+ 557:         _old_overrides = list(self._overrides)
+ 558:         try:
+ 559:             self.load()
+ 560:         except Exception as reload_exc:
+ 561:             # Удалить новый файл (он единственный мог сломать load)
+ 562:             try:
+ 563:                 target_path.unlink(missing_ok=True)
+ 564:             except OSError:
+ 565:                 pass
+ 566:             # Восстановить реестр из snapshot
+ 567:             self._blueprints = _old_blueprints
+ 568:             self._resources = _old_resources
+ 569:             self._overrides = _old_overrides
+ 570:             raise AssetStoreError(
+ 571:                 f"Reload упал после создания '{new_id}'. Файл удалён, реестр в pre-create состоянии: {reload_exc}"
+ 572:             ) from reload_exc
+ 573: 
+ 574:         # 12. Cache refresh
+ 575:         cache_stale = False
+ 576:         if on_cache_refresh is not None:
+ 577:             try:
+ 578:                 on_cache_refresh()
+ 579:             except Exception as exc:
+ 580:                 logger.warning("[ASSET_STORE] cache refresh упал для '%s': %s", new_id, exc)
+ 581:                 cache_stale = True
+ 582: 
+ 583:         new_version = int(new_data.get(_KEY_VERSION, 1))
+ 584: 
+ 585:         return SaveResult(
+ 586:             ok=True,
+ 587:             blueprint_id=new_id,
+ 588:             version=new_version,
+ 589:             path=target_path,
+ 590:             cache_stale=cache_stale,
+ 591:         )
+ 592: 
+ 593:     def _load_catalog(self, catalog_dir: Path, source: str, problems: List[str]) -> None:
+ 594:         bp_dir = catalog_dir / _BLUEPRINTS_DIR
+ 595:         if bp_dir.is_dir():
+ 596:             for path in sorted(bp_dir.glob("*.json")):
+ 597:                 self._register_blueprint(path, source, problems)
+ 598:         res_dir = catalog_dir / _RESOURCES_DIR
+ 599:         if res_dir.is_dir():
+ 600:             for path in sorted(res_dir.rglob("*")):
+ 601:                 if path.is_file() and path.suffix.lower() != ".json":
+ 602:                     self._register_resource(path, res_dir, source, problems)
+ 603: 
+ 604:     def _register_blueprint(self, path: Path, source: str, problems: List[str]) -> None:
+ 605:         try:
+ 606:             raw = json.loads(path.read_text(encoding="utf-8-sig"))
+ 607:         except (OSError, json.JSONDecodeError) as exc:
+ 608:             problems.append(f"{path}: не читается или битый JSON — {exc}")
+ 609:             return
+ 610:         if not isinstance(raw, dict):
+ 611:             problems.append(f"{path}: чертёж обязан быть JSON-объектом, получен {type(raw).__name__}")
+ 612:             return
+ 613:         for key in (_KEY_BLUEPRINT_ID, _KEY_VERSION, _KEY_COMPAT):
+ 614:             if key not in raw:
+ 615:                 problems.append(f"{path}: нет обязательного поля '{key}'")
+ 616:                 return
+ 617:         bid = raw[_KEY_BLUEPRINT_ID]
+ 618:         if not isinstance(bid, str) or not bid:
+ 619:             problems.append(f"{path}: поле 'blueprint_id' — непустая строка")
+ 620:             return
+ 621:         if bid != path.stem:
+ 622:             # Реестровое правило: имя файла = blueprint_id (дополнение спеки §2)
+ 623:             problems.append(f"{path}: blueprint_id '{bid}' не совпадает с именем файла '{path.stem}'")
+ 624:             return
+ 625:         version = raw[_KEY_VERSION]
+ 626:         if not isinstance(version, int) or isinstance(version, bool) or version < 1:
+ 627:             problems.append(f"{path}: поле 'version' — целое число >= 1")
+ 628:             return
+ 629:         compat = raw[_KEY_COMPAT]
+ 630:         if not isinstance(compat, int) or isinstance(compat, bool) or compat < 1:
+ 631:             problems.append(f"{path}: поле 'compat' — целое число >= 1")
+ 632:             return
+ 633:         fingerprint = hashlib.sha256(path.read_bytes()).hexdigest()
+ 634:         record = BlueprintRecord(
+ 635:             data=raw,
+ 636:             version=version,
+ 637:             source=source,
+ 638:             path=path,
+ 639:             fingerprint=fingerprint,
+ 640:         )
+ 641:         self._put_blueprint(record, problems)
+ 642: 
+ 643:     def _put_blueprint(self, record: BlueprintRecord, problems: List[str]) -> None:
+ 644:         existing = self._blueprints.get(record.blueprint_id)
+ 645:         if existing is None:
+ 646:             self._blueprints[record.blueprint_id] = record
+ 647:             return
+ 648:         new_is_campaign = record.source.startswith(_SOURCE_CAMPAIGN)
+ 649:         old_is_campaign = existing.source.startswith(_SOURCE_CAMPAIGN)
+ 650:         if new_is_campaign and not old_is_campaign:
+ 651:             # Решение Мастера: своя версия предмета главнее общей
+ 652:             self._overrides.append(f"{record.blueprint_id}: {existing.source} -> {record.source}")
+ 653:             self._blueprints[record.blueprint_id] = record
+ 654:             return
+ 655:         problems.append(
+ 656:             f"{record.path}: два чертежа с именем '{record.blueprint_id}'"
+ 657:             f" ({existing.source} и {record.source}) — переименуйте один"
+ 658:         )
+ 659: 
+ 660:     def _register_resource(self, path: Path, res_root: Path, source: str, problems: List[str]) -> None:
+
+========== 04-PIXELS_FORMATS summary ==========
+Распределение по расширениям:
+  .png: 1415 файлов
+  .jpg: 5 файлов
+  .txt: 1 файлов
+  .rar: 1 файлов
+
+Размеры PNG файлов (первые 10):
+  frontend\map_editor\pixels\1bit_fantasy_pyairvander.png: 5026 bytes
+  frontend\map_editor\pixels\game_menu.png: 2627003 bytes
+  frontend\map_editor\pixels\ICO1.png: 140704 bytes
+  frontend\map_editor\pixels\Icoнки.png: 2216255 bytes
+  frontend\map_editor\pixels\Deadbeat\deadbeat-gb-32x.png: 131 bytes
+  frontend\map_editor\pixels\Deadbeat\deadbeat_a.png: 48194 bytes
+  frontend\map_editor\pixels\Deadbeat\deadbeat_a_r.png: 48254 bytes
+  frontend\map_editor\pixels\Deadbeat\deadbeat_b.png: 48527 bytes
+  frontend\map_editor\pixels\Deadbeat\deadbeat_b_r.png: 48565 bytes
+  frontend\map_editor\pixels\_preview\c00_r00.png: 187 bytes
+
+JPG файлы:
+  frontend\map_editor\pixels\текстуры\Pers\Девчуля_1.jpg: 604633 bytes
+  frontend\map_editor\pixels\текстуры\Pers\Девчуля_2.jpg: 587021 bytes
+  frontend\map_editor\pixels\текстуры\Pers\Парень_1.jpg: 585689 bytes
+  frontend\map_editor\pixels\текстуры\Pers\Парень_2.jpg: 585689 bytes
+  frontend\map_editor\pixels\текстуры\Pers\Парень_3.jpg: 564532 bytes
+
+Другие (не png/jpg):
+  frontend\map_editor\pixels\_preview.rar: 433115 bytes (.rar)
+  frontend\map_editor\pixels\текстуры\Pers\Как это работает.txt: 703 bytes (.txt)
+
+========== 05-PYGAME_VERSION_AND_IMAGE_SUPPORT ==========
+pygame 2.6.1 (SDL 2.28.4, Python 3.13.14)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+pygame version: 2.6.1
+SDL version: (2, 28, 4)
+image formats (from docs): PNG, JPEG, GIF, BMP, TGA, PCX, TIFF, LBM, PNM, XPM, SVG(1.9.5+)
+
+========== 06-ASSET_STORE imports ==========
+"""path: /frontend/map_editor/assets/asset_store.py
+
+Назначение: Склад чертежей и ресурсов (ME-1.2, Этап 01). Читает общие каталоги
+    (assets/catalogs/<имя>/) и собственный каталог кампании (assets/<кампания>/),
+    ведёт список имён и версий. Если у предмета с одинаковым именем есть своя
+    версия в кампании — главнее она (решение Мастера 2026-10-14), и замена
+    фиксируется в списке перекрытий. Если папки assets/ нет — склад пуст, это не
+    ошибка, и на диск ничего не пишется (существующие кампании не ломаются).
+    Битый чертёж — громкая ошибка с именем файла и поля.
+
+Зависимости: только стандартная библиотека. Backend не импортируется
+    (граница фронта, Закон 1.1 Устава ENIGMA).
+
+Основные сущности: AssetStore, BlueprintRecord, ResourceRecord, AssetStoreError.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+
+========== 07-ERROR_CLASSES grep ==========
+frontend\map_editor\assets\asset_store.py:41: class AssetStoreError(RuntimeError):
+frontend\map_editor\assets\asset_store.py:72: class VersionConflict(Exception):
+frontend\map_editor\assets\asset_store.py:111: class SaveBlocked(Exception):
+frontend\map_editor\assets\asset_store.py:126: class SaveResult:
+frontend\map_editor\assets\asset_store.py:211: raise AssetStoreError(f"Битые чертежи/ресурсы в assets/ ({len(problems)}):\n  " + "\n  ".join(problems))
+frontend\map_editor\assets\asset_store.py:293: raise SaveBlocked(bp_id, errors)
+frontend\map_editor\assets\asset_store.py:298: raise AssetStoreError(f"Blueprint '{bp_id}' не найден в реестре — save невозможен")
+frontend\map_editor\assets\asset_store.py:310: raise AssetStoreError(f"Не удалось прочитать '{record.path}' для проверки fingerprint: {exc}") from exc
+frontend\map_editor\assets\asset_store.py:325: raise AssetStoreError(
+frontend\map_editor\assets\asset_store.py:343: raise AssetStoreError(f"Не удалось записать tmp-файл '{tmp_path}': {exc}") from exc
+frontend\map_editor\assets\asset_store.py:361: raise AssetStoreError(f"Test-load tmp упал для '{bp_id}':\n  " + "\n  ".join(problems))
+frontend\map_editor\assets\asset_store.py:387: raise AssetStoreError(f"Atomic rename упал для '{bp_id}': {exc}") from exc
+frontend\map_editor\assets\asset_store.py:417: raise AssetStoreError(
+frontend\map_editor\assets\asset_store.py:479: raise AssetStoreError("new_id должен быть непустой строкой")
+frontend\map_editor\assets\asset_store.py:481: raise AssetStoreError(f"new_id '{new_id}' недопустим — только латиница, цифры, _")
+frontend\map_editor\assets\asset_store.py:483: raise AssetStoreError(f"new_id '{new_id}' содержит запрещённые символы")
+frontend\map_editor\assets\asset_store.py:488: raise AssetStoreError(f"blueprint_id в new_data ('{actual_id}') != new_id ('{new_id}')")
+frontend\map_editor\assets\asset_store.py:492: raise AssetStoreError(f"Blueprint '{new_id}' уже существует в реестре")
+frontend\map_editor\assets\asset_store.py:500: raise SaveBlocked(new_id, errors)
+frontend\map_editor\assets\asset_store.py:507: raise AssetStoreError(f"Файл '{target_path}' уже существует — race condition или внешний процесс")
+frontend\map_editor\assets\asset_store.py:518: raise AssetStoreError(f"Не удалось записать tmp '{tmp_path}': {exc}") from exc
+frontend\map_editor\assets\asset_store.py:534: raise AssetStoreError(f"Test-load tmp упал для '{new_id}':\n  " + "\n  ".join(problems))
+frontend\map_editor\assets\asset_store.py:542: raise AssetStoreError(f"Файл '{target_path}' создан другой сессией — отказ без перезаписи")
+frontend\map_editor\assets\asset_store.py:552: raise AssetStoreError(f"Atomic rename упал для '{new_id}': {exc}") from exc
+frontend\map_editor\assets\asset_store.py:570: raise AssetStoreError(
+frontend\map_editor\assets\blueprint_editor.py:290: raise AssetStoreError(
+frontend\map_editor\assets\blueprint_editor.py:334: raise AssetStoreError(f"Blueprint '{blueprint_id}' не найден в AssetStore — open невозможен")
+frontend\map_editor\assets\blueprint_editor.py:367: raise AssetStoreError(f"Source Blueprint '{source_id}' не найден")
+frontend\map_editor\assets\blueprint_editor.py:371: raise AssetStoreError("new_id должен быть непустой строкой")
+frontend\map_editor\assets\blueprint_editor.py:373: raise AssetStoreError(f"new_id '{new_id}' недопустим — только латиница, цифры, _")
+frontend\map_editor\assets\blueprint_editor.py:377: raise AssetStoreError(f"Blueprint '{new_id}' уже существует в каталоге")

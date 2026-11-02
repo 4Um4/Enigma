@@ -1,0 +1,310 @@
+﻿============================================================
+
+STAGE 2.1-R4 — 6 INVESTIGATIONS
+
+Mode: READ ONLY
+
+Generated: 2026-11-02 20:52:20
+
+============================================================
+
+============================================================
+
+1. DECISION.PY — Avatar in BreakProgressEngine?
+
+============================================================
+
+[READ] decision.py L55-130  backend/app/services/phases/decision.py L55-130
+  55:             # V8-PSY-19 FIX: Инкремент tick_age и удаление истёкших temporary_drives
+  56:             from app.models.npc_state import age_drives
+  57:             object.__setattr__(_npc_state, "temporary_drives", age_drives(_npc_state.temporary_drives))
+  58: 
+  59:             # V8-PSY-2 FIX: Willpower читается из NPCPersonality (L0), а не из несуществующего psyche
+  60:             _personality = getattr(_npc_state, "personality", None)  # noqa: ENIGMA002
+  61:             _willpower = getattr(_personality, "willpower", 50.0) if _personality else 50.0
+  62: 
+  63:             # Шаг 1.1: Вычисление social_pressure на основе реальных trust и fear из RelationshipStore (SSOT)
+  64:             _social_pressure = 0.0
+  65:             _support_present = False # V8-PSY-7 FIX: вычисляем наличие союзников
+  66:             if relationship_store:
+  67:                 _rels = relationship_store.get_all_for_source(campaign_id, npc_id)
+  68:                 if _rels:
+  69:                     # Берём минимальный trust и максимальный fear по всем связям NPC
+  70:                     _min_trust = min((v.get("trust", 0.0) for v in _rels.values()), default=0.0)
+  71:                     _max_fear = max((v.get("fear", 0.0) for v in _rels.values()), default=0.0)
+  72: 
+  73:                     # V8-MEM-4 FIX: Шкала RelationshipStore: -100..100, где 0.0 - нейтральное.
+  74:                     # Давление растёт при падении trust ниже 0.
+  75:                     # trust=0 -> pressure=0, trust=-50 -> pressure=10, trust=-100 -> pressure=20
+  76:                     _trust_pressure = max(0.0, -_min_trust) / 100.0 * 20.0
+  77:                     _social_pressure += min(20.0, _trust_pressure)
+  78: 
+  79:                     # Давление растёт при росте fear выше 0.
+  80:                     # fear=0 -> pressure=0, fear=50 -> pressure=10, fear=100 -> pressure=20
+  81:                     _fear_pressure = max(0.0, _max_fear) / 100.0 * 20.0
+  82:                     _social_pressure += min(20.0, _fear_pressure)
+  83: 
+  84:                     logger.info(f"[BREAK_PROGRESS] npc={npc_id} trust_min={_min_trust:.1f} fear_max={_max_fear:.1f} social_pressure={_social_pressure:.1f}")
+  85: 
+  86:                     # Эмерджентные эмоции: высокое давление -> ANGRY/FEARFUL
+  87:                     # Порог снижен до 5.0, чтобы даже moderate pressure вызывало раздражение
+  88:                     if _social_pressure > 5.0:
+  89:                         object.__setattr__(_npc_state, "emotion", EmotionTag.FEARFUL if _max_fear > 50.0 else EmotionTag.ANGRY)
+  90:                         logger.info(f"[EMOTION_EMERGENT] npc={npc_id} emotion={_npc_state.emotion.value} (social_pressure={_social_pressure:.1f})")
+  91: 
+  92:                     # V8-PSY-7 FIX: Поддержка есть, если у NPC есть хотя бы один союзник (trust > 50)
+  93:                     for _rel in _rels.values():
+  94:                         if _rel.get("trust", 0.0) > 50.0:
+  95:                             _support_present = True
+  96:                             break
+  97: 
+  98:             # ADR-S86.3: Расчёт слома воли
+  99:             _break_deltas = BreakProgressEngine.calculate(
+  100:                 state=_npc_state,
+  101:                 willpower=_willpower,
+  102:                 recent_failures=getattr(_npc_state, "recent_failures", 0),
+  103:                 support_present=_support_present, # V8-PSY-7 FIX: передаём вычисленное значение
+  104:                 social_pressure=_social_pressure,
+  105:             )
+  106: 
+  107:             object.__setattr__(_npc_state, "identity_integrity", max(
+  108:                 0.0,
+  109:                 min(
+  110:                     1.0,
+  111:                     _npc_state.identity_integrity
+  112:                     + _break_deltas.identity_integrity_delta,
+  113:                 ),
+  114:             ))
+  115:             object.__setattr__(_npc_state, "pressure_resistance", max(
+  116:                 0.0,
+  117:                 min(
+  118:                     1.0,
+  119:                     _npc_state.pressure_resistance
+  120:                     + _break_deltas.pressure_resistance_delta,
+  121:                 ),
+  122:             ))
+  123:             object.__setattr__(_npc_state, "recent_failures", max(0, _npc_state.recent_failures + _break_deltas.recent_failures_delta))
+  124: 
+  125:             if _break_deltas.will_state_override is not None:
+  126:                 object.__setattr__(_npc_state, "will_state", _break_deltas.will_state_override)
+  127: 
+  128:             # L2.7: LifeProjectResolver — продвигаем FSM жизненного проекта каждый тик
+  129:             from app.services.npc.life_project_resolver import LifeProjectResolver
+  130:             _old_state = getattr(_npc_state, "life_project_state", "ACTIVE")
+
+============================================================
+
+2. STABLE IDs
+
+============================================================
+
+[SEARCH] stable UUID IDs  pattern: /character_uuid|player_uuid|avatar_uuid|persistent_id|stable_id|character_uid/
+  5 matches:
+  backend\app\domain\desire.py:156 : def stable_id(subject_class: str) -> str:
+  backend\app\services\npc\desire_generator.py:78 : desire_id = Desire.stable_id(subject)
+  backend\tests\test_living_activity_domain.py:68 : def test_stable_id_deterministic(self):
+  backend\tests\test_living_activity_domain.py:69 : self.assertEqual(Desire.stable_id("food"), Desire.stable_id("food"))
+  backend\tests\test_living_activity_domain.py:70 : self.assertNotEqual(Desire.stable_id("food"), Desire.stable_id("money"))
+
+[SEARCH] campaign as identity  pattern: /campaign_id.*identity|identity.*campaign|campaign.*stable/
+  11 matches:
+  backend\app\api\routes.py:845 : xray["identity_traits"] = _mm.get_identity_traits(campaign_id, npc_id)
+  backend\app\services\memory\memory_manager.py:900 : current = self.get_identity_traits(campaign_id, npc_id)
+  backend\app\services\memory\memory_manager.py:904 : self.apply_identity_weights(campaign_id, npc_id, new_traits)
+  backend\app\services\memory\working_memory_tick.py:162 : memory_manager.apply_identity_weights(campaign_id, npc_id, resonance)
+  backend\app\services\phases\decision.py:44 : if traits := memory_manager.get_identity_traits(campaign_id, npc_id):
+  backend\app\services\phases\memory.py:128 : memory_manager.apply_identity_weights(ctx.campaign_id, npc_id, _resonance)
+  backend\app\services\world\world_object_spawner.py:12 : Identity (вердикт Мастера): object_id = wo_<md5(campaign:spawn_loc:
+  backend\app\services\world\world_object_spawner.py:86 : """Identity предмета: wo_<hash(campaign:spawn_location:editor_id)>.
+  backend\app\services\avatar_character_registry.py:17 : """Maps campaign_id → character_id (Avatar body identity).
+  backend\app\services\tick_orchestrator.py:2175 : _traits = _mm.get_identity_traits(campaign_id, _nid)
+  backend\tests\test_phase_a_memory_fixes.py:97 : assert mm.get_identity_traits("other_campaign", "npc1") == {}
+
+[SEARCH] id fields  pattern: /player_id\s*[:=]|avatar_id\s*[:=].*str|body_id\s*[:=].*str/
+  6 matches:
+  backend\app\domain\body.py:150 : avatar_id: str
+  backend\app\domain\intent_identity.py:29 : body_id: str
+  backend\app\services\body\body_topology_service.py:53 : def create_topology(cls, avatar_id: str, strength_score: int = 10) -> BodyTopology:
+  backend\app\services\body\body_topology_service.py:61 : topology = BodyTopology(avatar_id=avatar_id, strength_score=strength_score)
+  backend\app\services\game_loop\idle_event_projection.py:42 : _PLAYER_ID = "player"
+  backend\app\services\game_loop\idle_event_projection.py:219 : if isinstance(_target, str) and _target == _PLAYER_ID:
+
+============================================================
+
+3. ORDINAL REPLAY
+
+============================================================
+
+[READ] event_identity.py FULL  backend/app/services/events/event_identity.py L1-40
+  1: """
+  2: Назначение: Единственный писатель scene_state["event_ordinals"] — порядковый
+  3:     компонент identity-контракта EventDTO (тип, источник, тик, ordinal).
+  4: Зависимости: typing (domain-нейтрален: работает с dict scene_state)
+  5: Основные сущности: next_event_identity
+  6: """
+  7: 
+  8: from typing import Any, Dict, Tuple
+  9: 
+  10: _KEY_ORDINALS = "event_ordinals"
+  11: 
+  12: 
+  13: def next_event_identity(
+  14:     scene_state: Dict[str, Any], event_type: str, source: str
+  15: ) -> Tuple[int, int]:
+  16:     """Выделяет (event_tick, ordinal) для нового события.
+  17: 
+  18:     Единственная точка инкремента счётчиков identity (Single Writer —
+  19:     не DOUBLE TRUTH). Пропуски ordinal легальны: счётчик монотонный,
+  20:     не плотный (прецедент commitment_ordinals, ADR-O-363 закон №4).
+  21:     Загруженный сейв без контейнера или без конкретного ключа
+  22:     самовосстанавливается здесь же — миграция без миграционной системы.
+  23:     """
+  24:     ordinals = scene_state.setdefault(_KEY_ORDINALS, {})
+  25:     key = f"{event_type}:{source}"
+  26:     ordinal = int(ordinals.get(key, 0)) + 1
+  27:     ordinals[key] = ordinal
+  28:     tick = int(scene_state.get("tick", 0) or 0)
+  29:     return tick, ordinal
+
+[SEARCH] ordinal reset  pattern: /ordinal.*reset|reset.*ordinal|ordinal.*clear/
+  (no matches)
+
+[SEARCH] ordinal load  pattern: /event_ordinals.*load|load.*event_ordinals|commitment_ordinals.*load/
+  (no matches)
+
+============================================================
+
+4. UNIFIED INTENTION STORAGE
+
+============================================================
+
+[SEARCH] existing intention store  pattern: /intent_store|intention_store|intent_registry|intention_registry/
+  1 matches:
+  backend\tests\micro\test_npc_addressing_delivery.py:367 : assert not hasattr(sub, "_intent_store")
+
+[SEARCH] intent in scene_state  pattern: /scene_state.*intent.*=|intent.*scene_state.*=/
+  3 matches:
+  backend\tests\micro\test_prefix_target_loc_gate.py:47 : changes = engine.process_intents([intent], tick, npc_positions=npc_positions, campaign_id="Open_road", scene_state=scene_state)
+  backend\tests\sandbox\movement\test_movement_lock_blocks_schedule_on_active_traversal.py:45 : changes, intent = engine.update_routine(npc=npc, current_time="10:00", tick=1, scene_state=scene_state_with_lock)
+  backend\tests\sandbox\movement\test_movement_lock_blocks_schedule_on_active_traversal.py:71 : changes, intent = engine.update_routine(npc=npc, current_time="10:00", tick=1, scene_state=scene_state_no_lock)
+
+[SEARCH] intent lifecycle  pattern: /npc_intents|npc_intent_state|intent_lifecycle/
+  25 matches:
+  backend\app\services\game_loop\phase_6_avatar.py:10 : Основные сущности: update_avatar_from_npc_intents
+  backend\app\services\game_loop\phase_6_avatar.py:21 : def update_avatar_from_npc_intents(
+  backend\app\services\game_loop\turn_pipeline.py:296 : update_avatar_from_npc_intents,
+  backend\app\services\game_loop\turn_pipeline.py:299 : update_avatar_from_npc_intents(
+  backend\app\services\phases\simulation.py:156 : # этап 2 / п-1 (санкция): приоритет ram-канона сцены (npc_intents
+  backend\app\services\phases\simulation.py:162 : _ssot_intents = ctx.scene_state.get("npc_intents") or {}
+  backend\app\services\tick_orchestrator.py:2475 : _KEY_NPC_INTENTS = "npc_intents"
+  backend\app\services\tick_orchestrator.py:2476 : _intent_map = ctx.scene_state.setdefault(_KEY_NPC_INTENTS, {})
+  backend\tests\gameplay\test_gc05_production_path_testimony.py:215 : _intents = _scene.get("npc_intents", {}) or {}
+  backend\tests\gameplay\test_gc05_production_path_testimony.py:242 : _intents = _scene.get("npc_intents", {}) or {}
+  backend\tests\sandbox\micro\test_gate1_source.py:5 : предиката (SUPPRESS и PASS) на новом источнике scene_state["npc_intents"].
+  backend\tests\sandbox\micro\test_gate1_source.py:23 : _ssot_intents = scene_state.get("npc_intents") or {}
+  backend\tests\sandbox\micro\test_gate1_source.py:47 : scene = {"npc_intents": {"borko": "observe"},
+  backend\tests\sandbox\micro\test_gate1_source.py:55 : scene = {"npc_intents": {"borko": "observe"},
+  backend\tests\sandbox\micro\test_gate1_source.py:62 : scene = {"npc_intents": {"borko": "request_service"},
+  backend\tests\sandbox\micro\test_gate1_source.py:69 : scene = {"npc_intents": {"borko": "flee"}}
+  backend\tests\sandbox\micro\test_gate1_source.py:83 : _KEY_NPC_INTENTS = "npc_intents"
+  backend\tests\sandbox\micro\test_gate1_source.py:89 : _intent_map = ctx.scene_state.setdefault(_KEY_NPC_INTENTS, {})
+  backend\tests\sandbox\micro\test_gate1_source.py:96 : self.assertEqual(ctx.scene_state["npc_intents"], {"b": "observe"})
+  backend\tests\IPT.py:2225 : ram-канон scene_state["npc_intents"] (single-writer оркестратор) —
+  backend\tests\IPT.py:2243 : if '_ssot_intents = ctx.scene_state.get("npc_intents")' not in _sim_src:
+  backend\tests\IPT.py:2245 : suspects.append(f"{_sim}: читатель npc_intents отсутствует (п-1 регрессия)")
+  backend\tests\IPT.py:2251 : if '_KEY_NPC_INTENTS = "npc_intents"' not in _orch_src:
+  backend\tests\IPT.py:2253 : suspects.append(f"{_orch}: писатель npc_intents отсутствует (п-1 регрессия)")
+  backend\tests\IPT.py:2265 : "Гейт① читает актуальный intent (npc_intents-канон поверх кэша; writer single-point)",
+
+============================================================
+
+5. EXECUTOR EXCLUSIVITY
+
+============================================================
+
+[SEARCH] active windups  pattern: /active_windups|_windup_registry|windup.*active|active.*windup/
+  10 matches:
+  backend\app\domain\action_windup.py:28 : Живёт в TickOrchestrator._windup_registry.
+  backend\app\services\phases\post_decision.py:11 : _KEY_WINDUP_REGISTRY = "windup_registry"
+  backend\app\services\phases\post_decision.py:312 : _windup_store = ctx.scene_state.setdefault(_KEY_WINDUP_REGISTRY, {})
+  backend\app\services\phases\post_decision.py:389 : Проверяет self._windup_registry на завершённые подготовки.
+  backend\app\services\phases\post_decision.py:407 : _windup_store = ctx.scene_state.get(_KEY_WINDUP_REGISTRY) or {}
+  backend\app\services\dto.py:219 : # ADR-O-310: windup_registry перенесён на уровень TickOrchestrator (self._windup_registry)
+  backend\app\services\tick_orchestrator.py:117 : # S203.4 (Э6, Н-40): _windup_registry перенесён в scene_state (персистентность).
+  backend\app\services\tick_orchestrator.py:119 : # но авторитет — scene_state[_KEY_WINDUP_REGISTRY] (читает post_decision).
+  backend\app\services\tick_orchestrator.py:120 : self._windup_registry: Dict[Tuple[str, str], List[Any]] = {}
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:239 : # _orch._windup_registry пуст by design (tick_orchestrator:99-102);
+
+[SEARCH] single commitment per NPC  pattern: /active_commitments.*npc_id|one.*active.*per.*npc|single.*commitment/
+  1 matches:
+  backend\app\services\scene_state\scene_factory.py:247 : "active_commitments": {},  # dict[npc_id, commitment_dict] — только активные
+
+[SEARCH] task queue per owner  pattern: /task.*queue.*same.*speaker|speaker.*queue.*dedup|dialogue.*queue.*owner/
+  (no matches)
+
+============================================================
+
+6. BODYARBITERINPUT
+
+============================================================
+
+[READ] run_phase_1_input L58-110  backend/app/services/phases/input.py L58-110
+  58: def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
+  59:     """Фильтрация воли игрока через WillpowerGate (ADR-031).
+  60: 
+  61:     Если интент угрожает идентичности аватара — возникает конфликт воли.
+  62:     """
+  63:     logger.debug(
+  64:         f"[WILL_TRACE] _phase_1_input CALLED. Has intent: {ctx.player_intent is not None}"
+  65:     )
+  66: 
+  67:     if not ctx.player_intent:
+  68:         return  # Idle-тик или нет ввода от игрока
+  69: 
+  70:     intent = ctx.player_intent
+  71:     _sem_action = (
+  72:         intent.parameters.semantic_action
+  73:         if hasattr(intent, "parameters") and intent.parameters
+  74:         else intent.action
+  75:     )
+  76:     _sem_target = (
+  77:         intent.target if hasattr(intent, "target") else "UNKNOWN"
+  78:     )  # ADR-125: DTO.target_id deprecated. Truth is in intent.target
+  79:     logger.warning(
+  80:         f"[WILL_TRACE] 1. Intent action: '{_sem_action}', target: '{_sem_target}', NPCs in raw: {len(ctx.all_npcs_raw)}"
+  81:     )
+  82: 
+  83:     # Извлекаем снапшот аватара из симуляции
+  84:     player_dict = next(
+  85:         (n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None
+  86:     )
+  87: 
+  88:     if not player_dict:
+  89:         logger.error(
+  90:             f"[WILL_TRACE] FAIL: Аватар 'player' НЕ НАЙДЕН в all_npcs_raw (len={len(ctx.all_npcs_raw)}). Воля отключена!"
+  91:         )
+  92:         publish_player_intent(ctx, intent)
+  93:         return
+  94: 
+  95:     logger.warning(
+  96:         f"[WILL_TRACE] 2. Avatar found. Psyche: {player_dict.get('psyche', {})}"
+  97:     )
+  98: 
+  99:     # 1. Вектор давления берется из результата Фазы 1 (Единая точка вычисления)
+  100:     # Повторный вызов resolve_intent_pressure ЗАПРЕЩЕН (каузальная integrity)
+  101:     from app.services.will import compute_willpower, resolve_intent_pressure
+  102: 
+  103:     # V8-WL-6 FIX: Вычисляем pressure один раз и сохраняем в ctx как SSOT
+  104:     if not ctx.player_pressure:
+  105:         ctx.player_pressure = resolve_intent_pressure(intent)
+  106:     pressure = ctx.player_pressure
+  107:     psyche = player_dict.get("psyche", {})
+  108: 
+  109:     # 2. Affect Resonance Scan (Искажение интерпретации реальности)
+  110:     # Травма - это не бафф, это искажение. Resonance -> Distortion -> Will.
+
+[SEARCH] TickContext  pattern: /class.*TickContext|class.*_TickContext|class.*PhaseContext/
+  1 matches:
+  backend\app\services\dto.py:75 : class _TickContext:
+
+

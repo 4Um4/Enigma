@@ -414,6 +414,19 @@ class ChronicleDecompositionNormalizer:
                             ClarificationOption.LEAVE_WHITE_SPOT,
                         ),
                     )
+            # CCH-12: drop KNOWLEDGE_LINK без event_ref — store валидатор падает
+            # (KP_EVENT_REF обязателен), но prompt не предписывает LLM его
+            # эмитить. Drop item целиком — не молча: логируем для трассировки.
+            if kind is EntryKind.KNOWLEDGE_LINK:
+                _event_ref = payload.get("event_ref")
+                if not _event_ref:
+                    logger.warning(
+                        "normalize[%s]: KNOWLEDGE_LINK без event_ref — "
+                        "отброшен (store валидатор требует event_ref); "
+                        "payload: %r",
+                        idx, payload,
+                    )
+                    continue
             needs_conf = bool(it.get("needs_confirmation") or question is not None)
             items.append(
                 DecompositionItem(
@@ -481,5 +494,49 @@ class ChronicleDecompositionNormalizer:
                 text = m2.group(0)
         try:
             return json.loads(text)
-        except json.JSONDecodeError as e:
-            raise DecompositionError(f"JSON-парсинг: {e}; фрагмент: {text[:120]!r}") from e
+        except json.JSONDecodeError:
+            # CCH-12 A: auto-repair truncated JSON.
+            # LLM (Hermes-3-Llama-3.1-8B) иногда обрывает генерацию после
+            # «confidence»: 1.0, — без следующего поля и без закрытия массива.
+            # Диагностика: stop_reason=None, tokens_predicted << n_predict.
+            repaired = ChronicleDecompositionNormalizer._repair_truncated_json(text)
+            if repaired == text:
+                # Восстановление не изменило строку — повторная ошибка
+                raise DecompositionError(
+                    f"JSON-парсинг: не восстановимо; фрагмент: {text[:120]!r}"
+                ) from None
+            try:
+                data = json.loads(repaired)
+                logger.warning(
+                    "[NORMALIZER] JSON восстановлен после truncation: "
+                    "original=%d chars, repaired=%d chars; фрагмент: %r",
+                    len(text), len(repaired), text[:120],
+                )
+                return data
+            except json.JSONDecodeError as e2:
+                raise DecompositionError(
+                    f"JSON-парсинг: {e2}; фрагмент: {text[:120]!r}"
+                ) from e2
+
+    @staticmethod
+    def _repair_truncated_json(text: str) -> str:
+        """CCH-12 A: попытка восстановить truncated JSON.
+
+        LLM иногда обрывает генерацию на ',' без следующего поля —
+        удаляем висячую запятую и закрываем массив/объект.
+
+        Не делает: восстановление semantically broken JSON, удаление
+        полей, любые правки payload. Только структурное закрытие.
+        """
+        t = text.rstrip()
+        if not t:
+            return text
+        # Удалить висячую запятую в конце
+        if t.endswith(","):
+            t = t[:-1]
+        # Подсчитать открытые { и [
+        open_braces = t.count("{") - t.count("}")
+        open_brackets = t.count("[") - t.count("]")
+        # Закрыть в обратном порядке (массив внутри объекта → сначала ])
+        t = t + "]" * max(0, open_brackets) + "}" * max(0, open_braces)
+        return t

@@ -4,10 +4,16 @@
 
 СХЕМА ОТВЕТА:
 {"items": [
-  {"kind": "<KIND>", "draft_payload": {...}, "confidence": 0.0-1.0,
-   "needs_confirmation": true|false,
-   "question": {"question_id": "...", "target_span": "...", "options": [...], "answer": null}}
+  {"kind": "<KIND>", "draft_payload": {...}, "confidence": 0.0-1.0}
 ]}
+
+Опциональные поля (добавляй только при необходимости):
+- needs_confirmation: true, если confidence < 0.6
+- question: {...}, если есть реальная неоднозначность для причинной модели
+  (target_hint не сопоставляется с roster, неточный род связи и т.д.)
+  Формат question: {"question_id": "...", "target_span": "...", "options": [...]}
+
+НЕ эмитируй needs_confirmation=false или question=null явно.
 
 KIND (только эти значения):
 - EVENT: событие жизни. draft_payload: {"summary": <фраза автора>, "day": null|<int>, "duration_years": null|<int>, "years_ago": null|<int>}
@@ -266,6 +272,55 @@ EVENT, DESIRE_SEED.
 Смотри на синтаксис и контекст, не на отдельное слово.
 
 <!-- D5-REFINED -->
+
+Позитивные примеры (из биографии Орма — для калибровки):
+
+ПРИМЕР D5-EFFECT (физическое последствие):
+  Фрагмент: «Обожжённые руки в старых ожогах — рукопожатие, которого
+            избегают.»
+  ВЕРНО: { kind: EFFECT,
+           summary: "обожжённые руки в старых ожогах",
+           effect_kind: "custom",
+           target_hint: null }
+  НЕВЕРНО: { kind: TRAIT_SEED, trait: "обожжённые руки" }
+  НЕВЕРНО: { kind: PORTRET, statement: "обожжённые руки" }
+  Основание: это физическое последствие работы кузнеца, не черта
+  характера и не внутреннее состояние.
+
+ПРИМЕР D5-LOCATION (место):
+  Фрагмент: «Кузня — пристройка таверны: над головой гнома кровля,
+            по сути принадлежащая Торнину.»
+  ВЕРНО: { kind: LOCATION,
+           summary: "кузня — пристройка таверны",
+           name_hint: "кузня" }
+  НЕВЕРНО: { kind: PORTRET, statement: "кузня — пристройка таверны" }
+  Основание: это место, не характеристика персонажа.
+
+ПРИМЕР D5-EVENT (действие-причина):
+  Фрагмент: «146 лет, из которых он кузнец в городе уже 57 лет.»
+  ВЕРНО: { kind: EVENT,
+           summary: "стал кузнецом в городе",
+           day: null,
+           duration_years: 57 }
+  НЕВЕРНО: { kind: PORTRET, statement: "стал кузнецом" }
+  НЕВЕРНО: { kind: EFFECT, effect_kind: "occupation" } (если есть
+            явное событие «стал» — это EVENT, не EFFECT)
+  Основание: «стал кузнецом» — это действие-событие с duration_years
+  (57 лет). EFFECT для occupation используется, когда профессия —
+  состояние без явного события.
+
+ПРИМЕР D5-EFFECT-OCCUPATION (занятие как состояние):
+  Фрагмент: «кузнец Орм: гном» (шапка, без события «стал»)
+  ВЕРНО: { kind: EFFECT,
+           summary: "кузнец по профессии",
+           effect_kind: "occupation",
+           target_hint: null }
+  НЕВЕРНО: { kind: TRAIT_SEED, trait: "кузнец" }
+  Основание: «кузнец» в шапке — это занятие-состояние (EFFECT с
+  effect_kind=occupation), не черта характера. Но если в тексте есть
+  «стал кузнецом» — это EVENT, не EFFECT.
+
+<!-- D5-EXAMPLES -->
 
 D6. ЛИМИТ НА ФРАГМЕНТ (hard cap)
 

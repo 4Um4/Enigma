@@ -1,0 +1,1007 @@
+{
+  "summary": {
+    "old_count": 59,
+    "new_count": 53,
+    "rows": 59,
+    "by_status": {
+      "DUPLICATED": 1,
+      "LOST": 22,
+      "RECLASSIFIED": 13,
+      "PRESERVED": 18,
+      "MERGED": 2,
+      "AMBIGUOUS": 3
+    },
+    "by_old_kind": {
+      "PORTRET": {
+        "DUPLICATED": 1,
+        "LOST": 1
+      },
+      "EVENT": {
+        "LOST": 6,
+        "RECLASSIFIED": 3,
+        "PRESERVED": 2
+      },
+      "RELATIONSHIP": {
+        "PRESERVED": 8,
+        "LOST": 1
+      },
+      "EFFECT": {
+        "LOST": 7,
+        "RECLASSIFIED": 7,
+        "AMBIGUOUS": 1
+      },
+      "TRAIT_SEED": {
+        "LOST": 5,
+        "PRESERVED": 7,
+        "RECLASSIFIED": 1
+      },
+      "DESIRE_SEED": {
+        "PRESERVED": 1
+      },
+      "BELIEF_SEED": {
+        "RECLASSIFIED": 2,
+        "LOST": 2,
+        "MERGED": 2,
+        "AMBIGUOUS": 2
+      }
+    }
+  },
+  "rows": [
+    {
+      "old_ordinal": 0,
+      "old_kind": "PORTRET",
+      "old_summary": "Люся: человек",
+      "status": "DUPLICATED",
+      "rationale": ">1 matches with same kind (top=1.00, 2nd=0.20)",
+      "matches": [
+        {
+          "new_ordinal": 0,
+          "new_kind": "PORTRET",
+          "new_text": "Люся - человек",
+          "score": 1.0,
+          "reason": "tok=1.00"
+        },
+        {
+          "new_ordinal": 1001,
+          "new_kind": "EVENT",
+          "new_text": "Люся влюбилась в Борко с 12 лет",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 100,
+      "old_kind": "EVENT",
+      "old_summary": "семья убита бандитами",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 200,
+      "old_kind": "EVENT",
+      "old_summary": "примерно в то же время её подобрала Гильдия воров",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EVENT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 200,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Гильдия воров к ней относятся недоброжелательно, но помогают | Гильдия воров",
+          "score": 0.222,
+          "reason": "tok=0.22"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 201,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "отношение к ней нельзя назвать доброжелательным | Гильдия воров | вражда | negative",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (RELATIONSHIP)",
+      "matches": [
+        {
+          "new_ordinal": 200,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Гильдия воров к ней относятся недоброжелательно, но помогают | Гильдия воров",
+          "score": 0.25,
+          "reason": "tok=0.25"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 202,
+      "old_kind": "EFFECT",
+      "old_summary": "она единственные, кто вообще хоть как-то ей помогал | gain",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 203,
+      "old_kind": "EFFECT",
+      "old_summary": "других отношений она и не знала | loss",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 204,
+      "old_kind": "EVENT",
+      "old_summary": "так прошло ещё 4 года её жизни",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 300,
+      "old_kind": "EVENT",
+      "old_summary": "отправили к Торнину в трактир",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EVENT)",
+      "matches": [
+        {
+          "new_ordinal": 300,
+          "new_kind": "EVENT",
+          "new_text": "переведена к Торнину в трактир",
+          "score": 0.5,
+          "reason": "tok=0.50"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 400,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Торнин относился к ней как к неудобной работнице | она | dependence | negative",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (RELATIONSHIP)",
+      "matches": [
+        {
+          "new_ordinal": 400,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Торнин относился к ней как к неудобной работнице, которую надо было кормить, и прекрасно осознавал, что её приставили к нему не просто так | вражда | negative",
+          "score": 0.333,
+          "reason": "tok=0.33"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 401,
+      "old_kind": "EFFECT",
+      "old_summary": "ее приставили к нему не просто так | она | gain",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 500,
+      "old_kind": "EVENT",
+      "old_summary": "Торнин ударил её за разбитую кружку.",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (EVENT)",
+      "matches": [
+        {
+          "new_ordinal": 500,
+          "new_kind": "EVENT",
+          "new_text": "Торнин ударил Люсю за разбитую кружку",
+          "score": 0.8,
+          "reason": "tok=0.80"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 600,
+      "old_kind": "EVENT",
+      "old_summary": "регулярно, когда Торнин напивался, он периодически избивал её",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 700,
+      "old_kind": "EVENT",
+      "old_summary": "Гильдия отправила её следить за тайным ходом в таверне и за Торнином.",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EVENT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 700,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Гильдия отправила следить за тайным ходом в таверне и за Торнином | Торнин",
+          "score": 1.0,
+          "reason": "tok=0.88; loc_markers=['таверн', 'дом']; belief_markers=['правил']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 900,
+      "old_kind": "EVENT",
+      "old_summary": "стражник Борко задержался у кухни и застал сцену насилия Орма над Люсей — но не остановил кузнеца, а открыл в себе наклонность: наблюдать за чужим насилием и мастурбировать",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EVENT → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 901,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "наблюдает за насилием и мастурбирует | задержался у кухни и застал сцену насилия Орма над Люсей — но не остановил кузнеца, а открыл в себе наклонность: наблюдать за чужим насилием и мастурбировать",
+          "score": 0.96,
+          "reason": "tok=0.81; loc_markers=['кухн']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1000,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "влюблена | с 12 лет она влюблена в стражника",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1001,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "искренняя доброжелательность к себе | стражник Борко | доверие | positive",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (RELATIONSHIP)",
+      "matches": [
+        {
+          "new_ordinal": 1000,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Люся влюбилась в стражника Борко | Стражник Борко | любовь | positive",
+          "score": 0.273,
+          "reason": "tok=0.27"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1002,
+      "old_kind": "EVENT",
+      "old_summary": "приняла его наблюдение за искреннюю доброжелательность к себе",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1003,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "влюблена | с 12 лет она влюблена в стражника",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1004,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "относительно молод и красив по сравнению с окружающими | стражник Борко | внешность | positive",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (RELATIONSHIP)",
+      "matches": [
+        {
+          "new_ordinal": 1000,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Люся влюбилась в стражника Борко | Стражник Борко | любовь | positive",
+          "score": 0.231,
+          "reason": "tok=0.23"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1005,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "высокое социальное положение | стражник Борко | статус | positive",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (RELATIONSHIP)",
+      "matches": [
+        {
+          "new_ordinal": 1000,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Люся влюбилась в стражника Борко | Стражник Борко | любовь | positive",
+          "score": 0.273,
+          "reason": "tok=0.27"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1100,
+      "old_kind": "DESIRE_SEED",
+      "old_summary": "сбежать от всех проблем на юг. | она",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (DESIRE_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 1100,
+          "new_kind": "DESIRE_SEED",
+          "new_text": "сбежать от всех проблем на юг | от проблемы",
+          "score": 0.6,
+          "reason": "tok=0.60"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1101,
+      "old_kind": "EFFECT",
+      "old_summary": "понимает, что Гильдия с её связями быстро найдёт её и «накажет» за такие выходки. | trauma",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 1501,
+          "new_kind": "PORTRET",
+          "new_text": "Люся не дура. В четырнадцать лет она понимает больше, чем иной взрослый, потому что жизнь не оставляла ей права на детскую наивность.",
+          "score": 0.23,
+          "reason": "tok=0.08; belief_markers=['понимает']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1200,
+      "old_kind": "EFFECT",
+      "old_summary": "предполагает, что таверну могут доверить ей после смерти Торнина | таверну | gain",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1201,
+      "old_kind": "EFFECT",
+      "old_summary": "выслужиться перед Гильдией и попасть в лучшие условия | лучшие условия | gain",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 1200,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "хочет выслужиться перед Гильдией | Отчасти поэтому её второй план — выслужиться перед Гильдией и попасть в лучшие условия",
+          "score": 0.8,
+          "reason": "tok=0.50; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1202,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "она даже предполагает, что таверну могут доверить ей после смерти Торнина",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: BELIEF_SEED → TRAIT_SEED",
+      "matches": [
+        {
+          "new_ordinal": 1601,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "рассчитывает на выгодную сделку с Гильдией | Она верит в сделку: моя полезность за мою жизнь.",
+          "score": 0.203,
+          "reason": "tok=0.05; belief_markers=['верит']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1300,
+      "old_kind": "EVENT",
+      "old_summary": "стал постоянным посетителем таверны агент гильдии воров Тень",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1301,
+      "old_kind": "EFFECT",
+      "old_summary": "улучшить жизнь | desire",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1302,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "готова на всё ради шанса | она готова на всё ради этого шанса",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1303,
+      "old_kind": "EFFECT",
+      "old_summary": "не навредит её возлюбленному стражнику Борко | возлюбленный стражник Борко | desire",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 1300,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Люся ожидает приказа от гильдии воров, готовая на всё ради шанса улучшить жизнь, но опасается навредить возлюбленному стражнику Борко | Стражник Борко",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1304,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "более думает о шансах и меньше о побеге | возлюбленный стражник Борко | dependence | positive",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (RELATIONSHIP)",
+      "matches": [
+        {
+          "new_ordinal": 1000,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Люся влюбилась в стражника Борко | Стражник Борко | любовь | positive",
+          "score": 0.214,
+          "reason": "tok=0.21"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1400,
+      "old_kind": "EVENT",
+      "old_summary": "совершенно не помнит, кем были её родители и были ли у неё иные родственники; не помнит, откуда она",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1401,
+      "old_kind": "EFFECT",
+      "old_summary": "помнит смутно, но оценивает: тогда жизнь была беднее и пустее, зато менее болезненна | memory",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 1401,
+          "new_kind": "PORTRET",
+          "new_text": "жизнь в подземных убежищах гильдии была беднее и пустее, но менее болезненна",
+          "score": 0.4,
+          "reason": "tok=0.40"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1402,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "она ощущает текущий этап жизни как миссию, дарованную организацией, через которую должна доказать свою полезность, чтобы ей предоставили лучшие условия существования",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: BELIEF_SEED → EVENT",
+      "matches": [
+        {
+          "new_ordinal": 1402,
+          "new_kind": "EVENT",
+          "new_text": "ощущает текущий этап жизни как миссию, дарованную организацией",
+          "score": 0.7,
+          "reason": "tok=0.40; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1600,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Она не покорна Гильдии от любви или веры. Она покорна, потому что считала варианты — и их нет.",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1601,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "Люся не верит в доброту Гильдии. Она верит в сделку: моя полезность за мою жизнь.",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 2 new entries (top=0.95, 2nd=0.69)",
+      "matches": [
+        {
+          "new_ordinal": 1600,
+          "new_kind": "PORTRET",
+          "new_text": "Люся не верит в доброту Гильдии. Она верит в сделку: моя полезность за мою жизнь. И это не покорность, а расчёт ребёнка, которого научили считать раньше, чем читать.",
+          "score": 0.95,
+          "reason": "tok=0.50; belief_markers=['верит']; substring_match"
+        },
+        {
+          "new_ordinal": 1601,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "рассчитывает на выгодную сделку с Гильдией | Она верит в сделку: моя полезность за мою жизнь.",
+          "score": 0.688,
+          "reason": "tok=0.54; belief_markers=['верит']"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1602,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "расчётливый | это не покорность, а расчёт ребёнка",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1603,
+      "old_kind": "PORTRET",
+      "old_summary": "Люся злится. Злится часто, глухо, изнутри…",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1700,
+      "old_kind": "EFFECT",
+      "old_summary": "Звон посуды заставляет её замечать паузу в своей работе. | trauma",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 1700,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Торнин реагирует на звон посуды | Торнин",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1701,
+      "old_kind": "EFFECT",
+      "old_summary": "Звон посуды вызывает вздрагивание у Торнина. | Торнин | trauma",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → RELATIONSHIP",
+      "matches": [
+        {
+          "new_ordinal": 1700,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Торнин реагирует на звон посуды | Торнин",
+          "score": 0.375,
+          "reason": "tok=0.38"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1702,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Звон посуды вызывает вздрагивание у Торнина. | Торнин | attention | positive",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (RELATIONSHIP)",
+      "matches": [
+        {
+          "new_ordinal": 1700,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Торнин реагирует на звон посуды | Торнин",
+          "score": 0.333,
+          "reason": "tok=0.33"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1703,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Звон посуды вызывает вздрагивание у Торнина. | Торнин | synchronization | positive",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (RELATIONSHIP)",
+      "matches": [
+        {
+          "new_ordinal": 1700,
+          "new_kind": "RELATIONSHIP",
+          "new_text": "Торнин реагирует на звон посуды | Торнин",
+          "score": 0.333,
+          "reason": "tok=0.33"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1704,
+      "old_kind": "RELATIONSHIP",
+      "old_summary": "Два человека реагируют на один звук. | synchronization | neutral",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1800,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "умеет считать лучше, чем говорить | П.16 — не метафора: она действительно умеет считать лучше, чем говорить.",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1900,
+      "old_kind": "EFFECT",
+      "old_summary": "копится её юг: медяки и серебро | gain",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 1901,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "источник горький — это в основном деньги Орма",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.60, 2nd=0.60)",
+      "matches": [
+        {
+          "new_ordinal": 1900,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "скрывает источник денег | Источник горький — это в основном деньги Орма, то самое \"хорошее отношение\". Она никогда не называет вслух, откуда они; для неё это просто \"её\" деньги",
+          "score": 0.6,
+          "reason": "tok=0.30; substring_match"
+        },
+        {
+          "new_ordinal": 1901,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "деньги являются предметом | Источник горький — это в основном деньги Орма, то самое \"хорошее отношение\". Она никогда не называет вслух, откуда они; для неё это просто \"её\" деньги",
+          "score": 0.6,
+          "reason": "tok=0.30; substring_match"
+        },
+        {
+          "new_ordinal": 1902,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "деньги являются первым собственным предметом | Источник горький — это в основном деньги Орма, то самое \"хорошее отношение\". Она никогда не называет вслух, откуда они; для неё это просто \"её\" деньги",
+          "score": 0.573,
+          "reason": "tok=0.27; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1902,
+      "old_kind": "EFFECT",
+      "old_summary": "деньги Орма, то самое «хорошее отношение» являются источником её заначки | gain",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.26, 2nd=0.24)",
+      "matches": [
+        {
+          "new_ordinal": 1901,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "деньги являются предметом | Источник горький — это в основном деньги Орма, то самое \"хорошее отношение\". Она никогда не называет вслух, откуда они; для неё это просто \"её\" деньги",
+          "score": 0.261,
+          "reason": "tok=0.26"
+        },
+        {
+          "new_ordinal": 1902,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "деньги являются первым собственным предметом | Источник горький — это в основном деньги Орма, то самое \"хорошее отношение\". Она никогда не называет вслух, откуда они; для неё это просто \"её\" деньги",
+          "score": 0.24,
+          "reason": "tok=0.24"
+        },
+        {
+          "new_ordinal": 1900,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "скрывает источник денег | Источник горький — это в основном деньги Орма, то самое \"хорошее отношение\". Она никогда не называет вслух, откуда они; для неё это просто \"её\" деньги",
+          "score": 0.208,
+          "reason": "tok=0.21"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 1903,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "для неё это просто «её» деньги — первый в жизни предмет, который принадлежит только ей",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2000,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "тихая | Тихая короткая речь с запинками",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 2000,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "тихая короткая речь | Тихая короткая речь с запинками,",
+          "score": 1.0,
+          "reason": "tok=1.00"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2001,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "короткая речь | Тихая короткая речь с запинками",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 2000,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "тихая короткая речь | Тихая короткая речь с запинками,",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2002,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "запинки в речи | Тихая короткая речь с запинками",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 2000,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "тихая короткая речь | Тихая короткая речь с запинками,",
+          "score": 0.667,
+          "reason": "tok=0.67"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2003,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "взгляд в пол | взгляд в пол",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 2001,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "взгляд в пол | взгляд в пол",
+          "score": 1.0,
+          "reason": "tok=1.00; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2004,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "господин стражник, господин купец",
+      "status": "AMBIGUOUS",
+      "rationale": "multiple candidates with close scores (top=0.67, 2nd=0.67)",
+      "matches": [
+        {
+          "new_ordinal": 2002,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "господин стражник | господин стражник",
+          "score": 0.667,
+          "reason": "tok=0.67"
+        },
+        {
+          "new_ordinal": 2003,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "господин купец | господин купец",
+          "score": 0.667,
+          "reason": "tok=0.67"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2005,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "называет свою монету копеечкой | свою монету называет «копеечка»",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 2004,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "называет монету копеечка | свою монету называет \"копеечка\"",
+          "score": 0.8,
+          "reason": "tok=0.80"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2006,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "не ругается матом | Не ругается матом — боится наказания, а не неприличия",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 2005,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не ругается матом | Не ругается матом — боится наказания,",
+          "score": 1.0,
+          "reason": "tok=0.80; substring_match"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2007,
+      "old_kind": "BELIEF_SEED",
+      "old_summary": "боится наказания, а не неприличия",
+      "status": "MERGED",
+      "rationale": "meaning distributed across 2 new entries (top=0.40, 2nd=0.20)",
+      "matches": [
+        {
+          "new_ordinal": 2005,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "не ругается матом | Не ругается матом — боится наказания,",
+          "score": 0.4,
+          "reason": "tok=0.40"
+        },
+        {
+          "new_ordinal": 802,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "боится Орма | она боится Орма",
+          "score": 0.2,
+          "reason": "tok=0.20"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2100,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "шпион | привычка шпиона, вшитая гильдией в ребёнка (п.7) и работающая теперь сама по себе",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: TRAIT_SEED → PORTRET",
+      "matches": [
+        {
+          "new_ordinal": 2102,
+          "new_kind": "PORTRET",
+          "new_text": "Это не любопытство — это привычка шпиона, вшитая гильдией в ребёнка (п.7) и работающая теперь сама по себе",
+          "score": 0.75,
+          "reason": "tok=0.75"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2101,
+      "old_kind": "EFFECT",
+      "old_summary": "видит весь зал: где кто сидит, кто сколько выпил, кто задержался у стойки дольше обычного | skill",
+      "status": "LOST",
+      "rationale": "no semantic match (score < 0.2)",
+      "matches": []
+    },
+    {
+      "old_ordinal": 2102,
+      "old_kind": "EFFECT",
+      "old_summary": "возле Борко задерживается дольше, чем требует поднос | Борко | skill",
+      "status": "RECLASSIFIED",
+      "rationale": "1 match, kind changed: EFFECT → EVENT",
+      "matches": [
+        {
+          "new_ordinal": 2105,
+          "new_kind": "EVENT",
+          "new_text": "Борко задерживается дольше, чем требует поднос | Стражник Борко",
+          "score": 0.667,
+          "reason": "tok=0.67"
+        }
+      ]
+    },
+    {
+      "old_ordinal": 2103,
+      "old_kind": "TRAIT_SEED",
+      "old_summary": "живое лицо | лицо становится живым",
+      "status": "PRESERVED",
+      "rationale": "1 match, same kind (TRAIT_SEED)",
+      "matches": [
+        {
+          "new_ordinal": 2106,
+          "new_kind": "TRAIT_SEED",
+          "new_text": "лицо становится живым | Её лицо становится живым",
+          "score": 0.75,
+          "reason": "tok=0.75"
+        }
+      ]
+    }
+  ],
+  "lost": [
+    {
+      "ordinal": 100,
+      "kind": "EVENT",
+      "summary": "семья убита бандитами"
+    },
+    {
+      "ordinal": 202,
+      "kind": "EFFECT",
+      "summary": "она единственные, кто вообще хоть как-то ей помогал | gain"
+    },
+    {
+      "ordinal": 203,
+      "kind": "EFFECT",
+      "summary": "других отношений она и не знала | loss"
+    },
+    {
+      "ordinal": 204,
+      "kind": "EVENT",
+      "summary": "так прошло ещё 4 года её жизни"
+    },
+    {
+      "ordinal": 401,
+      "kind": "EFFECT",
+      "summary": "ее приставили к нему не просто так | она | gain"
+    },
+    {
+      "ordinal": 600,
+      "kind": "EVENT",
+      "summary": "регулярно, когда Торнин напивался, он периодически избивал её"
+    },
+    {
+      "ordinal": 1000,
+      "kind": "TRAIT_SEED",
+      "summary": "влюблена | с 12 лет она влюблена в стражника"
+    },
+    {
+      "ordinal": 1002,
+      "kind": "EVENT",
+      "summary": "приняла его наблюдение за искреннюю доброжелательность к себе"
+    },
+    {
+      "ordinal": 1003,
+      "kind": "TRAIT_SEED",
+      "summary": "влюблена | с 12 лет она влюблена в стражника"
+    },
+    {
+      "ordinal": 1200,
+      "kind": "EFFECT",
+      "summary": "предполагает, что таверну могут доверить ей после смерти Торнина | таверну | gain"
+    },
+    {
+      "ordinal": 1300,
+      "kind": "EVENT",
+      "summary": "стал постоянным посетителем таверны агент гильдии воров Тень"
+    },
+    {
+      "ordinal": 1301,
+      "kind": "EFFECT",
+      "summary": "улучшить жизнь | desire"
+    },
+    {
+      "ordinal": 1302,
+      "kind": "TRAIT_SEED",
+      "summary": "готова на всё ради шанса | она готова на всё ради этого шанса"
+    },
+    {
+      "ordinal": 1400,
+      "kind": "EVENT",
+      "summary": "совершенно не помнит, кем были её родители и были ли у неё иные родственники; не помнит, откуда она"
+    },
+    {
+      "ordinal": 1600,
+      "kind": "BELIEF_SEED",
+      "summary": "Она не покорна Гильдии от любви или веры. Она покорна, потому что считала варианты — и их нет."
+    },
+    {
+      "ordinal": 1602,
+      "kind": "TRAIT_SEED",
+      "summary": "расчётливый | это не покорность, а расчёт ребёнка"
+    },
+    {
+      "ordinal": 1603,
+      "kind": "PORTRET",
+      "summary": "Люся злится. Злится часто, глухо, изнутри…"
+    },
+    {
+      "ordinal": 1704,
+      "kind": "RELATIONSHIP",
+      "summary": "Два человека реагируют на один звук. | synchronization | neutral"
+    },
+    {
+      "ordinal": 1800,
+      "kind": "TRAIT_SEED",
+      "summary": "умеет считать лучше, чем говорить | П.16 — не метафора: она действительно умеет считать лучше, чем говорить."
+    },
+    {
+      "ordinal": 1900,
+      "kind": "EFFECT",
+      "summary": "копится её юг: медяки и серебро | gain"
+    },
+    {
+      "ordinal": 1903,
+      "kind": "BELIEF_SEED",
+      "summary": "для неё это просто «её» деньги — первый в жизни предмет, который принадлежит только ей"
+    },
+    {
+      "ordinal": 2101,
+      "kind": "EFFECT",
+      "summary": "видит весь зал: где кто сидит, кто сколько выпил, кто задержался у стойки дольше обычного | skill"
+    }
+  ],
+  "ambiguous": [
+    {
+      "ordinal": 1901,
+      "kind": "BELIEF_SEED",
+      "summary": "источник горький — это в основном деньги Орма",
+      "candidates_count": 3
+    },
+    {
+      "ordinal": 1902,
+      "kind": "EFFECT",
+      "summary": "деньги Орма, то самое «хорошее отношение» являются источником её заначки | gain",
+      "candidates_count": 3
+    },
+    {
+      "ordinal": 2004,
+      "kind": "BELIEF_SEED",
+      "summary": "господин стражник, господин купец",
+      "candidates_count": 2
+    }
+  ]
+}

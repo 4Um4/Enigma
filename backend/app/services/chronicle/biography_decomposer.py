@@ -54,12 +54,9 @@ def _load_chronicle_grammar() -> Optional[str]:
 
 logger = logging.getLogger(__name__)
 
-from typing import Any, Dict, Final, List, Optional, cast
-# ... существующие импорты ...
 from app.services.chronicle.age_anchor import (
     AgeAnchor,
     AgeAnchorKind,
-    extract_age_anchors_typed,
 )
 
 
@@ -75,46 +72,62 @@ def validate_age_anchor_coverage(
     Возвращает список аномалий (пустой, если всё OK). Не меняет items,
     не блокирует pipeline, не создаёт EVENT автоматически.
 
-    Разделяет:
-    - отсутствие якоря в items (dangling_anchor)
-    - числовое совпадение, не доказывающее семантическую привязку
-      (numeric_match_only)
-    - years_ago, равный current_age (years_ago_equals_current_age) —
-      частая ошибка LLM, путающей «N лет» (возраст) с «N лет назад»
-      (точка в прошлом).
+    Проверяет:
+    1. dangling_age_anchor — типизированный якорь (YEARS_AGO/DURATION/
+       AT_AGE/SINCE_AGE) не отражён ни в одном item.
+    2. years_ago_equals_current_age — YEARS_AGO == game_start_age
+       (если game_start_age задан): LLM перепутала текущий возраст
+       с years_ago.
+    3. ambiguous_anchor_misused_as_years_ago (Fix 2) — EVENT.years_ago
+       совпадает с AMBIGUOUS anchor value, и в age_anchors НЕТ YEARS_AGO
+       с тем же значением. LLM интерпретировала «N лет» (текущий возраст)
+       как «N лет назад».
+    4. ambiguous_anchor_misused_as_duration (Fix 2) — то же для
+       EVENT.duration_years.
+
+    Не считает числовое совпадение окончательным доказательством ошибки
+    (Мастер): сохраняет source_span и ordinal для ручной проверки.
 
     Args:
         items: нормализованные DecompositionItem (после normalize()).
         age_anchors: типизированные AgeAnchor из fragment.
         fragment_ord: для логирования.
         game_start_age: если задан — дополнительная проверка
-            years_ago == game_start_age (подозрительно: LLM перепутала
-            текущий возраст с years_ago).
+            years_ago == game_start_age.
     """
     anomalies: List[Dict[str, Any]] = []
 
+    # Снимок значений по типам якорей
+    years_ago_values = {
+        a.value for a in age_anchors if a.kind is AgeAnchorKind.YEARS_AGO
+    }
+    duration_values = {
+        a.value for a in age_anchors if a.kind is AgeAnchorKind.DURATION
+    }
+    ambiguous_anchors = [
+        a for a in age_anchors if a.kind is AgeAnchorKind.AMBIGUOUS
+    ]
+
+    # Проверка 1: dangling типизированных якорей
     for anchor in age_anchors:
-        if anchor.kind == AgeAnchorKind.AMBIGUOUS:
-            continue  # AMBIGUOUS не валидируется (нет семантики)
+        if anchor.kind is AgeAnchorKind.AMBIGUOUS:
+            continue  # AMBIGUOUS не обязана отражаться в items
 
-        # Проверка отражения якоря в items
         covered = False
-        matching_items: List[int] = []
-
-        for idx, item in enumerate(items):
+        for item in items:
             payload = item.draft_payload
-            if anchor.kind == AgeAnchorKind.YEARS_AGO:
+            if anchor.kind is AgeAnchorKind.YEARS_AGO:
                 if payload.get("years_ago") == anchor.value:
                     covered = True
-                    matching_items.append(idx)
-            elif anchor.kind == AgeAnchorKind.DURATION:
+                    break
+            elif anchor.kind is AgeAnchorKind.DURATION:
                 if payload.get("duration_years") == anchor.value:
                     covered = True
-                    matching_items.append(idx)
+                    break
             elif anchor.kind in (AgeAnchorKind.AT_AGE, AgeAnchorKind.SINCE_AGE):
                 if payload.get("age") == anchor.value:
                     covered = True
-                    matching_items.append(idx)
+                    break
 
         if not covered:
             anomalies.append({
@@ -127,31 +140,79 @@ def validate_age_anchor_coverage(
                 "hint": f"age_anchor {anchor.kind.value}={anchor.value} "
                         f"not reflected in any item",
             })
-        elif len(matching_items) == 1:
-            # Числовое совпадение есть, но это не доказывает семантическую
-            # привязку (Мастер: «не считать совпадение числа доказательством»).
-            # Логируем как info, не как аномалию — для трассировки.
-            pass
-        # else: несколько совпадений — тоже не аномалия, просто логируем
 
-        # Спец-проверка: years_ago == game_start_age (если задан)
-        if (
-            anchor.kind == AgeAnchorKind.YEARS_AGO
-            and game_start_age is not None
-            and anchor.value == game_start_age
-            and anchor.value > 50  # эвристика: возраст > 50 вряд ли «years_ago»
-        ):
-            anomalies.append({
-                "anomaly_type": "years_ago_equals_current_age",
-                "fragment_ord": fragment_ord,
-                "anchor_value": anchor.value,
-                "game_start_age": game_start_age,
-                "source_span": anchor.source_span,
-                "severity": "warning",
-                "hint": f"years_ago={anchor.value} == game_start_age="
-                        f"{game_start_age} — LLM возможно перепутала "
-                        f"текущий возраст с years_ago",
-            })
+    # Проверка 2: years_ago == game_start_age (если задан)
+    if game_start_age is not None and game_start_age > 50:
+        for anchor in age_anchors:
+            if (
+                anchor.kind is AgeAnchorKind.YEARS_AGO
+                and anchor.value == game_start_age
+            ):
+                anomalies.append({
+                    "anomaly_type": "years_ago_equals_current_age",
+                    "fragment_ord": fragment_ord,
+                    "anchor_value": anchor.value,
+                    "game_start_age": game_start_age,
+                    "source_span": anchor.source_span,
+                    "severity": "warning",
+                    "hint": f"years_ago={anchor.value} == game_start_age="
+                            f"{game_start_age} — LLM возможно перепутала "
+                            f"текущий возраст с years_ago",
+                })
+
+    # Проверка 3 (Fix 2): AMBIGUOUS anchor → EVENT.years_ago
+    # Если EVENT.years_ago совпадает с AMBIGUOUS anchor value,
+    # и в age_anchors НЕТ YEARS_AGO с тем же значением —
+    # LLM интерпретировала «N лет» как «N лет назад».
+    for amb in ambiguous_anchors:
+        # Пропускаем, если есть YEARS_AGO с тем же значением —
+        # тогда это легитимное использование
+        if amb.value in years_ago_values:
+            continue
+
+        for item in items:
+            payload = item.draft_payload
+            if (
+                item.kind.value == "EVENT"
+                and payload.get("years_ago") == amb.value
+            ):
+                anomalies.append({
+                    "anomaly_type": "ambiguous_anchor_misused_as_years_ago",
+                    "fragment_ord": fragment_ord,
+                    "anchor_value": amb.value,
+                    "source_span": amb.source_span,
+                    "item_summary": payload.get("summary", ""),
+                    "severity": "warning",
+                    "hint": f"EVENT.years_ago={amb.value} совпадает с "
+                            f"AMBIGUOUS anchor («{amb.source_span}»), "
+                            f"но YEARS_AGO с тем же значением не извлечён. "
+                            f"LLM возможно перепутала текущий возраст с "
+                            f"years_ago. Требуется ручная проверка.",
+                })
+
+    # Проверка 4 (Fix 2): AMBIGUOUS anchor → EVENT.duration_years
+    for amb in ambiguous_anchors:
+        if amb.value in duration_values:
+            continue
+
+        for item in items:
+            payload = item.draft_payload
+            if (
+                item.kind.value == "EVENT"
+                and payload.get("duration_years") == amb.value
+            ):
+                anomalies.append({
+                    "anomaly_type": "ambiguous_anchor_misused_as_duration",
+                    "fragment_ord": fragment_ord,
+                    "anchor_value": amb.value,
+                    "source_span": amb.source_span,
+                    "item_summary": payload.get("summary", ""),
+                    "severity": "warning",
+                    "hint": f"EVENT.duration_years={amb.value} совпадает с "
+                            f"AMBIGUOUS anchor («{amb.source_span}»), "
+                            f"но DURATION с тем же значением не извлечён. "
+                            f"Требуется ручная проверка.",
+                })
 
     return anomalies
 
@@ -311,7 +372,7 @@ class BiographyDecomposer:
                 _grammar = _load_chronicle_grammar()
                 params = GenerationParams(
                     temperature=0.0,
-                    max_tokens=2048,
+                    max_tokens=4096,  # CCH-12 A: было 2048, truncation на больших фрагментах
                     response_format={"type": "json_object"},  # S371.3-pre: оставлен для совместимости (llama_cpp игнорирует)
                     grammar=_grammar,  # S371.3-GBNF: рабочий путь — /completion + grammar
                 )
