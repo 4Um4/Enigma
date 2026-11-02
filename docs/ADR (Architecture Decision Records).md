@@ -1,4 +1,4 @@
-﻿# ENIGMA ADR MASTER INDEX (Canonical Laws)
+# ENIGMA ADR MASTER INDEX (Canonical Laws)
 
 > **Статус:** ACTIVE | **Сессия:** S310 | **Инвариантов:** 49 (IPT 49/49)
 > **Формат:** `L{N}: {Name}` = Immutable Law. Нарушение = архитектурный баг.
@@ -841,6 +841,12 @@ R4 (отдельная ревизия, не roadmap-трек) — исследо
 4. Replay determinism = 100%
 5. N ≥ 100,000 comparisons
 
+
+ADR-O-437 [ONTO] **Universal Semantic Layer — Unified Semantic Vocabulary for Biography & Input Contours** (USL-S1, ветвь А; PROPOSED→ACTIVE по вердикту Мастера USL-0)
+Суть: Поперечный архитектурный фундамент: общий словарь смысла (сущности/события/время/причинность/модальность/эпистемика) для биографического контура (CCH/§13–§14) и интерактивного языкового контура (AG1/DLG/§3). USLUnit — transient-DTO, не персистится (прецедент BiographyDecomposition); frozen dataclasses; stdlib only (Закон 1.2 Устава); ссылки на существующие типы domain-слоя (KnowledgeChannel, Predicate, Proposition), а не их копии. Главный критерий успеха (вердикт Мастера): одинаковый смысл одинаково понимается в биографии NPC и в живом игровом диалоге. USL — не третья подсистема, а общий язык. Контрактные инварианты USL-1…USL-6 (USL-документ §3.4): USL-1 одно представление смысла; USL-2 источник ≠ истина (PLAYER_ASSERTION никогда не становится AUTHOR_CANON); USL-3 не пишет мир (read-only проектор — не пишет в TruthState/канон/EventMemory/EpistemicStore); USL-4 обратная совместимость (поверх существующих контрактов); USL-5 провенанс трассируем (source_span обязателен); USL-6 детерминизм (повторный прогон = идентичный USLUnit). Реализация USL-1.1/1.2/1.3 завершена: 4 новых файла (domain/usl.py + biography_adapter.py + interactive_language_adapter.py + 3 тест-файла), 72 теста GREEN, 0 регрессий baseline. Mapping tables: EntryKind → USLPredicate (10 видов, conservative — EVENT→ASSERTS без BORN/DIED специализации); Predicate → USLPredicate (6 общих тривиальный mapping, значения совпадают). Вердикт Мастера USL-0 (6 вопросов Q1-Q6): USLUnit — новый домен-тип; USLTimeExpression — отдельная модель (6 форм: POINT/DURATION/INTERVAL/ORDER/RELATIVE/UNKNOWN); AgeAnchorKind не трогаем; адаптеры — раздельные, не парсеры (используют существующие механизмы); флаги — минимально необходимые, после реализации; PLAYER_ASSERTION → CANON запрещён, → EPISTEMIC STORE разрешён через существующие гейты. Open work: USL-1.4 (Epistemic Integration — free ASSERT), USL-1.5 (Entity Resolution — CanonicalRegistry bridge), USL-1.6 (Regression + Activation).
+❌ Taboo: USLUnit персистится в любом store (USL-3); PLAYER_ASSERTION становится AUTHOR_CANON (USL-2); USL пишет в TruthState/канон/EventMemory/EpistemicStore/RelationshipStore; возрастные якоря парсятся в адаптере (адаптеры не парсеры — вердикт Q3); расширение закрытого реестра USLPredicate без мини-ADR; смешение DURATION и RELATIVE в одну форму (поправка Мастера Q2); хронология → причина (ORDER → CAUSES автоматически); скаляры (trust=0.8) в USLRelation.
+Status: ACTIVE (USL-1.1/1.2/1.3 GREEN; USL-1.4/1.5/1.6 — pending)
+Files (full: ADR-O-437_IMPACT.md): `backend/app/domain/usl.py`, `backend/app/services/chronicle/biography_adapter.py`, `backend/app/services/input/interactive_language_adapter.py`, `backend/tests/micro/test_usl_types.py`, `backend/tests/micro/test_usl_biography_adapter.py`, `backend/tests/micro/test_usl_interactive_adapter.py`
 ---
 
 *Версия: 8.0 (Unified & Compressed: одна запись = один ADR; детали и полные Files-списки — docs/audits/ADR-*_IMPACT.md)*
