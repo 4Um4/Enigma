@@ -205,7 +205,7 @@ class NpcTickPipeline:
                 _has_sound = sound_reach(15.0, state.scene_state) >= _dist_to_player
 
                 if _has_sound and state.hub_event and state_l2 is not None:
-                    _p_target = state.player_target_id or "player"
+                    _p_target = state.player_target_id or state.hub_event.target_id or ""
                     try:
                         _mem_evt = apply_perception_memory(
                             None,
@@ -1223,7 +1223,7 @@ class NpcTickPipeline:
                     decision=decision,
                     npc_id=npc_id,
                     hub_event=_event_for_interp,
-                    player_target_id=state.player_target_id or "player",
+                    player_target_id=state.player_target_id or decision.intent_target or "",
                     player_text=state.raw_input,
                     scene_state=state.scene_state,  # S266-PR2: чистый читатель; изоляция — Сайт 1 (TickState)
                     campaign_id=state.campaign_id,
