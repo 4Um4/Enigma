@@ -137,7 +137,9 @@ class DialogueExecutor:
         if self._router is None:
             logger.warning("[DIALOGUE_EXEC] ModelRouter is None! Fallback to stub.")
             text = f"[Заглушка] {task.owner_id} обращается к {req.target_id} по теме: '{req.topic}'"
-        elif not requires_llm_materialization(req.intent_type):
+        elif not requires_llm_materialization(req.intent_type) and not (
+            req.intent_type == "spread_rumor" and _proposition is not None
+        ):
             # S199.2: Детерминированная материализация для claim-producing интентов без LLM
             text = f"[{req.intent_type}] {task.owner_id} -> {req.target_id}: {req.topic}"
         else:
@@ -406,7 +408,7 @@ class DialogueExecutor:
         # Hard Contract (Принцип 2): Нет STM -> нельзя говорить canonical dialogue
         # Разрешаем только первый ход (intent_type="greeting"), чтобы установить контакт
         # Исключение: claim-producing интенты (warn, intimidate) не требуют контекста диалога.
-        if not _stm_text and req.intent_type not in ("greeting", "approach") and requires_dialogue_context(req.intent_type):
+        if not _stm_text and req.intent_type not in ("greeting", "approach") and requires_dialogue_context(req.intent_type) and not getattr(req, "proposition", None):
             logger.warning(f"[DIALOGUE_EXEC] No STM for {task.owner_id} -> {req.target_id}, "
                            f"intent '{req.intent_type}' demoted to 'approach' (auto-recover).")
             from dataclasses import replace as _dc_replace
@@ -431,11 +433,21 @@ class DialogueExecutor:
             if ctx.get("author_notes"):
                 user_prompt += f"Важные ограничения: {ctx['author_notes']}. "
 
+        # COGNITIVE-CONTINUITY-01: claim verbalization — факт, которым ты делишься.
+        # LLM получает клейм и сама решает, как его передать своими словами.
+        _claim_block = ""
+        if _proposition is not None:
+            _pred_map = {"insulted": "оскорбил", "stole": "украл у", "attacked": "напал на", "helped": "помог"}
+            _pv = getattr(_proposition.predicate, "value", str(_proposition.predicate))
+            _pred_text = _pred_map.get(_pv, str(_proposition.predicate))
+            _claim_block = f"[Факт, которым ты делишься]: {_proposition.subject_id} {_pred_text} {_proposition.object_id}. Передай это собеседнику своими словами.\n"
+
         # Динамическая часть (добавляется всегда, так как STM и beliefs могли измениться)
         user_prompt += (
             f"Ты обращаешься к: {_target_name}. "
             f"{_beliefs_text}"
             f"{_history_text}"
+            f"{_claim_block}"
             "Скажи свою реплику:"
         )
 
