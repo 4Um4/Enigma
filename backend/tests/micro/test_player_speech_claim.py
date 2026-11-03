@@ -67,7 +67,7 @@ def test_player_speech_claim_in_radius_creates_belief():
     store = _Store()
     sub = ClaimEventSubscriber(
         engine=SimpleNamespace(
-            revise=lambda listener_id, claim, existing: SimpleNamespace(
+            revise=lambda listener_id, claim, existing, **kw: SimpleNamespace(
                 listener_id=listener_id,
                 claim=claim,
                 proposition=claim.proposition,

@@ -625,6 +625,10 @@ class GameLoop:
             # приходит только из DM-вектора (ADR-035); без вектора — no-op.
             # Self-relevance/secret-семантика — M2/D, вне Stage-1.5.
             _bus.subscribe(EventType.PLAYER_SPOKE, _subscriber.on_player_spoke)
+            # COGNITIVE-CONTINUITY-01: PLAYER_INSULTS → on_player_spoke (G1 fix).
+            # on_player_spoke определяет PLAYER_INSULTS по event.type и строит
+            # Proposition(player, INSULTED, victim) — отдельная ветка до free-ASSERT.
+            _bus.subscribe(EventType.PLAYER_INSULTS, _subscriber.on_player_spoke)
 
             # S201: Регистрация SocialActionSubscriber для маршрутизации SOCIAL_ACTION
             from app.services.events.social_action_subscriber import SocialActionSubscriber

@@ -100,6 +100,26 @@ class ClaimEventSubscriber:
             return
 
         payload = event.payload
+        # COGNITIVE-CONTINUITY-01: PLAYER_INSULTS → Proposition(player, INSULTED, victim).
+        # Ветка перед semantic_action / free-ASSERT: оскорбление — отдельный канал,
+        # не требует DM-вектора. subject = игрок (оскорбитель), object = жертва.
+        # Мембрана on_claim_event (distance + can_observe) фильтрует слушателей.
+        _evt_type = str(getattr(event, "type", "") or "")
+        _action_type = str(payload.get("action_type", "") or "")
+        if "player_insults" in (_evt_type, _action_type):
+            _victim = payload.get("target_id") or ""
+            if _victim:
+                _new_payload = dict(payload)
+                _new_payload["proposition"] = {
+                    "subject_id": getattr(event, "source", "player"),
+                    "predicate": Predicate.INSULTED.value,
+                    "object_id": _victim,
+                    "polarity": True,
+                }
+                _new_payload.setdefault("claim_id", f"player-claim-{event.id}")
+                _new_payload.setdefault("speech_act", "insult")
+                self.on_claim_event(dataclasses.replace(event, payload=_new_payload))
+            return
         semantic_action = payload.get("semantic_action")
         if not semantic_action:
             # USL-1.4 (ADR-O-437): free ASSERT path — игрок сказал что-то без
