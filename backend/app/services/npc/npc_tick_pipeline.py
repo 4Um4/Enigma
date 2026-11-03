@@ -981,6 +981,45 @@ class NpcTickPipeline:
             logger.debug(
                 f"[DIAG-OPP] npc={npc_id} will={_opp_will} dist={_opp_dist:.1f} att={_opp_att:.2f} allies={_opp_allies}"
             )
+            # R2 (CCH-15 P1): NeedLevel → need_modifiers → DecisionHub utility.
+            # Принцип 4: NeedLevel — давление потребности, не влюблённость.
+            # Модулирует score (искривляет utility), не приказывает.
+            # CALIBRATION_CANDIDATE: веса — placeholder, калибровка в Lab.
+            _need_modifiers: Optional[Dict[str, float]] = None
+            try:
+                from app.services.social.relationship_state_store import (
+                    RelationshipStateStore,
+                )
+                _need_levels = RelationshipStateStore.get_need_levels(
+                    state.scene_state, npc_id
+                )
+                _need_modifiers = {}
+                # intimacy → seek_ally / talk / approach (принцип 1: раздельные потребности)
+                _intimacy = _need_levels.get("intimacy")
+                if _intimacy and _intimacy.current_intensity > 0.0:
+                    _int = _intimacy.current_intensity
+                    _need_modifiers["seek_ally"] = (
+                        _need_modifiers.get("seek_ally", 0.0) + _int * 0.5
+                    )
+                    _need_modifiers["talk"] = (
+                        _need_modifiers.get("talk", 0.0) + _int * 0.3
+                    )
+                    _need_modifiers["approach"] = (
+                        _need_modifiers.get("approach", 0.0) + _int * 0.2
+                    )
+                # sexual → approach (телесная близость; принцип 5: без эксклюзивности)
+                _sexual = _need_levels.get("sexual")
+                if _sexual and _sexual.current_intensity > 0.0:
+                    _need_modifiers["approach"] = (
+                        _need_modifiers.get("approach", 0.0) + _sexual.current_intensity * 0.4
+                    )
+                if not _need_modifiers:
+                    _need_modifiers = None
+            except Exception as _need_err:
+                logger.warning(
+                    f"[NEED_MODIFIERS] failed to read NeedLevel for {npc_id}: {_need_err}"
+                )
+                _need_modifiers = None
             decision = DecisionHub(rng=_rng).compute(
                 state=state_l2,
                 personality=profile_l0,
@@ -1003,6 +1042,7 @@ class NpcTickPipeline:
                 causal_modifiers=_causal_modifiers, # R5: ADR среза CS2
                 causal_addressee=_causal_addressee, # 2b-ii: причина→адресат→действие
                 cognition_modifiers=_cognition_mods, # P3d: внимание→utility (санкция)
+                need_modifiers=_need_modifiers, # R2 (CCH-15 P1): NeedLevel→utility
                 epistemic_context=_epistemic_ctx, # S197: Causal Provenance
                 opportunity_ctx=_opp_ctx,  # ADR-O-366: DEBT-OPP-PRODUCER
             )

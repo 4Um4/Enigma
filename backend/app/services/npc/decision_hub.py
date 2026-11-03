@@ -374,16 +374,20 @@ class DecisionHub:
         epistemic_modifiers: Optional[Dict[str, float]] = None,
         causal_modifiers: Optional[Dict[str, float]] = None,
         cognition_modifiers: Optional[Dict[str, float]] = None,  # P3d: перцепция→utility (санкция)
+        need_modifiers: Optional[Dict[str, float]] = None,  # R2 (CCH-15 P1): NeedLevel→utility
     ) -> Dict[str, float]:
         """S188: Чистая функция (Pure Reducer) для аддитивного применения модификаторов.
         Не мутирует входной словарь scores, возвращает новый.
         Modifier Contract v1: все модификаторы являются независимыми аддитивными деформациями.
+        R2: need_modifiers — давление потребностей (intimacy/sexual) искривляет utility,
+        не приказывает (принцип 4: NeedLevel ≠ влюблённость).
         """
         result = dict(scores) # Создаём копию, чтобы не мутировать вход
         all_mods = [
             eco_modifiers, social_modifiers, reputation_modifiers,
             drive_modifiers, contract_modifiers, npc_memory_modifiers,
-            epistemic_modifiers, causal_modifiers, cognition_modifiers
+            epistemic_modifiers, causal_modifiers, cognition_modifiers,
+            need_modifiers,
         ]
         for mod_dict in all_mods:
             if mod_dict:
@@ -422,6 +426,7 @@ class DecisionHub:
         # цель, которую знает причина (DesiredChange.addressee).
         causal_addressee: Optional[str] = None,
         cognition_modifiers: Optional[Dict[str, float]] = None,  # P3d: внимание→utility (санкция, P3d-записка v3)
+        need_modifiers: Optional[Dict[str, float]] = None,  # R2 (CCH-15 P1): NeedLevel→utility
     ) -> AgentAction:
         """
         Основной метод. READ ONLY — state не мутируется.
@@ -543,7 +548,8 @@ class DecisionHub:
             npc_memory_modifiers=npc_memory_modifiers,
             epistemic_modifiers=epistemic_modifiers,
             causal_modifiers=causal_modifiers,
-            cognition_modifiers=cognition_modifiers
+            cognition_modifiers=cognition_modifiers,
+            need_modifiers=need_modifiers,
         )
         # Задача 5 (P3d, санкция Мастера): фактические utility ДО/ПОСЛЕ
         # cognition_modifiers — данные для калибровки до её проведения.
