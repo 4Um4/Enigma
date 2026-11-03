@@ -46,9 +46,12 @@ def test_usl_source_kind_has_9_values():
     assert USLSourceKind.HYPOTHESIS.value == "hypothesis"
 
 
-def test_usl_time_kind_has_6_forms():
-    """Вердикт Мастера Q2: 6 форм времени."""
-    assert len(USLTimeKind) == 6
+def test_usl_time_kind_has_7_forms():
+    """Вердикт Мастера Q2 (расширен CCH-15 P0): 7 форм времени.
+    
+    S380: добавлена REPEAT — повторяемость («каждый год», «регулярно»).
+    """
+    assert len(USLTimeKind) == 7
     assert USLTimeKind.POINT.value == "point"
     assert USLTimeKind.DURATION.value == "duration"
     assert USLTimeKind.INTERVAL.value == "interval"

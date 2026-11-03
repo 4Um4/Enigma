@@ -33,7 +33,6 @@ from typing import Optional, Tuple
 # Закон 1.2 Устава: domain/ не импортирует services/models/api.
 from app.domain.chronicle import KnowledgeChannel
 
-
 # ── Источник USLUnit (USL-2: источник ≠ истина) ──────────────────────────────
 
 class USLSourceKind(str, Enum):
@@ -174,6 +173,7 @@ class USLTimeKind(str, Enum):
     INTERVAL = "interval"
     ORDER = "order"
     RELATIVE = "relative"
+    REPEAT = "repeat"  # CCH-15 P0: повторяемость («каждый год», «регулярно»)
     UNKNOWN = "unknown"
 
 
