@@ -352,6 +352,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
 
 
+    # R5 (CCH-15 P4): гарантированная остановка WorldScheduler при shutdown.
+    # Opt-in: по умолчанию фон не запущен, но если игрок включил —
+    # корректно останавливаем (текущий тик завершается, новые прекращаются).
+    try:
+        _gl = getattr(app.state, "game_loop", None)
+        if _gl is not None and hasattr(_gl, "world_scheduler"):
+            _sched = _gl.world_scheduler
+            if _sched.is_loop_running:
+                await _sched.stop_background_loop()
+                print("✓ WorldScheduler background loop stopped")
+    except Exception as e:
+        logger.warning(f"[SHUTDOWN] WorldScheduler stop failed: {e}")
+
+
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 app.add_middleware(

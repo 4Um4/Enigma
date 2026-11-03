@@ -1198,6 +1198,58 @@ async def game_action(request: dict, game_loop: Any = Depends(get_game_loop)) ->
         )
 
 
+# ── R5 (CCH-15 P4): Автономная симуляция (opt-in) ──────────────────
+# Игрок управляет фоновой симуляцией через UI (F10). По умолчанию выключена.
+# WorldScheduler делегирует в game_loop.idle_tick (единственный путь через TickOrchestrator).
+
+
+@router.post("/autonomous-simulation/{campaign_id}/start")
+async def start_autonomous_simulation(campaign_id: str, game_loop: Any = Depends(get_game_loop)) -> dict:
+    """R5: запустить фоновую автономную симуляцию для кампании (opt-in).
+
+    - По умолчанию выключена.
+    - Игрок включает явно (например, F10 в UI).
+    - WorldScheduler.start_background_loop([campaign_id], interval_seconds=60).
+    - Гвард _loop_running защищает от двойного запуска.
+    """
+    if game_loop is None or not hasattr(game_loop, "world_scheduler"):
+        raise HTTPException(status_code=503, detail="WorldScheduler недоступен")
+    _sched = game_loop.world_scheduler
+    if _sched.is_loop_running:
+        return {"status": "already_running", "campaign_id": campaign_id}
+    await _sched.start_background_loop([campaign_id], interval_seconds=60.0)
+    return {"status": "started", "campaign_id": campaign_id, "interval_seconds": 60.0}
+
+
+@router.post("/autonomous-simulation/{campaign_id}/stop")
+async def stop_autonomous_simulation(campaign_id: str, game_loop: Any = Depends(get_game_loop)) -> dict:
+    """R5: остановить фоновую автономную симуляцию.
+
+    - Текущий тик корректно завершается.
+    - Новые фоновые тики прекращаются.
+    - Состояние сохраняется.
+    """
+    if game_loop is None or not hasattr(game_loop, "world_scheduler"):
+        raise HTTPException(status_code=503, detail="WorldScheduler недоступен")
+    _sched = game_loop.world_scheduler
+    await _sched.stop_background_loop()
+    return {"status": "stopped", "campaign_id": campaign_id}
+
+
+@router.get("/autonomous-simulation/{campaign_id}/status")
+async def autonomous_simulation_status(campaign_id: str, game_loop: Any = Depends(get_game_loop)) -> dict:
+    """R5: статус фоновой автономной симуляции."""
+    if game_loop is None or not hasattr(game_loop, "world_scheduler"):
+        return {"status": "unavailable", "is_running": False}
+    _sched = game_loop.world_scheduler
+    return {
+        "status": "running" if _sched.is_loop_running else "stopped",
+        "is_running": _sched.is_loop_running,
+        "campaign_id": campaign_id,
+        "running_ticks": _sched.running_ticks,
+    }
+
+
 @router.get("/session/state/{campaign_id}", response_model=SessionInterfaceState)
 def session_state(
     campaign_id: str, game_loop: Any = Depends(get_game_loop)

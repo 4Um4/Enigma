@@ -2312,6 +2312,26 @@ class GameLoop:
         - SqliteMemoryStore (enigma_memory.db)
         - TickOrchestrator cached SpatialService
         """
+        # R5: гарантированная остановка фоновой симуляции при dispose.
+        # Opt-in: если игрок включил симуляцию и приложение завершилось —
+        # stop_background_loop корректно завершает текущий тик.
+        try:
+            _sched = getattr(self, "world_scheduler", None)
+            if _sched is not None and _sched.is_loop_running:
+                # dispose синхронный — используем asyncio.run для stop_background_loop
+                import asyncio as _asyncio
+                try:
+                    _loop = _asyncio.get_event_loop()
+                    if _loop.is_running():
+                        _loop.create_task(_sched.stop_background_loop())
+                    else:
+                        _asyncio.run(_sched.stop_background_loop())
+                except Exception as _dispose_inner:
+                    logger.warning(
+                        f"[GAME_LOOP] WorldScheduler stop_background_loop inner failed: {_dispose_inner}"
+                    )
+        except Exception as e:
+            print(f"[GAME_LOOP] WorldScheduler stop on dispose warning: {e}")
         # 0. S269-QUIESCE (закрытие DEBT-QUIESCE, S213): собственный
         # диалоговый executor переживал dispose и писал в закрытые SQLite
         # (пост-teardown CRITICAL: [L1_CHRONICLE], NPC_DIALOGUE_SUB,
