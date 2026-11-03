@@ -350,6 +350,9 @@ class DecisionHub:
         _proposition = None
         if epistemic_context and hasattr(epistemic_context, 'trigger_proposition'):
             _proposition = epistemic_context.trigger_proposition
+        # COGNITIVE-CONTINUITY-01: report-пропозиция — фолбэк, trigger (угроза) приоритетен.
+        if _proposition is None and epistemic_context is not None:
+            _proposition = getattr(epistemic_context, "report_proposition", None)
 
         return CommunicationIntent(
             speaker=npc_id,
@@ -1955,6 +1958,24 @@ class DecisionHub:
                     f"{_prop.subject_id!r} — не актор (sanity_membrane: address denied) "
                     f"→ фоллбэк-резолв (шторм не-акторных задач пресечён на источнике)"
                 )
+
+        # COGNITIVE-CONTINUITY-01: report-канал — «сообщить жертве».
+        # Для report-пропозиции (INSULTED третьего лица) заинтересованная
+        # сторона — object_id (жертва), не subject_id (оскорбитель).
+        # Интенты: talk/spread_rumor/warn. Report — фолбэк после warn→subject.
+        if intent in ("talk", "spread_rumor", "warn"):
+            _rep = getattr(epistemic_context, "report_proposition", None) if epistemic_context else None
+            if _rep is not None:
+                _stakeholder = str(_rep.object_id or "")
+                if _stakeholder and _stakeholder != state.npc_id:
+                    from app.domain.sanity_membrane import can_address
+                    if can_address(state.npc_id, _stakeholder):
+                        logger.info(
+                            f"[EPISTEMIC_REPORT_TARGET] npc={state.npc_id} "
+                            f"intent={intent} target={_stakeholder} "
+                            f"predicate={getattr(_rep.predicate, 'value', _rep.predicate)}"
+                        )
+                        return _stakeholder
 
         if all_npc_ids is None:
             all_npc_ids = []
