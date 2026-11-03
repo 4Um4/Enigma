@@ -119,7 +119,12 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                 # claim-producing действия (warn, intimidate) не требуют контекста диалога (STM)
                 # и могут быть материализованы детерминированно.
                 _CLAIM_PRODUCING_INTENTS = {"warn", "intimidate"}
-                if not _stm_check and _intent_type not in ("greeting", "approach") and _intent_type not in _CLAIM_PRODUCING_INTENTS:
+                # COGNITIVE-CONTINUITY-01: proposition-carrying клейм — cold-start delivery.
+                _PROP_CARRY = getattr(intent, "proposition", None) is not None
+                if (not _stm_check
+                        and _intent_type not in ("greeting", "approach")
+                        and _intent_type not in _CLAIM_PRODUCING_INTENTS
+                        and not (_PROP_CARRY and _prop_target_in_reach(ctx.scene_state, intent.speaker, _target_id))):
                     logger.debug(f"[POST_DECISION] Intercept {intent.speaker} -> {_target_id}: No STM, changing intent '{_intent_type}' to 'approach'")
                     _intent_type = "approach"
 
@@ -576,3 +581,29 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
         logger.info(
             f"[TICK_ORCH] Фаза 7: {executed_windups} windups executed (EventDTO published)"
         )
+
+def _prop_target_in_reach(scene_state: dict, speaker_id: str, target_id: str) -> bool:
+    """COGNITIVE-CONTINUITY-01: клейм доставляем, если адресат в пределах речи
+    (SSOT exposure 'normal' = 6.0 м, domain/communication.py) и в той же локации.
+    Иначе — approach: NPC сначала подходит (существующее движение).
+    Fail-closed: любая ошибка/отсутствие данных → False → approach."""
+    try:
+        _positions = scene_state.get("npc_positions", {})
+        _sp = _positions.get(speaker_id, {})
+        _tp = _positions.get(target_id, {})
+        if not _sp or not _tp:
+            return False
+        _s_pos = str(_sp.get("position", ""))
+        _t_pos = str(_tp.get("position", ""))
+        if _s_pos.split(":")[0] != _t_pos.split(":")[0]:
+            return False
+        _s_local = _sp.get("local_position")
+        _t_local = _tp.get("local_position")
+        if _s_local is None or _t_local is None:
+            return False
+        import math
+        return math.hypot(_s_local[0] - _t_local[0], _s_local[1] - _t_local[1]) <= 6.0
+    except Exception as _e:
+        import logging
+        logging.getLogger(__name__).warning(f"[PROP_TARGET_IN_REACH] failed for {speaker_id}->{target_id}: {_e}")
+        return False
