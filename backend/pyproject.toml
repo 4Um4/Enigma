@@ -1,3 +1,45 @@
+﻿
+[project]
+name = "enigma-backend"
+version = "0.5.4.5.4"
+description = "Local AI Dungeon Master Backend"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+  "fastapi==0.115.0",
+  "uvicorn[standard]==0.30.6",
+  "pydantic==2.9.2",
+  "pydantic-settings==2.5.2",
+  "python-multipart==0.0.9",
+  "psutil==6.0.0",
+  "pypdf==5.1.0",
+  "httpx==0.28.1",
+  "aiohttp==3.10.11",
+  "pytest==8.3.3",
+  "pymorphy3",
+  "pygame==2.6.1",
+  "freetype-py",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx==0.28.1",
+  "pypdf==5.1.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["backend"]
+testpaths = ["tests"]
+addopts = "-v --tb=short --strict-markers --ignore=backend/tests/sandbox/test_causal_bridge_integration.py"
+minversion = 7.0
+filterwarnings = [
+  "ignore::DeprecationWarning:uvicorn",
+  "ignore::pytest.PytestCollectionWarning",
+]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"app" = "app"
+
 [tool.mypy]
 python_version = "3.11"
 doctest = false
@@ -9,7 +51,7 @@ show_error_codes = true
 warn_unused_configs = true
 
 # Полное исключение из проверки: тесты, скрипты, отчеты, отладочные файлы
-exclude = "^.*(_archive|diagnostics|frontend).*|^.*game_launcher\.py$"
+exclude = "^.*(backend/tests|backend/tests/sandbox|_archive|diagnostics|frontend).*"
 
 # Мягкий режим для всех модулей приложения и служебных пакетов
 [[tool.mypy.overrides]]
@@ -31,6 +73,4 @@ module = ["scripts.*", "reports.*", "frontend.*", "payload.*", "download.*", "co
 disallow_untyped_defs = false
 ignore_missing_imports = true
 ignore_errors = true
-
-
 
