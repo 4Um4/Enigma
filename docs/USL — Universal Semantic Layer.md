@@ -1075,10 +1075,13 @@ PROPOSED до вердикта Мастера по Этапу USL-0 (все су
 
 ### 13.3. Что осталось (pending)
 
-| Этап | Содержание | Сложность |
+USL-1 целиком закрыт. Следующий этап — USL-2 (см. §14).
+
+| Этап | Содержание | Статус |
 |---|---|---|
-| USL-1.5 | CanonicalRegistry bridge — прокинуть `registry_builder.CanonicalRegistry` в input-контур. Не разрушать fallback. | Средняя |
-| USL-1.6 | Regression + Activation — финальные тесты, решение по флагам, DTO Registry, MUTATIONS | Низкая |
+| USL-1.5 | CanonicalRegistry bridge — прокинуть `registry_builder.CanonicalRegistry` в input-контур. Не разрушать fallback. | ✅ CLOSED (S410) — `intent_compressor.py:432-455`, `_ensure_registry_cache()` + `_resolve_npc_by_name canonical-first`; `test_usl_canonical_bridge.py` (7 tests); §5.4 «Орму» автора = «Орму» игрока доказан |
+| USL-1.6 | Regression + Activation — финальные тесты, решение по флагам, DTO Registry, MUTATIONS | ✅ CLOSED (S410) — IMPACT R3 + DTO Registry §15 + MUTATIONS S410; 0 флагов (additive); IPT 54/0/0 |
+| **USL-1 итого** | 6 подэтапов (1.1–1.6), 2 коммита S380 + 1 коммит S410 | ✅ ALL GREEN |
 
 ### 13.4. Вердикт Мастера USL-0 (6 вопросов Q1-Q6 + 3 поправки)
 
@@ -1099,5 +1102,106 @@ PROPOSED до вердикта Мастера по Этапу USL-0 (все су
 ### 13.5. ADR и IMPACT
 
 - **ADR-O-437** в атласе: `docs/ADR (Architecture Decision Records).md` (строка 845)
-- **IMPACT:** `docs/audits/ADR-O-437_IMPACT.md` (обновлён R2)
+- **IMPACT:** `docs/audits/ADR-O-437_IMPACT.md` (обновлён R2 — USL-1.5/1.6; R3 — DTO Registry §15)
 - **ЗАВЕЩАНИЕ:** Письмо №14 (S380)
+
+---
+
+## 14. Статус USL-2 — корпусный прогон (S411, 2026-11-03)
+
+> **Статус этапа:** USL-2 IN PROGRESS — PARSED→CANONIZED доказаны на корпусе; SEEDED-фаза обнаружила 3 системных разрыва; переход к COGNITIVELY AVAILABLE → USED IN GAME передан преемнику.
+
+### 14.1. Что доказано GREEN (USL-проекция на корпусе)
+
+Корпус: 6 NPC (`config/npc/chronicles/*.json`), 363 entries суммарно. Прогон через `biography_to_usl` (`backend/app/services/chronicle/biography_adapter.py:318`).
+
+| Критерий | Результат | Статус |
+|---|---|---|
+| Замок равенства (entries → USLUnit) | 363==363, 6/6 NPC | ✅ GREEN |
+| USL-2 (source kind = AUTHOR_CANON) | 363/363, 0 non-author | ✅ GREEN |
+| USL-6 (детерминизм, повторный прогон) | 6/6 NPC, идентичные `unit_id` | ✅ GREEN |
+| Temporal match (canon `historical_age` == USL `temporal`) | 1==1 | ✅ GREEN (консервативность) |
+| USL-5 (text_span провенанс) | 0 units without span | ✅ GREEN |
+
+**Архитектурный вывод:** `biography_to_usl` — pure function, 1:1 mapping. Ни одна entry не потеряна, ни одна не добавлена, ни одна не повысилась в статусе. **USL-1.2 доказан на реальном корпусе, не на демонстрационных примерах.** Условие «оговарки» §13.2 (вердикт Мастера уточнение 2) — корпусная проверка — выполнено и дала GREEN.
+
+Карта покрытия по NPC:
+
+| NPC | entries | gs_age | canon_age | usl_temp | rel | caus | age_lost |
+|---|---|---|---|---|---|---|---|
+| blacksmith_orm | 63 | – | 0 | 0 | 10 | 0 | 6 |
+| guard_borko | 66 | – | 0 | 0 | 12 | 0 | 7 |
+| maid_lusya | 59 | **14** | **1** | **1** | 9 | 0 | 4 |
+| merchant_goran | 58 | – | 0 | 0 | 10 | 0 | 7 |
+| tavern_keeper_tornin | 78 | – | 0 | 0 | 9 | 0 | 7 |
+| thief_shadow | 39 | – | 0 | 0 | 5 | 0 | 2 |
+| **TOTAL** | **363** | 1/6 | 1/363 | 1/363 | 55 | 0 | **33** |
+
+USLPredicate distribution корпуса: `asserts: 112, has_effect: 110, has_trait: 98, believes: 34, lives_at: 8, desires: 1`. Все 6 EntryKind доменов покрыты.
+
+### 14.2. Что обнаружено RED (SEEDED-фаза)
+
+Прогон `chronicle_seeder.build_seed_*` на maid_lusya (единственный NPC с `game_start_age=14`): из 59 entries до когнитивных структур дошло только 11 EventMemory. Остальные 48 entries либо отклонены seeder'ом, либо не проверены.
+
+```
+SOURCE TEXT → PARSED → NORMALIZED → CANONIZED → SEEDED → COGNITIVELY AVAILABLE → USED IN GAME
+   21 пункт    59       59          59          11/59       ?                      ?
+               ✅        ✅          ✅         ⚠️ РАЗРЫВ   ⏳ (преемник)          ⏳ (преемник)
+```
+
+**Три системных разрыва** зафиксированы в ТЗ `docs/TZ_USL2_SEEDED_GAPS.md` и переданы владельцам CCH:
+
+| № | Разрыв | Симптом | Корневая причина |
+|---|---|---|---|
+| 1 | RELATIONSHIP → 0 | 9/9 RELATIONSHIP maid_lusya отклонены: «связь на неразрешённую сущность» | `object_id` пустой; декомпозиция не резолвит `target_hint` через CanonicalRegistry (USL-1.5 закрыт только для input-контура) |
+| 2 | EFFECT trauma → 0 imprints | 3/3 trauma-EFFECT отклонены: «без triggers» | payload не содержит `triggers`; декомпозиция не извлекает их (промпт + GBNF) |
+| 3 | BELIEF_SEED — API drift + belief_type | `build_seed_beliefs(doc)`, не `(npc_id, doc)`; seeder ожидает `payload['belief_type']` в реестре `BeliefType` | нужна археология payload BELIEF_SEED — есть ли `belief_type` |
+
+Разрывы 1-3 — **блокеры для закрытия USL-2**: без них SEEDED-фаза не проходит. Фикс — работа владельцев CCH (декомпозиция, seeder, реестр), не USL (вердикт Мастера Q3: «адаптеры не парсеры»).
+
+### 14.3. Дополнительные находки (не блокеры)
+
+| Находка | Описание | Материал для |
+|---|---|---|
+| A. temporal 1/363 (0%) | Только 1 entry имеет structured `historical_age`; 33 entries имеют возрастной маркер в `text_span`, но пустой temporal | USL-1.5+ (Temporal Extractor для biography-контура) — отдельная задача |
+| B. game_start_age 1/6 | Только `maid_lusya=14`; у 5 NPC `game_start_age=null` → seeder даёт `SENTINEL_DAY=-1000` | Контентная работа автора (заполнить 5 полей) |
+| C. KNOWLEDGE_LINK = 0 | Во всём корпусе нет `knows` predicate; `KnowledgeChannel` (WITNESSED/TOLD/OVERHEARD/DEDUCED) не используется | Будущее развитие CCH |
+| D. TRAIT_SEED не сеется | `build_full_seed` осознанно пропускает TRAIT_SEED — ждёт Character Calibration ADR | Не разрыв, осознанное решение |
+
+### 14.4. Статусная цепочка USL-2
+
+```
+SOURCE TEXT → PARSED → NORMALIZED → CANONIZED → SEEDED → COGNITIVELY AVAILABLE → USED IN GAME
+   6 NPC        363      363          363         11/59*     ⏳ (преемник)          ⏳ (преемник)
+   ✅           ✅        ✅           ✅         ⚠️ РАЗРЫВ
+```
+
+\* 11/59 — только для maid_lusya. Для остальных 5 NPC SEEDED-фаза не проверена из-за блокера `game_start_age` (находка B).
+
+**USL-2 доказал:** архитектура USL (`biography_to_usl`) выдерживает полный корпус. Разрывы обнаружены **не в USL**, а в downstream-контурах (декомпозиция, seeder, реестр). Это и есть ценность USL-2 как измерителя: он сделал видимыми три системных разрыва, которые ранее были скрыты за «декомпозиция успешна».
+
+### 14.5. Что осталось (pending — преемнику)
+
+| Этап | Содержание | Зависимость |
+|---|---|---|
+| USL-2.SEEDED | После фиксов разрывов 1-3 (TZ_USL2_SEEDED_GAPS.md) — перепрогон `scripts/usl2_seeded_lusya.py`, замок SEEDED GREEN | Фиксы CCH (разрывы 1-3) |
+| USL-2.COGNITIVE | Проверить, что EventMemory с честным `day` доходит до NPC (`MemoryManager.apply`, `WorkingMemory`) | USL-2.SEEDED GREEN |
+| USL-2.USED | F5-лаборатория: «NPC реагирует на Орма иначе», «Люся знает про тайный ход», «NPC не знает того, чего не мог знать» | USL-2.COGNITIVE GREEN |
+| USL-2 закрытие | Отчёт покрытия корпуса + замок равенства сеялки до/после + оценка стоимости прогона | USL-2.USED GREEN |
+| USL-3 | Реальные диалоги — следующий этап §9 | USL-2 закрыт |
+
+### 14.6. Артефакты USL-2 (S411)
+
+| Файл | Назначение | Статус |
+|---|---|---|
+| `scripts/usl2_pilot_lusya.py` | Пилот — maid_lusya через `biography_to_usl` (59→59 GREEN) | read-only, можно перепрогонять |
+| `scripts/usl2_corpus_all.py` | Корпус — 6 NPC через `biography_to_usl` (363==363 GREEN) | read-only, можно перепрогонять |
+| `scripts/usl2_seeded_lusya.py` | SEEDED-фаза — maid_lusya через `chronicle_seeder` (11/59, 3 разрыва) | read-only; перепрогон после фиксов разрывов |
+| `docs/TZ_USL2_SEEDED_GAPS.md` | ТЗ на 3 разрыва SEEDED-фазы (передано CCH) | OPEN — ждёт вердикта Мастера |
+
+### 14.7. ADR и IMPACT (без изменений)
+
+- **ADR-O-437** — ACTIVE (USL-1 целиком закрыт; USL-2 IN PROGRESS)
+- **IMPACT:** `docs/audits/ADR-O-437_IMPACT.md` — ожидает обновления R4 после закрытия USL-2
+- **ЗАВЕЩАНИЕ:** Письмо №14 (S380); Письмо №15 (S411) — будет написано при закрытии серии
+- **MUTATIONS:** S411 — ожидает записи при закрытии серии (max перепроверить перед записью)

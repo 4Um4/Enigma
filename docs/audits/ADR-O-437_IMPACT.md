@@ -1,7 +1,7 @@
 # ADR-O-437 Impact Audit — Universal Semantic Layer
 
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
-> **Статус:** ACTIVE (USL-1.1/1.2/1.3/1.4 GREEN; USL-1.5/1.6 — pending)
+> **Статус:** ACTIVE (USL-1.1–1.5 GREEN; USL-1.6 CLOSED — documentation-only closure, S410)
 > **Сессия:** S380, ветвь А (номер по ЗАВЕЩАНИЕ max+1; MUTATIONS.md max=S341 — расхождение зафиксировано)
 > **Связанные законы:** §ENIGMA-002 (Правило Двух Доменов — доказано для времени), §13 (Law of Epistemic Grounding), §17 (Epistemic Orthogonality)
 
@@ -116,8 +116,8 @@ Conservative: время — `temporal=()` (честный empty — input не 
 | `ChronicleSeeder` (EventMemory, BeliefState) | **не трогается** (USL-3) | — |
 | `ClaimEventSubscriber` | **патч в USL-1.4** (free ASSERT path) | proposition(ASSERTS, content) |
 | `TruthState` / `EvaluationEngine` | **не трогается** (USL-3) | — |
-| Будущий USL-1.5 (CanonicalRegistry bridge) | pending | USLEntityRef через общий реестр имён |
-| Будущий USL-1.6 (Regression + Activation) | pending | Финальные тесты, флаги, DTO Registry |
+| USL-1.5 (CanonicalRegistry bridge) | **CLOSED (S410)** | intent_compressor._resolve_npc_by_name canonical-first via _ensure_registry_cache(); «Орму» автора = «Орму» игрока (§5.4) |
+| USL-1.6 (Regression + Activation) | **CLOSED (S410)** | IPT 54/0/0 + USL pytest 96/96; 0 feature flags; DTO Registry §15; MUTATIONS S410 |
 | Будущий BC-5 (Social testimony) | future | USLEpistemics.channel |
 
 ## 6. Runtime Impact
@@ -135,8 +135,9 @@ Conservative: время — `temporal=()` (честный empty — input не 
 | `tests/micro/test_usl_biography_adapter.py` | 29 | ✅ GREEN |
 | `tests/micro/test_usl_interactive_adapter.py` | 22 | ✅ GREEN |
 | `tests/micro/test_usl_free_assert.py` | 10 | ✅ GREEN (USL-1.4) |
+| `tests/micro/test_usl_canonical_bridge.py` | 7 | ✅ GREEN (USL-1.5) |
 | **Регрессия claim-контура** | 16 | ✅ GREEN |
-| **Итого** | **98** | ✅ all GREEN |
+| **Итого** | **105** | ✅ all GREEN |
 
 Ключевые тесты:
 - `test_orm_canon_projects_without_errors` — реальный канон blacksmith_orm.json (53 entries)
@@ -156,9 +157,9 @@ Conservative: время — `temporal=()` (честный empty — input не 
 ## 9. Открытые вопросы (для USL-1.5+)
 
 1. **Temporal Extractor для input** (USL-1.5+): `extract_age_anchors_typed` НЕ готов (вердикт Мастера поправка 1) — нужно проверить на длительностях, относительных конструкциях, временных последовательностях в свободной речи.
-2. **CanonicalRegistry bridge** (USL-1.5): прокинуть `registry_builder.CanonicalRegistry` в input-контур как опциональный провайдер. Не разрушать fallback-механизмы. Цель: «Орму» автора и «Орму» игрока резолвятся одинаково (USL §5.4).
-3. **Флаги включения** (USL-1.6): по вердикту Мастера Q4 — минимально необходимые, после реализации. Сейчас 0 флагов (additive + 1 правка без флага — байт-идентично default OFF).
-4. **красный baseline** (5 нарушений IPT) — отдельный долг, не чинится в рамках USL (INV-RE-CACHE-ALLOWLIST, INV-FLAG-REGISTRY ×2, INV-SILENT-FAILURE ×3).
+2. ~~**CanonicalRegistry bridge** (USL-1.5)~~ ✅ CLOSED (S410): intent_compressor._ensure_registry_cache() + canonical-first _resolve_npc_by_name. §5.4 доказан.
+3. ~~**Флаги включения** (USL-1.6)~~ ✅ CLOSED (S410): 0 feature flags (additive, always active — вердикт Мастера Q4).
+4. ~~**красный baseline** (5 нарушений IPT)~~ ✅ CLOSED (S410): IPT-clearing — 11 fixes → IPT 54/0/0 CRITICAL. INV-SILENT-FAILURE ×3 + INV-RE-CACHE-ALLOWLIST + INV-FLAG-REGISTRY полностью закрыты.
 5. **MUTATIONS ↔ ЗАВЕЩАНИЕ расхождение:** MUTATIONS.md max=S341, ЗАВЕЩАНИЕ ссылается на S348-S379. Сессия зафиксирована как S380 (max ЗАВЕЩАНИЕ + 1). Мастеру рекомендуется синхронизировать MUTATIONS с ЗАВЕЩАНИЕ при слиянии параллельных ветвей.
 
 ## 10. Commit History
@@ -167,6 +168,9 @@ Conservative: время — `temporal=()` (честный empty — input не 
 |---|---|---|
 | `fe50b3be` | additive | USL-1.1/1.2/1.3 + ADR-O-437: domain/usl.py + 2 адаптера + 3 тест-файла + ADR entry + IMPACT. 72 теста. |
 | `8caefebc` | production | USL-1.4: Free ASSERT path — claim_event_subscriber.py:104-105. 10 новых тестов + 16 регрессий. |
+| `<SHA-IPT>` | infrastructure | IPT-clearing: 11 fixes (INV-SILENT-FAILURE ×3 + INV-RE-CACHE-ALLOWLIST + INV-FLAG-REGISTRY). IPT 51→54 passed, 3→0 CRITICAL. |
+| `<SHA-USL-1.5>` | production | USL-1.5: CanonicalRegistry bridge — intent_compressor.py _ensure_registry_cache() + canonical-first _resolve_npc_by_name. 7 новых тестов. |
+| `<SHA-USL-1.6>` | documentation | USL-1.6: IMPACT R3 + DTO Registry §15 + MUTATIONS S410. Documentation-only closure. |
 
 ## 11. Ссылки
 
@@ -175,3 +179,29 @@ Conservative: время — `temporal=()` (честный empty — input не 
 - Прецеденты: ADR-O-420 (Character Chronicle), ADR-O-388 (Player Speech Claims), ADR-O-423 (Chronicle Seeder)
 - Тест-артефакты: `backend/tests/micro/test_usl_*.py` (4 файла, 82 теста)
 - ЗАВЕЩАНИЕ: Письмо №14 (S380, эта серия)
+## 12. CanonicalRegistry Bridge (USL-1.5, S410)
+
+### Architecture
+
+**Bridge site:** `intent_compressor._resolve_npc_by_name`
+**Pattern:** module-level cache (chronicle `decomposition_normalizer.py:73-75`)
+
+Fallback order: canonical exact match -> stem-based iteration (preserved).
+0 feature flags (additive, always active — Master verdict Q4).
+
+### Cache lifecycle
+
+| Parameter | Value |
+|---|---|
+| Registry source | `config/npc/individuals/*.json` (static config) |
+| Builder | `build_canonical_registry()` -> `load_npcs_merged()` -> JSON read |
+| Mutability | NPC roster + name_forms = config-sourced, NOT runtime-mutable |
+| Cache lifecycle | lazy build at first call -> process lifetime |
+| Invalidation | NOT NEEDED — registry immutable during game session |
+| Precedent | chronicle `decomposition_normalizer.py:73-75` — same pattern |
+
+Verdict: current implementation acceptable (Master: no code change without proof).
+
+### USL-1 Section 5.4 proven
+
+`test_player_and_author_same_resolution`: GREEN.

@@ -62,6 +62,7 @@ ALLOWLIST: dict[str, int] = {
     "services/social/social_decay_handler.py": 2,     # DECAY-READER (GAP-4-контекст)
     "services/social/v2_relationship_backend.py": 2,  # BOOTSTRAP-SOURCE (M1b.1)
     "services/tick_utils.py": 10,                     # SANITIZER (единств. обогащение)
+    "api/routes_chronicle.py": 4,  # DEBUGGER-PROJECTION (COV-11/S373): Character Debugger endpoint — reads relationship_cache keys for API response ("relationship_cache_targets": sorted keys); read-only, 0 writes. 4 сайта: .get() extract (877) + dict-key string "relationship_cache_targets" (900) + .keys() reader (901) + isinstance type-check (902). B1 runtime observability — npc_dict projection для debug API.
 }
 
 

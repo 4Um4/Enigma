@@ -521,6 +521,14 @@ def _classify_seed_entry(
                 return ("SEEDED", None, day, "DAY_ZERO", None)
             return ("SEEDED", None, day, None, None)
         except SeederError as ex:
+            # SKIPPED return несёт structured diagnosis в caller (seed-report).
+            # Logger.warning добавлен для наблюдаемости на уровне seeder'а
+            # (L4 запрет silent failure, INV-SILENT-FAILURE — Pattern 2: except+return
+            # без логирования). SeederError = реальная ошибка day-computation.
+            logging.getLogger(__name__).warning(
+                "chronicle_seeder: day computation failed for chronicle=%s entry=%s age=%s: %s",
+                doc.chronicle_id, e.entry_id, e.historical_age, ex,
+            )
             return ("SKIPPED", f"SeederError: {ex}", None, None, None)
     if kind_str == "RELATIONSHIP":
         tgt = _resolved_npc_id(e.object_id)

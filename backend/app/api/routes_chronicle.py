@@ -237,6 +237,55 @@ def get_understanding(campaign: str, source: str = "drafts",
     }
 
 
+def _build_prior_context(doc: Optional["ChronicleDocument"], current_fragment_ord: int) -> str:
+    """CCH-14: cross-fragment context для LLM-декомпозиции.
+
+    Формирует краткую сводку EVENT и RELATIONSHIP из предыдущих фрагментов
+    (ordinal < current_fragment_ord * 100), чтобы LLM связывала действия
+    между фрагментами.
+
+    Контракт:
+    - только LLM_DRAFT и AUTHOR_CONFIRMED (не LLM_DRAFT pending questions)
+    - только top-N (10) по убыванию ordinal
+    - формат: «[N] SUBJECT действие OBJECT» (compact)
+
+    Не передаёт payload целиком (контекстный budget ограничен). Не передаёт
+    BELIEF_SEED/TRAIT_SEED/PORTRET — они не являются действиями.
+    """
+    if doc is None or not doc.entries:
+        return ""
+    from app.domain.chronicle import EntryKind
+    cutoff = current_fragment_ord * 100
+    relevant = [
+        e for e in doc.entries
+        if e.ordinal < cutoff
+        and e.kind in (EntryKind.EVENT, EntryKind.RELATIONSHIP)
+    ]
+    if not relevant:
+        return ""
+    # Сортируем по убыванию ordinal — самые свежие в начале
+    relevant.sort(key=lambda e: e.ordinal, reverse=True)
+    # CCH-14: top-5 + краткий формат (80 символов на summary)
+    # было top-10 с полным summary — вызывало truncation на больших фрагментах
+    lines = []
+    for e in relevant[:5]:
+        if e.kind is EntryKind.EVENT:
+            summary = e.payload.get("summary", "")
+            if summary:
+                frag_n = e.ordinal // 100
+                short = summary[:80] + ("…" if len(summary) > 80 else "")
+                lines.append(f"[п.{frag_n}] {short}")
+        elif e.kind is EntryKind.RELATIONSHIP:
+            summary = e.payload.get("summary", "")
+            target = e.payload.get("target_hint", "")
+            if summary:
+                frag_n = e.ordinal // 100
+                short = summary[:60] + ("…" if len(summary) > 60 else "")
+                target_str = f" → {target}" if target else ""
+                lines.append(f"[п.{frag_n}] {short}{target_str}")
+    return "\n".join(lines)
+
+
 @chronicle_router.post("/chronicle/{campaign_id}/{npc_id}/decompose")
 async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeRequest) -> Dict[str, Any]:
     """FR-2.x: фрагмент → декомпозиция. Результат merge-ится в ЧЕРНОВИК как
@@ -248,7 +297,16 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
         если слот (F, idx) занят авторской записью, свежий черновик получает
         salted id и сосуществует с ней — автор сравнит при ревью.
     entry_id детерминирован: md5(chronicle[:salt]:фрагмент:порядковый)."""
-    result = await _get_decomposer().decompose(req.npc_id, req.fragment_ord, req.fragment)
+    # CCH-14: cross-fragment context — сводка предыдущих EVENT/RELATIONSHIP
+    # из существующего draft. LLM использует для связи действий между
+    # фрагментами (например, «насилие Орма» как продолжение «изнасилования»).
+    store = _get_store()
+    _prior_doc = store.load_draft(req.campaign_id, req.npc_id)
+    _prior_context = _build_prior_context(_prior_doc, req.fragment_ord)
+    result = await _get_decomposer().decompose(
+        req.npc_id, req.fragment_ord, req.fragment,
+        prior_context=_prior_context,
+    )
     if not result.ok:
         return {
             "status": "NOT_DECOMPOSED",
@@ -337,8 +395,15 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
             _profile = _profiles.get(req.npc_id)
             if _profile is not None:
                 _game_start_age = _profile.age_at_game_start
-        except Exception:
-            pass  # fail-soft: без game_start_age правило не срабатывает, не падает
+        except (ImportError, OSError, ValueError) as _exc:
+            # fail-soft: без game_start_age правило не срабатывает, не падает.
+            # Узкие исключения + логирование — L4 запрет silent failure (INV-SILENT-FAILURE).
+            # ImportError = модуль npc_loader сломан; OSError = config-файлы;
+            # ValueError = JSON-разбор. Прочие исключения пробрасываются (не маскировать).
+            logging.getLogger(__name__).warning(
+                "routes_chronicle: game_start_age fallback failed for npc_id=%s: %s",
+                req.npc_id, _exc,
+            )
     new_entries = []
     for _idx, _it in enumerate(result.items):
         _eid = make_entry_id(doc.chronicle_id, req.fragment_ord, _idx)

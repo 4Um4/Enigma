@@ -1,0 +1,450 @@
+﻿============================================================
+
+STAGE 2.1-R6 — EVENTBUS CAUSALITY & PLAYER DEFERRAL
+
+Mode: READ ONLY — narrow risk audit
+
+Generated: 2026-11-03 18:59:57
+
+============================================================
+
+============================================================
+
+Q1: PLAYER INTENT SUBSCRIBERS
+
+============================================================
+
+[SEARCH] PLAYER subscriptions  pattern: /subscribe.*PLAYER_ATTACKS|subscribe.*PLAYER_INTERACTS|subscribe.*PLAYER_SPOKE|subscribe.*WILL_CONFLICT/
+  8 matches:
+  backend\app\services\game_loop\game_loop.py:560 : _bus.subscribe(EventType.PLAYER_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
+  backend\app\services\game_loop\game_loop.py:576 : _bus.subscribe(EventType.PLAYER_SPOKE, _speech_act_sub.on_player_spoke)
+  backend\app\services\game_loop\game_loop.py:627 : _bus.subscribe(EventType.PLAYER_SPOKE, _subscriber.on_player_spoke)
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:7 : - PASS-кандидаты вызывают реальный PlayerSpeechActSubscriber.on_player_spoke
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:159 : _bus.subscribe(EventType.PLAYER_SPOKE, _spy)
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:102 : _bus.subscribe(EventType.PLAYER_SPOKE, _spy)
+  backend\tests\test_combat_pipeline_e2e.py:138 : # ReactionSubscriber реагирует на PLAYER_ATTACKS
+  backend\tests\test_combat_subscriber.py:88 : def test_subscribes_to_player_attacks(self):
+
+[READ] publish_player_intent event types  backend/app/services/phases/input.py L25-56
+  25: def publish_player_intent(ctx: _TickContext, intent: Any) -> None:
+  26:     """Публикация разрешенного намерения игрока в шину."""
+  27:     from app.domain.events import EventDTO
+  28:     from app.services.events.event_bus import get_event_bus
+  29:     from app.services.events.event_types import EventType
+  30: 
+  31:     _evt_map = {
+  32:         "attack": EventType.PLAYER_ATTACKS,
+  33:         "player_attacks": EventType.PLAYER_ATTACKS,
+  34:     }
+  35:     _act = getattr(intent, "action", "") or ""  # noqa: ENIGMA002
+  36:     _resolved_type = _evt_map.get(_act, EventType.PLAYER_INTERACTS)
+  37: 
+  38:     _params = getattr(intent, "parameters", None)  # noqa: ENIGMA002
+  39:     _target_id = getattr(_params, "target_id", "") if _params else ""  # noqa: ENIGMA002
+  40:     _target_ref = getattr(_params, "target_reference", "") if _params else ""  # noqa: ENIGMA002
+  41:     _sem_action = getattr(_params, "semantic_action", _act) if _params else _act
+  42: 
+  43:     get_event_bus().publish(
+  44:         EventDTO.create(
+  45:             event_type=_resolved_type.value,
+  46:             source="player",
+  47:             payload={
+  48:                 "action": _sem_action,
+  49:                 "target": getattr(intent, "target", "") or "",  # noqa: ENIGMA002
+  50:                 "target_id": _target_id,
+  51:                 "target_reference": _target_ref,
+  52:                 "semantic_action": _sem_action,
+  53:             },
+  54:         )
+  55:     )
+  56: 
+
+============================================================
+
+Q2: PRE-PHASE-5 PROCESSING
+
+============================================================
+
+[READ] Phase 2 event_bus_primary  backend/app/services/tick_orchestrator.py L2012-2070
+  2012:     def _phase_2_event_bus_primary(self, ctx: _TickContext) -> None:
+  2013:         """Первая волна EventBus: пространственные события от MovementEngine (Слой 4).
+  2014: 
+  2015:         SpatialEventDetector сравнивает позиции до/после фазы 0
+  2016:         и публикует NPC_MOVED, NPC_PROXIMITY_CLOSE, NPC_PROXIMITY_LEAVE.
+  2017:         Дополнение Б (п. Б.10.2): Активация Sound bleed для кросс-локационного звука.
+  2018:         """
+  2019:         if not ctx.old_npc_positions:
+  2020:             return
+  2021:         detector = SpatialEventDetector()
+  2022:         if _spatial_events := detector.detect_and_publish(
+  2023:             old_positions=ctx.old_npc_positions,
+  2024:             new_scene_state=ctx.scene_state,
+  2025:         ):
+  2026:             ctx.phase_2_events.extend(_spatial_events)
+  2027:             logger.debug(f"[TICK_ORCH] Фаза 2: {len(_spatial_events)} spatial events")
+  2028: 
+  2029:             # Дополнение Б: Sound bleed
+  2030:             try:
+  2031:                 from app.core.config import settings
+  2032:                 from app.domain.events import EventDTO
+  2033:                 from app.services.spatial.spatial_runtime import sound_bleeds_to_adjacent
+  2034: 
+  2035:                 _loc_id = ctx.scene_state.get("location_id", "")
+  2036:                 _data_dir = getattr(ctx, "_cached_data_dir", None) or str(settings.data_dir)  # noqa: ENIGMA002
+  2037:                 ctx._cached_data_dir = _data_dir
+  2038: 
+  2039:                 # Находим соседние локации
+  2040:                 _adjacent_locs = sound_bleeds_to_adjacent(
+  2041:                     scene_state=ctx.scene_state,
+  2042:                     base_radius=10,
+  2043:                     bleed_threshold=0.5,
+  2044:                     data_dir=_data_dir
+  2045:                 )
+  2046: 
+  2047:                 # Если есть соседи, пробиваем звук к ним
+  2048:                 if _adjacent_locs:
+  2049:                     _event_bus = self._get_event_bus()
+  2050:                     for _event in _spatial_events:
+  2051:                         # Определяем "громкость" события (упрощенная модель для MVP)
+  2052:                         _intensity = 0.8 if _event.type in ("NPC_ATTACKED", "PLAYER_ATTACKS") else 0.3
+  2053:                         if _intensity >= 0.5:
+  2054:                             for _adj_loc in _adjacent_locs:
+  2055:                                 # Проницаемость стены (упрощенно: 0.4 для двери)
+  2056:                                 _bleeded_intensity = _intensity * 0.4 * 0.5
+  2057:                                 if _bleeded_intensity >= 0.1:
+  2058:                                     _bleeded_event = EventDTO.create(
+  2059:                                         event_type="SOUND_BLEED",
+  2060:                                         source=_event.source,
+  2061:                                         payload={
+  2062:                                             "origin_location": _loc_id,
+  2063:                                             "perceived_at_location": _adj_loc,
+  2064:                                             "intensity": _bleeded_intensity,
+  2065:                                             "original_type": _event.type
+  2066:                                         }
+  2067:                                     )
+  2068:                                     _event_bus.publish(_bleeded_event)
+  2069:                                     logger.debug(f"[SOUND_BLEED] {_event.type} from {_loc_id} to {_adj_loc} (intensity={_bleeded_intensity:.2f})")
+  2070:             except Exception as _bleed_err:
+
+[READ] Phase 3+4  backend/app/services/tick_orchestrator.py L2073-2100
+  2073:     def _phase_3_memory(self, ctx: _TickContext) -> None:
+  2074:         """Memory Phase: делегировано в phases/memory.py (S100)."""
+  2075:         from app.services.phases.memory import execute_memory_phase
+  2076: 
+  2077:         execute_memory_phase(ctx, self._get_memory_manager())
+  2078: 
+  2079:     def _phase_4_pre_decision(self, ctx: _TickContext) -> None:
+  2080:         """TopicExtractor: извлекает тему для каждого NPC (Устав §3.2).
+  2081: 
+  2082:         Приоритет источников темы:
+  2083:         1. Spatial event затронувший NPC (конкретный контекст)
+  2084:         2. STM буфер NPC (последние реплики)
+  2085:         3. Фоллбэк "наблюдение" (никогда не пустой — Устав §3.2)
+  2086:         """
+  2087:         _mm = self._get_memory_manager()
+  2088: 
+  2089:         for npc_dict in ctx.npc_states:
+  2090:             npc_id = npc_dict.get("id")
+  2091:             if not npc_id:
+  2092:                 continue
+  2093: 
+  2094:             topic: Optional[str] = ""
+  2095: 
+  2096:             from app.services.npc.topic_extractor import extract_topic
+  2097: 
+  2098:             topic = None
+  2099: 
+  2100:             # 0. Приоритет: Проверяем недавние диалоги в TaskScheduler (NPC_SPOKE)
+
+============================================================
+
+Q3: SAME-TICK PUBLICATION?
+
+============================================================
+
+[SEARCH] EventBus publish/drain  pattern: /def publish|def drain|def _drain|_pending_events/
+  50 matches:
+  backend\app\models\cfrm.py:138 : def drain(
+  backend\app\models\phase8.py:79 : def drain_events(self) -> List[EventDTO]:
+  backend\app\services\chronicle\chronicle_projections.py:457 : def publish_generation(
+  backend\app\services\combat\combat_subscriber.py:69 : self._pending_events: list = []
+  backend\app\services\combat\combat_subscriber.py:86 : self._pending_events.append(event)
+  backend\app\services\combat\combat_subscriber.py:93 : def drain_events(self) -> List:
+  backend\app\services\combat\combat_subscriber.py:95 : snapshot = self._pending_events[:]
+  backend\app\services\combat\combat_subscriber.py:96 : self._pending_events.clear()
+  backend\app\services\events\event_bus.py:143 : def publish(self, event: EventDTO) -> List[EventDTO]:
+  backend\app\services\events\event_bus.py:209 : def publish_many(self, events: List[EventDTO]) -> List[EventDTO]:
+  backend\app\services\events\npc_addressing_delivery_subscriber.py:110 : def drain(self, campaign_id: str) -> List[Dict[str, Any]]:
+  backend\app\services\events\npc_dialogue_subscriber.py:154 : def drain_pending_recognition(self, scene_state: dict) -> None:
+  backend\app\services\events\reaction_subscriber.py:144 : self._pending_events: list[EventDTO] = []
+  backend\app\services\events\reaction_subscriber.py:154 : self._pending_events.append(event)
+  backend\app\services\events\reaction_subscriber.py:161 : def drain_events(self) -> List[EventDTO]:
+  backend\app\services\events\reaction_subscriber.py:163 : snapshot = self._pending_events[:]
+  backend\app\services\events\reaction_subscriber.py:164 : self._pending_events.clear()
+  backend\app\services\events\relationship_event_semantics.py:163 : self._pending_events: List[EventDTO] = []
+  backend\app\services\events\relationship_event_semantics.py:181 : self._pending_events.append(event)
+  backend\app\services\events\relationship_event_semantics.py:188 : def drain_events(self) -> List[EventDTO]:
+  backend\app\services\events\relationship_event_semantics.py:190 : snapshot = list(self._pending_events)
+  backend\app\services\events\relationship_event_semantics.py:191 : self._pending_events.clear()
+  backend\app\services\events\social_input_projector.py:43 : self._pending_events: List[EventDTO] = []
+  backend\app\services\events\social_input_projector.py:55 : self._pending_events.append(event)
+  backend\app\services\events\social_input_projector.py:61 : def drain_events(self) -> List[EventDTO]:
+  backend\app\services\events\social_input_projector.py:62 : snapshot = list(self._pending_events)
+  backend\app\services\events\social_input_projector.py:63 : self._pending_events.clear()
+  backend\app\services\events\social_subscriber.py:71 : self._pending_events: List[EventDTO] = []
+  backend\app\services\events\social_subscriber.py:81 : self._pending_events.append(event)
+  backend\app\services\events\social_subscriber.py:88 : def drain_events(self) -> List[EventDTO]:
+  backend\app\services\events\social_subscriber.py:90 : snapshot = list(self._pending_events)
+  backend\app\services\events\social_subscriber.py:91 : self._pending_events.clear()
+  backend\app\services\game_loop\phase_1_input.py:471 : def publish_player_speech(
+  backend\app\services\game_loop\phase_1_input.py:510 : def publish_classified_player_event(
+  backend\app\services\game_loop\task_scheduler.py:183 : def drain_commitment_outbox(self, scene_state: dict) -> None:
+  backend\app\services\game_loop\task_scheduler.py:214 : def drain_task_worker_outbox(self, scene_state: dict) -> None:
+  backend\app\services\memory\memory_manager.py:201 : def drain_pending_dialogue_memories(self) -> List[EventDTO]:
+  backend\app\services\phases\input.py:25 : def publish_player_intent(ctx: _TickContext, intent: Any) -> None:
+  backend\app\services\phases\reduction.py:162 : _pending = getattr(handler, "_pending_events", [])  # noqa: ENIGMA002
+  backend\app\services\drf_bus.py:28 : def drain(self) -> list[dict]:
+  backend\app\services\drf_bus.py:62 : def drain(self) -> list[dict]:
+  backend\tests\micro\test_attack_cardinality.py:23 : def publish(self, event):
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:39 : def publish(self, event: object) -> None:
+  backend\tests\system\test_sleep_routing.py:25 : def publish(self, event: Any) -> None:
+  backend\tests\IPT.py:2072 : def drain(self, *args, **kwargs): pass
+  backend\tests\IPT.py:2073 : def drain_commitment_outbox(self, *args, **kwargs): pass
+  backend\tests\IPT.py:2074 : def drain_task_worker_outbox(self, *args, **kwargs): pass
+  backend\tests\test_action_commitment.py:1176 : def publish(self, e):
+  backend\tests\test_reaction_subscriber.py:139 : sub._pending_events.append(_make_event())
+  backend\tests\test_work_orders.py:41 : def publish(self, e):
+
+[READ] Phase 8 drain  backend/app/services/tick_orchestrator.py L2595-2615
+  2595:     def _phase_8_drain_secondary(self, ctx: _TickContext) -> None:
+  2596:         """ФАЗА 8: Layered Reduction — делегировано в phases/reduction.py (S100)."""
+  2597:         from app.services.phases.reduction import execute_reduction_phase
+  2598: 
+  2599:         _l1 = getattr(self, "l1_chronicle", None)  # noqa: ENIGMA002
+  2600:         execute_reduction_phase(
+  2601:             ctx,
+  2602:             combat_sub=self._combat_sub,
+  2603:             reaction_sub=self._reaction_sub,
+  2604:             social_sub=self._social_sub,
+  2605:             relationship_sub=self._relationship_events_sub,
+  2606:             homeostasis_sub=cast("Phase8Handler", self._homeostasis_sub),
+  2607:             social_input_proj=self._social_input_proj,
+  2608:             dynamic_field=self._dynamic_field,
+  2609:             l1_chronicle=_l1,
+  2610:             resolve_spatial_fn=lambda: self._resolve_spatial_service(ctx),
+  2611:         )
+  2612: 
+  2613:     def _phase_9_integration(self, ctx: _TickContext) -> None:
+  2614:         """CFRM P2: Вычисление локальной реальности + WorldSnapshotBuilder."""
+  2615:         if not hasattr(self, "_manifest_svc"):
+
+============================================================
+
+Q4: PHASE 8 LATE EVENTS
+
+============================================================
+
+[SEARCH] Phase 8 drain+handle  pattern: /drain_events|def handle.*events|Phase8Result/
+  87 matches:
+  backend\app\models\phase8.py:11 : - Phase8Context READ-ONLY для обработчиков. Все выходы — через Phase8Result.
+  backend\app\models\phase8.py:12 : - drain_events() — снимок + очистка. Если handle() падает — события теряются
+  backend\app\models\phase8.py:19 : Основные сущности: Phase8Context, Phase8Result, Phase8Handler
+  backend\app\models\phase8.py:52 : class Phase8Result:
+  backend\app\models\phase8.py:72 : 2. Оркестратор вызывает drain_events() → снимок + очистка
+  backend\app\models\phase8.py:73 : 3. Оркестратор вызывает handle(events, ctx) → Phase8Result
+  backend\app\models\phase8.py:79 : def drain_events(self) -> List[EventDTO]:
+  backend\app\models\phase8.py:87 : def handle(self, events: List[EventDTO], ctx: Phase8Context) -> Phase8Result:
+  backend\app\models\phase8.py:90 : events — из drain_events(), может быть пустым.
+  backend\app\models\phase8.py:92 : Возвращает Phase8Result — все выходы только через него.
+  backend\app\services\combat\combat_subscriber.py:6 : Зависимости: EventBus, Phase8Context, Phase8Result, ImpactEngine, ImpactIntentDTO
+  backend\app\services\combat\combat_subscriber.py:33 : from app.models.phase8 import Phase8Context, Phase8Result
+  backend\app\services\combat\combat_subscriber.py:59 : 2. Оркестратор → drain_events() снимок + очистка (Фаза 8)
+  backend\app\services\combat\combat_subscriber.py:60 : 3. Оркестратор → handle(events, ctx) → Phase8Result (Фаза 8)
+  backend\app\services\combat\combat_subscriber.py:93 : def drain_events(self) -> List:
+  backend\app\services\combat\combat_subscriber.py:103 : ) -> Phase8Result:
+  backend\app\services\combat\combat_subscriber.py:106 : events — из drain_events(), может быть пустым.
+  backend\app\services\combat\combat_subscriber.py:108 : Возвращает Phase8Result(deltas) — оркестратор маршрутизирует
+  backend\app\services\combat\combat_subscriber.py:118 : return Phase8Result()
+  backend\app\services\combat\combat_subscriber.py:252 : result = Phase8Result(
+  backend\app\services\events\reaction_subscriber.py:44 : from app.models.phase8 import Phase8Context, Phase8Result
+  backend\app\services\events\reaction_subscriber.py:136 : 2. Оркестратор → drain_events() снимок + очистка (Фаза 8)
+  backend\app\services\events\reaction_subscriber.py:137 : 3. Оркестратор → handle(events, ctx) → Phase8Result (Фаза 8)
+  backend\app\services\events\reaction_subscriber.py:161 : def drain_events(self) -> List[EventDTO]:
+  backend\app\services\events\reaction_subscriber.py:171 : ) -> Phase8Result:
+  backend\app\services\events\reaction_subscriber.py:174 : events — из drain_events(), может быть пустым.
+  backend\app\services\events\reaction_subscriber.py:176 : Возвращает Phase8Result(deltas) — оркестратор маршрутизирует
+  backend\app\services\events\reaction_subscriber.py:186 : return Phase8Result(perceiving_npc_ids=set())
+  backend\app\services\events\reaction_subscriber.py:259 : return Phase8Result(perceiving_npc_ids=set())
+  backend\app\services\events\reaction_subscriber.py:500 : return Phase8Result(
+  backend\app\services\events\relationship_event_semantics.py:27 : from app.models.phase8 import Phase8Context, Phase8Result
+  backend\app\services\events\relationship_event_semantics.py:153 : 2. Оркестратор → drain_events() снимок + очистка (Фаза 8)
+  backend\app\services\events\relationship_event_semantics.py:154 : 3. Оркестратор → handle(events, ctx) → Phase8Result
+  backend\app\services\events\relationship_event_semantics.py:188 : def drain_events(self) -> List[EventDTO]:
+  backend\app\services\events\relationship_event_semantics.py:194 : def handle(self, events: List[EventDTO], ctx: Phase8Context) -> Phase8Result:
+  backend\app\services\events\relationship_event_semantics.py:199 : return Phase8Result(deltas=deltas, events_processed=len(events))
+  backend\app\services\events\social_input_projector.py:10 : Зависимости: domain.events.EventDTO, models.phase8.Phase8Context/Phase8Result, services.events.event_bus.EventBus
+  backend\app\services\events\social_input_projector.py:20 : from app.models.phase8 import Phase8Context, Phase8Result
+  backend\app\services\events\social_input_projector.py:61 : def drain_events(self) -> List[EventDTO]:
+  backend\app\services\events\social_input_projector.py:66 : def handle(self, events: List[EventDTO], ctx: Phase8Context) -> Phase8Result:
+  backend\app\services\events\social_input_projector.py:131 : return Phase8Result(deltas=deltas, events_processed=len(events))
+  backend\app\services\events\social_subscriber.py:4 : Зависимости: domain.events.EventDTO, models.phase8.Phase8Context/Phase8Result, services.events.event_bus.EventBus
+  backend\app\services\events\social_subscriber.py:9 : Фаза 8: drain_events() + handle() — детерминированный drain-этап.
+  backend\app\services\events\social_subscriber.py:27 : from app.models.phase8 import Phase8Context, Phase8Result
+  backend\app\services\events\social_subscriber.py:60 : 2. Оркестратор → drain_events() снимок + очистка (Фаза 8)
+  backend\app\services\events\social_subscriber.py:61 : 3. Оркестратор → handle(events, ctx) → Phase8Result (Фаза 8)
+  backend\app\services\events\social_subscriber.py:88 : def drain_events(self) -> List[EventDTO]:
+  backend\app\services\events\social_subscriber.py:102 : ) -> Phase8Result:
+  backend\app\services\events\social_subscriber.py:105 : events — из drain_events(), может быть пустым.
+  backend\app\services\events\social_subscriber.py:107 : Возвращает Phase8Result(deltas) — оркестратор применяет.
+  backend\app\services\events\social_subscriber.py:114 : return Phase8Result()
+  backend\app\services\events\social_subscriber.py:118 : return Phase8Result()
+  backend\app\services\events\social_subscriber.py:161 : return Phase8Result(
+  backend\app\services\events\social_subscriber.py:197 : return Phase8Result(
+  backend\app\services\events\social_subscriber.py:261 : return Phase8Result(
+  backend\app\services\phases\reduction.py:16 : from app.models.phase8 import Phase8Context, Phase8Handler, Phase8Result
+  backend\app\services\phases\reduction.py:158 : ) -> Optional[Phase8Result]:
+  backend\app\services\phases\reduction.py:166 : events = handler.drain_events()
+  backend\app\services\phases\reduction.py:236 : # Применяем Phase8Result к _TickContext
+  backend\app\services\phases\reduction.py:245 : result: Phase8Result,
+  backend\app\services\phases\reduction.py:250 : """Применяет Phase8Result к _TickContext.
+  backend\app\services\social\propagation.py:206 : # Социальные результаты доступны оркестратору через Phase8Result.deltas
+  backend\app\services\tick_orchestrator.py:22 : ФАЗА 8: Handlers (детерминированный drain: drain_events + handle → Phase8Result)
+  backend\tests\micro\test_perception_witness.py:85 : """Интеграция: handle() возвращает Phase8Result с непустым
+  backend\tests\test_combat_pipeline_e2e.py:116 : combat_events = combat_sub.drain_events()
+  backend\tests\test_combat_pipeline_e2e.py:140 : reaction_events = reaction_sub.drain_events()
+  backend\tests\test_combat_pipeline_e2e.py:190 : reaction_events = reaction_sub.drain_events()
+  backend\tests\test_combat_subscriber.py:19 : 8. drain_events() очищает буфер
+  backend\tests\test_combat_subscriber.py:28 : from app.models.phase8 import Phase8Context, Phase8Result
+  backend\tests\test_combat_subscriber.py:94 : drained = sub.drain_events()
+  backend\tests\test_combat_subscriber.py:103 : drained = sub.drain_events()
+  backend\tests\test_combat_subscriber.py:112 : drained = sub.drain_events()
+  backend\tests\test_combat_subscriber.py:136 : assert isinstance(result, Phase8Result)
+  backend\tests\test_combat_subscriber.py:221 : """drain_events() — буфер и очистка."""
+  backend\tests\test_combat_subscriber.py:224 : """drain_events() очищает буфер после снятия."""
+  backend\tests\test_combat_subscriber.py:231 : first_drain = sub.drain_events()
+  backend\tests\test_combat_subscriber.py:234 : second_drain = sub.drain_events()
+  backend\tests\test_phase_a_memory_fixes.py:1008 : # handle() возвращает Phase8Result (Устав Фаза 8): дельты — в его
+  backend\tests\test_reaction_subscriber.py:6 : 1. Protocol compliance (name, drain_events, handle)
+  backend\tests\test_reaction_subscriber.py:31 : from app.models.phase8 import Phase8Context, Phase8Result
+  backend\tests\test_reaction_subscriber.py:131 : def test_drain_events_returns_list(self):
+  backend\tests\test_reaction_subscriber.py:133 : result = sub.drain_events()
+  backend\tests\test_reaction_subscriber.py:136 : def test_drain_events_clears_buffer(self):
+  backend\tests\test_reaction_subscriber.py:140 : first = sub.drain_events()
+  backend\tests\test_reaction_subscriber.py:142 : second = sub.drain_events()
+  backend\tests\test_reaction_subscriber.py:149 : assert isinstance(result, Phase8Result)
+  backend\tests\test_social_homeostasis.py:108 : events = proj.drain_events()
+
+[SEARCH] Phase 2 vs 8  pattern: /phase_2.*primary|primary.*phase_2|event_bus.*primary/
+  3 matches:
+  backend\app\services\tick_orchestrator.py:1071 : self._phase_2_event_bus_primary(ctx) # 2
+  backend\app\services\tick_orchestrator.py:2012 : def _phase_2_event_bus_primary(self, ctx: _TickContext) -> None:
+  backend\tests\IPT.py:1934 : "backend/app/services/tick_orchestrator.py (_phase_2_event_bus_primary)",
+
+============================================================
+
+Q5: SEPARATE REGISTRATION FROM EXECUTION?
+
+============================================================
+
+[SEARCH] deferred publishing  pattern: /deferred.*publish|publish.*deferred|queue.*event|event.*queue/
+  23 matches:
+  backend\app\services\events\event_bus.py:45 : bus.enqueue_for_tick(event)     # для world_tick (без LLM)
+  backend\app\services\events\event_bus.py:46 : events = bus.flush_tick_queue() # scheduler читает раз в N минут
+  backend\app\services\events\event_bus.py:51 : self._tick_queue: List[EventDTO] = []
+  backend\app\services\events\event_bus.py:218 : def enqueue_for_tick(self, event: EventDTO) -> None:
+  backend\app\services\events\event_bus.py:225 : # Event Identity: события tick-очереди финализируются на enqueue —
+  backend\app\services\events\event_bus.py:228 : self._tick_queue.append(event)
+  backend\app\services\events\event_bus.py:230 : def flush_tick_queue(self) -> List[EventDTO]:
+  backend\app\services\events\event_bus.py:232 : events, self._tick_queue = self._tick_queue, []
+  backend\app\services\events\npc_addressing_delivery_subscriber.py:42 : staged_events в delivery queue (_buffers[campaign_id]).
+  backend\app\services\events\npc_addressing_delivery_subscriber.py:45 : ack(campaign_id, event_id) — удаляет событие из delivery queue.
+  backend\app\services\events\npc_addressing_delivery_subscriber.py:85 : """Фаза 2: commit. Переносит staged_events в delivery queue.
+  backend\app\services\events\npc_addressing_delivery_subscriber.py:113 : НЕ очищает queue (повторная выдача до ACK возвращает тот же event_id).
+  backend\app\services\events\npc_dialogue_subscriber.py:488 : # (INV-D8P-NOOP). Dubl event.id → enqueue=False, повторная
+  backend\app\services\events\tick_campaign_context.py:33 : subscriber.commit_staged() для переноса staged_events в delivery queue
+  backend\app\services\memory\intelligence_queue.py:170 : if task.event_id in self._enqueued:
+  backend\app\services\memory\intelligence_queue.py:173 : self._enqueued[task.event_id] = None
+  backend\tests\micro\test_attack_cardinality.py:56 : assert len(attack_events) == 0  # deferred — единственный publisher: orchestrator
+  backend\tests\micro\test_npc_addressing_delivery.py:245 : """drain дважды → тот же event_id (queue не очищается)."""
+  backend\tests\micro\test_npc_addressing_delivery.py:425 : # staged_events destroyed with context → delivery queue empty
+  backend\tests\micro\test_npc_addressing_delivery.py:458 : # Event is in staged_events but NOT in delivery queue
+  backend\tests\sandbox\SUPERBOX\scenarios\d8p_intelligence_test.py:8 : DialogueSession/EventDTO/NpcDialogueSubscriber/IntelligenceQueue.
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_world_event_test.py:6 : QueuedTask исполняется TaskScheduler и порождает реальный EventDTO (NPC_SPOKE) в EventBus.
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_world_event_test.py:165 : print("  ✅ КАУЗАЛЬНАЯ ПЕТЛЯ ЗАМКНУТА: QueuedTask исполнилась и породила EventDTO в EventBus.")
+
+[SEARCH] event buffering  pattern: /register.*intent|intent.*register|hold.*event|event.*hold|buffer.*event/
+  34 matches:
+  backend\app\services\cfrm\local_causal_solver.py:251 : event_buffer: EventBuffer,
+  backend\app\services\events\npc_addressing_delivery_subscriber.py:56 : self._buffers: Dict[str, List[EventDTO]] = {}
+  backend\app\services\events\npc_dialogue_subscriber.py:626 : self._l1_chronicle.commit_tick_buffer([_drift_event], event_tick or tick)
+  backend\app\services\events\npc_dialogue_subscriber.py:690 : self._l1_chronicle.commit_tick_buffer([_drift_event], event_tick or tick)
+  backend\app\services\game_loop\npc_orchestration.py:375 : tick_orchestrator.l1_chronicle.commit_tick_buffer(_l1_events, _tick)
+  backend\app\services\memory\resonance_engine.py:10 : §10: if Σ related_events > threshold → create_trait()
+  backend\app\services\memory\working_memory.py:38 : self._buffers[campaign_id].append(event)
+  backend\app\services\npc\l1_chronicle.py:234 : self, buffer: List[TraitDriftEvent], current_tick: int
+  backend\app\services\npc\l1_chronicle.py:283 : e for e in self._events[npc_id] if e.tick_id >= _threshold
+  backend\app\services\npc\l1_chronicle.py:289 : f"[L1_CHRONICLE] Archived events older than tick {_threshold} for campaign={self._campaign_id}"
+  backend\app\services\npc\npc_loader.py:585 : становится EventMemory у каждого initial_holder («кто знает что» —
+  backend\app\services\npc\npc_loader.py:994 : # становится EventMemory у каждого initial_holder; дедуп по secret_id
+  backend\app\services\npc\state_applicator.py:1383 : _chronicle.commit_tick_buffer(_events, _tick)
+  backend\app\services\phases\decision.py:176 : l1_chronicle.commit_tick_buffer(_events_to_log, tick_number)
+  backend\app\services\phases\integration.py:102 : event_buffer=ctx.event_buffer,
+  backend\app\services\phases\reduction.py:116 : l1_chronicle.commit_tick_buffer(_combat_l1_events, ctx.tick_number)
+  backend\app\services\world\time_skip_executor.py:321 : """Event-threshold stop. Kernel executes, stops on significance."""
+  backend\app\services\dto.py:215 : event_buffer: EventBuffer = field(default_factory=EventBuffer)
+  backend\tests\gameplay\test_p2_canon_sync.py:3 : #   чекер) + runtime-половина (harness): holders имеют EventMemory(secret_id);
+  backend\tests\gameplay\test_p2_canon_sync.py:42 : """Runtime: каждый holder каждого секрета имеет EventMemory(secret_id)."""
+  backend\tests\micro\test_self_talk_sentinel.py:38 : def commit_tick_buffer(self, events, tick):
+  backend\tests\sandbox\phenomenology\test_rumor_mutation.py:98 : buffer = EventBuffer()
+  backend\tests\sandbox\probes\l1_archive_avalanche_probe.py:39 : chron.archive_old_events(current_tick=2100)  # threshold=100
+  backend\tests\sandbox\probes\scale_instrument.py:25 : _L1_METHODS = ("append", "commit_tick_buffer", "archive_old_events", "query_raw", "query_weighted")
+  backend\tests\sandbox\SUPERBOX\scenarios\bm_bprime_framework.py:548 : for intent, pred in PRE_REGISTERED["on_off_contrast_prediction"].items():
+  backend\tests\sandbox\g3_execution_probe.py:157 : _ok_off = _off["holder_after"] is None and _off["theft_events"] >= 1
+  backend\tests\sandbox\g3_execution_probe.py:158 : _ok_on = _on["holder_after"] == _ACTOR and _on["theft_events"] >= 1
+  backend\tests\sandbox\g3_will_probe.py:99 : _ok_on = _on["holder_after"] == _ACTOR and _on["theft_events"] >= 1
+  backend\tests\sandbox\sandbox_cfrm_vertical.py:121 : buffer = EventBuffer()
+  backend\tests\test_cfrm_models.py:2 : # Назначение: Юнит-тесты для доменных моделей CFRM (ClusterGraph, EventBuffer, classify_event)
+  backend\tests\test_cfrm_models.py:103 : def test_buffer_add_and_drain(self, make_event):
+  backend\tests\test_cfrm_models.py:126 : def test_buffer_drain_is_atomic(self, make_event):
+  backend\tests\test_l1_chronicle_archive_idempotency.py:42 : chron.archive_old_events(current_tick=2100)  # threshold=100
+  backend\tests\test_phase3_spatial_social.py:169 : events = detect_transitions(prev, curr, close_threshold=4.5)
+
+============================================================
+
+Q6: REGRESSION TESTS
+
+============================================================
+
+[SEARCH] NPC reaction tests  pattern: /player.*action.*npc.*react|npc.*react.*player|same.*tick.*player.*npc/
+  1 matches:
+  backend\app\models\scene_event.py:29 : Создаётся из PhysicalOutcome, PlayerAction, или NPC reactions.
+
+[SEARCH] event ordering tests  pattern: /event.*order|order.*event|sequence.*event|event.*sequence|causal.*order/
+  16 matches:
+  backend\app\domain\chronicle.py:251 : TEMPORAL_ORDER = "TEMPORAL_ORDER"        # EVENT M<N (хронология — НЕ причина)
+  backend\app\domain\usl.py:200 : relative_to — event_ref / unit_id, к которому относится INTERVAL/ORDER.
+  backend\app\models\causality_manifest.py:66 : "event_memory.sequence_id": FieldCausality("DEBT", organ="memory", terminal="persistence", authority="ADR-O-414"),
+  backend\app\models\causality_manifest.py:112 : "npc_state.behavior_mask": FieldCausality("CAUSAL", organ="role", terminal="decision", authority="ADR-409", proof="backend/tests/s...
+  backend\app\services\chronicle\causal_linker.py:107 : - TEMPORAL_ORDER: EVENT с historical_age=N → ищем EVENT с M<N
+  backend\app\services\economy\work_orders.py:208 : causal_note=f"work_order:{_oid}",
+  backend\app\services\memory\memory_manager.py:662 : # Ключ = sequence_id (EventMemory не имеет UUID)
+  backend\app\services\memory\promotion_engine.py:91 : events: Sequence[EventMemory],
+  backend\app\services\memory\resonance_engine.py:100 : events: Sequence[EventMemory],
+  backend\app\services\memory\resonance_engine.py:305 : events: Sequence[EventMemory],
+  backend\tests\gameplay\test_gc02_player_action_world_consequence.py:19 : 3. Изменение попадает в event/causal layer (ActionConsequenceCompiler
+  backend\tests\micro\test_s366_causal_linker.py:140 : """EVENT M<N → детектируется кандидат TEMPORAL_ORDER, но НЕ создаётся CauseRef в causes."""
+  backend\tests\micro\test_usl_types.py:314 : # ── 9. USLCausalLink: ORDER ≠ CAUSES (запрет хронология→причина) ─────────────
+  backend\tests\sandbox\db_dump_probe.py:41 : "FROM event_memories ORDER BY npc_id, importance DESC"
+  backend\tests\test_compression_stage9.py:155 : _make_mem(event_type="combat", tags=("combat",), sequence_id=99),
+  backend\tests\test_sqlite_store_stage11.py:244 : "SELECT id FROM event_memories WHERE npc_id = 'npc_1' AND campaign_id = 'c1' ORDER BY sequence_id"
+
+[SEARCH] IPT causality  pattern: /IPT.*player.*npc|player.*npc.*causal|INV.*player.*npc/
+  6 matches:
+  backend\app\domain\intent_profile.py:109 : actor: Optional[str] = Field(default=None, description="Resolved actor (player / npc_id)")
+  backend\app\services\npc\attention_reflex.py:13 : примитив, что INV-PLAYER-AUTHORSHIP, npc_tick_pipeline:1119).
+  backend\app\services\npc\decision_hub.py:329 : f"[INV-PLAYER-AUTHORSHIP] speaker={npc_id!r}: авторский "
+  backend\app\services\npc\npc_tick_pipeline.py:1089 : f"[INV-PLAYER-AUTHORSHIP] attack-factory: speaker={npc_id!r} "
+  backend\tests\IPT.py:1439 : """INV-PLAYER-EPISTEMIC-CLOSURE: NPC_SPOKE -> EpistemicStore[player] update."""
+  backend\tests\IPT.py:1485 : return InvariantResult("INV-PLAYER-EPISTEMIC-CLOSURE", "CRITICAL", True, "NPC_SPOKE -> EpistemicStore[player] работает.", [])
+
+

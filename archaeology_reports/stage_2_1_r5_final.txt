@@ -1,0 +1,295 @@
+﻿============================================================
+
+STAGE 2.1-R5 — 4 FINAL INVESTIGATIONS
+
+Mode: READ ONLY
+
+Generated: 2026-11-03 17:32:14
+
+============================================================
+
+============================================================
+
+1. IDENTITY PERSISTENCE
+
+============================================================
+
+[SEARCH] creation points  pattern: /def new_game|def create_campaign|def init_avatar|def create_avatar/
+  5 matches:
+  backend\app\api\routes.py:1380 : def new_game(campaign_id: str, request: NewGameRequest, game_loop: Any = Depends(get_game_loop)) -> dict:
+  backend\app\services\game_loop\game_loop.py:721 : def new_game(
+  backend\tests\gameplay\harness.py:111 : def new_game(self) -> None:
+  backend\tests\micro\test_d60_reset_fail_loud.py:347 : def new_game(self, **kwargs):
+  backend\tests\micro\test_d60_reset_fail_loud.py:366 : def new_game(self, **kwargs):
+
+[SEARCH] Avatar save methods  pattern: /def save_avatar|def save_state.*avatar|avatar.*save/
+  8 matches:
+  backend\app\services\game_loop\phase_6_avatar.py:77 : avatar_service.save_state(campaign_id, _avatar_state)
+  backend\app\services\game_loop\turn_pipeline.py:274 : self.avatar_service.save_state(campaign_id, _avatar_state)
+  backend\app\services\game_loop_builder.py:56 : avatar_service = PlayerAvatarService(root=str(saves_dir))
+  backend\app\services\player_avatar_service.py:234 : def save_avatar(
+  backend\app\services\player_avatar_service.py:411 : # B1.3-FIX: Журнал обрабатывается в save_avatar/save_state, здесь ему не место.
+  backend\tests\sandbox\micro\test_player_turn_headless.py:73 : game_loop.avatar_service.save_state(campaign_id, _avatar_state)
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:95 : self.game_loop.avatar_service.save_state(campaign_id, _avatar_state)
+  backend\tests\sandbox\re_gap1_production_probe.py:76 : loop.avatar_service.save_state(CAMPAIGN, _avatar)
+
+[SEARCH] Player session creation  pattern: /PlayerSessionService.*select|select_player/
+  17 matches:
+  backend\app\api\routes.py:1438 : player_session_service.select_player(campaign_id, player_name)
+  backend\app\api\routes.py:1449 : def select_player(request: PlayerSelectRequest) -> PlayerSelectResponse:
+  backend\app\api\routes.py:1455 : player_session_service.select_player(request.campaign_id, request.player)
+  backend\app\services\player_session_service.py:119 : def select_player(self, campaign_id: str, player_name: str) -> PlayerSession:
+  backend\tests\gameplay\harness.py:174 : player_session_service.select_player(_CAMPAIGN, _PLAYER)
+  backend\tests\sandbox\micro\test_player_turn_headless.py:56 : player_session_service.select_player(campaign_id, player_name)
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:332 : player_session_service.select_player(cfg.campaign_id, "player")
+  backend\tests\sandbox\SUPERBOX\scenarios\behavior_mask_closure_test.py:449 : player_session_service.select_player(cfg.campaign_id, "player")
+  backend\tests\sandbox\SUPERBOX\scenarios\bm_bprime_framework.py:24 : player_session_service.select_player(...) — синглтон на ногу; изоляция процессами
+  backend\tests\sandbox\SUPERBOX\causal_validation.py:78 : player_session_service.select_player(campaign_id, "Tester")
+  backend\tests\sandbox\system\test_epistemology_pipeline.py:111 : player_session_service.select_player(campaign_id, player_name)
+  backend\tests\sandbox\lab_r001_clone_differential.py:65 : # (Write Guard цензует прямые мутации; select_player — canonical рождение аватара)
+  backend\tests\sandbox\lab_r001_clone_differential.py:68 : player_session_service.select_player(cfg.campaign_id, "player")
+  backend\tests\sandbox\lab_r002_fear_scale_probe.py:61 : player_session_service.select_player(cfg.campaign_id, "player")
+  backend\tests\sandbox\lab_r003_gc11_causal_delta.py:105 : player_session_service.select_player(cfg.campaign_id, "player")
+  backend\tests\sandbox\lab_r004_spatial_coherence.py:31 : player_session_service.select_player(cfg.campaign_id, "player")
+  backend\tests\sandbox\re_gap1_production_probe.py:62 : player_session_service.select_player(CAMPAIGN, PLAYER)
+
+============================================================
+
+2. npc_intents — ALL REFERENCES
+
+============================================================
+
+[SEARCH] ALL npc_intents references  pattern: /npc_intents/
+  25 matches:
+  backend\app\services\game_loop\phase_6_avatar.py:10 : Основные сущности: update_avatar_from_npc_intents
+  backend\app\services\game_loop\phase_6_avatar.py:21 : def update_avatar_from_npc_intents(
+  backend\app\services\game_loop\turn_pipeline.py:296 : update_avatar_from_npc_intents,
+  backend\app\services\game_loop\turn_pipeline.py:299 : update_avatar_from_npc_intents(
+  backend\app\services\phases\simulation.py:156 : # этап 2 / п-1 (санкция): приоритет ram-канона сцены (npc_intents
+  backend\app\services\phases\simulation.py:162 : _ssot_intents = ctx.scene_state.get("npc_intents") or {}
+  backend\app\services\tick_orchestrator.py:2475 : _KEY_NPC_INTENTS = "npc_intents"
+  backend\app\services\tick_orchestrator.py:2476 : _intent_map = ctx.scene_state.setdefault(_KEY_NPC_INTENTS, {})
+  backend\tests\gameplay\test_gc05_production_path_testimony.py:215 : _intents = _scene.get("npc_intents", {}) or {}
+  backend\tests\gameplay\test_gc05_production_path_testimony.py:242 : _intents = _scene.get("npc_intents", {}) or {}
+  backend\tests\sandbox\micro\test_gate1_source.py:5 : предиката (SUPPRESS и PASS) на новом источнике scene_state["npc_intents"].
+  backend\tests\sandbox\micro\test_gate1_source.py:23 : _ssot_intents = scene_state.get("npc_intents") or {}
+  backend\tests\sandbox\micro\test_gate1_source.py:47 : scene = {"npc_intents": {"borko": "observe"},
+  backend\tests\sandbox\micro\test_gate1_source.py:55 : scene = {"npc_intents": {"borko": "observe"},
+  backend\tests\sandbox\micro\test_gate1_source.py:62 : scene = {"npc_intents": {"borko": "request_service"},
+  backend\tests\sandbox\micro\test_gate1_source.py:69 : scene = {"npc_intents": {"borko": "flee"}}
+  backend\tests\sandbox\micro\test_gate1_source.py:83 : _KEY_NPC_INTENTS = "npc_intents"
+  backend\tests\sandbox\micro\test_gate1_source.py:89 : _intent_map = ctx.scene_state.setdefault(_KEY_NPC_INTENTS, {})
+  backend\tests\sandbox\micro\test_gate1_source.py:96 : self.assertEqual(ctx.scene_state["npc_intents"], {"b": "observe"})
+  backend\tests\IPT.py:2225 : ram-канон scene_state["npc_intents"] (single-writer оркестратор) —
+  backend\tests\IPT.py:2243 : if '_ssot_intents = ctx.scene_state.get("npc_intents")' not in _sim_src:
+  backend\tests\IPT.py:2245 : suspects.append(f"{_sim}: читатель npc_intents отсутствует (п-1 регрессия)")
+  backend\tests\IPT.py:2251 : if '_KEY_NPC_INTENTS = "npc_intents"' not in _orch_src:
+  backend\tests\IPT.py:2253 : suspects.append(f"{_orch}: писатель npc_intents отсутствует (п-1 регрессия)")
+  backend\tests\IPT.py:2265 : "Гейт① читает актуальный intent (npc_intents-канон поверх кэша; writer single-point)",
+
+============================================================
+
+3. EXECUTION EXCLUSIVITY
+
+============================================================
+
+[SEARCH] concurrent checks  pattern: /already_active|existing_windup|concurrent.*action|action.*in_progress|pending.*windup/
+  1 matches:
+  backend\tests\sandbox\g3_execution_probe.py:36 : """Инжект PENDING-steal-windup + held-intent в scene_state (Э6-путь
+
+[SEARCH] publish_player_intent sites  pattern: /publish_player_intent/
+  5 matches:
+  backend\app\services\phases\input.py:5 : Основные сущности: Phase1InputDeps, run_phase_1_input, publish_player_intent
+  backend\app\services\phases\input.py:25 : def publish_player_intent(ctx: _TickContext, intent: Any) -> None:
+  backend\app\services\phases\input.py:92 : publish_player_intent(ctx, intent)
+  backend\app\services\phases\input.py:153 : publish_player_intent(ctx, intent)
+  backend\app\services\tick_orchestrator.py:2010 : # S118 FIX: Удалена мёртвая заглушка _publish_player_intent (Vulture).
+
+[SEARCH] Player+windup interaction  pattern: /windup.*player|player.*windup|player.*active_traversal|active_traversal.*player/
+  (no matches)
+
+============================================================
+
+4. ORCHESTRATION — PHASE SEQUENCE
+
+============================================================
+
+[SEARCH] tick phases  pattern: /def _phase_\d|self\._phase_|phase_1_input|phase_3_decision|phase_6_post|phase_7_windup|phase_8/
+  112 matches:
+  backend\app\services\game_loop\dm_phase.py:10 : Зависимости: phase_1_input, time_advance, spatial/player_target_pipeline, scene/scene_event_layer, npc/decision_hub
+  backend\app\services\game_loop\dm_phase.py:294 : from app.services.game_loop.phase_1_input import (
+  backend\app\services\game_loop\game_loop.py:86 : # commit_tick инлайн в TickOrchestrator.finalize_and_commit — phase_8_commit.py удалён
+  backend\app\services\game_loop\game_loop.py:1601 : from app.services.game_loop.phase_1_input import build_intent_projection
+  backend\app\services\game_loop\phase_1_input.py:1 : # path: backend/app/services/game_loop/phase_1_input.py
+  backend\app\services\game_loop\turn_pipeline.py:12 : Зависимости: game_loop.pipeline_state, dm_phase, npc_orchestration, tick_context, phase_1_input, scene_init
+  backend\app\services\game_loop\turn_pipeline.py:29 : from app.services.game_loop.phase_1_input import (
+  backend\app\services\npc\decision_hub.py:213 : # Payload от phase_1_input (semantic_action, target_id и т.д.)
+  backend\app\services\phases\input.py:5 : Основные сущности: Phase1InputDeps, run_phase_1_input, publish_player_intent
+  backend\app\services\phases\input.py:58 : def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
+  backend\app\services\phases\input.py:64 : f"[WILL_TRACE] _phase_1_input CALLED. Has intent: {ctx.player_intent is not None}"
+  backend\app\services\phases\post_decision.py:5 : Основные сущности: run_phase_6_post_decision, run_phase_7_windup_resolution
+  backend\app\services\phases\post_decision.py:28 : def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
+  backend\app\services\phases\post_decision.py:386 : def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
+  backend\app\services\phases\reduction.py:232 : f"[PHASE_8] {handler.name} handle() failed: {e}. Events lost this tick."
+  backend\app\services\phases\reduction.py:270 : f"[PHASE_8] {handler_name}: {len(result.deltas)} deltas routed to delta_buffer"
+  backend\app\services\tick_orchestrator.py:1033 : self._phase_0_simulation(ctx) # 0
+  backend\app\services\tick_orchestrator.py:1036 : self._phase_0_6_sleep_lifecycle(ctx) # 0.6
+  backend\app\services\tick_orchestrator.py:1038 : self._phase_0_5_idle_services(ctx) # 0.5
+  backend\app\services\tick_orchestrator.py:1065 : self._phase_10_persistence(ctx) # 10
+  backend\app\services\tick_orchestrator.py:1068 : self._phase_1_npic_normalize(ctx) # 1
+  backend\app\services\tick_orchestrator.py:1069 : self._phase_1_input_merge(ctx) # 1.1
+  backend\app\services\tick_orchestrator.py:1071 : self._phase_2_event_bus_primary(ctx) # 2
+  backend\app\services\tick_orchestrator.py:1072 : self._phase_3_memory(ctx) # 3
+  backend\app\services\tick_orchestrator.py:1073 : self._phase_4_pre_decision(ctx) # 4
+  backend\app\services\tick_orchestrator.py:1074 : self._phase_5_decision(ctx) # 5
+  backend\app\services\tick_orchestrator.py:1080 : self._phase_6_post_decision(ctx) # 6
+  backend\app\services\tick_orchestrator.py:1081 : self._phase_7_windup_resolution(ctx)  # 7 ADR-O-310: Execution Gate
+  backend\app\services\tick_orchestrator.py:1082 : self._phase_8_drain_secondary(ctx) # 8
+  backend\app\services\tick_orchestrator.py:1109 : self._phase_9_integration(ctx) # 9
+  backend\app\services\tick_orchestrator.py:1117 : self._phase_10_persistence(ctx) # 10
+  backend\app\services\tick_orchestrator.py:1389 : def _phase_1_npic_normalize(self, ctx: _TickContext) -> None:
+  backend\app\services\tick_orchestrator.py:1419 : def _phase_1_input_merge(self, ctx: _TickContext) -> None:
+  backend\app\services\tick_orchestrator.py:1485 : self._phase_1_input(ctx)
+  backend\app\services\tick_orchestrator.py:1725 : # publisher phase_1_input — consumer claim_event_subscriber:103
+  backend\app\services\tick_orchestrator.py:1838 : def _phase_0_simulation(self, ctx: _TickContext) -> None:
+  backend\app\services\tick_orchestrator.py:1858 : def _phase_0_6_sleep_lifecycle(self, ctx: _TickContext) -> None:
+  backend\app\services\tick_orchestrator.py:2001 : def _phase_1_input(self, ctx: _TickContext) -> None:
+  backend\app\services\tick_orchestrator.py:2003 : from app.services.phases.input import Phase1InputDeps, run_phase_1_input
+  backend\app\services\tick_orchestrator.py:2006 : run_phase_1_input(ctx, deps)
+  backend\app\services\tick_orchestrator.py:2012 : def _phase_2_event_bus_primary(self, ctx: _TickContext) -> None:
+  backend\app\services\tick_orchestrator.py:2073 : def _phase_3_memory(self, ctx: _TickContext) -> None:
+  backend\app\services\tick_orchestrator.py:2079 : def _phase_4_pre_decision(self, ctx: _TickContext) -> None:
+  backend\app\services\tick_orchestrator.py:2198 : def _phase_5_decision(self, ctx: _TickContext) -> None:
+  backend\app\services\tick_orchestrator.py:2484 : def _phase_6_post_decision(self, ctx: _TickContext) -> None:
+  backend\app\services\tick_orchestrator.py:2486 : from app.services.phases.post_decision import run_phase_6_post_decision
+  backend\app\services\tick_orchestrator.py:2488 : run_phase_6_post_decision(ctx, self)
+  backend\app\services\tick_orchestrator.py:2492 : def _phase_7_windup_resolution(self, ctx: _TickContext) -> None:
+  backend\app\services\tick_orchestrator.py:2494 : from app.services.phases.post_decision import run_phase_7_windup_resolution
+  backend\app\services\tick_orchestrator.py:2496 : run_phase_7_windup_resolution(ctx, self)
+  backend\app\services\tick_orchestrator.py:2500 : # _phase_8_player_handlers удалён (S100) — был мёртвым прокси на _phase_8_drain_secondary.
+  backend\app\services\tick_orchestrator.py:2501 : # Вызов на строке 764 заменён на прямой вызов _phase_8_drain_secondary.
+  backend\app\services\tick_orchestrator.py:2507 : def _phase_0_5_idle_services(self, ctx: _TickContext) -> None:
+  backend\app\services\tick_orchestrator.py:2595 : def _phase_8_drain_secondary(self, ctx: _TickContext) -> None:
+  backend\app\services\tick_orchestrator.py:2613 : def _phase_9_integration(self, ctx: _TickContext) -> None:
+  backend\app\services\tick_orchestrator.py:2682 : def _phase_10_persistence(self, ctx: _TickContext) -> None:
+  backend\tests\micro\test_attack_cardinality.py:6 : Зависимости: phase_1_input, event_bus, event_identity
+  backend\tests\micro\test_attack_cardinality.py:14 : from app.services.game_loop.phase_1_input import publish_classified_player_event
+  backend\tests\micro\test_attack_cardinality.py:32 : "app.services.game_loop.phase_1_input.get_event_bus", lambda: bus
+  backend\tests\micro\test_attack_cardinality.py:63 : "app.services.game_loop.phase_1_input.get_event_bus", lambda: bus
+  backend\tests\sandbox\micro\test_multi_act.py:10 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\micro\test_player_intent_projection.py:4 : Зависимости: app.services.game_loop.phase_1_input
+  backend\tests\sandbox\micro\test_player_intent_projection.py:13 : from app.services.game_loop.phase_1_input import (
+  backend\tests\sandbox\micro\test_target_resolve_canonical_id.py:4 : Зависимости: app.services.game_loop.phase_1_input
+  backend\tests\sandbox\micro\test_target_resolve_canonical_id.py:10 : from app.services.game_loop.phase_1_input import _resolve_target_reference
+  backend\tests\sandbox\micro\test_ue_block2_resolver.py:6 : Зависимости: app.services.game_loop.phase_1_input, app.domain.intent_profile
+  backend\tests\sandbox\micro\test_ue_block2_resolver.py:10 : from app.services.game_loop.phase_1_input import resolve_target_with_candidates
+  backend\tests\sandbox\micro\test_ue_block3_gate.py:6 : Зависимости: app.services.game_loop.phase_1_input, app.domain.intent_profile
+  backend\tests\sandbox\micro\test_ue_block3_gate.py:12 : from app.services.game_loop.phase_1_input import compute_intent_readiness
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:13 : общей границей _phase_1_input_merge:1382 (мини-ADR) — стаб не дублирует.
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:15 : app.services.game_loop.phase_1_input, app.domain.intent_profile
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:22 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:94 : TickOrchestrator._phase_1_input_merge(self_stub, ctx)
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:143 : # D4-реструктуризация: через ГРАНИЦУ _phase_1_input_merge (гейт ④).
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:157 : TickOrchestrator._phase_1_input_merge(self_stub, ctx)
+  backend\tests\sandbox\micro\test_ue_fix3_order_gate.py:10 : Зависимости: app.services.game_loop.phase_1_input
+  backend\tests\sandbox\micro\test_ue_fix3_order_gate.py:14 : from app.services.game_loop.phase_1_input import compute_intent_readiness
+  backend\tests\sandbox\micro\test_ue_safety_red.py:7 : Зависимости: app.domain.intent_profile, app.services.game_loop.phase_1_input
+  backend\tests\sandbox\micro\test_ue_safety_red.py:13 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:10 : Зависимости: app.services.game_loop.phase_1_input, app.domain.intent_profile
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:16 : from app.services.game_loop.phase_1_input import (
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:4 : Зависимости: app.services.game_loop.phase_1_input, app.domain.intent_profile, app.domain.epistemology
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:11 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\SUPERBOX\scenarios\causal_state_test.py:219 : """A: PLAYER_THREATENS (prod-форма по phase_1_input: THREATEN→PLAYER_THREATENS)."""
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_interrupt_test.py:15 : # Зависимости: TavernGameplayHarness, run_phase_6_post_decision,
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_interrupt_test.py:87 : from app.services.phases.post_decision import run_phase_6_post_decision
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_interrupt_test.py:98 : run_phase_6_post_decision(SimpleNamespace(
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:19 : #   (FAST_PATH-лексика phase_1_input — см. DIAG ниже).
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:167 : # Реплика с обвинительной формулировкой: FAST_PATH-лексика phase_1_input
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:198 : from app.services.game_loop.phase_1_input import publish_classified_player_event
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:254 : from app.services.phases.post_decision import run_phase_6_post_decision
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:262 : run_phase_6_post_decision(_types.SimpleNamespace(
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:48 : run_phase_6_post_decision,
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:235 : run_phase_6_post_decision(_phase6_ctx, _orch)
+  backend\tests\sandbox\SUPERBOX\scenarios\goran_vertical_slice_test.py:483 : run_phase_6_post_decision(types.SimpleNamespace(
+  backend\tests\sandbox\SUPERBOX\scenarios\perception_topology_test.py:7 : [P3] phase_1_input: ноль вхождений 999.0-хардкода (AST-гвард по исходнику).
+  backend\tests\sandbox\SUPERBOX\scenarios\perception_topology_test.py:47 : # ── P3: AST-гвард phase_1_input ──────────────────────────────────
+  backend\tests\sandbox\SUPERBOX\scenarios\perception_topology_test.py:48 : src = (BACKEND_ROOT / "app" / "services" / "game_loop" / "phase_1_input.py") \
+  backend\tests\sandbox\SUPERBOX\scenarios\perception_topology_test.py:52 : print(f"[P3] phase_1_input: вхождений 999.0 = {bad} (ожид. 0), "
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:54 : from app.services.phases.post_decision import run_phase_6_post_decision
+  backend\tests\sandbox\SUPERBOX\scenarios\smoke_goran_beta.py:247 : run_phase_6_post_decision(types.SimpleNamespace(
+  backend\tests\sandbox\SUPERBOX\scenarios\ue0_baseline_probe.py:8 : Зависимости: app.services.input.intent_compressor, app.services.game_loop.phase_1_input
+  backend\tests\sandbox\SUPERBOX\scenarios\ue0_baseline_probe.py:119 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\sandbox\SUPERBOX\scenarios\ue52_probe.py:7 : Зависимости: intent_compressor, phase_1_input, llm_server_manager
+  backend\tests\sandbox\SUPERBOX\scenarios\ue52_probe.py:30 : from app.services.game_loop.phase_1_input import compute_intent_readiness, resolve_target_with_candidates
+  backend\tests\sandbox\test_causal_movement.py:4 : Зависимости: pytest, app.services.input.intent_compressor, app.services.game_loop.phase_1_input
+  backend\tests\sandbox\test_causal_movement.py:17 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\IPT.py:409 : from app.services.game_loop.phase_1_input import resolve_player_intent
+  backend\tests\IPT.py:437 : ["backend/app/services/game_loop/phase_1_input.py"]
+  backend\tests\IPT.py:445 : ["backend/app/services/game_loop/phase_1_input.py"]
+  backend\tests\test_post_decision_t04_producer.py:11 : from app.services.phases.post_decision import run_phase_6_post_decision
+  backend\tests\test_post_decision_t04_producer.py:46 : run_phase_6_post_decision(mock_ctx, orchestrator)
+
+[READ] tick_orchestrator phase sequence  backend/app/services/tick_orchestrator.py L1070-1130
+  1070:         self._apply_willpower_gate(ctx) # 4.1
+  1071:         self._phase_2_event_bus_primary(ctx) # 2
+  1072:         self._phase_3_memory(ctx) # 3
+  1073:         self._phase_4_pre_decision(ctx) # 4
+  1074:         self._phase_5_decision(ctx) # 5
+  1075: 
+  1076:         # Подсистема 2: Запись TickMutation после Фазы 5
+  1077:         if _recorder:
+  1078:             _recorder.record_tick_mutation(ctx.tick_number, getattr(ctx, "tick_mutation", None))  # noqa: ENIGMA002
+  1079: 
+  1080:         self._phase_6_post_decision(ctx) # 6
+  1081:         self._phase_7_windup_resolution(ctx)  # 7 ADR-O-310: Execution Gate
+  1082:         self._phase_8_drain_secondary(ctx) # 8
+  1083: 
+  1084: 
+  1085:         # AUDIT #7: FrontEngine интегрирован выше по потоку — точка
+  1086:         # run_npc_orchestration (до ядрового цикла локаций), т.к. маска
+  1087:         # принадлежит игроку и мутируется один раз за ход.
+  1088:         # TODO (Фаза 2 / Эпоха 7): Интеграция FrontEngine.
+  1089:         # Здесь, после обработки событий (Фаза 8) и до интеграции (Фаза 9),
+  1090:         # должен вызываться apply_front_engine() из character/front_applicator.py.
+  1091:         # Он вычислит давление мира (WorldPressure) и обновит маску персонажа (Front).
+  1092:         # Поля для shared_context (front_description, world_pressure) уже готовы.
+  1093: 
+  1094:         # AUDIT #8 VERDICT=DEFER (2026-08): DecisionHub не производит сигнала
+  1095:         # смены профессии; контракт RoleTransition требует реальной причины.
+  1096:         # Встраивание — при появлении источника причинности (needs/goals);
+  1097:         # фиктивный планировщик запрещён вердиктом владельца.
+  1098:         # TODO (Фаза 4 / Эпоха 9): Интеграция RoleTransition.
+  1099:         # Здесь, или в отдельном планировщике, должен вызываться RoleTransition
+  1100:         # для NPC, решивших сменить профессию. Требует проверки (стресс, целостность, золото).
+  1101: 
+  1102:         # TODO (Фаза 4 / Эпоха 9): Интеграция MarketState / Traveller.
+  1103:         # Здесь, или в LifeEngine (Фаза 0), должен вызываться MarketState.tick()
+  1104:         # и Traveller.generate_visits() для спавна странников (торговцев, путников).
+  1105:         # Это обеспечит внешние экономические шоки для локации.
+  1106:         # AUDIT #6 VERDICT=BURIED (2026-08): runtime захоронен, точка возврата
+  1107:         # задокументирована в services/economy/__init__.py.
+  1108: 
+  1109:         self._phase_9_integration(ctx) # 9
+  1110:         self._run_affective_pipeline(ctx) # 9.1
+  1111: 
+  1112:         # Подсистема 2: Запись WorldSnapshot после Фазы 9
+  1113:         if _recorder:
+  1114:             _recorder.record_world_snapshot(ctx.tick_number, getattr(ctx, "world_snapshot", None)) # POST-9  # noqa: ENIGMA002
+  1115: 
+  1116:         self._resolve_cross_location_transfers(ctx) # POST-9: Extract BEFORE Phase 10 to persist clean state
+  1117:         self._phase_10_persistence(ctx) # 10
+  1118: 
+  1119:         # Подсистема 3: Causal Probes (real-time invariant monitor)
+  1120:         from app.services.probes.probe_registry import ProbeContext
+  1121:         from app.services.probes.probe_runner import ProbeRunner
+  1122:         from app.services.probes.probes.death_lock_probe import DeathLockProbe
+  1123:         from app.services.probes.probes.l3_ephemeral_probe import L3EphemeralProbe
+  1124:         from app.services.probes.probes.spatial_coherence_probe import SpatialCoherenceProbe
+  1125:         from app.services.probes.probes.traversal_fsm_probe import TraversalFSMProbe
+  1126: 
+  1127:         _spatial_svc = self._resolve_spatial_service(ctx)
+  1128:         _probe_ctx = ProbeContext(
+  1129:             tick_id=ctx.tick_number,
+  1130:             game_time_seconds=ctx.scene_state.get("game_time_seconds", 0.0),
+
+

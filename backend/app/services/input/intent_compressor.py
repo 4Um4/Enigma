@@ -426,15 +426,42 @@ def _npc_display_names() -> dict[str, str]:
 
         print(f"[M1_P3] NPC name registry degraded: {_e}", file=_sys.stderr)
     _M1_NPC_NAMES = _names
-    return _names
+    return _M1_NPC_NAMES
+
+
+# USL-1.5: CanonicalRegistry bridge — module-level cache (прецедент
+# chronicle decomposition_normalizer.py:73-75). alias_to_npc включает
+# name + name_forms («орм/орма/орму»), lowercased → npc_id.
+_REGISTRY_CACHE: dict[str, str] | None = None
+
+
+def _ensure_registry_cache() -> dict[str, str]:
+    """Lazy canonical registry cache. build_canonical_registry() — единственный
+    writer (registry_builder.py); здесь только read-only extract + cache."""
+    global _REGISTRY_CACHE
+    if _REGISTRY_CACHE is not None:
+        return _REGISTRY_CACHE
+    from app.services.chronicle.registry_builder import build_canonical_registry
+    _REGISTRY_CACHE = dict(build_canonical_registry().alias_to_npc)
+    return _REGISTRY_CACHE
 
 
 def _resolve_npc_by_name(np: str) -> str | None:
     """NPC-резолв над ДАННЫМИ МИРА (не словарь в коде): generic-стем —
     для имён len>=4 усечение последней буквы («Люся»->«люс» ⊂ «люсе»);
     короткие — полное имя. Плюс npc_id-подстрока (латинская адресация,
-    прецедент FT-1 :647). Падеже-устойчиво; детерминировано; без LLM."""
+    прецедент FT-1 :647). Падеже-устойчиво; детерминировано; без LLM.
+
+    USL-1.5 (ADR-O-437): CanonicalRegistry bridge — exact match на
+    canonical name forms ПЕРВЫМ, stem-based iteration как fallback.
+    Прецедент: chronicle decomposition_normalizer.py:73-75. Bridge
+    закрывает §5.4: «Орму» автора и «Орму» игрока резолвятся одинаково."""
     _low = np.lower()
+    # USL-1.5: canonical exact match (alias_to_npc: name + name_forms)
+    _hit = _ensure_registry_cache().get(_low)
+    if _hit is not None:
+        return _hit
+    # Fallback: stem-based iteration (существующая логика, не трогается)
     for _npc_id, _name in _npc_display_names().items():
         _n = _name.lower().strip()
         if _n and (_n in _low or (len(_n) >= 4 and _n[:-1] in _low)):

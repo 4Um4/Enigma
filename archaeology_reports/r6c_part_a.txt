@@ -1,0 +1,717 @@
+﻿============================================================
+
+STAGE 2.1-R6-CORRECTION
+
+C1: Player event chains | C2: NPC awareness | C3: Attack scenario
+
+Mode: READ ONLY
+
+Generated: 2026-11-03 19:09:37
+
+============================================================
+
+============================================================
+
+C1: PLAYER EVENT CHAINS
+
+============================================================
+
+[SEARCH] ALL Player publish functions  pattern: /def publish_player|def publish_classified|publish_player_speech|publish_player_intent/
+  8 matches:
+  backend\app\services\game_loop\phase_1_input.py:10 : Основные сущности: resolve_player_intent, publish_player_action, publish_player_speech
+  backend\app\services\game_loop\phase_1_input.py:471 : def publish_player_speech(
+  backend\app\services\game_loop\phase_1_input.py:510 : def publish_classified_player_event(
+  backend\app\services\phases\input.py:5 : Основные сущности: Phase1InputDeps, run_phase_1_input, publish_player_intent
+  backend\app\services\phases\input.py:25 : def publish_player_intent(ctx: _TickContext, intent: Any) -> None:
+  backend\app\services\phases\input.py:92 : publish_player_intent(ctx, intent)
+  backend\app\services\phases\input.py:153 : publish_player_intent(ctx, intent)
+  backend\app\services\tick_orchestrator.py:2010 : # S118 FIX: Удалена мёртвая заглушка _publish_player_intent (Vulture).
+
+[READ] publish_player_speech  backend/app/services/game_loop/phase_1_input.py L471-530
+  471: def publish_player_speech(
+  472:     player_name: str,
+  473:     action_text: str,
+  474:     classified_type: str,
+  475:     semantic_action: Optional[str] = None,
+  476:     target_reference: Optional[str] = None,
+  477: ) -> None:
+  478:     """Публикация вербального действия — PLAYER_SPOKE."""
+  479:     if not action_text:
+  480:         return
+  481:     try:
+  482:         _payload = {
+  483:             "content": action_text[:120],
+  484:             "action_type": classified_type,
+  485:         }
+  486:         # ADR-035: Проброс семантического вектора от Слоя 1 в каузальную шину
+  487:         if semantic_action:
+  488:             _payload["semantic_action"] = semantic_action
+  489:         if target_reference:
+  490:             _payload["target_reference"] = (
+  491:                 target_reference.lower()
+  492:             )  # Нормализация для маппинга
+  493: 
+  494:         get_event_bus().publish(
+  495:             EventDTO.create(
+  496:                 event_type=EventType.PLAYER_SPOKE,
+  497:                 source=player_name or "Игрок",
+  498:                 payload=_payload,
+  499:                 persistence_level="working",
+  500:             )
+  501:         )
+  502:     except Exception as _bus_err:
+  503:         logger.debug(f"[EVENT_BUS] player_speech publish skipped: {_bus_err}")
+  504: 
+  505: 
+  506: # Интенсивность по типу действия — единый источник для EventDTO.payload
+  507: from app.domain.constants import ACTION_INTENSITY, action_perception_radius
+  508: 
+  509: 
+  510: def publish_classified_player_event(
+  511:     shared_context: Any,
+  512:     location: str,
+  513:     campaign_id: str,
+  514:     raw_input: str,
+  515: ) -> None:
+  516:     """Публикация классифицированного события игрока после DM-обработки."""
+  517:     _evt_map = {
+  518:         "dialogue": EventType.PLAYER_SPOKE,
+  519:         "player_interacts": EventType.PLAYER_SPOKE,
+  520:         "attack": EventType.PLAYER_ATTACKED,
+  521:         "player_attacks": EventType.PLAYER_ATTACKED,
+  522:         "player_threatens": EventType.PLAYER_THREATENS,
+  523:         "player_insults": EventType.PLAYER_INSULTS,
+  524:         "player_steals": EventType.THEFT,
+  525:         "theft": EventType.THEFT,
+  526:         "intimidation": EventType.INTIMIDATION,
+  527:         "betrayal": EventType.BETRAYAL,
+  528:         "help": EventType.HELP,
+  529:         "saved_life": EventType.SAVED_LIFE,
+  530:         "move": EventType.PLAYER_MOVED,
+
+[READ] publish_classified_player_event  backend/app/services/game_loop/phase_1_input.py L510-560
+  510: def publish_classified_player_event(
+  511:     shared_context: Any,
+  512:     location: str,
+  513:     campaign_id: str,
+  514:     raw_input: str,
+  515: ) -> None:
+  516:     """Публикация классифицированного события игрока после DM-обработки."""
+  517:     _evt_map = {
+  518:         "dialogue": EventType.PLAYER_SPOKE,
+  519:         "player_interacts": EventType.PLAYER_SPOKE,
+  520:         "attack": EventType.PLAYER_ATTACKED,
+  521:         "player_attacks": EventType.PLAYER_ATTACKED,
+  522:         "player_threatens": EventType.PLAYER_THREATENS,
+  523:         "player_insults": EventType.PLAYER_INSULTS,
+  524:         "player_steals": EventType.THEFT,
+  525:         "theft": EventType.THEFT,
+  526:         "intimidation": EventType.INTIMIDATION,
+  527:         "betrayal": EventType.BETRAYAL,
+  528:         "help": EventType.HELP,
+  529:         "saved_life": EventType.SAVED_LIFE,
+  530:         "move": EventType.PLAYER_MOVED,
+  531:         "stealth": EventType.PLAYER_MOVED,
+  532:         "player_flees": EventType.PLAYER_MOVED,  # BUG-DLG-004 FIX: NPC реагируют на бегство игрока
+  533:     }
+  534:     _raw_type = shared_context.action_type or "dialogue"
+  535: 
+  536:     # S122 FIX: Жёсткий лексический перехват боевых команд (Fast-Path).
+  537:     # LLM (DM Router) часто классифицирует "ударить" как dialogue, из-за чего CombatSubscriber не вызывается.
+  538:     # Если в тексте есть глаголы агрессии — принудительно выставляем ATTACK.
+  539:     _raw_lower = raw_input.lower()
+  540:     if any(verb in _raw_lower for verb in ["удар", "бей", "атак", "вреж", "убей", "калеч"]):
+  541:         _raw_type = "attack"
+  542:         shared_context.action_type = "attack"
+  543:         logger.warning(f"[FAST_PATH_ATTACK] Lexical override triggered for input: '{raw_input}'")
+  544:     # S122 FIX: Лексический перехват команды выхода (Fast-Path).
+  545:     # LLM может не распознать "выйти", что приведёт к UNCERTAIN.
+  546:     elif any(verb in _raw_lower for verb in ["выйти", "выйд", "покинуть", "дверь", "на выход"]):
+  547:         _raw_type = "move"
+  548:         shared_context.action_type = "move"
+  549:         logger.warning(f"[FAST_PATH_MOVE] Lexical override triggered for input: '{raw_input}'")
+  550: 
+  551:     # ADR-082: Case-Insensitive Routing. NLP возвращает 'ATTACK', маппинг ждет 'attack'.
+  552:     # Без .lower() удар уходит в PLAYER_SPOKE, минуя CombatSubscriber и ImpactEngine.
+  553:     _resolved_type = _evt_map.get(_raw_type.lower(), EventType.PLAYER_SPOKE)
+  554:     # S210 (слой 2): честная мембрана действия — из SSOT-таблицы (ADR-148:
+  555:     # гигантский радиус пробивает слуховые мембраны). Кража игрока тиха, как кража NPC.
+  556:     _evt_radius = action_perception_radius(_raw_type)
+  557:     _intensity = ACTION_INTENSITY.get(_raw_type, 0.2)
+  558:     # ADR-035: Извлекаем строгую семантику из IntentParametersDTO
+  559:     _semantic_action = None
+  560:     _target_reference = None
+
+[SEARCH] ALL PLAYER event types  pattern: /PLAYER_ATTACKS|PLAYER_INTERACTS|PLAYER_SPOKE|PLAYER_ATTACKED|PLAYER_THREATENS|PLAYER_MOVES/
+  473 matches:
+  backend\app\domain\constants.py:14 : "player_attacks": 1.0,
+  backend\app\domain\constants.py:15 : "player_threatens": 0.7,
+  backend\app\domain\constants.py:16 : "player_threatens_indirect": 0.6,  # ниже чем прямая угроза, выше чем болтовня
+  backend\app\domain\constants.py:20 : "player_interacts": 0.2,
+  backend\app\domain\constants.py:34 : "player_attacks": 15.0,   # бой слышен (базовый уровень, как и был)
+  backend\app\domain\constants.py:38 : "player_threatens": 10.0, # громкая фраза
+  backend\app\domain\constants.py:41 : "player_interacts": 6.0,
+  backend\app\domain\temporal_specs.py:216 : "player_attacks", "player_attack", "player_interacts",
+  backend\app\domain\temporal_specs.py:217 : "player_threatens", "player_insults", "player_used_item",
+  backend\app\models\cfrm.py:174 : "PLAYER_ATTACKED": CausalAxis.PHYSICAL,
+  backend\app\models\cfrm.py:176 : "player_attacks": CausalAxis.PHYSICAL,
+  backend\app\models\cfrm.py:188 : "PLAYER_SPOKE": CausalAxis.COGNITIVE,
+  backend\app\models\cfrm.py:192 : "PLAYER_THREATENS": CausalAxis.COGNITIVE,
+  backend\app\models\cfrm.py:202 : "player_interacts": CausalAxis.COGNITIVE,
+  backend\app\models\scene_mode.py:27 : event_type: классификация из Router (player_attacks, player_threatens, ...)
+  backend\app\models\scene_mode.py:31 : if event_type in ("player_attacks", "combat") or max_npc_stress > 50.0:
+  backend\app\models\social.py:88 : origin_event_type: str  # "player_attacks", "player_insults"
+  backend\app\services\action\dm_orchestrator.py:109 : ) in ("player_attacks", "combat")
+  backend\app\services\action\dm_router.py:59 : "player_attacks": frozenset(
+  backend\app\services\action\dm_router.py:104 : "player_threatens": frozenset(
+  backend\app\services\action\dm_router.py:158 : "player_threatens": re.compile(r"(?i)на\s*колени|замолчи|молчи|сдохнешь"),
+  backend\app\services\action\dm_router.py:159 : "player_threatens_indirect": re.compile(
+  backend\app\services\action\dm_router.py:175 : "player_attacks",
+  backend\app\services\action\dm_router.py:227 : "player_attacks": "COMBAT",
+  backend\app\services\action\dm_router.py:230 : "player_threatens": "SANDBOX_SOCIAL",
+  backend\app\services\action\dm_router.py:231 : "player_threatens_indirect": "SANDBOX_SOCIAL",
+  backend\app\services\action\dm_router.py:233 : "player_interacts": "SANDBOX_MILD",
+  backend\app\services\action\dm_router.py:240 : # 0. Знак вопроса = всегда player_interacts (вопросы не наносят урон!)
+  backend\app\services\action\dm_router.py:242 : return "player_interacts"
+  backend\app\services\action\dm_router.py:270 : return "player_interacts"
+  backend\app\services\action\dm_scene_builder.py:62 : getattr(raw_event, "event_type", "player_interacts")
+  backend\app\services\action\dm_scene_builder.py:64 : else "player_interacts"
+  backend\app\services\action\dm_scene_builder.py:166 : event_type=cast(EventType, "player_interacts"),
+  backend\app\services\cfrm\local_causal_solver.py:72 : # Stage 0: Прямой контакт — сохраняем точный геном ("player_attacks")
+  backend\app\services\character\character_filter.py:63 : "player_attacks": {
+  backend\app\services\character\character_filter.py:72 : "player_threatens": {
+  backend\app\services\character\character_filter.py:145 : event_type: Тип события из Router (player_attacks, player_threatens и т.д.)
+  backend\app\services\combat\combat_subscriber.py:42 : EventType.PLAYER_ATTACKS,
+  backend\app\services\combat\combat_subscriber.py:43 : EventType.PLAYER_ATTACKED,
+  backend\app\services\events\claim_event_subscriber.py:89 : def on_player_spoke(self, event: Any) -> None:
+  backend\app\services\events\claim_event_subscriber.py:90 : """G1 (GC-SOCIAL-01, Stage-1.5): PLAYER_SPOKE → ClaimEvent для слышащих
+  backend\app\services\events\dialogue_memory_subscriber.py:3 : Назначение: Слушает NPC_SPOKE и PLAYER_SPOKE и пишет EventMemory в narrative_cache.
+  backend\app\services\events\event_bus.py:41 : bus.subscribe(EventType.PLAYER_ATTACKED, my_handler)
+  backend\app\services\events\event_types.py:8 : # PLAYER_ATTACKED — не PLAYER_CHOSE_ATTACK.
+  backend\app\services\events\event_types.py:43 : PLAYER_ATTACKED = (
+  backend\app\services\events\event_types.py:44 : "PLAYER_ATTACKED"  # сохранено для совместимости со старыми строками
+  backend\app\services\events\event_types.py:46 : PLAYER_SPOKE = "PLAYER_SPOKE"  # сохранено для совместимости со старыми строками
+  backend\app\services\events\event_types.py:87 : PLAYER_INTERACTS = "player_interacts"
+  backend\app\services\events\event_types.py:88 : PLAYER_ATTACKS = "player_attacks"
+  backend\app\services\events\event_types.py:105 : PLAYER_THREATENS = "player_threatens"
+  backend\app\services\events\observation_subscriber.py:39 : "player_attacked": Predicate.ATTACKED,
+  backend\app\services\events\player_speech_act_subscriber.py:3 : Назначение: Consumption v0 (вердикт Мастера, α-вариант): PLAYER_SPOKE →
+  backend\app\services\events\player_speech_act_subscriber.py:42 : def on_player_spoke(self, event: Any) -> None:
+  backend\app\services\events\player_speech_act_subscriber.py:119 : logger.warning(f"[SPEECH_ACT] on_player_spoke failed: {e}")
+  backend\app\services\events\reaction_subscriber.py:53 : EventType.PLAYER_ATTACKS,
+  backend\app\services\events\reaction_subscriber.py:55 : EventType.PLAYER_ATTACKED,
+  backend\app\services\events\reaction_subscriber.py:56 : EventType.PLAYER_THREATENS,
+  backend\app\services\events\reaction_subscriber.py:72 : "player_attacks": (15.0, 10.0, -8.0),
+  backend\app\services\events\reaction_subscriber.py:74 : "player_attacked": (20.0, 15.0, -12.0),
+  backend\app\services\events\reaction_subscriber.py:75 : "player_threatens": (10.0, 8.0, -4.0),
+  backend\app\services\events\reaction_subscriber.py:76 : "player_threatens_indirect": (7.0, 5.0, -2.0),
+  backend\app\services\events\reaction_subscriber.py:289 : "player_threatens",
+  backend\app\services\events\reaction_subscriber.py:290 : "player_attacks",
+  backend\app\services\events\reaction_subscriber.py:293 : _threat_delta_target = 0.8 if rule_key == "player_threatens" else 0.6
+  backend\app\services\events\reaction_subscriber.py:391 : "player_attacks",  # AG1-D3: канонический enum (живой)
+  backend\app\services\events\reaction_subscriber.py:392 : "player_attacked",  # легаси-имена (совместимость)
+  backend\app\services\events\rules_subscriber.py:84 : "PLAYER_ATTACKED",
+  backend\app\services\events\rules_subscriber.py:87 : "player_attacks",
+  backend\app\services\events\rules_subscriber.py:89 : "player_interacts",
+  backend\app\services\events\rules_subscriber.py:90 : "PLAYER_INTERACTS",
+  backend\app\services\events\rules_subscriber.py:136 : if event_type in ("player_interacts", "PLAYER_INTERACTS"):
+  backend\app\services\events\social_input_projector.py:49 : EventType.PLAYER_SPOKE,
+  backend\app\services\events\social_input_projector.py:104 : elif event.type == EventType.PLAYER_SPOKE:
+  backend\app\services\events\social_subscriber.py:36 : EventType.PLAYER_INTERACTS,
+  backend\app\services\events\social_subscriber.py:37 : EventType.PLAYER_SPOKE,
+  backend\app\services\events\social_subscriber.py:38 : EventType.PLAYER_ATTACKED,
+  backend\app\services\events\social_subscriber.py:39 : EventType.PLAYER_ATTACKS,
+  backend\app\services\events\social_subscriber.py:42 : EventType.PLAYER_THREATENS,
+  backend\app\services\game_loop\dm_phase.py:184 : if _raw_type in ("dialogue", "player_interacts") and _stm_target_id:
+  backend\app\services\game_loop\dm_phase.py:224 : action_type=shared_context.action_type or "player_interacts",
+  backend\app\services\game_loop\dm_phase.py:263 : event_type=EventType(getattr(_raw_event, "type", "player_interacts")),
+  backend\app\services\game_loop\game_loop.py:560 : _bus.subscribe(EventType.PLAYER_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
+  backend\app\services\game_loop\game_loop.py:576 : _bus.subscribe(EventType.PLAYER_SPOKE, _speech_act_sub.on_player_spoke)
+  backend\app\services\game_loop\game_loop.py:627 : _bus.subscribe(EventType.PLAYER_SPOKE, _subscriber.on_player_spoke)
+  backend\app\services\game_loop\game_loop.py:649 : _bus.subscribe(EventType.PLAYER_ATTACKED, _obs_sub.on_world_event)
+  backend\app\services\game_loop\idle_event_projection.py:105 : EventType.PLAYER_SPOKE: "авторство игрока",
+  backend\app\services\game_loop\idle_event_projection.py:120 : EventType.PLAYER_ATTACKED: "авторство игрока",
+  backend\app\services\game_loop\idle_event_projection.py:122 : EventType.PLAYER_ATTACKS: "авторство игрока",
+  backend\app\services\game_loop\idle_event_projection.py:124 : EventType.PLAYER_THREATENS: "авторство игрока",
+  backend\app\services\game_loop\idle_event_projection.py:126 : EventType.PLAYER_INTERACTS: "авторство игрока",
+  backend\app\services\game_loop\npc_orchestration.py:449 : ctx.hub_event, "event_type", "player_interacts"
+  backend\app\services\game_loop\phase_1_input.py:135 : (признак появится в Блоке 4) = PARTIAL — исполнение закрыто, PLAYER_SPOKE
+  backend\app\services\game_loop\phase_1_input.py:451 : """Публикация сырого действия игрока — PLAYER_INTERACTS."""
+  backend\app\services\game_loop\phase_1_input.py:457 : event_type=EventType.PLAYER_INTERACTS,
+  backend\app\services\game_loop\phase_1_input.py:478 : """Публикация вербального действия — PLAYER_SPOKE."""
+  backend\app\services\game_loop\phase_1_input.py:496 : event_type=EventType.PLAYER_SPOKE,
+  backend\app\services\game_loop\phase_1_input.py:518 : "dialogue": EventType.PLAYER_SPOKE,
+  backend\app\services\game_loop\phase_1_input.py:519 : "player_interacts": EventType.PLAYER_SPOKE,
+  backend\app\services\game_loop\phase_1_input.py:520 : "attack": EventType.PLAYER_ATTACKED,
+  backend\app\services\game_loop\phase_1_input.py:521 : "player_attacks": EventType.PLAYER_ATTACKED,
+  backend\app\services\game_loop\phase_1_input.py:522 : "player_threatens": EventType.PLAYER_THREATENS,
+  backend\app\services\game_loop\phase_1_input.py:552 : # Без .lower() удар уходит в PLAYER_SPOKE, минуя CombatSubscriber и ImpactEngine.
+  backend\app\services\game_loop\phase_1_input.py:553 : _resolved_type = _evt_map.get(_raw_type.lower(), EventType.PLAYER_SPOKE)
+  backend\app\services\game_loop\phase_1_input.py:593 : # DM Router (16 глаголов) перезаписывает "укусить/толкнуть/душить" → player_interacts.
+  backend\app\services\game_loop\phase_1_input.py:594 : # Без override: ATTACK → PLAYER_SPOKE → CombatSubscriber не вызывается → нет крови/боли.
+  backend\app\services\game_loop\phase_1_input.py:599 : "THREATEN": "player_threatens",
+  backend\app\services\game_loop\phase_1_input.py:610 : _resolved_type = _evt_map.get(_raw_type.lower(), EventType.PLAYER_SPOKE)
+  backend\app\services\game_loop\phase_1_input.py:614 : # материализуется как игровое событие — деградирует до PLAYER_SPOKE
+  backend\app\services\game_loop\phase_1_input.py:618 : # становится PLAYER_ATTACKED при не-RESOLVED. Readiness вычислена в
+  backend\app\services\game_loop\phase_1_input.py:623 : if _readiness and _readiness != "RESOLVED" and _resolved_type != EventType.PLAYER_SPOKE:
+  backend\app\services\game_loop\phase_1_input.py:625 : f"[UE-GATE] intent_readiness={_readiness}: '{_raw_type}' деградирует до PLAYER_SPOKE "
+  backend\app\services\game_loop\phase_1_input.py:629 : _resolved_type = EventType.PLAYER_SPOKE
+  backend\app\services\game_loop\phase_1_input.py:656 : # G3-C FIX (кардинальность): PLAYER_ATTACKED публикует ЕДИНСТВЕННЫЙ
+  backend\app\services\game_loop\phase_1_input.py:662 : if _resolved_type == EventType.PLAYER_ATTACKED:
+  backend\app\services\game_loop\phase_1_input.py:664 : "[G3C] PLAYER_ATTACKED publication deferred to INPUT_MERGE combat pipe "
+  backend\app\services\game_loop\time_advance.py:44 : if action_type in ("dialogue", "player_interacts"):
+  backend\app\services\game_loop\time_advance.py:49 : elif action_type in ("move", "stealth", "player_moves"):
+  backend\app\services\game_loop\turn_pipeline.py:143 : _action_type = shared_context.action_type or "player_interacts"
+  backend\app\services\game_loop\turn_pipeline.py:152 : "type": "player_attacks"
+  backend\app\services\game_loop\turn_pipeline.py:154 : else "player_interacts",
+  backend\app\services\game_loop\turn_pipeline.py:172 : # доверяется непонятому вводу. PLAYER_SPOKE/raw_input уже
+  backend\app\services\game_loop\turn_pipeline.py:407 : action_type=shared_context.action_type or "player_interacts",
+  backend\app\services\memory\event_semantic_tagger.py:11 : event_type — механика ("player_attacks")
+  backend\app\services\memory\event_semantic_tagger.py:28 : "player_attacks": frozenset({"social:aggression", "social:physical_harm"}),
+  backend\app\services\memory\event_semantic_tagger.py:29 : "player_threatens": frozenset({"social:aggression", "social:intimidation"}),
+  backend\app\services\memory\event_semantic_tagger.py:34 : "player_interacts": frozenset({"social:interaction"}),
+  backend\app\services\npc\decision\risk.py:50 : "player_interacts",
+  backend\app\services\npc\decision\risk.py:51 : "player_spoke",
+  backend\app\services\npc\decision\risk.py:93 : if _type in ("player_attacks", "combat", "intimidation", "theft")
+  backend\app\services\npc\decision\social_deltas.py:16 : Исправлен баг: player_threatens объединил два перезаписанных блока
+  backend\app\services\npc\decision\social_deltas.py:40 : "player_threatens": (-11.0, +6.5, "threat"),
+  backend\app\services\npc\decision\social_deltas.py:42 : "player_attacks": (-10.0, +8.0, "aggression"),
+  backend\app\services\npc\decision\social_deltas.py:119 : Примеры (player_attacks, intensity=1.0):
+  backend\app\services\npc\belief_transition_engine.py:42 : "player_attacks",
+  backend\app\services\npc\belief_transition_engine.py:43 : "player_threatens",
+  backend\app\services\npc\belief_transition_engine.py:53 : "player_interacts",
+  backend\app\services\npc\decision_hub.py:682 : "player_attacks",
+  backend\app\services\npc\decision_hub.py:683 : "PLAYER_ATTACKED",
+  backend\app\services\npc\decision_hub.py:686 : ) or _et_val in ("player_attacks", "PLAYER_ATTACKED", "combat", "capture")
+  backend\app\services\npc\decision_hub.py:1340 : "player_attacks",
+  backend\app\services\npc\decision_hub.py:1341 : "PLAYER_ATTACKED",
+  backend\app\services\npc\decision_hub.py:1346 : "player_threatens",
+  backend\app\services\npc\decision_hub.py:1508 : # ADR-O-112 FIX: Добавлен "PLAYER_ATTACKED" (legacy alias) для снятия слепоты DecisionHub
+  backend\app\services\npc\decision_hub.py:1512 : "player_attacks",
+  backend\app\services\npc\decision_hub.py:1513 : "PLAYER_ATTACKED",
+  backend\app\services\npc\decision_hub.py:1516 : ) or _et_val in ("player_attacks", "PLAYER_ATTACKED", "combat", "capture")
+  backend\app\services\npc\decision_hub.py:1552 : # ADR-130: Payload target_id fallback. При player_interacts команда
+  backend\app\services\npc\decision_hub.py:1556 : if event.event_type == "player_interacts":
+  backend\app\services\npc\decision_hub.py:2021 : Исправлен баг: player_threatens объединял два перезаписанных блока.
+  backend\app\services\npc\domain_phases.py:25 : "player_attacks",
+  backend\app\services\npc\npc_tick_pipeline.py:142 : if state.action_type in ("player_attacks", "PLAYER_ATTACKED", "combat")
+  backend\app\services\npc\npc_tick_pipeline.py:1331 : elif _evt_type == "player_interacts" and _has_target:
+  backend\app\services\npc\npc_tick_pipeline.py:1398 : elif _evt_type == "player_interacts" and _has_target:
+  backend\app\services\npc\perception_filter.py:219 : "PLAYER_ATTACKED",
+  backend\app\services\npc\perception_filter.py:220 : "PLAYER_SPOKE",
+  backend\app\services\npc\perception_filter.py:274 : "PLAYER_ATTACKED": f"Ты видишь как {actor} атакует кого-то {dist_str}. Угроза реальна.",
+  backend\app\services\npc\perception_filter.py:277 : "PLAYER_SPOKE": f"{actor} обращается к кому-то {dist_str}.",
+  backend\app\services\npc\state_applicator.py:1035 : "player_attacks": "vengeance",
+  backend\app\services\npc\state_applicator.py:1038 : "player_threatens": "desperation",
+  backend\app\services\npc\topic_extractor.py:53 : "player_attacks": "нападение",
+  backend\app\services\npc\topic_extractor.py:56 : "player_interacts": "разговор",
+  backend\app\services\npc\topic_extractor.py:61 : "player_threatens": "угроза",
+  backend\app\services\phases\input.py:32 : "attack": EventType.PLAYER_ATTACKS,
+  backend\app\services\phases\input.py:33 : "player_attacks": EventType.PLAYER_ATTACKS,
+  backend\app\services\phases\input.py:36 : _resolved_type = _evt_map.get(_act, EventType.PLAYER_INTERACTS)
+  backend\app\services\scene\scene_event_emitter.py:25 : "player_attacks": {
+  backend\app\services\scene\scene_event_emitter.py:43 : "player_interacts": {
+  backend\app\services\scene\scene_event_emitter.py:65 : action_type, self._TYPE_PROFILES["player_interacts"]
+  backend\app\services\scene\scene_event_layer.py:30 : "player_attacks",
+  backend\app\services\scene\scene_event_layer.py:53 : resolved_type = action_type or "player_interacts"
+  backend\app\services\scene_state\dm_presentation.py:154 : _sal_event = scene_state.get("_salience_event_type", "player_interacts")
+  backend\app\services\social\reputation_engine.py:52 : "PLAYER_ATTACKED": {
+  backend\app\services\social\social_engine.py:70 : "player_attacks",
+  backend\app\services\social\social_engine.py:72 : "player_threatens",
+  backend\app\services\social\social_engine.py:141 : event_type: тип события ("player_attacks", ...)
+  backend\app\services\social\social_engine.py:371 : "player_attacks": "атаковал",
+  backend\app\services\social\social_engine.py:373 : "player_threatens": "угрожал",
+  backend\app\services\social\social_engine.py:438 : "player_interacts",
+  backend\app\services\social\social_engine.py:439 : "player_threatens",
+  backend\app\services\social\social_engine.py:451 : _PROTECT_EVENTS = {"player_attacks", "player_threatens", "player_insults"}
+  backend\app\services\social\social_engine.py:459 : if is_target and rel.fear > 0.3 and "player_attacks" in _all_event_types:
+  backend\app\services\tick_orchestrator.py:526 : # self._ctx_pending_player_moves не потребляется никем, а logger.info
+  backend\app\services\tick_orchestrator.py:742 : if event.type in ("PLAYER_ATTACKS", "PLAYER_ATTACKED", "NPC_ATTACKED"):
+  backend\app\services\tick_orchestrator.py:1458 : # Не-RESOLVED намерение не диспетчеризуется: PLAYER_SPOKE и
+  backend\app\services\tick_orchestrator.py:1469 : f"PLAYER_SPOKE остаётся (попытка ≠ событие)"
+  backend\app\services\tick_orchestrator.py:1696 : # (action_rejected) не издаёт PLAYER_ATTACKED — свидетели не получают
+  backend\app\services\tick_orchestrator.py:1701 : f"[WV] PLAYER_ATTACKED suppressed (action_rejected: "
+  backend\app\services\tick_orchestrator.py:1718 : type=EventType.PLAYER_ATTACKED.value,
+  backend\app\services\tick_orchestrator.py:2052 : _intensity = 0.8 if _event.type in ("NPC_ATTACKED", "PLAYER_ATTACKS") else 0.3
+  backend\app\services\will.py:54 : if action in ("attack", "player_attacks", "player_attack", "combat"):
+  backend\app\services\will.py:70 : elif action in ("threaten", "player_threatens", "intimidation", "player_insults"):
+  backend\app\services\will.py:92 : "player_moves",
+  backend\app\services\will.py:111 : "player_spoke",
+  backend\app\services\will.py:113 : "player_interacts",
+  backend\tests\gameplay\test_2bii_causal_addressee.py:61 : event=_event(target_id="player", event_type="PLAYER_ATTACKED"),
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:243 : _player_attacked = [
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:253 : assert len(_player_attacked) == 0, (
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:256 : f"причинная связь не доказана. Records: {_player_attacked}"
+  backend\tests\micro\test_attack_cardinality.py:4 : 1 PLAYER_ATTACKED → 1 Combat handling; payload единственного события
+  backend\tests\micro\test_attack_cardinality.py:29 : """G3-C: phase_1 НЕ публикует PLAYER_ATTACKED (deferred к INPUT_MERGE)."""
+  backend\tests\micro\test_attack_cardinality.py:55 : attack_events = [e for e in bus.published if e.type == "PLAYER_ATTACKED"]
+  backend\tests\micro\test_attack_cardinality.py:66 : action_type="player_interacts",
+  backend\tests\micro\test_attack_cardinality.py:74 : assert any(e.type == "PLAYER_SPOKE" for e in bus.published)
+  backend\tests\micro\test_dlg0_corpus.py:45 : """speaker='player' → PLAYER_SPOKE; speaker='npc' → NPC_SPOKE."""
+  backend\tests\micro\test_dlg0_corpus.py:48 : assert s.event_type == EventType.PLAYER_SPOKE.value, f"{s.scenario_id}"
+  backend\tests\micro\test_dlg0_corpus.py:105 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\micro\test_dlg0_corpus.py:135 : ref_3_6=None, speaker="player", event_type="PLAYER_SPOKE",
+  backend\tests\micro\test_dlg0_corpus.py:163 : ref_3_6=None, speaker="player", event_type="PLAYER_SPOKE",
+  backend\tests\micro\test_dlg1_speaker_symmetry.py:174 : sub_p.on_player_spoke(_spoke_event(
+  backend\tests\micro\test_dlg1_speaker_symmetry.py:178 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\micro\test_gap1_bias_differential.py:56 : event_type=EventType.PLAYER_SPOKE,
+  backend\tests\micro\test_perception_witness.py:45 : event_type="PLAYER_ATTACKED",
+  backend\tests\micro\test_player_self_intro_claim.py:4 : only). PLAYER_SPOKE с payload.semantic_acts → Claim в DialogueSession
+  backend\tests\micro\test_player_self_intro_claim.py:39 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\micro\test_player_self_intro_claim.py:52 : sub.on_player_spoke(
+  backend\tests\micro\test_player_self_intro_claim.py:69 : sub.on_player_spoke(
+  backend\tests\micro\test_player_self_intro_claim.py:81 : sub.on_player_spoke(
+  backend\tests\micro\test_player_self_intro_claim.py:84 : sub.on_player_spoke(
+  backend\tests\micro\test_player_self_intro_claim.py:94 : sub.on_player_spoke(
+  backend\tests\micro\test_player_self_intro_claim.py:104 : sub.on_player_spoke(
+  backend\tests\micro\test_player_speech_claim.py:3 : #   PLAYER_SPOKE с DM-вектором (ADR-035) → ClaimEvent → belief слышащего NPC
+  backend\tests\micro\test_player_speech_claim.py:58 : event_type="PLAYER_SPOKE",
+  backend\tests\micro\test_player_speech_claim.py:82 : sub.on_player_spoke(_evt("ACCUSE"))  # target_id=None: только геометрия
+  backend\tests\micro\test_player_speech_claim.py:110 : sub.on_player_spoke(_evt("ACCUSE", target="maid_lusya", target_id=None))
+  backend\tests\micro\test_player_speech_claim.py:122 : event_type="PLAYER_SPOKE",
+  backend\tests\micro\test_player_speech_claim.py:127 : sub.on_player_spoke(evt)
+  backend\tests\micro\test_player_speech_claim.py:157 : sub.on_player_spoke(_evt("THREATEN", target_id="merchant_goran"))
+  backend\tests\micro\test_rules_roll_determinism.py:11 : def _event(source: str = "player", tick: int = 100, etype: str = "player_attacks", target: str = "merchant_goran") -> SimpleNamesp...
+  backend\tests\micro\test_rules_roll_determinism.py:50 : ev = _event(etype="player_interacts", target="maid_lusya")
+  backend\tests\micro\test_usl_free_assert.py:26 : type: str = "PLAYER_SPOKE"
+  backend\tests\micro\test_usl_free_assert.py:61 : sub.on_player_spoke(event)
+  backend\tests\micro\test_usl_free_assert.py:89 : sub.on_player_spoke(event)
+  backend\tests\micro\test_usl_free_assert.py:107 : sub.on_player_spoke(event)
+  backend\tests\micro\test_usl_free_assert.py:122 : sub.on_player_spoke(event)
+  backend\tests\micro\test_usl_free_assert.py:142 : sub.on_player_spoke(event)
+  backend\tests\micro\test_usl_free_assert.py:164 : sub.on_player_spoke(event)
+  backend\tests\micro\test_usl_free_assert.py:186 : sub.on_player_spoke(event)
+  backend\tests\micro\test_usl_free_assert.py:216 : sub.on_player_spoke(event)
+  backend\tests\micro\test_usl_free_assert.py:219 : sub.on_player_spoke(event)
+  backend\tests\micro\test_usl_free_assert.py:239 : sub.on_player_spoke(event1)
+  backend\tests\micro\test_usl_free_assert.py:240 : sub.on_player_spoke(event2)
+  backend\tests\sandbox\invariants\test_cds_visibility.py:22 : "[DECISION_HUB] thief_shadow: intent=Intent.IDLE score=0.000 event=player_interacts\n"
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:46 : def _make_event(event_type="player_interacts", witness_count=6, distance=1.5):
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:72 : """Fix 3+5: player_interacts = LOW risk, даже с memory/pressure."""
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:74 : def test_player_interacts_base_risk_is_low(self):
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:77 : ev = _make_event("player_interacts")
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:80 : assert risk <= 0.2, f"player_interacts risk={risk}, expected <= 0.2"
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:82 : def test_player_interacts_ignores_memory_penalty(self):
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:85 : ev = _make_event("player_interacts")
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:91 : types.SimpleNamespace(importance=0.9, event_type="player_attacks")
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:96 : assert risk <= 0.2, f"player_interacts with memory risk={risk}, expected <= 0.2"
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:98 : def test_player_attacks_has_high_risk(self):
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:101 : ev = _make_event("player_attacks")
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:104 : assert risk > 0.3, f"player_attacks risk={risk}, expected > 0.3"
+  backend\tests\sandbox\micro\test_multi_act.py:19 : raw_action="фраза", action_type="player_interacts",
+  backend\tests\sandbox\micro\test_player_intent_projection.py:42 : action_type="player_attacks",
+  backend\tests\sandbox\micro\test_player_intent_projection.py:91 : action_type="player_interacts",
+  backend\tests\sandbox\micro\test_player_intent_projection.py:99 : assert proj["action"] == "player_interacts"   # fallback на classifier
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:14 : 6. player_threatens: объединённый блок (исправление бага перезаписи)
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:61 : def _make_event(event_type="player_attacks", intensity=1.0):
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:140 : def test_player_attacks_neutral(self):
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:141 : """player_attacks: trust=-10, fear=+8 (как было до P1)."""
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:144 : event = _make_event("player_attacks", intensity=1.0)
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:198 : event = _make_event("player_attacks", intensity=1.0)
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:216 : event = _make_event("player_attacks", intensity=1.0)
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:235 : event = _make_event("player_threatens", intensity=1.0)
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:265 : """player_threatens: объединены два перезаписанных блока (оригинальный баг)."""
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:268 : """player_threatens теперь даёт trust AND fear (не только второй блок)."""
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:271 : event = _make_event("player_threatens", intensity=1.0)
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:281 : """Проверка базовых значений player_threatens в _BASE_DELTAS."""
+  backend\tests\sandbox\micro\test_social_delta_personalization.py:282 : trust_base, fear_base, category = _BASE_DELTAS["player_threatens"]
+  backend\tests\sandbox\micro\test_ue_block3_gate.py:4 : fail-closed гейт: ATTACK@PARTIAL деградирует до PLAYER_SPOKE (замок evt_map,
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:5 : (1) S122-труба: PLAYER_ATTACKED при non-RESOLVED ATTACK;
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:8 : R1 (Тай): покрытия три — одного PLAYER_ATTACKED недостаточно.
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:47 : raw_action="Не бей его.", action_type="player_attacks", target="",
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:107 : "PLAYER_ATTACKED опубликован при PARTIAL (NEG-04) — обход fail-closed S346"
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:113 : assert not _attack_events(bus), "PLAYER_ATTACKED при REFERENCE_AMBIGUOUS (REF-01)"
+  backend\tests\sandbox\micro\test_ue_d4_kernel_red.py:194 : action_type="player_attacks", intent_resolution=_res_stub(readiness),
+  backend\tests\sandbox\micro\test_ue_safety_red.py:31 : raw_action="Не бей его.", action_type="player_attacks", target="",
+  backend\tests\sandbox\micro\test_ue_safety_red.py:44 : raw_action="Проследи за стражником.", action_type="player_interacts",
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:42 : res = _resolve("Не бей его.", IntentSemanticField(action=ActionType.ATTACK, raw_text="Не бей его."), "player_attacks")
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:53 : "player_interacts",
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:63 : res = _resolve("Привет.", IntentSemanticField(action=ActionType.DIALOGUE, raw_text="Привет."), "player_interacts")
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:73 : res = _resolve("хм", sf, "player_interacts")
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:86 : res = _resolve("Привет.", IntentSemanticField(action=ActionType.DIALOGUE, raw_text="Привет."), "player_interacts")
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:28 : raw_action="ткни ножом в глаз", action_type="player_attacks",
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:45 : raw_action="привет", action_type="player_interacts",
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:60 : raw_action="Орм, стой", action_type="player_interacts",
+  backend\tests\sandbox\movement\test_target_id_payload_fallback_prevents_uninvited_approach.py:40 : event_type=EventType.PLAYER_INTERACTS,
+  backend\tests\sandbox\movement\test_target_id_payload_fallback_prevents_uninvited_approach.py:83 : event_type=EventType.PLAYER_INTERACTS,
+  backend\tests\sandbox\persistence\test_l1_chronicle_archival.py:27 : event_type="player_attacks",
+  backend\tests\sandbox\phenomenology\test_memory_absurd_fixation.py:20 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\phenomenology\test_memory_fixation.py:116 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\phenomenology\test_memory_truth_decay.py:21 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:16 : intent_approach = IntentDTO(action="player_moves", target="npc_test")
+  backend\tests\sandbox\phenomenology\test_will_absolute_obedience.py:20 : intent_halt = IntentDTO(action="player_threatens", target="npc_test")
+  backend\tests\sandbox\phenomenology\test_will_directive_conflict.py:15 : intent_move = IntentDTO(action="player_moves", target="npc_test")
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:7 : - PASS-кандидаты вызывают реальный PlayerSpeechActSubscriber.on_player_spoke
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:156 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:168 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:180 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:192 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:204 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:217 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:229 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:241 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:253 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:266 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:277 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:288 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:300 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:315 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:330 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:347 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:359 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:384 : event_type=EventType.PLAYER_SPOKE.value,
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:464 : sub.on_player_spoke(event)
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:465 : sub.on_player_spoke(event)
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:468 : sub.on_player_spoke(event)
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:476 : sub.on_player_spoke(event2)
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:478 : sub.on_player_spoke(event)
+  backend\tests\sandbox\scenarios\minimal_obedience_field.py:37 : event="PLAYER_SPOKE",
+  backend\tests\sandbox\scenarios\minimal_obedience_field.py:44 : type = "PLAYER_SPOKE"
+  backend\tests\sandbox\SUPERBOX\scenarios\bc1_conclusion_test.py:4 : #   A — прод-путь: PLAYER_THREATENS → (E2.0-b) DeltaGate → EXPERIENCE_DELTA_COMMITTED
+  backend\tests\sandbox\SUPERBOX\scenarios\bc1_conclusion_test.py:226 : "player_threatens",
+  backend\tests\sandbox\SUPERBOX\scenarios\bc1_conclusion_test.py:249 : """B: NO-VACUUM. Нейтральный PLAYER_SPOKE (threat-семантики нет)
+  backend\tests\sandbox\SUPERBOX\scenarios\bc1_conclusion_test.py:254 : "player_spoke",
+  backend\tests\sandbox\SUPERBOX\scenarios\bc1_conclusion_test.py:262 : f"после нейтрального PLAYER_SPOKE — источник неявной угрозы"
+  backend\tests\sandbox\SUPERBOX\scenarios\bc1_conclusion_test.py:376 : "player_threatens",
+  backend\tests\sandbox\SUPERBOX\scenarios\causal_state_test.py:5 : #   A — прод-событие PLAYER_THREATENS (bus-publish, primary injection);
+  backend\tests\sandbox\SUPERBOX\scenarios\causal_state_test.py:6 : #   B — контроль: нейтральное PLAYER_SPOKE (threat-семантики нет);
+  backend\tests\sandbox\SUPERBOX\scenarios\causal_state_test.py:219 : """A: PLAYER_THREATENS (prod-форма по phase_1_input: THREATEN→PLAYER_THREATENS)."""
+  backend\tests\sandbox\SUPERBOX\scenarios\causal_state_test.py:223 : "player_threatens",
+  backend\tests\sandbox\SUPERBOX\scenarios\causal_state_test.py:238 : """B: нейтральный PLAYER_SPOKE (threat-семантики нет; PLAYER_SPOKE ∉ _REACTION_RULES)."""
+  backend\tests\sandbox\SUPERBOX\scenarios\causal_state_test.py:242 : "player_spoke",
+  backend\tests\sandbox\SUPERBOX\scenarios\causal_state_test.py:250 : f"после нейтрального PLAYER_SPOKE — источник неявной угрозы"
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:7 : #       (harness.player_action → run_turn) → PLAYER_SPOKE на шине с radius
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:159 : _bus.subscribe(EventType.PLAYER_SPOKE, _spy)
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:227 : _ps_events = [e for e in SPY["events"] if getattr(e, "type", "") == EventType.PLAYER_SPOKE.value]
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:234 : print(f"[D1] PLAYER_SPOKE на шине — ✅ (action_type={_at}, "
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:239 : print("[D1] PLAYER_SPOKE на шине — ❌ (dm_result невалиден? смотри DIAG)")
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:4 : #   «разговор = локальное социальное событие мира»: PLAYER_SPOKE → мембрана →
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:102 : _bus.subscribe(EventType.PLAYER_SPOKE, _spy)
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:137 : _ps = [e for e in SPY["events"][_mark_s1:] if e.type == EventType.PLAYER_SPOKE.value]
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:139 : print(f"[S1.1-2] PLAYER_SPOKE (TAB+адресация) — {'✅' if s1a else '❌ (см. DM/LLM)'}")
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:203 : _ps2 = [e for e in SPY["events"][_mark_s2:] if e.type == EventType.PLAYER_SPOKE.value]
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:207 : print(f"[S2.5] PLAYER_SPOKE с DM-вектором — vector={_vec!r}")
+  backend\tests\sandbox\SUPERBOX\scenarios\perception_topology_test.py:31 : r_attack = action_perception_radius("player_attacks")
+  backend\tests\sandbox\SUPERBOX\scenarios\_h1b_mini3_capture_test.py:85 : MockEvent("player_interacts", "player", "merchant_goran", 0.5),
+  backend\tests\sandbox\SUPERBOX\scenarios\_h1b_mini3_capture_test.py:114 : # Ожидание: 2 события (npc_moved с target=player, player_interacts с actor=player)
+  backend\tests\sandbox\SUPERBOX\scenarios\_h1b_mini3_capture_test.py:125 : expected_rp = 0.4 + 0.5  # npc_moved (0.4) + player_interacts (0.5)
+  backend\tests\sandbox\SUPERBOX\run_terminal_mvp.py:206 : print("  PLAYER_SPOKE:    NOT_VISIBLE из ответа (событие на шине, наружу не проецируется)")
+  backend\tests\sandbox\f3_combat_smoke.py:72 : type=EventType.PLAYER_ATTACKED.value,
+  backend\tests\sandbox\sandbox_cfrm_vertical.py:220 : p2 = simulate_tick(2, "player_attacks", graph, occupancy, entity_perceptions)
+  backend\tests\sandbox\sandbox_cfrm_vertical.py:223 : _p3 = simulate_tick(3, "PLAYER_THREATENS", graph, occupancy, entity_perceptions)
+  backend\tests\sandbox\sandbox_combat_vertical.py:3 : # Проверяет: EventDTO(PLAYER_ATTACKED) -> ImpactEngine -> PhysiologyPayload(shock_impulse) -> ReactionSubscriber -> EmotionPayload...
+  backend\tests\sandbox\sandbox_combat_vertical.py:63 : # 2. ФОРМИРОВАНИЕ ИНТЕНТА: "Я откусываю люси ухо" -> PLAYER_ATTACKED
+  backend\tests\sandbox\sandbox_will_vertical.py:124 : p2 = simulate_will_tick(2, "player_attacks", PSYCHE_STOIC)  # Физическое насилие
+  backend\tests\sandbox\sandbox_will_vertical.py:137 : p4 = simulate_will_tick(4, "PLAYER_THREATENS", PSYCHE_FEARFUL)  # Угроза
+  backend\tests\sandbox\sandbox_will_vertical.py:143 : p5 = simulate_will_tick(5, "player_attacks", PSYCHE_FEARFUL)  # Жестокое насилие
+  backend\tests\sandbox\terminal_cockpit.py:134 : # действия (резолвер Слоя 2 матчит имя; PLAYER_SPOKE.target
+  backend\tests\sandbox\test_7_3_threat_scenario.py:46 : event_type="player_attacks",
+  backend\tests\sandbox\test_causal_movement.py:38 : action_type="player_interacts",
+  backend\tests\sandbox\test_causal_movement.py:78 : event_type="PLAYER_SPOKE",
+  backend\tests\sandbox\test_causal_movement.py:113 : event_type="PLAYER_SPOKE",
+  backend\tests\test_cfrm_models.py:83 : assert classify_event("player_attacks").axis == CausalAxis.PHYSICAL
+  backend\tests\test_cfrm_models.py:205 : "player_attacks",
+  backend\tests\test_cfrm_models.py:211 : "PLAYER_THREATENS",
+  backend\tests\test_combat_pipeline_e2e.py:8 : EventDTO(PLAYER_ATTACKS) → CombatSubscriber → ImpactEngine → PhysiologyPayload(shock_impulse)
+  backend\tests\test_combat_pipeline_e2e.py:41 : event_type="player_attacks",
+  backend\tests\test_combat_pipeline_e2e.py:138 : # ReactionSubscriber реагирует на PLAYER_ATTACKS
+  backend\tests\test_combat_pipeline_e2e.py:167 : # Базовая реакция (player_attacks: stress_base=15.0 * modifier) + эмпатический каскад
+  backend\tests\test_combat_subscriber.py:12 : 1. Подписка на боевые события (PLAYER_ATTACKS, COMBAT)
+  backend\tests\test_combat_subscriber.py:35 : event_type: str = "player_attacks",
+  backend\tests\test_combat_subscriber.py:88 : def test_subscribes_to_player_attacks(self):
+  backend\tests\test_combat_subscriber.py:89 : """PLAYER_ATTACKS → подписан."""
+  backend\tests\test_combat_subscriber.py:92 : event = _make_event("player_attacks")
+  backend\tests\test_combat_subscriber.py:107 : """PLAYER_SPOKE → НЕ подписан."""
+  backend\tests\test_combat_subscriber.py:110 : event = _make_event("player_spoke")
+  backend\tests\test_combat_subscriber.py:127 : "player_attacks",
+  backend\tests\test_combat_subscriber.py:151 : "player_attacks",
+  backend\tests\test_combat_subscriber.py:171 : "player_attacks",
+  backend\tests\test_combat_subscriber.py:206 : "player_attacks",
+  backend\tests\test_combat_subscriber.py:228 : event = _make_event("player_attacks")
+  backend\tests\test_combat_subscriber.py:255 : "player_attacks",
+  backend\tests\test_combat_subscriber.py:282 : "player_attacks",
+  backend\tests\test_contracts_stage6.py:209 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_contracts_stage6.py:238 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_perception_filter.py:184 : "event_type": "PLAYER_ATTACKED",
+  backend\tests\test_phase1_validation.py:27 : def test_bridge_3_player_spoke_in_threat_types(self):
+  backend\tests\test_phase1_validation.py:28 : """Bridge 3: player_spoke должен формировать beliefs (DANGER)."""
+  backend\tests\test_phase1_validation.py:29 : # Актуализация (2612dae4): player_spoke удалён из _THREAT_TYPES —
+  backend\tests\test_phase1_validation.py:31 : # DANGER-канал — player_attacks. Смысл Bridge 3 сохранён.
+  backend\tests\test_phase1_validation.py:33 : assert "player_attacks" in _THREAT_TYPES, "Bridge 3 FAILED: player_attacks отсутствует в _THREAT_TYPES"
+  backend\tests\test_phase1_validation.py:34 : print("\n[Bridge 3] PASSED: player_spoke добавлен в _THREAT_TYPES.")
+  backend\tests\test_phase3_spatial_social.py:187 : event_type="player_interacts",
+  backend\tests\test_phase3_spatial_social.py:198 : event_type="player_interacts",
+  backend\tests\test_phase3_spatial_social.py:209 : event_type="player_interacts",
+  backend\tests\test_phase3_spatial_social.py:223 : event_type="player_interacts",
+  backend\tests\test_phase3_spatial_social.py:234 : event_type="player_attacks",
+  backend\tests\test_phase3_spatial_social.py:245 : event_type="player_threatens",
+  backend\tests\test_phase3_spatial_social.py:274 : event_type="player_attacks",
+  backend\tests\test_phase3_spatial_social.py:311 : event_type="player_interacts",
+  backend\tests\test_phase3_spatial_social.py:334 : event_type="player_interacts",
+  backend\tests\test_phase3_spatial_social.py:356 : event_type="player_threatens",  # триггерит оба: threatens для ревности и защиты
+  backend\tests\test_phase3_spatial_social.py:373 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase3_spatial_social.py:387 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase3_spatial_social.py:399 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase3_spatial_social.py:418 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase_a_memory_fixes.py:203 : def test_player_spoke_does_not_raise_threat(tmp_path: Path) -> None:
+  backend\tests\test_phase_a_memory_fixes.py:204 : """_THREAT_TYPES содержал player_spoke: каждая реплика игрока
+  backend\tests\test_phase_a_memory_fixes.py:206 : реальная угроза в речи приходит семантикой (player_threatens)."""
+  backend\tests\test_phase_a_memory_fixes.py:218 : event_type="player_spoke",
+  backend\tests\test_phase_a_memory_fixes.py:237 : assert "player_spoke" not in _THREAT_TYPES
+  backend\tests\test_phase_a_memory_fixes.py:238 : for must in ("player_attacks", "player_threatens", "combat_started"):
+  backend\tests\test_phase_a_memory_fixes.py:642 : event_type="player_interacts", target_id="player",
+  backend\tests\test_phase_a_memory_fixes.py:972 : """E2.0-b integration: PLAYER_THREATENS → Proposal → Gate →
+  backend\tests\test_phase_a_memory_fixes.py:989 : event_type=EventType.PLAYER_THREATENS.value,
+  backend\tests\test_phase_a_memory_fixes.py:1068 : """AG1-D4: PLAYER_THREATENS через полный прод-путь (apply с теггером,
+  backend\tests\test_phase_a_memory_fixes.py:1084 : event_type="player_threatens",
+  backend\tests\test_phase_a_memory_fixes.py:1134 : event_type=EventType.PLAYER_ATTACKS.value,
+  backend\tests\test_phase_a_memory_fixes.py:1188 : event_type="player_threatens", source="player",
+  backend\tests\test_reaction_subscriber.py:44 : event_type: str = "player_attacks",
+  backend\tests\test_reaction_subscriber.py:227 : result = sub.handle([_make_event("player_attacks", "player")], ctx)
+  backend\tests\test_reaction_subscriber.py:304 : result = sub.handle([_make_event("player_attacks", "player")], ctx)
+  backend\tests\test_reaction_subscriber.py:353 : result = sub.handle([_make_event("player_attacks", source="player")], ctx)
+  backend\tests\test_reaction_subscriber.py:374 : result = sub.handle([_make_event("player_attacks")], ctx)
+  backend\tests\test_reaction_subscriber.py:389 : result = sub.handle([_make_event("player_attacks")], ctx)
+  backend\tests\test_reaction_subscriber.py:412 : result = sub.handle([_make_event("player_attacks")], ctx)
+  backend\tests\test_reaction_subscriber.py:423 : result = sub.handle([_make_event("player_attacks")], ctx)
+  backend\tests\test_reaction_subscriber.py:458 : # v3: EMOTION + SOCIAL + PERCEPTION witness (player_attacks)
+  backend\tests\test_reaction_subscriber.py:474 : "player_attacks",
+  backend\tests\test_reaction_subscriber.py:476 : "player_attacked",
+  backend\tests\test_reaction_subscriber.py:477 : "player_threatens",
+  backend\tests\test_relationship_state_store.py:765 : type="PLAYER_INTERACTS",
+  backend\tests\test_s2b7_injury_chain.py:71 : """PLAYER_ATTACKS с явной зоной/силой. timestamp → детерминированный
+  backend\tests\test_s2b7_injury_chain.py:74 : event_type=EventType.PLAYER_ATTACKS.value,
+  backend\tests\test_social_engine.py:208 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:220 : event_type="player_interacts",
+  backend\tests\test_social_engine.py:232 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:246 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:260 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:274 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:300 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:319 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:345 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:372 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:398 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:420 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:429 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:442 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:450 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:463 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:492 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:505 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:521 : event_type="player_attacks",
+  backend\tests\test_social_engine.py:602 : origin_event_type="player_attacks",
+  backend\tests\test_social_engine.py:616 : origin_event_type="player_attacks",
+  backend\tests\test_sqlite_store_stage11.py:90 : "event_type": "player_interacts",
+  backend\tests\test_sqlite_store_stage11.py:102 : "tags": ("player_interacts", "neutral"),
+  backend\tests\test_sqlite_store_stage11.py:181 : event_type="player_attacks",
+  backend\tests\test_sqlite_store_stage11.py:188 : tags=("player_attacks", "negative"),
+  backend\tests\test_sqlite_store_stage11.py:194 : assert loaded[0]["event_type"] == "player_attacks"
+  backend\tests\test_tick_orchestrator_full_loop.py:4 : # Основные сущности: test_tick_orchestrator_full_loop_player_attacks
+  backend\tests\test_tick_orchestrator_full_loop.py:6 : Сквозной тест для TickOrchestrator.execute() с событием player_attacks.
+  backend\tests\test_tick_orchestrator_full_loop.py:79 : def test_tick_orchestrator_full_loop_player_attacks():
+  backend\tests\test_tick_orchestrator_full_loop.py:80 : """Сквозной тест: player_attacks -> EventBus -> PerceptionSubscriber -> StateDeltas -> StateApplicator.
+  backend\tests\test_tick_orchestrator_full_loop.py:126 : # 2. Публикация события player_attacks (до execute)
+  backend\tests\test_tick_orchestrator_full_loop.py:129 : event_type=EventType.PLAYER_ATTACKS.value,
+  backend\tests\test_topic_extractor_phrases.py:11 : topic = extract_topic(event_type="player_interacts", raw_input="Люся, как дела?")
+  backend\tests\test_topic_extractor_phrases.py:15 : topic = extract_topic(event_type="player_interacts", raw_input="расскажи о себе")
+  backend\tests\test_topic_extractor_phrases.py:19 : topic = extract_topic(event_type="player_interacts", raw_input="хочу купить меч")
+  backend\tests\test_topic_extractor_phrases.py:23 : topic = extract_topic(event_type="player_interacts", raw_input="ыыы")
+
+[SEARCH] PLAYER_INTERACTS usage  pattern: /PLAYER_INTERACTS/
+  92 matches:
+  backend\app\domain\constants.py:20 : "player_interacts": 0.2,
+  backend\app\domain\constants.py:41 : "player_interacts": 6.0,
+  backend\app\domain\temporal_specs.py:216 : "player_attacks", "player_attack", "player_interacts",
+  backend\app\models\cfrm.py:202 : "player_interacts": CausalAxis.COGNITIVE,
+  backend\app\services\action\dm_router.py:233 : "player_interacts": "SANDBOX_MILD",
+  backend\app\services\action\dm_router.py:240 : # 0. Знак вопроса = всегда player_interacts (вопросы не наносят урон!)
+  backend\app\services\action\dm_router.py:242 : return "player_interacts"
+  backend\app\services\action\dm_router.py:270 : return "player_interacts"
+  backend\app\services\action\dm_scene_builder.py:62 : getattr(raw_event, "event_type", "player_interacts")
+  backend\app\services\action\dm_scene_builder.py:64 : else "player_interacts"
+  backend\app\services\action\dm_scene_builder.py:166 : event_type=cast(EventType, "player_interacts"),
+  backend\app\services\events\event_types.py:87 : PLAYER_INTERACTS = "player_interacts"
+  backend\app\services\events\rules_subscriber.py:89 : "player_interacts",
+  backend\app\services\events\rules_subscriber.py:90 : "PLAYER_INTERACTS",
+  backend\app\services\events\rules_subscriber.py:136 : if event_type in ("player_interacts", "PLAYER_INTERACTS"):
+  backend\app\services\events\social_subscriber.py:36 : EventType.PLAYER_INTERACTS,
+  backend\app\services\game_loop\dm_phase.py:184 : if _raw_type in ("dialogue", "player_interacts") and _stm_target_id:
+  backend\app\services\game_loop\dm_phase.py:224 : action_type=shared_context.action_type or "player_interacts",
+  backend\app\services\game_loop\dm_phase.py:263 : event_type=EventType(getattr(_raw_event, "type", "player_interacts")),
+  backend\app\services\game_loop\idle_event_projection.py:126 : EventType.PLAYER_INTERACTS: "авторство игрока",
+  backend\app\services\game_loop\npc_orchestration.py:449 : ctx.hub_event, "event_type", "player_interacts"
+  backend\app\services\game_loop\phase_1_input.py:451 : """Публикация сырого действия игрока — PLAYER_INTERACTS."""
+  backend\app\services\game_loop\phase_1_input.py:457 : event_type=EventType.PLAYER_INTERACTS,
+  backend\app\services\game_loop\phase_1_input.py:519 : "player_interacts": EventType.PLAYER_SPOKE,
+  backend\app\services\game_loop\phase_1_input.py:593 : # DM Router (16 глаголов) перезаписывает "укусить/толкнуть/душить" → player_interacts.
+  backend\app\services\game_loop\time_advance.py:44 : if action_type in ("dialogue", "player_interacts"):
+  backend\app\services\game_loop\turn_pipeline.py:143 : _action_type = shared_context.action_type or "player_interacts"
+  backend\app\services\game_loop\turn_pipeline.py:154 : else "player_interacts",
+  backend\app\services\game_loop\turn_pipeline.py:407 : action_type=shared_context.action_type or "player_interacts",
+  backend\app\services\memory\event_semantic_tagger.py:34 : "player_interacts": frozenset({"social:interaction"}),
+  backend\app\services\npc\decision\risk.py:50 : "player_interacts",
+  backend\app\services\npc\belief_transition_engine.py:53 : "player_interacts",
+  backend\app\services\npc\decision_hub.py:1552 : # ADR-130: Payload target_id fallback. При player_interacts команда
+  backend\app\services\npc\decision_hub.py:1556 : if event.event_type == "player_interacts":
+  backend\app\services\npc\npc_tick_pipeline.py:1331 : elif _evt_type == "player_interacts" and _has_target:
+  backend\app\services\npc\npc_tick_pipeline.py:1398 : elif _evt_type == "player_interacts" and _has_target:
+  backend\app\services\npc\topic_extractor.py:56 : "player_interacts": "разговор",
+  backend\app\services\phases\input.py:36 : _resolved_type = _evt_map.get(_act, EventType.PLAYER_INTERACTS)
+  backend\app\services\scene\scene_event_emitter.py:43 : "player_interacts": {
+  backend\app\services\scene\scene_event_emitter.py:65 : action_type, self._TYPE_PROFILES["player_interacts"]
+  backend\app\services\scene\scene_event_layer.py:53 : resolved_type = action_type or "player_interacts"
+  backend\app\services\scene_state\dm_presentation.py:154 : _sal_event = scene_state.get("_salience_event_type", "player_interacts")
+  backend\app\services\social\social_engine.py:438 : "player_interacts",
+  backend\app\services\will.py:113 : "player_interacts",
+  backend\tests\micro\test_attack_cardinality.py:66 : action_type="player_interacts",
+  backend\tests\micro\test_rules_roll_determinism.py:50 : ev = _event(etype="player_interacts", target="maid_lusya")
+  backend\tests\sandbox\invariants\test_cds_visibility.py:22 : "[DECISION_HUB] thief_shadow: intent=Intent.IDLE score=0.000 event=player_interacts\n"
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:46 : def _make_event(event_type="player_interacts", witness_count=6, distance=1.5):
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:72 : """Fix 3+5: player_interacts = LOW risk, даже с memory/pressure."""
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:74 : def test_player_interacts_base_risk_is_low(self):
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:77 : ev = _make_event("player_interacts")
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:80 : assert risk <= 0.2, f"player_interacts risk={risk}, expected <= 0.2"
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:82 : def test_player_interacts_ignores_memory_penalty(self):
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:85 : ev = _make_event("player_interacts")
+  backend\tests\sandbox\micro\test_flee_collapse_fix.py:96 : assert risk <= 0.2, f"player_interacts with memory risk={risk}, expected <= 0.2"
+  backend\tests\sandbox\micro\test_multi_act.py:19 : raw_action="фраза", action_type="player_interacts",
+  backend\tests\sandbox\micro\test_player_intent_projection.py:91 : action_type="player_interacts",
+  backend\tests\sandbox\micro\test_player_intent_projection.py:99 : assert proj["action"] == "player_interacts"   # fallback на classifier
+  backend\tests\sandbox\micro\test_ue_safety_red.py:44 : raw_action="Проследи за стражником.", action_type="player_interacts",
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:53 : "player_interacts",
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:63 : res = _resolve("Привет.", IntentSemanticField(action=ActionType.DIALOGUE, raw_text="Привет."), "player_interacts")
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:73 : res = _resolve("хм", sf, "player_interacts")
+  backend\tests\sandbox\micro\test_ue_ux_projection.py:86 : res = _resolve("Привет.", IntentSemanticField(action=ActionType.DIALOGUE, raw_text="Привет."), "player_interacts")
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:45 : raw_action="привет", action_type="player_interacts",
+  backend\tests\sandbox\micro\test_understanding_schema_transport.py:60 : raw_action="Орм, стой", action_type="player_interacts",
+  backend\tests\sandbox\movement\test_target_id_payload_fallback_prevents_uninvited_approach.py:40 : event_type=EventType.PLAYER_INTERACTS,
+  backend\tests\sandbox\movement\test_target_id_payload_fallback_prevents_uninvited_approach.py:83 : event_type=EventType.PLAYER_INTERACTS,
+  backend\tests\sandbox\SUPERBOX\scenarios\_h1b_mini3_capture_test.py:85 : MockEvent("player_interacts", "player", "merchant_goran", 0.5),
+  backend\tests\sandbox\SUPERBOX\scenarios\_h1b_mini3_capture_test.py:114 : # Ожидание: 2 события (npc_moved с target=player, player_interacts с actor=player)
+  backend\tests\sandbox\SUPERBOX\scenarios\_h1b_mini3_capture_test.py:125 : expected_rp = 0.4 + 0.5  # npc_moved (0.4) + player_interacts (0.5)
+  backend\tests\sandbox\test_causal_movement.py:38 : action_type="player_interacts",
+  backend\tests\test_contracts_stage6.py:209 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_contracts_stage6.py:238 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase3_spatial_social.py:187 : event_type="player_interacts",
+  backend\tests\test_phase3_spatial_social.py:198 : event_type="player_interacts",
+  backend\tests\test_phase3_spatial_social.py:209 : event_type="player_interacts",
+  backend\tests\test_phase3_spatial_social.py:223 : event_type="player_interacts",
+  backend\tests\test_phase3_spatial_social.py:311 : event_type="player_interacts",
+  backend\tests\test_phase3_spatial_social.py:334 : event_type="player_interacts",
+  backend\tests\test_phase3_spatial_social.py:373 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase3_spatial_social.py:387 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase3_spatial_social.py:399 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase3_spatial_social.py:418 : event = EventContext(event_type="player_interacts", actor_id="player")
+  backend\tests\test_phase_a_memory_fixes.py:642 : event_type="player_interacts", target_id="player",
+  backend\tests\test_relationship_state_store.py:765 : type="PLAYER_INTERACTS",
+  backend\tests\test_social_engine.py:220 : event_type="player_interacts",
+  backend\tests\test_sqlite_store_stage11.py:90 : "event_type": "player_interacts",
+  backend\tests\test_sqlite_store_stage11.py:102 : "tags": ("player_interacts", "neutral"),
+  backend\tests\test_topic_extractor_phrases.py:11 : topic = extract_topic(event_type="player_interacts", raw_input="Люся, как дела?")
+  backend\tests\test_topic_extractor_phrases.py:15 : topic = extract_topic(event_type="player_interacts", raw_input="расскажи о себе")
+  backend\tests\test_topic_extractor_phrases.py:19 : topic = extract_topic(event_type="player_interacts", raw_input="хочу купить меч")
+  backend\tests\test_topic_extractor_phrases.py:23 : topic = extract_topic(event_type="player_interacts", raw_input="ыыы")
+
+============================================================
+

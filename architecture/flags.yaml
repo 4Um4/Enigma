@@ -41,7 +41,7 @@ flags:
     note: "born-True c4b75107 (GORAN 12/12); вся эпоха S215+ при ON"
   D8P_ENABLED:
     type: env
-    read_mode: call
+    read_mode: mixed
     default: ""
     effective_default: "1"
     verdict: ROLLOUT-ON
@@ -460,3 +460,21 @@ flags:
     adr: B4-FIX
     owner: B
     note: "production|development|test; MockProvider-гейт (ADR-113-класс)"
+  SDL_AUDIODRIVER:
+    type: env
+    read_mode: setdefault
+    default: "dummy"
+    effective_default: "dummy"
+    verdict: INFRA
+    adr: "-"
+    owner: master
+    note: "headless pygame test infra; setdefault в frontend/map_editor/tests/*.py (6 файлов). Не игровой флаг — audio driver selection для headless test runs."
+  SDL_VIDEODRIVER:
+    type: env
+    read_mode: setdefault
+    default: "dummy"
+    effective_default: "dummy"
+    verdict: INFRA
+    adr: "-"
+    owner: master
+    note: "headless pygame test infra; setdefault в backend/tests/sandbox/SUPERBOX/scenarios/d61_llm_outage_doctrine_test.py:42 (G7 без экрана). Не игровой флаг — video driver selection для headless test runs."

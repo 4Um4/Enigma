@@ -56,6 +56,13 @@ _DOC_RE = re.compile(r"default\s+(ON|OFF)", re.IGNORECASE)
 _DOC_WINDOW_BEFORE = 8
 _DOC_WINDOW_AFTER = 3
 
+# Third-party directories excluded from flag scan (pygame tests in .venv/payload
+# produce noise: false C2 STALE for flags only setdefault'd in our tests +
+# false C5 "mixed" from .venv get-calls at different depth than our setdefaults).
+_EXCLUDE_PARTS: frozenset[str] = frozenset({
+    ".venv", ".venv311", "payload", "__pycache__", "site-packages", ".git",
+})
+
 
 class FlagSite:
     """Один сайт определения/чтения флага: файл:строка + литерал дефолта."""
@@ -225,6 +232,20 @@ def scan_file(py: Path) -> Tuple[Dict[str, List[FlagSite]], Dict[str, str]]:
                     val = _str_of(node.args[1])
                     if val is not None:
                         writers[key] = val
+                        # setdefault = тоже usage флага (читаешь + пишешь).
+                        # Без sites-записи C2 STALE лжёт «флаг удалён» для
+                        # setdefault-only флагов (gap ловлен на SDL_AUDIODRIVER:
+                        # 6 setdefault сайтов в frontend tests, но C2 не видел).
+                        sites.setdefault(key, []).append(
+                            FlagSite(
+                                key,
+                                "setdefault",
+                                _norm_default(val),
+                                py,
+                                node.lineno,
+                                _doc_claim(node.lineno),
+                            )
+                        )
             elif (
                 isinstance(node.func, ast.Name)
                 and node.func.id == "any"
@@ -325,6 +346,10 @@ def run_lint() -> Tuple[List[str], Dict[str, int]]:
         if not root.exists():
             continue
         for py in sorted(root.rglob("*.py")):
+            # Exclude third-party directories (.venv/payload pygame tests
+            # produce false C2 STALE / C5 "mixed" noise — не наш код).
+            if any(part in _EXCLUDE_PARTS for part in py.parts):
+                continue
             scanned += 1
             try:
                 s, w = scan_file(py)
@@ -390,16 +415,27 @@ def run_lint() -> Tuple[List[str], Dict[str, int]]:
                 f"флаг без вердикта реестра"
             )
             continue
-        defaults = {s.default for s in fl_sites}
-        if len(defaults) > 1:
+        # Разделяем по типу: setdefault (WRITE default) vs get/getenv (READ fallback).
+        # setdefault default = что писатель ставит; get default = что читатель
+        # возвращает если env не установлен. Разные defaults между ними —
+        # нормальный паттерн (D8P_ENABLED: main.py setdefault "1" = прод ON;
+        # intelligence_queue get "" = module OFF). C4 проверяет setdefault
+        # против effective_default; C3 — get против yaml default.
+        _get_defaults = {s.default for s in fl_sites if s.read_mode != "setdefault"}
+        _sdv_defaults = {s.default for s in fl_sites if s.read_mode == "setdefault"}
+        if len(_get_defaults) > 1:
             violations.append(
-                f"C3 {name}: конфликт дефолтов между сайтами: {sorted(defaults)}"
+                f"C3 {name}: конфликт дефолтов get-сайтов: {sorted(_get_defaults)}"
+            )
+        if len(_sdv_defaults) > 1:
+            violations.append(
+                f"C3 {name}: конфликт дефолтов setdefault-сайтов: {sorted(_sdv_defaults)}"
             )
         ydef = _norm_default(rec.get("default"))
-        for d in sorted(defaults):
+        for d in sorted(_get_defaults):
             if d != ydef:
                 violations.append(
-                    f"C3 {name}: yaml default={ydef!r} != код {d!r} "
+                    f"C3 {name}: yaml default={ydef!r} != код get {d!r} "
                     f"({_rel(fl_sites[0])})"
                 )
         modes = {s.read_mode for s in fl_sites}

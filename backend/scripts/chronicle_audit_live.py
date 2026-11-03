@@ -65,7 +65,9 @@ def _http_post(path: str, body: Dict[str, Any]) -> Dict[str, Any]:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        # CCH-14: увеличен timeout с 240 до 480 сек — prior_context + длинные
+        # фрагменты (п.15 Люси = 1161 chars) требуют больше времени на генерацию
+        with urllib.request.urlopen(req, timeout=480) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         body_text = e.read().decode("utf-8", errors="replace")[:500]
@@ -77,7 +79,8 @@ def _http_post(path: str, body: Dict[str, Any]) -> Dict[str, Any]:
 def _http_get(path: str) -> Dict[str, Any]:
     req = urllib.request.Request(_BASE_URL + path, method="GET")
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        # CCH-14: увеличен с 30 до 60 сек (для /draft после длинной серии decompose)
+        with urllib.request.urlopen(req, timeout=60) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         body_text = e.read().decode("utf-8", errors="replace")[:500]

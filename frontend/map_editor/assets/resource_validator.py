@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from assets.resource_formats import MAGIC_BYTES, is_supported_format
 from assets.resource_resolver import LegacyDirResolver
 
 
@@ -59,6 +60,30 @@ class ValidationResult:
     @property
     def infos(self) -> list[ValidationIssue]:
         return [i for i in self.issues if i.level == "info"]
+
+
+@dataclass
+class ResourceValidationResult:
+    """ME-2.1-H-2: Результат валидации самостоятельного ресурса (не Blueprint).
+
+    Используется ResourceValidator.validate_resource() и AssetStore.save_new_resource_atomic().
+    """
+
+    path: Path
+    issues: list[ValidationIssue] = field(default_factory=list)
+
+    @property
+    def can_register(self) -> bool:
+        """True если нет error-level issues."""
+        return not any(i.level == "error" for i in self.issues)
+
+    @property
+    def errors(self) -> list[ValidationIssue]:
+        return [i for i in self.issues if i.level == "error"]
+
+    @property
+    def warnings(self) -> list[ValidationIssue]:
+        return [i for i in self.issues if i.level == "warning"]
 
 
 class ResourceValidator:
@@ -269,5 +294,173 @@ class ResourceValidator:
                     message=(
                         f"Archetype '{bp_type}' may not have backend FSM — object is decorative only (no game actions)"
                     ),
+                )
+            )
+
+    # ===== ME-2.1-H-2: validate_resource (L1-L4 для самостоятельных ресурсов) =====
+
+    def validate_resource(self, image_path: Path) -> "ResourceValidationResult":
+        """ME-2.1-H-2: Валидация самостоятельного ресурса (не Blueprint).
+
+        4 уровня (L4 — error, не warning, по решению Master G8):
+        - L1 Existence: обычный файл, размер > 0.
+        - L2 Format: path.suffix.lower() в SUPPORTED_RESOURCE_FORMATS.
+        - L3 Magic: сигнатура содержимого соответствует расширению.
+        - L4 Loadable: pygame.image.load() декодирует без ошибки.
+
+        L4 НЕ вызывает pygame.init() или display.set_mode() — pygame.image.load
+        работает без них на pygame 2.6.1 (подтверждено тестом).
+
+        Args:
+            image_path: путь к файлу изображения.
+
+        Returns:
+            ResourceValidationResult с issues (error/warning/info).
+        """
+        result = ResourceValidationResult(path=Path(image_path))
+        self._check_resource_existence(image_path, result)
+        # L2-L4 только если файл существует (иначе бессмысленно)
+        if not result.errors:
+            self._check_resource_format(image_path, result)
+        if not result.errors:
+            self._check_resource_magic(image_path, result)
+        if not result.errors:
+            self._check_resource_loadable(image_path, result)
+        return result
+
+    def _check_resource_existence(self, image_path: Path, result: "ResourceValidationResult") -> None:
+        """L1: файл существует, обычный файл, размер > 0."""
+        if not image_path.exists():
+            result.issues.append(
+                ValidationIssue(
+                    level="error",
+                    category="resource",
+                    message=f"Файл не существует: {image_path}",
+                    field="path",
+                )
+            )
+            return
+        if not image_path.is_file():
+            result.issues.append(
+                ValidationIssue(
+                    level="error",
+                    category="resource",
+                    message=f"Не файл (возможно директория): {image_path}",
+                    field="path",
+                )
+            )
+            return
+        try:
+            size = image_path.stat().st_size
+        except OSError as exc:
+            result.issues.append(
+                ValidationIssue(
+                    level="error",
+                    category="resource",
+                    message=f"Не удалось получить размер: {exc}",
+                    field="path",
+                )
+            )
+            return
+        if size == 0:
+            result.issues.append(
+                ValidationIssue(
+                    level="error",
+                    category="resource",
+                    message=f"Файл пустой (0 байт): {image_path}",
+                    field="path",
+                )
+            )
+
+    def _check_resource_format(self, image_path: Path, result: "ResourceValidationResult") -> None:
+        """L2: расширение в SUPPORTED_RESOURCE_FORMATS (PNG/JPG/JPEG)."""
+        suffix = image_path.suffix.lower()
+        if not is_supported_format(suffix):
+            result.issues.append(
+                ValidationIssue(
+                    level="error",
+                    category="resource",
+                    message=f"Неподдерживаемый формат '{suffix}' — только PNG/JPG/JPEG",
+                    field="format",
+                )
+            )
+
+    def _check_resource_magic(self, image_path: Path, result: "ResourceValidationResult") -> None:
+        """L3: сигнатура содержимого соответствует расширению."""
+        suffix = image_path.suffix.lower()
+        expected_magic = MAGIC_BYTES.get(suffix)
+        if expected_magic is None:
+            # L2 уже должен был провалиться, но на всякий случай
+            result.issues.append(
+                ValidationIssue(
+                    level="error",
+                    category="resource",
+                    message=f"Нет magic bytes для формата '{suffix}'",
+                    field="format",
+                )
+            )
+            return
+        try:
+            with open(image_path, "rb") as f:
+                actual_magic = f.read(len(expected_magic))
+        except OSError as exc:
+            result.issues.append(
+                ValidationIssue(
+                    level="error",
+                    category="resource",
+                    message=f"Не удалось прочитать для magic check: {exc}",
+                    field="path",
+                )
+            )
+            return
+        if actual_magic != expected_magic:
+            result.issues.append(
+                ValidationIssue(
+                    level="error",
+                    category="resource",
+                    message=(
+                        f"Magic bytes не соответствуют расширению '{suffix}': "
+                        f"ожидалось {expected_magic!r}, получено {actual_magic!r}"
+                    ),
+                    field="format",
+                )
+            )
+
+    def _check_resource_loadable(self, image_path: Path, result: "ResourceValidationResult") -> None:
+        """L4: pygame.image.load() декодирует изображение (error, не warning).
+
+        Контракт Master G8: ошибка загрузки — error, не warning.
+        Не вызывает pygame.init() или display.set_mode() — pygame.image.load
+        работает без них на pygame 2.6.1 (подтверждено тестом).
+        """
+        try:
+            import pygame
+
+            surf = pygame.image.load(str(image_path))
+            if surf is None:
+                result.issues.append(
+                    ValidationIssue(
+                        level="error",
+                        category="resource",
+                        message=f"pygame.image.load вернул None: {image_path}",
+                        field="loadable",
+                    )
+                )
+        except pygame.error as exc:
+            result.issues.append(
+                ValidationIssue(
+                    level="error",
+                    category="resource",
+                    message=f"Изображение не декодируется (pygame.error): {exc}",
+                    field="loadable",
+                )
+            )
+        except Exception as exc:
+            result.issues.append(
+                ValidationIssue(
+                    level="error",
+                    category="resource",
+                    message=f"Неожиданная ошибка при загрузке: {type(exc).__name__}: {exc}",
+                    field="loadable",
                 )
             )

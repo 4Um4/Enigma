@@ -1,0 +1,122 @@
+﻿C3: ATTACK REACTION SCENARIO
+
+============================================================
+
+[READ] _COMBAT_EVENT_TYPES  backend/app/services/combat/combat_subscriber.py L38-55
+  38: logger = logging.getLogger(__name__)
+  39: 
+  40: # События, порождающие физические воздействия
+  41: _COMBAT_EVENT_TYPES: list[EventType] = [
+  42:     EventType.PLAYER_ATTACKS,
+  43:     EventType.PLAYER_ATTACKED,
+  44:     EventType.ACTOR_ATTACKS,  # ADR-O-112: Труба NPC агрессии
+  45:     EventType.COMBAT,  # FIX: Добавлена подписка на общий боевой ивент
+  46: ]
+  47: 
+  48: # Дефолтные параметры воздействия (если payload неполный)
+  49: _DEFAULT_DAMAGE_TYPE = "blunt"
+  50: _DEFAULT_WEAPON_REACH = 1.0
+  51: _DEFAULT_FORCE_SCALE = 30.0  # Базовая сила для action без указанного оружия
+  52: 
+  53: 
+  54: class CombatSubscriber:
+  55:     """Phase8Handler: транслятор боевых событий → физические воздействия.
+
+[SEARCH] ReactionSubscriber + Player  pattern: /class ReactionSubscriber|reaction_sub.*player/
+  1 matches:
+  backend\app\services\events\reaction_subscriber.py:131 : class ReactionSubscriber:
+
+[SEARCH] NPC combat decision  pattern: /decision_hub.*combat|combat.*decision|dodge|counterattack/
+  7 matches:
+  backend\app\services\combat\impact_engine.py:74 : # S123: High pain reduces dodge (AC). -1 AC for every 10 pain.
+  backend\tests\sandbox\SUPERBOX\scenarios\eat_vertical_test.py:298 : from app.services.npc.decision_hub import COMBAT_CAPABLE_ROLES
+  backend\tests\test_combat_pipeline_e2e.py:106 : # dexterity=0.0 гарантирует отсутствие dodge в Contact Resolution,
+  backend\tests\test_impact_engine.py:67 : def test_high_dexterity_dodge(self):
+  backend\tests\test_impact_engine.py:68 : """Ловкий NPC с высокой dexterity уклоняется (seed 42 дает dodge)."""
+  backend\tests\test_impact_engine.py:70 : defender = _make_snapshot(npc_id="defender", dexterity=90.0)  # 90% dodge base
+  backend\tests\test_impact_engine.py:96 : def test_pain_reduces_dodge(self):
+
+[READ] DecisionHub event processing  backend/app/services/npc/decision_hub.py L440-520
+  440:         # evaluate_vital_state — единственный владелец решения о жизни/смерти.
+  441:         # is_conscious — единственный владелец решения о сознании.
+  442:         _body = getattr(state, "body_state", None) or {}  # noqa: ENIGMA002
+  443:         _life_status = evaluate_vital_state(_body)
+  444:         if _life_status == LifeStatus.DEAD or not is_conscious(_body):
+  445:             return AgentAction(
+  446:                 decision=DecisionResult(
+  447:                     npc_id=state.npc_id,
+  448:                     intent=Intent.IDLE,
+  449:                     intent_target=None,
+  450:                     score=0.0,
+  451:                     scores_trace={"veto": 0.0},
+  452:                     deltas=[],
+  453:                 ),
+  454:             )
+  455: 
+  456:         # Игрок спросил "почему?" → специальный режим объяснения
+  457:         if event.event_type == "player_asks_why":
+  458:             return self._explain_mode(state, personality, event)
+  459: 
+  460:         # R6.3 — оцениваем момент скрытого действия до фильтрации интентов.
+  461:         # OpportunityContext=None → inactive() без ошибки, backward-compatible.
+  462:         # OpportunityEngine требует контекст и строку will_state, а не весь state
+  463:         opportunity = OpportunityEngine().calculate(
+  464:             ctx=opportunity_ctx or OpportunityContext(),
+  465:             will_state=state.will_state.value
+  466:             if hasattr(state.will_state, "value")
+  467:             else str(state.will_state),
+  468:         )
+  469: 
+  470:         # L1 черты: только из NPCIdentityL1
+  471:         active_traits: Dict[str, float] = identity.active_traits if identity else {}
+  472:         possible = self._get_possible_intents(
+  473:             state, personality, event, opportunity, effective_drives=effective_drives
+  474:         )
+  475:         scores, components_trace = self._score_all(
+  476:             state,
+  477:             personality,
+  478:             event,
+  479:             possible,
+  480:             opportunity,
+  481:             active_traits,
+  482:             decision_ctx=decision_ctx,
+  483:             effective_drives=effective_drives,
+  484:         )
+  485: 
+  486:         # ADR-036 + ADR-ACTION-BRIDGE: Физика Власти. Читаем семантику из EventContext.payload.
+  487:         # Мост action_to_intent гарантирует нормализацию ActionType.MOVE → Intent.APPROACH.
+  488:         from app.domain.action_intent_bridge import action_to_intent
+  489: 
+  490:         _payload_pop = getattr(event, "payload", {}) or {}  # noqa: ENIGMA002
+  491:         _sa_pop = (
+  492:             _payload_pop.get("semantic_action")  # noqa: ENIGMA001
+  493:             if isinstance(_payload_pop, dict)
+  494:             else None
+  495:         )
+  496:         _tid_pop = (
+  497:             _payload_pop.get("target_id") if isinstance(_payload_pop, dict) else None  # noqa: ENIGMA001
+  498:         )
+  499:         _expected_intent = action_to_intent(_sa_pop)
+  500: 
+  501:         if (
+  502:             _expected_intent == Intent.APPROACH.value
+  503:             and _tid_pop == state.npc_id
+  504:             and Intent.APPROACH.value in scores
+  505:         ):
+  506:             _fear_raw = self._get_rel_value(state, "player", "fear")
+  507:             # L3-P2: Воля определяется текущей проекцией, не архетипом
+  508:             _will_pop = effective_drives.get("control", 0.5)
+  509:             _kernel_pop = getattr(state, "perceptual_kernel", None)  # noqa: ENIGMA002
+  510:             _threat_pop = _kernel_pop.threat_gradient if _kernel_pop else 0.0
+  511: 
+  512:             # §ENIGMA-004: Epistemic Isolation.
+  513:             # Вакуум НЕ мутирует state (нет паранойи). Вакуум снижает легитимность приказа.
+  514:             if _fear_raw is not None:
+  515:                 # ФАКТ: Известный страх генерирует социальную легитимность
+  516:                 _obedience_legitimacy = (_fear_raw / 100.0) * (1.0 - _will_pop)
+  517:                 _epistemic_mode = "FACT"
+  518:             else:
+  519:                 # ВАКУУМ: Транзиентный inference pressure.
+  520:                 # Незнакомец не имеет авторитета, но вызывает микрозамешательство (0.05).
+
+

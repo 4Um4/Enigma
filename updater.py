@@ -16,6 +16,9 @@ import urllib.request
 from tkinter import font as tkfont
 from tkinter import messagebox, ttk
 
+# --- splash.py импортируется для показа индикатора загрузки/обновления ---
+from splash import SplashScreen
+
 # --- КОНФИГУРАЦИЯ ---
 GITHUB_OWNER = "4Um4"
 GITHUB_REPO = "Enigma"
@@ -280,10 +283,8 @@ def main():
             _env["PYTHONIOENCODING"] = "utf-8"
             _env["PYTHONUTF8"] = "1"
 
-            # Запускаем Splash Screen в фоне (если он существует)
-            splash_exe = os.path.join(app_dir, "Bloodloom_splash.exe")
-            if os.path.exists(splash_exe):
-                subprocess.Popen([splash_exe])
+            # Запускаем фоновый splash-процесс (тот же exe через параметр --splash)
+            subprocess.Popen([sys.executable, os.path.abspath(__file__), "--splash"])
 
             subprocess.Popen([python_exe, launcher_path], creationflags=_creation_flags, env=_env)
         except Exception as e:
@@ -296,6 +297,15 @@ def main():
             f.write(f"Файл game_launcher.py не найден в {app_dir}\n")
 
 if __name__ == "__main__":
+    # Если скрипт запускается с флагом --splash, показываем окно загрузки.
+    # Это позволяет использовать один и тот же exe как основной обновлятор,
+    # так и графический splash‑экран (для фоновой загрузки бэкенда).
+    if len(sys.argv) > 1 and sys.argv[1] == "--splash":
+        # Импортируем класс окна загрузки
+        from splash import SplashScreen
+        splash = SplashScreen()
+        splash.mainloop()
+        sys.exit(0)
     try:
         main()
     except Exception:

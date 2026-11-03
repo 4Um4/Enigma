@@ -1,0 +1,283 @@
+﻿C2: NPC AWARENESS PATHS
+
+============================================================
+
+[SEARCH] STM Player dialogue  pattern: /get_stm_prompt|stm.*block|add_dialogue_turn|dialogue_session.*player/
+  74 matches:
+  backend\app\agents\dm_agent.py:230 : # BUG-DL-03 FIX: Targeted STM block — контекст диалога с целевым NPC
+  backend\app\agents\dm_agent.py:231 : _targeted_stm = (context or {}).get("npc_stm_block_targeted", "")
+  backend\app\services\events\npc_dialogue_subscriber.py:492 : _stm_before = _session.to_prompt_block()
+  backend\app\services\events\npc_dialogue_subscriber.py:517 : _stm_before = _session.to_prompt_block()
+  backend\app\services\events\npc_dialogue_subscriber.py:520 : self.memory.add_dialogue_turn(
+  backend\app\services\events\npc_dialogue_subscriber.py:559 : logger.warning(f"[NPC_DIALOGUE_SUB] add_dialogue_turn failed for {listener}/{speaker}: {mem_err}")
+  backend\app\services\execution\dialogue_executor.py:402 : _stm_text = self._memory_manager.get_stm_prompt_block_pair(
+  backend\app\services\game_loop\dm_phase.py:70 : # BUG-DL-03 FIX: Извлекаем targeted STM block для DM LLM
+  backend\app\services\game_loop\dm_phase.py:72 : shared_context.npc_stm_block_targeted = deps.memory_manager.get_stm_prompt_block(
+  backend\app\services\game_loop\dm_phase.py:76 : shared_context.npc_stm_block_targeted = ""
+  backend\app\services\game_loop\dm_phase.py:185 : deps.memory_manager.add_dialogue_turn(
+  backend\app\services\game_loop\task_scheduler.py:689 : _stm_check = self._memory_manager.get_stm_prompt_block_pair(
+  backend\app\services\memory\memory_manager.py:93 : def get_dialogue_session(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> DialogueSession:
+  backend\app\services\memory\memory_manager.py:106 : def add_dialogue_turn(
+  backend\app\services\memory\memory_manager.py:118 : def clear_dialogue_session(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> None:
+  backend\app\services\memory\memory_manager.py:209 : def get_stm_prompt_block(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> str:
+  backend\app\services\memory\memory_manager.py:215 : def get_stm_prompt_block_pair(self, campaign_id: str, npc_a: str, npc_b: str) -> str:
+  backend\app\services\memory\memory_manager.py:217 : return self.get_stm_prompt_block(campaign_id, npc_a, partner_id=npc_b)
+  backend\app\services\memory\working_memory_tick.py:40 : - записывает в STM через memory_manager.add_dialogue_turn
+  backend\app\services\memory\working_memory_tick.py:130 : memory_manager.add_dialogue_turn(
+  backend\app\services\phases\post_decision.py:115 : _stm_check = _memory_mgr.get_stm_prompt_block_pair(
+  backend\app\services\verbalization\dm_contract_builder.py:136 : def add_npc_stm(self, stm_block: str) -> "DMContractBuilder":
+  backend\app\services\verbalization\dm_contract_builder.py:138 : if stm_block and stm_block.strip():
+  backend\app\services\verbalization\dm_contract_builder.py:139 : self._blocks.append(f"[Краткая память — текущий разговор]\n{stm_block}")
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:106 : def get_stm_prompt_block_pair(self, campaign_id: str, a: str, b: str) -> str:
+  backend\tests\gameplay\test_p7_e1_production_wiring.py:134 : mm.add_dialogue_turn(
+  backend\tests\micro\test_claim_bridge_chain.py:61 : def add_dialogue_turn(self, *a, **k):
+  backend\tests\micro\test_cognition_context_resolver.py:32 : s = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
+  backend\tests\micro\test_cognition_context_resolver.py:53 : s = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
+  backend\tests\micro\test_cognition_dmframe_lock.py:34 : s = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
+  backend\tests\micro\test_dlg1_speaker_symmetry.py:181 : p_session = mem_p.get_dialogue_session("T", "merchant_goran", partner_id="player")
+  backend\tests\micro\test_player_self_intro_claim.py:55 : session = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
+  backend\tests\micro\test_player_self_intro_claim.py:74 : session = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
+  backend\tests\micro\test_player_self_intro_claim.py:87 : session = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
+  backend\tests\micro\test_player_self_intro_claim.py:97 : session = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
+  backend\tests\micro\test_self_talk_sentinel.py:30 : def add_dialogue_turn(self, **kwargs):
+  backend\tests\micro\test_utterance_identity_chain.py:48 : def add_dialogue_turn(self, *a, **k):
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:32 : mm.add_dialogue_turn("test_meteor", "tavern_keeper_tornin", "player", "расскажи о метели", target_id="tavern_keeper_tornin", tick=...
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:39 : stm_block = mm.get_stm_prompt_block("test_meteor", "tavern_keeper_tornin")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:40 : assert "метел" in stm_block.lower()
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:42 : mm.add_dialogue_turn("test_meteor", "tavern_keeper_tornin", "player", "какая погода?", target_id="tavern_keeper_tornin", tick=i+2)
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:43 : mm.add_dialogue_turn("test_meteor", "tavern_keeper_tornin", "player", "так что насчёт той метели?", target_id="tavern_keeper_torni...
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:44 : stm_block_final = mm.get_stm_prompt_block("test_meteor", "tavern_keeper_tornin")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:45 : assert "метел" in stm_block_final.lower()
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:65 : mm.add_dialogue_turn("test_claims", "tavern_keeper_tornin", "player", "где ключ от подвала?", target_id="tavern_keeper_tornin", ti...
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:76 : mm.add_dialogue_turn("test_claims", "tavern_keeper_tornin", "player", "какая погода?", target_id="tavern_keeper_tornin", tick=i+2)
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:83 : stm_block = mm.get_stm_prompt_block("test_claims", "tavern_keeper_tornin")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:84 : assert "ключ от подвала" in stm_block
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:90 : mm.add_dialogue_turn("test_iso", "npc_A", "npc_A", "что в подвале?", partner_id="npc_B")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:91 : mm.add_dialogue_turn("test_iso", "npc_A", "npc_A", "как дела с торговлей?", partner_id="npc_C")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:92 : stm_AB = mm.get_stm_prompt_block_pair("test_iso", "npc_A", "npc_B")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:93 : stm_AC = mm.get_stm_prompt_block_pair("test_iso", "npc_A", "npc_C")
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:103 : mock_mm.get_stm_prompt_block_pair.return_value = "" # Симулируем пустой STM
+  backend\tests\sandbox\phenomenology\test_dialogue_thread_continuity.py:131 : mock_mm.get_stm_prompt_block_pair.return_value = ""
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:428 : session = mem.get_dialogue_session(campaign_id, npc_id, partner_id="player")
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:440 : session = mem.get_dialogue_session(campaign_id, npc_id, partner_id="player")
+  backend\tests\sandbox\scenarios\dlg0_golden_corpus.py:479 : session = mem.get_dialogue_session(campaign_id, npc_id, partner_id="player")
+  backend\tests\sandbox\SUPERBOX\scenarios\d8p_intelligence_test.py:57 : (create-if-missing — дословно) + add_dialogue_turn. Сессии — РЕАЛЬНЫЕ
+  backend\tests\sandbox\SUPERBOX\scenarios\d8p_intelligence_test.py:71 : def add_dialogue_turn(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_second_order_attribution_test.py:85 : _mem_mgr.add_dialogue_turn(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_second_order_attribution_test.py:90 : _mem_mgr.add_dialogue_turn(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_second_order_test.py:81 : _mem_mgr.add_dialogue_turn(
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_second_order_test.py:92 : _mem_mgr.add_dialogue_turn(
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:134 : def _stm_block(h, npc_id):
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:135 : return h.game_loop.memory_manager.get_stm_prompt_block_pair(CAMPAIGN, npc_id, "player")
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:242 : _block_a = _stm_block(h, _addressee)
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:309 : _block_v_pre = _stm_block(h, _victim)
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:453 : _block_v_post = _stm_block(h, _victim)
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_dialogue_test.py:457 : d3b = _topic_a in _stm_block(h, _addressee)
+  backend\tests\sandbox\SUPERBOX\scenarios\gc_social_test.py:83 : return h.game_loop.memory_manager.get_stm_prompt_block_pair(
+  backend\tests\IPT.py:454 : Проверяет полную каузальную цепь: EventBus -> NpcDialogueSubscriber -> MemoryManager.add_dialogue_turn.
+  backend\tests\IPT.py:510 : stm_block = mm.get_stm_prompt_block(campaign, target_npc, partner_id=speaker)
+  backend\tests\IPT.py:515 : if test_text in (stm_block or ""):
+  backend\tests\test_ft3_empty_speech_guard.py:22 : def add_dialogue_turn(self, *, campaign_id, npc_id, speaker, text, **_):
+
+[SEARCH] EventMemory Player  pattern: /EventMemory.*player|player.*EventMemory|create_event_memory.*player/
+  4 matches:
+  backend\app\services\events\dialogue_memory_subscriber.py:3 : Назначение: Слушает NPC_SPOKE и PLAYER_SPOKE и пишет EventMemory в narrative_cache.
+  backend\tests\test_resonance_engine.py:139 : EventMemory("theft", "player", "angry", 1, 0.8, stage=MemoryStage.FORGOTTEN),
+  backend\tests\test_resonance_engine.py:140 : EventMemory("theft", "player", "angry", 2, 0.8, stage=MemoryStage.FORGOTTEN),
+  backend\tests\test_resonance_engine.py:141 : EventMemory("theft", "player", "angry", 3, 0.8, stage=MemoryStage.FORGOTTEN),
+
+[SEARCH] EpistemicStore Player  pattern: /epistemic.*player|player.*epistemic|EpistemicRecord.*player|agent_id.*player/
+  104 matches:
+  backend\app\domain\player_epistemics.py:1 : # path: /project/backend/app/domain/player_epistemics.py
+  backend\app\domain\player_epistemics.py:3 : Файл: backend/app/domain/player_epistemics.py
+  backend\app\domain\player_epistemics.py:7 : - PlayerEpistemicState != Truth (игрок-ось Truth!=Knowledge; зеркало
+  backend\app\domain\player_epistemics.py:16 : PlayerObservation, LevelChangeEvent, EpistemicUpdate
+  backend\app\models\player_action.py:21 : ACCUSE = "accuse"  # S211 (слой 4): публичное обвинение. Гейт — EpistemicStore[player] (§18)
+  backend\app\models\player_epistemic_state.py:1 : # path: /project/backend/app/models/player_epistemic_state.py
+  backend\app\models\player_epistemic_state.py:3 : Файл: backend/app/models/player_epistemic_state.py
+  backend\app\models\player_epistemic_state.py:4 : Назначение: P6 — PlayerEpistemicState: минимальный стейт уровней знания
+  backend\app\models\player_epistemic_state.py:10 : Зависимости: app.domain.player_epistemics
+  backend\app\models\player_epistemic_state.py:11 : Основные сущности: PlayerEpistemicState
+  backend\app\models\player_epistemic_state.py:19 : from app.domain.player_epistemics import (
+  backend\app\models\player_epistemic_state.py:30 : class PlayerEpistemicState:
+  backend\app\models\player_epistemic_state.py:53 : f"[PLAYER_EPISTEMIC] недопустимый уровень: {to_level}"
+  backend\app\services\events\npc_dialogue_subscriber.py:17 : from app.domain.player_epistemics import SurfaceEvent, SurfaceKind
+  backend\app\services\events\npc_dialogue_subscriber.py:117 : from app.domain.player_epistemics import CONTENT_EAVESDROP_FULL
+  backend\app\services\events\player_speech_act_subscriber.py:114 : f"[SPEECH_ACT] player.name={name} → EpistemicStore "
+  backend\app\services\execution\dialogue_executor.py:21 : from app.domain.player_epistemics import SurfaceEvent, SurfaceKind
+  backend\app\services\game_loop\game_loop.py:523 : # инстанс = инстанс E1 — единый PlayerEpistemicState.
+  backend\app\services\game_loop\game_loop.py:1961 : _ws_dict["player_beliefs"] = [r for r in _all if r.get("agent_id") == "player"]
+  backend\app\services\game_loop\game_loop.py:1962 : _ws_dict["npc_beliefs_about_player"] = [r for r in _all if r.get("agent_id") != "player"]
+  backend\app\services\input\interactive_language_adapter.py:217 : - Epistemics.source_kind: PLAYER_ASSERTION или NPC_SPEECH (по speaker_id)
+  backend\app\services\integration\world_snapshot_builder.py:100 : _player_beliefs = [r for r in epistemic_store.to_dict() if r.get("agent_id") == "player"]
+  backend\app\services\integration\world_snapshot_builder.py:102 : # убеждения NPC об игроке (agent_id != player). Эпистемически
+  backend\app\services\integration\world_snapshot_builder.py:109 : if r.get("agent_id") != "player"
+  backend\app\services\player_cognition\action_consequence_compiler.py:16 : from app.domain.player_epistemics import (
+  backend\app\services\player_cognition\action_consequence_compiler.py:132 : f"epistemic gate: player belief о '{action.target_id}' "
+  backend\app\services\player_cognition\discovery_bridge.py:12 : Зависимости: app.domain.player_epistemics, app.domain.disclosure,
+  backend\app\services\player_cognition\discovery_bridge.py:13 : app.models.player_epistemic_state (TruthState — TYPE_CHECKING;
+  backend\app\services\player_cognition\discovery_bridge.py:25 : from app.domain.player_epistemics import (
+  backend\app\services\player_cognition\discovery_bridge.py:37 : from app.models.player_epistemic_state import PlayerEpistemicState
+  backend\app\services\player_cognition\discovery_bridge.py:125 : state: PlayerEpistemicState,
+  backend\app\services\social\mvp_tavern_controller.py:64 : # (TruthState / NPC narrative_cache / PlayerEpistemicState).
+  backend\app\services\social\mvp_tavern_controller.py:65 : from app.models.player_epistemic_state import PlayerEpistemicState
+  backend\app\services\social\mvp_tavern_controller.py:66 : self.player_epistemic_state = PlayerEpistemicState()
+  backend\app\services\social\mvp_tavern_controller.py:72 : self.player_epistemic_state, self.truth_state
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:20 : 5. guard_borko формирует EpistemicRecord(player, ATTACKED, source=maid_lusya)
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:233 : EpistemicRecord о player (ATTACKED by maid_lusya).
+  backend\tests\gameplay\test_gc05_testimony_belief_behavior.py:242 : # 2. Проверить: нет EpistemicRecord(player, ATTACKED, maid_lusya)
+  backend\tests\gameplay\test_p6_discovery_bridge.py:9 : Зависимости: app.domain.disclosure, app.domain.player_epistemics,
+  backend\tests\gameplay\test_p6_discovery_bridge.py:10 : app.models.player_epistemic_state,
+  backend\tests\gameplay\test_p6_discovery_bridge.py:15 : from app.domain.player_epistemics import (
+  backend\tests\gameplay\test_p6_discovery_bridge.py:22 : from app.models.player_epistemic_state import PlayerEpistemicState
+  backend\tests\gameplay\test_p6_discovery_bridge.py:55 : state = PlayerEpistemicState()
+  backend\tests\gameplay\test_p6_discovery_bridge.py:79 : state = PlayerEpistemicState()
+  backend\tests\gameplay\test_p6_discovery_bridge.py:92 : state2 = PlayerEpistemicState()
+  backend\tests\gameplay\test_p6_discovery_bridge.py:122 : state = PlayerEpistemicState()
+  backend\tests\gameplay\test_p6_discovery_bridge.py:177 : PlayerEpistemicState(), _FakeTruth("borko_negligence")
+  backend\tests\gameplay\test_p6_discovery_bridge.py:180 : PlayerEpistemicState(), _FakeTruth("borko_negligence")
+  backend\tests\gameplay\test_p6_e1_dialogue_executor.py:16 : from app.domain.player_epistemics import IDENTIFIED, UNKNOWN
+  backend\tests\gameplay\test_p6_e1_dialogue_executor.py:17 : from app.models.player_epistemic_state import PlayerEpistemicState
+  backend\tests\gameplay\test_p6_e1_dialogue_executor.py:76 : state = PlayerEpistemicState()
+  backend\tests\gameplay\test_p6_e2_eavesdrop_channel.py:19 : from app.domain.player_epistemics import UNKNOWN, SurfaceEvent, SurfaceKind
+  backend\tests\gameplay\test_p6_e2_eavesdrop_channel.py:20 : from app.models.player_epistemic_state import PlayerEpistemicState
+  backend\tests\gameplay\test_p6_e2_eavesdrop_channel.py:115 : state = PlayerEpistemicState()
+  backend\tests\gameplay\test_p6_e2_eavesdrop_channel.py:130 : state = PlayerEpistemicState()
+  backend\tests\gameplay\test_p6_e3_compiler_bridge.py:9 : Зависимости: app.domain.player_epistemics, app.models.player_action,
+  backend\tests\gameplay\test_p6_e3_compiler_bridge.py:10 : app.models.player_epistemic_state, app.services.player_cognition.*,
+  backend\tests\gameplay\test_p6_e3_compiler_bridge.py:17 : from app.domain.player_epistemics import IDENTIFIED, SurfaceKind
+  backend\tests\gameplay\test_p6_e3_compiler_bridge.py:19 : from app.models.player_epistemic_state import PlayerEpistemicState
+  backend\tests\gameplay\test_p6_e3_compiler_bridge.py:37 : state = PlayerEpistemicState()
+  backend\tests\gameplay\test_p6_e3_compiler_bridge.py:67 : # ── P6-владение (фаза 2): уровень/observation в PlayerEpistemicState ──
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:33 : from app.domain.player_epistemics import (
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:40 : from app.models.player_epistemic_state import PlayerEpistemicState
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:201 : state = PlayerEpistemicState()
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:221 : state = PlayerEpistemicState()
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:252 : state = PlayerEpistemicState()
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:268 : state = PlayerEpistemicState()
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:287 : state = PlayerEpistemicState()
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:309 : state = PlayerEpistemicState()
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:330 : state = PlayerEpistemicState()
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:349 : state = PlayerEpistemicState()
+  backend\tests\gameplay\test_p7_disclosure_verbalization.py:371 : state = PlayerEpistemicState()
+  backend\tests\gameplay\test_p7_e1_production_wiring.py:22 : from app.domain.player_epistemics import IDENTIFIED, UNKNOWN
+  backend\tests\gameplay\test_p7_e1_production_wiring.py:154 : state = harness.game_loop.mvp_controller.player_epistemic_state
+  backend\tests\gameplay\test_p7_e1_production_wiring.py:179 : state = harness.game_loop.mvp_controller.player_epistemic_state
+  backend\tests\gameplay\test_p7_e1_production_wiring.py:198 : state = harness.game_loop.mvp_controller.player_epistemic_state
+  backend\tests\gameplay\test_p7_e1_production_wiring.py:215 : state = harness.game_loop.mvp_controller.player_epistemic_state
+  backend\tests\micro\test_act_consumer.py:4 : A: SELF_INTRO → EpistemicStore с provenance=player
+  backend\tests\sandbox\SUPERBOX\scenarios\accusation_gate_test.py:100 : agent_id="player",
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_observation_test.py:5 : [T1] THEFT + witness с LOS → EpistemicStore[witness]: (player, STOLE, target), conf=0.9
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_player_belief_test.py:2 : SUPERBOX-014: Эпистемическое замыкание для игрока (Player Epistemic Closure).
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_player_belief_test.py:10 : Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/epistemic_player_belief_test.py
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_player_belief_test.py:22 : logger = logging.getLogger("EPISTEMIC_PLAYER_TEST")
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_player_belief_test.py:138 : player_serialized = [s for s in serialized if s.get("agent_id") == "player"]
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_reliability_baseline_test.py:90 : шинный путь покрыт INV-PLAYER-EPISTEMIC-CLOSURE)."""
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_reliability_baseline_test.py:114 : context = EpistemicContextResolver(store=store).resolve(PLAYER)
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_runtime_closure_test.py:2 : SUPERBOX-015: Runtime Epistemic Closure for Player.
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_runtime_closure_test.py:39 : print("SUPERBOX-015: Runtime Epistemic Closure for Player")
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_runtime_closure_test.py:103 : print("  ✅ Runtime труба работает: DialogueMaterializer -> EventBus -> EpistemicStore[player].")
+  backend\tests\sandbox\SUPERBOX\scenarios\epistemic_scheduler_closure_test.py:158 : print("  ✅ Runtime труба работает: TaskScheduler -> Executor -> Materializer -> EventBus -> EpistemicStore[player].")
+  backend\tests\IPT.py:1438 : def inv_player_epistemic_closure(world: TestWorld) -> InvariantResult:
+  backend\tests\IPT.py:1439 : """INV-PLAYER-EPISTEMIC-CLOSURE: NPC_SPOKE -> EpistemicStore[player] update."""
+  backend\tests\IPT.py:1445 : return InvariantResult("INV-PLAYER-EPISTEMIC-CLOSURE", "CRITICAL", False, "EpistemicStore not initialized", [])
+  backend\tests\IPT.py:1448 : _epistemic_store._records = {k: v for k, v in _epistemic_store._records.items() if k[0] != "player"}
+  backend\tests\IPT.py:1471 : _player_beliefs = _epistemic_store.get_all_for_agent("player")
+  backend\tests\IPT.py:1475 : "INV-PLAYER-EPISTEMIC-CLOSURE",
+  backend\tests\IPT.py:1478 : "NPC_SPOKE (accuse) не породил убеждение в EpistemicStore[player]. Труба разорвана.",
+  backend\tests\IPT.py:1485 : return InvariantResult("INV-PLAYER-EPISTEMIC-CLOSURE", "CRITICAL", True, "NPC_SPOKE -> EpistemicStore[player] работает.", [])
+  backend\tests\IPT.py:2446 : inv_player_epistemic_closure,
+  backend\tests\test_board_acceptance_gates.py:145 : # ══ G3: ИЗОЛЯЦИЯ (живой EpistemicStore → player_beliefs) ════════
+  backend\tests\test_board_acceptance_gates.py:160 : # (to_dict → фильтр agent_id == "player").
+  backend\tests\test_board_acceptance_gates.py:163 : agent_id="player",
+  backend\tests\test_board_acceptance_gates.py:177 : [r for r in _store.to_dict() if r.get("agent_id") == "player"],
+  backend\tests\test_player_board_service.py:131 : {"agent_id": "player",
+
+[READ] Phase 4 TopicExtractor  backend/app/services/tick_orchestrator.py L2079-2120
+  2079:     def _phase_4_pre_decision(self, ctx: _TickContext) -> None:
+  2080:         """TopicExtractor: извлекает тему для каждого NPC (Устав §3.2).
+  2081: 
+  2082:         Приоритет источников темы:
+  2083:         1. Spatial event затронувший NPC (конкретный контекст)
+  2084:         2. STM буфер NPC (последние реплики)
+  2085:         3. Фоллбэк "наблюдение" (никогда не пустой — Устав §3.2)
+  2086:         """
+  2087:         _mm = self._get_memory_manager()
+  2088: 
+  2089:         for npc_dict in ctx.npc_states:
+  2090:             npc_id = npc_dict.get("id")
+  2091:             if not npc_id:
+  2092:                 continue
+  2093: 
+  2094:             topic: Optional[str] = ""
+  2095: 
+  2096:             from app.services.npc.topic_extractor import extract_topic
+  2097: 
+  2098:             topic = None
+  2099: 
+  2100:             # 0. Приоритет: Проверяем недавние диалоги в TaskScheduler (NPC_SPOKE)
+  2101:             # Если к NPC обратились, он должен ответить, а не болтать "наблюдение".
+  2102:             _recent_dialogues = []
+  2103:             if ctx.task_scheduler:
+  2104:                 _recent_dialogues = ctx.task_scheduler.get_recent_dialogues(ctx.scene_state.get("game_time_seconds", 0.0))
+  2105:             for dialogue in _recent_dialogues:
+  2106:                 if dialogue.get("target_id") == npc_id:
+  2107:                     _speaker = dialogue.get("speaker_id", "кто-то")
+  2108:                     _text = dialogue.get("text", "")
+  2109:                     # S129: Тема содержит только семантику. Адресат передаётся структурно.
+  2110:                     topic = f"ответить: {_text}"
+  2111:                     ctx.response_targets[npc_id] = _speaker
+  2112:                     break
+  2113: 
+  2114:             # 1. Проверяем spatial events затронувшие этого NPC
+  2115:             if not topic:
+  2116:                 for event in ctx.phase_2_events:
+  2117:                     from app.services.tick_utils import resolve_affected_npcs
+  2118: 
+  2119:                     affected = resolve_affected_npcs(event)
+  2120:                     if npc_id in affected:
+
+[READ] Phase 3 memory  backend/app/services/phases/memory.py L95-140
+  95:             # apply() ищет npc_id в payload — инжектим
+  96:             new_payload = {**event.payload, "npc_id": npc_id}
+  97:             new_event = replace(event, payload=new_payload)
+  98: 
+  99:             _sq = (
+  100:                 getattr(ctx.npc_services, "spatial_query", None)  # noqa: ENIGMA001, ENIGMA002
+  101:                 if ctx.npc_services
+  102:                 else None
+  103:             )
+  104:             memory_manager.apply(
+  105:                 new_event, npc_state, campaign_id=ctx.campaign_id, spatial_query=_sq
+  106:             )
+  107:             # Мост обратно: apply() обновил narrative_cache на NPCState,
+  108:             # но Фаза 5 пересоздаёт NPCState из npc_state_dict (Устав §3.1)
+  109:             NPCState.to_persistence_dict(npc_state, npc_state_dict)
+  110:             processed += 1
+  111: 
+  112:     # ── Блок 4: V8-MEM-1 FIX — Decay & Resonance (L3 Identity cascade) ──
+  113:     # Раньше run_decay_and_resonance никогда не вызывалась в production.
+  114:     # run_decay_if_needed сам проверяет раз в N тиков, можно вызывать каждый тик.
+  115:     _active_npc_ids = [n.get("id") for n in ctx.npc_states if n.get("id")]
+  116:     if _active_npc_ids:
+  117:         try:
+  118:             _identity_weights = memory_manager.run_decay_if_needed(
+  119:                 ctx.campaign_id, ctx.tick_number
+  120:             )
+  121:             if _identity_weights:
+  122:                 # V8-MEM-13: резонанс per-NPC из буфера campaign:npc —
+  123:                 # один общий резонанс = контаминация всех NPC чужими паттернами
+  124:                 for npc_id in _active_npc_ids:
+  125:                     _resonance = memory_manager.detect_resonance(ctx.campaign_id, npc_id, actor_id="player")
+  126:                     if not _resonance:
+  127:                         continue
+  128:                     memory_manager.apply_identity_weights(ctx.campaign_id, npc_id, _resonance)
+  129:         except Exception as e:
+  130:             logger.error(f"[PHASE_3_MEMORY] run_decay_and_resonance failed: {e}. Пробрасываем исключение.", exc_info=True)
+  131:             raise
+  132: 
+  133:     logger.debug(f"[TICK_ORCH] Фаза 3: {processed} memory updates")
+  134:     return processed
+
+============================================================
+

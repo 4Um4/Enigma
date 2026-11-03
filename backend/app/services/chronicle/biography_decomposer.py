@@ -297,11 +297,17 @@ class BiographyDecomposer:
         fragment: str,
         age_anchors: List[Any],  # List[int] legacy или List[AgeAnchor] typed
         roster: Optional[Dict[str, str]] = None,
+        *,
+        prior_context: str = "",
     ) -> str:
         """Типизированные подсказки LLM (CCH-12 Point 1).
 
         S365: hint «не найдено» не протекает в prompt — иначе LLM повторяет
         его в summary (CoT-утечка). S367: roster (опц.) — снимок известных NPC.
+        CCH-14: prior_context (опц.) — краткая сводка EVENT/RELATIONSHIP из
+        предыдущих фрагментов (subject + action + object), чтобы LLM связывала
+        cross-fragment действия (например, «насилие Орма над Люсей» в п.9
+        как продолжение «изнасилования» из п.8, не новое «избивает»).
         """
         # CCH-12 Point 1: типизированные anchors. Если передан плоский List[int]
         # (legacy), конвертируем в AMBIGUOUS — LLM получит явный сигнал, что
@@ -332,12 +338,37 @@ class BiographyDecomposer:
             )
         else:
             roster_block = ""
-        return f"{hints}{roster_block}ФРАГМЕНТ:\n{fragment.strip()}"
+        # CCH-14: cross-fragment context — сводка уже декомпозированных
+        # EVENT/RELATIONSHIP из предыдущих фрагментов. LLM использует для
+        # разрешения местоимений и сохранения типа действия.
+        if prior_context:
+            ctx_block = (
+                "ПРЕДЫДУЩИЙ КОНТЕКСТ (уже разобрано):\n"
+                f"{prior_context}\n"
+                "Используй для связи действий между фрагментами. Если во "
+                "фрагменте упоминается «насилие X над Y», а в предыдущих "
+                "фрагментах уже было изнасилование X над Y — это продолжение "
+                "того же действия, не новое «избивает».\n\n"
+            )
+        else:
+            ctx_block = ""
+        return f"{hints}{roster_block}{ctx_block}ФРАГМЕНТ:\n{fragment.strip()}"
 
-    async def decompose(self, chronicle_id: str, fragment_ord: int, fragment: str) -> DecomposeResult:
+    async def decompose(
+        self,
+        chronicle_id: str,
+        fragment_ord: int,
+        fragment: str,
+        *,
+        prior_context: str = "",
+    ) -> DecomposeResult:
         """
         Фрагмент → DecomposeResult. LLM через router.request(FACT_EXTRACTION);
         один retry; DecompositionError → failure() с текстом (не исключение).
+
+        CCH-14: prior_context — сводка EVENT/RELATIONSHIP из предыдущих
+        фрагментов (subject + action + object). Загружается caller'ом
+        (routes_chronicle) из существующего draft.
         """
         if not fragment.strip():
             return DecomposeResult.failure("Пустой фрагмент")
@@ -352,7 +383,7 @@ class BiographyDecomposer:
         # DecomposeResult.age_anchors (legacy плоский) для response API.
         anchors = [a.value for a in typed]
         roster = (self._roster_provider or _default_roster_provider)()
-        user_prompt = self.build_user_prompt(fragment, typed, roster)
+        user_prompt = self.build_user_prompt(fragment, typed, roster, prior_context=prior_context)
         from app.services.llm.router import ModelRouter  # ленивый (цикл-безопасно)
 
         router = self._router or ModelRouter()
@@ -372,7 +403,7 @@ class BiographyDecomposer:
                 _grammar = _load_chronicle_grammar()
                 params = GenerationParams(
                     temperature=0.0,
-                    max_tokens=4096,  # CCH-12 A: было 2048, truncation на больших фрагментах
+                    max_tokens=6144,  # CCH-14: было 4096, увеличено для п.15 Люси (1161 chars) + prior_context
                     response_format={"type": "json_object"},  # S371.3-pre: оставлен для совместимости (llama_cpp игнорирует)
                     grammar=_grammar,  # S371.3-GBNF: рабочий путь — /completion + grammar
                 )

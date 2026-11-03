@@ -116,7 +116,14 @@ def execute_persistence(ctx: Any, orchestrator: Any, is_player_turn: bool) -> No
                 continue
             try:
                 _addr_formed_int = int(_addr_formed)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError) as _exc:
+                # Фильтр: _addr_formed не конвертируется в int — запись без
+                # валидного tick_formed пропускается. Debug-лог для наблюдаемости
+                # (L4 запрет silent failure, INV-SILENT-FAILURE).
+                logging.getLogger(__name__).debug(
+                    "commit_phase: skip addr intent %r — formed_at not int: %s",
+                    _addr_intent, _exc,
+                )
                 continue
             if _addr_formed_int != _tick_now:
                 continue

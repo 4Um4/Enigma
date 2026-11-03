@@ -1,4 +1,4 @@
-﻿# DTO Registry — Каузальный Атлас Контрактов ENIGMA
+# DTO Registry — Каузальный Атлас Контрактов ENIGMA
 
 > **Статус:** ACTIVE | **Сессия:** S201 | **Версия:** 8.0 (Unified & Expanded)
 > **Основание:** CAUSAL CONTRACT v2.0, ADR-O-208/305A, ADR-O-354/355/357/358 (Epistemic Core)
@@ -699,5 +699,24 @@
 
 ---
 
-*Версия: 9.2 (CCH-0: +§14 Character Chronicle — 6 DTO planned, ADR-O-420)*
-*Сессия: S331 | Записей 📦: 78 | Список песочниц — канон (запрет → тест) | IPT 51/51 | Архив v8.0: git show b59dac3f*
+## 15. 🔗 UNIVERSAL SEMANTIC LAYER (ADR-O-437, S380-S410)
+
+**Поток:** биографический контур (ChronicleEntry → BiographyAdapter → USLUnit) + игровой контур (IntentSemanticField → InteractiveLanguageAdapter → USLUnit). USLUnit — transient, не персистится (прецедент BiographyDecomposition §14).
+
+### 📦 `USLUnit`
+- 📁 `dom/usl.py` (USL-1.1, S380)
+- **Минимальная единица смысла (transient-DTO).** `unit_id` (md5), `source_ref` (USLSourceRef), `text_span`, 8 кортежей: `entities`, `events`, `temporal`, `causal`, `relations`, `modality`, `epistemics`, `context`. Frozen, stdlib only.
+- **USL-1.5 (S410):** CanonicalRegistry bridge — `intent_compressor._resolve_npc_by_name` canonical-first via `_ensure_registry_cache()` (alias_to_npc). «Орму» автора = «Орму» игрока (§5.4).
+- 🚫 **ЗАПРЕТ:** персистирование в любом store (USL-3); PLAYER_ASSERTION → AUTHOR_CANON (USL-2); USL пишет в TruthState/канон/EventMemory/EpistemicStore.
+
+### 📦 `USLTimeExpression` (вложенный в USLUnit)
+- 📁 `dom/usl.py`
+- **Временная конструкция (6 форм).** `kind ∈ {POINT, DURATION, INTERVAL, ORDER, RELATIVE, UNKNOWN}`, `anchor` (USLAnchorKind), `value`, `relative_to`, `source_span`. Conservative: input → `temporal=()` (честный empty — Temporal Extractor — future work USL-1.5+).
+
+### 📦 Вложенные типы (16 frozen dataclass + 4 enum, `dom/usl.py`)
+- `USLSourceKind` (9), `USLSourceRef`, `USLEpistemics`, `USLEntityRef`, `USLPredicate` (15), `USLEvent`, `USLTimeKind` (6), `USLAnchorKind` (7), `USLCausalRelation` (4), `USLCausalLink`, `USLRelation`, `USLModality` (4), `USLModal`, `USLContext`, `make_unit_id()`.
+- 🚫 **ЗАПРЕТ:** расширение USLPredicate без мини-ADR; смешение DURATION и RELATIVE; ORDER → CAUSES автоматически; скаляры в USLRelation.
+
+**Статус: USL-1.1–1.5 реализованы (S380-S410).** BiographyAdapter (USL-1.2) + InteractiveLanguageAdapter (USL-1.3) + Free ASSERT path (USL-1.4, `8caefebc`) + CanonicalRegistry bridge (USL-1.5, S410). IPT 54/0/0 + USL pytest 96/96. 0 feature flags.
+*Версия: 10.0 (USL: +§15 Universal Semantic Layer — USLUnit + USLTimeExpression + 16 вложенных типов, ADR-O-437)*
+*Сессия: S410 | Записей 📦: 80 | Список песочниц — канон (запрет → тест) | IPT 51/51 | Архив v8.0: git show b59dac3f*

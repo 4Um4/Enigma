@@ -522,8 +522,10 @@ class ChronicleDecompositionNormalizer:
     def _repair_truncated_json(text: str) -> str:
         """CCH-12 A: попытка восстановить truncated JSON.
 
-        LLM иногда обрывает генерацию на ',' без следующего поля —
-        удаляем висячую запятую и закрываем массив/объект.
+        LLM иногда обрывает генерацию:
+        - на ',' без следующего поля — удаляем висячую запятую
+        - на ':' без значения (key без value) — вставляем null
+        Затем закрываем открытые массивы/объекты.
 
         Не делает: восстановление semantically broken JSON, удаление
         полей, любые правки payload. Только структурное закрытие.
@@ -534,6 +536,11 @@ class ChronicleDecompositionNormalizer:
         # Удалить висячую запятую в конце
         if t.endswith(","):
             t = t[:-1]
+        # CCH-14: если заканчивается на ':' без значения (LLM обрезала после
+        # ключа, например "confidence":) — вставить null, иначе ]} даст
+        # невалидный "confidence":]}
+        if t.endswith(":"):
+            t = t + "null"
         # Подсчитать открытые { и [
         open_braces = t.count("{") - t.count("}")
         open_brackets = t.count("[") - t.count("]")
