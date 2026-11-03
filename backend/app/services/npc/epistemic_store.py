@@ -75,7 +75,10 @@ class EpistemicStore:
                 "source_id": record.source_id,
                 "source_claim_id": record.source_claim_id,
                 "first_observed_tick": record.first_observed_tick,
-                "last_updated_tick": record.last_updated_tick
+                "last_updated_tick": record.last_updated_tick,
+                # COGNITIVE-CONTINUITY-01: provenance chain serialization (§12 WARA).
+                "source_type": record.source_type,
+                "original_source_id": record.original_source_id
             })
         return records
 
@@ -102,7 +105,11 @@ class EpistemicStore:
                     source_id=item.get("source_id", ""),
                     source_claim_id=item.get("source_claim_id", ""),
                     first_observed_tick=item.get("first_observed_tick", 0),
-                    last_updated_tick=item.get("last_updated_tick", 0)
+                    last_updated_tick=item.get("last_updated_tick", 0),
+                    # COGNITIVE-CONTINUITY-01: provenance chain deserialization.
+                    # .get default "" — обратная совместимость со старыми сейвами.
+                    source_type=item.get("source_type", ""),
+                    original_source_id=item.get("original_source_id", "")
                 )
                 store.upsert(record)
             except Exception as e:

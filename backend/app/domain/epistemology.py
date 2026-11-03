@@ -31,6 +31,10 @@ class Predicate(Enum):
     # object — заявленное имя. CLAIM ≠ BELIEF ≠ TRUTH: запись о факте
     # утверждения, не об истинности имени. Расширение — отдельной ревизией.
     NAME = "name"
+    # COGNITIVE-CONTINUITY-01: subject оскорбил object.
+    # subject — оскорбитель, object — жертва. Расширение реестра (по образцу
+    # NAME: запись о факте оскорбления, не об истинности слов).
+    INSULTED = "insulted"
 
 
 class SpeechAct(Enum):
@@ -132,6 +136,12 @@ class EpistemicRecord:
     source_claim_id: str  # ID исходного ClaimEvent
     first_observed_tick: int
     last_updated_tick: int
+    # COGNITIVE-CONTINUITY-01: provenance chain. source_type различает
+    # непосредственное наблюдение ("direct_observation") и свидетельство
+    # ("testimony"). original_source_id сохраняет первоисточник цепочки
+    # при ретрансляции (не перезаписывается свежим спикером).
+    source_type: str = ""
+    original_source_id: str = ""
 
 @dataclass(frozen=True)
 class EpistemicContext:
@@ -154,3 +164,9 @@ class EpistemicContext:
     # самореферентности, развязанный с threat/violation/trigger-путём.
     claims_about_self: tuple[Proposition, ...] = ()
     max_self_confidence: float = 0.0
+    # COGNITIVE-CONTINUITY-01: report-канал. Знание об оскорблении третьего
+    # лица — отдельный канал от threat (trigger) и self-relevance
+    # (claims_about_self). NPC может решить сообщить жертве.
+    # Заполняется EpistemicContextResolver для Predicate.INSULTED (и будущих
+    # REPORT_PREDICATES) при conf >= REPORT_CONFIDENCE_THRESHOLD.
+    report_proposition: Optional[Proposition] = None

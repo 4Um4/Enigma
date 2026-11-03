@@ -416,6 +416,14 @@ FIELD_CAUSALITY: Dict[str, FieldCausality] = {
     "epistemic_context.trigger_proposition": FieldCausality("DEBT", organ="knowledge", terminal="decision", authority="ADR-O-355"),
     "epistemic_context.claims_about_self": FieldCausality("DEBT", organ="knowledge", terminal="decision", authority="ADR-O-390"),
     "epistemic_context.max_self_confidence": FieldCausality("DEBT", organ="knowledge", terminal="decision", authority="ADR-O-390"),
+    # COGNITIVE-CONTINUITY-01: provenance chain + report channel.
+    # source_type / original_source_id: ADR-O-360 (provenance, как source_id).
+    # report_proposition: ADR-O-355 (decision terminal, как trigger_proposition);
+    #   writer = EpistemicContextResolver (Этап 3), reader = DecisionHub (Этап 4).
+    #   DEBT до проводки Этапов 3-4 — санкционированное orphan (не unsanctioned).
+    "epistemic_record.source_type": FieldCausality("DEBT", organ="knowledge", terminal=None, authority="ADR-O-360"),
+    "epistemic_record.original_source_id": FieldCausality("DEBT", organ="knowledge", terminal=None, authority="ADR-O-360"),
+    "epistemic_context.report_proposition": FieldCausality("DEBT", organ="knowledge", terminal="decision", authority="ADR-O-355"),
 
     # ── memory_crystal (organ=memory; NL-D4: слой спит) ──
     "memory_crystal.subject": FieldCausality("DEBT", organ="memory", terminal=None, authority="NL-D4"),

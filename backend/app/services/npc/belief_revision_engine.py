@@ -64,6 +64,10 @@ class BeliefRevisionEngine:
         if existing_record is None:
             # S199.6 FIX: Восстановлено first-order убеждение (claim.proposition) вместо преждевременного Second-Order ToM (ASSERTS).
             # Second-Order ToM будет реализован позже, как отдельный слой (EPISTEMIC-005), после прохождения EPISTEMIC CORE GATE.
+            # COGNITIVE-CONTINUITY-01: provenance chain. source_type из
+            # reliability_context (по умолчанию "testimony" — канал речи).
+            # original_source_id = первичный источник (speaker первой записи).
+            _src_type = (reliability_context or {}).get("source_type", "testimony")
             new_record = EpistemicRecord(
                 agent_id=listener_id,
                 proposition=claim.proposition,  # First-order belief: P (e.g. "B stole X")
@@ -72,7 +76,9 @@ class BeliefRevisionEngine:
                 source_id=claim.speaker_id,
                 source_claim_id=claim.claim_id,
                 first_observed_tick=current_tick,
-                last_updated_tick=current_tick
+                last_updated_tick=current_tick,
+                source_type=_src_type,
+                original_source_id=claim.speaker_id
             )
             logger.info(f"[BELIEF_REVISE] New belief: {listener_id} believes {claim.proposition.subject_id} {claim.proposition.predicate.value} {claim.proposition.object_id} (conf={new_record.confidence:.2f})")
         else:
@@ -85,6 +91,11 @@ class BeliefRevisionEngine:
                 # Независимое подтверждение (больший буст)
                 updated_conf = max(0.0, min(1.0, existing_record.confidence + incoming_confidence))
 
+            # COGNITIVE-CONTINUITY-01: original_source_id сохраняется от
+            # прежней записи (не перезаписывается свежим спикером — G10 fix).
+            # source_type сохраняется от прежней записи, если не пуст.
+            _orig_src = existing_record.original_source_id or claim.speaker_id
+            _src_type = existing_record.source_type or (reliability_context or {}).get("source_type", "testimony")
             new_record = EpistemicRecord(
                 agent_id=listener_id,
                 proposition=claim.proposition,
@@ -92,7 +103,9 @@ class BeliefRevisionEngine:
                 source_id=claim.speaker_id, # Обновляем источник на самый свежий
                 source_claim_id=claim.claim_id,
                 first_observed_tick=existing_record.first_observed_tick,
-                last_updated_tick=current_tick
+                last_updated_tick=current_tick,
+                source_type=_src_type,
+                original_source_id=_orig_src
             )
             logger.info(f"[BELIEF_REVISE] Updated belief: {listener_id} belief updated to conf={new_record.confidence:.2f}")
 
