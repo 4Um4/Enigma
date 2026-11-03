@@ -133,8 +133,19 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
     # чтением конструктора). None → пустые cognition-блоки (sandbox-ctx).
     from app.services.npc.cognition_context import CognitionContextResolver
     _cog_mm = getattr(ctx, "memory_manager", None)  # noqa: ENIGMA002
+    # COGNITIVE-CONTINUITY-01: name resolver from all_npcs_raw (ID -> game name)
+    def _cog_name_resolver(npc_id):
+        for n in (ctx.all_npcs_raw or []):
+            if n.get("npc_id") == npc_id or n.get("id") == npc_id:
+                return {"name": n.get("name", npc_id)}
+        return {"name": npc_id}
+
     _cog_resolver: CognitionContextResolver | None = (
-        CognitionContextResolver(_cog_mm) if _cog_mm else None  # noqa: ENIGMA001
+        CognitionContextResolver(
+            _cog_mm,
+            epistemic_store=getattr(ctx, "epistemic_store", None),
+            context_provider=_cog_name_resolver,
+        ) if _cog_mm else None  # noqa: ENIGMA001
     )
     ctx.communication_intents = mutation.communication_intents or []
     # SLEEP_FIX: Объединяем интенты от Фазы 0 (LifeEngine) и Фазы 5 (DecisionHub),
