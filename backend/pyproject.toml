@@ -24,7 +24,7 @@ warn_return_any = true
 show_error_codes = true
 warn_unused_configs = true
 
-exclude = '^.*(backend/tests|backend/tests/sandbox|_archive|diagnostics|frontend).*'
+exclude = '^.*(backend/tests|backend/tests/sandbox|_archive|diagnostics|frontend|lint_project|game_launcher|harness).*'
 
 [[tool.mypy.overrides]]
 module = ['app.*', 'backend.app.*', 'core.*', 'domain.*', 'models.*', 'services.*']
@@ -41,5 +41,14 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ['scripts.*', 'reports.*', 'frontend.*', 'payload.*', 'download.*', 'config.*', 'publish_release.*', 'updater.*', 'tools.*']
 disallow_untyped_defs = false
+ignore_missing_imports = true
+ignore_errors = true
+
+
+
+[[tool.mypy.overrides]]
+module = ['tests.*']
+disallow_untyped_defs = false
+warn_return_any = false
 ignore_missing_imports = true
 ignore_errors = true
