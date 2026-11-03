@@ -556,6 +556,68 @@ class GameScreen:
         from ui_workbench.workbench_screen import WorkbenchScreen
         self._workbench: "WorkbenchScreen" = WorkbenchScreen(self, game_context=True)
         self.workbench_paused: bool = False  # мир стоит, пока верстак открыт
+        # R6 (CCH-15 P4): Контроллер автономной симуляции (F10, opt-in).
+        from autonomous_simulation_controller import AutonomousSimulationController
+        self._autonomous_sim = AutonomousSimulationController(
+            gateway_provider=lambda: getattr(self, "_gateway", None)
+        )
+        self._autonomous_sim.set_on_state_change(self._on_autonomous_state_change)
+
+    def _on_autonomous_state_change(self, state) -> None:
+        """R6: callback обновления индикатора при смене состояния."""
+        from autonomous_simulation_controller import AutonomousState
+        self._autonomous_indicator_visible = (state == AutonomousState.ACTIVE)
+
+    def _handle_f10_autonomous(self, campaign_id: str) -> None:
+        """R6: F10 — переключатель автономной симуляции (opt-in)."""
+        self._autonomous_sim.handle_f10(campaign_id)
+
+    def _confirm_autonomous(self) -> None:
+        """R6: подтверждение включения автономной симуляции."""
+        self._autonomous_sim.confirm()
+
+    def _cancel_autonomous(self) -> None:
+        """R6: отмена включения автономной симуляции."""
+        self._autonomous_sim.cancel()
+
+    def _draw_autonomous_warning(self) -> None:
+        """R6: предупреждение при первом включении (PENDING state)."""
+        from autonomous_simulation_controller import AutonomousState
+        if self._autonomous_sim.state != AutonomousState.PENDING:
+            return
+        _overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        _overlay.fill((0, 0, 0, 180))
+        self.screen.blit(_overlay, (0, 0))
+        _font = pygame.font.SysFont("Arial", 18)
+        _lines = [
+            "АВТОНОМНАЯ СИМУЛЯЦИЯ",
+            "",
+            "Включить фоновую симуляцию мира?",
+            "NPC продолжат действовать без вашего участия.",
+            "Это увеличивает нагрузку на процессор",
+            "и может влиять на энергопотребление.",
+            "",
+            "ENTER — включить    ESC — отменить    F10 — отменить",
+        ]
+        _y = self.screen.get_height() // 2 - len(_lines) * 12
+        for _line in _lines:
+            _surf = _font.render(_line, True, (255, 255, 255))
+            _rect = _surf.get_rect(center=(self.screen.get_width() // 2, _y))
+            self.screen.blit(_surf, _rect)
+            _y += 24
+
+    def _draw_autonomous_indicator(self) -> None:
+        """R6: постоянный индикатор активной симуляции (левый верхний угол)."""
+        from autonomous_simulation_controller import AutonomousState
+        if self._autonomous_sim.state != AutonomousState.ACTIVE:
+            return
+        _font = pygame.font.SysFont("Arial", 14)
+        _text = "● АВТОНОМНАЯ СИМУЛЯЦИЯ"
+        _surf = _font.render(_text, True, (100, 255, 100))
+        _bg = pygame.Surface((_surf.get_width() + 8, _surf.get_height() + 4), pygame.SRCALPHA)
+        _bg.fill((0, 0, 0, 180))
+        _bg.blit(_surf, (4, 2))
+        self.screen.blit(_bg, (10, 10))
 
     def run(self, campaign_folder: str, player_name: str = "") -> None:
         """Запускает игровой экран для выбранной кампании"""
@@ -805,6 +867,20 @@ class GameScreen:
                     else:
                         self._workbench.exit()
                     continue
+                # R6 (CCH-15 P4): F10 — автономная симуляция (opt-in).
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_F10:
+                    self._handle_f10_autonomous(campaign_folder)
+                    continue
+                # R6: подтверждение/отмена автономной симуляции в PENDING state.
+                from autonomous_simulation_controller import AutonomousState
+                if self._autonomous_sim.state == AutonomousState.PENDING:
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_RETURN:
+                            self._confirm_autonomous()
+                            continue
+                        elif event.key == pygame.K_ESCAPE:
+                            self._cancel_autonomous()
+                            continue
                 # Workbench-окна: события едут в них ВСЕГДА (клики по окнам
                 # в обычной игре тоже валидны); consumed=True гасит событие
                 # для игровых веток. F12-режим дополнительно активен как
@@ -2401,6 +2477,9 @@ class GameScreen:
                     True, (220, 220, 225))
                 self.screen.blit(
                     _ps, (self.screen.get_width() - _ps.get_width() - 12, 8))
+            # R6: индикатор активной симуляции + предупреждение
+            self._draw_autonomous_indicator()
+            self._draw_autonomous_warning()
             # №9: End-Screen — терминальный слой, окна не накладываются
             # на статистику (раскладка не портится — рендер-гейт).
             if not self.show_end_screen:

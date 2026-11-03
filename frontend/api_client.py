@@ -148,6 +148,18 @@ class GameGateway(Protocol):
         """Загрузить кампанию (скопировать исходники в saves при первом запуске)."""
         ...
 
+    def start_autonomous_simulation(self, campaign_id: str) -> dict:
+        """R6: запустить фоновую автономную симуляцию (opt-in, F10)."""
+        ...
+
+    def stop_autonomous_simulation(self, campaign_id: str) -> dict:
+        """R6: остановить фоновую автономную симуляцию."""
+        ...
+
+    def get_autonomous_simulation_status(self, campaign_id: str) -> dict:
+        """R6: статус фоновой автономной симуляции."""
+        ...
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # УРОВЕНЬ 3: Transport — чистый HTTP, без знания домена
@@ -327,6 +339,16 @@ class BackendContract:
         """Промотка времени (Time Skip)."""
         return self._t.post(f"/api/game/skip_time/{campaign_id}?ticks={ticks}", {})
 
+    def start_autonomous_simulation(self, campaign_id: str) -> dict:
+        return self._contract.start_autonomous_simulation(campaign_id)
+
+    def stop_autonomous_simulation(self, campaign_id: str) -> dict:
+        return self._contract.stop_autonomous_simulation(campaign_id)
+
+    def get_autonomous_simulation_status(self, campaign_id: str) -> dict:
+        return self._contract.get_autonomous_simulation_status(campaign_id)
+
+
     def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
         """B1.4-FIX: push scene_state to backend via HTTP."""
         try:
@@ -494,6 +516,15 @@ class HttpGameGateway:
     def skip_time(self, campaign_id: str, ticks: int) -> dict:
         """Промотка времени через HTTP."""
         return self._contract.skip_time(campaign_id, ticks)
+
+    def start_autonomous_simulation(self, campaign_id: str) -> dict:
+        return self._contract.start_autonomous_simulation(campaign_id)
+
+    def stop_autonomous_simulation(self, campaign_id: str) -> dict:
+        return self._contract.stop_autonomous_simulation(campaign_id)
+
+    def get_autonomous_simulation_status(self, campaign_id: str) -> dict:
+        return self._contract.get_autonomous_simulation_status(campaign_id)
 
     def send_action_stream(
         self,
@@ -743,6 +774,52 @@ class DirectGameGateway:
             logger.debug(f"[IDLE_TICK_CLIENT] ERROR: {e}\n{traceback.format_exc()}")
             return {"status": "error", "error": str(e), "npc_positions": {}}
 
+    def start_autonomous_simulation(self, campaign_id: str) -> dict:
+        """R6: прямой вызов game_loop.world_scheduler."""
+        if not self._bridge.ready:
+            self._bridge.initialize()
+        _gl = getattr(self._bridge, "_game_loop", None)
+        if _gl is None or not hasattr(_gl, "world_scheduler"):
+            return {"status": "unavailable", "is_running": False}
+        import asyncio as _asyncio
+        _sched = _gl.world_scheduler
+        try:
+            _loop = _asyncio.get_event_loop()
+            if _loop.is_running():
+                _loop.create_task(_sched.start_background_loop([campaign_id], interval_seconds=60.0))
+            else:
+                _asyncio.run(_sched.start_background_loop([campaign_id], interval_seconds=60.0))
+            return {"status": "started", "is_running": True}
+        except Exception as _e:
+            return {"status": "error", "is_running": False, "error": str(_e)}
+
+    def stop_autonomous_simulation(self, campaign_id: str) -> dict:
+        _gl = getattr(self._bridge, "_game_loop", None)
+        if _gl is None or not hasattr(_gl, "world_scheduler"):
+            return {"status": "unavailable", "is_running": False}
+        import asyncio as _asyncio
+        _sched = _gl.world_scheduler
+        try:
+            _loop = _asyncio.get_event_loop()
+            if _loop.is_running():
+                _loop.create_task(_sched.stop_background_loop())
+            else:
+                _asyncio.run(_sched.stop_background_loop())
+            return {"status": "stopped", "is_running": False}
+        except Exception as _e:
+            return {"status": "error", "is_running": False, "error": str(_e)}
+
+    def get_autonomous_simulation_status(self, campaign_id: str) -> dict:
+        _gl = getattr(self._bridge, "_game_loop", None)
+        if _gl is None or not hasattr(_gl, "world_scheduler"):
+            return {"status": "unavailable", "is_running": False}
+        _sched = _gl.world_scheduler
+        return {
+            "status": "running" if _sched.is_loop_running else "stopped",
+            "is_running": _sched.is_loop_running,
+            "running_ticks": _sched.running_ticks,
+        }
+
     def send_action_stream(self, *args, **kwargs):
         """B3-FIX: SSE не поддерживается в Direct mode (нет HTTP-сервера)."""
         raise NotImplementedError("SSE streaming is not supported in Direct mode.")
@@ -792,6 +869,23 @@ class FallbackGateway:
         # Если нет — заглушка (возвращаем пустой результат)
         logger.warning("[FALLBACK_GATEWAY] skip_time not available, returning empty")
         return {"status": "skipped", "ticks": 0}
+
+    def start_autonomous_simulation(self, campaign_id: str) -> dict:
+        if self._primary and hasattr(self._primary, "start_autonomous_simulation"):
+            return self._primary.start_autonomous_simulation(campaign_id)
+        logger.warning("[FALLBACK_GATEWAY] start_autonomous_simulation not available")
+        return {"status": "unavailable", "is_running": False}
+
+    def stop_autonomous_simulation(self, campaign_id: str) -> dict:
+        if self._primary and hasattr(self._primary, "stop_autonomous_simulation"):
+            return self._primary.stop_autonomous_simulation(campaign_id)
+        logger.warning("[FALLBACK_GATEWAY] stop_autonomous_simulation not available")
+        return {"status": "unavailable", "is_running": False}
+
+    def get_autonomous_simulation_status(self, campaign_id: str) -> dict:
+        if self._primary and hasattr(self._primary, "get_autonomous_simulation_status"):
+            return self._primary.get_autonomous_simulation_status(campaign_id)
+        return {"status": "unavailable", "is_running": False}
 
     # V8-FIX: Добавлены методы для End-Screen, чтобы избежать AttributeError
     def finalize_campaign(self, campaign_id: str) -> dict:
