@@ -1,4 +1,4 @@
-﻿[tool.mypy]
+[tool.mypy]
 python_version = "3.11"
 doctest = false
 mypy_path = "backend"
@@ -9,7 +9,7 @@ show_error_codes = true
 warn_unused_configs = true
 
 # Полное исключение из проверки: тесты, скрипты, отчеты, отладочные файлы
-exclude = "^(.*[\\\\/])(_archive|diagnostics|frontend)[\\\\/]?|^(.*[\\\\/])*game_launcher\\.py$"
+exclude = "^.*(_archive|diagnostics|frontend).*|^.*game_launcher\.py$"
 
 # Мягкий режим для всех модулей приложения и служебных пакетов
 [[tool.mypy.overrides]]
@@ -31,4 +31,6 @@ module = ["scripts.*", "reports.*", "frontend.*", "payload.*", "download.*", "co
 disallow_untyped_defs = false
 ignore_missing_imports = true
 ignore_errors = true
+
+
 
