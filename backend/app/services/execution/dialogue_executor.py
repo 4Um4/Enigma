@@ -445,15 +445,19 @@ class DialogueExecutor:
         if _proposition is not None:
             _pred_map = {"insulted": "оскорбил", "stole": "украл у", "attacked": "напал на", "helped": "помог"}
             if isinstance(_proposition, dict):
-                _subj = _proposition.get("subject_id", "")
+                _subj_id = _proposition.get("subject_id", "")
                 _pv = _proposition.get("predicate", "")
-                _obj = _proposition.get("object_id", "")
+                _obj_id = _proposition.get("object_id", "")
             else:
-                _subj = _proposition.subject_id
+                _subj_id = _proposition.subject_id
                 _pv = getattr(_proposition.predicate, "value", str(_proposition.predicate))
-                _obj = _proposition.object_id
+                _obj_id = _proposition.object_id
+            # COGNITIVE-CONTINUITY-01: resolve IDs to game names via _get_context
+            # (same mechanism as CognitionContextResolver — не второй resolver)
+            _subj_name = self._get_context(_subj_id, task.campaign_id).get("name", _subj_id) if _subj_id else _subj_id
+            _obj_name = self._get_context(_obj_id, task.campaign_id).get("name", _obj_id) if _obj_id else _obj_id
             _pred_text = _pred_map.get(_pv, str(_pv))
-            _claim_block = f"[Факт, которым ты делишься]: {_subj} {_pred_text} {_obj}. Передай это собеседнику своими словами.\n"
+            _claim_block = f"[Факт, которым ты делишься]: {_subj_name} {_pred_text} {_obj_name}. Передай это собеседнику своими словами.\n"
 
         # Динамическая часть (добавляется всегда, так как STM и beliefs могли измениться)
         user_prompt += (
