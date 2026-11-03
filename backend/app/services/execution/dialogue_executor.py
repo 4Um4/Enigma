@@ -440,12 +440,20 @@ class DialogueExecutor:
 
         # COGNITIVE-CONTINUITY-01: claim verbalization — факт, которым ты делишься.
         # LLM получает клейм и сама решает, как его передать своими словами.
+        _proposition = getattr(req, "proposition", None)  # extract from DialogueRequest
         _claim_block = ""
         if _proposition is not None:
             _pred_map = {"insulted": "оскорбил", "stole": "украл у", "attacked": "напал на", "helped": "помог"}
-            _pv = getattr(_proposition.predicate, "value", str(_proposition.predicate))
-            _pred_text = _pred_map.get(_pv, str(_proposition.predicate))
-            _claim_block = f"[Факт, которым ты делишься]: {_proposition.subject_id} {_pred_text} {_proposition.object_id}. Передай это собеседнику своими словами.\n"
+            if isinstance(_proposition, dict):
+                _subj = _proposition.get("subject_id", "")
+                _pv = _proposition.get("predicate", "")
+                _obj = _proposition.get("object_id", "")
+            else:
+                _subj = _proposition.subject_id
+                _pv = getattr(_proposition.predicate, "value", str(_proposition.predicate))
+                _obj = _proposition.object_id
+            _pred_text = _pred_map.get(_pv, str(_pv))
+            _claim_block = f"[Факт, которым ты делишься]: {_subj} {_pred_text} {_obj}. Передай это собеседнику своими словами.\n"
 
         # Динамическая часть (добавляется всегда, так как STM и beliefs могли измениться)
         user_prompt += (
