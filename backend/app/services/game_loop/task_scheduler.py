@@ -55,10 +55,10 @@ class TaskScheduler:
     Читает scene_state["pending_tasks"], вызывает исполнителей, генерирует события.
     """
 
-    def __init__(self, router: Any = None, context_provider: Any = None, economy_tracker: Any = None, belief_store: Any = None, memory_manager: Any = None, confession_parser: Any = None, npc_states_provider: Any = None) -> None:
+    def __init__(self, router: Any = None, context_provider: Any = None, economy_tracker: Any = None, belief_store: Any = None, memory_manager: Any = None, confession_parser: Any = None, npc_states_provider: Any = None, epistemic_store: Any = None) -> None:
         from app.services.execution.npc_conversation import NpcConversation
         self._executors: Dict[TaskKind, TaskExecutor] = {
-            TaskKind.DIALOGUE: DialogueExecutor(router, context_provider, belief_store=belief_store, memory_manager=memory_manager, confession_parser=confession_parser)
+            TaskKind.DIALOGUE: DialogueExecutor(router, context_provider, belief_store=belief_store, memory_manager=memory_manager, confession_parser=confession_parser, epistemic_store=epistemic_store)
         }
         # ADR-O-342: Сохраняем для проверки STM при резолве цели
         self._memory_manager = memory_manager
@@ -149,7 +149,7 @@ class TaskScheduler:
         return False
 
     def set_epistemic_wiring(self, discovery_bridge: Any = None, npc_states_provider: Any = None,
-                             relationship_provider: Any = None, subject_resolver: Any = None) -> None:
+                             relationship_provider: Any = None, subject_resolver: Any = None, epistemic_store: Any = None) -> None:
         """P6/E1 (S255): проброс игрок-контура P3→P4→P5→P6 в DialogueExecutor
         (late-binding; прецедент set_spatial_query_service)."""
         _dlg = self._executors.get(TaskKind.DIALOGUE)
@@ -161,6 +161,7 @@ class TaskScheduler:
             npc_states_provider=npc_states_provider,
             relationship_provider=relationship_provider,
             subject_resolver=subject_resolver,
+            epistemic_store=epistemic_store,
         )
 
     def set_spatial_query_service(self, sqs: Any) -> None:

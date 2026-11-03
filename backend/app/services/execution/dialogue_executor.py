@@ -49,6 +49,7 @@ class DialogueExecutor:
         npc_states_provider: Any = None,  # P6/E1: Callable[[cid], list[dict]]
         relationship_provider: Any = None,  # P6/E1: Callable[[cid, k, r], dict]
         subject_resolver: Any = None,  # P6/E1: Callable[[topic], SubjectRef]
+        epistemic_store: Any = None,  # COGNITIVE-CONTINUITY-01: for cognition block
     ) -> None:
         self._router = router
         self._memory_manager = memory_manager
@@ -62,6 +63,7 @@ class DialogueExecutor:
         self._npc_states_provider = npc_states_provider
         self._relationship_provider = relationship_provider
         self._subject_resolver = subject_resolver
+        self._epistemic_store = epistemic_store  # COGNITIVE-CONTINUITY-01
         # L-02: Валидатор реплик NPC
         from dataclasses import dataclass, field
         from uuid import uuid4
@@ -91,6 +93,7 @@ class DialogueExecutor:
         npc_states_provider: Any = None,
         relationship_provider: Any = None,
         subject_resolver: Any = None,
+        epistemic_store: Any = None,
     ) -> None:
         """P6/E1 (S255): late-binding игрок-контура (прецеденты:
         set_spatial_query_service; S211 set_epistemic_resolver)."""
@@ -102,6 +105,8 @@ class DialogueExecutor:
             self._relationship_provider = relationship_provider
         if subject_resolver is not None:
             self._subject_resolver = subject_resolver
+        if epistemic_store is not None:
+            self._epistemic_store = epistemic_store
 
     def execute(self, task: QueuedTask) -> Iterable[Artifact]:
         if not isinstance(task.payload, DialogueRequest):
@@ -448,8 +453,25 @@ class DialogueExecutor:
             f"{_beliefs_text}"
             f"{_history_text}"
             f"{_claim_block}"
-            "Скажи свою реплику:"
         )
+
+        # COGNITIVE-CONTINUITY-01: cognition block — what NPC knows (beliefs + provenance)
+        # Same CognitionContextResolver that feeds DMFrame — one mechanism, all consumers.
+        if self._epistemic_store is not None and self._memory_manager is not None:
+            try:
+                from app.services.npc.cognition_context import CognitionContextResolver
+                _cog = CognitionContextResolver(
+                    self._memory_manager,
+                    epistemic_store=self._epistemic_store,
+                    context_provider=self._get_context,
+                )
+                _cog_block = _cog.resolve_block(task.owner_id, req.target_id or "player")
+                if _cog_block:
+                    user_prompt += "\n" + _cog_block + "\n"
+            except Exception as _cog_e:
+                logger.warning(f"[DIALOGUE_EXEC] cognition block failed: {_cog_e}")
+
+        user_prompt += "Скажи свою реплику:"
 
         # P7-A: директива вердикта в промпт — LLM вербализует, не решает
         _directive = self._verdict_directive(verdict)
