@@ -100,5 +100,9 @@ def build_game_loop(data_dir: Path) -> GameLoop:
         ),
     )
 
-    logger.info("[BUILDER] GameLoop создан")
+    # R4 (CCH-15 P4): WorldScheduler получает ссылку на game_loop —
+    # единственный путь автономного тика через idle_tick → TickOrchestrator.
+    # Инъекция после конструирования (разрешает циклическую зависимость).
+    world_scheduler.set_game_loop(loop)
+    logger.info("[BUILDER] GameLoop создан, WorldScheduler wired")
     return loop
