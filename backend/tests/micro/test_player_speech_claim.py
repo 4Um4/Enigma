@@ -97,7 +97,7 @@ def test_player_speech_claim_out_of_radius_silence():
     store = _Store()
     sub = ClaimEventSubscriber(
         engine=SimpleNamespace(
-            revise=lambda listener_id, claim, existing: SimpleNamespace(
+            revise=lambda listener_id, claim, existing, **kw: SimpleNamespace(
                 listener_id=listener_id, claim=claim, proposition=claim.proposition
             )
         ),
@@ -135,7 +135,7 @@ def test_player_speech_threaten_predicate_and_player_subject():
     # считаются ОТ Горана; словарь симметричен, свидетельница Люся в 3 м.
     sub = ClaimEventSubscriber(
         engine=SimpleNamespace(
-            revise=lambda listener_id, claim, existing: SimpleNamespace(
+            revise=lambda listener_id, claim, existing, **kw: SimpleNamespace(
                 listener_id=listener_id,
                 claim=claim,
                 proposition=claim.proposition,
