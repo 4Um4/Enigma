@@ -20,6 +20,7 @@ from app.domain.tick import TickMutation, TickState
 from app.services.npc.belief_modifier_resolver import BeliefModifierResolver
 from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 from app.services.spatial.spatial_runtime import line_of_sight, sound_reach
+from app.domain.constants import action_perception_radius  # COGNITIVE-CONTINUITY-01 S7: SSOT sound radius
 
 if TYPE_CHECKING:
     from app.domain.movement import LocalSteeringGoal, MacroMovementGoal
@@ -202,7 +203,10 @@ class NpcTickPipeline:
                 _player_pos_dict = state.scene_state.get("npc_positions", {}).get("player", {}).get("local_position", {"x": 0.0, "y": 0.0})
                 _player_pos = (_player_pos_dict.get("x", 0.0), _player_pos_dict.get("y", 0.0))
                 _dist_to_player = math.hypot(_npc_pos[0] - _player_pos[0], _npc_pos[1] - _player_pos[1])
-                _has_sound = sound_reach(15.0, state.scene_state) >= _dist_to_player
+                # COGNITIVE-CONTINUITY-01 S7: SSOT радиус из action_perception_radius
+                _et = state.hub_event.event_type
+                _et_val = _et.value if hasattr(_et, "value") else str(_et)
+                _has_sound = sound_reach(action_perception_radius(_et_val), state.scene_state) >= _dist_to_player
 
                 if _has_sound and state.hub_event and state_l2 is not None:
                     _p_target = state.player_target_id or state.hub_event.target_id or ""
@@ -299,7 +303,8 @@ class NpcTickPipeline:
                             _target_pos = (_raw_target.get("x", 0.0), _raw_target.get("y", 0.0)) if isinstance(_raw_target, dict) else tuple(_raw_target)
                             _dist = math.hypot(_npc_pos[0] - _target_pos[0], _npc_pos[1] - _target_pos[1])
                             _has_los = line_of_sight(_dist, state.scene_state, _npc_pos[0], _npc_pos[1], _target_pos[0], _target_pos[1])
-                            _has_sound = sound_reach(15.0, state.scene_state) >= _dist
+                            # COGNITIVE-CONTINUITY-01 S7: SSOT default radius (ambient NPC-NPC)
+                            _has_sound = sound_reach(action_perception_radius(""), state.scene_state) >= _dist
                             if not _has_los and not _has_sound:
                                 continue
                             _npc_weights = _mem_weights.get(_nearby_id, {})
