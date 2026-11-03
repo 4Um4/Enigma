@@ -68,6 +68,8 @@ class BeliefRevisionEngine:
             # reliability_context (по умолчанию "testimony" — канал речи).
             # original_source_id = первичный источник (speaker первой записи).
             _src_type = (reliability_context or {}).get("source_type", "testimony")
+            # COGNITIVE-CONTINUITY-01: original_source_id from reliability_context (multi-hop chain)
+            _orig_src = (reliability_context or {}).get("original_source_id", claim.speaker_id)
             new_record = EpistemicRecord(
                 agent_id=listener_id,
                 proposition=claim.proposition,  # First-order belief: P (e.g. "B stole X")
@@ -78,7 +80,7 @@ class BeliefRevisionEngine:
                 first_observed_tick=current_tick,
                 last_updated_tick=current_tick,
                 source_type=_src_type,
-                original_source_id=claim.speaker_id
+                original_source_id=_orig_src
             )
             logger.info(f"[BELIEF_REVISE] New belief: {listener_id} believes {claim.proposition.subject_id} {claim.proposition.predicate.value} {claim.proposition.object_id} (conf={new_record.confidence:.2f})")
         else:

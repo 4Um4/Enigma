@@ -298,11 +298,13 @@ class ClaimEventSubscriber:
                         tick=int(payload.get("event_tick", 0) or payload.get("tick", 0) or 0)
                     )
                     existing = self._store.get(_listener_id, prop)
-                    # COGNITIVE-CONTINUITY-01: канал речи = testimony.
-                    # Прецедент: ObservationSubscriber передаёт "direct_observation".
+                    # COGNITIVE-CONTINUITY-01: provenance chain — original_source_id
+                    # from speaker record (if exists), else speaker is original.
+                    _speaker_record = self._store.get(event.source, prop)
+                    _speaker_orig = _speaker_record.original_source_id if _speaker_record else event.source
                     updated_record = self._engine.revise(
                         _listener_id, claim, existing,
-                        reliability_context={"source_type": "testimony"}
+                        reliability_context={"source_type": "testimony", "original_source_id": _speaker_orig}
                     )
                     self._store.upsert(updated_record)
                 except Exception as _listener_err:
