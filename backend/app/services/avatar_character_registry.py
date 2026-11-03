@@ -1,4 +1,4 @@
-"""
+﻿"""
 path: backend/app/services/avatar_character_registry.py
 Назначение: Maps campaign_id → character_id (Avatar body npc_id).
     Заменяет player_name coupling в player_avatar_service.py:138.
@@ -22,13 +22,14 @@ class AvatarCharacterRegistry:
     
     _instance: Optional["AvatarCharacterRegistry"] = None
     _lock = threading.Lock()
-    
+    _campaign_to_character: Dict[str, str] = {}
+
     def __new__(cls) -> "AvatarCharacterRegistry":
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
                     cls._instance = super().__new__(cls)
-                    cls._instance._campaign_to_character: Dict[str, str] = {}
+                    cls._instance._campaign_to_character = {}
         return cls._instance
     
     def register(self, campaign_id: str, character_id: str) -> None:
@@ -55,3 +56,4 @@ class AvatarCharacterRegistry:
         """Clear all registrations (for testing)."""
         with self._lock:
             self._campaign_to_character.clear()
+

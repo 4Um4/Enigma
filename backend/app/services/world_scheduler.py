@@ -196,9 +196,10 @@ class WorldScheduler:
         async def _loop() -> None:
             try:
                 while self._loop_running:
+                    running = self._loop_running
                     for cid in campaign_ids:
-                        if not self._loop_running:
-                            break
+                        if not running:
+                            break  # type: ignore[unreachable]  # может измениться в другом потоке
                         # idle_tick синхронный — оборачиваем в to_thread
                         # (не блокирует event loop; ADR-O-407 + _running_ticks
                         # защищают от конкурентного исполнения)

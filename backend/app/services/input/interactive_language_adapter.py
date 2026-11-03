@@ -175,8 +175,6 @@ def _semantic_acts_to_usl_events(field: IntentSemanticField) -> Tuple[USLEvent, 
     """
     events: List[USLEvent] = []
     for act in field.semantic_acts or []:
-        if not isinstance(act, dict):
-            continue
         act_type = str(act.get("type") or "")
         if not act_type:
             continue

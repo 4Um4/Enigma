@@ -19,6 +19,8 @@ class ControlSource(Enum):
     NPC_DECISION = "npc_decision"            # автономный decision loop
     SCRIPTED_SYSTEM = "scripted_system"      # системные/скриптовые механизмы
     COMBAT_CONTROLLER = "combat_controller"  # зарезервировано: пошаговый бой (будущий ADR)
+    AVATAR_INITIATIVE = "avatar_initiative"  # Avatar действует автономно (не команда игрока)
+    UNKNOWN = "unknown"                      #неидентифицированный источник контроля
 
 
 _PLAYER_ACTORS = frozenset({"player"})

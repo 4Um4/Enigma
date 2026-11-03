@@ -204,6 +204,8 @@ class NpcTickPipeline:
                 _player_pos = (_player_pos_dict.get("x", 0.0), _player_pos_dict.get("y", 0.0))
                 _dist_to_player = math.hypot(_npc_pos[0] - _player_pos[0], _npc_pos[1] - _player_pos[1])
                 # COGNITIVE-CONTINUITY-01 S7: SSOT радиус из action_perception_radius
+                if state.hub_event is None:
+                    continue
                 _et = state.hub_event.event_type
                 _et_val = _et.value if hasattr(_et, "value") else str(_et)
                 _has_sound = sound_reach(action_perception_radius(_et_val), state.scene_state) >= _dist_to_player

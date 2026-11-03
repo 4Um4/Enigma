@@ -475,7 +475,7 @@ class DialogueExecutor:
                 _cog = CognitionContextResolver(
                     self._memory_manager,
                     epistemic_store=self._epistemic_store,
-                    context_provider=self._get_context,
+                    context_provider=lambda npc_id: self._get_context(task.campaign_id, npc_id),
                 )
                 _cog_block = _cog.resolve_block(task.owner_id, req.target_id or "player")
                 if _cog_block:

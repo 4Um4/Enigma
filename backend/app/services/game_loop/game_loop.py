@@ -2217,7 +2217,7 @@ class GameLoop:
             _cp = getattr(self.mvp_controller, "confession_parser", None) if self.mvp_controller else None  # noqa: ENIGMA001, ENIGMA002
             if _cp is None and self.mvp_controller is not None:
                 logger.error("MvpTavernController missing confession_parser. Check wiring.")
-            _scheduler = TaskScheduler(router=_router, context_provider=_ctx, economy_tracker=_et, belief_store=_cbs, memory_manager=self.memory_manager, confession_parser=_cp, npc_states_provider=lambda cid: self._resolve_npcs_snapshot(cid, epistemic_store=getattr(self._tick_orch, "_epistemic_store", None)))
+            _scheduler = TaskScheduler(router=_router, context_provider=_ctx, economy_tracker=_et, belief_store=_cbs, memory_manager=self.memory_manager, confession_parser=_cp, npc_states_provider=lambda cid: self._resolve_npcs_snapshot(cid))
             self._task_scheduler = _scheduler
         return self._task_scheduler
 
