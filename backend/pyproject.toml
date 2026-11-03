@@ -1,76 +1,45 @@
-﻿
 [project]
-name = "enigma-backend"
-version = "0.5.4.5.4"
-description = "Local AI Dungeon Master Backend"
-readme = "README.md"
-requires-python = ">=3.11,<3.14"
-dependencies = [
-  "fastapi==0.115.0",
-  "uvicorn[standard]==0.30.6",
-  "pydantic==2.9.2",
-  "pydantic-settings==2.5.2",
-  "python-multipart==0.0.9",
-  "psutil==6.0.0",
-  "pypdf==5.1.0",
-  "httpx==0.28.1",
-  "aiohttp==3.10.11",
-  "pytest==8.3.3",
-  "pymorphy3",
-  "pygame==2.6.1",
-  "freetype-py",
-]
+name = 'enigma-backend'
+version = '0.5.4.5.4'
+description = 'Local AI Dungeon Master Backend'
+readme = 'README.md'
 
 [project.optional-dependencies]
 dev = [
-  "httpx==0.28.1",
-  "pypdf==5.1.0",
+  'httpx==0.28.1',
+  'pypdf==5.1.0',
 ]
 
 [tool.pytest.ini_options]
-pythonpath = ["backend"]
-testpaths = ["tests"]
-addopts = "-v --tb=short --strict-markers --ignore=backend/tests/sandbox/test_causal_bridge_integration.py"
-minversion = 7.0
-filterwarnings = [
-  "ignore::DeprecationWarning:uvicorn",
-  "ignore::pytest.PytestCollectionWarning",
-]
-
-[tool.hatch.build.targets.wheel.shared-data]
-"app" = "app"
+pythonpath = ['backend']
+testpaths = ['tests']
 
 [tool.mypy]
-python_version = "3.11"
+python_version = '3.11'
 doctest = false
-mypy_path = "backend"
+mypy_path = 'backend'
 explicit_package_bases = true
 strict = false
 warn_return_any = true
 show_error_codes = true
 warn_unused_configs = true
 
-# Полное исключение из проверки: тесты, скрипты, отчеты, отладочные файлы
-exclude = "^.*(backend/tests|backend/tests/sandbox|_archive|diagnostics|frontend).*"
+exclude = '^.*(backend/tests|backend/tests/sandbox|_archive|diagnostics|frontend).*'
 
-# Мягкий режим для всех модулей приложения и служебных пакетов
 [[tool.mypy.overrides]]
-module = ["app.*", "backend.app.*", "core.*", "domain.*", "models.*", "services.*"]
+module = ['app.*', 'backend.app.*', 'core.*', 'domain.*', 'models.*', 'services.*']
 disallow_untyped_defs = false
 disallow_any_generics = false
 warn_return_any = false
 ignore_missing_imports = true
 ignore_errors = true
 
-# Внешние библиотеки без typed-стабов
 [[tool.mypy.overrides]]
-module = ["yaml", "psutil", "networkx", "pymorphy3", "pytest_asyncio", "hypothesis", "pygame", "freetype_py", "httpx", "aiohttp", "fastapi", "uvicorn", "pydantic", "pydantic_settings", "python_multipart"]
+module = ['yaml', 'psutil', 'networkx', 'pymorphy3', 'pytest_asyncio', 'hypothesis', 'pygame', 'freetype_py', 'httpx', 'aiohttp', 'fastapi', 'uvicorn', 'pydantic', 'pydantic_settings', 'python_multipart']
 ignore_missing_imports = true
 
-# Игнорируем скрипты
 [[tool.mypy.overrides]]
-module = ["scripts.*", "reports.*", "frontend.*", "payload.*", "download.*", "config.*", "publish_release.*", "updater.*", "tools.*"]
+module = ['scripts.*', 'reports.*', 'frontend.*', 'payload.*', 'download.*', 'config.*', 'publish_release.*', 'updater.*', 'tools.*']
 disallow_untyped_defs = false
 ignore_missing_imports = true
 ignore_errors = true
-
