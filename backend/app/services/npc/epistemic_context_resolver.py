@@ -24,6 +24,13 @@ CONFIDENCE_THRESHOLD = 0.5
 # can_address не различает NPC и узел графа, гвард в DecisionHub прозрачен.
 _THREAT_PREDICATES = (Predicate.STOLE, Predicate.ATTACKED)
 
+# COGNITIVE-CONTINUITY-01: report-канал — знание об оскорблении третьего лица.
+# Отдельный порог (не CONFIDENCE_THRESHOLD): report — салиентность, а не угроза.
+# Слышанное через цепочку свидетельств дешевеет (trust×100/100).
+# Калибровочный кандидат, меняется отдельной ревизией.
+REPORT_PREDICATES = (Predicate.INSULTED,)
+REPORT_CONFIDENCE_THRESHOLD = 0.25
+
 class EpistemicContextResolver:
     """
     Преобразует EpistemicStore -> EpistemicContext.
@@ -62,13 +69,39 @@ class EpistemicContextResolver:
         # GC-RELEVANCE-01 (R1): клеймы о самом себе — отдельный канал сбора.
         about_self = []
         max_self_conf = 0.0
+        # COGNITIVE-CONTINUITY-01: report-канал. Знание об оскорблении третьего
+        # лица — отдельный канал от threat (trigger) и self-relevance (about_self).
+        _report_prop = None
+        _report_conf = 0.0
 
         for record in records:
-            if record.confidence < CONFIDENCE_THRESHOLD:
-                continue
-
             pred = record.proposition.predicate
             subj = record.proposition.subject_id
+            _obj = record.proposition.object_id
+
+            # COGNITIVE-CONTINUITY-01: agent — жертва оскорбления (object_id == agent_id).
+            # Канал about_self: салиентность собственного имени. Работает при любой
+            # confidence > 0 (оскорбление себя — всегда салиентно).
+            if pred == Predicate.INSULTED and _obj == agent_id:
+                about_self.append(record.proposition)
+                if record.confidence > max_self_conf:
+                    max_self_conf = record.confidence
+                continue
+
+            # COGNITIVE-CONTINUITY-01: report-канал. Знание об оскорблении третьего
+            # лица (object_id != agent_id, subject_id != agent_id). Отдельный порог
+            # (REPORT_CONFIDENCE_THRESHOLD < CONFIDENCE_THRESHOLD): report — салиентность,
+            # не угроза; слышанное через цепочку свидетельств дешевеет.
+            if (pred in REPORT_PREDICATES
+                    and record.confidence >= REPORT_CONFIDENCE_THRESHOLD
+                    and _obj != agent_id
+                    and subj != agent_id):
+                if record.confidence > _report_conf:
+                    _report_conf = record.confidence
+                    _report_prop = record.proposition
+
+            if record.confidence < CONFIDENCE_THRESHOLD:
+                continue
 
             if subj == agent_id:
                 # GC-RELEVANCE-01 (R1): «обо мне» — не угроза в собственном лице,
@@ -105,7 +138,10 @@ class EpistemicContextResolver:
             max_confidence=max_conf,
             trigger_proposition=_trigger_prop,
             claims_about_self=tuple(about_self),
-            max_self_confidence=max_self_conf
+            max_self_confidence=max_self_conf,
+            # COGNITIVE-CONTINUITY-01: report-канал. Proposition об оскорблении
+            # третьего лица — для DecisionHub report-targeting (Этап 4).
+            report_proposition=_report_prop
         )
 
     @staticmethod
@@ -159,5 +195,14 @@ class EpistemicContextResolver:
         if context.claims_about_self:
             _self_boost = round(context.max_self_confidence * 0.5, 4)
             modifiers["talk"] = round(modifiers.get("talk", 0.0) + _self_boost, 4)
+
+        # COGNITIVE-CONTINUITY-01: report-канал. NPC знает об оскорблении третьего
+        # лица — boost spread_rumor (сплетня — естественная форма) и talk.
+        # spread_rumor сильнее talk: сообщение — основная цель. Веса — калибровочные
+        # кандидаты; итоговый выбор — DecisionHub (модификаторы аддитивные).
+        if context.report_proposition is not None:
+            _rep_boost = round(context.max_confidence * 0.9, 4)
+            modifiers["spread_rumor"] = round(modifiers.get("spread_rumor", 0.0) + _rep_boost, 4)
+            modifiers["talk"] = round(modifiers.get("talk", 0.0) + _rep_boost * 0.6, 4)
 
         return modifiers
