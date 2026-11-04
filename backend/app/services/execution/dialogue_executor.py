@@ -360,9 +360,11 @@ class DialogueExecutor:
             if not isinstance(entry, dict):
                 continue
             _field = str(entry.get("field", "") or "")
+            _source = str(entry.get("source", "") or "")
+            if not _field and not _source:
+                continue  # CC-09: skip empty entries (no fabrication)
             _field_text = _FIELD_MAP.get(_field, _field)
             _delta = float(entry.get("delta", 0.0) or 0.0)
-            _source = str(entry.get("source", "") or "")
             _tick = entry.get("tick", 0)
             _sign = "+" if _delta > 0 else ""
             lines.append(
