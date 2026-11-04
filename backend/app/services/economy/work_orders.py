@@ -220,6 +220,97 @@ def create_order_from_trade_intent(
     return _oid
 
 
+def create_order(
+    ctx: Any, *, buyer: str, good: str, seller_ref: str = "",
+    orchestrator: Any = None, quantity: float = 1.0,
+) -> Optional[str]:
+    """Shared entry point for order creation (player path adapter).
+
+    Создаёт ТОЛЬКО Transaction PROPOSED — не смешивает с исполнением.
+    Settlement — отдельный шаг (settle_order, существующий механизм).
+
+    Два пути сходятся в одном SSOT (ctx.scene_state["work_orders"]):
+    - NPC (desire-driven): create_order_from_trade_intent — НЕ ТРОГАЕТСЯ.
+    - Player/explicit (good specified): эта функция — Transaction с явным
+      good, seller auto-resolved by stock_for_sale.
+
+    Deduplication: один открытый заказ на покупателя (L-W6).
+
+    Возвращает order_id или None (work disabled / unknown good /
+    no seller / buyer profile missing / dedup).
+    """
+    if not work_enabled():
+        return None
+
+    buyer = str(buyer or "").strip()
+    _named = str(seller_ref or "").strip()
+    if not buyer or _named in ("all", "player") or _named == buyer:
+        return None
+
+    _good = str(good or "").strip()
+    if _good not in GOODS_PRICES:
+        logger.warning(f"[WORK] create_order: unknown good={_good!r}")
+        return None
+
+    getter = _profiles_getter(ctx, orchestrator)
+    if getter is None:
+        return None
+    profiles = getter(ctx.campaign_id)
+    if profiles.get(buyer) is None:
+        logger.debug(f"[WORK] create_order: profile not found: {buyer}")
+        return None
+
+    # Dedup: один открытый заказ на покупателя (прецедент L148-L158)
+    _existing = ctx.scene_state.get(_ORDERS_KEY)
+    if isinstance(_existing, dict) and any(
+        isinstance(o, dict)
+        and o.get("actor_id") == buyer
+        and o.get("status")
+        in (TransactionStatus.PROPOSED.value, TransactionStatus.ACCEPTED.value)
+        for o in _existing.values()
+    ):
+        return None
+
+    def _stock_keys(nid: str) -> set:
+        _p = profiles.get(nid)
+        _s = getattr(_p, "stock_for_sale", None) if _p is not None else None
+        return set(_s.keys()) if isinstance(_s, dict) else set()
+
+    _sellers = sorted(
+        nid for nid in profiles
+        if nid not in (buyer, "player") and _good in _stock_keys(nid)
+    )
+    if not _sellers:
+        logger.debug(f"[WORK] create_order: no seller for good={_good!r}")
+        return None
+
+    seller = _named if _named in _sellers else _sellers[0]
+    _qty = float(quantity)
+    _price = round(float(GOODS_PRICES.get(_good, 1.0)) * _qty, 4)
+    _oid = _order_id(ctx.tick_number, buyer, seller, _good)
+    _tx = Transaction(
+        tx_type=TransactionType.PURCHASE,
+        status=TransactionStatus.PROPOSED,
+        actor_id=buyer,
+        target_id=seller,
+        goods={_good: _qty},
+        payment=_price,
+        reason="explicit_order",
+        causal_note=f"work_order:{_oid}",
+        tick=int(ctx.tick_number),
+    )
+    _order = _tx.to_dict()
+    _order["order_id"] = _oid
+    orders = ctx.scene_state.setdefault(_ORDERS_KEY, {})
+    orders[_oid] = _order
+    _evict_terminal(orders)
+    logger.info(
+        f"[WORK] ORDER born (explicit): {_oid} goods={_good}x{_qty} "
+        f"payment={_price} buyer={buyer} tick={ctx.tick_number}"
+    )
+    return _oid
+
+
 def run_work_orders_pass(ctx: Any, orchestrator: Any) -> None:
     """Фаза 0: ORDER→SERVE — материализация деятельности продавца.
 
