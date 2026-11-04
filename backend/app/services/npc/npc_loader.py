@@ -340,7 +340,46 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
     # 2. Если нет runtime — обогащаем и возвращаем static
     if not runtime_path or not runtime_path.exists():
         _enrich_with_social_relations(static_npcs, social_base)
-        _enrich_with_chronicle_relations(static_npcs)
+        # CCH-4 P1 FIX: chronicle relations применяются ТОЛЬКО при new game
+        # (relationship_cache пуст или не содержит chronicle_origin).
+        # На каждом тике не перезаписывать — runtime-изменения теряются.
+        _needs_chronicle_relations = any(
+            not npc.get("relationship_cache")
+            or not any(v.get("chronicle_origin") for v in npc.get("relationship_cache", {}).values())
+            for npc in static_npcs
+        )
+        if _needs_chronicle_relations:
+            _enrich_with_chronicle_relations(static_npcs)
+
+        # CCH-4 P2 FIX: chronicle seed (beliefs, imprints, memories) применяется
+        # ТОЛЬКО при new game (psyche.beliefs пуст И narrative_cache пуст).
+        # Применяется к оригинальному dict, который попадает в LifeEngine cache.
+        # На каждом тике не перезаписывать — runtime-изменения теряются.
+        for _npc in static_npcs:
+            _psyche = _npc.get("psyche", {})
+            _narrative = _npc.get("narrative_cache", [])
+            if not _psyche.get("beliefs") and not _narrative:
+                _npc_id = _npc.get("id") or _npc.get("npc_id")
+                if _npc_id:
+                    from app.services.chronicle import chronicle_seeder as _cseed
+                    _doc = _cseed.canonical_chronicle(_npc_id)
+                    if _doc:
+                        # 1. Beliefs & Imprints
+                        _apply_chronicle_seed_to_dict(_npc, _psyche)
+                        # 2. Memories (narrative_cache)
+                        _memories = _cseed.build_seed_memories(_npc_id, _doc)
+                        if _memories:
+                            _cache_list = []
+                            for _item in _memories:
+                                _d = {**_item.__dict__, "_memory_type": type(_item).__name__}
+                                if "tags" in _d and isinstance(_d["tags"], tuple):
+                                    _d["tags"] = list(_d["tags"])
+                                if "known_by" in _d and isinstance(_d["known_by"], tuple):
+                                    _d["known_by"] = list(_d["known_by"])
+                                if "hidden_from" in _d and isinstance(_d["hidden_from"], tuple):
+                                    _d["hidden_from"] = list(_d["hidden_from"])
+                                _cache_list.append(_d)
+                            _npc["narrative_cache"] = _cache_list
 
         # ENTITY BIRTH CONTRACT (дублируется для обоих путей выхода из функции)
         from app.models.npc_state import BODY_STATE_HEALTHY
@@ -367,29 +406,19 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
         logger.warning(
             f"[NPC_LOADER] Failed to load runtime {runtime_path}: {e}, using static only"
         )
-        _enrich_with_social_relations(static_npcs, social_base)
-
-        from app.models.npc_state import BODY_STATE_HEALTHY
-
-        for npc in static_npcs:
-            if not npc.get("body_state"):
-                npc["body_state"] = dict(BODY_STATE_HEALTHY)
-            if "npc_id" not in npc and "id" in npc:
-                npc["npc_id"] = npc["id"]
-
-        return static_npcs
-
-    # 4. Мержим runtime поверх static
-    result: List[Dict[str, Any]] = []
-    for static_npc in static_npcs:
-        npc_id = static_npc.get("id")
-        if npc_id and npc_id in runtime_by_id:
-            merged = _apply_runtime_overlay(static_npc, runtime_by_id[npc_id])
-            result.append(merged)
-            logger.debug(f"[NPC_LOADER] {npc_id}: static + runtime merged")
-        else:
-            result.append(static_npc)
-            logger.debug(f"[NPC_LOADER] {npc_id}: static only (no runtime data)")
+        result = static_npcs
+    else:
+        # 4. Мержим runtime поверх static
+        result: List[Dict[str, Any]] = []
+        for static_npc in static_npcs:
+            npc_id = static_npc.get("id")
+            if npc_id and npc_id in runtime_by_id:
+                merged = _apply_runtime_overlay(static_npc, runtime_by_id[npc_id])
+                result.append(merged)
+                logger.debug(f"[NPC_LOADER] {npc_id}: static + runtime merged")
+            else:
+                result.append(static_npc)
+                logger.debug(f"[NPC_LOADER] {npc_id}: static only (no runtime data)")
 
     _enrich_with_social_relations(result, social_base)
     # CCH-4 P1 FIX: chronicle relations применяются ТОЛЬКО при new game
@@ -402,6 +431,36 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
     )
     if _needs_chronicle_relations:
         _enrich_with_chronicle_relations(result)
+
+    # CCH-4 P2 FIX: chronicle seed (beliefs, imprints, memories) применяется
+    # ТОЛЬКО при new game (psyche.beliefs пуст И narrative_cache пуст).
+    # Применяется к оригинальному dict, который попадает в LifeEngine cache.
+    # На каждом тике не перезаписывать — runtime-изменения теряются.
+    for _npc in result:
+        _psyche = _npc.get("psyche", {})
+        _narrative = _npc.get("narrative_cache", [])
+        if not _psyche.get("beliefs") and not _narrative:
+            _npc_id = _npc.get("id") or _npc.get("npc_id")
+            if _npc_id:
+                from app.services.chronicle import chronicle_seeder as _cseed
+                _doc = _cseed.canonical_chronicle(_npc_id)
+                if _doc:
+                    # 1. Beliefs & Imprints
+                    _apply_chronicle_seed_to_dict(_npc, _psyche)
+                    # 2. Memories (narrative_cache)
+                    _memories = _cseed.build_seed_memories(_npc_id, _doc)
+                    if _memories:
+                        _cache_list = []
+                        for _item in _memories:
+                            _d = {**_item.__dict__, "_memory_type": type(_item).__name__}
+                            if "tags" in _d and isinstance(_d["tags"], tuple):
+                                _d["tags"] = list(_d["tags"])
+                            if "known_by" in _d and isinstance(_d["known_by"], tuple):
+                                _d["known_by"] = list(_d["known_by"])
+                            if "hidden_from" in _d and isinstance(_d["hidden_from"], tuple):
+                                _d["hidden_from"] = list(_d["hidden_from"])
+                            _cache_list.append(_d)
+                        _npc["narrative_cache"] = _cache_list
 
     # ENTITY BIRTH CONTRACT: NPC входит в систему как полностью валидная сущность.
     # Без этого idle path (LifeEngine.tick → load_npcs_merged) получает NPC без body_state
@@ -981,7 +1040,6 @@ def load_l2_state_from_runtime_dict(
     _narrative_empty = not raw_data.get("narrative_cache") and narrative_cache_override is None
     if _narrative_empty and not _beliefs_already_seeded:
         _apply_chronicle_seed_to_dict(raw_data, psyche)
-
     # Фаза A Шаг 8: beliefs переживают границу тика (аудит P0 №3).
     # Единственный адаптер — _beliefs_from_persistence (§12: без мутации
     # входа, повреждённые записи логируются и не роняют загрузку).
