@@ -69,7 +69,8 @@ class RulesDelta:
     dc: int = 0
     roll: int = 0
     checks: Optional[List[Any]] = None  # Read-only metadata для DM-агента (post-state)
-    money_delta: float = 0.0  # БАГ 5 FIX: Дельта денег для TRADE/GIVE_MONEY
+    money_delta: float = 0.0  # GIVE_MONEY only (TRADE uses trade_request)
+    trade_request: Optional[Dict[str, str]] = None  # TRADE: {buyer, good, seller_ref}
 
     def __post_init__(self) -> None:
         if self.checks is None:
@@ -96,6 +97,11 @@ class RulesSubscriber:
     _ATTRACTION_ACTIONS = {"комплимент", "сказать"}
     _GIVE_MONEY_ACTIONS = {"деньги", "отдать", "заплатить"}
     _TRADE_ACTIONS = {"купить", "торгов", "сделка", "эль", "пиво"}
+    # Priority 2: keyword → GOODS_PRICES key (good extraction for create_order)
+    _GOOD_KEYWORDS: Dict[str, str] = {
+        "эль": "ale", "пиво": "ale", "кружку": "ale", "выпить": "ale",
+        "еда": "food", "хлеб": "food", "похлёбку": "food", "обед": "food",
+    }
 
     def __init__(self) -> None:
         pass  # No state. Pure function container.
@@ -214,6 +220,7 @@ class RulesSubscriber:
         trust_delta = 0.0
         attraction_delta = 0.0
         money_delta = 0.0
+        trade_request = None  # Priority 2: TRADE → create_order
 
         if _semantic_action == "COMPLIMENT":
             trust_delta = 2.0
@@ -222,22 +229,20 @@ class RulesSubscriber:
             trust_delta = 5.0
             money_delta = -5.0
         elif _semantic_action == "TRADE":
-            _player_npc = next(
-                (
-                    n
-                    for n in snapshot.get("all_npcs_raw", [])
-                    if n.get("npc_id") == "player" or n.get("id") == "player"
-                ),
-                None,
-            )
-            if _player_npc:
-                _bs = _player_npc.setdefault("body_state", {})
-                _current_money = float(_bs.get("money", 0))
-                if _current_money >= 5.0:
-                    money_delta = -5.0
-                    logger.warning(
-                        f"[RULES_TRADE] player spent 5.0G, remaining: {_current_money - 5.0}G"
-                    )
+            # Priority 2: extract good from raw_input; default "ale" (tavern)
+            _good = "ale"
+            for _kw, _good_name in self._GOOD_KEYWORDS.items():
+                if _kw in _raw_input:
+                    _good = _good_name
+                    break
+            # trade_request → turn_pipeline calls create_order (shared mechanism)
+            # money_delta stays 0.0 — settlement deducts from EconomicProfile.gold
+            trade_request = {
+                "buyer": "player",
+                "good": _good,
+                "seller_ref": target_id,
+            }
+            logger.info(f"[RULES_TRADE] trade_request: good={_good} seller={target_id}")
 
         if trust_delta > 0 or attraction_delta > 0:
             _rel_store = snapshot.get("relationship_store")
@@ -273,6 +278,7 @@ class RulesSubscriber:
             action_type="SANDBOX_SOCIAL",
             success=True,
             money_delta=money_delta,
+            trade_request=trade_request,
         )
 
     # ── Pure helper methods (read-only) ──────────────────────────────

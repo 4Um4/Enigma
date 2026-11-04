@@ -193,6 +193,22 @@ class TurnPipeline:
             _rules_sub = RulesSubscriber()
             _rules_delta = _rules_sub.handle(_rules_event, _rules_snapshot)
 
+        # Priority 2 Commit 2: TRADE → create_order (shared mechanism)
+        if _rules_delta and _rules_delta.trade_request:
+            from app.services.economy.work_orders import create_order
+            _tr = _rules_delta.trade_request
+            _order_id = create_order(
+                ctx=_ctx,
+                buyer=_tr.get("buyer", "player"),
+                good=_tr.get("good", ""),
+                seller_ref=_tr.get("seller_ref", ""),
+                orchestrator=self._tick_orch,
+            )
+            if _order_id:
+                logger.info(f"[TRADE_ORDER] Created order {_order_id} for player (good={_tr.get('good')})")
+            else:
+                logger.warning(f"[TRADE_ORDER] create_order returned None (good={_tr.get('good')}, seller={_tr.get('seller_ref')})")
+
         rules_result = {"checks": _rules_delta.checks} if _rules_delta else {}
         logger.warning(
             f"[RULES] action_type={_action_type} → {_rules_action_type} (synchronous reducer)"
