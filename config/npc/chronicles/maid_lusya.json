@@ -1,4 +1,4 @@
-{
+﻿{
   "schema_version": 1,
   "chronicle_id": "maid_lusya",
   "npc_ref": "maid_lusya",
@@ -17,8 +17,7 @@
       },
       "object_id": null,
       "payload": {
-        "statement": "Люся: человек",
-        "traits": []
+        "statement": "Люся - человек"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -39,9 +38,10 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "семья убита бандитами",
+        "summary": "семью убили бандиты",
         "day": null,
-        "age": 5
+        "duration_years": null,
+        "years_ago": 5
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -51,28 +51,6 @@
     },
     {
       "entry_id": "932c2f7ce66d531bf8b537a59370f714",
-      "kind": "EVENT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "примерно в то же время её подобрала Гильдия воров",
-        "day": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 200
-    },
-    {
-      "entry_id": "1df0e95246c841794385f3098924064d",
       "kind": "RELATIONSHIP",
       "historical_age": null,
       "historical_year": null,
@@ -84,10 +62,32 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "отношение к ней нельзя назвать доброжелательным",
+        "summary": "Гильдия воров подобрала Люсю, но отношения не доброжелательные",
         "target_hint": "Гильдия воров",
-        "nature": "вражда",
-        "valence": "negative"
+        "valence": "positive"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 200
+    },
+    {
+      "entry_id": "1df0e95246c841794385f3098924064d",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Люся жила с Гильдией воров 4 года",
+        "day": null,
+        "duration_years": null
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -96,77 +96,9 @@
       "ordinal": 201
     },
     {
-      "entry_id": "febb4e2c6e4ad8275ad9c69ab523170a",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "она единственные, кто вообще хоть как-то ей помогал",
-        "effect_kind": "gain",
-        "target_hint": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 202
-    },
-    {
-      "entry_id": "812713c7369e156e398d3d42296e5993",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "других отношений она и не знала",
-        "effect_kind": "loss",
-        "target_hint": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 203
-    },
-    {
-      "entry_id": "9a26a5237d21c6cca7b9c94a8bbbd411",
-      "kind": "EVENT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "так прошло ещё 4 года её жизни",
-        "day": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 204
-    },
-    {
       "entry_id": "a987e538a3ea9bf3a714139116956f5d",
       "kind": "EVENT",
-      "historical_age": null,
+      "historical_age": 9,
       "historical_year": null,
       "subject_id": {
         "ref_kind": "RESOLVED",
@@ -176,8 +108,9 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "отправили к Торнину в трактир",
-        "day": null
+        "summary": "переведена к Торнину",
+        "day": null,
+        "age": 9
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -198,9 +131,8 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "Торнин относился к ней как к неудобной работнице",
-        "target_hint": "она",
-        "nature": "dependence",
+        "summary": "Торнин относился к Люсии как к неудобной работнице",
+        "nature": "вражда",
         "valence": "negative"
       },
       "causes": [],
@@ -211,7 +143,7 @@
     },
     {
       "entry_id": "4f6fef0ad85cf103b0d8d8aba72dcbf4",
-      "kind": "EFFECT",
+      "kind": "TRAIT_SEED",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -222,16 +154,8 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "ее приставили к нему не просто так",
-        "effect_kind": "gain",
-        "target_hint": "она",
-        "_resolved_questions": [
-          {
-            "question_id": "Q_1234567890",
-            "selected_option": "LEAVE_WHITE_SPOT",
-            "selected_value": null
-          }
-        ]
+        "trait": "неудобная работница",
+        "evidence": "Торнин относился к ней как к неудобной работнице"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -252,8 +176,10 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "Торнин ударил её за разбитую кружку.",
-        "day": null
+        "summary": "Торнин ударил Люсю за разбитую кружку",
+        "day": null,
+        "duration_years": null,
+        "years_ago": null
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -264,7 +190,7 @@
     {
       "entry_id": "83a72f0adf85462fc2b00272805e4a86",
       "kind": "EVENT",
-      "historical_age": null,
+      "historical_age": 0,
       "historical_year": null,
       "subject_id": {
         "ref_kind": "RESOLVED",
@@ -274,7 +200,7 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "регулярно, когда Торнин напивался, он периодически избивал её",
+        "summary": "регулярное насилие после пьянки",
         "day": null
       },
       "causes": [],
@@ -284,8 +210,8 @@
       "ordinal": 600
     },
     {
-      "entry_id": "4c13ae2d5f82174a96340c3c11b7c16b",
-      "kind": "EVENT",
+      "entry_id": "c63060b4cef419c032530f507d088435",
+      "kind": "RELATIONSHIP",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -296,8 +222,44 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "Гильдия отправила её следить за тайным ходом в таверне и за Торнином.",
-        "day": null
+        "nature": "вражда",
+        "valence": "negative"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 601
+    },
+    {
+      "entry_id": "4c13ae2d5f82174a96340c3c11b7c16b",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": {
+        "ref_kind": "WHITE_SPOT",
+        "npc_id": null,
+        "white_spot_id": "roster_mismatch_0",
+        "name_hint": "Гильдия"
+      },
+      "payload": {
+        "summary": "Гильдия отправила Люсю следить за тайным ходом в таверне и за Торнином",
+        "nature": "взаимовыгодный",
+        "target_hint": "Гильдия",
+        "_resolved_questions": [
+          {
+            "question_id": "roster_mismatch_0",
+            "selected_option": "LEAVE_WHITE_SPOT",
+            "selected_value": null
+          }
+        ],
+        "valence": "positive"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -306,8 +268,8 @@
       "ordinal": 700
     },
     {
-      "entry_id": "602b0fab4c7040b1f59ba902b06070f0",
-      "kind": "EVENT",
+      "entry_id": "056b2ab30e4d47fc02959cdfe1062d37",
+      "kind": "EFFECT",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -318,17 +280,80 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "стражник Борко задержался у кухни и застал сцену насилия Орма над Люсей — но не остановил кузнеца, а открыл в себе наклонность: наблюдать за чужим насилием и мастурбировать",
-        "day": null
+        "summary": "Люся не защищена от избиений трактирщиком, несмотря на работу для Гильдии",
+        "effect_kind": "trauma",
+        "triggers": [
+          "избиение Люси трактирщиком"
+        ],
+        "target_hint": null
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
       "confidence": null,
       "open_questions": [],
-      "ordinal": 900
+      "ordinal": 701
     },
     {
-      "entry_id": "f79e8da791629444faa3f63d70f5bbc4",
+      "entry_id": "47c2a0fa515acbcd35e5158feb69a990",
+      "kind": "EVENT",
+      "historical_age": 11,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "была изнасилована кузнецом Ормом",
+        "day": null,
+        "duration_years": null,
+        "years_ago": 11
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 800
+    },
+    {
+      "entry_id": "281f8bf8d03bf2e4a793b34e8059c123",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": {
+        "ref_kind": "WHITE_SPOT",
+        "npc_id": null,
+        "white_spot_id": "roster_mismatch_1",
+        "name_hint": "Орм"
+      },
+      "payload": {
+        "summary": "Орм оставляет деньги и требует молчания",
+        "target_hint": "Орм",
+        "_resolved_questions": [
+          {
+            "question_id": "roster_mismatch_1",
+            "selected_option": "LEAVE_WHITE_SPOT",
+            "selected_value": null
+          }
+        ],
+        "valence": "positive"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 801
+    },
+    {
+      "entry_id": "6aa9ab66c68169e14a978268917da320",
       "kind": "TRAIT_SEED",
       "historical_age": null,
       "historical_year": null,
@@ -340,8 +365,155 @@
       },
       "object_id": null,
       "payload": {
-        "trait": "влюблена",
-        "evidence": "с 12 лет она влюблена в стражника"
+        "trait": "боится Орма",
+        "evidence": "Орм изнасиловал, она боится его"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 802
+    },
+    {
+      "entry_id": "2a9f3388223cbb6ffc70847daeeb28aa",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "презирает себя за деньги от насилия",
+        "evidence": "берёт его монеты, презирает себя"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 803
+    },
+    {
+      "entry_id": "41e594ae632d102641b319855d3fb68d",
+      "kind": "BELIEF_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "деньги и насилие слились в один узел",
+        "belief_type": "danger"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 804
+    },
+    {
+      "entry_id": "602b0fab4c7040b1f59ba902b06070f0",
+      "kind": "EVENT",
+      "historical_age": 12,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "застал Орм с насильственным действием над Люсей",
+        "day": null,
+        "age": 12
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 900
+    },
+    {
+      "entry_id": "0bc9e54c467f219b54639de28533bcf2",
+      "kind": "EFFECT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Борко наблюдает за насилием и мастурбирует",
+        "effect_kind": "trauma"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 901
+    },
+    {
+      "entry_id": "c8c413747f045e5d15e2137b8abc53ae",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "payload": {
+        "summary": "Люся не знает об этом у Борко",
+        "target_hint": "Стражник Борко",
+        "nature": "скрытое знание насилия",
+        "valence": "negative"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 902
+    },
+    {
+      "entry_id": "f79e8da791629444faa3f63d70f5bbc4",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "payload": {
+        "summary": "Люся влюбилась в Борко, потому что он относительно молод, красив и имеет высокое социальное положение",
+        "target_hint": "Стражник Борко",
+        "nature": "влюблена",
+        "valence": "positive"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -351,8 +523,8 @@
     },
     {
       "entry_id": "864ca8099f7387d25e5c73545c560b9a",
-      "kind": "RELATIONSHIP",
-      "historical_age": null,
+      "kind": "EVENT",
+      "historical_age": 12,
       "historical_year": null,
       "subject_id": {
         "ref_kind": "RESOLVED",
@@ -362,108 +534,15 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "искренняя доброжелательность к себе",
-        "target_hint": "стражник Борко",
-        "nature": "доверие",
-        "valence": "positive"
+        "summary": "Люся узнала о Борко с 12 лет",
+        "day": null,
+        "years_ago": 12
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
       "confidence": null,
       "open_questions": [],
       "ordinal": 1001
-    },
-    {
-      "entry_id": "796eb7315a35b6b4973162d2474f2b5e",
-      "kind": "EVENT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "приняла его наблюдение за искреннюю доброжелательность к себе",
-        "day": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1002
-    },
-    {
-      "entry_id": "9d24a4eb39fd37222b0a496cbff0576e",
-      "kind": "TRAIT_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "trait": "влюблена",
-        "evidence": "с 12 лет она влюблена в стражника"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1003
-    },
-    {
-      "entry_id": "ac70b9ea90dd179f8f2739bbb9eade6d",
-      "kind": "RELATIONSHIP",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "относительно молод и красив по сравнению с окружающими",
-        "target_hint": "стражник Борко",
-        "nature": "внешность",
-        "valence": "positive"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1004
-    },
-    {
-      "entry_id": "e9b5f521a413b2fe04ca4bf6c366140d",
-      "kind": "RELATIONSHIP",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "высокое социальное положение",
-        "target_hint": "стражник Борко",
-        "nature": "статус",
-        "valence": "positive"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1005
     },
     {
       "entry_id": "41256e7b8a6745c0dbee7d5f91802494",
@@ -478,8 +557,8 @@
       },
       "object_id": null,
       "payload": {
-        "statement": "сбежать от всех проблем на юг.",
-        "about_hint": "она"
+        "statement": "сбежать от всех проблем на юг",
+        "about_hint": "оттуда скрыться"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -489,7 +568,7 @@
     },
     {
       "entry_id": "033e4db205d7a131a61a7dfc67c5ecbe",
-      "kind": "EFFECT",
+      "kind": "RELATIONSHIP",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -500,9 +579,9 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "понимает, что Гильдия с её связями быстро найдёт её и «накажет» за такие выходки.",
-        "effect_kind": "trauma",
-        "target_hint": null
+        "summary": "Гильдия с её связями быстро найдёт и накажет за выходки",
+        "target_hint": "Гильдия воров",
+        "valence": "positive"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -512,7 +591,7 @@
     },
     {
       "entry_id": "3dccc807d0aa50a23b9b5c018d1fb88d",
-      "kind": "EFFECT",
+      "kind": "TRAIT_SEED",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -523,9 +602,8 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "предполагает, что таверну могут доверить ей после смерти Торнина",
-        "effect_kind": "gain",
-        "target_hint": "таверну"
+        "trait": "хочет выслужиться перед Гильдией",
+        "evidence": "Отчасти поэтому её второй план — выслужиться перед Гильдией и попасть в лучшие условия"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -535,7 +613,7 @@
     },
     {
       "entry_id": "90af024974ecc2511ed34721c8387aa2",
-      "kind": "EFFECT",
+      "kind": "RELATIONSHIP",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -546,9 +624,10 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "выслужиться перед Гильдией и попасть в лучшие условия",
-        "effect_kind": "gain",
-        "target_hint": "лучшие условия"
+        "nature": "взаимовыгодное сотрудничество",
+        "summary": "хочет угодить Гильдии, стать её членом на хорошем положении",
+        "target_hint": "Гильдия воров",
+        "valence": "positive"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -557,29 +636,8 @@
       "ordinal": 1201
     },
     {
-      "entry_id": "968a680feff78a445e48d311c623276f",
-      "kind": "BELIEF_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "statement": "она даже предполагает, что таверну могут доверить ей после смерти Торнина"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1202
-    },
-    {
       "entry_id": "6ccb60d74c60456b58173dc34a2e0224",
-      "kind": "EVENT",
+      "kind": "RELATIONSHIP",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -588,10 +646,17 @@
         "white_spot_id": null,
         "name_hint": ""
       },
-      "object_id": null,
+      "object_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
       "payload": {
-        "summary": "стал постоянным посетителем таверны агент гильдии воров Тень",
-        "day": null
+        "summary": "Люся ожидает приказа от гильдии воров через Тень",
+        "target_hint": "Тень",
+        "nature": "ожидание приказа",
+        "valence": "positive"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -601,7 +666,7 @@
     },
     {
       "entry_id": "5cc6ab77bbf3c3454c23045a090d86e7",
-      "kind": "EFFECT",
+      "kind": "PORTRET",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -612,9 +677,11 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "улучшить жизнь",
-        "effect_kind": "desire",
-        "target_hint": null
+        "statement": "она готова на всё ради этого шанса, но надеется, что это не навредит её возлюбленному стражнику Борко.",
+        "traits": [
+          "готова на всё для шанса",
+          "надеется не навредить возлюбленному"
+        ]
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -635,61 +702,14 @@
       },
       "object_id": null,
       "payload": {
-        "trait": "готова на всё ради шанса",
-        "evidence": "она готова на всё ради этого шанса"
+        "trait": "ожидает приказа от гильдии воров через посредника",
+        "evidence": "сейчас она меньше думает о побеге и больше ждёт приказа от гильдии"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
       "confidence": null,
       "open_questions": [],
       "ordinal": 1302
-    },
-    {
-      "entry_id": "e2d9e71cc243b9896bba111db101061a",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "не навредит её возлюбленному стражнику Борко",
-        "effect_kind": "desire",
-        "target_hint": "возлюбленный стражник Борко"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1303
-    },
-    {
-      "entry_id": "4623c44cdb9dcacc37c9fad214cc8508",
-      "kind": "RELATIONSHIP",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "более думает о шансах и меньше о побеге",
-        "target_hint": "возлюбленный стражник Борко",
-        "nature": "dependence",
-        "valence": "positive"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1304
     },
     {
       "entry_id": "5648ca2495c2a86f1dfeb6f11082d51f",
@@ -704,8 +724,10 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "совершенно не помнит, кем были её родители и были ли у неё иные родственники; не помнит, откуда она",
-        "day": null
+        "summary": "потеря родителей и происхождения",
+        "day": null,
+        "duration_years": null,
+        "years_ago": null
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -715,114 +737,6 @@
     },
     {
       "entry_id": "a0208187b3b0b7cc274109e8531a3c5d",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "помнит смутно, но оценивает: тогда жизнь была беднее и пустее, зато менее болезненна",
-        "effect_kind": "memory",
-        "target_hint": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1401
-    },
-    {
-      "entry_id": "72e7426227013e65333c51149550917f",
-      "kind": "BELIEF_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "statement": "она ощущает текущий этап жизни как миссию, дарованную организацией, через которую должна доказать свою полезность, чтобы ей предоставили лучшие условия существования"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1402
-    },
-    {
-      "entry_id": "f1f887342cff6ce99a311b9d7eda566f",
-      "kind": "BELIEF_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "statement": "Она не покорна Гильдии от любви или веры. Она покорна, потому что считала варианты — и их нет."
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1600
-    },
-    {
-      "entry_id": "82d5282bf1f62e5fbc48bcbebab14635",
-      "kind": "BELIEF_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "statement": "Люся не верит в доброту Гильдии. Она верит в сделку: моя полезность за мою жизнь."
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1601
-    },
-    {
-      "entry_id": "2e25f02594c2af0945ec9df2b1b71af8",
-      "kind": "TRAIT_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "trait": "расчётливый",
-        "evidence": "это не покорность, а расчёт ребёнка"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1602
-    },
-    {
-      "entry_id": "bd3e72c28537dd14271abd1af91f6058",
       "kind": "PORTRET",
       "historical_age": null,
       "historical_year": null,
@@ -834,10 +748,263 @@
       },
       "object_id": null,
       "payload": {
-        "statement": "Люся злится. Злится часто, глухо, изнутри…",
+        "statement": "жизнь в подземных убежищах гильдии была беднее и пустее, но менее болезненна",
         "traits": [
-          "злость"
+          "бедность",
+          "пустота",
+          "меньше боли"
         ]
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1401
+    },
+    {
+      "entry_id": "72e7426227013e65333c51149550917f",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "начала миссию для гильдии",
+        "day": null,
+        "duration_years": null,
+        "years_ago": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1402
+    },
+    {
+      "entry_id": "c647acd73f0b445f652d515df581eaee",
+      "kind": "PORTRET",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "Люся злится. Злится часто, глухо, изнутри, стискивая зубы, когда моет полы или таскает бочонки на кухню. Она злится на Торнина, на Орма, на Гильдию, на то, что ей было пять лет, когда её жизнь была разрушена и началась эта жизнь, где её постоянно душат.",
+        "traits": [
+          "злая",
+          "глухая",
+          "внутренняя злость"
+        ]
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1500
+    },
+    {
+      "entry_id": "d9a2b48188e177851bebbe31a55422dc",
+      "kind": "PORTRET",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "Люся не дура. В четырнадцать лет она понимает больше, чем иной взрослый, потому что жизнь не оставляла ей права на детскую наивность.",
+        "traits": [
+          "умная",
+          "опытная"
+        ]
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1501
+    },
+    {
+      "entry_id": "0573923449bb6d5f37bcc674c4f915c5",
+      "kind": "PORTRET",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "Она догадывается, что стража куплена, что город куплен, что Гильдия держит всех за горло и Борко, наверное, тоже...",
+        "traits": [
+          "разумеет опасность",
+          "понимает коррупцию"
+        ]
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1502
+    },
+    {
+      "entry_id": "57c1117b42b20d82400cc77e80c9631d",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": {
+        "ref_kind": "WHITE_SPOT",
+        "npc_id": null,
+        "white_spot_id": "roster_mismatch_3",
+        "name_hint": "Борко"
+      },
+      "payload": {
+        "summary": "Люся влюбилась в Борко, потому что он один из немногих мужчин, кто не причинял ей боли и обращался с ней как с равной.",
+        "target_hint": "Борко",
+        "_resolved_questions": [
+          {
+            "question_id": "roster_mismatch_3",
+            "selected_option": "LEAVE_WHITE_SPOT",
+            "selected_value": null
+          }
+        ],
+        "valence": "positive"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1503
+    },
+    {
+      "entry_id": "ca2e8ee16a6c77a6649b1f14e3c549ef",
+      "kind": "PORTRET",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "Для Люсии Борко единственный, кто не причинил ей боли, и этого достаточно, чтобы влюбиться, когда больше не в кого.",
+        "traits": [
+          "влюблена",
+          "одинокая"
+        ]
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1504
+    },
+    {
+      "entry_id": "f1f887342cff6ce99a311b9d7eda566f",
+      "kind": "PORTRET",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "Она покорна, потому что считала варианты — и их нет. Бежать некуда — найдут. Сопротивляться нечем — убьют. Просить помощи не у кого.",
+        "traits": [
+          "покорность",
+          "рациональный расчёт"
+        ]
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1600
+    },
+    {
+      "entry_id": "82d5282bf1f62e5fbc48bcbebab14635",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "рассчитывает свою безопасность",
+        "evidence": "Она покорна, потому что считала варианты — и их нет."
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1601
+    },
+    {
+      "entry_id": "2e25f02594c2af0945ec9df2b1b71af8",
+      "kind": "BELIEF_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "Гильдия — единственная структура, которая хоть как-то определяет её место в мире.",
+        "belief_type": "danger"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1602
+    },
+    {
+      "entry_id": "bd3e72c28537dd14271abd1af91f6058",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "учила считать раньше, чем читать",
+        "evidence": "И это не покорность, а расчёт ребёнка"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -858,110 +1025,19 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "Звон посуды заставляет её замечать паузу в своей работе.",
+        "summary": "звон посуды вызывает паузу и вздрагивание",
         "effect_kind": "trauma",
-        "target_hint": null
+        "target_hint": null,
+        "triggers": [
+          "звон посуды",
+          "гремящие звуки"
+        ]
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
       "confidence": null,
       "open_questions": [],
       "ordinal": 1700
-    },
-    {
-      "entry_id": "302762612303d4921b520334eba4c129",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "Звон посуды вызывает вздрагивание у Торнина.",
-        "effect_kind": "trauma",
-        "target_hint": "Торнин"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1701
-    },
-    {
-      "entry_id": "1f8171d6f8b14faa49e866229665ded5",
-      "kind": "RELATIONSHIP",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "Звон посуды вызывает вздрагивание у Торнина.",
-        "target_hint": "Торнин",
-        "nature": "attention",
-        "valence": "positive"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1702
-    },
-    {
-      "entry_id": "0ea54c7fdcd73f9f65c8d1b5a6255862",
-      "kind": "RELATIONSHIP",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "Звон посуды вызывает вздрагивание у Торнина.",
-        "target_hint": "Торнин",
-        "nature": "synchronization",
-        "valence": "positive"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1703
-    },
-    {
-      "entry_id": "a8f577d3d56854dc4eb4ce4be2f837e8",
-      "kind": "RELATIONSHIP",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "Два человека реагируют на один звук.",
-        "target_hint": null,
-        "nature": "synchronization",
-        "valence": "neutral"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1704
     },
     {
       "entry_id": "5dffd3940e6a2c0f66b5aba210b3ee09",
@@ -976,14 +1052,42 @@
       },
       "object_id": null,
       "payload": {
-        "trait": "умеет считать лучше, чем говорить",
-        "evidence": "П.16 — не метафора: она действительно умеет считать лучше, чем говорить."
+        "trait": "умеет считать",
+        "evidence": "Она считает. Монеты в кассе, кружки на подносе, шаги до погреба, сколько раз Тень посмотрел в сторону подвальной двери."
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
       "confidence": null,
       "open_questions": [],
       "ordinal": 1800
+    },
+    {
+      "entry_id": "da4d1ee51d57b6eccf255a19bc28c3a2",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "maid_lusya",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "payload": {
+        "summary": "Тень — объект наблюдения и подсчетов",
+        "target_hint": "Тень",
+        "valence": "positive"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1801
     },
     {
       "entry_id": "fb7581f365868bdbd0ad4489470e4eae",
@@ -998,7 +1102,7 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "копится её юг: медяки и серебро",
+        "summary": "копится юг: медяки и серебро под матрасом",
         "effect_kind": "gain",
         "target_hint": null
       },
@@ -1010,7 +1114,7 @@
     },
     {
       "entry_id": "8f79f3684eeead7dd156ed47d0e3b14f",
-      "kind": "BELIEF_SEED",
+      "kind": "RELATIONSHIP",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -1021,7 +1125,9 @@
       },
       "object_id": null,
       "payload": {
-        "statement": "источник горький — это в основном деньги Орма"
+        "summary": "Орм — источник денег Люсии, хороший отношение",
+        "nature": "взаимовыгодный",
+        "valence": "positive"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -1031,7 +1137,7 @@
     },
     {
       "entry_id": "ec48fa56afe10fc8b9e59df6321a5eee",
-      "kind": "EFFECT",
+      "kind": "TRAIT_SEED",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -1042,36 +1148,14 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "деньги Орма, то самое «хорошее отношение» являются источником её заначки",
-        "effect_kind": "gain",
-        "target_hint": null
+        "trait": "скрывает наличие денег",
+        "evidence": "никогда не называет вслух, откуда они"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
       "confidence": null,
       "open_questions": [],
       "ordinal": 1902
-    },
-    {
-      "entry_id": "02f827165db6edddc93e422ccb67d89c",
-      "kind": "BELIEF_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "statement": "для неё это просто «её» деньги — первый в жизни предмет, который принадлежит только ей"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1903
     },
     {
       "entry_id": "68793ffd65f1d7b774bca0c6cd42135e",
@@ -1086,7 +1170,7 @@
       },
       "object_id": null,
       "payload": {
-        "trait": "тихая",
+        "trait": "тихий тон",
         "evidence": "Тихая короткая речь с запинками"
       },
       "causes": [],
@@ -1108,8 +1192,8 @@
       },
       "object_id": null,
       "payload": {
-        "trait": "короткая речь",
-        "evidence": "Тихая короткая речь с запинками"
+        "trait": "смотрит в пол",
+        "evidence": "взгляд в пол"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -1130,8 +1214,8 @@
       },
       "object_id": null,
       "payload": {
-        "trait": "запинки в речи",
-        "evidence": "Тихая короткая речь с запинками"
+        "trait": "формальный язык",
+        "evidence": "\"господин стражник\", \"господин купец\""
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -1152,8 +1236,8 @@
       },
       "object_id": null,
       "payload": {
-        "trait": "взгляд в пол",
-        "evidence": "взгляд в пол"
+        "trait": "называет монету копеечкой",
+        "evidence": "свою монету называет \"копеечка\""
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -1163,49 +1247,6 @@
     },
     {
       "entry_id": "88293a65f61580d3354b8edb5f7cf637",
-      "kind": "BELIEF_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "statement": "господин стражник, господин купец"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2004
-    },
-    {
-      "entry_id": "da1a33775b62cb4ec2274e0b97367345",
-      "kind": "TRAIT_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "trait": "называет свою монету копеечкой",
-        "evidence": "свою монету называет «копеечка»"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2005
-    },
-    {
-      "entry_id": "319b33651c911503e7c409351428b6fc",
       "kind": "TRAIT_SEED",
       "historical_age": null,
       "historical_year": null,
@@ -1224,32 +1265,11 @@
       "provenance": "AUTHOR_CONFIRMED",
       "confidence": null,
       "open_questions": [],
-      "ordinal": 2006
-    },
-    {
-      "entry_id": "b4e41ea1ba64c0960f394e717bf457ee",
-      "kind": "BELIEF_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "statement": "боится наказания, а не неприличия"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2007
+      "ordinal": 2004
     },
     {
       "entry_id": "236cb9ab2f9f1b7e9a96f66286ddeda0",
-      "kind": "TRAIT_SEED",
+      "kind": "PORTRET",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -1260,8 +1280,7 @@
       },
       "object_id": null,
       "payload": {
-        "trait": "шпион",
-        "evidence": "привычка шпиона, вшитая гильдией в ребёнка (п.7) и работающая теперь сама по себе"
+        "statement": "Держится у стен, глаза по полу — но видит весь зал: где кто сидит, кто сколько выпил, кто задержался у стойки дольше обычного. Это не любопытство — это привычка шпиона, вшитая гильдией в ребёнка (п.7) и работающая теперь сама по себе. Тени приносит кружку первой — не из почтения, из расчёта: опасных обслуживают раньше."
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -1282,8 +1301,8 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "видит весь зал: где кто сидит, кто сколько выпил, кто задержался у стойки дольше обычного",
-        "effect_kind": "skill",
+        "summary": "Задерживается возле Борко дольше, чем требует поднос",
+        "effect_kind": "custom",
         "target_hint": null
       },
       "causes": [],
@@ -1291,54 +1310,36 @@
       "confidence": null,
       "open_questions": [],
       "ordinal": 2101
-    },
-    {
-      "entry_id": "d2446c0b2d1d71fc6e8b3dda52a50c01",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "возле Борко задерживается дольше, чем требует поднос",
-        "effect_kind": "skill",
-        "target_hint": "Борко"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2102
-    },
-    {
-      "entry_id": "dbc0c753bb2dd6f725bc86c9850ad4be",
-      "kind": "TRAIT_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "maid_lusya",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "trait": "живое лицо",
-        "evidence": "лицо становится живым"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2103
     }
   ],
-  "white_spots": [],
+  "white_spots": [
+    {
+      "white_spot_id": "roster_mismatch_0",
+      "label": "Гильдия",
+      "context_hint": "resolved via /resolve (entry=4c13ae2d5f82174a96340c3c11b7c16b)",
+      "resolution_state": "OPEN",
+      "resolution_ref": null,
+      "created_from_entry": "4c13ae2d5f82174a96340c3c11b7c16b"
+    },
+    {
+      "white_spot_id": "roster_mismatch_1",
+      "label": "Орм",
+      "context_hint": "resolved via /resolve (entry=281f8bf8d03bf2e4a793b34e8059c123)",
+      "resolution_state": "OPEN",
+      "resolution_ref": null,
+      "created_from_entry": "281f8bf8d03bf2e4a793b34e8059c123"
+    },
+    {
+      "white_spot_id": "roster_mismatch_3",
+      "label": "Борко",
+      "context_hint": "resolved via /resolve (entry=57c1117b42b20d82400cc77e80c9631d)",
+      "resolution_state": "OPEN",
+      "resolution_ref": null,
+      "created_from_entry": "57c1117b42b20d82400cc77e80c9631d"
+    }
+  ],
+  "npc_beliefs": [],
+  "cause_candidates": [],
   "canonical": true,
   "canonical_version": 1,
   "created_by_tick_source": null,
