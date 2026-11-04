@@ -1,0 +1,37 @@
+{
+  "before": {
+    "narrative_cache_count": 0,
+    "relationship_cache_keys": [],
+    "psyche_beliefs_keys": [],
+    "affective_imprints_count": 0,
+    "stress": null
+  },
+  "after": {
+    "narrative_cache_count": 10,
+    "relationship_cache_keys": [
+      "tavern_keeper_tornin",
+      "thief_shadow",
+      "guard_borko",
+      "blacksmith_orm"
+    ],
+    "psyche_beliefs_keys": [],
+    "affective_imprints_count": 2,
+    "stress": 0
+  },
+  "delta": {
+    "narrative_cache": 10,
+    "affective_imprints": 2,
+    "stress_delta": 0
+  },
+  "counters": {
+    "ticks": 10,
+    "events_by_type": {
+      "npc_moved": 9,
+      "npc_proximity_close": 6,
+      "npc_spoke": 3,
+      "npc_proximity_leave": 3
+    },
+    "npc_spoke": 3,
+    "npc_moved": 9
+  }
+}

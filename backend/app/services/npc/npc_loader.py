@@ -392,7 +392,16 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
             logger.debug(f"[NPC_LOADER] {npc_id}: static only (no runtime data)")
 
     _enrich_with_social_relations(result, social_base)
-    _enrich_with_chronicle_relations(result)
+    # CCH-4 P1 FIX: chronicle relations применяются ТОЛЬКО при new game
+    # (relationship_cache пуст или не содержит chronicle_origin).
+    # На каждом тике не перезаписывать — runtime-изменения теряются.
+    _needs_chronicle_relations = any(
+        not npc.get("relationship_cache")
+        or not any(v.get("chronicle_origin") for v in npc.get("relationship_cache", {}).values())
+        for npc in result
+    )
+    if _needs_chronicle_relations:
+        _enrich_with_chronicle_relations(result)
 
     # ENTITY BIRTH CONTRACT: NPC входит в систему как полностью валидная сущность.
     # Без этого idle path (LifeEngine.tick → load_npcs_merged) получает NPC без body_state
@@ -965,7 +974,12 @@ def load_l2_state_from_runtime_dict(
     # не None → гейт закрыт: запущенная кампания не обновляется
     # (вердикт S336, FR-11.2). Крайний случай «весь кэш забыт» при
     # новой игре невозможен (забывание живёт в кампании) — гейт честен.
-    if not raw_data.get("narrative_cache") and narrative_cache_override is None:
+    # CCH-4 P1 FIX: seed применяется ТОЛЬКО при new game.
+    # Признак — psyche.beliefs пуст (seed ещё не применён) ИЛИ narrative_cache пуст.
+    # На каждом тике (cache miss) не перезаписывать — runtime-изменения теряются.
+    _beliefs_already_seeded = bool(psyche.get("beliefs"))
+    _narrative_empty = not raw_data.get("narrative_cache") and narrative_cache_override is None
+    if _narrative_empty and not _beliefs_already_seeded:
         _apply_chronicle_seed_to_dict(raw_data, psyche)
 
     # Фаза A Шаг 8: beliefs переживают границу тика (аудит P0 №3).

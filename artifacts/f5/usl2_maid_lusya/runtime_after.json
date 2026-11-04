@@ -1,0 +1,78 @@
+{
+  "npc_id": "maid_lusya",
+  "name": "Люся",
+  "location_id": "tavern",
+  "stress": 0,
+  "narrative_cache_count": 10,
+  "narrative_cache_sample": [
+    {
+      "day": -1000,
+      "summary": "Люся знает тайный ход в подвал гильдии воров",
+      "importance": 0.9,
+      "tags": []
+    },
+    {
+      "day": -1000,
+      "summary": "Тень приказал Люсе быть готовой к большому делу",
+      "importance": 0.8,
+      "tags": []
+    },
+    {
+      "day": -1000,
+      "summary": "Торнин знает, что подвал используется гильдией, но притворяется",
+      "importance": 0.8,
+      "tags": []
+    },
+    {
+      "day": -1000,
+      "summary": "Люся спит с кузнецом Ормом, а Борко подглядывает",
+      "importance": 0.7,
+      "tags": []
+    },
+    {
+      "day": -3285,
+      "summary": "семью убили бандиты",
+      "importance": 0.6,
+      "tags": [
+        "chronicle:f81ac113ce97b5dfe1393d92cca03a5e"
+      ]
+    }
+  ],
+  "relationship_cache": {
+    "tavern_keeper_tornin": {
+      "trust": 40.0,
+      "chronicle_origin": null
+    },
+    "thief_shadow": {
+      "trust": 30.0,
+      "chronicle_origin": "da4d1ee51d57b6eccf255a19bc28c3a2"
+    },
+    "guard_borko": {
+      "trust": 30.0,
+      "chronicle_origin": "f79e8da791629444faa3f63d70f5bbc4"
+    },
+    "blacksmith_orm": {
+      "trust": 50.0,
+      "chronicle_origin": null
+    }
+  },
+  "psyche_beliefs": {},
+  "affective_imprints_count": 2,
+  "affective_imprints": [
+    {
+      "trigger_tags": [
+        "избиение Люси трактирщиком"
+      ],
+      "decay_rate": 0.0,
+      "pain_signature": 0.7
+    },
+    {
+      "trigger_tags": [
+        "звон посуды",
+        "гремящие звуки"
+      ],
+      "decay_rate": 0.0,
+      "pain_signature": 0.7
+    }
+  ]
+}

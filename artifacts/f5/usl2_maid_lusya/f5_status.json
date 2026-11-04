@@ -1,0 +1,28 @@
+{
+  "F5-01_EventMemory": {
+    "seed_count": 0,
+    "runtime_available": false,
+    "status": "RED",
+    "note": "EventMemory НЕ загружены"
+  },
+  "F5-02_Relationship": {
+    "seed_count": 0,
+    "targets": [],
+    "runtime_available": false,
+    "status": "RED",
+    "note": "Relationships НЕ загружены"
+  },
+  "F5-03_Belief": {
+    "seed_count": 0,
+    "types": [],
+    "runtime_available": false,
+    "status": "RED",
+    "note": "Beliefs НЕ загружены в psyche"
+  },
+  "F5-04_Imprints": {
+    "seed_count": 0,
+    "runtime_available": false,
+    "status": "RED",
+    "note": "Imprints НЕ загружены"
+  }
+}

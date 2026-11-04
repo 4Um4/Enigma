@@ -1,0 +1,9 @@
+{
+  "script": "scripts/f5_usl2_maid_lusya.py",
+  "commit_sha": "d4b592e96e603da2730040ad0307c787b554fec0",
+  "timestamp": "2026-11-04 11:54:54",
+  "campaign_id": "Open_road",
+  "npc_id": "maid_lusya",
+  "ticks": 10,
+  "harness": "TavernGameplayHarness"
+}
