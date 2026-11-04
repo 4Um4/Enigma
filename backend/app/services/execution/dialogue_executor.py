@@ -375,6 +375,47 @@ class DialogueExecutor:
             return "[Причины изменений твоего состояния]:\n" + "\n".join(lines)
         return ""
 
+    def _format_contradictions(self, agent_id: str, campaign_id: str) -> str:
+        """Priority 4 Part A: Format polarity=False records (negations/contradictions).
+
+        Показывает NPC противоречивые сведения — опровержения:
+        "Ты слышал, что X НЕ оскорблял Y (от Z, уверенность: 0.30)"
+        Не разрешает противоречие — только expose для LLM.
+        Не новый SSOT — читает существующий EpistemicStore.
+        """
+        if self._epistemic_store is None:
+            return ""
+        try:
+            records = self._epistemic_store.get_all_for_agent(agent_id)
+        except Exception:
+            return ""
+        negations = [r for r in records if not r.proposition.polarity]
+        if not negations:
+            return ""
+        _PRED_MAP = {
+            "insulted": "оскорблял", "stole": "воровал у",
+            "attacked": "нападал на", "helped": "помогал",
+            "asserts": "утверждал",
+        }
+        lines = []
+        for r in negations[-5:]:
+            _subj = r.proposition.subject_id
+            _pred = r.proposition.predicate.value
+            _obj = r.proposition.object_id
+            _source = r.source_id
+            _conf = r.confidence
+            _subj_name = self._get_context(_subj, campaign_id).get("name", _subj) if _subj else _subj
+            _obj_name = self._get_context(_obj, campaign_id).get("name", _obj) if _obj else _obj
+            _source_name = self._get_context(_source, campaign_id).get("name", _source) if _source else _source
+            _pred_text = _PRED_MAP.get(_pred, str(_pred))
+            lines.append(
+                f"  • Ты слышал, что {_subj_name} НЕ {_pred_text} {_obj_name} "
+                f"(от {_source_name}, уверенность: {_conf:.2f})"
+            )
+        if lines:
+            return "[Противоречивые сведения, о которых ты знаешь]:\n" + "\n".join(lines)
+        return ""
+
     @staticmethod
     def _verdict_directive(verdict: Any) -> str:
         """P7-A: сериализация вердикта в поведенческую директиву промпта.
@@ -533,6 +574,17 @@ class DialogueExecutor:
                             user_prompt += "\n" + _causal_text + "\n"
             except Exception as _ce:
                 logger.warning(f"[DIALOGUE_EXEC] causal context failed: {_ce}")
+
+        # Priority 4 Part A: contradictions — polarity=False records visible to NPC.
+        # NPC видит противоречивые сведения (опровержения) — не разрешает, а учитывает.
+        # Не новый SSOT — читает существующий EpistemicStore (ADR-O-354).
+        if self._epistemic_store is not None:
+            try:
+                _contr_text = self._format_contradictions(task.owner_id, task.campaign_id)
+                if _contr_text:
+                    user_prompt += "\n" + _contr_text + "\n"
+            except Exception as _ce2:
+                logger.warning(f"[DIALOGUE_EXEC] contradictions failed: {_ce2}")
 
         user_prompt += "Скажи свою реплику:"
 
