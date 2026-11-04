@@ -1,4 +1,4 @@
-﻿{
+{
   "schema_version": 1,
   "chronicle_id": "maid_lusya",
   "npc_ref": "maid_lusya",
@@ -201,7 +201,8 @@
       "object_id": null,
       "payload": {
         "summary": "регулярное насилие после пьянки",
-        "day": null
+        "day": null,
+        "is_recurring": true
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -1341,7 +1342,7 @@
   "npc_beliefs": [],
   "cause_candidates": [],
   "canonical": true,
-  "canonical_version": 1,
+  "canonical_version": 2,
   "created_by_tick_source": null,
   "game_start_age": 14,
   "event_groups": []
