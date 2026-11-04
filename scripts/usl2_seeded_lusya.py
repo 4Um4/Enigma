@@ -16,7 +16,7 @@ from app.services.chronicle.chronicle_store import document_from_dict
 from app.services.chronicle import chronicle_seeder
 
 canon_path = ROOT / 'config/npc/chronicles/maid_lusya.json'
-canon_raw = json.loads(canon_path.read_text(encoding='utf-8'))
+canon_raw = json.loads(canon_path.read_text(encoding='utf-8-sig'))
 doc = document_from_dict(canon_raw)
 print(f'[DOC] {doc.chronicle_id}: {len(doc.entries)} entries, game_start_age={doc.game_start_age}')
 

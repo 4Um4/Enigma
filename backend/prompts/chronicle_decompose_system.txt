@@ -16,7 +16,8 @@
 НЕ эмитируй needs_confirmation=false или question=null явно.
 
 KIND (только эти значения):
-- EVENT: событие жизни. draft_payload: {"summary": <фраза автора>, "day": null|<int>, "duration_years": null|<int>, "years_ago": null|<int>}
+- EVENT: событие жизни. draft_payload: {"summary": <фраза автора>, "day": null|<int>, "duration_years": null|<int>, "years_ago": null|<int>, "is_recurring": true|false}
+  is_recurring — ОБЯЗАТЕЛЬНО true для повторяющихся событий (REPEAT-якорь: «регулярно», «каждый год», «постоянно», «периодически»). Для единичных — false или отсутствует.
   duration_years — продолжительность периода, связанного с событием (например «уже 57 лет куёт»).
   years_ago — точка в прошлом относительно текущего момента (например «100 лет тому назад»).
   НЕ используй duration_years для возраста на момент события (это historical_age через "age": N).
@@ -80,8 +81,9 @@ KIND (только эти значения):
      Создай EVENT с "age": <вычисленное значение>. НЕ years_ago, НЕ duration_years.
    - REPEAT «каждый год» / «регулярно» / «постоянно» → повторяемое событие.
      Создай EVENT с summary, отражающим регулярность («регулярно избивал»,
-     «каждый год ходил»). НЕ years_ago, НЕ duration_years. Это паттерн
-     повторения, не точка и не длительность.
+     «каждый год ходил»), И ОБЯЗАТЕЛЬНО установи "is_recurring": true в draft_payload.
+     Маркер регулярности в summary И is_recurring:true — оба обязательны при REPEAT.
+     НЕ years_ago, НЕ duration_years. Это паттерн повторения, не точка и не длительность.
    - AMBIGUOUS «N лет» без контекста → НЕ создавай EVENT с этим числом
    
    Пример 1: «146 лет, из которых 57 лет кузнец» →

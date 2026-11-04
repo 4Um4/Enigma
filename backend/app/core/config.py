@@ -160,7 +160,7 @@ class Settings(BaseSettings):
     # ИТОГО:             ~7192 MB (88% VRAM)
     gpu_layers: int = 99  # Fallback по умолчанию, если профиль не найден
     threads: int = 8
-    ctx_size: int = 8192
+    ctx_size: int = 16384  # USL-2: промпт декомпозиции 8284 токена > 8192 (CCH-12+CCH-14+CCH-15+USL правки)
 
     # ─────────────────────────────────────────────────────────────────
     # Генерация (из Before.md — оптимально для Dark Fantasy)
