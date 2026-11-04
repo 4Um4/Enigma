@@ -134,7 +134,7 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
     from app.services.npc.cognition_context import CognitionContextResolver
     _cog_mm = getattr(ctx, "memory_manager", None)  # noqa: ENIGMA002
     # COGNITIVE-CONTINUITY-01: name resolver from all_npcs_raw (ID -> game name)
-    def _cog_name_resolver(npc_id):
+    def _cog_name_resolver(npc_id: str) -> dict:
         for n in (ctx.all_npcs_raw or []):
             if n.get("npc_id") == npc_id or n.get("id") == npc_id:
                 return {"name": n.get("name", npc_id)}

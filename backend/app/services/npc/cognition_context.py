@@ -127,7 +127,10 @@ class CognitionContextResolver:
             try:
                 ctx = self._get_context(npc_id)
                 if ctx and ctx.get("name"):
-                    return ctx["name"]
+                    name = ctx["name"]
+                    if isinstance(name, str):
+                        return name
+                    return str(name)
             except Exception as e:
                 logger.warning(f"[COG_CTX] name resolve failed for {npc_id}: {e}")
         return npc_id
