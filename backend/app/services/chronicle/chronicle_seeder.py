@@ -46,12 +46,14 @@ _PL_VALENCE: str = "valence"
 _PL_EFFECT_KIND: str = "effect_kind"
 _PL_TRIGGERS: str = "triggers"        # авторская пометка триггеров trauma (CCH-4)
 _PL_BELIEF_TYPE: str = "belief_type"  # авторская пометка типа убеждения
+_PL_IS_RECURRING: str = "is_recurring"  # S380: маркер повторяемости EVENT (REPEAT-якорь)
 
 # ── Seed-константы (CALIBRATION_CANDIDATE — ТЗ CCH-01 §11, риск №4) ─────────
 
 SEED_EVENT_IMPORTANCE: float = 0.6         # ТЗ §7.4: «по умолчанию 0.6»
 SEED_TRAUMA_EVENT_IMPORTANCE: float = 0.9  # ТЗ §7.4: «для травм ≥0.9»
 SEED_DECAY_RATE: float = 0.001             # прецедент _convert_origin_events
+SEED_DECAY_RATE_RECURRING: float = 0.0005  # S380: повторяющиеся события забываются медленнее (CALIBRATION_CANDIDATE)
 SEED_TRUST_NEGATIVE: float = -40.0         # valence=negative (словарь nature
 SEED_TRUST_POSITIVE: float = 30.0          #  НЕ закрыт — калибровка CCH-6)
 SEED_TRAUMA_PAIN: float = 0.7
@@ -189,7 +191,13 @@ def build_seed_memories(npc_id: str, doc: ChronicleDocument) -> Tuple[Any, ...]:
                 ),
                 clarity=1.0,
                 confidence=1.0,
-                decay_rate=SEED_DECAY_RATE,
+                # S380: повторяющиеся события (is_recurring=True в payload) —
+                # пониженный decay_rate. Семантика REPEAT-якоря доходит до памяти.
+                decay_rate=(
+                    SEED_DECAY_RATE_RECURRING
+                    if bool(e.payload.get(_PL_IS_RECURRING, False))
+                    else SEED_DECAY_RATE
+                ),
                 summary=str(e.payload.get(_PL_SUMMARY, "")),
                 npc_id=npc_id,
                 tags=(f"chronicle:{e.entry_id}",),

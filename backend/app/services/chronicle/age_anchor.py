@@ -220,14 +220,16 @@ def age_anchors_to_hint(anchors: List[AgeAnchor]) -> str:
                 lines.append(
                     f"    REPEAT: повтор каждые {a.value} лет. "
                     f"Создавай EVENT с повторяющимся характером — "
-                    f"в summary укажи «регулярно / каждый год». "
+                    f"в summary укажи «регулярно / каждый год», "
+                    f"И ОБЯЗАТЕЛЬНО установи is_recurring: true в draft_payload. "
                     f"НЕ years_ago, НЕ duration_years (это паттерн повторения)."
                 )
             else:
                 lines.append(
                     "    REPEAT: повторяемое событие (без конкретного периода). "
                     "Создавай EVENT с summary, отражающим регулярность "
-                    "(«регулярно», «постоянно», «каждый год»). "
+                    "(«регулярно», «постоянно», «каждый год»), "
+                    "И ОБЯЗАТЕЛЬНО установи is_recurring: true в draft_payload. "
                     "НЕ years_ago, НЕ duration_years."
                 )
     return "\n".join(lines) + "\n\n"
