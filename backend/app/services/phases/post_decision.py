@@ -602,7 +602,12 @@ def _prop_target_in_reach(scene_state: dict, speaker_id: str, target_id: str) ->
         if _s_local is None or _t_local is None:
             return False
         import math
-        return math.hypot(_s_local[0] - _t_local[0], _s_local[1] - _t_local[1]) <= 6.0
+        # FIX: local_position is dict {"x":.., "y":..} — use .get(), not [0]/[1]
+        _sx = _s_local.get("x", 0.0) if isinstance(_s_local, dict) else _s_local[0]
+        _sy = _s_local.get("y", 0.0) if isinstance(_s_local, dict) else _s_local[1]
+        _tx = _t_local.get("x", 0.0) if isinstance(_t_local, dict) else _t_local[0]
+        _ty = _t_local.get("y", 0.0) if isinstance(_t_local, dict) else _t_local[1]
+        return math.hypot(_sx - _tx, _sy - _ty) <= 6.0
     except Exception as _e:
         import logging
         logging.getLogger(__name__).warning(f"[PROP_TARGET_IN_REACH] failed for {speaker_id}->{target_id}: {_e}")
