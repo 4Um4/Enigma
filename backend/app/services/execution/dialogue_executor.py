@@ -344,6 +344,35 @@ class DialogueExecutor:
         except Exception as e:
             logger.warning(f"[P6_E1] emit failed (fail-open): {e}", exc_info=True)
 
+    def _format_causal_context(self, ledger: list) -> str:
+        """CC-09: Format causal_ledger entries for LLM prompt.
+
+        Показывает NPC ПОЧЕМУ его состояние изменилось:
+        причина (source) + величина (delta) + тик.
+        Не новый SSOT — читает существующий causal_ledger.
+        """
+        _FIELD_MAP = {
+            "trust": "доверие", "fear": "страх", "hp": "здоровье",
+            "stress": "напряжение", "anger": "гнев",
+        }
+        lines = []
+        for entry in ledger[-10:]:
+            if not isinstance(entry, dict):
+                continue
+            _field = str(entry.get("field", "") or "")
+            _field_text = _FIELD_MAP.get(_field, _field)
+            _delta = float(entry.get("delta", 0.0) or 0.0)
+            _source = str(entry.get("source", "") or "")
+            _tick = entry.get("tick", 0)
+            _sign = "+" if _delta > 0 else ""
+            lines.append(
+                f"  • {_field_text} изменилось на {_sign}{_delta:.1f} "
+                f"(причина: {_source}, тик: {_tick})"
+            )
+        if lines:
+            return "[Причины изменений твоего состояния]:\n" + "\n".join(lines)
+        return ""
+
     @staticmethod
     def _verdict_directive(verdict: Any) -> str:
         """P7-A: сериализация вердикта в поведенческую директиву промпта.
@@ -482,6 +511,26 @@ class DialogueExecutor:
                     user_prompt += "\n" + _cog_block + "\n"
             except Exception as _cog_e:
                 logger.warning(f"[DIALOGUE_EXEC] cognition block failed: {_cog_e}")
+
+        # CC-09: causal context — WHY state changed (causal_ledger -> LLM prompt).
+        # Не новый SSOT — читает существующий NPCState.causal_ledger (ADR-CAUSAL-SPINE).
+        # NPC может объяснить изменение доверия/страха конкретным событием.
+        if self._npc_states_provider is not None:
+            try:
+                _states = self._npc_states_provider(task.campaign_id)
+                _npc_dict = next(
+                    (s for s in (_states or [])
+                     if s.get("npc_id") == task.owner_id or s.get("id") == task.owner_id),
+                    None,
+                )
+                if _npc_dict:
+                    _ledger = _npc_dict.get("causal_ledger", [])
+                    if _ledger:
+                        _causal_text = self._format_causal_context(_ledger)
+                        if _causal_text:
+                            user_prompt += "\n" + _causal_text + "\n"
+            except Exception as _ce:
+                logger.warning(f"[DIALOGUE_EXEC] causal context failed: {_ce}")
 
         user_prompt += "Скажи свою реплику:"
 

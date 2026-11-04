@@ -1565,6 +1565,20 @@ class StateApplicator:
                 timestamp=delta.timestamp,
             )
         )
+        # CC-09: CausalEntry for belief changes — same causal_ledger as trust/fear.
+        # Не новый SSOT — существующий causal_ledger (ADR-CAUSAL-SPINE).
+        from app.models.psychological import CausalEntry
+        state.causal_ledger.append(
+            CausalEntry(
+                npc_id=state.npc_id,
+                field=f"belief:{delta.belief_type.value}",
+                delta=delta.new_value - delta.old_value,
+                source=delta.source,
+                tick=delta.timestamp,
+            )
+        )
+        if len(state.causal_ledger) > 20:
+            state.causal_ledger = state.causal_ledger[-20:]
 
     def apply_deltas_and_commit(
         self,
