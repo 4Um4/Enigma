@@ -1,0 +1,1916 @@
+{
+  "experiment": "S415.2 A/B v9",
+  "timestamp": "2026-11-05 23:07:32",
+  "config": {
+    "n_ticks": 10,
+    "seed": 42,
+    "target_npc": "maid_lusya",
+    "threat_npc": "tavern_keeper_tornin"
+  },
+  "A": {
+    "variant": "A",
+    "monkeypatch_active": false,
+    "pre_flight_static": {
+      "present": true,
+      "narrative_cache_count": 10,
+      "narrative_cache_target_ids": [
+        "",
+        "",
+        "",
+        "tavern_keeper_tornin",
+        "tavern_keeper_tornin",
+        "blacksmith_orm",
+        "blacksmith_orm",
+        "",
+        "",
+        ""
+      ],
+      "narrative_cache_types": [
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory"
+      ],
+      "narrative_cache_is_secret_flags": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "psyche_beliefs_keys": [
+        "danger"
+      ],
+      "affective_imprints_count": 2,
+      "relationship_cache": {
+        "tavern_keeper_tornin": {
+          "trust": -40.0,
+          "fear": 60.0,
+          "chronicle_origin": "c63060b4cef419c032530f507d088435"
+        },
+        "thief_shadow": {
+          "trust": 30.0,
+          "fear": 0.0,
+          "chronicle_origin": "da4d1ee51d57b6eccf255a19bc28c3a2"
+        },
+        "guard_borko": {
+          "trust": 30.0,
+          "fear": 0.0,
+          "chronicle_origin": "57c1117b42b20d82400cc77e80c9631d"
+        },
+        "blacksmith_orm": {
+          "trust": 30.0,
+          "fear": 0.0,
+          "chronicle_origin": "281f8bf8d03bf2e4a793b34e8059c123"
+        }
+      },
+      "stress": 0,
+      "local_position": "(0.0, 0.0)"
+    },
+    "pre_flight_runtime": {
+      "present": false
+    },
+    "post_tick_runtime": {
+      "present": true,
+      "narrative_cache_count": 10,
+      "narrative_cache_target_ids": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "tavern_keeper_tornin",
+        "tavern_keeper_tornin",
+        "blacksmith_orm"
+      ],
+      "narrative_cache_types": [
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory"
+      ],
+      "narrative_cache_is_secret_flags": [
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "psyche_beliefs_keys": [
+        "danger"
+      ],
+      "affective_imprints_count": 2,
+      "relationship_cache": {
+        "tavern_keeper_tornin": {
+          "trust": -40.0,
+          "fear": 60.0,
+          "chronicle_origin": "c63060b4cef419c032530f507d088435"
+        },
+        "thief_shadow": {
+          "trust": 30.0,
+          "fear": 0.0,
+          "chronicle_origin": "da4d1ee51d57b6eccf255a19bc28c3a2"
+        },
+        "guard_borko": {
+          "trust": 30.0,
+          "fear": 0.0,
+          "chronicle_origin": "57c1117b42b20d82400cc77e80c9631d"
+        },
+        "blacksmith_orm": {
+          "trust": 30.0,
+          "fear": 0.0,
+          "chronicle_origin": "281f8bf8d03bf2e4a793b34e8059c123"
+        }
+      },
+      "stress": 0.0,
+      "local_position": "{'x': 7.833333333333334, 'y': 4.666666666666666, 'z': 0.0}"
+    },
+    "ticks_run": 10,
+    "movement_intents_count": 49,
+    "scene_changes_count": 8,
+    "positions": {
+      "guard_borko": [
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ]
+      ],
+      "merchant_goran": [
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y"
+        ]
+      ],
+      "maid_lusya": [
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ]
+      ],
+      "blacksmith_orm": [
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ]
+      ],
+      "thief_shadow": [
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ]
+      ],
+      "tavern_keeper_tornin": [
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ]
+      ],
+      "player": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y"
+        ]
+      ]
+    },
+    "movement_intents": [
+      {
+        "tick": 0,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:right_table"
+      },
+      {
+        "tick": 0,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 0,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:behind_bar"
+      },
+      {
+        "tick": 0,
+        "npc_id": "blacksmith_orm",
+        "intent": "?",
+        "target": "tavern:node_17"
+      },
+      {
+        "tick": 0,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:kitchen"
+      },
+      {
+        "tick": 1,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 1,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 1,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:bar_west"
+      },
+      {
+        "tick": 1,
+        "npc_id": "blacksmith_orm",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 1,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 2,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 2,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 2,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:bar_west"
+      },
+      {
+        "tick": 2,
+        "npc_id": "blacksmith_orm",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 2,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 3,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 3,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 3,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 3,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 4,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 4,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 4,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 4,
+        "npc_id": "blacksmith_orm",
+        "intent": "?",
+        "target": "tavern:bar_area"
+      },
+      {
+        "tick": 4,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 5,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 5,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 5,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 5,
+        "npc_id": "blacksmith_orm",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 5,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 6,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 6,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 6,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 6,
+        "npc_id": "blacksmith_orm",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 6,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 7,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 7,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 7,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 7,
+        "npc_id": "blacksmith_orm",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 7,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 8,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 8,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 8,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 8,
+        "npc_id": "blacksmith_orm",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 8,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 9,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:right_table"
+      },
+      {
+        "tick": 9,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 9,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 9,
+        "npc_id": "blacksmith_orm",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 9,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:right_table"
+      }
+    ],
+    "scene_changes": [
+      {
+        "tick": 0,
+        "target": "maid_lusya",
+        "field": "position",
+        "new_value": "",
+        "cause": "semantic_relocation:schedule:working"
+      },
+      {
+        "tick": 0,
+        "target": "maid_lusya",
+        "field": "body_heading",
+        "new_value": "",
+        "cause": "semantic_relocation_heading"
+      },
+      {
+        "tick": 3,
+        "target": "maid_lusya",
+        "field": "position",
+        "new_value": "",
+        "cause": "semantic_relocation:proactive_seek_ally"
+      },
+      {
+        "tick": 3,
+        "target": "maid_lusya",
+        "field": "body_heading",
+        "new_value": "",
+        "cause": "semantic_relocation_heading"
+      },
+      {
+        "tick": 6,
+        "target": "maid_lusya",
+        "field": "position",
+        "new_value": "",
+        "cause": "semantic_relocation:need_driven:hunger=0.56"
+      },
+      {
+        "tick": 6,
+        "target": "maid_lusya",
+        "field": "body_heading",
+        "new_value": "",
+        "cause": "semantic_relocation_heading"
+      },
+      {
+        "tick": 9,
+        "target": "maid_lusya",
+        "field": "position",
+        "new_value": "",
+        "cause": "semantic_relocation:proactive_seek_ally"
+      },
+      {
+        "tick": 9,
+        "target": "maid_lusya",
+        "field": "body_heading",
+        "new_value": "",
+        "cause": "semantic_relocation_heading"
+      }
+    ],
+    "errors": []
+  },
+  "B": {
+    "variant": "B",
+    "monkeypatch_active": true,
+    "pre_flight_static": {
+      "present": true,
+      "narrative_cache_count": 0,
+      "narrative_cache_target_ids": [],
+      "narrative_cache_types": [],
+      "narrative_cache_is_secret_flags": [],
+      "psyche_beliefs_keys": [],
+      "affective_imprints_count": 0,
+      "relationship_cache": {
+        "tavern_keeper_tornin": {
+          "trust": 40.0,
+          "fear": 0.0,
+          "chronicle_origin": null
+        },
+        "thief_shadow": {
+          "trust": 10.0,
+          "fear": 0.0,
+          "chronicle_origin": null
+        },
+        "guard_borko": {
+          "trust": 60.0,
+          "fear": 0.0,
+          "chronicle_origin": null
+        },
+        "blacksmith_orm": {
+          "trust": 50.0,
+          "fear": 0.0,
+          "chronicle_origin": null
+        }
+      },
+      "stress": 0,
+      "local_position": "(0.0, 0.0)"
+    },
+    "pre_flight_runtime": {
+      "present": false
+    },
+    "post_tick_runtime": {
+      "present": true,
+      "narrative_cache_count": 10,
+      "narrative_cache_target_ids": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "maid_lusya",
+        "maid_lusya",
+        "maid_lusya",
+        "maid_lusya",
+        "maid_lusya"
+      ],
+      "narrative_cache_types": [
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory",
+        "EventMemory"
+      ],
+      "narrative_cache_is_secret_flags": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "psyche_beliefs_keys": [],
+      "affective_imprints_count": 0,
+      "relationship_cache": {
+        "tavern_keeper_tornin": {
+          "trust": 40.0,
+          "fear": 0.0,
+          "chronicle_origin": null
+        },
+        "thief_shadow": {
+          "trust": 10.0,
+          "fear": 0.0,
+          "chronicle_origin": null
+        },
+        "guard_borko": {
+          "trust": 60.0,
+          "fear": 0.0,
+          "chronicle_origin": null
+        },
+        "blacksmith_orm": {
+          "trust": 50.0,
+          "fear": 0.0,
+          "chronicle_origin": null
+        }
+      },
+      "stress": 0.0,
+      "local_position": "{'x': 16.19333354766804, 'y': 3.7057859653635115, 'z': 0.0}"
+    },
+    "ticks_run": 10,
+    "movement_intents_count": 47,
+    "scene_changes_count": 6,
+    "positions": {
+      "guard_borko": [
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ]
+      ],
+      "merchant_goran": [
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ]
+      ],
+      "maid_lusya": [
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ]
+      ],
+      "blacksmith_orm": [
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y"
+        ]
+      ],
+      "thief_shadow": [
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ]
+      ],
+      "tavern_keeper_tornin": [
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ],
+        [
+          "x",
+          "y",
+          "z"
+        ]
+      ],
+      "player": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y"
+        ],
+        [
+          "x",
+          "y"
+        ]
+      ]
+    },
+    "movement_intents": [
+      {
+        "tick": 0,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:corner_table"
+      },
+      {
+        "tick": 0,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 0,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:node_17"
+      },
+      {
+        "tick": 0,
+        "npc_id": "blacksmith_orm",
+        "intent": "?",
+        "target": "tavern:node_17"
+      },
+      {
+        "tick": 0,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:corner_table"
+      },
+      {
+        "tick": 1,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:corner_table"
+      },
+      {
+        "tick": 1,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 1,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 1,
+        "npc_id": "blacksmith_orm",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 1,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:corner_table"
+      },
+      {
+        "tick": 2,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:exit_east"
+      },
+      {
+        "tick": 2,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 2,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 2,
+        "npc_id": "blacksmith_orm",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 2,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:exit_east"
+      },
+      {
+        "tick": 3,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:entrance"
+      },
+      {
+        "tick": 3,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 3,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:node_16"
+      },
+      {
+        "tick": 3,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:entrance"
+      },
+      {
+        "tick": 4,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:exit_east"
+      },
+      {
+        "tick": 4,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 4,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:node_16"
+      },
+      {
+        "tick": 4,
+        "npc_id": "blacksmith_orm",
+        "intent": "?",
+        "target": "tavern:bar_area"
+      },
+      {
+        "tick": 4,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:exit_east"
+      },
+      {
+        "tick": 5,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:exit_east"
+      },
+      {
+        "tick": 5,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 5,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:kitchen"
+      },
+      {
+        "tick": 5,
+        "npc_id": "blacksmith_orm",
+        "intent": "?",
+        "target": "tavern:bar_area"
+      },
+      {
+        "tick": 5,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:exit_east"
+      },
+      {
+        "tick": 6,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:right_table"
+      },
+      {
+        "tick": 6,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 6,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:kitchen"
+      },
+      {
+        "tick": 6,
+        "npc_id": "blacksmith_orm",
+        "intent": "?",
+        "target": "tavern:bar_area"
+      },
+      {
+        "tick": 6,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:right_table"
+      },
+      {
+        "tick": 7,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:right_table"
+      },
+      {
+        "tick": 7,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 7,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:kitchen"
+      },
+      {
+        "tick": 7,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:corner_table"
+      },
+      {
+        "tick": 8,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:main_hall_south"
+      },
+      {
+        "tick": 8,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:main_hall_south"
+      },
+      {
+        "tick": 8,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:kitchen"
+      },
+      {
+        "tick": 8,
+        "npc_id": "blacksmith_orm",
+        "intent": "?",
+        "target": "tavern:bar_area"
+      },
+      {
+        "tick": 8,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:main_hall_south"
+      },
+      {
+        "tick": 9,
+        "npc_id": "guard_borko",
+        "intent": "?",
+        "target": "tavern:main_hall_west"
+      },
+      {
+        "tick": 9,
+        "npc_id": "merchant_goran",
+        "intent": "?",
+        "target": "tavern:main_hall_west"
+      },
+      {
+        "tick": 9,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:kitchen_bed_1"
+      },
+      {
+        "tick": 9,
+        "npc_id": "tavern_keeper_tornin",
+        "intent": "?",
+        "target": "tavern:kitchen_bed_1"
+      }
+    ],
+    "scene_changes": [
+      {
+        "tick": 0,
+        "target": "maid_lusya",
+        "field": "position",
+        "new_value": "",
+        "cause": "semantic_relocation:schedule:working"
+      },
+      {
+        "tick": 0,
+        "target": "maid_lusya",
+        "field": "body_heading",
+        "new_value": "",
+        "cause": "semantic_relocation_heading"
+      },
+      {
+        "tick": 4,
+        "target": "maid_lusya",
+        "field": "position",
+        "new_value": "",
+        "cause": "semantic_relocation:schedule:working"
+      },
+      {
+        "tick": 4,
+        "target": "maid_lusya",
+        "field": "body_heading",
+        "new_value": "",
+        "cause": "semantic_relocation_heading"
+      },
+      {
+        "tick": 7,
+        "target": "maid_lusya",
+        "field": "position",
+        "new_value": "",
+        "cause": "semantic_relocation:need_driven:shelter_urge=0.64"
+      },
+      {
+        "tick": 7,
+        "target": "maid_lusya",
+        "field": "body_heading",
+        "new_value": "",
+        "cause": "semantic_relocation_heading"
+      }
+    ],
+    "errors": []
+  },
+  "verdict": {
+    "links": [
+      {
+        "link": "BIOGRAPHY->MEMORY (static)",
+        "A": 10,
+        "B": 0,
+        "expected_diff": true,
+        "has_diff": true,
+        "status": "PASS"
+      },
+      {
+        "link": "MEM-1 target_id (tornin, static)",
+        "A": "2 entries",
+        "B": "0 entries",
+        "expected_diff": true,
+        "has_diff": true,
+        "status": "PASS"
+      },
+      {
+        "link": "MEMORY->FEAR (trust tornin, static)",
+        "A": -40.0,
+        "B": 40.0,
+        "expected_diff": true,
+        "has_diff": true,
+        "status": "PASS"
+      },
+      {
+        "link": "DECISION (movement_intents count)",
+        "A": 10,
+        "B": 10,
+        "expected_diff": true,
+        "has_diff": false,
+        "status": "FAIL_NO_DIFF"
+      },
+      {
+        "link": "ACTION->MOVEMENT (scene_changes)",
+        "A": 8,
+        "B": 6,
+        "expected_diff": true,
+        "has_diff": true,
+        "status": "PASS"
+      },
+      {
+        "link": "MOVEMENT->WORLD_STATE (total distance)",
+        "A": 11.129,
+        "B": 10.332,
+        "expected_diff": true,
+        "has_diff": true,
+        "status": "PASS"
+      }
+    ],
+    "persistence_check": {
+      "static_count": 10,
+      "runtime_count": 0,
+      "runtime_event_count": 0,
+      "runtime_types_sample": [],
+      "status": "WARN_RUNTIME_LOST_MEMORY"
+    },
+    "usl2_verdict": "OPEN",
+    "A_intents": [
+      {
+        "tick": 0,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:behind_bar"
+      },
+      {
+        "tick": 1,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:bar_west"
+      },
+      {
+        "tick": 2,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:bar_west"
+      },
+      {
+        "tick": 3,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 4,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 5,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 6,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 7,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 8,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:main_hall"
+      },
+      {
+        "tick": 9,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      }
+    ],
+    "B_intents": [
+      {
+        "tick": 0,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:node_17"
+      },
+      {
+        "tick": 1,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 2,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:fireplace"
+      },
+      {
+        "tick": 3,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:node_16"
+      },
+      {
+        "tick": 4,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:node_16"
+      },
+      {
+        "tick": 5,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:kitchen"
+      },
+      {
+        "tick": 6,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:kitchen"
+      },
+      {
+        "tick": 7,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:kitchen"
+      },
+      {
+        "tick": 8,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:kitchen"
+      },
+      {
+        "tick": 9,
+        "npc_id": "maid_lusya",
+        "intent": "?",
+        "target": "tavern:kitchen_bed_1"
+      }
+    ],
+    "A_scene_changes": [
+      {
+        "tick": 0,
+        "target": "maid_lusya",
+        "field": "position",
+        "new_value": "",
+        "cause": "semantic_relocation:schedule:working"
+      },
+      {
+        "tick": 0,
+        "target": "maid_lusya",
+        "field": "body_heading",
+        "new_value": "",
+        "cause": "semantic_relocation_heading"
+      },
+      {
+        "tick": 3,
+        "target": "maid_lusya",
+        "field": "position",
+        "new_value": "",
+        "cause": "semantic_relocation:proactive_seek_ally"
+      },
+      {
+        "tick": 3,
+        "target": "maid_lusya",
+        "field": "body_heading",
+        "new_value": "",
+        "cause": "semantic_relocation_heading"
+      },
+      {
+        "tick": 6,
+        "target": "maid_lusya",
+        "field": "position",
+        "new_value": "",
+        "cause": "semantic_relocation:need_driven:hunger=0.56"
+      },
+      {
+        "tick": 6,
+        "target": "maid_lusya",
+        "field": "body_heading",
+        "new_value": "",
+        "cause": "semantic_relocation_heading"
+      },
+      {
+        "tick": 9,
+        "target": "maid_lusya",
+        "field": "position",
+        "new_value": "",
+        "cause": "semantic_relocation:proactive_seek_ally"
+      },
+      {
+        "tick": 9,
+        "target": "maid_lusya",
+        "field": "body_heading",
+        "new_value": "",
+        "cause": "semantic_relocation_heading"
+      }
+    ],
+    "B_scene_changes": [
+      {
+        "tick": 0,
+        "target": "maid_lusya",
+        "field": "position",
+        "new_value": "",
+        "cause": "semantic_relocation:schedule:working"
+      },
+      {
+        "tick": 0,
+        "target": "maid_lusya",
+        "field": "body_heading",
+        "new_value": "",
+        "cause": "semantic_relocation_heading"
+      },
+      {
+        "tick": 4,
+        "target": "maid_lusya",
+        "field": "position",
+        "new_value": "",
+        "cause": "semantic_relocation:schedule:working"
+      },
+      {
+        "tick": 4,
+        "target": "maid_lusya",
+        "field": "body_heading",
+        "new_value": "",
+        "cause": "semantic_relocation_heading"
+      },
+      {
+        "tick": 7,
+        "target": "maid_lusya",
+        "field": "position",
+        "new_value": "",
+        "cause": "semantic_relocation:need_driven:shelter_urge=0.64"
+      },
+      {
+        "tick": 7,
+        "target": "maid_lusya",
+        "field": "body_heading",
+        "new_value": "",
+        "cause": "semantic_relocation_heading"
+      }
+    ],
+    "A_total_distance": 11.129,
+    "B_total_distance": 10.332,
+    "A_errors": [],
+    "B_errors": []
+  },
+  "elapsed_seconds": 27.2
+}
