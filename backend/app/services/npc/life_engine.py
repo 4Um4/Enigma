@@ -1017,6 +1017,7 @@ class LifeEngine:
                 runtime_npcs = self._persistence.load_npc_runtime(campaign_id)
                 if runtime_npcs is not None:
                     runtime_npcs = self._normalize_runtime_npcs(runtime_npcs)
+                    runtime_npcs = self._apply_cch4_seed(runtime_npcs)
                     self._npc_cache[campaign_id] = runtime_npcs
                     # BUG-DRIFT-009 FIX: Используем единый монотонный счётчик _touch_counter,
                     # как в _touch(). Раньше тут был float(len(self._last_access)) + 1.0,
@@ -1078,11 +1079,64 @@ class LifeEngine:
                 npc["location_id"] = npc.get("location", DEFAULT_LOCATION_ID)
         return npcs
 
+    @staticmethod
+    def _apply_cch4_seed(npcs: List[Any]) -> List[Any]:
+        """P2 FIX (USL-2): CCH-4 chronicle seed для LifeEngine cache populate.
+
+        LifeEngine._load_npcs имеет ТРИ COLD paths (SQLite, campaign JSON,
+        global JSON) и ОДИН HOT path (cache). До этого фикса только
+        GameLoop._load_npcs_with_runtime применял CCH-4 seed (через
+        load_npcs_merged). Альтернативные paths (через loop._load_npcs()
+        из scene_init.py:51, npc_provider=lambda в game_loop:145) заполняли
+        cache БЕЗ seed → psyche["beliefs"] отсутствовал → первый
+        _load_npcs_with_runtime получал cache HIT и пропускал seed →
+        beliefs терялись в runtime (P2 баг).
+
+        Локальный фикс: применить seed ПОСЛЕ _normalize_runtime_npcs, перед
+        self._npc_cache[campaign_id] = ... — общая точка для всех COLD paths.
+        New-game gate: not _psyche.get("beliefs") and not _narrative —
+        повторяет логику load_npcs_merged (npc_loader.py:358-368) и
+        load_l2_state_from_runtime_dict (npc_loader.py:1039-1045).
+        Не дублирует логику seeder — делегирует в _apply_chronicle_seed_to_dict.
+
+        S415.1 FIX: narrative_cache seeding (mirror load_npcs_merged L370-382).
+        До этого фикса _apply_cch4_seed сеял ТОЛЬКО beliefs + imprints,
+        но НЕ narrative_cache. life_engine path (harness.new_game) никогда
+        не получал memories → narrative_cache=0 в обоих вариантах A/B v8.
+        """
+        from app.services.chronicle import chronicle_seeder as _cseed
+        from app.services.npc.npc_loader import _apply_chronicle_seed_to_dict
+
+        for _npc in npcs:
+            _psyche = _npc.get("psyche", {})
+            if not _psyche.get("beliefs") and not _npc.get("narrative_cache"):
+                _npc_id = _npc.get("id") or _npc.get("npc_id")
+                if _npc_id:
+                    _apply_chronicle_seed_to_dict(_npc, _psyche)
+                    # S415.1: narrative_cache seeding (mirror load_npcs_merged L370-382)
+                    _doc = _cseed.canonical_chronicle(_npc_id)
+                    if _doc:
+                        _memories = _cseed.build_seed_memories(_npc_id, _doc)
+                        if _memories:
+                            _cache_list = []
+                            for _item in _memories:
+                                _d = {**_item.__dict__, "_memory_type": type(_item).__name__}
+                                if "tags" in _d and isinstance(_d["tags"], tuple):
+                                    _d["tags"] = list(_d["tags"])
+                                if "known_by" in _d and isinstance(_d["known_by"], tuple):
+                                    _d["known_by"] = list(_d["known_by"])
+                                if "hidden_from" in _d and isinstance(_d["hidden_from"], tuple):
+                                    _d["hidden_from"] = list(_d["hidden_from"])
+                                _cache_list.append(_d)
+                            _npc["narrative_cache"] = _cache_list
+        return npcs
+
     def _extracted_from__load_npcs_14(
         self, arg0: Path, campaign_id: str
     ) -> List[Any]:
         npcs = json.loads(arg0.read_text(encoding="utf-8-sig"))
         npcs = self._normalize_runtime_npcs(npcs)
+        npcs = self._apply_cch4_seed(npcs)
         self._npc_cache[campaign_id] = npcs
         return npcs
 
