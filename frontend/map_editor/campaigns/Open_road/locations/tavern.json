@@ -1430,11 +1430,11 @@
       "type": "door",
       "position": {
         "x": 14.0,
-        "y": 4.5
+        "y": 3.0
       },
       "size": {
         "w": 1.0,
-        "h": 1.0
+        "h": 2.0
       },
       "rotation": 0,
       "passability": {
@@ -1454,7 +1454,8 @@
         "visibility_through": 0.0,
         "target_file": "",
         "target_portal": ""
-      }
+      },
+      "wall_id": "wall_7"
     },
     {
       "id": "ladder_3",
