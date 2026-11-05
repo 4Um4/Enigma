@@ -55,6 +55,7 @@ SEED_TRAUMA_EVENT_IMPORTANCE: float = 0.9  # ТЗ §7.4: «для травм ≥
 SEED_DECAY_RATE: float = 0.001             # прецедент _convert_origin_events
 SEED_DECAY_RATE_RECURRING: float = 0.0005  # S380: повторяющиеся события забываются медленнее (CALIBRATION_CANDIDATE)
 SEED_TRUST_NEGATIVE: float = -40.0         # valence=negative (словарь nature
+SEED_FEAR_NEGATIVE: float = 60.0  # F5: fear для negative valence + nature=страх/вражда/зависимость
 SEED_TRUST_POSITIVE: float = 30.0          #  НЕ закрыт — калибровка CCH-6)
 SEED_TRAUMA_PAIN: float = 0.7
 SEED_TRAUMA_FEAR: float = 0.5
@@ -286,13 +287,27 @@ def build_seed_relationships(npc_id: str, doc: ChronicleDocument) -> Dict[str, D
     _LEGACY_SCALARS — двойная защита). Неразрешённый адресат — громкий лог,
     не сеется, в каноне остаётся."""
     result: Dict[str, Dict[str, Any]] = {}
+    # F5 (USL-2): target_hint fallback через roster — если object_id не резолвнут
+    # (WhiteSpot), попробовать target_hint через CanonicalRegistry bridge (USL-1.5).
+    # Биографические RELATIONSHIP о Tornin/Orm имеют target_hint="Торнин"/"Орм"
+    # но object_id=WHITE_SPOT — без fallback seeder skip'ает их, biography не доходит.
+    from app.services.input.intent_compressor import _resolve_npc_by_name
+    # F5 (USL-2): fear для negative valence + nature=страх/вражда/зависимость.
+    # Биографическое насилие (valence=negative, nature=вражда) должно транслироваться
+    # в fear — иначе DecisionHub не видит угрозу от конкретного NPC.
+    _FEAR_NATURES = frozenset({"страх", "вражда", "зависимость"})
     for e in _author_entries(doc):
         if e.kind is not EntryKind.RELATIONSHIP:
             continue
         tgt = _resolved_npc_id(e.object_id)
         if tgt is None:
-            logger.warning(f"[CCH_SEED] {npc_id}:{e.entry_id}: связь на неразрешённую сущность — не сеется")
-            continue
+            # F5 fallback: target_hint → roster (USL-1.5 CanonicalRegistry bridge)
+            _hint = e.payload.get("target_hint", "")
+            if _hint:
+                tgt = _resolve_npc_by_name(_hint)
+            if tgt is None:
+                logger.warning(f"[CCH_SEED] {npc_id}:{e.entry_id}: связь на неразрешённую сущность (hint={_hint!r}) — не сеется")
+                continue
         if tgt == npc_id:
             continue
         valence = e.payload.get(_PL_VALENCE)
@@ -303,11 +318,14 @@ def build_seed_relationships(npc_id: str, doc: ChronicleDocument) -> Dict[str, D
         else:
             logger.warning(f"[CCH_SEED] {npc_id}:{e.entry_id}: valence='{valence}' без числа — не сеется")
             continue
+        # F5: fear для negative valence + nature=страх/вражда/зависимость
+        nature = e.payload.get("nature", "")
+        fear = SEED_FEAR_NEGATIVE if (valence == "negative" and nature in _FEAR_NATURES) else 0.0
         # Канон = актуальный снимок (вердикт S336): перезапись village-статика
         # на уровне загрузки осознанна; работающая кампания защищена
         # V2 existing-RAM-wins + sanitizer sync (кэш в дикте эфемерен,
         # P1 ARCH FIX npc_state:1264 «НЕ восстанавливаем из персистенса»).
-        result[tgt] = {"trust": trust, "chronicle_origin": e.entry_id}
+        result[tgt] = {"trust": trust, "fear": fear, "chronicle_origin": e.entry_id}
     if result:
         logger.info(f"[CCH_SEED] {npc_id}: relationships={sorted(result)}")
     return result

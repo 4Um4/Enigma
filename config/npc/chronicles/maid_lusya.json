@@ -133,7 +133,8 @@
       "payload": {
         "summary": "Торнин относился к Люсии как к неудобной работнице",
         "nature": "вражда",
-        "valence": "negative"
+        "valence": "negative",
+        "target_hint": "Торнин"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -174,7 +175,12 @@
         "white_spot_id": null,
         "name_hint": ""
       },
-      "object_id": null,
+      "object_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
       "payload": {
         "summary": "Торнин ударил Люсю за разбитую кружку",
         "day": null,
@@ -198,7 +204,12 @@
         "white_spot_id": null,
         "name_hint": ""
       },
-      "object_id": null,
+      "object_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
       "payload": {
         "summary": "регулярное насилие после пьянки",
         "day": null,
@@ -224,7 +235,8 @@
       "object_id": null,
       "payload": {
         "nature": "вражда",
-        "valence": "negative"
+        "valence": "negative",
+        "target_hint": "Торнин"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -305,7 +317,12 @@
         "white_spot_id": null,
         "name_hint": ""
       },
-      "object_id": null,
+      "object_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "blacksmith_orm",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
       "payload": {
         "summary": "была изнасилована кузнецом Ормом",
         "day": null,
@@ -430,7 +447,12 @@
         "white_spot_id": null,
         "name_hint": ""
       },
-      "object_id": null,
+      "object_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "blacksmith_orm",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
       "payload": {
         "summary": "застал Орм с насильственным действием над Люсей",
         "day": null,

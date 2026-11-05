@@ -78,7 +78,8 @@ def compute_objective_risk(event: Any, state: NPCState) -> float:
 
     # Память и давление — только для агрессивных событий
     if _et_val not in _social_events:
-        _rel_data = state.relationship_cache.get("player", {})
+        _source_id = getattr(event, "source", "player") or "player"
+        _rel_data = state.relationship_cache.get(_source_id, {})
         _pressure = _rel_data.get("recent_pressure", 0.0)
         if _pressure > 0.01:
             base_risk += min(_pressure * 0.5, 0.3)
@@ -90,7 +91,7 @@ def compute_objective_risk(event: Any, state: NPCState) -> float:
             _type = getattr(_m, "event_type", "")  # noqa: ENIGMA002
             _weight = (
                 0.15
-                if _type in ("player_attacks", "combat", "intimidation", "theft")
+                if _type in ("player_attacks", "combat", "intimidation", "theft", "origin")
                 else 0.05
             )
             _memory_penalty += _m.importance * _weight

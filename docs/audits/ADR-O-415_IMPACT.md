@@ -54,3 +54,22 @@ Files: scripts/lint_relationship_cache_allowlist.py, backend/tests/IPT.py, backe
 ## Граница решения
 - GAP-1C (activation), α-design-question (модели A–D), GAP-4 (idle-store wiring), RE-D9 (BehaviorMask/fear-scale) — НЕ решались, владельцы по roadmap.
 - Роли сайтов — документация заморозки, не enforcement.
+
+**Census-touch 7199cc2b (2026-11-04):** `services/npc/npc_loader.py` 12→15.
+CCH-4 P1 FIX — расширение new-game gate в `_needs_chronicle_relations`
+(строки 396, 399, 400). Проверка `not any(v.get("chronicle_origin") ...)` 
+поверх `relationship_cache` — легитимное усиление S341 seeder logic. 
+3 сайта = 1 логический if-gate. Гвард не ослаблен, заморозка сохранена.
+```
+
+## Тесты до/после
+
+| Проверка | До | После |
+|---|---|---|
+| `python scripts/lint_relationship_cache_allowlist.py` | 🔴 GROWTH npc_loader 15 vs 12 | ✅ Freeze соблюдён: 20 файлов / 60 сайтов |
+| `pytest test_re_cache_allowlist.py::test_real_tree_green` | 🔴 FAIL (GROWTH) | ✅ PASS |
+| `pytest test_re_cache_allowlist.py::test_baseline_pinned` | ? (нужно проверить) | ✅ PASS (после обновления pin) |
+| `pytest test_re_cache_allowlist.py` (весь) | ? | ✅ 7/7 PASS |
+| `python tests/IPT.py` INV-RE-CACHE-ALLOWLIST | 🔴 CRITICAL | ✅ GREEN |
+| IPT total | 53/0/1 CRITICAL | 54/0/0 |
+

@@ -16,11 +16,11 @@ import logging
 import math
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, cast
 
+from app.domain.constants import action_perception_radius  # COGNITIVE-CONTINUITY-01 S7: SSOT sound radius
 from app.domain.tick import TickMutation, TickState
 from app.services.npc.belief_modifier_resolver import BeliefModifierResolver
 from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 from app.services.spatial.spatial_runtime import line_of_sight, sound_reach
-from app.domain.constants import action_perception_radius  # COGNITIVE-CONTINUITY-01 S7: SSOT sound radius
 
 if TYPE_CHECKING:
     from app.domain.movement import LocalSteeringGoal, MacroMovementGoal
@@ -1027,6 +1027,34 @@ class NpcTickPipeline:
                     f"[NEED_MODIFIERS] failed to read NeedLevel for {npc_id}: {_need_err}"
                 )
                 _need_modifiers = None
+            # MEM-3 (F5): npc_memory_modifiers — оживление MEM-D28.
+            # memory_manager.get_weights_for_decision возвращает recent_pressure
+            # per target. Если NPC имеет травматический опыт с конкретным target
+            # (target_id в EventMemory), recent_pressure > 0 → boost flee,
+            # suppress approach. Pressure deforms, not commands (ADR-O-391).
+            _npc_memory_modifiers: Optional[Dict[str, float]] = None
+            try:
+                _mm = getattr(state, "memory_manager", None)
+                if _mm is not None:
+                    _all_tgt_ids = [
+                        n.get("npc_id") for n in state.all_npcs_raw
+                        if n.get("npc_id") and n.get("npc_id") != npc_id
+                    ]
+                    if _all_tgt_ids:
+                        _mem_weights = _mm.get_weights_for_decision(
+                            state.campaign_id, npc_id, _all_tgt_ids
+                        )
+                        _total_pressure = 0.0
+                        for _tid, _w in _mem_weights.items():
+                            _total_pressure += _w.get("recent_pressure", 0.0)
+                        if _total_pressure > 0.01:
+                            _npc_memory_modifiers = {
+                                "flee": min(_total_pressure * 0.01, 0.5),
+                                "approach": -min(_total_pressure * 0.01, 0.3),
+                            }
+            except Exception as _mem_err:
+                logger.warning(f"[MEM-3] npc_memory_modifiers failed for {npc_id}: {_mem_err}")
+
             decision = DecisionHub(rng=_rng).compute(
                 state=state_l2,
                 personality=profile_l0,
@@ -1050,6 +1078,7 @@ class NpcTickPipeline:
                 causal_addressee=_causal_addressee, # 2b-ii: причина→адресат→действие
                 cognition_modifiers=_cognition_mods, # P3d: внимание→utility (санкция)
                 need_modifiers=_need_modifiers, # R2 (CCH-15 P1): NeedLevel→utility
+                npc_memory_modifiers=_npc_memory_modifiers, # MEM-3 (F5): memory→utility
                 epistemic_context=_epistemic_ctx, # S197: Causal Provenance
                 opportunity_ctx=_opp_ctx,  # ADR-O-366: DEBT-OPP-PRODUCER
             )

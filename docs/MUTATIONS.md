@@ -286,7 +286,29 @@
 - [x] ~~DEBT-ADR-NET-N/A-FILL~~ ✅ закрыт S325: атлас-источники исчерпаны (Files: 1→78 filled, 12 шапок канонизированы, no_header 0). Остаток → новый хвост: 94 empty = пер-файловая археология тел аудитов (атлас-источника нет) — reports/d1_disposition.txt; отдельная сессия по санкции.
 - [x] ~~DEBT-DOC-DRIFT-ISPRAVLENIE~~ ✅ закрыт (S323): RemontTZ-пакет (вкл. ENIGMA_TZ_ISPRAVLENIE.md) удалён как суперсиденный — находки поглощены §7.3 AUD-D / §7.7 NL-D / RE-D9; line-drift исчезли вместе с файлами; история в git.
 - **DEBT-TS**: функциональность темпа будет переделана (M4).
-- **DEBT-CCH2-DUP-thief_shadow** (S412-релей, zone A): дубликат записей #28 (entry_id `a09ac62e47788442080b3a435c753dd5`, ordinal 1201) и #30 (entry_id `2b4b43d1d987f090a8a4255744637549`, ordinal 1203) в каноне thief_shadow — идентичный payload {summary: «постоянных девушек у стражника гильдия проверяла — нет», target_hint: «стражник», nature: «dependence», valence: «negative»}. Author_text содержит фразу один раз (п.12); п.13 — переформулировка без точной фразы. Декомпозитор CCH-2 задвоил запись. Канонические записи НЕ удалять и НЕ объединять до вердикта zone A (COV-12: AUTHOR_CONFIRMED не заменяется при re-decompose). Владелец — zone A (CCH-2 декомпозиция). Возможные причины: LLM-дрейф при обработке п.12+п.13, отсутствие дедупликации по payload-хешу в normalizer.
+- **DEBT-CCH2-DUP-thief_shadow** (S412-релей, zone A — DEBT ОТКРЫТ): дубликат записей #28 (entry_id `a09ac62e47788442080b3a435c753dd5`, ordinal 1201) и #30 (entry_id `2b4b43d1d987f090a8a4255744637549`, ordinal 1203) в каноне thief_shadow — идентичный payload RELATIONSHIP {summary, target_hint, nature, valence}.
+
+  **Подтверждённый механизм (из кода):** `decompose_fragment` (routes_chronicle.py:411-415) реализует COV-12 salted-id логику — при повторном decompose того же фрагмента, если слот (F, idx) занят AUTHOR_CONFIRMED записью, новый LLM-вывод получает salted entry_id (`chronicle:redraft{N}`) и сосуществует с авторской записью для ревью. Это сознательная логика для случая «LLM дал ДРУГОЙ результат».
+
+  **Подтверждённое отсутствие check:** grep `duplicate|dedup|existing.*summary` в routes_chronicle.py / decomposition_normalizer.py / biography_decomposer.py — 0 совпадений. Semantic-duplicate check отсутствовал.
+
+  **Реконструкция исторического появления #28/#30 (гипотеза, не доказанная последовательность):** вероятно, повторный decompose_fragment для п.12 thief_shadow при temperature=0 выдал идентичный item; salted-id логика создала дубликат с новым entry_id; последующая канонизация сохранила обе записи. НЕ доказано: точная последовательность вызовов.
+
+  **S413 попытка fix — ОТКАТАН:** локальный semantic-duplicate guard в decompose_fragment был реализован (тип-специфичный semantic-key + явная проверка AUTHOR_CONFIRMED/AUTHOR_AUTHORED). 7 production-path тестов прошли, НО guard нарушил COV-12 контракт «salted-id сосуществует для авторского ревью» — 4 существующих COV-12 теста упали (test_decompose_creates_placeholder_for_non_match, test_shrink_removes_stale_draft, test_author_confirmed_slot_survives, test_other_fragment_drafts_untouched). Guard откатён: routes_chronicle.py восстановлен, test_s413 удалён.
+
+  **Вывод:** COV-12 сознательно разрешает дубликаты через salted-id для авторского ревью. Guard, который skip'ает идентичные items, противоречит этому контракту. DEBT остаётся открытым — требует другого подхода (например, UI-предупреждение автору о потенциальном дубликате, без skip; или явный флаг allow_duplicate в DecomposeRequest; или решение Master оставить как есть — дубликаты сосуществуют сознательно).
+
+  **Существующий дубликат #28/#30 НЕ удаляется** (исторический артефакт). Канон thief_shadow.json не тронут. Владелец — zone A (CCH-2/COV-12).
+
+  **Подтверждённый механизм (из кода):** `decompose_fragment` (routes_chronicle.py:411-415) реализует COV-12 salted-id логику — при повторном decompose того же фрагмента, если слот (F, idx) занят AUTHOR_CONFIRMED записью, новый LLM-вывод получает salted entry_id (`chronicle:redraft{N}`) и сосуществует с авторской записью для ревью. Это сознательная логика для случая «LLM дал ДРУГОЙ результат».
+
+  **Подтверждённое отсутствие check:** grep `duplicate|dedup|existing.*summary` в routes_chronicle.py / decomposition_normalizer.py / biography_decomposer.py — 0 совпадений. Semantic-duplicate check отсутствовал.
+
+  **Реконструкция исторического появления #28/#30 (гипотеза, не доказанная последовательность):** вероятно, повторный decompose_fragment для п.12 thief_shadow при temperature=0 выдал идентичный item; salted-id логика создала дубликат с новым entry_id; последующая канонизация сохранила обе записи. НЕ доказано: точная последовательность вызовов, были ли промежуточные confirm/resolve/delete, какой именно вызов создал дубликат.
+
+  **Fix (S413):** локальный guard в `decompose_fragment` — тип-специфичный semantic-key (`_semantic_key` функция: per-Kind поля — RELATIONSHIP включает nature+valence по требованию Master); если ключ нового item'а совпадает с существующей АВТОРСКОЙ записью (AUTHOR_CONFIRMED/AUTHOR_AUTHORED, явная проверка) того же фрагмента — skip с логированием. 7 production-path тестов с mock LLM (test_s413_decompose_no_duplicate.py). НЕ глобальная дедупликация по payload-хешу.
+
+  **Существующий дубликат #28/#30 НЕ удаляется** (исторический артефакт, требует отдельного решения Master). Канон thief_shadow.json не тронут. Владелец — zone A (CCH-2/COV-12, санкция Master получена).
 - **DEBT-SYSMSG**: системные ошибки невидимы до потребителя (bounded-буферы).
 - **DEBT-FOCUS-OBJECTS** (S285): клик по объекту = переключение фокуса.
 - **DEBT-NG-HEALTHCHECK** (S285).
