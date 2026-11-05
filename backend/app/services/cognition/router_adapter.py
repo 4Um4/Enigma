@@ -44,7 +44,7 @@ class RouterAdapter:
         prompt: str,
         *,
         max_tokens: int = 8,
-        timeout: float = 5.0,
+        timeout: float | None = 5.0,
     ) -> str:
         """LLMClientProtocol.complete() implementation via ModelRouter."""
         params: Any = None
@@ -54,7 +54,7 @@ class RouterAdapter:
                 params = GenerationParams(max_tokens=max_tokens)
             except TypeError:
                 try:
-                    params = GenerationParams(max_tokens)  # type: ignore[misc]
+                    params = GenerationParams(max_tokens)
                 except Exception:  # noqa: BLE001
                     params = None
         except ImportError:
@@ -62,7 +62,7 @@ class RouterAdapter:
 
         _abort = getattr(self._router, "_abort_generation", None)
         _timer: threading.Timer | None = None
-        if _abort is not None and timeout > 0:
+        if _abort is not None and timeout is not None and timeout > 0:
             _timer = threading.Timer(timeout, _abort)
             _timer.daemon = True
             _timer.start()
