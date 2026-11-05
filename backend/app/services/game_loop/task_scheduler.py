@@ -55,7 +55,7 @@ class TaskScheduler:
     Читает scene_state["pending_tasks"], вызывает исполнителей, генерирует события.
     """
 
-    def __init__(self, router: Any = None, context_provider: Any = None, economy_tracker: Any = None, belief_store: Any = None, memory_manager: Any = None, confession_parser: Any = None, npc_states_provider: Any = None, epistemic_store: Any = None) -> None:
+    def __init__(self, router: Any = None, context_provider: Any = None, economy_tracker: Any = None, belief_store: Any = None, memory_manager: Any = None, confession_parser: Any = None, npc_states_provider: Any = None, epistemic_store: Any = None) ->None:
         from app.services.execution.npc_conversation import NpcConversation
         self._executors: Dict[TaskKind, TaskExecutor] = {
             TaskKind.DIALOGUE: DialogueExecutor(router, context_provider, belief_store=belief_store, memory_manager=memory_manager, confession_parser=confession_parser, epistemic_store=epistemic_store)
@@ -68,8 +68,40 @@ class TaskScheduler:
         self._npc_states_provider = npc_states_provider
         # Блокер 5: Sims-слой для ambient-диалогов без LLM
         self._ambient_executor: NpcConversation = NpcConversation()
+
+        # P5-B: PropositionVerifier wired через RouterAdapter.
+        # Production (router is not None): реальный PropositionVerifier с LLM.
+        # LLM-free (router=None): _verifier=None → fail-closed в materializer'е
+        #   (candidate proposition suppress'ится, ERROR-лог).
+        # Это НЕ default-Passthrough: тесты P1-P4, желающие структурную передачу,
+        # должны ЯВНО подменить _materializers["dialogue_line"] на
+        # DialogueMaterializer(proposition_verifier=PassthroughVerifier()) в
+        # своём setUp (через _install_sync_pool или эквивалент).
+        from app.services.cognition.proposition_verifier import PropositionVerifier
+        from app.services.cognition.router_adapter import RouterAdapter
+        _proposition_verifier: Any = None
+        if router is not None:
+            _proposition_verifier = PropositionVerifier(
+                llm=RouterAdapter(router, agent_name="verifier"),
+                timeout=5.0,
+                max_tokens=8,
+            )
+            logger.info(
+                "P5-B: PropositionVerifier wired (router=%s, timeout=5.0s)",
+                type(router).__name__,
+            )
+        else:
+            logger.warning(
+                "P5-B: TaskScheduler initialized without router — "
+                "proposition_verifier=None, materializer will be fail-closed. "
+                "Acceptable for LLM-free tests with explicit materializer override; "
+                "in production it is a misconfiguration."
+            )
+
         self._materializers: Dict[str, Materializer] = {
-            "dialogue_line": DialogueMaterializer()
+            "dialogue_line": DialogueMaterializer(
+                proposition_verifier=_proposition_verifier
+            )
         }
         # BUG-N8 FIX: Инъекция EconomyTracker для трекинга разговоров
         self._economy_tracker = economy_tracker

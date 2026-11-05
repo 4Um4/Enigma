@@ -127,6 +127,22 @@ def _install_sync_pool(harness: TavernGameplayHarness) -> None:
     _sched._executor_pool = _SyncPool()
     print("[WIRING] _executor_pool = _SyncPool (sync, timing-free)")
 
+    # P5-B: LLM-free structural test — подмена materializer на PassthroughVerifier.
+    # _dlg_executor._router = None выше делает DialogueExecutor LLM-free (stub-text),
+    # но _materializers["dialogue_line"] всё ещё содержит реальный PropositionVerifier
+    # с RouterAdapter(real_router) (wired в TaskScheduler.__init__ через production
+    # router из game_loop._get_task_scheduler). На stub-text verifier вызовет
+    # real_router — исключение (LLM-сервер не поднят) → fail-closed →
+    # COMMUNICATION_CLAIM suppressed → testimony упадёт.
+    # Явная подмена на PassthroughVerifier сохраняет старый контракт P1-P4
+    # (structural propagation без семантической проверки).
+    from app.services.cognition.proposition_verifier import PassthroughVerifier
+    from app.services.execution.dialogue_materializer import DialogueMaterializer
+    _sched._materializers["dialogue_line"] = DialogueMaterializer(
+        proposition_verifier=PassthroughVerifier()
+    )
+    print("[WIRING] _materializers['dialogue_line'] = PassthroughVerifier (structural test)")
+
 
 def _install_spies(harness: TavernGameplayHarness) -> None:
     from app.services.events.event_bus import get_event_bus

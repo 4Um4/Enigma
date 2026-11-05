@@ -57,12 +57,34 @@ class _SyncPool:
 
 def _install_sync_pool(harness: TavernGameplayHarness) -> None:
     from app.domain.execution import TaskKind
-    _sched = harness.game_loop._get_task_scheduler()
+    _sched = getattr(harness.game_loop, "_task_scheduler", None)
+    if _sched is None:
+        _sched = harness.game_loop._get_task_scheduler()
     _executors = getattr(_sched, "_executors", None) or {}
     _dlg_executor = _executors.get(TaskKind.DIALOGUE)
     if _dlg_executor is not None and hasattr(_dlg_executor, "_router"):
         _dlg_executor._router = None
+        print("[WIRING] DialogueExecutor._router = None (LLM-free)")
+    else:
+        print(f"[WIRING] WARN: DialogueExecutor not found in _executors={list(_executors.keys())}")
     _sched._executor_pool = _SyncPool()
+    print("[WIRING] _executor_pool = _SyncPool (sync, timing-free)")
+
+    # P5-B: LLM-free structural test — подмена materializer на PassthroughVerifier.
+    # _dlg_executor._router = None выше делает DialogueExecutor LLM-free (stub-text),
+    # но _materializers["dialogue_line"] всё ещё содержит реальный PropositionVerifier
+    # с RouterAdapter(real_router) (wired в TaskScheduler.__init__ через production
+    # router из game_loop._get_task_scheduler). На stub-text verifier вызовет
+    # real_router — исключение (LLM-сервер не поднят) → fail-closed →
+    # COMMUNICATION_CLAIM suppressed → testimony упадёт.
+    # Явная подмена на PassthroughVerifier сохраняет старый контракт P1-P4
+    # (structural propagation без семантической проверки).
+    from app.services.cognition.proposition_verifier import PassthroughVerifier
+    from app.services.execution.dialogue_materializer import DialogueMaterializer
+    _sched._materializers["dialogue_line"] = DialogueMaterializer(
+        proposition_verifier=PassthroughVerifier()
+    )
+    print("[WIRING] _materializers['dialogue_line'] = PassthroughVerifier (structural test)")
 
 
 def _capture_error_logs() -> List[str]:

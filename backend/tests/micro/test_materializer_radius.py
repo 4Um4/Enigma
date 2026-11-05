@@ -1,4 +1,4 @@
-"""
+﻿"""
 path: /project/backend/tests/micro/test_materializer_radius.py
 Назначение: D0 (GC-DIALOGUE-01) — замок SSOT-радиуса материализатора: EventDTO
     NPC_SPOKE / COMMUNICATION_CLAIM обязаны нести radius = exposure_radius
@@ -73,7 +73,28 @@ def test_materializer_claim_radius_follows_speech():
         "object_id": "merchant_goran",
         "polarity": True,
     }
-    events = DialogueMaterializer().materialize(_artifact("secret", proposition=_prop))
+    # P5-B: явный PassthroughVerifier — без verifier'а materializer fail-closed,
+    # claim suppress'ится. PassthroughVerifier сохраняет старый контракт radius-теста.
+    from app.services.cognition.proposition_verifier import PassthroughVerifier
+    events = DialogueMaterializer(proposition_verifier=PassthroughVerifier()).materialize(_artifact("secret", proposition=_prop))
     _claim = next(e for e in events if e.type == EventType.COMMUNICATION_CLAIM.value)
     # S197: клейм едет с той же мембраной, что и речь (secret → 1.5)
+    assert _claim.radius == exposure_radius("secret") == 1.5
+
+def test_materializer_secret_claim_radius():
+    # P5-B: явный PassthroughVerifier — это structural-test для radius
+    # наследования (claim inherits visibility/radius от speech).
+    # Без verifier'а materializer теперь fail-closed — claim suppress'ится.
+    # PassthroughVerifier сохраняет старый контракт P1-P4 для radius-теста.
+    from app.services.cognition.proposition_verifier import PassthroughVerifier
+    _prop = {
+        "subject_id": "thief_shadow",
+        "predicate": "ACCUSED_OF",
+        "object_id": "merchant_goran",
+        "polarity": True,
+    }
+    events = DialogueMaterializer(
+        proposition_verifier=PassthroughVerifier()
+    ).materialize(_artifact("secret", proposition=_prop))
+    _claim = next(e for e in events if e.type == EventType.COMMUNICATION_CLAIM.value)
     assert _claim.radius == exposure_radius("secret") == 1.5
