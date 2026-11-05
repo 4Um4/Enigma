@@ -15,12 +15,28 @@
         "white_spot_id": null,
         "name_hint": ""
       },
-      "object_id": null,
+      "object_id": {
+        "ref_kind": "WHITE_SPOT",
+        "npc_id": null,
+        "white_spot_id": "self_reference_0",
+        "name_hint": "Стражник Борко"
+      },
       "payload": {
-        "summary": "человек",
-        "target_hint": "Борко",
-        "nature": "dependence",
-        "valence": "positive"
+        "summary": "Борко — стражник, человек",
+        "target_hint": "Стражник Борко",
+        "nature": "человек",
+        "_resolved_questions": [
+          {
+            "question_id": "self_reference_0",
+            "selected_option": "LEAVE_WHITE_SPOT",
+            "selected_value": null
+          }
+        ],
+        "_author_review": {
+          "reviewed": true,
+          "reviewer": "master",
+          "review_date": "2026-11-06"
+        }
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -30,7 +46,7 @@
     },
     {
       "entry_id": "cea95739f6db2a26e65c38b7f9edb0bc",
-      "kind": "EFFECT",
+      "kind": "EVENT",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -41,9 +57,10 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "работал грузчиком на рынке",
-        "effect_kind": "occupation",
-        "target_hint": null
+        "summary": "начал работать грузчиком на рынке",
+        "day": null,
+        "duration_years": null,
+        "years_ago": null
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -54,7 +71,7 @@
     {
       "entry_id": "274fd6c04ba619f3e09e7b78436236d5",
       "kind": "EVENT",
-      "historical_age": null,
+      "historical_age": 16,
       "historical_year": null,
       "subject_id": {
         "ref_kind": "RESOLVED",
@@ -64,8 +81,10 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "пошла уборщицей, шестеркой, в городскую стражу",
-        "day": null
+        "summary": "пошел уборщиком, шестеркой, в городскую стражу",
+        "day": null,
+        "duration_years": null,
+        "years_ago": 16
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -75,6 +94,52 @@
     },
     {
       "entry_id": "4e18591ce3d145a2aa77cd14c9668f9b",
+      "kind": "EVENT",
+      "historical_age": 17,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "стал патрульным на городских улицах",
+        "day": null,
+        "age": 17
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 300
+    },
+    {
+      "entry_id": "9051a8403c153bae02518b49dfd4e2d7",
+      "kind": "EVENT",
+      "historical_age": 22,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "доверили стражу городских ворот",
+        "day": null,
+        "age": 22
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 400
+    },
+    {
+      "entry_id": "f4bfb566094f4b0ca6e5914926d5397b",
       "kind": "EVENT",
       "historical_age": null,
       "historical_year": null,
@@ -86,53 +151,9 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "стал патрульным на городских улицах",
-        "day": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 300
-    },
-    {
-      "entry_id": "9051a8403c153bae02518b49dfd4e2d7",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "с 22 лет доверили стражу городских ворот",
-        "effect_kind": "occupation",
-        "target_hint": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 400
-    },
-    {
-      "entry_id": "f4bfb566094f4b0ca6e5914926d5397b",
-      "kind": "LOCATION",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "тахта пристрастилась заходить в таверну «Серебряный волк» есть днём и выпивать вечером",
-        "name_hint": "Серебряный волк"
+        "summary": "начал регулярно посещать таверну \"Серебряный волк\", находящуюся недалеко от городских ворот",
+        "day": null,
+        "duration_years": 57
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -141,8 +162,8 @@
       "ordinal": 500
     },
     {
-      "entry_id": "bb479cb71994a03e7d61af1c0bec6dd9",
-      "kind": "EFFECT",
+      "entry_id": "4861eb617b39d952e14bd7e0c2dce6fa",
+      "kind": "TRAIT_SEED",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -153,15 +174,102 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "понял, что те, кто вмешивается в чужие дела, долго не живут",
-        "effect_kind": "belief_seed",
-        "target_hint": null
+        "trait": "регулярно посещает таверну \"Серебряный волк\"",
+        "evidence": "Тогда же пристрастился заходить в таверну \"Серебряный волк\""
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 501
+    },
+    {
+      "entry_id": "83f66f7a9021ec7f57ea4814b35e88bd",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": {
+        "ref_kind": "WHITE_SPOT",
+        "npc_id": null,
+        "white_spot_id": "roster_mismatch_2",
+        "name_hint": "таверна \"Серебряный волк\""
+      },
+      "payload": {
+        "summary": "регулярный посетитель таверны \"Серебряный волк\"",
+        "target_hint": "таверна \"Серебряный волк\"",
+        "nature": "увлечение",
+        "valence": "neutral",
+        "_resolved_questions": [
+          {
+            "question_id": "roster_mismatch_2",
+            "selected_option": "LEAVE_WHITE_SPOT",
+            "selected_value": null
+          }
+        ],
+        "_author_review": {
+          "reviewed": true,
+          "reviewer": "master",
+          "review_date": "2026-11-06"
+        }
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 502
+    },
+    {
+      "entry_id": "bb479cb71994a03e7d61af1c0bec6dd9",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "не принимает взятки",
+        "evidence": "Не чурался брать взятки за проход или за закрытие глаз: ещё в детстве понял, что те, кто вмешивается в чужие дела, долго не живут."
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
       "confidence": null,
       "open_questions": [],
       "ordinal": 600
+    },
+    {
+      "entry_id": "32cb679ef5d2367dab0c31dddc50a158",
+      "kind": "PORTRET",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "Не чурался брать взятки за проход или за закрытие глаз: ещё в детстве понял, что те, кто вмешивается в чужие дела, долго не живут.",
+        "traits": [
+          "умеет извлекать уроки",
+          "страх смерти"
+        ]
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 601
     },
     {
       "entry_id": "0f89e9e326ad148cc1b633079217cad0",
@@ -176,10 +284,7 @@
       },
       "object_id": null,
       "payload": {
-        "statement": "из-за внешности он производит хорошее впечатление на начальство, ему доверяют больше остальных и считают наивным добрячком, — хотя сам он себя таковым не считал.",
-        "traits": [
-          "добряк"
-        ]
+        "statement": "чётко понял: из-за внешности он производит хорошее впечатление на начальство, ему доверяют больше остальных и считают наивным добрячком, — хотя сам он себя таковым не считал."
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -189,52 +294,6 @@
     },
     {
       "entry_id": "c38b9562ab3ad6be00951f39108d7ae3",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "благодаря тяжёлой работе в молодости добился хорошего телосложения, что пошло на пользу в службе",
-        "effect_kind": "gain",
-        "target_hint": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 800
-    },
-    {
-      "entry_id": "5fb9371e6b560651c5f4a46e9400b7db",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "гильдия воров поняла, что он ничего собой не представляет",
-        "effect_kind": "loss",
-        "target_hint": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 900
-    },
-    {
-      "entry_id": "df2d4891ff1e3a2f1308ac7e2fe7c21e",
       "kind": "EVENT",
       "historical_age": null,
       "historical_year": null,
@@ -246,8 +305,56 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "начал получать зарплату уже от гильдии воров",
-        "day": null
+        "summary": "добился хорошего телосложения от тяжелой работы",
+        "day": null,
+        "duration_years": null,
+        "years_ago": null,
+        "is_recurring": false
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 800
+    },
+    {
+      "entry_id": "5fb9371e6b560651c5f4a46e9400b7db",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "Гильдия воров прекрасно понимает, что Борко ничего собой не представляет, но все же считает его выгодным",
+        "target_hint": "Гильдия воров"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 900
+    },
+    {
+      "entry_id": "df2d4891ff1e3a2f1308ac7e2fe7c21e",
+      "kind": "EVENT",
+      "historical_age": 24,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "начал получать зарплату от Гильдии воров",
+        "day": null,
+        "age": 24
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -268,8 +375,10 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "познакомился с Гораном",
-        "day": null
+        "summary": "познакомился с Гораном, помогал ему скрывать контрабанду от стражи и властей",
+        "day": null,
+        "duration_years": null,
+        "years_ago": null
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -290,10 +399,8 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "помогал ему скрывать контрабанду от другой стражи и властей",
-        "target_hint": "Горан",
-        "nature": "help",
-        "valence": "positive"
+        "summary": "регулярный посетитель таверны \"Серебряный волк\", за счёт Горана",
+        "nature": "взаимовыгодное пользование услугами"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -303,96 +410,6 @@
     },
     {
       "entry_id": "ebded2555e5c66c4914d8bece6db68da",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "часто пил и ел в «Серебряном волке» за счёт Горана",
-        "effect_kind": "custom",
-        "target_hint": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1102
-    },
-    {
-      "entry_id": "5b42640a395839bea254a5d20647b0e7",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "деньгами от купца не брал никогда",
-        "effect_kind": "gain",
-        "target_hint": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1103
-    },
-    {
-      "entry_id": "f42daab7e2ad16ebb9857c72c55a21bb",
-      "kind": "BELIEF_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "statement": "деньги — улика, а ужин — гостеприимство; с друзей не берут"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1104
-    },
-    {
-      "entry_id": "f9896ac44ebf38e665adbee69b740c58",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "стал начальником на городских воротах",
-        "effect_kind": "residence",
-        "target_hint": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1105
-    },
-    {
-      "entry_id": "e4969e45d262e8b75c62b7e087cecaec",
       "kind": "EVENT",
       "historical_age": null,
       "historical_year": null,
@@ -404,14 +421,61 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "Возрастные якоря фрагмента: [24]. В 24 застал изнасилование Люси Ормом",
-        "day": null
+        "summary": "стал начальником на городских воротах",
+        "day": null,
+        "duration_years": null,
+        "years_ago": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1102
+    },
+    {
+      "entry_id": "e4969e45d262e8b75c62b7e087cecaec",
+      "kind": "EVENT",
+      "historical_age": 24,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "застал изнасилование Люси Ормом",
+        "day": null,
+        "age": 24
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
       "confidence": null,
       "open_questions": [],
       "ordinal": 1200
+    },
+    {
+      "entry_id": "5e4a2c26b0f80c4544c9493d2159d52f",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "впервые испытал возбуждение от насилия (ранее секс был только добровольным)",
+        "evidence": "никогда в жизни ему не представлялся шанс пережить секс, который берут силой — насилие было для него новым опытом"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1201
     },
     {
       "entry_id": "9ace862b3129a6c8a95da86e24ae299e",
@@ -426,8 +490,10 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "застал насилие",
-        "day": null
+        "summary": "угрожает Орму, требует уведомлений о насильственных действиях",
+        "day": null,
+        "duration_years": null,
+        "years_ago": null
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -437,7 +503,7 @@
     },
     {
       "entry_id": "4dbfcd39e25fab0c2b6518a33dc97d9e",
-      "kind": "EFFECT",
+      "kind": "RELATIONSHIP",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -448,9 +514,9 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "хочет снова наблюдать и мастурбировать за этим зрелищем",
-        "effect_kind": "desire",
-        "target_hint": null
+        "summary": "Борко угрожает Орму, требует уведомлений о насильственных действиях против Люси",
+        "nature": "враждебная",
+        "valence": "negative"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -460,7 +526,7 @@
     },
     {
       "entry_id": "6f1b4a560d9b25410ea6d09c0d8ce3b1",
-      "kind": "RELATIONSHIP",
+      "kind": "PORTRET",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -471,10 +537,10 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "хочет снова наблюдать и мастурбировать за этим зрелищем",
-        "target_hint": "Орм",
-        "nature": "desire",
-        "valence": "positive"
+        "statement": "решился подсесть за стол к Орму, заявил о последствиях для Орма, если продолжит насиловать Люсю без предупреждения",
+        "traits": [
+          "решительный"
+        ]
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -483,99 +549,8 @@
       "ordinal": 1302
     },
     {
-      "entry_id": "d8c616e5a125f14a5943a9eca9ea7270",
-      "kind": "EVENT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "решился подсесть за стол к Орму и заявил, что посадит его и сдаст Торнину",
-        "day": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1303
-    },
-    {
-      "entry_id": "a7ff984e73c1a64baf49a62fd7326275",
-      "kind": "RELATIONSHIP",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "не будет сообщать ему заранее, когда снова будет насиловать Люсю",
-        "target_hint": "Орм",
-        "nature": "condition",
-        "valence": "negative"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1304
-    },
-    {
-      "entry_id": "dc7df3d9d4e68fd488d36eae5dc2b13a",
-      "kind": "EVENT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "предложил прекратить насильство",
-        "day": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1305
-    },
-    {
-      "entry_id": "a67670230748a84b17864c2f608039f7",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "его жизнь тут же будет закончена",
-        "effect_kind": "loss",
-        "target_hint": "жизнь Борко"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1306
-    },
-    {
       "entry_id": "ad75147b3697b9f6c0c94ac8e4b1b26c",
-      "kind": "BELIEF_SEED",
+      "kind": "PORTRET",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -586,7 +561,7 @@
       },
       "object_id": null,
       "payload": {
-        "statement": "Не женился только потому, что сначала искал «ту самую», а сейчас «та самая» ему уже не нужна: он хочет наблюдать за насилием, не участвуя в нём напрямую."
+        "statement": "Борко не женился, потому что искал \"ту самую\", а теперь ей уже не нужен. Он хочет наблюдать за насилием, не участвуя напрямую."
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -595,8 +570,8 @@
       "ordinal": 1400
     },
     {
-      "entry_id": "b11830590e8c0ff43b4edaae973d8312",
-      "kind": "TRAIT_SEED",
+      "entry_id": "c5a0511cd1aa062e115a4e62c37ebdcd",
+      "kind": "DESIRE_SEED",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -607,8 +582,29 @@
       },
       "object_id": null,
       "payload": {
-        "trait": "чувство страха",
-        "evidence": "за лёгкой улыбкой и чувством того, как он преуспел в жизни в отличие от остальных"
+        "statement": "хочет снова наблюдать за этим зрелищем и мастурбировать, не участвуя непосредственно в насилии",
+        "about_hint": "насилие над Люсей (наблюдение и мастурбация)"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1401
+    },
+    {
+      "entry_id": "b11830590e8c0ff43b4edaae973d8312",
+      "kind": "PORTRET",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "стражник Борко потерял стыд, но не страх; его маска из улыбки и успеха"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -629,14 +625,82 @@
       },
       "object_id": null,
       "payload": {
-        "trait": "чувство стыда",
-        "evidence": "отпало всякое чувство стыда"
+        "trait": "не показывает страха",
+        "evidence": "осталось только чувство страха, которое он никогда не показывает"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
       "confidence": null,
       "open_questions": [],
       "ordinal": 1501
+    },
+    {
+      "entry_id": "ddb1d836364ccf5a3670c3a2124f083d",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "начал чаще общаться с Люсей после изнасилования",
+        "nature": "интерес",
+        "valence": "positive"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1600
+    },
+    {
+      "entry_id": "3c870300fd89012a45bae2dedb9497e2",
+      "kind": "PORTRET",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "в обычной жизни он видит Люсю строгую, серьёзную и недоступную, с которой иногда можно пошутить или провести лёгкий разговор, а иногда — видит, как Орм её, голую и слабую, насилует раз за разом"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1601
+    },
+    {
+      "entry_id": "e836a69d0663077eea4f3f39ca45ac47",
+      "kind": "EVENT",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "начал чаще общаться с Люсей после изнасилования",
+        "day": null,
+        "duration_years": null,
+        "years_ago": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1602
     },
     {
       "entry_id": "ad335e0076a1115b69238852dda65b8c",
@@ -651,8 +715,8 @@
       },
       "object_id": null,
       "payload": {
-        "trait": "счастлив",
-        "evidence": "Счастливый от того, как он устроился"
+        "trait": "отказывается от дополнительной работы",
+        "evidence": "отказывался от дополнительной работы стражника"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -662,6 +726,147 @@
     },
     {
       "entry_id": "dbcd6275e5b1e5d8f6cf68c0ccb12e14",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": {
+        "ref_kind": "WHITE_SPOT",
+        "npc_id": null,
+        "white_spot_id": "self_reference_1",
+        "name_hint": "Стражник Борко"
+      },
+      "payload": {
+        "nature": "взаимовыгодный",
+        "summary": "не стремится к повышению на службе, отказывается от дополнительной работы",
+        "target_hint": "Стражник Борко",
+        "_resolved_questions": [
+          {
+            "question_id": "self_reference_1",
+            "selected_option": "LEAVE_WHITE_SPOT",
+            "selected_value": null
+          }
+        ],
+        "_author_review": {
+          "reviewed": true,
+          "reviewer": "master",
+          "review_date": "2026-11-06"
+        }
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1701
+    },
+    {
+      "entry_id": "a66a6072f00180fe1bad90d3d96fb301",
+      "kind": "PORTRET",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "Борко мечтает стать хозяином \"Серебряного волка\", но не стремится к этому. Он рад бы, если бы Торнин спился и умер, чтобы завладеть трактиром и нанять слабых служанок для наблюдения.",
+        "traits": [
+          "мечта",
+          "ожидание смерти Торнина"
+        ]
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1800
+    },
+    {
+      "entry_id": "bfb72fcff70396c60abd3d62f016d67d",
+      "kind": "RELATIONSHIP",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "tavern_keeper_tornin",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "payload": {
+        "summary": "Борко не любит Торнина, редко с ним общается. Борко хочет завладеть трактиром после смерти Торнина.",
+        "target_hint": "Торнин Серебряная Луна",
+        "nature": "вражда",
+        "valence": "negative"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1801
+    },
+    {
+      "entry_id": "022ba2f388c5b6716641f425f0871a1a",
+      "kind": "DESIRE_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "стать хозяином \"Серебряного волка\", завладеть трактиром после смерти Торнина, нанять слабых служанок для наблюдения",
+        "about_hint": "трактир \"Серебряный волк\""
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1802
+    },
+    {
+      "entry_id": "dcbf8988b05a182295a803972be0b549",
+      "kind": "EVENT",
+      "historical_age": 20,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "summary": "начинает работать стражником",
+        "day": null,
+        "age": 20,
+        "duration_years": null,
+        "years_ago": null
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 1900
+    },
+    {
+      "entry_id": "9d129cdd8f10d5e55c37e50d544450c8",
       "kind": "EFFECT",
       "historical_age": null,
       "historical_year": null,
@@ -673,58 +878,14 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "отказывался от дополнительной работы стражника и не стремился к повышению на службе",
-        "effect_kind": "custom",
-        "target_hint": null
+        "summary": "работает с копьем на начальном уровне",
+        "effect_kind": "occupation"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
       "confidence": null,
       "open_questions": [],
-      "ordinal": 1701
-    },
-    {
-      "entry_id": "a66a6072f00180fe1bad90d3d96fb301",
-      "kind": "BELIEF_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "statement": "Новая мечта, к которой он, впрочем, и не стремится, — стать хозяином «Серебряного волка». Трактирщик Торнин, старый пьянчужка, ему никогда не нравился, но и говорить с ним приходилось редко."
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1800
-    },
-    {
-      "entry_id": "dcbf8988b05a182295a803972be0b549",
-      "kind": "EVENT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "По долгу службы орудует копьем на начальном уровне.",
-        "day": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 1900
+      "ordinal": 1901
     },
     {
       "entry_id": "d0a8f21d8451b363f3d4e230b1a77df9",
@@ -737,12 +898,15 @@
         "white_spot_id": null,
         "name_hint": ""
       },
-      "object_id": null,
+      "object_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "thief_shadow",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
       "payload": {
-        "summary": "Тень — просто мутный тип, скорее всего связанный с криминалом",
-        "target_hint": "Тень",
-        "nature": "dependence",
-        "valence": "negative"
+        "summary": "Борко не знаком с Тенью, считает его мутным типом, возможно связанным с криминалом",
+        "target_hint": "Тень"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -752,7 +916,7 @@
     },
     {
       "entry_id": "f504069ecb5be7254e04e2eebc86fb51",
-      "kind": "RELATIONSHIP",
+      "kind": "PORTRET",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -763,39 +927,18 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "не зарился на ЕГО Люсю!",
-        "target_hint": "Тень",
-        "nature": "protection",
-        "valence": "positive"
+        "statement": "С Тенью лично не знаком: для него Тень — просто мутный тип, скорее всего связанный с криминалом, который с недавнего времени появился в таверне. И пускай — мало ли таких здесь ходит, лишь бы не зарился на ЕГО Люсю!",
+        "traits": [
+          "не знаком с Тенью",
+          "Тень - мутный тип",
+          "скорее всего связан с криминалом"
+        ]
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
       "confidence": null,
       "open_questions": [],
       "ordinal": 2001
-    },
-    {
-      "entry_id": "5a34c13894b7ae8f4f73c854b51804dc",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "появился в таверне",
-        "effect_kind": "residence",
-        "target_hint": "Тень"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2002
     },
     {
       "entry_id": "5e5c9199ffd79a7471b3a85a17b0d9fd",
@@ -810,10 +953,9 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "Гильдия воров платит Борко зарплату.",
         "target_hint": "Гильдия воров",
-        "nature": "dependence",
-        "valence": "positive"
+        "nature": "взаимовыгодный",
+        "summary": "Борко прикрывает Торнина по приказу Гильдии, чтобы сохранять свою зарплату и не быть убитым. Борко выполняет работу, назначенную ему Гильдией."
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -823,30 +965,6 @@
     },
     {
       "entry_id": "fc9fbc833ade417ba9d21dc289c76d56",
-      "kind": "RELATIONSHIP",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "Борко боится потерять работу.",
-        "target_hint": "Гильдия воров",
-        "nature": "fear",
-        "valence": "negative"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2101
-    },
-    {
-      "entry_id": "69444e52e18d69d8804cdc0fd0ce1b95",
       "kind": "EVENT",
       "historical_age": null,
       "historical_year": null,
@@ -858,8 +976,35 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "Гильдия воров заявила стражнику, что двойное убийство Торнина не существует.",
-        "day": null
+        "summary": "Борко подписывает документы о драке Торнина с кем-то",
+        "day": null,
+        "duration_years": null,
+        "years_ago": null,
+        "is_recurring": false
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2101
+    },
+    {
+      "entry_id": "69444e52e18d69d8804cdc0fd0ce1b95",
+      "kind": "PORTRET",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "Борко выполняет работу, назначенную ему Гильдией, даже если это против его желания. Он не рискует своей жизнью ради Торнина.",
+        "traits": [
+          "исполнителю"
+        ]
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -868,31 +1013,8 @@
       "ordinal": 2102
     },
     {
-      "entry_id": "6285c6ba88139959b1ec211bc065a81f",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "Борко подписывает документы и говорит, что драка закончилась ничем.",
-        "effect_kind": "action",
-        "target_hint": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2103
-    },
-    {
       "entry_id": "499f718646246a1dc301ff41e752d134",
-      "kind": "BELIEF_SEED",
+      "kind": "RELATIONSHIP",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -901,9 +1023,27 @@
         "white_spot_id": null,
         "name_hint": ""
       },
-      "object_id": null,
+      "object_id": {
+        "ref_kind": "WHITE_SPOT",
+        "npc_id": null,
+        "white_spot_id": "roster_mismatch_0",
+        "name_hint": "Орм"
+      },
       "payload": {
-        "statement": "Борко думает, что он кукловод."
+        "summary": "Борко приказал Орму продолжать насиловать Люсю, но сам подсел к Орму",
+        "target_hint": "Орм",
+        "_resolved_questions": [
+          {
+            "question_id": "roster_mismatch_0",
+            "selected_option": "LEAVE_WHITE_SPOT",
+            "selected_value": null
+          }
+        ],
+        "_author_review": {
+          "reviewed": true,
+          "reviewer": "master",
+          "review_date": "2026-11-06"
+        }
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -913,7 +1053,7 @@
     },
     {
       "entry_id": "9b53fcc43eab00d8ebd111f080a2159f",
-      "kind": "BELIEF_SEED",
+      "kind": "PORTRET",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -924,7 +1064,7 @@
       },
       "object_id": null,
       "payload": {
-        "statement": "Борко думает, что без его разрешения Орм не посмеет."
+        "statement": "Орм не боится Борко, продолжает насилование из собственной воли, Борко ошибается, думая, что имеет власть над Ормом"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -945,8 +1085,8 @@
       },
       "object_id": null,
       "payload": {
-        "trait": "заблуждение",
-        "evidence": "Это заблуждение стражника, который в жизни не имел настоящей власти и впервые почувствовал её вкус — пусть и фальшивый."
+        "trait": "не чувствует себя виноватым",
+        "evidence": "Орм продолжает насиловать Люсю не потому, что Борко приказал, а потому что сам хочет"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -967,8 +1107,8 @@
       },
       "object_id": null,
       "payload": {
-        "trait": "безвластный",
-        "evidence": "стражника, который в жизни не имел настоящей власти"
+        "trait": "думает, что имеет власть",
+        "evidence": "Борко искренне верит, что имеет власть над Ормом"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -977,52 +1117,8 @@
       "ordinal": 2203
     },
     {
-      "entry_id": "3c1dbf151ed49cbe4eb39f1bd6b916e4",
-      "kind": "TRAIT_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "trait": "надменный",
-        "evidence": "что он теперь хозяин ситуации, что Орм у него на крючке"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2204
-    },
-    {
-      "entry_id": "4654f3046617610e15414fffeffb210b",
-      "kind": "TRAIT_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "trait": "властолюбивый",
-        "evidence": "что он теперь хозяин ситуации, что Орм у него на крючке"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2205
-    },
-    {
       "entry_id": "fcebc1666f051d3bbce248e072c5d333",
-      "kind": "TRAIT_SEED",
+      "kind": "PORTRET",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -1033,8 +1129,8 @@
       },
       "object_id": null,
       "payload": {
-        "trait": "серый кардинал",
-        "evidence": "Борко не серый кардинал."
+        "statement": "Борко — мелкая рыба, которая вообразила себя акулой, потому что однажды увидела, как акула ест, и решила, что она тоже так умеет. Он не контролирует Орма. Он не контролирует Гильдию. Он не контролирует Горана. Он просто стоит на воротах, улыбается, берёт взятки и смотрит.",
+        "traits": []
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -1044,6 +1140,28 @@
     },
     {
       "entry_id": "eb4689af5a40f5e0de130dc5405f6de0",
+      "kind": "PORTRET",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "ему этого достаточно. Но в голове он рисует себе картину, где он хозяин таверны, хозяин Люси, хозяин всего маленького мира \"Серебряного волка\". И эта картина его греет по ночам. И это всё, что у него есть.",
+        "traits": []
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2301
+    },
+    {
+      "entry_id": "4a441fb8bbf1a6eee9e69fdc44e4c444",
       "kind": "BELIEF_SEED",
       "historical_age": null,
       "historical_year": null,
@@ -1055,31 +1173,8 @@
       },
       "object_id": null,
       "payload": {
-        "statement": "Борко вообразил себя акулой, потому что однажды увидел, как акула ест, и решил, что он тоже так умеет."
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2301
-    },
-    {
-      "entry_id": "4a441fb8bbf1a6eee9e69fdc44e4c444",
-      "kind": "RELATIONSHIP",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "Борко не контролирует Орма.",
-        "target_hint": "Орм",
-        "nature": "dependence",
-        "valence": "negative"
+        "statement": "Борко воображает себя акулой, хозяином мира \"Серебряного волка\", но на самом деле он просто мелкая рыба, которая берёт взятки и смотрит.",
+        "belief_type": "danger"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -1098,12 +1193,27 @@
         "white_spot_id": null,
         "name_hint": ""
       },
-      "object_id": null,
+      "object_id": {
+        "ref_kind": "WHITE_SPOT",
+        "npc_id": null,
+        "white_spot_id": "roster_mismatch_3",
+        "name_hint": "врата"
+      },
       "payload": {
-        "summary": "Борко не контролирует Гильдию.",
-        "target_hint": "Гильдия",
-        "nature": "dependence",
-        "valence": "negative"
+        "summary": "Борко стоит на воротах, улыбается, берёт взятки и смотрит. Он не контролирует Орма, Гильдию или Горана.",
+        "target_hint": "врата",
+        "_resolved_questions": [
+          {
+            "question_id": "roster_mismatch_3",
+            "selected_option": "LEAVE_WHITE_SPOT",
+            "selected_value": null
+          }
+        ],
+        "_author_review": {
+          "reviewed": true,
+          "reviewer": "master",
+          "review_date": "2026-11-06"
+        }
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -1112,31 +1222,7 @@
       "ordinal": 2303
     },
     {
-      "entry_id": "311cc745b30316180417fa8b98aa493b",
-      "kind": "RELATIONSHIP",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "Борко не контролирует Горана.",
-        "target_hint": "Горан",
-        "nature": "dependence",
-        "valence": "negative"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2304
-    },
-    {
-      "entry_id": "4ac24807c230ad75139b4c38bc8d1249",
+      "entry_id": "903ea409bb29efea5166474c66f437ed",
       "kind": "PORTRET",
       "historical_age": null,
       "historical_year": null,
@@ -1148,145 +1234,7 @@
       },
       "object_id": null,
       "payload": {
-        "statement": "Он просто стоит на воротах, улыбается, берёт взятки и смотрит.",
-        "traits": [
-          "улыбается",
-          "берёт взятки",
-          "смотрит"
-        ]
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2305
-    },
-    {
-      "entry_id": "c34465fab7353a8ba67783d7440d553e",
-      "kind": "TRAIT_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "trait": "хозяин таверны",
-        "evidence": "он хозяин таверны"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2306
-    },
-    {
-      "entry_id": "4a3b1290cdf0caf183491131a68e302d",
-      "kind": "TRAIT_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "trait": "хозяин Люси",
-        "evidence": "хозяин Люси"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2307
-    },
-    {
-      "entry_id": "3b5dc4fa187c13faa53f8721bbf32848",
-      "kind": "TRAIT_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "trait": "хозяин всего маленького мира «Серебряного волка»",
-        "evidence": "хозяин всего маленького мира «Серебряного волка»"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2308
-    },
-    {
-      "entry_id": "0e2843517e543728be8ddc5ffac79c01",
-      "kind": "BELIEF_SEED",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "statement": "Эта картина его греет по ночам."
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2309
-    },
-    {
-      "entry_id": "eee496df02d0f7005547005061b9e3d9",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "И это всё, что у него есть.",
-        "effect_kind": "gain",
-        "target_hint": null
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2310
-    },
-    {
-      "entry_id": "903ea409bb29efea5166474c66f437ed",
-      "kind": "EFFECT",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "система грязи сформировалась в его понимании",
-        "effect_kind": "custom",
-        "target_hint": null
+        "statement": "Он никогда не формулировал это как систему, но система есть."
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -1307,8 +1255,8 @@
       },
       "object_id": null,
       "payload": {
-        "trait": "принципиальный",
-        "evidence": "Случайные взятки на воротах — «компенсация за риск». Зарплата гильдии — «плата за покой» (и одновременно повод её бояться)."
+        "trait": "привык держать всё в себе",
+        "evidence": "Он никогда не формулировал это как систему, но система есть."
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -1318,7 +1266,7 @@
     },
     {
       "entry_id": "a0b0fb1ce442e6e2e937fe864f625a4c",
-      "kind": "TRAIT_SEED",
+      "kind": "EVENT",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -1329,8 +1277,10 @@
       },
       "object_id": null,
       "payload": {
-        "trait": "спокойный",
-        "evidence": "У каждого вида грязи своя касса, и пока кассы не смешиваются, совесть спит."
+        "summary": "Бухгалтерия грязи",
+        "day": null,
+        "duration_years": null,
+        "years_ago": null
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -1339,7 +1289,7 @@
       "ordinal": 2402
     },
     {
-      "entry_id": "61576c5b9fe61cade21e46f1583589fc",
+      "entry_id": "d9951c80821f68df8fabd1db39e1dd8a",
       "kind": "EFFECT",
       "historical_age": null,
       "historical_year": null,
@@ -1351,15 +1301,37 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "грязь делает его равнодушным к деньгам до определенного момента",
+        "summary": "Борко не держит копьё дольше минуты по уставу",
         "effect_kind": "custom",
-        "target_hint": null
+        "triggers": null
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
       "confidence": null,
       "open_questions": [],
-      "ordinal": 2403
+      "ordinal": 2500
+    },
+    {
+      "entry_id": "3125cbfb577d62421c746ca30a4e7c7a",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "честный стражник",
+        "evidence": "стражник, который не касается своего оружия — самая честная характеристика"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2501
     },
     {
       "entry_id": "2a55a5b7d6e3d3a014556070b5219b10",
@@ -1374,10 +1346,8 @@
       },
       "object_id": null,
       "payload": {
-        "statement": "Так удобнее зал видеть",
-        "traits": [
-          "подсознательный"
-        ]
+        "statement": "Борко садится за угловой стол лицом не к залу, а к коридору на кухню. Он выбирает этот стол, потому что оттуда виден проход, которым ходит Люся. Орм никогда не объяснял себе, почему делает это — он действует подсознательно.",
+        "traits": []
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -1387,7 +1357,7 @@
     },
     {
       "entry_id": "ed842e44738d3e7fbbbdeb11b6f6db1c",
-      "kind": "LOCATION",
+      "kind": "EVENT",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -1398,38 +1368,16 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "угловой стол",
-        "name_hint": null
+        "summary": "Борко садится за стол",
+        "day": null,
+        "duration_years": null,
+        "years_ago": null
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
       "confidence": null,
       "open_questions": [],
       "ordinal": 2601
-    },
-    {
-      "entry_id": "2b0168e92bc5ec37d0bb6167117cad22",
-      "kind": "RELATIONSHIP",
-      "historical_age": null,
-      "historical_year": null,
-      "subject_id": {
-        "ref_kind": "RESOLVED",
-        "npc_id": "guard_borko",
-        "white_spot_id": null,
-        "name_hint": ""
-      },
-      "object_id": null,
-      "payload": {
-        "summary": "Люся",
-        "target_hint": "Люся",
-        "nature": "внимание",
-        "valence": "positive"
-      },
-      "causes": [],
-      "provenance": "AUTHOR_CONFIRMED",
-      "confidence": null,
-      "open_questions": [],
-      "ordinal": 2602
     },
     {
       "entry_id": "4b1f80c9ec63f395133137849ad6bd98",
@@ -1444,11 +1392,11 @@
       },
       "object_id": null,
       "payload": {
-        "statement": "Он правда говорит с ней как с равной, правда слушает, правда улыбается ей как человеку, а не как вещи.",
+        "statement": "Борко говорит с Люсей как с равной, слушает её, улыбается ей как человеку, не расчётливо. Это настоящая нежность.",
         "traits": [
-          "искренность",
-          "внимание",
-          "сочувствие"
+          "искренний",
+          "равнопричастный",
+          "нежный"
         ]
       },
       "causes": [],
@@ -1459,7 +1407,7 @@
     },
     {
       "entry_id": "bfd7bf0ca4518a12dbfade1cf0324fd4",
-      "kind": "EFFECT",
+      "kind": "TRAIT_SEED",
       "historical_age": null,
       "historical_year": null,
       "subject_id": {
@@ -1470,22 +1418,36 @@
       },
       "object_id": null,
       "payload": {
-        "summary": "она хуже всего остального",
-        "effect_kind": "emotion",
-        "target_hint": null,
-        "_resolved_questions": [
-          {
-            "question_id": "q1",
-            "selected_option": "LEAVE_WHITE_SPOT",
-            "selected_value": null
-          }
-        ]
+        "trait": "разговаривает с жертвой как с равным",
+        "evidence": "говорит с ней как с равной, слушает, улыбается как человеку"
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
       "confidence": null,
       "open_questions": [],
       "ordinal": 2701
+    },
+    {
+      "entry_id": "b8b93d8c46b9d18d5d83a5fdd8c82a13",
+      "kind": "BELIEF_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "всё его поддельное живёт рядом с одной настоящей нежностью направленной на жертву его собственного секрета",
+        "belief_type": "danger"
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2702
     },
     {
       "entry_id": "d2bb079506db552dd673d8973f662821",
@@ -1500,11 +1462,10 @@
       },
       "object_id": null,
       "payload": {
-        "statement": "Растягивает слова, зевает, 'Ааа, ну так и скажи'. Почуяв выгоду — даже мелкую, вроде лишней кружки за счёт купца, — говорит быстрее и тише. Свою монету называет 'медяк' — с удовольствием к мелочи.",
+        "statement": "Обычный вечер. Вся его социальная жизнь умещается в два часа: с двадцати до двадцати двух, угловой стол, дешёвое вино — крепкого он не пьёт: пьяному стражнику не сохранять лицо добрячка.",
         "traits": [
-          "подчеркнутая экономность",
-          "небрежность",
-          "прагматичность"
+          "питие",
+          "сохранение образа"
         ]
       },
       "causes": [],
@@ -1512,9 +1473,144 @@
       "confidence": null,
       "open_questions": [],
       "ordinal": 2800
+    },
+    {
+      "entry_id": "3a76a19e3acdc9cd22069fb340bc2278",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "растягивает слова",
+        "evidence": "Растягивает слова, зевает, \"Ааа, ну так и скажи\"."
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2801
+    },
+    {
+      "entry_id": "260aba3b78db7bc5fa59213f70610ce1",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "говорит быстрее и тише при выгоде",
+        "evidence": "Почуяв выгоду — даже мелкую, вроде лишней кружки за счёт купца, — говорит быстрее и тише."
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2802
+    },
+    {
+      "entry_id": "bab0e6936cc3aa9d5baf40b7e808d966",
+      "kind": "TRAIT_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "trait": "называет монету \"медяк\"",
+        "evidence": "Свою монету называет \"медяк\" — с удовольствием к мелочи."
+      },
+      "causes": [],
+      "provenance": "AUTHOR_CONFIRMED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 2803
+    },
+    {
+      "entry_id": "e3e9d6a1199480181df02641ea0d0826",
+      "kind": "BELIEF_SEED",
+      "historical_age": null,
+      "historical_year": null,
+      "subject_id": {
+        "ref_kind": "RESOLVED",
+        "npc_id": "guard_borko",
+        "white_spot_id": null,
+        "name_hint": ""
+      },
+      "object_id": null,
+      "payload": {
+        "statement": "Борко искренне верит, что имеет власть над Ормом, но ошибается — Орм не боится его и продолжает насиловать Люсю потому, что сам хочет, а Борко для него просто удобный повод не чувствовать себя виноватым",
+        "belief_type": "danger",
+        "_provenance": {
+          "source": "author_text fragment 22",
+          "note": "центральный психологический insight — иллюзия власти кукловода"
+        }
+      },
+      "causes": [],
+      "provenance": "AUTHOR_AUTHORED",
+      "confidence": null,
+      "open_questions": [],
+      "ordinal": 0
     }
   ],
-  "white_spots": [],
+  "white_spots": [
+    {
+      "white_spot_id": "self_reference_0",
+      "label": "Стражник Борко",
+      "context_hint": "resolved via /resolve (entry=6f087a311a7d1426277df35a7bc3ce99)",
+      "resolution_state": "OPEN",
+      "resolution_ref": null,
+      "created_from_entry": "6f087a311a7d1426277df35a7bc3ce99"
+    },
+    {
+      "white_spot_id": "roster_mismatch_2",
+      "label": "таверна \"Серебряный волк\"",
+      "context_hint": "resolved via /resolve (entry=83f66f7a9021ec7f57ea4814b35e88bd)",
+      "resolution_state": "OPEN",
+      "resolution_ref": null,
+      "created_from_entry": "83f66f7a9021ec7f57ea4814b35e88bd"
+    },
+    {
+      "white_spot_id": "self_reference_1",
+      "label": "Стражник Борко",
+      "context_hint": "resolved via /resolve (entry=dbcd6275e5b1e5d8f6cf68c0ccb12e14)",
+      "resolution_state": "OPEN",
+      "resolution_ref": null,
+      "created_from_entry": "dbcd6275e5b1e5d8f6cf68c0ccb12e14"
+    },
+    {
+      "white_spot_id": "roster_mismatch_0",
+      "label": "Орм",
+      "context_hint": "resolved via /resolve (entry=499f718646246a1dc301ff41e752d134)",
+      "resolution_state": "OPEN",
+      "resolution_ref": null,
+      "created_from_entry": "499f718646246a1dc301ff41e752d134"
+    },
+    {
+      "white_spot_id": "roster_mismatch_3",
+      "label": "врата",
+      "context_hint": "resolved via /resolve (entry=086fd00f0fcfd6aa9d85f2ac5fa24f35)",
+      "resolution_state": "OPEN",
+      "resolution_ref": null,
+      "created_from_entry": "086fd00f0fcfd6aa9d85f2ac5fa24f35"
+    }
+  ],
+  "npc_beliefs": [],
+  "cause_candidates": [],
   "canonical": true,
   "canonical_version": 1,
   "created_by_tick_source": null,

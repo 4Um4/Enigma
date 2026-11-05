@@ -725,15 +725,12 @@ def _apply_chronicle_seed_to_dict(raw_data: Dict[str, Any], psyche: Dict[str, An
     _npc_id = raw_data.get("id", "unknown")
     _doc = _cseed.canonical_chronicle(_npc_id)
     if _doc is None:
-        print(f"[P2-TRACE] _apply_chronicle_seed_to_dict: {_npc_id} — НЕТ канона (return)")
         return
     _beliefs = _cseed.build_seed_beliefs(_doc)
-    print(f"[P2-TRACE] _apply_chronicle_seed_to_dict: {_npc_id} build_seed_beliefs={_beliefs}")
     if _beliefs:
         if psyche.get("beliefs"):
             logger.warning(f"[CCH_SEED] {_npc_id}: psyche.beliefs вытеснен каноном (снимок)")
         psyche["beliefs"] = _beliefs
-        print(f"[P2-TRACE] _apply_chronicle_seed_to_dict: {_npc_id} psyche['beliefs'] WRITTEN")
     _imprints = _cseed.build_seed_imprints(_doc)
     if _imprints:
         if raw_data.get("affective_imprints"):
@@ -1048,7 +1045,6 @@ def load_l2_state_from_runtime_dict(
     # входа, повреждённые записи логируются и не роняют загрузку).
     # object.__setattr__ — канонический путь persistence-слоя (ADR-WRITE-GUARD).
     _restored_beliefs = _beliefs_from_persistence(psyche.get("beliefs"))
-    print(f"[P3-DIAG] npc={raw_data.get('id')} beliefs_raw={psyche.get('beliefs')} restored={_restored_beliefs} all={_restored_beliefs.all() if _restored_beliefs else None}")
     if _restored_beliefs is not None:
         object.__setattr__(state, "beliefs", _restored_beliefs)
     # Шаг 7 (Фаза A): narrative_cache_override — preloaded SQLite-кэш

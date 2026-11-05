@@ -1063,6 +1063,16 @@ class NPCState:
         # Фаза A Шаг 8 (аудит P0 №3): beliefs не пережив границу тика, инерция
         # (0.70/0.75) работала с old=0 каждый тик. Сериализация: тип (значение
         # str-Enum) → [value, confidence, source, timestamp].
+        # P2 FIX (USL-2): round-trip safety. to_persistence_dict вызывается
+        # многократно за тик (pipeline_runner × 2, domain_phases, state_applicator,
+        # phases/memory × 2). Первый вызов с пустым state.beliefs (BeliefState(),
+        # ещё не гидратированным) перезаписывал psyche["beliefs"] = {} в shared
+        # npc_dict из LifeEngine cache, убивая beliefs для всех последующих
+        # вызовов load_l2_state_from_runtime_dict (psyche.get("beliefs") → {}).
+        # Защита: НЕ перезаписывать psyche["beliefs"] пустым, если там уже есть
+        # beliefs (канонический seed). Round-trip соблюдён: непустое → пишется;
+        # пустое + psyche уже пустое → остаётся пустым; пустое + psyche
+        # непустое → сохраняем psyche (защита от ложной перезаписи).
         if state.beliefs is not None:
             _beliefs_out: Dict[str, List[Any]] = {}
             for _bt, _frag in state.beliefs.all().items():
@@ -1072,7 +1082,13 @@ class NPCState:
                     _frag.source,
                     _frag.timestamp,
                 ]
-            psyche["beliefs"] = _beliefs_out
+            _existing_beliefs = psyche.get("beliefs")
+            if _beliefs_out:
+                psyche["beliefs"] = _beliefs_out
+            elif not _existing_beliefs:
+                psyche["beliefs"] = _beliefs_out
+            # else: _beliefs_out пуст, _existing_beliefs непуст — сохраняем
+            # существующий psyche["beliefs"] (защита seed от перезаписи пустым)
 
         # Социальные статы (из relationship_cache → player entry)
         rc = state.relationship_cache

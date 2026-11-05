@@ -64,6 +64,9 @@ def _get_decomposer() -> BiographyDecomposer:
     return _decomposer
 
 
+
+
+
 class DecomposeRequest(BaseModel):
     campaign_id: str = Field(..., min_length=1)
     npc_id: str = Field(..., min_length=1)
@@ -612,9 +615,16 @@ async def confirm_author_entries(campaign_id: str, npc_id: str) -> Dict[str, Any
                 new_entries.append(e)
                 continue
             if e.confidence is not None and e.confidence < 0.5:
-                skipped_low_confidence += 1
-                new_entries.append(e)
-                continue
+                # COV-12 (п.2a): low confidence LLM требует ревью.
+                # USL-2 AUTHOR_REVIEW_OVERRIDE: если автор review выполнил
+                # (payload["_author_review"].reviewed == True), пропускаем gate.
+                # Audit trail в payload (precedent _resolved_questions).
+                # confidence НЕ меняется — остаётся оценкой LLM.
+                _ar = (e.payload or {}).get("_author_review") or {}
+                if not _ar.get("reviewed"):
+                    skipped_low_confidence += 1
+                    new_entries.append(e)
+                    continue
             e = _replace(e, provenance=EntryProvenance.AUTHOR_CONFIRMED, confidence=None)
             confirmed += 1
         new_entries.append(e)

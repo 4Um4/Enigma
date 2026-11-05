@@ -85,9 +85,9 @@ def test_missing_entry_violation(tmp_path: Path) -> None:
 
 
 def test_baseline_pinned() -> None:
-    """Baseline заморозки запинен: 21 файлов / 63 сайтов (пересчитан прогоном-судом; +api/routes_chronicle.py:4 DEBUGGER-PROJECTION COV-11/S373)."""
+    """Baseline заморозки запинен: 21 файл / 66 сайтов (npc_loader 12→15 — CCH-4 P1 FIX 7199cc2b census-touch; census-touch завершён параллельной сессией)."""
     assert len(ALLOWLIST) == 21
-    assert sum(ALLOWLIST.values()) == 63
+    assert sum(ALLOWLIST.values()) == 66
 
 
 def test_real_tree_green() -> None:

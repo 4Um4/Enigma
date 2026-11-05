@@ -1,0 +1,48 @@
+﻿[1] GET /chronicle/roster/Open_road
+  roster: 6 NPC (из API)
+
+[NPC] guard_borko (статус: canon)
+  --skip-decompose: использую существующий draft
+  POST confirm-author-entries...
+  confirmed: {'status': 'OK', 'confirmed': 0, 'skipped_open_questions': 0, 'skipped_low_confidence': 5}
+  POST canonize...
+  canonize HTTP 422: {"detail":"Запрет 1 (INV-LLM-NOT-SSOT): LLM_DRAFT '6f087a311a7d1426277df35a7bc3ce99' в каноне guard_borko"}
+
+[NPC] merchant_goran (статус: canon)
+  --skip-decompose: использую существующий draft
+  POST confirm-author-entries...
+  confirmed: {'status': 'OK', 'confirmed': 0, 'skipped_open_questions': 0, 'skipped_low_confidence': 3}
+  POST canonize...
+  canonize HTTP 422: {"detail":"Запрет 1 (INV-LLM-NOT-SSOT): LLM_DRAFT 'cb17be5efc18a8f1214dd0a87da7c1c7' в каноне merchant_goran"}
+
+[NPC] maid_lusya (статус: canon)
+  --skip-decompose: использую существующий draft
+  POST confirm-author-entries...
+  confirm HTTP 404: {"detail":"Черновик maid_lusya не найден в Open_road"}
+
+[NPC] blacksmith_orm (статус: canon)
+  --skip-decompose: использую существующий draft
+  POST confirm-author-entries...
+  confirmed: {'status': 'OK', 'confirmed': 0, 'skipped_open_questions': 0, 'skipped_low_confidence': 1}
+  POST canonize...
+  canonize HTTP 422: {"detail":"Запрет 1 (INV-LLM-NOT-SSOT): LLM_DRAFT '45ac21eac0f718a5aa353b7965f309ee' в каноне blacksmith_orm"}
+
+[NPC] thief_shadow (статус: canon)
+  --skip-decompose: использую существующий draft
+  POST confirm-author-entries...
+  confirmed: {'status': 'OK', 'confirmed': 0, 'skipped_open_questions': 0, 'skipped_low_confidence': 2}
+  POST canonize...
+  canonize HTTP 422: {"detail":"Запрет 1 (INV-LLM-NOT-SSOT): LLM_DRAFT 'ae5ed5c08853e99d24c9d1d9b8ef2653' в каноне thief_shadow"}
+
+[NPC] tavern_keeper_tornin (статус: canon)
+  --skip-decompose: использую существующий draft
+  POST confirm-author-entries...
+  confirmed: {'status': 'OK', 'confirmed': 0, 'skipped_open_questions': 0, 'skipped_low_confidence': 6}
+  POST canonize...
+  canonize HTTP 422: {"detail":"Запрет 1 (INV-LLM-NOT-SSOT): LLM_DRAFT 'bc23e1faf9e560e1f146576805ffbf08' в каноне tavern_keeper_tornin"}
+
+============================================================
+ИТОГ: OK=0, FAIL=6
+      фрагментов: 0
+      items: 0
+      авто-резолвов: 0

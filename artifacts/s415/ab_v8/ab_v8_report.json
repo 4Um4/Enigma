@@ -1,0 +1,210 @@
+{
+  "timestamp": "2026-11-05 21:51:18",
+  "commit_sha": "db0e0f12382eddca08173bcb784885f410f75b78",
+  "npc_id": "maid_lusya",
+  "stimulus": "я угрожаю служанке Люсе",
+  "post_stimulus_ticks": 3,
+  "variant_A": {
+    "label": "A",
+    "bio_disabled": false,
+    "cognitive": {
+      "narrative_cache_count": 0,
+      "relationship_cache_targets": [],
+      "affective_imprints_count": 0
+    },
+    "positions": {
+      "lusya_before": {
+        "x": 7.98736111111111,
+        "y": 1.8263888888888888
+      },
+      "lusya_after": {
+        "x": 13.5,
+        "y": 3.0,
+        "z": 0.0
+      },
+      "player_before": {
+        "x": 8.204957561728396,
+        "y": 11.90991512345679
+      },
+      "player_after": {
+        "x": 8.204957561728396,
+        "y": 11.90991512345679
+      },
+      "dist_before": 10.085873761778913,
+      "dist_after": 10.364557970810974,
+      "delta_dist": 0.27868420903206115
+    },
+    "decisions": [
+      {
+        "tick": 1,
+        "npc_id": "maid_lusya",
+        "intent": "flee",
+        "target": "player"
+      },
+      {
+        "tick": 1,
+        "npc_id": "maid_lusya",
+        "intent": "none",
+        "target": "player"
+      },
+      {
+        "tick": 2,
+        "npc_id": "maid_lusya",
+        "intent": "flee",
+        "target": "maid_lusya"
+      },
+      {
+        "tick": 3,
+        "npc_id": "maid_lusya",
+        "intent": "flee",
+        "target": "maid_lusya"
+      },
+      {
+        "tick": 4,
+        "npc_id": "maid_lusya",
+        "intent": "flee",
+        "target": "maid_lusya"
+      }
+    ],
+    "movement_intents": [
+      {
+        "tick": 1,
+        "npc_id": "maid_lusya",
+        "goal_type": "MacroMovementGoal",
+        "reason": "reactive:flee"
+      },
+      {
+        "tick": 2,
+        "npc_id": "maid_lusya",
+        "goal_type": "MacroMovementGoal",
+        "reason": "reactive:flee"
+      },
+      {
+        "tick": 3,
+        "npc_id": "maid_lusya",
+        "goal_type": "MacroMovementGoal",
+        "reason": "reactive:flee"
+      },
+      {
+        "tick": 4,
+        "npc_id": "maid_lusya",
+        "goal_type": "MacroMovementGoal",
+        "reason": "reactive:flee"
+      }
+    ],
+    "scene_changes": [
+      {
+        "target": "maid_lusya",
+        "field": "position",
+        "new_value": null
+      },
+      {
+        "target": "maid_lusya",
+        "field": "body_heading",
+        "new_value": null
+      }
+    ]
+  },
+  "variant_B": {
+    "label": "B",
+    "bio_disabled": true,
+    "cognitive": {
+      "narrative_cache_count": 0,
+      "relationship_cache_targets": [],
+      "affective_imprints_count": 0
+    },
+    "positions": {
+      "lusya_before": {
+        "x": 7.98736111111111,
+        "y": 1.8263888888888888
+      },
+      "lusya_after": {
+        "x": 13.5,
+        "y": 3.0,
+        "z": 0.0
+      },
+      "player_before": {
+        "x": 8.204957561728396,
+        "y": 11.90991512345679
+      },
+      "player_after": {
+        "x": 8.204957561728396,
+        "y": 11.90991512345679
+      },
+      "dist_before": 10.085873761778913,
+      "dist_after": 10.364557970810974,
+      "delta_dist": 0.27868420903206115
+    },
+    "decisions": [
+      {
+        "tick": 1,
+        "npc_id": "maid_lusya",
+        "intent": "flee",
+        "target": "player"
+      },
+      {
+        "tick": 1,
+        "npc_id": "maid_lusya",
+        "intent": "none",
+        "target": "player"
+      },
+      {
+        "tick": 2,
+        "npc_id": "maid_lusya",
+        "intent": "flee",
+        "target": "maid_lusya"
+      },
+      {
+        "tick": 3,
+        "npc_id": "maid_lusya",
+        "intent": "flee",
+        "target": "maid_lusya"
+      },
+      {
+        "tick": 4,
+        "npc_id": "maid_lusya",
+        "intent": "flee",
+        "target": "maid_lusya"
+      }
+    ],
+    "movement_intents": [
+      {
+        "tick": 1,
+        "npc_id": "maid_lusya",
+        "goal_type": "MacroMovementGoal",
+        "reason": "reactive:flee"
+      },
+      {
+        "tick": 2,
+        "npc_id": "maid_lusya",
+        "goal_type": "MacroMovementGoal",
+        "reason": "reactive:flee"
+      },
+      {
+        "tick": 3,
+        "npc_id": "maid_lusya",
+        "goal_type": "MacroMovementGoal",
+        "reason": "reactive:flee"
+      },
+      {
+        "tick": 4,
+        "npc_id": "maid_lusya",
+        "goal_type": "MacroMovementGoal",
+        "reason": "reactive:flee"
+      }
+    ],
+    "scene_changes": [
+      {
+        "target": "maid_lusya",
+        "field": "position",
+        "new_value": null
+      },
+      {
+        "target": "maid_lusya",
+        "field": "body_heading",
+        "new_value": null
+      }
+    ]
+  },
+  "verdict": "❌ OPEN — see metrics"
+}

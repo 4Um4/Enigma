@@ -186,6 +186,13 @@ def run_npc_orchestration(
     _target_ref = getattr(_params, "target_reference", "") if _params else ""  # noqa: ENIGMA002
     _target_id = getattr(_params, "target_id", "") if _params else ""  # noqa: ENIGMA002
 
+    # P5-A DIAG: trace target source at InterventionEvent creation
+    _diag_orch_target = _target_id
+    _diag_orch_context = getattr(shared_context, "player_target_id", None)
+    logger.warning(
+        "[TARGET_SOURCE_TRACE] npc_orchestration: params_target=%r context_target=%r selected=%r",
+        _diag_orch_target, _diag_orch_context, _target_id or _diag_orch_context or "",
+    )
     _intervention = InterventionEvent(
         source="player",
         payload={

@@ -1,0 +1,328 @@
+﻿=== P2 ACCEPTANCE TEST (ТЗ §1.5) ===
+python : [CCH_SEED] guard_borko:6f087a311a7d1426277df35a7bc3ce99: связь на неразрешённую сущность — не сеется
+At line:35 char:5
++     python $acceptFile 2>&1 | Out-File -FilePath "C:\DDD\Codex\VSC_En ...
++     ~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([CCH_SEED] guar...сть — не сеется:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[CCH_SEED] guard_borko:132c9c7e450bdda8263d2f6d543d4308: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:6f1b4a560d9b25410ea6d09c0d8ce3b1: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:a7ff984e73c1a64baf49a62fd7326275: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:d0a8f21d8451b363f3d4e230b1a77df9: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:f504069ecb5be7254e04e2eebc86fb51: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:5e5c9199ffd79a7471b3a85a17b0d9fd: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:fc9fbc833ade417ba9d21dc289c76d56: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:4a441fb8bbf1a6eee9e69fdc44e4c444: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:086fd00f0fcfd6aa9d85f2ac5fa24f35: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:311cc745b30316180417fa8b98aa493b: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:2b0168e92bc5ec37d0bb6167117cad22: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:781e61999606914fad126cd4dd2de150: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:2c261eeaaa341336dad91449b46c1c6c: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:f8ef4a33d0394eb894b562371a28f1da: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:0c97946571e62f0ffe10e64f94941de8: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:ee77f12433bcbae8caccf089e8864935: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:15d2f2dd58de964e12c489893b73923f: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:b9a21c9f3990e874e06ecbb413571126: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:eb535b3d335ffe79b79aa25594cf1060: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:4f4aeb01947611a67a2c99ec7d9a5996: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:9f35a924216bafccbf4355e603923a4b: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:932c2f7ce66d531bf8b537a59370f714: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:31c416fdc6d41b9603cb01a46ddf50c2: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:c63060b4cef419c032530f507d088435: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:4c13ae2d5f82174a96340c3c11b7c16b: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:281f8bf8d03bf2e4a793b34e8059c123: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:033e4db205d7a131a61a7dfc67c5ecbe: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:90af024974ecc2511ed34721c8387aa2: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:57c1117b42b20d82400cc77e80c9631d: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:8f79f3684eeead7dd156ed47d0e3b14f: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:45ac21eac0f718a5aa353b7965f309ee: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:eceb2753257222de8ef603bc576a712b: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:0da2e35ba130f65426faf4fb2636a6a6: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:53094ae6f810139fce8b831c937f6f4d: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:e259d0d929f9fa4c03cf96e571e2a93a: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:f144df763a7e370cf698aa03ee6be40e: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:b35718c4fc700d027152bd83bec1d773: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:9d3dce484983c8d7dc13ece242cbc3dd: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:66a8df2ebea7932c22dff06daa1905fa: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:d43ef9f7bd59eebd952b7deba0191dbd: связь на неразрешённую сущность — не сеется
+[CCH_SEED] thief_shadow:2d544548b37176d6357d0fb542112995: связь на неразрешённую сущность — не сеется
+[CCH_SEED] thief_shadow:c2b8246b3fc416e7027ebcfb1d56e551: связь на неразрешённую сущность — не сеется
+[CCH_SEED] thief_shadow:ee9efd0e1bec645900e526442e782dff: связь на неразрешённую сущность — не сеется
+[CCH_SEED] thief_shadow:a09ac62e47788442080b3a435c753dd5: связь на неразрешённую сущность — не сеется
+[CCH_SEED] thief_shadow:2b4b43d1d987f090a8a4255744637549: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:3dcd5a784d38de49cb0eec0bb04fcbc8: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:39e9e8b20197d91281509a7fcb8e9ca7: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:7ea5427c716b7ec0e8c11d94f3ea2521: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:d426d25b891f01f9687267a33ddad3fd: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:a6c4281d2773b6ba577ffaae97c4a39f: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:9305a7b0805786b88c999bd98d5543c9: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:59260cc9f697db7e437e3760ed675daf: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:a7c9d1477abb2f423217077be462199e: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:93895f795971da729ffa2941dc27b5ac: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:f42daab7e2ad16ebb9857c72c55a21bb: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:ad75147b3697b9f6c0c94ac8e4b1b26c: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:a66a6072f00180fe1bad90d3d96fb301: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:499f718646246a1dc301ff41e752d134: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:9b53fcc43eab00d8ebd111f080a2159f: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:eb4689af5a40f5e0de130dc5405f6de0: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:0e2843517e543728be8ddc5ffac79c01: belief_type='None' вне реестра — в каноне
+[CCH_SEED] merchant_goran:928e544a82bf37f8c6507f9b75526e3c: belief_type='None' вне реестра — в каноне
+[CCH_SEED] merchant_goran:ac84101cbf590942a9ee9d45e1f7a3c7: belief_type='None' вне реестра — в каноне
+[CCH_SEED] merchant_goran:b7ea1011b4e487ef25ade8b90f07bb4f: belief_type='None' вне реестра — в каноне
+[CCH_SEED] merchant_goran:9a72a95ab464482c517e3514e8d74382: trauma без triggers — импринт не создан
+[CCH_SEED] maid_lusya:0bc9e54c467f219b54639de28533bcf2: trauma без triggers — импринт не создан
+[CCH_SEED] blacksmith_orm:c1d0282de7757bc27cb8da89520aecf5: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:6145c048a81be3e12d74fa6469a3c3f2: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:4d8300dcf8172fd99efbc82d1e30de78: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:259c4c9729296eeb7665e637434d90b7: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:f5d060fb821e7e8a37bd22c9f6e947bd: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:7b90e38ca9716055faa1377bc616d783: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:390c6e9b27482167e3de88135efe7568: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:5838e29b3fa6c06057502d4f4c4e2961: trauma без triggers — импринт не создан
+[CCH_SEED] blacksmith_orm:beee2510c75c135498bd9a3e43773ed3: trauma без triggers — импринт не создан
+[CCH_SEED] thief_shadow:f7003af56e5b73a1537e1c7a9c7efd27: belief_type='None' вне реестра — в каноне
+[CCH_SEED] thief_shadow:dba3b1c2a3bd9c3031f78bef40db4c34: belief_type='None' вне реестра — в каноне
+[CCH_SEED] thief_shadow:a957e8385ee99c38bec4981f6c6a0342: belief_type='None' вне реестра — в каноне
+[CCH_SEED] thief_shadow:53f4ee8433c4a5deecc39e59870200ec: belief_type='None' вне реестра — в каноне
+[CCH_SEED] thief_shadow:3df1c5b19d1fcd259ac84723b7bd6573: belief_type='None' вне реестра — в каноне
+[CCH_SEED] tavern_keeper_tornin:c44b34047786b3fe29dc2c6949ebe5bd: belief_type='None' вне реестра — в каноне
+[CCH_SEED] tavern_keeper_tornin:fdb791dd1d2b0ba51d78c6fc32643aea: belief_type='None' вне реестра — в каноне
+[CCH_SEED] tavern_keeper_tornin:a56b56daf6541e3c3e5fdb9c0ac8cd31: belief_type='None' вне реестра — в каноне
+[CCH_SEED] tavern_keeper_tornin:598be78712ed3b85377956d1c3ca3b58: belief_type='None' вне реестра — в каноне
+[CCH_SEED] tavern_keeper_tornin:446913a43729f5a87ddfa3a8dd578f7f: trauma без triggers — импринт не создан
+[CCH_SEED] tavern_keeper_tornin:6e42dd8f6e97a42486c44c09126bc101: trauma без triggers — импринт не создан
+[SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:node_16 crosses solid wall. Missing door wall_id? Blocker: WALL {'x1': 14.0, 'y1': 3.5, 'x2': 14.0, 'y2': 0.5}. Edge removed from graph.
+FIX: Добавьте door wall_id в стену (WALL {'x1': 14.0, 'y1': 3.5, 'x2': 14.0, 'y2': 0.5}) в файле карты, либо удалите ребро tavern:kitchen -> tavern:node_16 из графа.
+[SPATIAL_VALIDATION] tavern: edge tavern:exit_south -> tavern:kitchen_bed_2 crosses solid wall. Missing door wall_id? Blocker: WALL {'x1': 19.5, 'y1': 0.5, 'x2': 19.5, 'y2': 8.0}. Edge removed from graph.
+FIX: Добавьте door wall_id в стену (WALL {'x1': 19.5, 'y1': 0.5, 'x2': 19.5, 'y2': 8.0}) в файле карты, либо удалите ребро tavern:exit_south -> tavern:kitchen_bed_2 из графа.
+[CCH_SEED] guard_borko:6f087a311a7d1426277df35a7bc3ce99: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:132c9c7e450bdda8263d2f6d543d4308: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:6f1b4a560d9b25410ea6d09c0d8ce3b1: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:a7ff984e73c1a64baf49a62fd7326275: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:d0a8f21d8451b363f3d4e230b1a77df9: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:f504069ecb5be7254e04e2eebc86fb51: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:5e5c9199ffd79a7471b3a85a17b0d9fd: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:fc9fbc833ade417ba9d21dc289c76d56: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:4a441fb8bbf1a6eee9e69fdc44e4c444: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:086fd00f0fcfd6aa9d85f2ac5fa24f35: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:311cc745b30316180417fa8b98aa493b: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:2b0168e92bc5ec37d0bb6167117cad22: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:781e61999606914fad126cd4dd2de150: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:2c261eeaaa341336dad91449b46c1c6c: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:f8ef4a33d0394eb894b562371a28f1da: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:0c97946571e62f0ffe10e64f94941de8: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:ee77f12433bcbae8caccf089e8864935: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:15d2f2dd58de964e12c489893b73923f: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:b9a21c9f3990e874e06ecbb413571126: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:eb535b3d335ffe79b79aa25594cf1060: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:4f4aeb01947611a67a2c99ec7d9a5996: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:9f35a924216bafccbf4355e603923a4b: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:932c2f7ce66d531bf8b537a59370f714: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:31c416fdc6d41b9603cb01a46ddf50c2: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:c63060b4cef419c032530f507d088435: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:4c13ae2d5f82174a96340c3c11b7c16b: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:281f8bf8d03bf2e4a793b34e8059c123: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:033e4db205d7a131a61a7dfc67c5ecbe: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:90af024974ecc2511ed34721c8387aa2: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:57c1117b42b20d82400cc77e80c9631d: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:8f79f3684eeead7dd156ed47d0e3b14f: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:45ac21eac0f718a5aa353b7965f309ee: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:eceb2753257222de8ef603bc576a712b: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:0da2e35ba130f65426faf4fb2636a6a6: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:53094ae6f810139fce8b831c937f6f4d: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:e259d0d929f9fa4c03cf96e571e2a93a: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:f144df763a7e370cf698aa03ee6be40e: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:b35718c4fc700d027152bd83bec1d773: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:9d3dce484983c8d7dc13ece242cbc3dd: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:66a8df2ebea7932c22dff06daa1905fa: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:d43ef9f7bd59eebd952b7deba0191dbd: связь на неразрешённую сущность — не сеется
+[CCH_SEED] thief_shadow:2d544548b37176d6357d0fb542112995: связь на неразрешённую сущность — не сеется
+[CCH_SEED] thief_shadow:c2b8246b3fc416e7027ebcfb1d56e551: связь на неразрешённую сущность — не сеется
+[CCH_SEED] thief_shadow:ee9efd0e1bec645900e526442e782dff: связь на неразрешённую сущность — не сеется
+[CCH_SEED] thief_shadow:a09ac62e47788442080b3a435c753dd5: связь на неразрешённую сущность — не сеется
+[CCH_SEED] thief_shadow:2b4b43d1d987f090a8a4255744637549: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:3dcd5a784d38de49cb0eec0bb04fcbc8: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:39e9e8b20197d91281509a7fcb8e9ca7: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:7ea5427c716b7ec0e8c11d94f3ea2521: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:d426d25b891f01f9687267a33ddad3fd: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:a6c4281d2773b6ba577ffaae97c4a39f: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:9305a7b0805786b88c999bd98d5543c9: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:59260cc9f697db7e437e3760ed675daf: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:a7c9d1477abb2f423217077be462199e: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:93895f795971da729ffa2941dc27b5ac: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:f42daab7e2ad16ebb9857c72c55a21bb: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:ad75147b3697b9f6c0c94ac8e4b1b26c: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:a66a6072f00180fe1bad90d3d96fb301: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:499f718646246a1dc301ff41e752d134: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:9b53fcc43eab00d8ebd111f080a2159f: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:eb4689af5a40f5e0de130dc5405f6de0: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:0e2843517e543728be8ddc5ffac79c01: belief_type='None' вне реестра — в каноне
+[CCH_SEED] merchant_goran:928e544a82bf37f8c6507f9b75526e3c: belief_type='None' вне реестра — в каноне
+[CCH_SEED] merchant_goran:ac84101cbf590942a9ee9d45e1f7a3c7: belief_type='None' вне реестра — в каноне
+[CCH_SEED] merchant_goran:b7ea1011b4e487ef25ade8b90f07bb4f: belief_type='None' вне реестра — в каноне
+[CCH_SEED] merchant_goran:9a72a95ab464482c517e3514e8d74382: trauma без triggers — импринт не создан
+[CCH_SEED] maid_lusya:0bc9e54c467f219b54639de28533bcf2: trauma без triggers — импринт не создан
+[CCH_SEED] blacksmith_orm:c1d0282de7757bc27cb8da89520aecf5: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:6145c048a81be3e12d74fa6469a3c3f2: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:4d8300dcf8172fd99efbc82d1e30de78: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:259c4c9729296eeb7665e637434d90b7: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:f5d060fb821e7e8a37bd22c9f6e947bd: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:7b90e38ca9716055faa1377bc616d783: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:390c6e9b27482167e3de88135efe7568: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:5838e29b3fa6c06057502d4f4c4e2961: trauma без triggers — импринт не создан
+[CCH_SEED] blacksmith_orm:beee2510c75c135498bd9a3e43773ed3: trauma без triggers — импринт не создан
+[CCH_SEED] thief_shadow:f7003af56e5b73a1537e1c7a9c7efd27: belief_type='None' вне реестра — в каноне
+[CCH_SEED] thief_shadow:dba3b1c2a3bd9c3031f78bef40db4c34: belief_type='None' вне реестра — в каноне
+[CCH_SEED] thief_shadow:a957e8385ee99c38bec4981f6c6a0342: belief_type='None' вне реестра — в каноне
+[CCH_SEED] thief_shadow:53f4ee8433c4a5deecc39e59870200ec: belief_type='None' вне реестра — в каноне
+[CCH_SEED] thief_shadow:3df1c5b19d1fcd259ac84723b7bd6573: belief_type='None' вне реестра — в каноне
+[CCH_SEED] tavern_keeper_tornin:c44b34047786b3fe29dc2c6949ebe5bd: belief_type='None' вне реестра — в каноне
+[CCH_SEED] tavern_keeper_tornin:fdb791dd1d2b0ba51d78c6fc32643aea: belief_type='None' вне реестра — в каноне
+[CCH_SEED] tavern_keeper_tornin:a56b56daf6541e3c3e5fdb9c0ac8cd31: belief_type='None' вне реестра — в каноне
+[CCH_SEED] tavern_keeper_tornin:598be78712ed3b85377956d1c3ca3b58: belief_type='None' вне реестра — в каноне
+[CCH_SEED] tavern_keeper_tornin:446913a43729f5a87ddfa3a8dd578f7f: trauma без triggers — импринт не создан
+[CCH_SEED] tavern_keeper_tornin:6e42dd8f6e97a42486c44c09126bc101: trauma без triggers — импринт не создан
+[CCH_SEED] guard_borko:6f087a311a7d1426277df35a7bc3ce99: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:132c9c7e450bdda8263d2f6d543d4308: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:6f1b4a560d9b25410ea6d09c0d8ce3b1: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:a7ff984e73c1a64baf49a62fd7326275: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:d0a8f21d8451b363f3d4e230b1a77df9: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:f504069ecb5be7254e04e2eebc86fb51: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:5e5c9199ffd79a7471b3a85a17b0d9fd: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:fc9fbc833ade417ba9d21dc289c76d56: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:4a441fb8bbf1a6eee9e69fdc44e4c444: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:086fd00f0fcfd6aa9d85f2ac5fa24f35: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:311cc745b30316180417fa8b98aa493b: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:2b0168e92bc5ec37d0bb6167117cad22: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:781e61999606914fad126cd4dd2de150: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:2c261eeaaa341336dad91449b46c1c6c: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:f8ef4a33d0394eb894b562371a28f1da: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:0c97946571e62f0ffe10e64f94941de8: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:ee77f12433bcbae8caccf089e8864935: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:15d2f2dd58de964e12c489893b73923f: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:b9a21c9f3990e874e06ecbb413571126: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:eb535b3d335ffe79b79aa25594cf1060: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:4f4aeb01947611a67a2c99ec7d9a5996: связь на неразрешённую сущность — не сеется
+[CCH_SEED] merchant_goran:9f35a924216bafccbf4355e603923a4b: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:932c2f7ce66d531bf8b537a59370f714: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:31c416fdc6d41b9603cb01a46ddf50c2: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:c63060b4cef419c032530f507d088435: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:4c13ae2d5f82174a96340c3c11b7c16b: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:281f8bf8d03bf2e4a793b34e8059c123: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:033e4db205d7a131a61a7dfc67c5ecbe: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:90af024974ecc2511ed34721c8387aa2: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:57c1117b42b20d82400cc77e80c9631d: связь на неразрешённую сущность — не сеется
+[CCH_SEED] maid_lusya:8f79f3684eeead7dd156ed47d0e3b14f: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:45ac21eac0f718a5aa353b7965f309ee: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:eceb2753257222de8ef603bc576a712b: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:0da2e35ba130f65426faf4fb2636a6a6: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:53094ae6f810139fce8b831c937f6f4d: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:e259d0d929f9fa4c03cf96e571e2a93a: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:f144df763a7e370cf698aa03ee6be40e: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:b35718c4fc700d027152bd83bec1d773: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:9d3dce484983c8d7dc13ece242cbc3dd: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:66a8df2ebea7932c22dff06daa1905fa: связь на неразрешённую сущность — не сеется
+[CCH_SEED] blacksmith_orm:d43ef9f7bd59eebd952b7deba0191dbd: связь на неразрешённую сущность — не сеется
+[CCH_SEED] thief_shadow:2d544548b37176d6357d0fb542112995: связь на неразрешённую сущность — не сеется
+[CCH_SEED] thief_shadow:c2b8246b3fc416e7027ebcfb1d56e551: связь на неразрешённую сущность — не сеется
+[CCH_SEED] thief_shadow:ee9efd0e1bec645900e526442e782dff: связь на неразрешённую сущность — не сеется
+[CCH_SEED] thief_shadow:a09ac62e47788442080b3a435c753dd5: связь на неразрешённую сущность — не сеется
+[CCH_SEED] thief_shadow:2b4b43d1d987f090a8a4255744637549: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:3dcd5a784d38de49cb0eec0bb04fcbc8: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:39e9e8b20197d91281509a7fcb8e9ca7: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:7ea5427c716b7ec0e8c11d94f3ea2521: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:d426d25b891f01f9687267a33ddad3fd: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:a6c4281d2773b6ba577ffaae97c4a39f: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:9305a7b0805786b88c999bd98d5543c9: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:59260cc9f697db7e437e3760ed675daf: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:a7c9d1477abb2f423217077be462199e: связь на неразрешённую сущность — не сеется
+[CCH_SEED] tavern_keeper_tornin:93895f795971da729ffa2941dc27b5ac: связь на неразрешённую сущность — не сеется
+[CCH_SEED] guard_borko:f42daab7e2ad16ebb9857c72c55a21bb: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:ad75147b3697b9f6c0c94ac8e4b1b26c: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:a66a6072f00180fe1bad90d3d96fb301: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:499f718646246a1dc301ff41e752d134: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:9b53fcc43eab00d8ebd111f080a2159f: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:eb4689af5a40f5e0de130dc5405f6de0: belief_type='None' вне реестра — в каноне
+[CCH_SEED] guard_borko:0e2843517e543728be8ddc5ffac79c01: belief_type='None' вне реестра — в каноне
+[CCH_SEED] merchant_goran:928e544a82bf37f8c6507f9b75526e3c: belief_type='None' вне реестра — в каноне
+[CCH_SEED] merchant_goran:ac84101cbf590942a9ee9d45e1f7a3c7: belief_type='None' вне реестра — в каноне
+[CCH_SEED] merchant_goran:b7ea1011b4e487ef25ade8b90f07bb4f: belief_type='None' вне реестра — в каноне
+[CCH_SEED] merchant_goran:9a72a95ab464482c517e3514e8d74382: trauma без triggers — импринт не создан
+[CCH_SEED] maid_lusya:0bc9e54c467f219b54639de28533bcf2: trauma без triggers — импринт не создан
+[CCH_SEED] blacksmith_orm:c1d0282de7757bc27cb8da89520aecf5: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:6145c048a81be3e12d74fa6469a3c3f2: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:4d8300dcf8172fd99efbc82d1e30de78: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:259c4c9729296eeb7665e637434d90b7: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:f5d060fb821e7e8a37bd22c9f6e947bd: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:7b90e38ca9716055faa1377bc616d783: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:390c6e9b27482167e3de88135efe7568: belief_type='None' вне реестра — в каноне
+[CCH_SEED] blacksmith_orm:5838e29b3fa6c06057502d4f4c4e2961: trauma без triggers — импринт не создан
+[CCH_SEED] blacksmith_orm:beee2510c75c135498bd9a3e43773ed3: trauma без triggers — импринт не создан
+[CCH_SEED] thief_shadow:f7003af56e5b73a1537e1c7a9c7efd27: belief_type='None' вне реестра — в каноне
+[CCH_SEED] thief_shadow:dba3b1c2a3bd9c3031f78bef40db4c34: belief_type='None' вне реестра — в каноне
+[CCH_SEED] thief_shadow:a957e8385ee99c38bec4981f6c6a0342: belief_type='None' вне реестра — в каноне
+[CCH_SEED] thief_shadow:53f4ee8433c4a5deecc39e59870200ec: belief_type='None' вне реестра — в каноне
+[CCH_SEED] thief_shadow:3df1c5b19d1fcd259ac84723b7bd6573: belief_type='None' вне реестра — в каноне
+[CCH_SEED] tavern_keeper_tornin:c44b34047786b3fe29dc2c6949ebe5bd: belief_type='None' вне реестра — в каноне
+[CCH_SEED] tavern_keeper_tornin:fdb791dd1d2b0ba51d78c6fc32643aea: belief_type='None' вне реестра — в каноне
+[CCH_SEED] tavern_keeper_tornin:a56b56daf6541e3c3e5fdb9c0ac8cd31: belief_type='None' вне реестра — в каноне
+[CCH_SEED] tavern_keeper_tornin:598be78712ed3b85377956d1c3ca3b58: belief_type='None' вне реестра — в каноне
+[CCH_SEED] tavern_keeper_tornin:446913a43729f5a87ddfa3a8dd578f7f: trauma без triggers — импринт не создан
+[CCH_SEED] tavern_keeper_tornin:6e42dd8f6e97a42486c44c09126bc101: trauma без triggers — импринт не создан
+[P2-TRACE] _apply_chronicle_seed_to_dict: guard_borko build_seed_beliefs={}
+[P2-TRACE] _apply_chronicle_seed_to_dict: merchant_goran build_seed_beliefs={}
+[P2-TRACE] _apply_chronicle_seed_to_dict: maid_lusya build_seed_beliefs={'danger': [0.7, 0.8, 'chronicle', 0]}
+[P2-TRACE] _apply_chronicle_seed_to_dict: maid_lusya psyche['beliefs'] WRITTEN
+[P2-TRACE] _apply_chronicle_seed_to_dict: blacksmith_orm build_seed_beliefs={}
+[P2-TRACE] _apply_chronicle_seed_to_dict: thief_shadow build_seed_beliefs={}
+[P2-TRACE] _apply_chronicle_seed_to_dict: tavern_keeper_tornin build_seed_beliefs={}
+[P2-TRACE] _apply_chronicle_seed_to_dict: guard_borko build_seed_beliefs={}
+[P2-TRACE] _apply_chronicle_seed_to_dict: merchant_goran build_seed_beliefs={}
+[P2-TRACE] _apply_chronicle_seed_to_dict: maid_lusya build_seed_beliefs={'danger': [0.7, 0.8, 'chronicle', 0]}
+[P2-TRACE] _apply_chronicle_seed_to_dict: maid_lusya psyche['beliefs'] WRITTEN
+[P2-TRACE] _apply_chronicle_seed_to_dict: blacksmith_orm build_seed_beliefs={}
+[P2-TRACE] _apply_chronicle_seed_to_dict: thief_shadow build_seed_beliefs={}
+[P2-TRACE] _apply_chronicle_seed_to_dict: tavern_keeper_tornin build_seed_beliefs={}
+[P2-TRACE] _apply_chronicle_seed_to_dict: guard_borko build_seed_beliefs={}
+[P2-TRACE] _apply_chronicle_seed_to_dict: merchant_goran build_seed_beliefs={}
+[P2-TRACE] _apply_chronicle_seed_to_dict: maid_lusya build_seed_beliefs={'danger': [0.7, 0.8, 'chronicle', 0]}
+[P2-TRACE] _apply_chronicle_seed_to_dict: maid_lusya psyche['beliefs'] WRITTEN
+[P2-TRACE] _apply_chronicle_seed_to_dict: blacksmith_orm build_seed_beliefs={}
+[P2-TRACE] _apply_chronicle_seed_to_dict: thief_shadow build_seed_beliefs={}
+[P2-TRACE] _apply_chronicle_seed_to_dict: tavern_keeper_tornin build_seed_beliefs={}
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[SPATIAL] Путь не найден: tavern:node_17 → tavern:kitchen (urgency=normal)
+[MOVEMENT_TRACE] npc=maid_lusya failure=M005 reason=A* no path to tavern:kitchen
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SPATIAL] Путь не найден: tavern:kitchen → tavern:corner_table (urgency=normal)
+[MOVEMENT_TRACE] npc=guard_borko failure=M005 reason=A* no path to tavern:corner_table
+[P3-DIAG] npc=blacksmith_orm beliefs_raw=None restored=None all=None
+[P3-DIAG] npc=tavern_keeper_tornin beliefs_raw=None restored=None all=None
+[P3-DIAG] npc=merchant_goran beliefs_raw=None restored=None all=None
+[P3-DIAG] npc=guard_borko beliefs_raw={} restored=None all=None
+[P3-DIAG] npc=guard_borko beliefs_raw={} restored=None all=None
+[P3-DIAG] npc=merchant_goran beliefs_raw={} restored=None all=None
+[P3-DIAG] npc=merchant_goran beliefs_raw={} restored=None all=None
+[P3-DIAG] npc=maid_lusya beliefs_raw={} restored=None all=None
+[P3-DIAG] npc=maid_lusya beliefs_raw={} restored=None all=None
+[P3-DIAG] npc=blacksmith_orm beliefs_raw={} restored=None all=None
+[P3-DIAG] npc=blacksmith_orm beliefs_raw={} restored=None all=None
+[P3-DIAG] npc=thief_shadow beliefs_raw={} restored=None all=None
+[P3-DIAG] npc=thief_shadow beliefs_raw={} restored=None all=None
+[P3-DIAG] npc=tavern_keeper_tornin beliefs_raw={} restored=None all=None
+[P3-DIAG] npc=tavern_keeper_tornin beliefs_raw={} restored=None all=None
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[P3-DIAG] npc=guard_borko beliefs_raw={} restored=None all=None
+[P3-DIAG] npc=merchant_goran beliefs_raw={} restored=None all=None
+[P3-DIAG] npc=blacksmith_orm beliefs_raw={} restored=None all=None
+beliefs: {}
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\scripts\_p2_acceptance_test.py", line 17, in <module>
+    assert beliefs and "danger" in beliefs, f"P2 NOT FIXED: beliefs={beliefs}"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: P2 NOT FIXED: beliefs={}

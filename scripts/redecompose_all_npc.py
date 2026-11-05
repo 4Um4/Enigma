@@ -95,7 +95,7 @@ def start_llm_clean() -> bool:
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--base-url", default="http://127.0.0.1:8000/api")
-    p.add_argument("--campaign", default="silver_wolf")
+    p.add_argument("--campaign", default="Open_road")
     p.add_argument("--npc", help="только указанный NPC")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--skip-decompose", action="store_true")

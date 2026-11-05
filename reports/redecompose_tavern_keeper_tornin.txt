@@ -1,0 +1,55 @@
+﻿[0] Запуск LLM (жёсткий контроль модели)...
+  убиваю старые llama-server процессы...
+  llama-server процессов не найдено (или нет прав)
+  запускаю новый LLM-сервер через менеджер...
+[LLM_MANAGER] Запуск llama-server...
+[LLM_MANAGER] llama-server запущен успешно.
+[DET-ENV] mode=SPAWN | model=Hermes-3-Llama-3.1-8B.Q4_K_M.gguf | port=8181 | owner_pid=4780 cmd=C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\llama\llama-server.exe -m C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Hermes-3-Llama-3.1-8B.Q4_K_M.gguf --port 8181 --host localhost -ngl 99 -c 16384 -t 8 --jinja
+  ожидаю готовности LLM (до 60 сек)...
+  LLM готова
+[1] GET /chronicle/roster/Open_road
+  roster: 6 NPC (из API)
+  фильтр --npc: tavern_keeper_tornin -> 1
+
+[NPC] tavern_keeper_tornin (статус: canon)
+  author_text: 7145 знаков
+  чистый draft сохранён
+  фрагментов: 28
+    [1/28] OK - 2 items, anchors=0
+    [2/28] OK - 2 items, anchors=0
+    [3/28] OK - 2 items, anchors=0
+    [4/28] OK - 1 items, anchors=1
+    [5/28] OK - 1 items, anchors=1
+    [6/28] OK - 2 items, anchors=0
+    [7/28] OK - 2 items, anchors=0
+    [8/28] OK - 1 items, anchors=0
+    [9/28] OK - 2 items, anchors=1
+    [10/28] OK - 2 items, anchors=0
+    [11/28] OK - 4 items, anchors=0
+    [12/28] OK - 3 items, anchors=1
+    [13/28] OK - 3 items, anchors=0
+    [14/28] OK - 3 items, anchors=0
+    [15/28] OK - 2 items, anchors=0
+    [16/28] OK - 1 items, anchors=0
+    [17/28] OK - 2 items, anchors=0
+    [18/28] OK - 1 items, anchors=0
+    [19/28] OK - 2 items, anchors=0
+    [20/28] OK - 2 items, anchors=0
+    [21/28] OK - 4 items, anchors=0
+    [22/28] OK - 2 items, anchors=0
+    [23/28] OK - 3 items, anchors=0
+    [24/28] OK - 3 items, anchors=0
+    [25/28] OK - 4 items, anchors=0
+    [26/28] OK - 2 items, anchors=0
+    [27/28] OK - 4 items, anchors=0
+    [28/28] OK - 2 items, anchors=0
+  авто-резолв 1 вопросов -> LEAVE_WHITE_SPOT
+  --no-canonize: без канонизации
+
+============================================================
+ИТОГ: OK=1, FAIL=0
+      фрагментов: 28
+      items: 64
+      авто-резолвов: 1
+[LLM_MANAGER] Остановка llama-server...
+[LLM_MANAGER] llama-server остановлен.

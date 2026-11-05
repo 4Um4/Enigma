@@ -299,6 +299,7 @@ class BiographyDecomposer:
         roster: Optional[Dict[str, str]] = None,
         *,
         prior_context: str = "",
+        npc_id: str = "",
     ) -> str:
         """Типизированные подсказки LLM (CCH-12 Point 1).
 
@@ -352,7 +353,12 @@ class BiographyDecomposer:
             )
         else:
             ctx_block = ""
-        return f"{hints}{roster_block}{ctx_block}ФРАГМЕНТ:\n{fragment.strip()}"
+        # USL-2 SUBJECT_ATTRIBUTION_FIX: блок ХРОНИКА в начало user-prompt,
+        # чтобы LLM знала, чью биографию декомпозирует (npc_id — основной субъект).
+        # Без этого LLM путает «он» с другим NPC (SUBJECT_ATTRIBUTION_ERROR —
+        # guard_borko/merchant_goran drafts: LLM подменяла Борко/Горана на Орма).
+        chronicle_block = f"ХРОНИКА: {npc_id} (основной субъект повествования).\n\n" if npc_id else ""
+        return f"{chronicle_block}{hints}{roster_block}{ctx_block}ФРАГМЕНТ:\n{fragment.strip()}"
 
     async def decompose(
         self,
@@ -383,7 +389,7 @@ class BiographyDecomposer:
         # DecomposeResult.age_anchors (legacy плоский) для response API.
         anchors = [a.value for a in typed]
         roster = (self._roster_provider or _default_roster_provider)()
-        user_prompt = self.build_user_prompt(fragment, typed, roster, prior_context=prior_context)
+        user_prompt = self.build_user_prompt(fragment, typed, roster, prior_context=prior_context, npc_id=chronicle_id)
         from app.services.llm.router import ModelRouter  # ленивый (цикл-безопасно)
 
         router = self._router or ModelRouter()

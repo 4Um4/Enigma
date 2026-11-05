@@ -1,0 +1,49 @@
+﻿[0] Запуск LLM (жёсткий контроль модели)...
+  убиваю старые llama-server процессы...
+  убиты процессы llama-server
+  запускаю новый LLM-сервер через менеджер...
+[LLM_MANAGER] Запуск llama-server...
+[LLM_MANAGER] llama-server запущен успешно.
+[DET-ENV] mode=SPAWN | model=Hermes-3-Llama-3.1-8B.Q4_K_M.gguf | port=8181 | owner_pid=6892 cmd=C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\llama\llama-server.exe -m C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Hermes-3-Llama-3.1-8B.Q4_K_M.gguf --port 8181 --host localhost -ngl 99 -c 16384 -t 8 --jinja
+  ожидаю готовности LLM (до 60 сек)...
+  LLM готова
+[1] GET /chronicle/roster/Open_road
+  roster: 6 NPC (из API)
+  фильтр --npc: blacksmith_orm -> 1
+
+[NPC] blacksmith_orm (статус: canon)
+  author_text: 7150 знаков
+  чистый draft сохранён
+  фрагментов: 22
+    [1/22] OK - 1 items, anchors=0
+    [2/22] OK - 1 items, anchors=2
+    [3/22] OK - 2 items, anchors=0
+    [4/22] OK - 2 items, anchors=1
+    [5/22] OK - 6 items, anchors=0
+    [6/22] OK - 3 items, anchors=0
+    [7/22] OK - 1 items, anchors=1
+    [8/22] OK - 2 items, anchors=1
+    [9/22] OK - 2 items, anchors=0
+    [10/22] OK - 3 items, anchors=0
+    [11/22] OK - 2 items, anchors=0
+    [12/22] OK - 1 items, anchors=0
+    [13/22] OK - 4 items, anchors=1
+    [14/22] OK - 2 items, anchors=0
+    [15/22] OK - 2 items, anchors=0
+    [16/22] OK - 6 items, anchors=2
+    [17/22] OK - 4 items, anchors=2
+    [18/22] OK - 6 items, anchors=1
+    [19/22] OK - 3 items, anchors=0
+    [20/22] OK - 4 items, anchors=0
+    [21/22] OK - 2 items, anchors=1
+    [22/22] OK - 3 items, anchors=1
+  авто-резолв 1 вопросов -> LEAVE_WHITE_SPOT
+  --no-canonize: без канонизации
+
+============================================================
+ИТОГ: OK=1, FAIL=0
+      фрагментов: 22
+      items: 62
+      авто-резолвов: 1
+[LLM_MANAGER] Остановка llama-server...
+[LLM_MANAGER] llama-server остановлен.
