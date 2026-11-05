@@ -151,6 +151,7 @@ DEFAULT_AGENT_CAPABILITY_MAP: dict[str, Capability] = {
     "rules": Capability.RULES_REASONING,
     "memory": Capability.MEMORY_SUMMARIZATION,
     "dialogue_extractor": Capability.MEMORY_SUMMARIZATION, # BUG-DLG-011 FIX
+    "verifier": Capability.DIALOGUE,  # P5-B: PropositionVerifier uses same model as NPC dialogue
     "general": Capability.GENERAL,
 }
 

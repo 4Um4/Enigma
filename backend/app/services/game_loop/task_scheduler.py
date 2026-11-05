@@ -82,7 +82,7 @@ class TaskScheduler:
         _proposition_verifier: Any = None
         if router is not None:
             _proposition_verifier = PropositionVerifier(
-                llm=RouterAdapter(router, agent_name="npc"),
+                llm=RouterAdapter(router, agent_name="verifier"),
                 timeout=5.0,
                 max_tokens=8,
             )

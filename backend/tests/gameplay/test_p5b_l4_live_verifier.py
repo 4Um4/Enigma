@@ -86,13 +86,17 @@ class _SpyVerifier:
 # ───────────────────────── Helpers ─────────────────────────
 
 def _live_llm_client():
-    """Direct HTTP client to llama-server (bypasses router capability mapping)."""
-    from app.services.cognition.direct_llm_client import DirectLLMClient
-    return DirectLLMClient(
-        server_url="http://localhost:8181",
-        model="Hermes-3-Llama-3.1-8B.Q4_K_M.gguf",
-        temperature=0.0,
-    )
+    """Production LLM client via RouterAdapter (agent_name='verifier' ? DIALOGUE capability).
+
+    Calls initialize_router() to ensure ModelPool is registered before
+    get_router() returns singleton. Without this, pool is empty and
+    request_for_agent fails with '??? ?????? ???? ??????????'.
+    """
+    from app.services.llm.router import get_router, initialize_router
+    from app.services.cognition.router_adapter import RouterAdapter
+    initialize_router()  # ensures ModelPool registered
+    router = get_router()
+    return RouterAdapter(router, agent_name="verifier")
 
 
 def _build_materializer_with_spy(trace: ArtifactTrace):

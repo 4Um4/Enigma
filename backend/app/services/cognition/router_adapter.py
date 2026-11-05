@@ -34,7 +34,7 @@ class RouterAdapter:
     def __init__(
         self,
         router: Any,
-        agent_name: str = "npc",
+        agent_name: str = "verifier",
     ):
         self._router = router
         self._agent_name = agent_name
