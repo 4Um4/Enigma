@@ -74,7 +74,7 @@
     {
       "entry_id": "8dd824ee84c017082cd57a711d5d74da",
       "kind": "EVENT",
-      "historical_age": 60,
+      "historical_age": null,
       "historical_year": null,
       "subject_id": {
         "ref_kind": "RESOLVED",

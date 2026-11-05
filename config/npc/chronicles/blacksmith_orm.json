@@ -148,7 +148,7 @@
     {
       "entry_id": "5104c79be543299e458373b978c6b312",
       "kind": "EVENT",
-      "historical_age": 76,
+      "historical_age": null,
       "historical_year": null,
       "subject_id": {
         "ref_kind": "RESOLVED",
@@ -382,7 +382,7 @@
     {
       "entry_id": "200df0954ce49608a57e95b8f6fab68b",
       "kind": "EVENT",
-      "historical_age": 46,
+      "historical_age": null,
       "historical_year": null,
       "subject_id": {
         "ref_kind": "RESOLVED",
@@ -412,7 +412,7 @@
     {
       "entry_id": "78e4a974ec181b54b003a25683eedb3e",
       "kind": "EVENT",
-      "historical_age": 126,
+      "historical_age": null,
       "historical_year": null,
       "subject_id": {
         "ref_kind": "RESOLVED",
@@ -677,7 +677,7 @@
     {
       "entry_id": "42d65db7dba2da993829cb6cfa375c78",
       "kind": "EVENT",
-      "historical_age": 57,
+      "historical_age": null,
       "historical_year": null,
       "subject_id": {
         "ref_kind": "RESOLVED",
@@ -1414,7 +1414,7 @@
     {
       "entry_id": "beee2510c75c135498bd9a3e43773ed3",
       "kind": "EVENT",
-      "historical_age": 57,
+      "historical_age": null,
       "historical_year": null,
       "subject_id": {
         "ref_kind": "RESOLVED",

@@ -116,7 +116,7 @@
     {
       "entry_id": "2c80bd5f1ac72f29ceec9659d6f537d9",
       "kind": "EVENT",
-      "historical_age": 45,
+      "historical_age": null,
       "historical_year": null,
       "subject_id": {
         "ref_kind": "RESOLVED",
@@ -140,7 +140,7 @@
     {
       "entry_id": "a39d11e16631f139b0a79ac202c2872e",
       "kind": "EVENT",
-      "historical_age": 28,
+      "historical_age": null,
       "historical_year": null,
       "subject_id": {
         "ref_kind": "RESOLVED",
@@ -152,7 +152,7 @@
       "payload": {
         "summary": "получил травму ноги, упав с лестницы у крепостной стены при штурме крепости",
         "day": null,
-        "age": 28
+        "age": null
       },
       "causes": [],
       "provenance": "AUTHOR_CONFIRMED",
@@ -281,7 +281,7 @@
     {
       "entry_id": "afd7c07a08402e09beb88bb02146d5f8",
       "kind": "EVENT",
-      "historical_age": 32,
+      "historical_age": null,
       "historical_year": null,
       "subject_id": {
         "ref_kind": "RESOLVED",
@@ -415,7 +415,7 @@
     {
       "entry_id": "b9d586f1d971f8ddad190333ab55098c",
       "kind": "EVENT",
-      "historical_age": 40,
+      "historical_age": null,
       "historical_year": null,
       "subject_id": {
         "ref_kind": "RESOLVED",
