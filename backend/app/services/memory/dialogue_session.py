@@ -163,7 +163,12 @@ class DialogueSession:
         for turn in self.buffer[-5:]:
             target_marker = f" → {turn.target_id}" if turn.target_id else ""
             intent_marker = f" [{turn.intent}]" if turn.intent else ""
-            speaker_name = "Игрок" if turn.speaker == "player" else self.npc_id
+            # R-1 FIX (NPC_LONGFORM E1): атрибуция говорящего в парной сессии NPC↔NPC.
+            # До фикса не-игрок печатался как self.npc_id (владелец сессии) — LLM не мог
+            # различить «я сказал»/«мне сказали». Теперь печатается фактический говорящий
+            # (turn.speaker — NPC ID). Display name resolver — опциональный параметр
+            # для будущей улучшения (прецедент name_gate ADR-O-409).
+            speaker_name = "Игрок" if turn.speaker == "player" else turn.speaker
             lines.append(f"  {speaker_name}{target_marker}{intent_marker}: {turn.text}")
         if self.claims:
             open_claims = [c for c in self.claims if c.status == "open"][-5:]
