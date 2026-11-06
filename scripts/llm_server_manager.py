@@ -20,6 +20,7 @@ import sys
 sys.path.insert(0, str(_BACKEND_DIR))
 
 from app.core.config import settings
+from app.services.llm.server_lifecycle import acquire_llama_server_lock
 
 logger = logging.getLogger(__name__)
 
@@ -81,15 +82,29 @@ def start_llama_server() -> bool:
     """Запускает llama-server и ждёт его готовности (health check)."""
     global _llama_proc
     
-    # Проверяем, не запущен ли уже
-    try:
-        _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-        _opener.open(f"{settings.llama_cpp_server_url}/health", timeout=2)
-        print("[LLM_MANAGER] llama-server уже запущен.")
-        _llama_env_fingerprint(reuse=True)
-        return True
-    except Exception:
-        pass
+    # Этап 1: двухлинейный lock (health + bind-probe) — предотвращает дубль
+    # (инцидент 2026-08-30: health-only → второй спавн на занятый порт → VRAM 96%)
+    _lock_verdict, _lock_reason = acquire_llama_server_lock(
+        settings.llama_cpp_port, f"{settings.llama_cpp_server_url}/health"
+    )
+    if _lock_verdict == "reuse":
+        if "health ok" in _lock_reason:
+            print(f"[LLM_MANAGER] llama-server уже запущен ({_lock_reason}).")
+            _llama_env_fingerprint(reuse=True)
+            return True
+        # Порт занят, health молчит → другой процесс грузит модель → ждём
+        print(f"[LLM_MANAGER] Порт занят ({_lock_reason}). Ждём загрузки...")
+        for _attempt in range(int(settings.model_load_timeout_sec / 2)):
+            try:
+                _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                _opener.open(f"{settings.llama_cpp_server_url}/health", timeout=2)
+                print("[LLM_MANAGER] llama-server готов (загружен другим процессом).")
+                _llama_env_fingerprint(reuse=True)
+                return True
+            except Exception:
+                time.sleep(2)
+        print(f"[LLM_MANAGER] llama-server не стал готов за {settings.model_load_timeout_sec}с (порт занят).")
+        return False
 
     print("[LLM_MANAGER] Запуск llama-server...")
 
@@ -111,9 +126,9 @@ def start_llama_server() -> bool:
         "--port",
         str(settings.llama_cpp_port),
         "--host",
-        "localhost",
+        "127.0.0.1",
         "-ngl",
-        str(settings.gpu_layers),
+        str(settings.effective_gpu_layers),
         "-c",
         str(settings.ctx_size),
         "-t",
