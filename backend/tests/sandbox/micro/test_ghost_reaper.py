@@ -53,6 +53,22 @@ class TestGhostReaper(unittest.TestCase):
         self.assertEqual(len(rep["killed"]), 2)
         self.assertEqual(rep["spared"], [])
 
+    def test_spare_orphan_with_clients(self):
+        """Этап 2: сирота + активные клиенты на :8181 → orphan-but-in-use → spare."""
+        bundle = [
+            _info(200, "python.exe", f"{self.repo}\\.venv\\python.exe -m uvicorn app.main:app --port 8000"),
+            _info(201, "llama-server.exe", f"{self.repo}\\Models LLM\\llama\\llama-server.exe --port 8181"),
+        ]
+        with mock.patch.object(gr, "_safe_info", side_effect=lambda p: next(b for b in bundle if b["pid"] == p.pid)), \
+             mock.patch.object(gr, "_live_owner_outside", return_value=None), \
+             mock.patch.object(gr, "_has_active_clients", return_value=True), \
+             mock.patch.object(gr, "psutil", create=True) as _ps:
+            _ps.process_iter = mock.Mock(return_value=[mock.Mock(pid=b["pid"]) for b in bundle])
+            rep = gr.reap(dry_run=True, verbose=False)
+        self.assertEqual(rep["killed"], [])
+        self.assertEqual(len(rep["spared"]), 2)
+        self.assertIn("orphan-but-in-use", rep["spared"][0]["reason"])
+
     def test_spare_foreign_python(self):
         """Чужой pytest/DriftLab: не-сигнатура = неприкосновенен."""
         foreign = [_info(300, "python.exe", f"{self.repo}\\.venv\\python.exe -m pytest tests/ -q")]

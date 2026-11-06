@@ -7,6 +7,7 @@ path: /scripts/llm_server_manager.py
 
 import json
 import logging
+import os
 import subprocess
 import time
 import urllib.request
@@ -177,10 +178,31 @@ def start_llama_server() -> bool:
                 _proc.kill()
         return False
 
+def _has_active_clients(port: int) -> bool:
+    """Этап 2: проверка живых HTTP-клиентов (ESTABLISHED connections to port).
+    True → сервер в использовании → не останавливать (ownership-контракт §19)."""
+    try:
+        import psutil
+        _my_pid = os.getpid()
+        for _c in psutil.net_connections(kind="tcp"):
+            if (_c.status == psutil.CONN_ESTABLISHED
+                    and _c.raddr
+                    and _c.raddr.port == port
+                    and (_c.pid is None or _c.pid != _my_pid)):
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def kill_llama_server() -> None:
-    """Останавливает llama-server, если он был запущен этим менеджером."""
+    """Останавливает llama-server, если он был запущен этим менеджером.
+    Этап 2: не убивает сервер, которым пользуются другие процессы."""
     global _llama_proc
     if _llama_proc is not None and _llama_proc.poll() is None:
+        if _has_active_clients(settings.llama_cpp_port):
+            print(f"[LLM_MANAGER] llama-server не остановлен: активные подключения к порту {settings.llama_cpp_port}.")
+            return
         print("[LLM_MANAGER] Остановка llama-server...")
         _llama_proc.terminate()
         try:

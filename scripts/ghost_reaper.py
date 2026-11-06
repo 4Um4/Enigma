@@ -68,6 +68,24 @@ def _is_ours(info: Dict[str, Any]) -> bool:
     return _REPO_ROOT in low
 
 
+def _has_active_clients(port: int) -> bool:
+    """Этап 2: живые HTTP-клиенты на порту (ESTABLISHED connections).
+    True → сервер в использовании → щадить даже сироту (orphan-but-in-use)."""
+    if psutil is None:
+        return False
+    try:
+        _my_pid = os.getpid()
+        for _c in psutil.net_connections(kind="tcp"):
+            if (_c.status == psutil.CONN_ESTABLISHED
+                    and _c.raddr
+                    and _c.raddr.port == port
+                    and (_c.pid is None or _c.pid != _my_pid)):
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def _live_owner_outside(proc: "psutil.Process", bundle_pids: set, self_pids: set) -> Optional[str]:
     """Признак 3 — сиротство. Возвращает причину пощады ИЛИ None (= сирота).
 
@@ -168,6 +186,12 @@ def reap(dry_run: bool = True, verbose: bool = True) -> Dict[str, List[Any]]:
 
     for b in sorted(orphans, key=_depth):
         label = f"pid={b['pid']} {b['name']}"
+        # Этап 2: щадить сироту с живыми HTTP-клиентами на :8181 (orphan-but-in-use)
+        if _has_active_clients(8181):
+            report["spared"].append({"pid": b["pid"], "name": b["name"], "reason": "orphan-but-in-use: активные подключения к :8181"})
+            if verbose:
+                print(f"{REAPER_TAG} SPARE {label}: orphan-but-in-use (активные клиенты на :8181)")
+            continue
         if dry_run:
             report["killed"].append({"pid": b["pid"], "name": b["name"], "reason": "DRY-RUN: сирота+сигнатура"})
             if verbose:
