@@ -21,7 +21,9 @@ sys.path.insert(0, str(_BACKEND))
 async def _run_e2e_test():
     from app.core.config import settings
     from app.domain.events import EventDTO
-    from app.main import _kill_llama_server, _restart_llama_server
+    # Transitional (Этап 0, Устав §19): тест всё ещё владеет lifecycle сервера.
+    # Миграция на Host/Broker — Этап 3+. Не распространять паттерн на новые тесты.
+    from app.services.llm.server_lifecycle import kill_llama_server, restart_llama_server
     from app.models.schemas import ChatTurnRequest, PlayerAction
     from app.services.events.event_bus import get_event_bus
     from app.services.events.event_types import EventType
@@ -38,9 +40,10 @@ async def _run_e2e_test():
     game_loop.idle_tick(campaign_id)
 
     print("--- [2/6] Запуск llama-server (может занять до 120 сек) ---")
-    if not _restart_llama_server():
-        print("❌ ТЕСТ ПРОВАЛЕН: LLM сервер не стартовал.")
-        _kill_llama_server()
+    _restart_result = await restart_llama_server()
+    if not _restart_result["restarted"]:
+        print(f"❌ ТЕСТ ПРОВАЛЕН: LLM сервер не стартовал (reason={_restart_result.get('reason')}).")
+        kill_llama_server()
         return False
 
     print("--- [3/6] Прогон run_turn (Игрок: 'Люся, привет') ---")
@@ -55,11 +58,11 @@ async def _run_e2e_test():
         _response = await game_loop.run_turn(req)
     except Exception as e:
         print(f"❌ ТЕСТ ПРОВАЛЕН: Ошибка во время run_turn: {e}")
-        _kill_llama_server()
+        kill_llama_server()
         return False
     finally:
-        print("--- [4/6] Остановка llama-server ---")
-        _kill_llama_server()
+        print("--- [4/6] Остановка llama-server (только если поднят этим тестом) ---")
+        kill_llama_server()
 
     print("--- [5/6] Проверка базовых артефактов (Journal + Recognition) ---")
     
