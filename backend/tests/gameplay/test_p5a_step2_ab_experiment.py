@@ -30,6 +30,9 @@ from tests.gameplay.harness import TavernGameplayHarness
 logger = logging.getLogger(__name__)
 
 _LLM_LIVE = os.environ.get("P5A_LIVE_LLM") == "1"
+# RE-D2 FIX: Enable IntelligenceQueue ? async dialogue extraction
+# instead of synchronous extract() from event loop (deadlock).
+os.environ.setdefault("D8P_ENABLED", "1")
 
 pytestmark = pytest.mark.skipif(
     not _LLM_LIVE,
