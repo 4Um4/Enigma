@@ -355,6 +355,8 @@ event_bus.subscribe(EventType.NPC_SPOKE, social_engine.handle)
 | 7.18 | Прямая запись в `state.hp` в обход `body_state["current_hp"]` | HP Double Truth (ADR-HP-UNIFICATION) |
 | 7.19 | `DecisionHub()` без `rng` | Нарушение детерминизма (ADR-O-301) |
 | 7.20 | LLM в `TickOrchestrator` / `DecisionHub` | Блокировка pipeline (ADR-O-313) |
+| 7.21 | Собственный спавн/kill llama-server в тесте/скрипте мимо единого механизма (§19) | Взаимное разрушение тестов: atexit-kill чужого сервера, дубль на порту, сироты (ПРОПОЗАЛ §2.2 A/C/E) |
+| 7.22 | Kill процессов по имени/порту (`taskkill /IM llama-server.exe`, `Stop-Process -Name llama-server`, kill владельца порта) | Убийство чужих серверов и backend игры: живые HTTP-клиенты невидимы убийце (K4/K5/K6) |
 
 ---
 
@@ -757,3 +759,55 @@ EpistemicStore (per-agent) — единственный belief substrate для 
 Нарушение = DOUBLE TRUTH эпистемического уровня (класс S206).
 
 DEBT-E1 (пост-slice): Player Epistemic Authority Consolidation —PlayerBeliefModel понижается из authority в projection (6 шагов:read-only → SecretKnowledgeResolver → перенос BLACKMAIL → перенос ACCUSE →перевод consumers → удаление писателей).
+
+---
+
+## §19. LAW OF SINGULAR LLM RUNTIME AUTHORITY (Закон Единого Владения LLM-Runtime)
+Статус: Генеральный закон. Рождён из оплаченных инцидентов: дубль llama-server
+2026-08-30 (VRAM 96% → 503 на всех NARRATIVE), взаимное разрушение «IPT ∥ pytest ∥ игра»
+(исходный мотив TZ-GHOST-1), окно тишины §3.12 РЕЖИМА РАБОТЫ. Полное исследование —
+`docs/architecture/LLM_RUNTIME_UNIFICATION_PROPOSAL.md` (карта механизмов §1,
+доказанные сценарии разрушения §2.2 A–F).
+
+В ENIGMA может существовать много ПОТРЕБИТЕЛЕЙ llama-server (игра, backend, pytest,
+IPT, harness-сценарии), но ровно ОДИН владелец его жизненного цикла.
+
+llama-server — не собственность теста. Тест — КЛИЕНТ LLM-runtime: запрашивает
+доступность через единый механизм, честно регистрируется (client label), освобождает
+(release). Тест НЕ порождает процесс, НЕ убивает его и НЕ владеет портом.
+
+Нарушение = класс S-конфликтов «взаимное разрушение тестов» (ПРОПОЗАЛ §2.2,
+сценарии A–F): atexit-kill переиспользованного сервера, дубль на порту,
+KILLER_SPIRIT против живых клиентов.
+
+### §19.1 Запрещено (дублирует и разворачивает §7.21–7.22)
+1. Собственный `Popen`/`subprocess` llama-server внутри теста, сценария или скрипта
+   (мимо единого механизма).
+2. Kill по имени или порту: `taskkill /IM llama-server.exe`,
+   `Stop-Process -Name llama-server`, убийство «владельца порта».
+3. `atexit`-kill сервера, которым могут пользоваться другие процессы: `atexit`
+   клиента делает только `release_lease()` (после этапа 2 ПРОПОЗАЛА — kill только
+   при нуле живых HTTP-клиентов).
+4. Вторая конфигурация модели/порта: порт и модель — только из
+   `app.core.config.settings` (SSOT). Хардкоды `8181`/`8080` и
+   `data/runtime_ports` в новых файлах запрещены.
+5. Тиражирование IPT-шапки (копипаста `scripts.llm_server_manager` + atexit) в
+   новые файлы как способ получить LLM.
+
+### §19.2 Канонический путь (как ОБЯЗАН создаваться LLM-тест)
+1. По умолчанию тест LLM-сервер не поднимает вовсе — моки `backend/tests/conftest.py`
+   (`mock_model_router`, `initialized_model_pool`). Живой сервер — привилегия, а не база.
+2. Тесту нужен живой сервер — единый механизм: фикстура `llm_runtime` /
+   `ensure_llm(label="pytest:<nodeid>")` (после этапа 3 ПРОПОЗАЛА); до этапа 3 —
+   `scripts.llm_server_manager` через общий spawn-lock, без собственного kill-кода.
+   Операционный протокол — `РЕЖИМ РАБОТЫ.md, §3.13`.
+3. Клиент именуется (`label`), тест помечается маркером `llm_live` (CI без LLM
+   пропускает через существующий exe-guard).
+4. Kill/рестарт сервера как часть сценария (доктрина D61) — только через API
+   владельца (`/restart` брокера), не собственноручно.
+
+### §19.3 Один владелец — один источник истины
+Запрещено вводить конкурирующий механизм управления LLM-runtime или вторую
+конфигурацию модели. Структурный аналог §18: одна власть — много проекций;
+здесь — один владелец — много клиентов. Нарушение = DOUBLE TRUTH уровня
+инфраструктуры (класс S206).
