@@ -95,6 +95,7 @@ class Settings(BaseSettings):
     api_port: int = 8000  # FastAPI / uvicorn
     llama_cpp_server_url: str = "http://localhost:8181"
     llama_cpp_port: int = 8181  # C2 FIX: Единый источник истины для порта LLM
+    llm_host_port: int = 8182  # Этап 3: LLM Host broker management port (SSOT)
     llama_cpp_max_tokens: int = 1024
     dm_max_tokens: int = 220  # A7-FIX: было хардкожено в 4 местах dm_agent.py
     environment: str = "production"  # B4-FIX: production | development | test
