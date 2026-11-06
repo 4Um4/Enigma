@@ -205,17 +205,9 @@ def load_golden_reference() -> dict | None:
 # =====================================================================
 
 def kill_llama_server() -> None:
-    """Гарантированное убийство всех llama-server.exe (cleanup)."""
-    try:
-        if os.name == "nt":
-            subprocess.run(["taskkill", "/F", "/IM", "llama-server.exe"],
-                           capture_output=True, timeout=10)
-        else:
-            subprocess.run(["pkill", "-f", "llama-server"],
-                           capture_output=True, timeout=10)
-    except Exception:
-        pass
-    time.sleep(2)
+    """Этап 0: kill-by-name disabled (Устав §19.1.2). No-op."""
+    pass
+
 
 
 def query_vram() -> str:

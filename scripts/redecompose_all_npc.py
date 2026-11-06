@@ -38,19 +38,9 @@ def list_npc_from_canon() -> list:
 
 
 def kill_llama_servers() -> None:
-    """Убить ВСЕ llama-server процессы перед запуском."""
-    try:
-        result = subprocess.run(
-            ["taskkill", "/IM", "llama-server.exe", "/F"],
-            capture_output=True, text=True, timeout=10
-        )
-        if result.returncode == 0:
-            print("  убиты процессы llama-server")
-        else:
-            print("  llama-server процессов не найдено (или нет прав)")
-    except Exception as e:
-        print(f"  taskkill не сработал: {e}")
-    time.sleep(3)
+    """Этап 0: kill-by-name disabled (Устав §19.1.2). No-op."""
+    pass
+
 
 
 def wait_for_llm_health(port: int = 8181, timeout: int = 60) -> bool:

@@ -25,7 +25,7 @@ print(f"[PROBE] Модель: {model_path.name} ({model_path.stat().st_size / 10
 
 # 1. Kill existing llama-server
 try:
-    subprocess.run(['taskkill', '/F', '/IM', 'llama-server.exe'], capture_output=True)
+    # Этап 0: taskkill /IM removed (Устав §19.1.2)
 except Exception:
     pass
 time.sleep(2)

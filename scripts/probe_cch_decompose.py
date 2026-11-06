@@ -21,7 +21,7 @@ FRAGMENTS = [
 ]
 
 def run_test(model_path, model_name):
-    try: subprocess.run(['taskkill', '/F', '/IM', 'llama-server.exe'], capture_output=True)
+    pass  # Этап 0: taskkill /IM removed (Устав §19.1.2)
     except: pass
     time.sleep(2)
     proc = subprocess.Popen(
