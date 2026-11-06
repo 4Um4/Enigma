@@ -2,51 +2,19 @@
 E2E валидация каузальной цепи: Текст -> LLM -> Intent -> Directive -> Obedience
 Доказывает, что LegitimacyGate открывается при high fear/trust,
 и LLM корректно извлекает MOVE intent из текстовой команды.
-"""
 
-r"""
-ИНСТРУКЦИЯ ЗАПУСКА (PowerShell):
-# 0. Убиваем зомби-процессы от прошлых запусков (освобождаем VRAM)
-Get-Process -Name "llama-server" -ErrorAction SilentlyContinue | Stop-Process -Force
-Start-Sleep -Seconds 1
+ЗАПУСК (Устав §19 — тест НЕ владеет llama-server; llm_server_manager — переходный механизм, НЕ будущий Host):
 
-# 1. Запускаем мозг
- $exe = "C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\llama\llama-server.exe"
- $model = "C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
- $llmProc = Start-Process -FilePath $exe -ArgumentList "-m `"$model`" -ngl 99 -c 8192 -t 8 --port 8080 --host 127.0.0.1" -PassThru -WindowStyle Hidden
+# ЗАПУСК LLM
+python -c "from scripts.llm_server_manager import start_llama_server; start_llama_server()"
 
-Write-Host "🧠 LLM сервер запускается (грузим 8GB в VRAM)..."
+# ПРОВЕРКА
+python -c "from app.core.config import settings; print(settings.llama_cpp_server_url)"
 
-# 2. Ждем пульс (до 60 секунд для тяжелой модели)
- $ready = $false
-for ($i=0; $i -lt 30; $i++) {
-    try {
-        $r = Invoke-WebRequest -Uri "http://127.0.0.1:8080/health" -TimeoutSec 2 -ErrorAction Stop
-        if ($r.StatusCode -eq 200) {
-            $ready = $true
-            Write-Host "✅ LLM сервер жив. Начинаю E2E тест LegitimacyGate."
-            break
-        }
-    } catch {
-        Start-Sleep -Seconds 2
-    }
-}
-
-if (-not $ready) {
-    Write-Host "❌ LLM сервер не поднялся за 60 секунд. Проверь VRAM."
-    Stop-Process -Id $llmProc.Id -Force -ErrorAction SilentlyContinue
-    Read-Host "Нажми Enter"
-    exit 1
-}
-
-# 3. Запускаем E2E тест каузальной цепи Директива → Подчинение
+# ТЕСТ
 python -m pytest backend/tests/sandbox/phenomenology/test_directive_obedience_pipeline.py -v -s
 
-# 4. Убиваем мозг после теста
-Write-Host "🧹 Останавливаю LLM сервер (освобождаю VRAM)..."
-Stop-Process -Id $llmProc.Id -Force -ErrorAction SilentlyContinue
-
-Read-Host "Готово. Нажми Enter"
+# Остановка LLM — отдельная административная операция (не обязательный шаг теста).
 """
 
 # TODO: Расширить тесты для OBSERVE, ATTACK и других директив.
@@ -59,16 +27,16 @@ import urllib.error
 import urllib.request
 
 import pytest
+from app.core.config import settings
 from app.domain.identity_events import EffectiveDrives
 
 _MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
 
 from app.models.state_delta import DeltaDomain
 
-# Примечание: PowerShell-скрипт запускается отдельно (run_directive_test.ps1)
 from app.services.social.directive_interpretation_subscriber import DirectiveInterpretationSubscriber
 
-LLM_URL = "http://127.0.0.1:8080"
+LLM_URL = settings.llama_cpp_server_url
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -79,7 +47,7 @@ def check_llm_alive():
         if r.status != 200:
             pytest.skip("LLM сервер запущен, но health != 200")
     except urllib.error.URLError:
-        pytest.skip("LLM сервер не запущен на localhost:8080. Запусти run_directive_test.ps1")
+        pytest.skip(f"LLM сервер не запущен на {settings.llama_cpp_server_url}. Запусти: python -c \"from scripts.llm_server_manager import start_llama_server; start_llama_server()\"")
 
 
 def test_llm_extracts_move_intent():

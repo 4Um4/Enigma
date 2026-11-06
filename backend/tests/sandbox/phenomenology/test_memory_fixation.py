@@ -5,48 +5,18 @@ path: /project/backend/tests/sandbox/phenomenology/test_memory_fixation.py
 1. Фиксацию: "2 яблока + 3 яблока = груша" -> LLM повторяет и объясняет.
 2. Деградацию: "Я - дерево" -> 30 сек декэя -> LLM забывает или сомневается.
 
-ЗАПУСК:
-# 0. Убиваем зомби-процессы от прошлых запусков (освобождаем VRAM)
-Get-Process -Name "llama-server" -ErrorAction SilentlyContinue | Stop-Process -Force
-Start-Sleep -Seconds 1
+ЗАПУСК (Устав §19 — тест НЕ владеет llama-server; llm_server_manager — переходный механизм, НЕ будущий Host):
 
-# 1. Запускаем мозг (экранируем кавычки для пробелов в путях)
-$exe = r"C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\llama\llama-server.exe"
- $model = r"C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
- $llmProc = Start-Process -FilePath $exe -ArgumentList "-m `"$model`" -ngl 99 -c 8192 -t 8 --port 8080 --host 127.0.0.1" -PassThru -WindowStyle Hidden
+# ЗАПУСК LLM
+python -c "from scripts.llm_server_manager import start_llama_server; start_llama_server()"
 
-Write-Host "🧠 LLM сервер запускается (грузим 8GB в VRAM)..."
+# ПРОВЕРКА
+python -c "from app.core.config import settings; print(settings.llama_cpp_server_url)"
 
-# 2. Ждем пульс (до 40 секунд)
- $ready = $false
-for ($i=0; $i -lt 20; $i++) {
-    try {
-        $r = Invoke-WebRequest -Uri "http://127.0.0.1:8080/health" -TimeoutSec 2 -ErrorAction Stop
-        if ($r.StatusCode -eq 200) {
-            $ready = $true
-            Write-Host "✅ LLM сервер жив. Начинаю когнитивный тест."
-            break
-        }
-    } catch {
-        Start-Sleep -Seconds 2
-    }
-}
-
-if (-not $ready) {
-    Write-Host "❌ LLM сервер не поднялся за 40 секунд. Проверь VRAM или закрой другие игры."
-    Stop-Process -Id $llmProc.Id -Force -ErrorAction SilentlyContinue
-    Read-Host "Нажми Enter, чтобы закрыть окно"
-    exit 1
-}
-
-# 3. Запускаем феноменологический тест памяти
+# ТЕСТ
 python -m pytest backend/tests/sandbox/phenomenology/test_memory_fixation.py -v -s
 
-# 4. Убиваем мозг после теста (освобождаем VRAM)
-Write-Host "🧹 Останавливаю LLM сервер (освобождаю VRAM)..."
-Stop-Process -Id $llmProc.Id -Force -ErrorAction SilentlyContinue
-
-Read-Host "Готово. Нажми Enter, чтобы закрыть окно"
+# Остановка LLM — отдельная административная операция (не обязательный шаг теста).
 
 TODO:
 - Добавить больше сценариев фиксации (эмоциональные, социальные правила).
@@ -57,18 +27,19 @@ from dataclasses import replace as dc_replace
 from unittest.mock import MagicMock
 
 import pytest
+from app.core.config import settings
 from app.domain.identity_events import EffectiveDrives
 
 
 def is_llm_available():
     try:
-        urllib.request.urlopen("http://127.0.0.1:8080/health", timeout=1)
+        urllib.request.urlopen(f"{settings.llama_cpp_server_url}/health", timeout=1)
         return True
     except Exception:
         return False
 
 # Пропускаем тесты, если LLM-сервер недоступен
-pytestmark = pytest.mark.skipif(not is_llm_available(), reason="LLM server is not running on port 8080")
+pytestmark = pytest.mark.skipif(not is_llm_available(), reason=f"LLM server is not running at {settings.llama_cpp_server_url}")
 
 _MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
 
@@ -100,11 +71,11 @@ def llm_router() -> ModelRouter:
     try:
         urllib.request.urlopen(f"{settings.llama_cpp_server_url}/health", timeout=2)
     except Exception:
-        # Мозг мертв. Формируем команду для оживления.
-        cmd = f"{settings.llama_cpp_server_executable} -m {settings.llama_cpp_model_path} -ngl {settings.gpu_layers} -c {settings.ctx_size} -t {settings.threads} --port 8080 --host 127.0.0.1"
+        # Мозг мертв. Единственный правильный способ поднять LLM — менеджер (Устав §19).
+        cmd = 'python -c "from scripts.llm_server_manager import start_llama_server; start_llama_server()"'
         pytest.skip(
             f"LLM СЕРВЕР МЕРТВ! Каузальный тест пропущен.\n"
-            f"Запусти мозг в отдельном терминале и перезапусти тест:\n{cmd}"
+            f"Запусти мозг:\n{cmd}"
         )
 
     return router
