@@ -545,15 +545,22 @@ def _init_menu_display():
 
 
 def _kill_zombies():
-    """Убивает зомби-процессы (uvicorn, llama-server) перед стартом."""
+    """Диагностика конфликтов портов перед стартом (Устав §19, Этап 0).
+
+    Функция больше НЕ убивает процессы. Убийство по порту/имени без
+    доказанного владения — нарушение §19 (LAW OF SINGULAR LLM RUNTIME AUTHORITY).
+    Идентификация процесса (имя/cmdline) ≠ владение процессом.
+
+    Чужой процесс на порту — сообщить о конфликте, не трогать.
+    Ownership-aware остановка — будущий Host/Broker (Этап 3+).
+    """
     import subprocess
 
-    from app.core.config import settings as _enigma_settings  # type: ignore
+    from app.core.config import settings as _enigma_settings
 
-    # 1. Убиваем по портам (самый надежный способ найти висящие сокеты)
-    try:
-        _no_window = 0x08000000 if sys.platform == 'win32' else 0  # CREATE_NO_WINDOW
-        for port in [_enigma_settings.api_port, getattr(_enigma_settings, "llama_cpp_port", 8181)]:
+    _no_window = 0x08000000 if sys.platform == 'win32' else 0  # CREATE_NO_WINDOW
+    for port in [_enigma_settings.api_port, getattr(_enigma_settings, "llama_cpp_port", 8181)]:
+        try:
             res = subprocess.run(
                 f"netstat -ano | findstr :{port}",
                 shell=True,
@@ -565,19 +572,13 @@ def _kill_zombies():
                 parts = line.split()
                 if len(parts) > 4 and parts[-2] == "LISTENING":
                     pid = parts[-1]
-                    subprocess.run(
-                        f"taskkill /F /T /PID {pid}", shell=True, capture_output=True,
-                        creationflags=_no_window,
+                    print(
+                        f"  ⚠ Порт {port} занят PID {pid}. "
+                        f"Автоматическое убийство отключено (Устав §19). "
+                        f"Если это конфликт — остановите процесс вручную."
                     )
-    except Exception:
-        pass
-
-    # 2. Убиваем все экземпляры llama-server.exe (фоллбэк)
-    try:
-        subprocess.run("taskkill /F /IM llama-server.exe", shell=True, capture_output=True)
-        subprocess.run("taskkill /F /IM llama-server.exe", shell=True, capture_output=True)
-    except Exception:
-        pass
+        except Exception:
+            pass
 
 
 def _wait_backend_ready(max_attempts: int = 5, timeout: float = 2.0) -> bool:
