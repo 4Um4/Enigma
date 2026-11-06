@@ -36,6 +36,15 @@ pytestmark = pytest.mark.skipif(
     reason="Set P5A_LIVE_LLM=1 to run P5-A Step 2 (requires Hermes-3 server on localhost:8181).",
 )
 
+# Initialize router ONCE at module level (safe ? initialize_router() is idempotent)
+_ROUTER_INITIALIZED = False
+def _ensure_router():
+    global _ROUTER_INITIALIZED
+    if not _ROUTER_INITIALIZED:
+        from app.services.llm.router import initialize_router
+        initialize_router()
+        _ROUTER_INITIALIZED = True
+
 
 def _publish_player_insults(harness, victim: str, radius: float = 10.0) -> None:
     from app.domain.events import EventDTO
@@ -93,6 +102,9 @@ def _get_cognition_block(harness, npc_id: str = "tavern_keeper_tornin") -> str:
 
 def _run_scenario(with_insult: bool, seed: int) -> dict:
     """Single A/B run — capture Tornin's behavior."""
+    _ensure_router()
+    import time as _time
+    _t_start = _time.monotonic()
     _h = TavernGameplayHarness(seed=seed, location="tavern")
     _h.new_game()
     # DON'T call _install_sync_pool — keep real router (LLM)
@@ -103,7 +115,10 @@ def _run_scenario(with_insult: bool, seed: int) -> dict:
     else:
         print("  [B] no insult (control)")
 
+    _t_before_ticks = _time.monotonic()
     _h.advance_ticks(5)
+    _t_after_ticks = _time.monotonic()
+    print(f"  ticks_time={_t_after_ticks - _t_before_ticks:.1f}s")
 
     # Verify belief presence/absence
     _store = _get_epistemic_store(_h)
@@ -134,6 +149,7 @@ def _run_scenario(with_insult: bool, seed: int) -> dict:
         "cognition_block": _cog_block,
         "tornin_speeches": list(_tornin_speeches),
         "speech_count": len(_tornin_speeches),
+        "total_time": _time.monotonic() - _t_start,
     }
 
     if _tornin_speeches:

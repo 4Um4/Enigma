@@ -463,13 +463,6 @@ def create_tick_context(
                     target_reference=_payload.get("target_id", ""),
                     target_id=_payload.get("target_id", ""),
                 )
-                # P5-A DIAG: trace target source before IntentDTO creation
-                _diag_payload_target = _payload.get("target_id", "")
-                _diag_context_target = getattr(shared_context, "player_target_id", None) if shared_context else None
-                logger.warning(
-                    "[TARGET_SOURCE_TRACE] tick_utils: payload_target=%r context_target=%r selected=%r",
-                    _diag_payload_target, _diag_context_target, _diag_payload_target,
-                )
                 _player_intent = IntentDTO(
                     action=_action_str.lower(),  # 'attack', 'move', etc.
                     target=_payload.get("target_id", ""),
