@@ -25,18 +25,23 @@ sys.path.insert(0, str(_BACKEND))
 _ROOT = _BACKEND.parent
 sys.path.insert(0, str(_ROOT))
 
-# Автоматический запуск/остановка LLM для IPT
-# Обёрнуто в try/except, так как модуля scripts.llm_server_manager может не быть в репозитории
+# Автоматический запуск/остановка LLM для IPT через Host broker (:8182).
+# ensure_llm(label="IPT") — discovery + spawn Host (если мёртв) + POST /ensure
+# (respawn llama-server если мёртв) + heartbeat thread; release_lease
+# регистрируется в atexit ВНУТРИ SDK (app.services.llm.runtime.client.ensure_llm)
+# — НЕ дублируем. Вердикт Мастера: Host broker и llama-server переживают
+# shutdown управляющего процесса (release_lease отпускает lease, процессы НЕ kill).
 try:
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
-    _llm_ok = start_llama_server()
-    if not _llm_ok:
-        print("⚠️ Внимание: LLM не запущена. Тесты диалогов будут падать.")
-    atexit.register(kill_llama_server)
-except (ModuleNotFoundError, OSError) as e:
-    # P1-fix (ТЗДНЯ): FileNotFoundError от Popen при отсутствии llama-server (CI)
-    # — не ModuleNotFoundError; ронял любой прогон, импортирующий IPT.
+    from app.services.llm.runtime.client import ensure_llm
+    ensure_llm(label="IPT")
+    _llm_ok = True
+except Exception as e:
+    # Любой отказ (CI без Models LLM/, таймаут Host startup, OSError из Popen,
+    # RuntimeError из /ensure) — MVP продолжает работу без LLM; тесты диалогов
+    # будут падать. Широкий catch вместо (ModuleNotFoundError, OSError) —
+    # Host/SDK поднимает RuntimeError при невозможности обеспечить lease.
     print(f"⚠️ Внимание: LLM недоступна ({e}). MVP продолжает работу без LLM.")
+    _llm_ok = False
 
 # ── KILLER_SPIRIT (санкция Мастера): убийца призрачных backend-связок ──
 # Долг TZ-GHOST-1: ланчер умирает, не убив детей (llama-server:8181 +
@@ -2520,10 +2525,12 @@ def run_invariants() -> int:
     failed = sum(1 for r in results if not r.passed)
     critical_failed = sum(1 for r in results if not r.passed and r.severity == "CRITICAL")
 
-    # KILLER_SPIRIT (финал): само-очистка после инвариантов — IPT не
-    # оставляет своих призраков (llama-server поднят шапкой, если start
-    # прошёл — обязан быть убит atexit; здесь добиваем осиротевшее ДО
-    # запуска IPT-LLM). Гонки смерти НЕ критичны (NoSuchProcess = победа).
+    # KILLER_SPIRIT (финал): safety-net очистка после инвариантов.
+    # В новой модели (Host broker :8182) release_lease отпускает lease через
+    # atexit ВНУТРИ SDK (ensure_llm); Host broker и llama-server переживают
+    # shutdown управляющего процесса (вердикт Мастера). ghost_reaper здесь —
+    # добивает osиротевшие связки, если Host упал внезапно и оставил
+    # llama-server без владельца. Гонки смерти НЕ критичны (NoSuchProcess = победа).
     try:
         import os as _os_reaper2
 
