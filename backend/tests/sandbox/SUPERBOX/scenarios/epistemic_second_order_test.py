@@ -17,15 +17,14 @@ _ROOT = BACKEND_ROOT.parent
 sys.path.insert(0, str(_ROOT))
 
 # S198 FIX: Автоматический запуск LLM для теста, чтобы обходить инфраструктурные падения.
+# Этап 4.1.4.2: migrated to Host broker SDK. ensure_llm(label="epistemic_2nd")
+# acquire lease через Host broker :8182; release выполняется SDK через
+# module-level atexit handler. Принцип Мастера: идентификация ≠ владение.
 try:
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
-    _llm_ok = start_llama_server()
-    if not _llm_ok:
-        print("⚠️ Внимание: LLM не запущена. Тест может упасть.")
-    atexit.register(kill_llama_server)
-except ModuleNotFoundError as e:
-    print(f"⚠️ Внимание: Модуль LLM-сервера не найден ({e}). Тест продолжает работу без LLM.")
-
+    from app.services.llm.runtime.client import ensure_llm
+    ensure_llm(label="epistemic_2nd")
+except Exception as e:
+    print(f"⚠️ Внимание: LLM недоступна ({e}). Тест продолжает работу без LLM.")
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s:%(name)s:%(message)s')
 logger = logging.getLogger("EPISTEMIC_SECOND_ORDER")
 logger.setLevel(logging.INFO)
