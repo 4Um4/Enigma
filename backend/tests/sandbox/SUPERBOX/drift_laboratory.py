@@ -64,20 +64,25 @@ for _dn in ("app.services.npc.domain_phases",
 # Канал в production жив (ENIGMA_DISABLE_FILE_LOGS — существующий гейт).
 os.environ.setdefault("ENIGMA_DISABLE_FILE_LOGS", "1")
 
-from scripts.llm_server_manager import kill_llama_server, start_llama_server
+from app.services.llm.runtime.client import ensure_llm
 
 # S268-ЭНДУРАНС: LLM под env-контролем. DRIFT_NO_LLM=1 → детерминизм-
 # режимы идут БЕЗ llama-server (диалоги деградируют по ADR-113 честно,
 # ретраи видны в логах) — endurance-кампания перестаёт зависеть от
 # LLM-латентности (главный съедатель часов на 10k).
+#
+# Этап 4.1.1: migrated to Host broker SDK. ensure_llm(label="drift_lab")
+# acquire/release lease через Host broker :8182 — drift_laboratory больше
+# НЕ владеет llama-server lifecycle (принцип Мастера: идентификация ≠
+# владение). atexit.register(release_lease) уже внутри SDK (client.py:215,
+# module-level) — НЕ дублируем. Host/llama-server переживают shutdown runner.
 if os.environ.get("DRIFT_NO_LLM", "1") == "1":
     print("[DRIFT_LAB] DRIFT_NO_LLM=1 — llama-server не запускается (endurance-режим)")
-    atexit.register(lambda: None)
 else:
-    _llm_ok = start_llama_server()
-    if not _llm_ok:
-        print("⚠️ Внимание: LLM не запущена. Тесты диалогов будут падать.")
-    atexit.register(kill_llama_server)
+    try:
+        ensure_llm(label="drift_lab")
+    except Exception as _e:
+        print(f"⚠️ Внимание: LLM недоступна ({_e}). Тесты диалогов будут падать.")
 
 
 # ─── Конфигурация ───────────────────────────────────────────────────────
