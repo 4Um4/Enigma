@@ -234,49 +234,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         # 5.5 Авто-старт llama-server (если URL настроен)
         if settings.llama_cpp_server_url:
             app.state.startup_status["llm_server"] = "starting"
+            # Этап 5: migrated to Host broker SDK. ensure_llm handles lock + spawn.
+            # Принцип Мастера: идентификация ≠ владение. Host broker owns lifecycle.
             try:
-                # ПРОЦЕССНЫЙ ЛОК (инцидент 2026-08-30: два llama-server на 8181
-                # → VRAM 96% → 503 на NARRATIVE → DRI 2%). Health-проверка одна
-                # не отличает «сервер грузится» от «сервера нет»: пока первый
-                # грузит модель (30–60с), health молчит — второй путь спавнил
-                # дубль. Лок: reuse = health жив ИЛИ порт занят; spawn = порт
-                # свободен. Канонический примитив — server_lifecycle (обе точки).
-                from app.services.llm.server_lifecycle import (
-                    acquire_llama_server_lock,
-                )
-
-                _verdict, _why = acquire_llama_server_lock(
-                    settings.llama_cpp_port,
-                    f"{settings.llama_cpp_server_url}/health",
-                )
-                if _verdict == "reuse":
-                    print(f"✓ llama-server уже запущен/грузится ({_why})")
-                    app.state.startup_status["llm_server"] = "ready"
-                else:
-                    # Порт свободен — имитируем health-промах оригинала:
-                    # исполнение уходит в except-ветку со спавн-блоком ниже
-                    raise ConnectionError(_why)
-            except ConnectionError:
-                # COV-2/D61: единственный владелец спавна — server_lifecycle
-                # (de-dup: тот же код обслуживает и рестарт из модалки).
-                # startup_status остаётся собственностью main; контракт
-                # результата: {started, reason, detail}. Очистка сироты при
-                # load_timeout — ответственность server_lifecycle.
-                from app.services.llm.server_lifecycle import start_llama_server
-
-                _start = await start_llama_server()
-                if _start["started"]:
-                    print(
-                        f"✓ llama-server запущен ({settings.llama_cpp_server_url}): {_start['detail']}"
-                    )
-                    app.state.startup_status["llm_server"] = "ready"
-                else:
-                    print(f"✗ llama-server не запущен: {_start['reason']}: {_start['detail']}")
-                    logger.warning(
-                        f"[STARTUP] llama-server: {_start['reason']}: {_start['detail']}"
-                    )
-                    app.state.startup_status["llm_server"] = "failed"
-                    app.state.startup_status["llm_error"] = _start["reason"]
+                from app.services.llm.runtime.client import ensure_llm
+                ensure_llm(label="backend")
+                print(f"✓ llama-server обеспечен через Host broker ({settings.llama_cpp_server_url})")
+                app.state.startup_status["llm_server"] = "ready"
+            except Exception as e:
+                print(f"✗ LLM недоступна: {e}")
+                logger.warning(f"[STARTUP] LLM: {e}")
+                app.state.startup_status["llm_server"] = "failed"
+                app.state.startup_status["llm_error"] = str(e)
         else:
             app.state.startup_status["llm_server"] = "skipped"
 
@@ -333,15 +302,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except asyncio.CancelledError as e:
         logger.debug(f"Background task cancelled: {e}")
 
-    # Синхронизируем состояние с глобалами для atexit-хендлера
-    if _llama_state["proc"] is not None and _llama_state["started_by_us"]:
-        try:
-            _llama_state["proc"].terminate()
-            _llama_state["proc"].wait(timeout=5)
-            print("✓ llama-server stopped")
-        except Exception:
-            _llama_state["proc"].kill()
-            print("✓ llama-server killed")
+    # Этап 5: release lease (не kill сервер — Host broker owns lifecycle).
+    # Вердикт Мастера: сервер переживает shutdown управляющего процесса.
+    try:
+        from app.services.llm.runtime.client import release_lease
+        release_lease()
+        print("✓ LLM lease released")
+    except Exception as e:
+        logger.debug(f"release_lease: {e}")
 
     # Завершение сессии VRAM мониторинга
     try:
