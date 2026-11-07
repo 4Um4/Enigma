@@ -352,7 +352,7 @@ RAM (16 ГБ): веса mmap ~4.6–4.9 ГБ + backend+фронтенд+тест
 | 2 | ✅ ЗАВЕРШЕН | 351a5e02 | LLM_RUNTIME_ЭТАП2_IMPACT.md |
 | 3 | ✅ ЗАВЕРШЕН | c01799ca+0ed3d8aa+95fe4ec2+53f7c2d4+19664c9a+c560623c+3281ead3+96fd9047 | LLM_RUNTIME_ЭТАП3_IMPACT.md |
 | 4 | ✅ ЗАВЕРШЕН (30/30) | S417: baeb2548→246eed16; S418: 9c85d436→36563594 | — |
-| 5 | ⏳ PENDING | — | — |
+| 5 | ✅ ЗАВЕРШЕН | 0cc44230 + e54b74ce | LLM_RUNTIME_ЭТАП5_IMPACT.md |
 | 6 | ⏳ PENDING | — | — |
 
 **Milestone (Этапы 0-3):** Two-client crash isolation test S1-S8 PASS. IPT migrated to Host broker SDK (Step 6A). silent_subprocess_kwargs SSOT. IPT 53/1 (vs baseline 52/2).

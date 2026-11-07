@@ -267,6 +267,8 @@
 
 - **S418** LLM Runtime Unification Этап 4.1 continuation — batches 4.1.6-4.1.13 (16 consumers migrated to ensure_llm Host broker SDK): 4.1.6 semantic_* (`9c85d436`); 4.1.7-4.1.8 m1+activity+phase_a+cockpit (`c055c0ea`); 4.1.9-4.1.10 gc11+cch8+chronicle_* (`1543c689`); 4.1.11-4.1.13 scripts+reports+phenomenology (`36563594`); patterns: start/kill/atexit→ensure_llm(label=...); _LLM_KILL→release_lease (activity_gap); _llm_noop stubs kept dead-code (cockpit); dynamic import→direct app import (weave/decompose); phenomenology pytest.skip+subprocess→ensure_llm; ghost_reaper+uvicorn in cch8 KEPT; ENIGMA_DET_KEEP_SERVER removed; except ModuleNotFoundError→except Exception · Устав §19 · IPT 52/2 (INV-RE-CACHE-ALLOWLIST pre-existing + INV-FLAG-REGISTRY foreign WIP commitment_arbiter.py:50,54 — relay action/commitment owner, НЕ от LLM Runtime); [LLM_SDK] lease released; [KILLER_SPIRIT] пощажено=1 · Gap: 4.1.4(3)+4.1.5(4)=7 consumers in commits (29bc2cb5→246eed16) но НЕ в S417 entry · Этап 4.1 COMPLETE: 23/23 migrated (7 S417 + 7 4.1.4/4.1.5 + 16 S418), 2 deferred (d61 D4 + client.py:173) · Этап 5+6 pending · Anti-Race: pathspec-only
 
+- **S419** LLM Runtime Unification Этап 5 (production integration): game_launcher.py (`0cc44230`) + main.py (`e54b74ce`) migrated to Host broker SDK — _ensure_llm_running → ensure_llm(label="game", pinned=True); _background_llm_startup → ensure_llm(label="backend"); shutdown terminate → release_lease(); port-scan LLM port excluded; release_lease before os._exit; readiness.py NO changes; d61 DEFERRED (broker /restart, Этап 4 PROPOSAL) · IPT 52/2 (0 regressions) · e2e pending · Anti-Race: pathspec-only
+
 ## 3. Живые хвосты (открытое; владелец обязателен)
 
 ### Эскалации Мастеру (решения вне компетенции преемника)
