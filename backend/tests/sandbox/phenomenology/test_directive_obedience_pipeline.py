@@ -3,10 +3,10 @@ E2E валидация каузальной цепи: Текст -> LLM -> Inten
 Доказывает, что LegitimacyGate открывается при high fear/trust,
 и LLM корректно извлекает MOVE intent из текстовой команды.
 
-ЗАПУСК (Устав §19 — тест НЕ владеет llama-server; llm_server_manager — переходный механизм, НЕ будущий Host):
+ЗАПУСК (Устав §19 — тест НЕ владеет llama-server; Host broker SDK — ensure_llm(label="directive_obedience")):
 
-# ЗАПУСК LLM
-python -c "from scripts.llm_server_manager import start_llama_server; start_llama_server()"
+# ЗАПУСК LLM — не требуется (ensure_llm вызывается автоматически при обращении к LLM)
+# Для ручного запуска: python -c "from app.services.llm.runtime.client import ensure_llm; ensure_llm(label='directive_obedience')"
 
 # ПРОВЕРКА
 python -c "from app.core.config import settings; print(settings.llama_cpp_server_url)"
@@ -42,12 +42,12 @@ LLM_URL = settings.llama_cpp_server_url
 @pytest.fixture(scope="module", autouse=True)
 def check_llm_alive():
     """Проверяет, что LLM сервер запущен перед тестами."""
+    # Этап 4.1.13: migrated to Host broker SDK. ensure_llm handles start.
+    from app.services.llm.runtime.client import ensure_llm
     try:
-        r = urllib.request.urlopen(f"{LLM_URL}/health", timeout=2)
-        if r.status != 200:
-            pytest.skip("LLM сервер запущен, но health != 200")
-    except urllib.error.URLError:
-        pytest.skip(f"LLM сервер не запущен на {settings.llama_cpp_server_url}. Запусти: python -c \"from scripts.llm_server_manager import start_llama_server; start_llama_server()\"")
+        ensure_llm(label="directive_obedience")
+    except Exception as _e:
+        pytest.skip(f"LLM недоступна ({_e}). Каузальный тест пропущен.")
 
 
 def test_llm_extracts_move_intent():

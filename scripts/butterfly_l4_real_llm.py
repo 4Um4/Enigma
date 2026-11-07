@@ -9,21 +9,17 @@ sys.path.insert(0, str(_ROOT))
 
 os.environ["WORK_ENABLED"] = "1"
 
-# === START LLM (same as IPT) ===
-print("=== STARTING LLM (IPT pattern) ===")
+# === START LLM (Host broker SDK, Этап 4.1.11) ===
+print("=== STARTING LLM (Host broker SDK) ===")
+from app.services.llm.runtime.client import ensure_llm
+_llm_ok = True
 try:
-    from scripts.llm_server_manager import start_llama_server, kill_llama_server
-    _llm_ok = start_llama_server()
-    atexit.register(kill_llama_server)
-    if _llm_ok:
-        print("[LLM] start_llama_server returned True")
-    else:
-        print("[LLM] start_llama_server returned False — LLM may still be starting")
+    ensure_llm(label="butterfly_l4")
 except Exception as e:
     print(f"[LLM] start failed: {e}")
     _llm_ok = False
 
-# Wait for health
+# Wait for health (diagnostic)
 print("[LLM] Waiting for health (max 60s)...")
 import urllib.request
 _llm_alive = False

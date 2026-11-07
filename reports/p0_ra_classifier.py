@@ -135,14 +135,15 @@ def _parse_route(content: Optional[str]) -> Tuple[str, bool]:
 
 
 def main() -> None:
+    # Этап 4.1.12: migrated to Host broker SDK. ENIGMA_DET_KEEP_SERVER — redundant.
+    # Принцип Мастера: идентификация ≠ владение.
+    llm_ok = True
     try:
-        from scripts.llm_server_manager import kill_llama_server, start_llama_server
+        from app.services.llm.runtime.client import ensure_llm
         print("Запускаю LLM-сервер для R-a classifier...")
-        llm_ok = start_llama_server()
-        if os.environ.get("ENIGMA_DET_KEEP_SERVER") != "1":
-            atexit.register(kill_llama_server)
+        ensure_llm(label="p0_ra_classifier")
     except Exception as e:
-        print(f"ВНИМАНИЕ: менеджер LLM недоступен ({e}).")
+        print(f"ВНИМАНИЕ: LLM недоступна ({e}).")
         llm_ok = False
     if not llm_ok:
         print("ИТОГО P0-4: INVALID RUN (LLM недоступна) — не является измерением.")

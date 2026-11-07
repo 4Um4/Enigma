@@ -11,16 +11,20 @@ r"""path: /project/scripts/det_holder.py
 Запуск: Start-Process -FilePath "python" -ArgumentList "scripts\det_holder.py" -RedirectStandardOutput reports\det_m2_holder.txt -RedirectStandardError reports\det_m2_holder_err.txt -WindowStyle Hidden
 """
 
+import sys
 import time
+from pathlib import Path
 
-# sys.path[0] при запуске "python scripts\det_holder.py" = папка scripts/ —
-# менеджер импортируется напрямую (никаких python -c: PS5 Start-Process
-# не квотит аргументы с пробелами — обе попытки через -c погибли на этом)
-from llm_server_manager import start_llama_server
+# Этап 4.1.11: migrated to Host broker SDK. Принцип Мастера: идентификация ≠ владение.
+# det_holder — lease holder (not server spawner). Host broker owns lifecycle.
+_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_ROOT / "backend"))
+
+from app.services.llm.runtime.client import ensure_llm
 
 
 def main() -> None:
-    start_llama_server()
+    ensure_llm(label="det_holder")
     time.sleep(7200)
 
 

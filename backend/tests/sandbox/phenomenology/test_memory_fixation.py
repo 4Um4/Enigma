@@ -5,10 +5,10 @@ path: /project/backend/tests/sandbox/phenomenology/test_memory_fixation.py
 1. Фиксацию: "2 яблока + 3 яблока = груша" -> LLM повторяет и объясняет.
 2. Деградацию: "Я - дерево" -> 30 сек декэя -> LLM забывает или сомневается.
 
-ЗАПУСК (Устав §19 — тест НЕ владеет llama-server; llm_server_manager — переходный механизм, НЕ будущий Host):
+ЗАПУСК (Устав §19 — тест НЕ владеет llama-server; Host broker SDK — ensure_llm(label="memory_fixation")):
 
-# ЗАПУСК LLM
-python -c "from scripts.llm_server_manager import start_llama_server; start_llama_server()"
+# ЗАПУСК LLM — не требуется (ensure_llm вызывается автоматически при обращении к LLM)
+# Для ручного запуска: python -c "from app.services.llm.runtime.client import ensure_llm; ensure_llm(label='memory_fixation')"
 
 # ПРОВЕРКА
 python -c "from app.core.config import settings; print(settings.llama_cpp_server_url)"
@@ -71,12 +71,12 @@ def llm_router() -> ModelRouter:
     try:
         urllib.request.urlopen(f"{settings.llama_cpp_server_url}/health", timeout=2)
     except Exception:
-        # Мозг мертв. Единственный правильный способ поднять LLM — менеджер (Устав §19).
-        cmd = 'python -c "from scripts.llm_server_manager import start_llama_server; start_llama_server()"'
-        pytest.skip(
-            f"LLM СЕРВЕР МЕРТВ! Каузальный тест пропущен.\n"
-            f"Запусти мозг:\n{cmd}"
-        )
+        # Этап 4.1.13: migrated to Host broker SDK. ensure_llm handles start.
+        from app.services.llm.runtime.client import ensure_llm
+        try:
+            ensure_llm(label="memory_fixation")
+        except Exception as _e:
+            pytest.skip(f"LLM недоступна ({_e}). Каузальный тест пропущен.")
 
     return router
 

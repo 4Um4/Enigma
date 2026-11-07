@@ -62,15 +62,12 @@ def start_llm_clean() -> bool:
     print("  убиваю старые llama-server процессы...")
     kill_llama_servers()
     
-    print("  запускаю новый LLM-сервер через менеджер...")
+    # Этап 4.1.11: migrated to Host broker SDK. Принцип Мастера: идентификация ≠ владение.
+    print("  обеспечиваю LLM через Host broker SDK...")
     try:
-        from scripts.llm_server_manager import kill_llama_server, start_llama_server
-        ok = start_llama_server()
-        if not ok:
-            print("  Внимание: менеджер не смог запустить LLM")
-            return False
-        atexit.register(kill_llama_server)
-    except (ModuleNotFoundError, OSError) as e:
+        from app.services.llm.runtime.client import ensure_llm
+        ensure_llm(label="redecompose")
+    except Exception as e:
         print(f"  LLM недоступна: {e}")
         return False
     
