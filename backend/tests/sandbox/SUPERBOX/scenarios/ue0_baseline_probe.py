@@ -30,16 +30,16 @@ for _p in (str(_BACKEND_ROOT), str(_ROOT)):
 # LLM-обеспечение (прецедент semantic_probe_corpus.py:27-39): поднимает 8181
 # при пустом порте; без него slow-path = connection-refused (мерили бы отказ,
 # не понимание). KEEP_SERVER=1 — сервер живёт между прогонами.
-import atexit
-
+# Этап 4.1.5.1: migrated to Host broker SDK. ensure_llm(label="ue0_baseline")
+# acquire lease через Host broker :8182; release выполняется SDK через
+# module-level atexit handler. ENIGMA_DET_KEEP_SERVER — redundant (Host broker
+# always keeps server alive). import atexit removed (only used for
+# kill_llama_server). Принцип Мастера: идентификация ≠ владение.
 try:
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
-    _llm_ok = start_llama_server()
-    if os.environ.get("ENIGMA_DET_KEEP_SERVER") != "1":
-        atexit.register(kill_llama_server)
+    from app.services.llm.runtime.client import ensure_llm
+    ensure_llm(label="ue0_baseline")
 except Exception as _e:
-    print(f"ВНИМАНИЕ: менеджер LLM недоступен ({_e}); slow-path уйдёт в отказы")
-    _llm_ok = False
+    print(f"ВНИМАНИЕ: LLM недоступна ({_e}); slow-path уйдет в отказы")
 
 REPORTS = Path(__file__).resolve().parents[5] / "reports"
 REPORT = REPORTS / "ue0_baseline_report.jsonl"
