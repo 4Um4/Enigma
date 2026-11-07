@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: /backend/app/services/cognition/proposition_verifier.py
 Назначение: P5-B — семантическая верификация того, что LLM-реплика NPC
 действительно выражает candidate Proposition, извлечённый из intent'а
@@ -139,9 +139,9 @@ class PropositionVerifier:
 
     @staticmethod
     def _build_prompt(proposition: dict[str, Any], text: str) -> str:
-        subject = proposition.get("subject", "?")
+        subject = proposition.get("subject_id") or proposition.get("subject") or "?"
         predicate = proposition.get("predicate", "?")
-        obj = proposition.get("object", "?")
+        obj = proposition.get("object_id") or proposition.get("object") or "?"
         polarity = proposition.get("polarity", True)
         polarity_hint = "положительное" if polarity else "отрицательное (утверждение-отрицание)"
         return (
