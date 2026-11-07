@@ -50,16 +50,17 @@ _settings.saves_dir = str(_SAVES)
 import atexit
 
 atexit.register(lambda: shutil.rmtree(_TEMP, ignore_errors=True))
-_LLM_KILL = None
+# Этап 4.1.3.3: migrated to Host broker SDK. ensure_llm(label="cog_attn")
+# acquire lease через Host broker :8182; release выполняется SDK через
+# module-level atexit handler. cognition_attention_integration_test больше
+# НЕ владеет llama-server lifecycle (принцип Мастера: идентификация ≠
+# владение). _LLM_KILL removed — release_lease() in finally replaces it.
+release_lease = lambda: None  # noqa: E731 — fallback if SDK unavailable
 try:
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
-
-    if not start_llama_server():
-        print("[INT] ⚠ LLM не поднялась")
-    _LLM_KILL = kill_llama_server
-    atexit.register(kill_llama_server)
-except ModuleNotFoundError as _e:
-    print(f"[INT] llm_manager: {_e}")
+    from app.services.llm.runtime.client import ensure_llm, release_lease
+    ensure_llm(label="cog_attn")
+except Exception as _e:
+    print(f"[INT] LLM недоступна ({_e})")
 
 from app.models.schemas import ChatTurnRequest, PlayerAction
 from app.services.game_loop_builder import build_game_loop
@@ -387,11 +388,10 @@ async def main_async() -> int:
             ret_rows.append(r)
     finally:
         _restore(wrap)
-        if _LLM_KILL:
-            try:
-                _LLM_KILL()
-            except Exception as e:  # noqa: BLE001
-                print(f"[INT] LLM-kill fault: {e!r}")
+        try:
+            release_lease()
+        except Exception as e:  # noqa: BLE001
+            print(f"[INT] LLM-release fault: {e!r}")
 
     # ═══════ АНАЛИЗ (лента — глазами лога) ═══════
     print("\n" + "=" * 64)
