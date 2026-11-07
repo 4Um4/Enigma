@@ -6,7 +6,7 @@
 |---|---|
 | Путь документа | `docs/architecture/LLM_RUNTIME_UNIFICATION_PROPOSAL.md` |
 | База исследования | снапшот `Enigma-V.0.5.4.5.7_-_4` (полная кодовая база, включая backend/, frontend/, scripts/, tests/, reports/, docs/) |
-| Статус | ПРОЕКТ НА РАССМОТРЕНИЕ. Production-код не изменялся (ограничение задания соблюдено). |
+| Статус | ЭТАПЫ 0-3 ЗАВЕРШЕНЫ (2026-11-07). Этап 4 в прогрессе (14/30 consumers migrated). Host broker MVP + SDK + silent_subprocess_kwargs SSOT + 14 legacy consumers migrated. IPT 53/1. |
 | Метод | каждое существенное утверждение помечено **[ФАКТ]** (проверено по коду/артефактам, с указанием файла) или **[ПРЕДПОЛОЖЕНИЕ]** / **[ОЦЕНКА]** (требует проверки/измерения). |
 
 ---
@@ -342,6 +342,22 @@ RAM (16 ГБ): веса mmap ~4.6–4.9 ГБ + backend+фронтенд+тест
 Запреты из ТЗ соблюдаются: конкурирующих механизмов управления больше нет (все — клиенты одного брокера), второй конфигурации модели нет (settings — SSOT, этап 6 уничтожает runtime_ports-дубль порта).
 
 ---
+
+## Статус реализации (обновлено 2026-11-07)
+
+| Этап | Статус | Коммиты | Impact Log |
+|---|---|---|---|
+| 0 | ✅ ЗАВЕРШЕН | 01a18c1f/88dab765/be03ac85/28540912 | LLM_RUNTIME_ЭТАП0_IMPACT.md |
+| 1 | ✅ ЗАВЕРШЕН | fb738628 | LLM_RUNTIME_ЭТАП1_IMPACT.md |
+| 2 | ✅ ЗАВЕРШЕН | 351a5e02 | LLM_RUNTIME_ЭТАП2_IMPACT.md |
+| 3 | ✅ ЗАВЕРШЕН | c01799ca+0ed3d8aa+95fe4ec2+53f7c2d4+19664c9a+c560623c+3281ead3+96fd9047 | LLM_RUNTIME_ЭТАП3_IMPACT.md |
+| 4 | 🔄 В ПРОГРЕССЕ (14/30) | S417: baeb2548→246eed16 | — |
+| 5 | ⏳ PENDING | — | — |
+| 6 | ⏳ PENDING | — | — |
+
+**Milestone (Этапы 0-3):** Two-client crash isolation test S1-S8 PASS. IPT migrated to Host broker SDK (Step 6A). silent_subprocess_kwargs SSOT. IPT 53/1 (vs baseline 52/2).
+
+**Этап 4 (S417):** 14 consumers migrated. 16 remaining (batches 4.1.6-4.1.13). 2 deferred (d61 + client.py).
 
 ## 7. План внедрения (малые независимые этапы)
 
