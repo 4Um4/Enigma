@@ -1,0 +1,77 @@
+==============================================================================
+R2-B5-E2 v3 — invoke production tick, observe maid_lusya's intent
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_e2_decision_hub_v3.txt
+==============================================================================
+
+STRATEGY:
+  1. Build game loop
+  2. Initialize scene
+  3. Publish PLAYER_INSULTS
+  4. Find & invoke tick method on game loop
+  5. After tick, find maid_lusya NPC state
+  6. Inspect NPCState.intent — is it SPREAD_RUMOR?
+
+
+==============================================================================
+STEP 1: locate sub, store, resolver
+==============================================================================
+  sub._store: id=2639595174080
+  resolver: id=2639595175088 via loop._tick_orch._epistemic_context_resolver
+
+==============================================================================
+STEP 2: identify tick invocation method on game loop
+==============================================================================
+  loop._load_npcs_with_runtime(campaign_id: 'str') -> 'list'
+  loop._set_current_tick(value: 'int') -> 'None'
+  loop._spawn_world_tick_task(world_id: 'str') -> 'dict'
+  loop.get_current_tick(campaign_id: 'str') -> 'int'
+  loop.idle_tick(campaign_id: 'str', location_id: 'Optional[str]' = None, interventions: "Optional[List['InterventionEvent']]" = None) -> 'dict'
+  loop.run_turn(req: 'ChatTurnRequest') -> 'ChatTurnResponse'
+
+==============================================================================
+STEP 3: publish PLAYER_INSULTS + verify belief
+==============================================================================
+  store.get('maid_lusya', expected_prop).confidence = 0.5
+  ctx.report_proposition = Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True)
+  ctx.max_confidence = 0.5
+
+==============================================================================
+STEP 4: pre-tick — try to find maid_lusya NPC state
+==============================================================================
+  loop._resolve_npcs_snapshot returned LIST of 0 items
+
+  [maid_lusya state NOT FOUND pre-tick — expected; tick will load it]
+
+==============================================================================
+STEP 5: invoke tick
+==============================================================================
+  tick method candidates: []
+
+  >>> ALL TICK METHODS FAILED — could not invoke tick
+  >>> Inspect candidate signatures above; loop API may differ
+
+==============================================================================
+STEP 6: post-tick — find maid_lusya NPC state
+==============================================================================
+  scene_after['npc_states']: 0 entries
+
+  available NPCs post-tick: []
+  [maid_lusya NPC state NOT FOUND post-tick]
+  >>> Trying to find NPC state via NPCManager.get(npc_id) ...
+
+==============================================================================
+STEP 7: inspect maid_lusya intent post-tick
+==============================================================================
+  [STILL not found — cannot inspect intent]
+
+==============================================================================
+STEP 8: EpistemicStore after tick (sanity check)
+==============================================================================
+  maid_lusya records: 1
+    {'proposition': "Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, obj", 'confidence': 0.5, 'source_id': 'player', 'original_source_id': 'player'}
+
+==============================================================================
+STEP 9: VERDICT
+==============================================================================
+  >>> VERDICT: INCONCLUSIVE — could not invoke production tick
+  >>> Need to inspect loop API and adapt probe

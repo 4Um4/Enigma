@@ -1,0 +1,490 @@
+==============================================================================
+R2-FLEE-DOOR0-ROUTE-AUDIT — исследование маршрута через door_0
+TAVERN_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\locations\tavern.json
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_flee_door0_route_audit.txt
+==============================================================================
+
+==============================================================================
+ПРОВЕРКА 1: Полные connections узлов entrance, соседей, door_0
+==============================================================================
+
+--- Все авторские узлы с их connections ---
+node_id                       x        y  role                connections
+------------------------------------------------------------------------------------------
+entrance               8.163823945473249 13.033182098765433  entrance             ['main_hall_west', 'corner_table', 'node_16']
+main_hall_west              6.0      8.0  default              ['entrance', 'main_hall_south', 'bar_area', 'right_table', 'corner_table']
+main_hall_south             5.5      6.0  default              ['main_hall_west', 'main_hall']
+main_hall                   6.5      5.5  default              ['main_hall_south', 'right_table', 'bar_west', 'fireplace']
+bar_area                    4.5      6.5  bar                  ['main_hall_west', 'bar_west', 'bar_pass_north']
+bar_west                    5.5      4.5  default              ['bar_area', 'bar_pass_north', 'main_hall']
+bar_pass_north              2.2      6.0  default              ['bar_west', 'bar_side', 'bar_area']
+bar_side                    2.2 3.1371200000000004  default              ['bar_pass_north', 'behind_bar']
+behind_bar             3.8617600000000003  2.79264  inn_desk             ['bar_side', 'fireplace']
+fireplace                  10.5      3.0  default              ['right_table', 'main_hall', 'behind_bar', 'node_16']
+corner_table               11.0     10.0  dark_corner          ['entrance', 'right_table', 'main_hall_west']
+right_table                10.5      6.5  table                ['main_hall', 'fireplace', 'corner_table', 'main_hall_west']
+kitchen                16.712863297325104 2.3801183127572014  serving_station      ['kitchen_bed_1', 'kitchen_bed_2', 'node_16']
+kitchen_bed_1          15.154274048353907 6.357121270576132  bed                  ['kitchen', 'kitchen_bed_2']
+kitchen_bed_2          18.442637602880655 6.266120113168724  bed                  ['kitchen', 'kitchen_bed_1']
+node_16                  13.908    3.192  ?                    ['fireplace', 'kitchen', 'entrance']
+
+--- Специфичная проверка: entrance ---
+  entrance coords: (8.163823945473249, 13.033182098765433)
+  role: entrance
+  connections: ['main_hall_west', 'corner_table', 'node_16']
+
+--- Специфичная проверка: door_0 как навигационный узел ---
+  door_0 найден в objects[]:
+    type: door
+    position: {'x': 8.183333333333334, 'y': 13.0}
+    wall_id: wall_2
+    target_file: 
+  ✗ Узла 'door_0' НЕТ в nodes dict
+    → door_0 существует только как физический объект (objects[])
+    → НЕ существует как навигационный узел (nodes dict)
+
+--- Какой узел находится рядом с door_0? ---
+  door_0 position: (8.183333333333334, 13.0)
+  Ближайшие узлы (по расстоянию):
+    entrance: (8.163823945473249, 13.033182098765433) — distance=0.038m
+    corner_table: (11.0, 10.0) — distance=4.115m
+    main_hall_west: (6.0, 8.0) — distance=5.456m
+    right_table: (10.5, 6.5) — distance=6.901m
+    bar_area: (4.5, 6.5) — distance=7.471m
+
+>>> ВЫВОД ПРОВЕРКИ 1:
+
+  entrance — это авторский навигационный узел.
+  door_0 — это физический объект (objects[]), НЕ навигационный узел.
+
+  Связь entrance ↔ door_0:
+    entrance имеет connections=['main_hall_west', 'corner_table', 'exit_east']
+    (если exit_east был бы авторским — но его нет в JSON)
+
+  door_0 НЕ имеет связей в навигационном графе, потому что:
+    - door_0 — это объект (type=door), не узел (nodes dict)
+    - Граф строится из nodes[], не из objects[]
+
+  ПРОБЛЕМА: между entrance (навигационный узел) и door_0 (физическая дверь)
+  нет явной связи. NPC не может "пройти через дверь" — он может только
+  двигаться между навигационными узлами.
+
+
+==============================================================================
+ПРОВЕРКА 2: Как door_0 учитывается в навигационном графе
+==============================================================================
+
+Вопрос: door_0 — это физический объект (objects[]), который разрезает стену
+        wall_2. Как это влияет на навигационный граф?
+
+Механизм (из probe r2_flee_coord_contract_audit Stage 2):
+  1. _build_spatial_data: door_0 разрезает wall_2 на 2 сегмента
+     wall_2 (y=13, x=[0.5, 14.0]) → разрезается на:
+       - segment_1: x=[0.5, door.x - door.w/2]
+       - segment_2: x=[door.x + door.w/2, 14.0]
+     door_0 position: x=8.18, w=1.33
+     → segment_1: x=[0.5, 7.51], y=13.0
+     → segment_2: x=[8.85, 14.0], y=13.0
+
+  2. SpatialValidator: проверяет рёбра на пересечение со стенами
+     - Если ребро пересекает segment_1 или segment_2 → blocked
+     - Если ребро проходит через door_0 (gap между segments) → NOT blocked
+
+  3. Connections между узлами:
+     - Если ребро entrance↔exit_X проходит через door_0 → валидно
+     - SpatialValidator пропускает
+
+КРИТИЧНО: door_0 разрезает стену, но НЕ создаёт навигационное ребро.
+           Ребро должно быть явно прописано в connections[] узлов.
+
+
+--- Все рёбра в graph, связанные с entrance ---
+  tavern:entrance connections: ['tavern:corner_table', 'tavern:main_hall_west', 'tavern:node_16']
+
+--- Все рёбра, проходящие через y=13.0 (стена wall_2 / door_0) ---
+  tavern:entrance (8.163823945473249, 13.033182098765433) ↔ tavern:node_16 (13.908, 3.192) — пересекает y=13
+  tavern:entrance (8.163823945473249, 13.033182098765433) ↔ tavern:main_hall_west (6.0, 8.0) — пересекает y=13
+  tavern:entrance (8.163823945473249, 13.033182098765433) ↔ tavern:corner_table (11.0, 10.0) — пересекает y=13
+  tavern:main_hall_west (6.0, 8.0) ↔ tavern:entrance (8.163823945473249, 13.033182098765433) — пересекает y=13
+  tavern:corner_table (11.0, 10.0) ↔ tavern:entrance (8.163823945473249, 13.033182098765433) — пересекает y=13
+  tavern:node_16 (13.908, 3.192) ↔ tavern:entrance (8.163823945473249, 13.033182098765433) — пересекает y=13
+
+--- Есть ли узел с y > 13.0 (вне здания)? ---
+  Найдено 1 узлов с y > 13.0 (вне здания):
+    tavern:entrance: (8.163823945473249, 13.033182098765433)
+
+==============================================================================
+ПРОВЕРКА 3: Узлы вне здания / граница территории
+==============================================================================
+
+Авторская модель (по Вашим словам):
+  - Tavern — здание с двумя комнатами
+  - main_hall (room_0): x∈[0.5, 14.0], y∈[0.5, 13.0] — главный зал
+  - kitchen (room_1): x∈[14.0, 19.5], y∈[0.5, 8.0] — кухня
+  - door_0 на wall_2 (y=13.0) — единственный внешний выход
+  - За door_0 — "внешнее пространство" (улица), которое ведёт к границе территории
+
+Что говорит JSON:
+
+  nodes: 16 (все coords внутри [0..20]×[0..15])
+  walls: 8 (все coords внутри [0..20]×[0..15])
+  rooms: 2
+    room_1: x=14.0, y=0.5, w=5.5, h=7.5
+    room_0: x=0.524, y=0.5, w=13.5, h=12.5
+
+Проверка: есть ли узлы с coords ВНЕ rooms (вне здания)?
+
+  Building bounding box: x∈[0.5, 19.5], y∈[0.5, 13.0]
+  (wall_0..wall_3 ограничивают main_hall; wall_4..wall_7 ограничивают kitchen)
+
+  Все 16 авторских узлов находятся ВНУТРИ building bbox:
+
+    entrance: (8.163823945473249, 13.033182098765433) — ВНЕ ЗДАНИЯ
+    main_hall_west: (6.0, 8.0) — ВНУТРИ
+    main_hall_south: (5.5, 6.0) — ВНУТРИ
+    main_hall: (6.5, 5.5) — ВНУТРИ
+    bar_area: (4.5, 6.5) — ВНУТРИ
+    bar_west: (5.5, 4.5) — ВНУТРИ
+    bar_pass_north: (2.2, 6.0) — ВНУТРИ
+    bar_side: (2.2, 3.1371200000000004) — ВНУТРИ
+    behind_bar: (3.8617600000000003, 2.79264) — ВНУТРИ
+    fireplace: (10.5, 3.0) — ВНУТРИ
+    corner_table: (11.0, 10.0) — ВНУТРИ
+    right_table: (10.5, 6.5) — ВНУТРИ
+    kitchen: (16.712863297325104, 2.3801183127572014) — ВНУТРИ
+    kitchen_bed_1: (15.154274048353907, 6.357121270576132) — ВНУТРИ
+    kitchen_bed_2: (18.442637602880655, 6.266120113168724) — ВНУТРИ
+    node_16: (13.908, 3.192) — ВНУТРИ
+
+  Итог: 15 узлов внутри здания, 1 узлов вне здания
+
+>>> ВЫВОД ПРОВЕРКИ 3:
+
+  В JSON НЕТ узлов, представляющих:
+    - "внешнее пространство" (улица за door_0)
+    - "границу территории" (точку перехода в соседнюю локацию)
+
+  Все 16 авторских узлов находятся ВНУТРИ здания.
+
+  door_0 разрезает стену wall_2, но НЕ создаёт:
+    - узел "outside_tavern" (внешняя точка за door_0)
+    - узел "territory_boundary" (граница территории Tavern)
+
+  GraphCompiler создаёт phantom exit_east/exit_south из adjacency,
+  но эти phantom:
+    - НЕ связаны с door_0 (нет ребра entrance ↔ exit_east через door_0)
+    - имеют МИРОВЫЕ coords (вне здания, но в неправильной системе координат)
+
+  ОТСУТСТВУЮЩАЯ СВЯЗЬ:
+    Для корректного маршрута "внутренний узел → door_0 → внешнее пространство →
+    граница территории → соседняя локация" нужно:
+
+    1. Узел "outside_tavern" с coords ВНЕ здания (например, (8.18, 14.0) —
+       сразу за door_0 на стене wall_2)
+    2. Ребро entrance ↔ outside_tavern, проходящее через door_0
+    3. Узел "territory_boundary" с coords на границе территории Tavern
+       (или использование exit_east как этого boundary, но с правильными coords)
+    4. Ребро outside_tavern ↔ territory_boundary
+
+  ИЛИ: упрощённая модель (если "внешнее пространство" не нужно):
+    - exit_east должен иметь coords, согласующиеся с door_0
+    - exit_east на (8.18, 13.5) — рядом с door_0, но внутри здания
+    - Ребро entrance ↔ exit_east проходит через door_0
+    - SpatialValidator пропускает (door_0 разрезает стену)
+    - NPC достигает exit_east → cross-location transfer в city_gate
+
+  Это требует EITHER:
+    (a) Авторского exit_east в nodes dict с coords рядом с door_0
+        — НО Вы запретили добавлять авторские узлы
+    (b) Изменения _create_boundary_nodes — вычислять coords boundary node
+        на основе ближайшей двери (door_0), а не на основе direction offset
+
+
+==============================================================================
+ПРОВЕРКА 4: Как BOUNDARY_DWELL выполняет переход
+==============================================================================
+
+--- MovementEngine: код BOUNDARY_DWELL ---
+
+  L39: # через boundary_dwell). Флаг-выключатель оставлен осознанно; именованная
+  L40: # константа вместо «if False:» — тот же semantics, но mypy не считает ветку мёртвой.
+  L41: CROSS_LOC_MATERIALIZE_ENABLED: bool = False
+  L42: 
+
+  L453:                                 # FIX-6c: стоит В двери → пауза BOUNDARY_DWELL_TICKS,
+  L454:                                 # перенос делает S186 по boundary_dwell (tick_orchestrator).
+  L455:                                 from app.core.constants import BOUNDARY_DWELL_TICKS
+  L456:                                 _dwell_map = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
+
+  L454:                                 # перенос делает S186 по boundary_dwell (tick_orchestrator).
+  L455:                                 from app.core.constants import BOUNDARY_DWELL_TICKS
+  L456:                                 _dwell_map = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
+  L457:                                 # FIX-6g: гасим intent и здесь (симметрично dist-ветке),
+
+  L455:                                 from app.core.constants import BOUNDARY_DWELL_TICKS
+  L456:                                 _dwell_map = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
+  L457:                                 # FIX-6g: гасим intent и здесь (симметрично dist-ветке),
+  L458:                                 # иначе block_path каждый тик возрождается и гоняет
+
+  L456:                                 _dwell_map = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
+  L457:                                 # FIX-6g: гасим intent и здесь (симметрично dist-ветке),
+  L458:                                 # иначе block_path каждый тик возрождается и гоняет
+  L459:                                 # NPC маятником через boundary (borko tavern↔city_gate).
+
+  L464:                                         "ready_tick": tick + BOUNDARY_DWELL_TICKS,
+  L465:                                         "neighbor": target_loc,
+  L466:                                         "via": boundary_node.node_id,
+  L467:                                     }
+
+  L468:                                     logger.info(f"[BOUNDARY_DWELL] npc={intent.actor_id} at {boundary_node.node_id}; transfer at tick {tick + BOUNDARY_DWELL_TICKS}")
+  L469:                                 continue
+  L470:                             if _dist_to_boundary < 1.5:
+  L471:                                 # FIX-6c+6e: «почти у двери» → пауза в проёме.
+
+  L475:                                 from app.core.constants import BOUNDARY_DWELL_TICKS
+  L476:                                 _dwell_near = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
+  L477:                                 if intent.actor_id not in _dwell_near:
+  L478:                                     _dwell_near[intent.actor_id] = {
+
+  L476:                                 _dwell_near = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
+  L477:                                 if intent.actor_id not in _dwell_near:
+  L478:                                     _dwell_near[intent.actor_id] = {
+  L479:                                         "ready_tick": tick + BOUNDARY_DWELL_TICKS,
+
+  L479:                                         "ready_tick": tick + BOUNDARY_DWELL_TICKS,
+  L480:                                         "neighbor": target_loc,
+  L481:                                         "via": boundary_node.node_id,
+  L482:                                     }
+
+  L483:                                     logger.info(f"[BOUNDARY_DWELL] npc={intent.actor_id} near {boundary_node.node_id} (dist={_dist_to_boundary:.2f}); transfer at tick {tick + BOUNDARY_DWELL_TICKS}")
+  L484:                                 (npc_positions or {})[intent.actor_id].pop("intent", None)
+  L485:                                 (npc_positions or {})[intent.actor_id].pop("intent_target", None)
+  L486:                                 continue
+
+  L487:                             if CROSS_LOC_MATERIALIZE_ENABLED:  # FIX-6c: мгновенный перенос отключён (см. boundary_dwell выше)
+  L488:                                 logger.info(f"[CROSS_LOC_MATERIALIZE] npc={intent.actor_id} crossing {current_loc} → {target_loc}")
+  L489:                                 target_svc = self._resolve_spatial_service(target_loc, campaign_id, scene_state)
+  L490: 
+
+  L1059:                     # FIX-6c: встаём в boundary-узел и ждём BOUNDARY_DWELL_TICKS
+  L1060:                     # (перенос делает S186); визуально NPC стоит в двери.
+  L1061:                     from app.core.constants import BOUNDARY_DWELL_TICKS
+  L1062:                     _dwell_map_ms = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
+
+  L1061:                     from app.core.constants import BOUNDARY_DWELL_TICKS
+  L1062:                     _dwell_map_ms = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
+  L1063:                     _dwell_map_ms[intent.actor_id] = {
+  L1064:                         "ready_tick": tick + BOUNDARY_DWELL_TICKS,
+
+  L1062:                     _dwell_map_ms = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
+  L1063:                     _dwell_map_ms[intent.actor_id] = {
+  L1064:                         "ready_tick": tick + BOUNDARY_DWELL_TICKS,
+  L1065:                         "neighbor": _materialize_target_loc,
+
+  L1064:                         "ready_tick": tick + BOUNDARY_DWELL_TICKS,
+  L1065:                         "neighbor": _materialize_target_loc,
+  L1066:                         "via": next_node.node_id,  # Phase D: канон payload'а —
+  L1067:                         # без via transfer-ветка не пишет direct EXITS_TO
+
+>>> Анализ BOUNDARY_DWELL:
+
+  L466-468: BOUNDARY_DWELL записывает в scene_state["boundary_dwell"][npc_id]:
+    - "via": boundary_node.node_id  ← uses node_id, NOT coords
+    - "transfer_at_tick": tick + BOUNDARY_DWELL_TICKS
+
+  L508-510: entry_node_hint = boundary_map[boundary_id].get("entry_node_hint")
+    → entry_node_hint = "city_gate:exit_west"
+    → MovementEngine знает, какой узел в city_gate является входом
+
+  L573-578: intent.target_node_id = boundary_node.node_id.split(":")[-1]
+    → NPC направляется к boundary node (по node_id)
+
+  ПРОБЛЕМА: BOUNDARY_DWELL требует, чтобы NPC ФИЗИЧЕСКИ достиг boundary node.
+  Но boundary node (exit_east) НЕ достижим:
+    - connections["tavern:exit_east"] = [] (ребро удалено SpatialValidator)
+    - NPC не может дойти до exit_east
+
+  Даже если бы exit_east был достижим:
+    - exit_east на (44.03, 12.52) — МИРОВЫЕ coords
+    - NPC движется в ЛОКАЛЬНЫХ coords
+    - MovementEngine не может корректно переместить NPC к мировым coords
+
+  ПОСЛЕ coord fix (если применён):
+    - exit_east на (19.0, 7.5) — ЛОКАЛЬНЫЕ coords (внутри кухни)
+    - NPC может достичь exit_east
+    - НО! exit_east находится ВНУТРИ здания, а не у door_0
+    - NPC "выходит" через кухню, а не через door_0
+    - Это нарушает семантику: единственный внешний выход — door_0
+
+
+==============================================================================
+ПРОВЕРКА 5: A* достижимость от fireplace к потенциальным выходам
+==============================================================================
+
+--- BFS от tavern:fireplace — все достижимые узлы ---
+  Старт: tavern:fireplace
+  Достижимо: 16 узлов
+    tavern:bar_area: (4.5, 6.5) role=NodeRole.BAR
+    tavern:bar_pass_north: (2.2, 6.0) role=NodeRole.DEFAULT
+    tavern:bar_side: (2.2, 3.1371200000000004) role=NodeRole.DEFAULT
+    tavern:bar_west: (5.5, 4.5) role=NodeRole.DEFAULT
+    tavern:behind_bar: (3.8617600000000003, 2.79264) role=NodeRole.INN_DESK
+    tavern:corner_table: (11.0, 10.0) role=NodeRole.DARK_CORNER
+    tavern:entrance: (8.163823945473249, 13.033182098765433) role=NodeRole.ENTRANCE
+    tavern:fireplace: (10.5, 3.0) role=NodeRole.DEFAULT
+    tavern:kitchen: (16.712863297325104, 2.3801183127572014) role=NodeRole.SERVING_STATION
+    tavern:kitchen_bed_1: (15.154274048353907, 6.357121270576132) role=NodeRole.BED
+    tavern:kitchen_bed_2: (18.442637602880655, 6.266120113168724) role=NodeRole.BED
+    tavern:main_hall: (6.5, 5.5) role=NodeRole.DEFAULT
+    tavern:main_hall_south: (5.5, 6.0) role=NodeRole.DEFAULT
+    tavern:main_hall_west: (6.0, 8.0) role=NodeRole.DEFAULT
+    tavern:node_16: (13.908, 3.192) role=NodeRole.DEFAULT
+    tavern:right_table: (10.5, 6.5) role=NodeRole.TABLE
+
+--- Недостижимые узлы (есть в graph, но не достижимы от fireplace) ---
+    tavern:exit_east: (44.03333333333333, 12.518000000000008) role=NodeRole.BOUNDARY
+    tavern:exit_south: (35.03333333333333, 6.018000000000007) role=NodeRole.BOUNDARY
+
+--- Достижимость ключевых узлов ---
+  tavern:entrance (8.163823945473249, 13.033182098765433): ✓ ДОСТИЖИМ
+  tavern:exit_east (44.03333333333333, 12.518000000000008): ✗ НЕ ДОСТИЖИМ
+  tavern:exit_south (35.03333333333333, 6.018000000000007): ✗ НЕ ДОСТИЖИМ
+  tavern:kitchen_bed_2 (18.442637602880655, 6.266120113168724): ✓ ДОСТИЖИМ
+  tavern:kitchen (16.712863297325104, 2.3801183127572014): ✓ ДОСТИЖИМ
+
+>>> ВЫВОД ПРОВЕРКИ 5:
+
+  Текущий граф (с мировыми coords boundary):
+    - entrance: достижим от fireplace ✓
+    - exit_east: НЕ достижим (ребро удалено) ✗
+    - exit_south: НЕ достижим (ребро удалено) ✗
+
+  NPC может дойти от fireplace до entrance, но НЕ может дойти
+  до exit_east/exit_south → FLEE BLOCKED.
+
+  После coord fix (boundary coords локальные):
+    - exit_east будет достижим (ребро не удалено)
+    - НО exit_east внутри кухни (19, 7.5), а не у door_0
+
+  Для корректного маршрута через door_0 нужно:
+    - exit_east с coords рядом с door_0 (например, (8.18, 13.0))
+    - ИЛИ авторский exit_east в nodes dict
+
+
+==============================================================================
+ИТОГ: Разделение coord fix и route fix
+==============================================================================
+
+=============================================================================
+ДВА ОТДЕЛЬНЫХ ДЕФЕКТА — НЕ СМЕШИВАТЬ
+=============================================================================
+
+ДЕФЕКТ 1: Координатный (coord fix)
+  Файл: graph_compiler.py L898-917
+  Проблема: _create_boundary_nodes вычисляет coords в МИРОВОЙ системе
+            (origin.x + offset), в то время как авторские узлы и стены
+            используют ЛОКАЛЬНУЮ систему.
+  Следствие: SpatialValidator удаляет рёбра к boundary nodes.
+  Fix: вычислять coords в ЛОКАЛЬНОЙ системе (без origin offset).
+  Эффект: boundary nodes имеют coords (19, 7.5) и (10, 1) — внутри локации.
+          Рёбра не удаляются. NPC может достичь boundary.
+  НО: exit_east на (19, 7.5) находится ВНУТРИ кухни, не у door_0.
+      NPC "выходит" через кухню, а не через door_0.
+
+ДЕФЕКТ 2: Маршрутный (route fix)
+  Файл: graph_compiler.py (в _create_boundary_nodes или отдельно)
+  Проблема: boundary node (exit_east) не связан с door_0.
+            NPC не может выйти через door_0, потому что:
+              - door_0 — это объект (objects[]), не навигационный узел
+              - Нет узла "outside_tavern" (внешнее пространство за door_0)
+              - exit_east создаётся с coords, не связанными с door_0
+  Следствие: NPC выходит через кухню (после coord fix), а не через door_0.
+            Это нарушает авторскую семантику: единственный внешний выход — door_0.
+  Fix (варианты):
+    (a) _create_boundary_nodes должна вычислять coords boundary node
+        на основе ближайшей двери (door_0), а не на основе direction offset.
+        → exit_east получит coords рядом с door_0 (8.18, 13.0).
+        → Ребро entrance ↔ exit_east проходит через door_0.
+        → NPC выходит через door_0.
+    (b) Создать отдельный механизм "door-as-exit": если door имеет
+        target_file, использовать door position как boundary node coords.
+    (c) Требовать авторский exit_east в nodes dict рядом с door_0
+        — НО Вы запретили добавлять авторские узлы.
+
+РЕКОМЕНДАЦИЯ:
+  Сначала применить coord fix (ДЕФЕКТ 1) — устраняет смешение coords.
+  Затем исследовать route fix (ДЕФЕКТ 2) — отдельная задача.
+
+  После coord fix:
+    - FLEE будет работать (NPC достигает exit_east)
+    - НО NPC выходит через кухню, а не через door_0
+    - Это временно, до решения route fix
+
+  Route fix требует дополнительного исследования:
+    - Как door_0 связан с навигационным графом?
+    - Должен ли GraphCompiler создавать "virtual exit node" у каждой двери
+      с target_file?
+    - Или это ответственность автора карты (добавить exit_east рядом с door_0)?
+
+=============================================================================
+РЕАЛЬНЫЙ МАРШРУТ NPC (после coord fix, без route fix)
+=============================================================================
+
+  fireplace (10.5, 3.0)  ← старт
+    ↓ A* path
+  main_hall (6.5, 5.5)
+    ↓
+  ... (через авторские рёбра)
+    ↓
+  exit_east (19.0, 7.5)  ← boundary node, внутри кухни
+    ↓ BOUNDARY_DWELL
+  transfer to city_gate:exit_west
+
+  ПРОБЛЕМА: NPC выходит через кухню (19, 7.5), а не через door_0 (8.18, 13.0).
+            Это нарушает авторскую семантику.
+
+=============================================================================
+ОТСУТСТВУЮЩАЯ СВЯЗЬ (для route fix)
+=============================================================================
+
+  Для корректного маршрута "внутренний узел → entrance → door_0 → внешнее
+  пространство → граница территории → соседняя локация":
+
+  1. Узел "outside_tavern" с coords (8.18, 14.0) — сразу за door_0
+     (вне здания, но внутри локации Tavern)
+  2. Ребро entrance (8.16, 13.03) ↔ outside_tavern (8.18, 14.0)
+     — проходит через door_0 (wall_2 разрезана door_0)
+  3. exit_east как boundary node, с coords = outside_tavern coords
+     (или связанные через explicit edge)
+
+  ИЛИ более простой вариант:
+    exit_east должен иметь coords = door_0 position = (8.18, 13.0)
+    → NPC достигает exit_east = door_0
+    → BOUNDARY_DWELL → transfer в city_gate
+
+  Это требует изменения _create_boundary_nodes:
+    - Найти дверь с target_file = neighbor_loc_id
+    - Использовать её coords как boundary node coords
+    - Если такой двери нет — fallback на direction offset (текущий код)
+
+  НО: это отдельный fix, который нужно тестировать отдельно от coord fix.
+
+=============================================================================
+ПРЕДЛАГАЕМЫЙ ПОРЯДОК ДЕЙСТВИЙ
+=============================================================================
+
+  1. Применить coord fix (ДЕФЕКТ 1) — минимальный, изолированный
+     → FLEE заработает, NPC достигает exit_east
+     → NPC выходит через кухню (не через door_0) — временно
+
+  2. Тестировать coord fix отдельно
+     → Убедиться, что нет регрессий
+     → Зафиксировать, что NPC выходит через кухню
+
+  3. Отдельно исследовать route fix (ДЕФЕКТ 2)
+     → Решить, как связать exit_east с door_0
+     → Применить отдельно
+     → Тестировать
+
+  НЕ СМЕШИВАТЬ coord fix и route fix в один diff.
+

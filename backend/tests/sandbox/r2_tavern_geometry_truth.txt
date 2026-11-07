@@ -1,0 +1,209 @@
+==============================================================================
+R2-TAVERN-GEOMETRY-TRUTH — read-only truth extraction
+Map file: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\locations\tavern.json
+==============================================================================
+
+==============================================================================
+STEP 1: Top-level metadata
+==============================================================================
+filename: tavern.json
+label: Таверна Серебряного Волка
+size: {'w': 20, 'h': 15}
+grid_cell_size: 1.0
+is_outdoor: False
+origin: {'x': 25.033333333333328, 'y': 5.018000000000007}
+global_coords: True
+location_id: tavern
+adjacency: {'east': 'city_gate', 'south': 'market_square'}
+player_spawn: {'x': 8.204957561728396, 'y': 11.90991512345679, 'z': 0}
+
+>>> Declared size: W=20.0m, H=15.0m
+>>> Declared origin: (25.033333333333328, 5.018000000000007)
+>>> global_coords=true: координаты узлов ОТНОСИТЕЛЬНЫЕ (внутри location)
+>>> World coords = origin + node.coords
+
+==============================================================================
+STEP 2: All 18 nodes — REAL COORDINATES
+==============================================================================
+Total nodes: 18
+
+node_name                     x        y  role                connections
+------------------------------------------------------------------------------------------
+entrance                  8.147   13.029  entrance             ['main_hall_west', 'corner_table', 'exit_east']
+main_hall_west            6.000    8.000  default              ['entrance', 'main_hall_south', 'bar_area', 'right_table', 'corner_table']
+main_hall_south           5.500    6.000  default              ['main_hall_west', 'main_hall']
+main_hall                 6.500    5.500  default              ['main_hall_south', 'right_table', 'bar_west', 'fireplace']
+bar_area                  4.500    6.500  bar                  ['main_hall_west', 'bar_west', 'bar_pass_north']
+bar_west                  5.500    4.500  default              ['bar_area', 'bar_pass_north', 'main_hall']
+bar_pass_north            2.200    6.000  default              ['bar_west', 'bar_side', 'bar_area']
+bar_side                  2.200    3.137  default              ['bar_pass_north', 'behind_bar']
+behind_bar                3.862    2.793  inn_desk             ['bar_side', 'fireplace', 'node_17']
+fireplace                10.500    3.000  default              ['right_table', 'main_hall', 'behind_bar', 'node_16']
+corner_table             11.000   10.000  dark_corner          ['entrance', 'right_table', 'main_hall_west']
+right_table              10.500    6.500  table                ['main_hall', 'fireplace', 'corner_table', 'main_hall_west']
+kitchen                  16.713    2.380  serving_station      ['kitchen_bed_1', 'kitchen_bed_2', 'node_16']
+kitchen_bed_1            15.154    6.357  bed                  ['kitchen', 'kitchen_bed_2']
+kitchen_bed_2            18.443    6.266  bed                  ['kitchen', 'kitchen_bed_1']
+node_16                  13.500    3.000  ?                    ['fireplace', 'kitchen', 'exit_east', 'node_17']
+exit_east                 8.219   12.452  boundary             ['node_16']
+node_17                  10.000    1.000  default              ['behind_bar', 'node_16']
+
+==============================================================================
+STEP 3: All 8 walls — REAL COORDINATES
+==============================================================================
+Total walls: 8
+
+idx  wall_id         x1      y1      x2      y2  orient    length
+---------------------------------------------------------------------------
+0    wall_7       14.00    8.00   14.00    0.50  vertical  7.500
+1    wall_6       19.50    8.00   14.00    8.00  horizontal 5.500
+2    wall_5       19.50    0.50   19.50    8.00  vertical  7.500
+3    wall_4       14.00    0.50   19.50    0.50  horizontal 5.500
+4    wall_0        0.50    0.50   14.00    0.50  horizontal 13.500
+5    wall_1       14.00    0.50   14.00   13.00  vertical  12.500
+6    wall_2       14.00   13.00    0.50   13.00  horizontal 13.500
+7    wall_3        0.50   13.00    0.50    0.50  vertical  12.500
+
+==============================================================================
+STEP 4: All rooms — REAL POLYGON COORDINATES
+==============================================================================
+Total rooms: 2
+
+  rooms[0] id=room_1, name=Комната 1
+    x=14.0, y=0.5, width=5.5, height=7.5
+    area_sqm=41.2
+    polygon (4 points):
+      [14.0, 0.5]
+      [19.5, 0.5]
+      [19.5, 8.0]
+      [14.0, 8.0]
+  rooms[1] id=room_0, name=Комната 0
+    x=0.524, y=0.5, width=13.5, height=12.5
+    area_sqm=168.8
+    polygon (4 points):
+      [0.524, 0.5]
+      [14.024, 0.5]
+      [14.024, 13.0]
+      [0.524, 13.0]
+
+==============================================================================
+STEP 5: BOUNDING BOX — computed from REAL data
+==============================================================================
+
+>>> Computed bounding box from nodes+walls+rooms:
+    x range: [0.500, 19.500]  (width = 19.000m)
+    y range: [0.500, 13.029]  (height = 12.529m)
+
+>>> Declared size: W=20.0m, H=15.0m
+>>> Difference: actual_width=19.000 vs declared=20.0 (delta=-1.000)
+>>>             actual_height=12.529 vs declared=15.0 (delta=-2.471)
+>>> WARNING: declared size does NOT match actual content extent!
+>>> This means the bounding box is larger than the actual geometry.
+>>> 'Empty zones' exist inside the bounding box.
+
+==============================================================================
+STEP 6: GAPS inside bounding box — zones not covered by any room
+==============================================================================
+
+>>> Sampled 260 grid points (1m resolution)
+>>> Covered by rooms: 209 (80.4%)
+>>> NOT covered by any room: 51 (19.6%)
+
+>>> Gap bounding box:
+    x range: [0.50, 19.50]  (width = 19.00m)
+    y range: [0.50, 12.50]  (height = 12.00m)
+    approximate area: 228.00 m²
+
+>>> First 10 gap points (sample):
+    (0.5, 0.5)
+    (0.5, 1.5)
+    (0.5, 2.5)
+    (0.5, 3.5)
+    (0.5, 4.5)
+    (0.5, 5.5)
+    (0.5, 6.5)
+    (0.5, 7.5)
+    (0.5, 8.5)
+    (0.5, 9.5)
+
+==============================================================================
+STEP 7: ASCII visualization with REAL coordinates
+==============================================================================
+
+Scale: 1 char = 1m
+Legend: '#' = room_0, '+' = room_1, '=' = wall, '.' = empty/gap
+Node letters (first letter of name):
+  'B' = behind_bar
+  'C' = corner_table
+  'E' = exit_east
+  'F' = fireplace
+  'K' = kitchen_bed_2
+  'M' = main_hall
+  'N' = node_17
+  'R' = right_table
+
+    012345678901234567890
+    ---------------------
+ 14.5|.....................
+ 13.5|........E............
+ 12.5|=.=.=.=.=.=.=.=......
+ 11.5|.....................
+ 10.5|=.+.+.+.+.C.+.=......
+  9.5|.....................
+  8.5|=.+.+.M.+.+.+.=.=.===
+  7.5|.....................
+  6.5|=.B.BM+.+.R.+.=K#.K=.
+  5.5|......M..............
+  4.5|=.+.+B+.+.+.+.=.#.#=.
+  3.5|..B..................
+  2.5|=.+B+.+.+.F.+N=.K.#=.
+  1.5|.....................
+  0.5|=.=.=.=.=.=.=.=.=.===
+    ---------------------
+    012345678901234567890
+
+==============================================================================
+STEP 8: exit_east REAL position + proposed exit_south
+==============================================================================
+
+exit_east:
+  coords: (8.218993333333334, 12.451713333333332)
+  role: boundary
+  connections: ['node_16']
+  label: Выход в Город
+
+exit_south: NOT IN nodes dict (confirmed)
+>>> This is the root cause of FLEE BLOCKED.
+>>> GraphCompiler creates phantom with world coords.
+
+==============================================================================
+STEP 9: VERDICT — geometry truth
+==============================================================================
+
+ACTUAL GEOMETRY (from JSON):
+
+  Declared size: 20.0m × 15.0m
+  Declared origin: (25.033333333333328, 5.018000000000007)
+  global_coords: True
+
+  Actual content extent:
+    x: [0.500, 19.500]  width = 19.000m
+    y: [0.500, 13.029]  height = 12.529m
+
+  Rooms: 2
+    room_0 (main_hall): polygon coordinates shown in Step 4
+    room_1 (kitchen): polygon coordinates shown in Step 4
+
+  Walls: 8 (orientation breakdown shown in Step 3)
+  Nodes: 18 (full coords shown in Step 2)
+
+  exit_east: EXISTS in nodes dict
+  exit_south: DOES NOT EXIST in nodes dict
+            → GraphCompiler synthesizes phantom with world coords
+            → SpatialValidator removes edges to phantom
+            → FLEE BLOCKED
+
+  Gap zones (inside bounding box, not covered by rooms):
+    51 sample points
+    See Step 6 for details.
+

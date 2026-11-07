@@ -1,0 +1,879 @@
+==============================================================================
+R2-WORLD-NAV-ARCHAEOLOGY — архитектурное исследование
+PROJECT_ROOT: C:\DDD\Codex\VSC_Enigma\Enigma
+LOCATIONS_DIR: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\locations
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_world_nav_archaeology.txt
+==============================================================================
+
+==============================================================================
+STEP 1: Текущий контракт координат — как применяется origin
+==============================================================================
+
+--- Поиск использования 'origin' в spatial коде ---
+  app\services\spatial\graph_compiler.py L374:             origin=editor_data.get("origin", {"x": 0.0, "y": 0.0}),
+  app\services\spatial\graph_compiler.py L883:     origin: Dict[str, float],
+  app\services\spatial\graph_compiler.py L892:     _ox = float(origin.get("x", 0.0))
+  app\services\spatial\graph_compiler.py L893:     _oy = float(origin.get("y", 0.0))
+  app\services\spatial\movement_engine.py L497:                                 # final_*; fallback на legacy original_target.
+  app\services\spatial\movement_engine.py L501:                                     _original_target = f"{_fin_loc}:{_fin_node}"
+  app\services\spatial\movement_engine.py L503:                                     _original_target = getattr(intent, 'original_target_node_id', intent.target_node_id)
+  app\services\spatial\movement_engine.py L504:                                 _target_node_id_short = _original_target.split(":")[-1]
+  app\services\spatial\movement_engine.py L576:                             if not hasattr(intent, 'original_target_node_id'):
+  app\services\spatial\movement_engine.py L577:                                 setattr(intent, 'original_target_node_id', intent.target_node_id)
+  app\services\spatial\movement_engine.py L585:                                 and hasattr(intent, "original_target_node_id")
+  app\services\spatial\movement_engine.py L587:                                 _orig = intent.original_target_node_id
+  app\services\spatial\spatial_registry.py L28:     origin_x: float
+  app\services\spatial\spatial_registry.py L29:     origin_y: float
+  app\services\spatial\spatial_registry.py L197:                 chunk.origin_x <= world_x <= chunk.origin_x + chunk.width
+  app\services\spatial\spatial_registry.py L198:                 and chunk.origin_y <= world_y <= chunk.origin_y + chunk.height
+  app\services\spatial\spatial_registry.py L209:             cx1, cy1 = chunk.origin_x, chunk.origin_y
+  app\services\spatial\spatial_registry.py L236:         """(origin_x, origin_y, origin_x+width, origin_y+height) для чанка."""
+  app\services\spatial\spatial_registry.py L241:             chunk.origin_x,
+  app\services\spatial\spatial_registry.py L242:             chunk.origin_y,
+  app\services\spatial\spatial_registry.py L243:             chunk.origin_x + chunk.width,
+  app\services\spatial\spatial_registry.py L244:             chunk.origin_y + chunk.height,
+  app\services\spatial\spatial_service.py L336:         origin_xy: Tuple[float, float],
+  app\services\spatial\spatial_service.py L337:         origin_zone: Optional[str] = None,
+  app\services\spatial\spatial_service.py L368:         ox, oy = origin_xy
+  app\services\spatial\spatial_service.py L382:         # BUG-SPATIAL-015 FIX: Используем зону объекта (best_obj), а не origin_zone.
+  app\services\spatial\spatial_service.py L383:         # Иначе объект в другой зоне (tent_1) приводит к возврату boundary node в origin_zone (tavern).
+  app\services\spatial\spatial_service.py L384:         _obj_zone = best_obj.get("zone_id") or origin_zone or self._location_id
+  app\services\spatial\spatial_service.py L392:         origin_xy: Optional[Tuple[float, float]] = None,
+  app\services\spatial\spatial_service.py L393:         origin_zone: Optional[str] = None,
+
+--- graph_compiler.py: как используется origin ---
+  L374:             origin=editor_data.get("origin", {"x": 0.0, "y": 0.0}),
+  L883:     origin: Dict[str, float],
+  L892:     _ox = float(origin.get("x", 0.0))
+  L893:     _oy = float(origin.get("y", 0.0))
+  L899:         "north": (_ox + _w / 2.0, _oy + _h - 1.0),
+  L900:         "south": (_ox + _w / 2.0, _oy + 1.0),
+  L901:         "east": (_ox + _w - 1.0, _oy + _h / 2.0),
+  L902:         "west": (_ox + 1.0, _oy + _h / 2.0),
+  L912:             "east":  (_ox + _w - 1.0, _oy + _h / 2.0),
+  L913:             "west":  (_ox + 1.0,      _oy + _h / 2.0),
+  L914:             "north": (_ox + _w / 2.0, _oy + _h - 1.0),
+  L915:             "south": (_ox + _w / 2.0, _oy + 1.0),
+  L917:         _bx, _by = _DIR_OFFSETS.get(direction, (_ox + _w / 2.0, _oy + _h / 2.0))
+
+--- SpatialRegistry / WorldBounds / world coords ---
+  L5: Основные сущности: SpatialRegistry, ChunkDescriptor, AdjacencyEntry, WorldBounds
+  L28:     origin_x: float
+  L29:     origin_y: float
+  L51: class WorldBounds:
+  L75:         chunks: List[ChunkDescriptor],
+  L77:         world_bounds: WorldBounds,
+  L80:         self._chunks = chunks
+  L82:         self._world_bounds = world_bounds
+  L86:         self._chunks_by_id: dict[str, ChunkDescriptor] = {
+  L87:             c.location_id: c for c in chunks
+  L105:         chunks = [ChunkDescriptor(**c) for c in data.get("chunks", [])]
+  L107:         wb = data.get("world_bounds", {})
+  L108:         world_bounds = WorldBounds(
+  L115:             chunks=chunks,
+  L117:             world_bounds=world_bounds,
+  L175:             f"[SPATIAL_REGISTRY] Loaded and cached for campaign={campaign_id} ({len(registry)} chunks, mtime={mtime})"
+  L191:     def find_chunks(self, world_x: float, world_y: float) -> List[ChunkDescriptor]:
+  L192:         """Все чанки, содержащие точку (world_x, world_y).
+  L195:         for chunk in self._chunks:
+  L197:                 chunk.origin_x <= world_x <= chunk.origin_x + chunk.width
+  L198:                 and chunk.origin_y <= world_y <= chunk.origin_y + chunk.height
+  L200:                 result.append(chunk)
+  L204:         self, world_x: float, world_y: float, radius: float
+  L208:         for chunk in self._chunks:
+  L209:             cx1, cy1 = chunk.origin_x, chunk.origin_y
+  L210:             cx2, cy2 = cx1 + chunk.width, cy1 + chunk.height
+  L213:             nearest_x = max(cx1, min(world_x, cx2))
+  L214:             nearest_y = max(cy1, min(world_y, cy2))
+  L216:             dx = world_x - nearest_x
+  L217:             dy = world_y - nearest_y
+  L219:                 result.append(chunk)
+  L223:     def get_chunk(self, location_id: str) -> Optional[ChunkDescriptor]:
+  L225:         return self._chunks_by_id.get(location_id)
+  L227:     def get_chunks(self) -> List[ChunkDescriptor]:
+  L229:         return list(self._chunks)
+  L233:         return list(self._chunks_by_id.keys())
+  L236:         """(origin_x, origin_y, origin_x+width, origin_y+height) для чанка."""
+  L237:         chunk = self._chunks_by_id.get(location_id)
+  L238:         if chunk is None:
+  L241:             chunk.origin_x,
+  L242:             chunk.origin_y,
+  L243:             chunk.origin_x + chunk.width,
+  L244:             chunk.origin_y + chunk.height,
+  L256:     def world_bounds(self) -> WorldBounds:
+  L258:         return self._world_bounds
+  L260:     def is_world_edge(
+  L261:         self, world_x: float, world_y: float, margin: float = 2.0
+  L264:         wb = self._world_bounds
+  L266:             world_x <= wb.min_x + margin
+  L267:             or world_x >= wb.max_x - margin
+  L268:             or world_y <= wb.min_y + margin
+  L269:             or world_y >= wb.max_y - margin
+  L277:         return len(self._chunks)
+  L281:             f"SpatialRegistry({len(self._chunks)} chunks, "
+  L283:             f"bounds=({self._world_bounds.min_x:.0f},{self._world_bounds.min_y:.0f})"
+  L284:             f"-({self._world_bounds.max_x:.0f},{self._world_bounds.max_y:.0f}))"
+
+--- spatial_service.py: zone_id / world / origin ---
+  L248:     def get_zone_id(self, x: float, y: float) -> Optional[str]:
+  L249:         """S91: Возвращает zone_id (room_id) полигона, в котором находится точка.
+  L256:         for zone_id, polygon in self._rooms_geometry.items():
+  L272:                 return zone_id
+  L281:         return self.get_zone_id(x, y) is not None
+  L336:         origin_xy: Tuple[float, float],
+  L337:         origin_zone: Optional[str] = None,
+  L368:         ox, oy = origin_xy
+  L382:         # BUG-SPATIAL-015 FIX: Используем зону объекта (best_obj), а не origin_zone.
+  L383:         # Иначе объект в другой зоне (tent_1) приводит к возврату boundary node в origin_zone (tavern).
+  L384:         _obj_zone = best_obj.get("zone_id") or origin_zone or self._location_id
+  L392:         origin_xy: Optional[Tuple[float, float]] = None,
+  L393:         origin_zone: Optional[str] = None,
+  L394:         origin_level: Optional[str] = None,
+  L402:         1. Фильтр по топологии (zone_id, level)
+  L411:         if origin_zone:
+  L412:             candidates = [n for n in candidates if n.zone_id == origin_zone]
+  L413:         if origin_level:
+  L414:             candidates = [n for n in candidates if n.level == origin_level]
+  L418:             if origin_zone:
+  L422:                     if n.role == NodeRole.TRANSITION and n.zone_id == origin_zone
+  L427:                         f"[SPATIAL] Роль {role.value} не найдена в зоне {origin_zone}, "
+  L457:                 node, origin_xy, filters, urgency, requesting_npc_id
+  L469:         origin_xy: Optional[Tuple[float, float]],
+  L478:         if origin_xy:
+  L479:             dist = self.world_distance(origin_xy, node.xy)
+  L534:         start_node = self.get_nearest(target_node.zone_id, start_xy, urgency)
+  L536:             logger.debug(f"[FIND_PATH_DIAG] FAIL: start_node is None. zone={target_node.zone_id} xy={start_xy}")
+  L542:         logger.debug(f"[FIND_PATH_DIAG] start_xy={start_xy} target={target_id} start_node={start_node.node_id} zone={target_node.zone_id}")
+  L601:                     h = self.world_distance(neighbor_node.xy, target_node.xy)
+  L618:         base_dist = self.world_distance(from_node.xy, to_node.xy)
+  L664:         self, zone_id: str, origin_xy: Tuple[float, float]
+  L667:         candidates = [n for n in self._graph.values() if n.zone_id == zone_id]
+  L690:                 d = self.world_distance(origin_xy, node.xy)
+  L698:         zone_id: str,
+  L699:         origin_xy: Tuple[float, float],
+  L703:         candidates = [n for n in self._graph.values() if n.zone_id == zone_id]
+  L710:             d = self.world_distance(origin_xy, node.xy)
+  L718:         zone_id: str,
+  L719:         origin_xy: Tuple[float, float],
+  L724:         candidates = [n for n in self._graph.values() if n.zone_id == zone_id]
+  L733:             d = self.world_distance(origin_xy, node.xy)
+  L746:     def world_distance(
+  L782:         zone_id: Optional[str] = None,
+  L786:         if zone_id:
+  L787:             results = [n for n in results if n.zone_id == zone_id]
+
+--- Поиск NavMesh / world geometry / continuous navigation ---
+
+Found 15 references:
+  tests\sandbox\r2_world_nav_archaeology.py L177:     # Check for navmesh / world geometry
+  tests\sandbox\r2_world_nav_archaeology.py L178:     print("\n--- Поиск NavMesh / world geometry / continuous navigation ---")
+  tests\sandbox\r2_world_nav_archaeology.py L179:     navmesh_keywords = ["navmesh", "nav_mesh", "NavMesh", "walkable", "walk_poly",
+  tests\sandbox\r2_world_nav_archaeology.py L180:                         "world_graph", "global_graph", "world_geometry", "world_space"]
+  tests\sandbox\r2_world_nav_archaeology.py L181:     found = _grep_in_dir(_BACKEND, navmesh_keywords, file_exts=(".py",))
+  tests\sandbox\r2_world_nav_archaeology.py L188:         print("\n[NO NavMesh / world geometry / continuous navigation found]")
+  tests\sandbox\r2_world_nav_archaeology.py L264:         "NavMesh / walkable polygons": ["navmesh", "nav_mesh", "NavMesh", "walkable_poly", "walk_poly",
+  tests\sandbox\r2_world_nav_archaeology.py L266:         "Geometric passability check": ["passable", "is_walkable", "can_walk", "is_passable",
+  tests\sandbox\r2_world_nav_archaeology.py L296:     world_nav_keywords = ["world_graph", "global_navigation", "world_map_nav", "world_pathfinding",
+  tests\sandbox\r2_world_nav_archaeology.py L358:   - NavMesh или единый граф проходимости
+  tests\sandbox\r2_world_nav_archaeology.py L411:   - ВЫСОКАЯ: формат сохраняется, добавляется опциональный world_graph.json
+  tests\sandbox\r2_world_nav_archaeology.py L472: def step5_real_world_geometry() -> None:
+  tests\sandbox\r2_world_nav_archaeology.py L822:   - backend/app/services/spatial/global_graph_builder.py (NEW)
+  tests\sandbox\r2_world_nav_archaeology.py L851:   - NavMesh для каждой локации (точная навигация внутри, не только по nodes)
+  tests\sandbox\r2_world_nav_archaeology.py L930:         step5_real_world_geometry()
+
+==============================================================================
+STEP 2: Текущая система переходов — полный путь
+==============================================================================
+
+Полный путь NPC movement между локациями:
+
+  Location JSON
+    ↓ DataManager.load_location()
+  GraphCompiler.compile_graph(editor_data, location_id)
+    ↓ создает graph, connections, alias_map, boundary_map
+  _create_boundary_nodes()
+    ↓ for direction, neighbor_loc_id in adjacency.items():
+    ↓   boundary_id = f"{location_id}:exit_{direction}"
+    ↓   _existing_node = graph.get(boundary_id)
+    ↓   если _existing_node есть → использует его coords
+    ↓   иначе → coords = (origin.x + offset_x, origin.y + offset_y)
+    ↓ graph[boundary_id] = NodeRef(role=BOUNDARY, ...)
+    ↓ connections.setdefault(...) — авто-связи в радиусе 3м
+  SpatialValidator / _validate_navigation_geometry
+    ↓ проверяет каждое ребро: пересекает ли стену?
+    ↓ если да и нет door → удаляет ребро
+  SpatialService
+    ↓ хранит graph по zone_id
+  SpatialTargetResolver
+    ↓ для FLEE: get_furthest(zone_id, threat_xy)
+    ↓ возвращает самый дальний узел (без проверки достижимости)
+  MovementEngine._resolve_macro_relocation
+    ↓ A* pathfinding: source_node → target_node
+    ↓ если no path → failure=M005
+  MovementEngine.process_intents
+    ↓ если path найден → создает traversal
+  Tick pipeline: NPC двигается по traversal
+    ↓ при достижении boundary node:
+    ↓ MovementEngine._handle_boundary_arrival?
+    ↓ → смена scene_state, загрузка новой location
+
+
+--- MovementEngine: обработка boundary node arrival ---
+  L39: # через boundary_dwell). Флаг-выключатель оставлен осознанно; именованная
+  L49: from app.services.scene_change import ChangeType, SceneChange
+  L208:         # не давал schedule-traversal дожить до boundary (2-3 тика пути).
+  L309:                 # Если цель в другом чанке, направляем NPC в boundary node текущего чанка.
+  L341:                     # boundary (trassa r24: merchant_goran city_gate →
+  L348:                     # Без этого cross_loc_intercept не срабатывает, и NPC застревает на boundary-узле.
+  L401:                             # записи актора (прецедент _via_boundary). Единственный
+  L434:                         boundary_node = current_svc.get_boundary_to_neighbor(target_loc)
+  L436:                         logger.debug(f"[DIAG_BOUNDARY] result={boundary_node}")
+  L437:                         if boundary_node:
+  L441:                             # S-04: Проверяем, не стоит ли NPC уже на boundary node.
+  L448:                             _dist_to_boundary = math.hypot(boundary_node.x - _cur_x, boundary_node.y - _cur_y)
+  L450:                             # S-145 FIX: Материализация если NPC стоит на boundary node ИЛИ очень близко к ней.
+  L451:                             _is_at_boundary = (_npc_pos_data.get("position", "") == boundary_node.node_id)
+  L452:                             if _is_at_boundary:
+  L454:                                 # перенос делает S186 по boundary_dwell (tick_orchestrator).
+  L456:                                 _dwell_map = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
+  L459:                                 # NPC маятником через boundary (borko tavern↔city_gate).
+  L466:                                         "via": boundary_node.node_id,
+  L468:                                     logger.info(f"[BOUNDARY_DWELL] npc={intent.actor_id} at {boundary_node.node_id}; transfer at tick {tick + BOUNDARY_DWELL_TICKS}")
+  L470:                             if _dist_to_boundary < 1.5:
+  L476:                                 _dwell_near = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
+  L481:                                         "via": boundary_node.node_id,
+  L483:                                     logger.info(f"[BOUNDARY_DWELL] npc={intent.actor_id} near {boundary_node.node_id} (dist={_dist_to_boundary:.2f}); transfer at tick {tick + BOUNDARY_DWELL_TICKS}")
+  L487:                             if CROSS_LOC_MATERIALIZE_ENABLED:  # FIX-6c: мгновенный перенос отключён (см. boundary_dwell выше)
+  L508:                                     # V8-SP-16.3 FIX: Если целевой узел не найден, используем entry_node_hint (напр. exit_west)
+  L509:                                     _b_info = current_svc.get_boundary_info(boundary_node.node_id) or {}
+  L510:                                     _entry_hint = _b_info.get("entry_node_hint", "")
+  L571:                                 f"[CROSS_LOC_INTERCEPT] npc={intent.actor_id} target={target_loc} rerouted to boundary {boundary_node.node_id} in {current_loc}"
+  L573:                             # Перенаправляем интент на boundary node текущей локации
+  L578:                             intent.target_node_id = boundary_node.node_id.split(":")[-1]
+  L599:                                 f"[CROSS_LOC_INTERCEPT] No boundary node in {current_loc} to {target_loc} for {intent.actor_id}"
+  L601:                             # ADR-O-314: Нет boundary node — кросс-локационный роутинг невозможен.
+  L1037:         # Оно уводило NPC за стены (CLEARANCE_FAIL) при движении к boundary nodes.
+  L1043:         # FIX-6b-1 (walk-to-door): материализация только если boundary
+  L1044:         # РЕАЛЬНО близко. Раньше следующий waypoint=boundary давал мгновенный
+  L1047:         # в главной ветке (_dist_to_boundary < 1.5) у самого проёма.
+  L1049:             _b_info = svc.get_boundary_info(next_node.node_id) or {}
+  L1050:             _materialize_target_loc = _b_info.get("neighbor_chunk", "")
+  L1051:             _entry_hint = _b_info.get("entry_node_hint", "") or f"{_materialize_target_loc}:entrance"
+  L1059:                     # FIX-6c: встаём в boundary-узел и ждём BOUNDARY_DWELL_TICKS
+  L1062:                     _dwell_map_ms = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
+  L1070:                     # ADR-O-323 FIX-01: boundary_arrival — это завершение traversal
+  L1071:                     # (NPC дошёл до boundary-узла), не начало нового. Cause
+  L1075:                     # macro relocation: boundary_arrival им не является
+
+--- SceneStateManager: load_location / scene change ---
+  L27:   backend/data/logs/scene_changes_YYYYMMDD.jsonl
+  L42: from app.services.scene_change import ChangeType, SceneChange
+  L62:         _LOG_DIR / "scene_changes.jsonl"
+  L67:     """Логирует SceneChange в scene_changes_YYYYMMDD.jsonl."""
+  L899:                         ("cross_loc_materialize", "boundary_arrival")
+  L927:                         # Простое перемещение к boundary node не должно менять location_id,
+  L986:                                                 f"[PIPELINE][SCENE_CHANGE][STALE_PROPOSAL_TICK] "
+  L1031:                                             f"[PIPELINE][SCENE_CHANGE][MISSING_TRAVERSAL_PROPOSAL] "
+  L1037:                                 f"[PIPELINE][SCENE_CHANGE][APPLY_CRASH] npc={change.target} exc={exc}"
+  L1264:     # Commit Boundary — атомарное сохранение состояния мира
+  L1306:         # Запускается внутри atomic commit boundary ДО persistence и обновления state_t-1.
+
+==============================================================================
+STEP 3: Непрерывная мировая навигация — поиск существующих механизмов
+==============================================================================
+
+Поиск по всем backend/ .py файлам:
+
+  NavMesh / walkable polygons: 9 total (0 non-test)
+
+  Geometric passability check: 6 total (3 non-test)
+    app\domain\traversal.py L67:     can_walk: bool = True
+    app\models\contracts.py L12:     can_walk: bool = True
+    app\models\npc_state.py L1138:                 "can_walk": _caps.can_walk,
+
+  Spatial index (grid/quadtree): 2 total (0 non-test)
+
+  Obstacle avoidance: 11 total (3 non-test)
+    app\domain\movement.py L104:     reason: str = ""  # "reactive_snap", "collision_avoidance"
+    app\services\tick_orchestrator.py L1834:         # Микро-движение (steering) будет реализовано в LocalSteeringLayer.
+    app\services\phases\movement_bridge.py L63:         # (simulation.py). Микро-движение (LOCAL_POSITION/steering) не гейтится:
+
+  Multi-location navigation: 11 total (4 non-test)
+    app\services\tick_orchestrator.py L1039:         self._resolve_cross_location_transfers(ctx) # PRE-TICK: World-level ownership transfer кросс-локационное перемещение НПС
+    app\services\tick_orchestrator.py L1116:         self._resolve_cross_location_transfers(ctx) # POST-9: Extract BEFORE Phase 10 to persist clean state
+    app\services\tick_orchestrator.py L1176:     def _resolve_cross_location_transfers(self, ctx: _TickContext) -> None:
+    app\services\spatial\traversal_execution_system.py L110:                 # (_resolve_cross_location_transfers), прецедент «много
+
+  Hierarchical navigation: 105 total (66 non-test)
+    lint_project.py L32:     category: str  # ORPHAN_METHOD, DEAD_CODE, MISSING_METHOD, BAD_IMPORT
+    lint_project.py L88:                             category="ORPHAN_METHOD",
+    lint_project.py L126:                         category="ORPHAN_METHOD",
+    app\core\constants.py L175: RANDOM_EVENT_CHANCE: Final[float] = 0.05
+    app\domain\body.py L22:     TWO_HANDED = "two_handed" # Требует две руки
+
+  Dynamic passability: 2 total (0 non-test)
+
+  Different creature sizes: 2 total (0 non-test)
+
+--- Поиск 'world graph' / 'global navigation' / 'world map' ---
+  tests\sandbox\r2_world_nav_archaeology.py L180:                         "world_graph", "global_graph", "world_geometry", "world_space"]
+  tests\sandbox\r2_world_nav_archaeology.py L296:     world_nav_keywords = ["world_graph", "global_navigation", "world_map_nav", "world_pathfinding",
+  tests\sandbox\r2_world_nav_archaeology.py L297:                           "GlobalGraph", "WorldGraph", "world_node", "global_node"]
+  tests\sandbox\r2_world_nav_archaeology.py L405:   - СРЕДНИЙ: добавить GlobalGraphBuilder, GlobalPathfinder
+  tests\sandbox\r2_world_nav_archaeology.py L411:   - ВЫСОКАЯ: формат сохраняется, добавляется опциональный world_graph.json
+  tests\sandbox\r2_world_nav_archaeology.py L464:   - Добавляется новая подсистема (GlobalGraphBuilder)
+  tests\sandbox\r2_world_nav_archaeology.py L806:   Phase 3: Создать GlobalGraphBuilder — собирает boundary nodes из всех локаций
+  tests\sandbox\r2_world_nav_archaeology.py L841:   - Добавить GlobalGraphBuilder, который собирает boundary_map из всех локаций
+  tests\sandbox\SUPERBOX\scenarios\personal_epistemic_routing_test.py L50:         _G.append("B UNKNOWN_ROUTE (partial knowledge not completed by WorldGraph)")
+  tests\sandbox\SUPERBOX\scenarios\personal_epistemic_routing_test.py L56:         _G.append("B UNKNOWN_ROUTE (partial knowledge not completed by WorldGraph)")
+
+==============================================================================
+STEP 4: Архитектурные варианты (A/B/C) — comparison
+==============================================================================
+
+=============================================================================
+VARIANT A: Сохранение графов локаций с улучшенным механизмом стыковки
+=============================================================================
+
+Описание:
+  - Каждая локация остаётся изолированным графом (как сейчас)
+  - GraphCompiler продолжает создавать boundary nodes из adjacency
+  - УЛУЧШЕНИЕ: boundary nodes используют АВТОРСКИЕ координаты (если exit_X
+    определён в nodes dict) — это уже частично работает (probe v5 Step A)
+  - УЛУЧШЕНИЕ: SpatialValidator проверяет достижимость boundary node через
+    существующие двери, а не только геометрию
+
+Объём изменений:
+  - Минимальный: ~50 строк в graph_compiler.py
+  - Карта: добавить авторские exit_X nodes (как вариант C из предыдущего diff)
+
+Совместимость с JSON:
+  - Высокая: формат сохраняется, добавляются опциональные поля
+
+Влияние на Map Editor:
+  - Минимальное: добавляется UI для размещения exit-узлов
+
+Влияние на NPC movement и FLEE:
+  - FLEE работает, если exit_X имеет реальные координаты
+  - A* находит путь через дверь
+
+Стоимость пересчёта навигации:
+  - Низкая: per-location compile, как сейчас
+
+Масштабирование:
+  - 100+ локаций: каждый граф изолирован, переходы через boundary nodes
+  - Риск: при большом числе boundary nodes возможны фантомные рёбра
+
+Риск нескольких источников истины:
+  - НИЗКИЙ: каждый граф — единственный источник для своей локации
+  - boundary_map — единственный источник переходов
+
+=============================================================================
+VARIANT B: Единая мировая геометрия и единый навигационный граф
+=============================================================================
+
+Описание:
+  - ВСЕ локации объединяются в один глобальный граф
+  - Координаты — мировые (без origin offset)
+  - NavMesh или единый граф проходимости
+  - Boundary nodes исчезают (не нужны)
+  - adjacency исчезает (геометрия сама определяет соседство)
+
+Объём изменений:
+  - ОГРОМНЫЙ: переписать GraphCompiler, SpatialService, MovementEngine
+  - Все JSON карт нужно конвертировать (убрать origin, перевести в world coords)
+  - Map Editor: переписать для работы с единой геометрией
+
+Совместимость с JSON:
+  - НИЗКАЯ: требуется миграция всех карт
+
+Влияние на Map Editor:
+  - Полная переработка UI для глобальной карты
+
+Влияние на NPC movement и FLEE:
+  - FLEE работает «из коробки» — выбирается самый дальний узел в мире
+  - A* ищет путь через всю мировую геометрию
+
+Стоимость пересчёта навигации:
+  - ВЫСОКАЯ: при любом изменении карты нужно пересчитывать весь мир
+  - Возможно incremental update, но сложно
+
+Масштабирование:
+  - 100+ локаций: один гигантский граф, возможны проблемы с памятью/производительностью
+  - A* через весь мир может быть медленным
+
+Риск нескольких источников истины:
+  - НИЗКИЙ: один граф = один источник
+  - Но риск неконсистентности при частичных обновлениях
+
+=============================================================================
+VARIANT C: Мировая система координат + локальная навигация + глобальная иерархия
+=============================================================================
+
+Описание:
+  - Каждая локация имеет локальный навигационный граф (как сейчас)
+  - Но координаты — мировые (через origin, как сейчас)
+  - Добавляется ГЛОБАЛЬНЫЙ иерархический граф (HPA*)
+  - Глобальный граф содержит supernodes (boundary nodes с реальными координатами)
+  - Межлокационные рёбра: supernode_A → supernode_B (если они геометрически соседние)
+  - A* работает в два уровня:
+    1. Найти путь в локальном графе до boundary node
+    2. Найти путь в глобальном графе между boundary nodes
+    3. Загрузить целевую локацию, продолжить локальный pathfinding
+
+Объём изменений:
+  - СРЕДНИЙ: добавить GlobalGraphBuilder, GlobalPathfinder
+  - GraphCompiler: гарантировать, что boundary nodes имеют мировые coords
+  - SpatialService: добавить get_global_path(start_zone, start_node, end_zone, end_node)
+  - MovementEngine: использовать глобальный path для межлокационных переходов
+
+Совместимость с JSON:
+  - ВЫСОКАЯ: формат сохраняется, добавляется опциональный world_graph.json
+  - existing maps продолжают работать
+
+Влияние на Map Editor:
+  - Минимальное: добавить UI для размещения exit-узлов (как в варианте A)
+  - Опционально: визуализация глобального графа
+
+Влияние на NPC movement и FLEE:
+  - FLEE: выбирает узел в текущей локации (как сейчас)
+  - Для FLEE в другую локацию: FLEE target = ближайший boundary node
+  - A* использует глобальный граф для межлокационных путей
+
+Стоимость пересчёта навигации:
+  - СРЕДНЯЯ: локальные графы пересчитываются при изменении карты
+  - Глобальный граф пересчитывается при изменении boundary nodes (редко)
+
+Масштабирование:
+  - 100+ локаций: иерархия хорошо масштабируется
+  - Глобальный граф содержит только boundary nodes (десятки, не тысячи)
+
+Риск нескольких источников истины:
+  - СРЕДНИЙ: локальные графы + глобальный граф
+  - Но они согласованы: global graph строится из локальных boundary nodes
+
+=============================================================================
+СРАВНЕНИЕ
+=============================================================================
+
+| Критерий                          | A         | B         | C         |
+|-----------------------------------|-----------|-----------|-----------|
+| Объём изменений                   | Минимум   | Огромный  | Средний   |
+| Совместимость с JSON              | Высокая   | Низкая    | Высокая   |
+| Влияние на Map Editor             | Минимум   | Полный    | Минимум   |
+| FLEE работает                     | Да (с diff)| Да       | Да        |
+| Стоимость пересчёта               | Низкая    | Высокая   | Средняя   |
+| Масштабирование                   | Хорошее   | Плохое    | Отличное  |
+| Риск multi-source-of-truth        | Низкий    | Низкий    | Средний   |
+| Поддержка текущих сохранений      | Да        | Нет       | Да        |
+| Сложность миграции                | Низкая    | Высокая   | Средняя   |
+| Подходит для длинных NPC маршрутов| Нет       | Да        | Да        |
+
+РЕКОМЕНДАЦИЯ: Вариант C (мировая система + иерархия)
+
+Обоснование:
+  1. Сохраняет текущий формат JSON (низкий риск)
+  2. Поддерживает текущие сохранения (без миграции)
+  3. Решает проблему FLEE (boundary nodes с реальными coords)
+  4. Масштабируется на 100+ локаций
+  5. Позволяет NPC идти через несколько локаций (целевой сценарий Master)
+  6. Иерархический pathfinding — стандартное решение для больших миров
+
+Минусы варианта C:
+  - Два графа (локальный + глобальный) нужно синхронизировать
+  - Добавляется новая подсистема (GlobalGraphBuilder)
+  - Возможно избыточно для текущих 3 локаций
+
+
+==============================================================================
+STEP 5: Реальная мировая геометрия Tavern, Market Square, City Gate
+==============================================================================
+
+--- tavern (tavern.json) ---
+  size: W=20.0m, H=15.0m
+  origin (world coords of location's local 0,0): (25.033333333333328, 5.018000000000007)
+  adjacency: {'east': 'city_gate', 'south': 'market_square'}
+  global_coords: True
+  world extent (assumed): x=[25.033333333333328, 45.03333333333333], y=[5.018000000000007, 20.018000000000008]
+  world area: 300.0 m²
+
+  Nodes (local → world coords):
+    entrance             local=(8.16, 13.03) → world=(33.20, 18.05)  role=entrance
+    main_hall_west       local=(6.00, 8.00) → world=(31.03, 13.02)  role=default
+    main_hall_south      local=(5.50, 6.00) → world=(30.53, 11.02)  role=default
+    main_hall            local=(6.50, 5.50) → world=(31.53, 10.52)  role=default
+    bar_area             local=(4.50, 6.50) → world=(29.53, 11.52)  role=bar
+    bar_west             local=(5.50, 4.50) → world=(30.53, 9.52)  role=default
+    bar_pass_north       local=(2.20, 6.00) → world=(27.23, 11.02)  role=default
+    bar_side             local=(2.20, 3.14) → world=(27.23, 8.16)  role=default
+    behind_bar           local=(3.86, 2.79) → world=(28.90, 7.81)  role=inn_desk
+    fireplace            local=(10.50, 3.00) → world=(35.53, 8.02)  role=default
+    corner_table         local=(11.00, 10.00) → world=(36.03, 15.02)  role=dark_corner
+    right_table          local=(10.50, 6.50) → world=(35.53, 11.52)  role=table
+    kitchen              local=(16.71, 2.38) → world=(41.75, 7.40)  role=serving_station
+    kitchen_bed_1        local=(15.15, 6.36) → world=(40.19, 11.38)  role=bed
+    kitchen_bed_2        local=(18.44, 6.27) → world=(43.48, 11.28)  role=bed
+    node_16              local=(13.91, 3.19) → world=(38.94, 8.21)  role=?
+
+  Walls (local coords):
+    wall_7: (14.0, 8.0) → (14.0, 0.5)
+    wall_6: (19.5, 8.0) → (14.0, 8.0)
+    wall_5: (19.5, 0.5) → (19.5, 8.0)
+    wall_4: (14.0, 0.5) → (19.5, 0.5)
+    wall_0: (0.5, 0.5) → (14.0, 0.5)
+    wall_1: (14.0, 0.5) → (14.0, 13.0)
+    wall_2: (14.0, 13.0) → (0.5, 13.0)
+    wall_3: (0.5, 13.0) → (0.5, 0.5)
+
+--- market_square (market_square.json) ---
+  size: W=25.0m, H=25.0m
+  origin (world coords of location's local 0,0): (25.033333333333328, 20.018000000000008)
+  adjacency: {'north': 'tavern'}
+  global_coords: True
+  world extent (assumed): x=[25.033333333333328, 50.03333333333333], y=[20.018000000000008, 45.01800000000001]
+  world area: 625.0 m²
+
+  Nodes (local → world coords):
+    square_center        local=(31.78, 26.65) → world=(56.81, 46.67)  role=?
+    merchant_row         local=(41.70, 18.23) → world=(66.74, 38.25)  role=?
+    alley_shadows        local=(20.69, 39.46) → world=(45.72, 59.48)  role=?
+    north_approach       local=(30.85, 15.49) → world=(55.89, 35.50)  role=?
+    workshop_area        local=(24.69, 15.84) → world=(49.73, 35.86)  role=?
+    node_5               local=(21.24, 17.43) → world=(46.28, 37.45)  role=entrance
+    node_6               local=(42.71, 38.48) → world=(67.74, 58.50)  role=default
+    node_7               local=(32.50, 39.00) → world=(57.53, 59.02)  role=default
+
+  Walls (local coords):
+    wall_4: (8.36, 15.0) → (19.86, 15.0)
+    wall_5: (19.86, 15.0) → (19.86, 40.0)
+    wall_6: (19.86, 40.0) → (8.36, 40.0)
+    wall_7: (8.36, 40.0) → (8.36, 15.0)
+
+--- city_gate (city_gate.json) ---
+  size: W=30.0m, H=20.0m
+  origin (world coords of location's local 0,0): (45.033333333333324, 0.01800000000000708)
+  adjacency: {'west': 'tavern'}
+  global_coords: True
+  world extent (assumed): x=[45.033333333333324, 75.03333333333333], y=[0.01800000000000708, 20.018000000000008]
+  world area: 600.0 m²
+
+  Nodes (local → world coords):
+    gate_road            local=(21.50, 9.25) → world=(66.53, 9.27)  role=?
+    gate_arch            local=(29.53, 9.39) → world=(74.56, 9.41)  role=?
+    guard_bed            local=(31.07, 1.77) → world=(76.10, 1.79)  role=bed
+    guard_post           local=(35.00, 7.00) → world=(80.03, 7.02)  role=guard_post
+    gate_courtyard       local=(44.73, 10.19) → world=(89.76, 10.21)  role=?
+    entrance             local=(33.77, 9.52) → world=(78.80, 9.54)  role=?
+    tent_1               local=(31.52, 8.11) → world=(76.55, 8.13)  role=bed
+    tent_2               local=(36.13, 8.64) → world=(81.16, 8.66)  role=bed
+    tent_3               local=(40.62, 8.13) → world=(85.65, 8.15)  role=bed
+    tent_4               local=(33.11, 11.36) → world=(78.15, 11.37)  role=bed
+    tent_5               local=(36.49, 10.37) → world=(81.52, 10.39)  role=bed
+    tent_6               local=(40.52, 10.75) → world=(85.55, 10.77)  role=bed
+    tent_7               local=(31.13, 14.36) → world=(76.16, 14.38)  role=bed
+    tent_8               local=(36.01, 14.33) → world=(81.05, 14.35)  role=bed
+    tent_9               local=(41.22, 14.39) → world=(86.26, 14.40)  role=bed
+    node_14              local=(35.83, 3.90) → world=(80.86, 3.92)  role=?
+    node_15              local=(33.00, 5.00) → world=(78.03, 5.02)  role=?
+    node_16              local=(35.43, 1.87) → world=(80.47, 1.88)  role=?
+
+  Walls (local coords):
+    wall_0: (29.5, 0.0) → (37.0, 0.0)
+    wall_1: (37.0, 0.0) → (37.0, 5.0)
+    wall_2: (37.0, 5.0) → (29.5, 5.0)
+    wall_3: (29.5, 5.0) → (29.5, 0.0)
+
+==============================================================================
+STEP 5b: Проверка соприкосновения локаций в мировом пространстве
+==============================================================================
+
+--- Bounding boxes в мировых координатах ---
+  tavern: x=[25.03, 45.03], y=[5.02, 20.02]
+  market_square: x=[25.03, 50.03], y=[20.02, 45.02]
+  city_gate: x=[45.03, 75.03], y=[0.02, 20.02]
+
+--- Попарное соприкосновение ---
+  tavern ↔ market_square: OVERLAP (вложенные или пересекающиеся)
+  tavern ↔ city_gate: OVERLAP (вложенные или пересекающиеся)
+  market_square ↔ city_gate: OVERLAP (вложенные или пересекающиеся)
+
+--- Мировая карта (ASCII, scale 2m/char) ---
+  'T' = tavern
+  'M' = market_square
+  'C' = city_gate
+
+    579135791357913579135791357
+    ---------------------------
+   46|...........................
+   44|MMMMMMMMMMMMM..............
+   42|MMMMMMMMMMMMM..............
+   40|MMMMMMMMMMMMM..............
+   38|MMMMMMMMMMMMM..............
+   36|MMMMMMMMMMMMM..............
+   34|MMMMMMMMMMMMM..............
+   32|MMMMMMMMMMMMM..............
+   30|MMMMMMMMMMMMM..............
+   28|MMMMMMMMMMMMM..............
+   26|MMMMMMMMMMMMM..............
+   24|MMMMMMMMMMMMM..............
+   22|MMMMMMMMMMMMM..............
+   20|MMMMMMMMMCCCCCCCCCCCCCCCCC.
+   18|TTTTTTTTTCCCCCCCCCCCCCCCCC.
+   16|TTTTTTTTTCCCCCCCCCCCCCCCCC.
+   14|TTTTTTTTTCCCCCCCCCCCCCCCCC.
+   12|TTTTTTTTTCCCCCCCCCCCCCCCCC.
+   10|TTTTTTTTTCCCCCCCCCCCCCCCCC.
+    8|TTTTTTTTTCCCCCCCCCCCCCCCCC.
+    6|TTTTTTTTTCCCCCCCCCCCCCCCCC.
+    4|TTTTTTTTTCCCCCCCCCCCCCCCCC.
+    2|.........CCCCCCCCCCCCCCCCC.
+    0|.........CCCCCCCCCCCCCCCCC.
+    ---------------------------
+
+==============================================================================
+STEP 6: Целевой сценарий NPC — main_hall → door_0 → street → city_gate
+==============================================================================
+
+Целевой маршрут NPC (по замыслу Master):
+  1. Начать в main_hall таверны (локальные coords ~6.5, 5.5)
+  2. Выйти через door_0 (Главный вход, на стене wall_2, y=13.0)
+     - door_0 в мире: world coords ~ (33.22, 18.02) — север таверны
+  3. Пройти по улице вдоль южной стены таверны (?! противоречие: door_0
+     на СЕВЕРНОЙ стене, не южной)
+  4. Продолжить движение вдоль восточной стены в направлении городских ворот
+  5. Не проходить сквозь стены
+  6. Не использовать несуществующие двери
+  7. Не зависеть от искусственных boundary nodes
+
+ЗАМЕЧАНИЕ: door_0 находится на СЕВЕРНОЙ стене таверны (wall_2, y=13.0),
+а не на южной. Возможно, Master имел в виду «северной стены» или планировал
+другой выход.
+
+Архитектурная проверка:
+  - Tavern world extent: x=[25.03, 45.03], y=[5.02, 20.02]
+  - door_0 at world (~33.22, 18.02) — на северной стене
+  - Если NPC выходит через door_0, он оказывается СЕВЕРНЕЕ таверны (y > 20.02)
+  - Если City Gate находится к ВОСТОКУ от таверны, NPC должен идти на восток
+  - Но для этого нужна уличная геометрия МЕЖДУ локациями
+
+
+--- Поиск outdoor / street / world locations ---
+  OUTDOOR: city_gate.json (location_id=city_gate)
+  OUTDOOR: market_square.json (location_id=market_square)
+  indoor:  tavern.json (location_id=tavern)
+
+--- Поиск world/outdoor/street .json files в проекте ---
+  saves\Open_road.json
+  saves\_world_diffs.json
+  backend\tests\fixtures\campaign_open_road\sessions\Open_road\world_tick.json
+  backend\tests\fixtures\campaign_open_road\sessions\tavern_silver_wolf\world_tick.json
+  backend\data\sessions\Open_road\world_tick.json
+  backend\data\sessions\tavern_silver_wolf\world_tick.json
+
+==============================================================================
+STEP 7: ИТОГОВЫЙ ОТЧЁТ
+==============================================================================
+
+=============================================================================
+1. ТЕКУЩАЯ АРХИТЕКТУРА
+=============================================================================
+
+Файлы:
+  - saves/Open_road/locations/tavern.json
+  - saves/Open_road/locations/market_square.json
+  - saves/Open_road/locations/city_gate.json
+  - backend/app/services/spatial/graph_compiler.py — компиляция графов
+  - backend/app/services/spatial/spatial_service.py — хранение graph по zone_id
+  - backend/app/services/spatial/spatial_target_resolver.py — FLEE target
+  - backend/app/services/spatial/movement_engine.py — A*, traversal
+
+Координаты:
+  - Каждая локация имеет локальные координаты (relative to location)
+  - origin (world coords of local 0,0) преобразует local → world
+  - global_coords: true означает, что node coords — локальные
+  - World coords = origin + local coords
+
+Boundary nodes:
+  - Создаются GraphCompiler._create_boundary_nodes из adjacency dict
+  - boundary_id = f"{location_id}:exit_{direction}"
+  - Если в nodes dict есть узел с ID "{exit_direction}" — он НЕ используется
+    (поиск идёт по namespaced ID "tavern:exit_south", а в JSON узлы называются
+     просто "exit_south" — без префикса локации)
+  - Если нет — создаётся phantom с мировыми координатами
+
+=============================================================================
+2. ФАКТИЧЕСКАЯ СХЕМА ПРЕОБРАЗОВАНИЙ КООРДИНАТ
+=============================================================================
+
+Location JSON (local coords + origin + size)
+  ↓
+GraphCompiler.compile_graph():
+  - Читает nodes: {"exit_east": {"x": 8.22, "y": 12.45}, ...}
+  - Создаёт graph["tavern:exit_east"] = NodeRef(x=8.22, y=12.45, ...)
+    (но! добавляет location_id префикс к node_id)
+  - _create_boundary_nodes:
+    boundary_id = "tavern:exit_east"
+    _existing_node = graph.get("tavern:exit_east")  ← НАХОДИТ (тот, что из nodes)
+    Использует его координаты
+    НО! probe v5 показало: "Authored in JSON: False" — то есть GraphCompiler
+    не находит авторский узел. Почему?
+    Возможно: authored node имеет ID "exit_east" (без префикса), а boundary
+    ищет "tavern:exit_east" (с префиксом). GraphCompiler, загружая nodes,
+    добавляет префикс, но boundary ищет ПЕРЕД этим добавлением?
+
+  ИТОГ: probe v5 показало, что для exit_east:
+    - authored = False (GraphCompiler не нашёл существующий)
+    - coords = (44.03, 12.52) = (origin.x + w - 1, origin.y + h/2)
+    - Это МИРОВЫЕ координаты east-границы
+
+SpatialValidator:
+  - Проверяет рёбра на пересечение со стенами
+  - exit_east (44.03, 12.52) ↔ kitchen_bed_2 (18.44, 6.27)
+  - Отрезок пересекает wall_5 → удаляется
+
+SpatialTargetResolver.get_furthest:
+  - candidates = все узлы зоны
+  - distance = world_distance(threat_xy, node.xy)
+  - Возвращает exit_east (дальше всего от угрозы)
+
+MovementEngine._resolve_macro_relocation:
+  - A* pathfinding
+  - connections["tavern:exit_east"] = [] (пусто, рёбра удалены)
+  - failure=M005 "no path"
+
+=============================================================================
+3. ПРИЧИНА ТЕКУЩИХ ОШИБОК BOUNDARY NODES
+=============================================================================
+
+Корневая причина:
+  1. GraphCompiler создаёт boundary nodes с МИРОВЫМИ координатами
+     (через origin offset), даже если авторский exit_X есть в nodes dict
+  2. Авторский exit_east в nodes dict имеет ID "exit_east" (без префикса)
+     GraphCompiler при загрузке добавляет префикс "tavern:" → "tavern:exit_east"
+  3. _create_boundary_nodes ищет "tavern:exit_east" в graph
+     → должен найти (после добавления префикса)
+     → но probe v5 показало: не находит (Authored = False)
+  4. Возможные причины:
+     a) _create_boundary_nodes вызывается ДО добавления префикса к nodes
+     b) Узел с ID "exit_east" в JSON имеет role="boundary", и при загрузке
+        он уже используется как boundary (но с другими coords?)
+     c) Logic: _existing_node = graph.get(boundary_id) находит авторский,
+        но потом его coords перезаписываются мировыми — нужно проверить код
+  5. SpatialValidator удаляет рёбра к phantom boundary (мир coords ≠ локальные)
+  6. A* не находит путь → FLEE BLOCKED
+
+=============================================================================
+4. ТРИ АРХИТЕКТУРНЫХ ВАРИАНТА
+=============================================================================
+
+См. STEP 4 выше для детального сравнения.
+
+Краткое резюме:
+  - Variant A: минимальные изменения, но не решает межлокационные маршруты
+  - Variant B: полная переработка, дорого, несовместимо с текущими сохранениями
+  - Variant C: иерархическая навигация, средние изменения, масштабируемое
+
+=============================================================================
+5. РЕКОМЕНДАЦИЯ
+=============================================================================
+
+Вариант C — иерархическая навигация с мировой системой координат.
+
+Обоснование:
+  1. Сохраняет текущий формат JSON (низкий риск для сохранений)
+  2. Решает проблему FLEE (boundary nodes с реальными координатами)
+  3. Поддерживает целевой сценарий NPC через несколько локаций
+  4. Масштабируется на 100+ локаций
+  5. Иерархический pathfinding — стандартное решение для больших миров
+
+Этапы внедрения (если Master одобряет):
+  Phase 1: Исправить GraphCompiler — использовать авторские exit_X coords
+            (probe v5 Experiment A доказал, что код это поддерживает, но
+             что-то мешает — нужно изучить порядок инициализации)
+  Phase 2: Добавить авторские exit_south в tavern.json (вариант C из предыдущего diff)
+  Phase 3: Создать GlobalGraphBuilder — собирает boundary nodes из всех локаций
+  Phase 4: Создать GlobalPathfinder — A* по глобальному графу
+  Phase 5: MovementEngine использует глобальный path для межлокационных переходов
+
+=============================================================================
+6. ЗАТРАГИВАЕМЫЕ ФАЙЛЫ И ПОДСИСТЕМЫ
+=============================================================================
+
+Phase 1 (минимальный fix):
+  - saves/Open_road/locations/tavern.json — добавить exit_south в nodes dict
+  - saves/Open_road/locations/market_square.json — добавить exit_north
+  - saves/Open_road/locations/city_gate.json — добавить exit_west
+
+Phase 2-5 (вариант C):
+  - backend/app/services/spatial/graph_compiler.py — гарантировать world coords
+  - backend/app/services/spatial/spatial_service.py — добавить global graph
+  - backend/app/services/spatial/global_graph_builder.py (NEW)
+  - backend/app/services/spatial/global_pathfinder.py (NEW)
+  - backend/app/services/spatial/movement_engine.py — использовать global path
+  - backend/app/services/spatial/spatial_target_resolver.py — FLEE target
+  - backend/app/services/spatial/spatial_registry.py — world bounds, zone registry
+  - frontend/map_editor/editor_core.py — UI для размещения exit-узлов
+  - frontend/map_editor/data_manager.py — управление global graph cache
+
+=============================================================================
+7. ПЛАН ПОСТЕПЕННОЙ МИГРАЦИИ
+=============================================================================
+
+Этап 1 (минимальный, 1-2 дня):
+  - Добавить авторские exit_X nodes в tavern/market_square/city_gate JSON
+  - GraphCompiler будет использовать их координаты (probe v5 доказал поддержку)
+  - SpatialValidator пропустит рёбра (если они проходят через двери)
+  - FLEE заработает (exit_south будет достижим через door_2)
+
+Этап 2 (1 неделя):
+  - Добавить GlobalGraphBuilder, который собирает boundary_map из всех локаций
+  - Создать supernodes graph: boundary_A ↔ boundary_B (если они геометрически соседние)
+  - MovementEngine: при достижении boundary node, проверить global graph
+
+Этап 3 (2-3 недели):
+  - GlobalPathfinder: A* по supernodes graph
+  - NPC может идти через несколько локаций
+  - Целевой сценарий работает
+
+Этап 4 (опционально, 1 месяц):
+  - NavMesh для каждой локации (точная навигация внутри, не только по nodes)
+  - Поддержка разных размеров существ
+  - Динамические препятствия
+
+=============================================================================
+8. ТЕСТОВАЯ СТРАТЕГИЯ
+=============================================================================
+
+Геометрия:
+  - Test: каждая локация имеет корректные origin и size
+  - Test: world bounding boxes локаций не пересекаются (или касаются в door)
+  - Test: двери находятся на стенах (geometric validation)
+
+Двери:
+  - Test: door_id ссылается на существующую стену
+  - Test: door.coords лежат на wall segment
+  - Test: door разрезает стену → SpatialValidator пропускает рёбра через door
+
+Маршруты:
+  - Test: A* находит путь внутри локации (fireplace → exit_south через door_2)
+  - Test: A* не находит путь через сплошные стены
+  - Test: boundary node достижим из любой точки локации
+
+Смена областей:
+  - Test: NPC достигает boundary node → MovementEngine инициирует transition
+  - Test: новая локация загружается, NPC появляется в entry_node
+  - Test: NPC продолжает движение в новой локации
+
+FLEE:
+  - Test: FLEE target = реальный boundary node (с корректными coords)
+  - Test: A* находит путь к FLEE target
+  - Test: NPC физически движется к exit
+
+Регрессии:
+  - Test: существующие маршруты (schedule: working → kitchen) работают
+  - Test: SEEK_ALLY работает (NPC движется к другому NPC)
+  - Test: TALK/APPROACH работают
+  - Test: тесты из test_boundary_nodes.py проходят
+
+НИКАКИХ production-изменений в рамках исследования.
+

@@ -1,0 +1,2188 @@
+{
+  "_meta": {
+    "schema_version": "1.0",
+    "generated_at": "2026-11-07T14:50:35.504749+00:00",
+    "_global_order_note": "test-internal capture order, not production field",
+    "verifier_linkage_method": "proposition_dict_match_with_polarity",
+    "verifier_linkage_limitations": "If multiple speeches share the same proposition (including polarity), individual attribution to a specific speech is not possible from log data. If polarity is missing in either claim or verifier proposition, linkage_complete=False — match is recorded but flagged as incomplete.",
+    "verifier_status_classification": "exact prefix match on log message",
+    "verifier_status_source": "proposition_verifier.py L91, L107, L113, L121, L128, L133"
+  },
+  "spoke_events": [
+    {
+      "_global_order": 0,
+      "source": "guard_borko",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Мне нужно отдохнуть.",
+      "intent_type": "talk",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Мне нужно отдохнуть.",
+        "topic": "власть",
+        "exposure": "normal",
+        "tone": "FEARFUL",
+        "intent_type": "talk",
+        "event_tick": 1
+      }
+    },
+    {
+      "_global_order": 1,
+      "source": "merchant_goran",
+      "target_id": "blacksmith_orm",
+      "text": "Мать говорит, что пора жениться. Я говорю, что у меня нет денег. Она говорит: 'Твой отец тоже не имел'. Я говорю: 'И посмотри, к чему это привело'.",
+      "intent_type": "talk",
+      "payload": {
+        "target_id": "blacksmith_orm",
+        "text": "Мать говорит, что пора жениться. Я говорю, что у меня нет денег. Она говорит: 'Твой отец тоже не имел'. Я говорю: 'И посмотри, к чему это привело'.",
+        "topic": "наблюдение",
+        "exposure": "normal",
+        "tone": "NEUTRAL",
+        "intent_type": "talk",
+        "event_tick": 2
+      }
+    },
+    {
+      "_global_order": 2,
+      "source": "guard_borko",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Ааа, ну что тебе нужно, Торнин. Говорят, ты тут разгуливаешь без причины.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Ааа, ну что тебе нужно, Торнин. Говорят, ты тут разгуливаешь без причины.",
+        "topic": "власть",
+        "exposure": "normal",
+        "tone": "FEARFUL",
+        "intent_type": "spread_rumor",
+        "event_tick": 3
+      }
+    },
+    {
+      "_global_order": 3,
+      "source": "blacksmith_orm",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Гильдия ремесленников требует запретить чужеземных торговцев.",
+      "intent_type": "talk",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Гильдия ремесленников требует запретить чужеземных торговцев.",
+        "topic": "наблюдение",
+        "exposure": "normal",
+        "tone": "ANGRY",
+        "intent_type": "talk",
+        "event_tick": 3
+      }
+    },
+    {
+      "_global_order": 4,
+      "source": "blacksmith_orm",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Да, чужеземцы разводят непонятные сказки и подрывают цены на наши работы. Городу нужен порядок, а не их басни и хитрые трюки. Ведьма или нет - но они вредят нашим кузнечным делам. Жди, пока я проверю свою сталь.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Да, чужеземцы разводят непонятные сказки и подрывают цены на наши работы. Городу нужен порядок, а не их басни и хитрые трюки. Ведьма или нет - но они вредят нашим кузнечным делам. Жди, пока я проверю свою сталь.",
+        "topic": "наблюдение",
+        "exposure": "normal",
+        "tone": "ANGRY",
+        "intent_type": "spread_rumor",
+        "event_tick": 4
+      }
+    },
+    {
+      "_global_order": 6,
+      "source": "guard_borko",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Аа, Торнин, что за природа такая? В стражу не попалось, а тут разгуливаешь без причины. Вроде как охранять должен, но сам себя пустил? Такого еще не было! Значит, надо поднять гонорары, чтобы и тебе стало интересно.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Аа, Торнин, что за природа такая? В стражу не попалось, а тут разгуливаешь без причины. Вроде как охранять должен, но сам себя пустил? Такого еще не было! Значит, надо поднять гонорары, чтобы и тебе стало интересно.",
+        "topic": "встреча",
+        "exposure": "normal",
+        "tone": "FEARFUL",
+        "intent_type": "spread_rumor",
+        "event_tick": 5
+      }
+    },
+    {
+      "_global_order": 8,
+      "source": "maid_lusya",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Господин Торнин, мне рассказали о том, что Tester вас обидел. Я это знаю и хотела вам сообщить. Но будьте осторожны, он может быть опасен.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Господин Торнин, мне рассказали о том, что Tester вас обидел. Я это знаю и хотела вам сообщить. Но будьте осторожны, он может быть опасен.",
+        "topic": "наблюдение",
+        "exposure": "normal",
+        "tone": "FEARFUL",
+        "intent_type": "spread_rumor",
+        "event_tick": 5
+      }
+    },
+    {
+      "_global_order": 10,
+      "source": "tavern_keeper_tornin",
+      "target_id": "maid_lusya",
+      "text": "По ночам слышны крики со стороны старой башни.",
+      "intent_type": "talk",
+      "payload": {
+        "target_id": "maid_lusya",
+        "text": "По ночам слышны крики со стороны старой башни.",
+        "topic": "встреча",
+        "exposure": "normal",
+        "tone": "ANGRY",
+        "intent_type": "talk",
+        "event_tick": 5
+      }
+    },
+    {
+      "_global_order": 11,
+      "source": "guard_borko",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Аа, Торнин, разведать что-то хотите? У меня есть информация для тех, кто готова заплатить. Но за такие новости приходится платить хорошо.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Аа, Торнин, разведать что-то хотите? У меня есть информация для тех, кто готова заплатить. Но за такие новости приходится платить хорошо.",
+        "topic": "встреча",
+        "exposure": "normal",
+        "tone": "FEARFUL",
+        "intent_type": "spread_rumor",
+        "event_tick": 6
+      }
+    },
+    {
+      "_global_order": 12,
+      "source": "merchant_goran",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Дорогой гость, я рад приветствовать вас в моём магазине. Однако, к сожалению, мне не о чем посочетать.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Дорогой гость, я рад приветствовать вас в моём магазине. Однако, к сожалению, мне не о чем посочетать.",
+        "topic": "желания",
+        "exposure": "normal",
+        "tone": "NEUTRAL",
+        "intent_type": "spread_rumor",
+        "event_tick": 6
+      }
+    },
+    {
+      "_global_order": 13,
+      "source": "blacksmith_orm",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Да, эти торговцы вредят нашей кузнечной делу. Городу нужен порядок и безопасность. Жди, я проверю сталь своей руды.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Да, эти торговцы вредят нашей кузнечной делу. Городу нужен порядок и безопасность. Жди, я проверю сталь своей руды.",
+        "topic": "встреча",
+        "exposure": "normal",
+        "tone": "ANGRY",
+        "intent_type": "spread_rumor",
+        "event_tick": 7
+      }
+    },
+    {
+      "_global_order": 14,
+      "source": "maid_lusya",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Я слышала, что ночью оттуда доносится крики... Должно быть, кто-то там страдает. Мы должны проверить.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Я слышала, что ночью оттуда доносится крики... Должно быть, кто-то там страдает. Мы должны проверить.",
+        "topic": "встреча",
+        "exposure": "normal",
+        "tone": "FEARFUL",
+        "intent_type": "spread_rumor",
+        "event_tick": 7
+      }
+    },
+    {
+      "_global_order": 15,
+      "source": "tavern_keeper_tornin",
+      "target_id": "maid_lusya",
+      "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "maid_lusya",
+        "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+        "topic": "наблюдение",
+        "exposure": "normal",
+        "tone": "ANGRY",
+        "intent_type": "spread_rumor",
+        "event_tick": 7
+      }
+    },
+    {
+      "_global_order": 16,
+      "source": "guard_borko",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Аа, Торнин, я слышал, что тебе не везет с охраной. Хоть и есть такие, кто готов заплатить хорошее деньги за секреты, но надо знать, для кого держать рот. А то еще один разочарованный стражник на свете лишний не надо.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Аа, Торнин, я слышал, что тебе не везет с охраной. Хоть и есть такие, кто готов заплатить хорошее деньги за секреты, но надо знать, для кого держать рот. А то еще один разочарованный стражник на свете лишний не надо.",
+        "topic": "власть",
+        "exposure": "normal",
+        "tone": "FEARFUL",
+        "intent_type": "spread_rumor",
+        "event_tick": 8
+      }
+    },
+    {
+      "_global_order": 18,
+      "source": "blacksmith_orm",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Да, торговцы вредят кузнечному делу. Городу нужен порядок. Жди, я проверю сталь своей руды.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Да, торговцы вредят кузнечному делу. Городу нужен порядок. Жди, я проверю сталь своей руды.",
+        "topic": "желания",
+        "exposure": "normal",
+        "tone": "ANGRY",
+        "intent_type": "spread_rumor",
+        "event_tick": 9
+      }
+    },
+    {
+      "_global_order": 19,
+      "source": "guard_borko",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Аа, Торнин, разведать что-то хотите? У меня есть информация для тех, кто готова заплатить хорошо. Но не все равное, а то еще один разочарованный стражник на свете лишний не надо. Ведь всем известно, что взятки - это 'компенсация за риск'.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Аа, Торнин, разведать что-то хотите? У меня есть информация для тех, кто готова заплатить хорошо. Но не все равное, а то еще один разочарованный стражник на свете лишний не надо. Ведь всем известно, что взятки - это 'компенсация за риск'.",
+        "topic": "власть",
+        "exposure": "normal",
+        "tone": "FEARFUL",
+        "intent_type": "spread_rumor",
+        "event_tick": 9
+      }
+    },
+    {
+      "_global_order": 20,
+      "source": "maid_lusya",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Я слышала, господин Торнин, что в подвале что-то происходит. Там доносится плач и стоны, как от боли. Можете проверить? Возможно, там кто-то нуждается в помощи или защите. Мы должны быть добрыми и разоблачить зло.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Я слышала, господин Торнин, что в подвале что-то происходит. Там доносится плач и стоны, как от боли. Можете проверить? Возможно, там кто-то нуждается в помощи или защите. Мы должны быть добрыми и разоблачить зло.",
+        "topic": "встреча",
+        "exposure": "normal",
+        "tone": "FEARFUL",
+        "intent_type": "spread_rumor",
+        "event_tick": 9
+      }
+    },
+    {
+      "_global_order": 21,
+      "source": "merchant_goran",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения. Но всегда можно найти что-то интересное среди моих редких сокровищ! Улыбается.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения. Но всегда можно найти что-то интересное среди моих редких сокровищ! Улыбается.",
+        "topic": "встреча",
+        "exposure": "normal",
+        "tone": "NEUTRAL",
+        "intent_type": "spread_rumor",
+        "event_tick": 9
+      }
+    },
+    {
+      "_global_order": 22,
+      "source": "blacksmith_orm",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Да, торговцы вредят кузнечному делу. Городу нужен порядок. Жди, я проверю сталь своей руды.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Да, торговцы вредят кузнечному делу. Городу нужен порядок. Жди, я проверю сталь своей руды.",
+        "topic": "желания",
+        "exposure": "normal",
+        "tone": "ANGRY",
+        "intent_type": "spread_rumor",
+        "event_tick": 10
+      }
+    },
+    {
+      "_global_order": 23,
+      "source": "guard_borko",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Аа, Торнин, я слышал, что тебе не везет с охраной. Хоть и есть такие, кто готов заплатить хорошее деньги за секреты, но надо знать, для кого держать рот.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Аа, Торнин, я слышал, что тебе не везет с охраной. Хоть и есть такие, кто готов заплатить хорошее деньги за секреты, но надо знать, для кого держать рот.",
+        "topic": "власть",
+        "exposure": "normal",
+        "tone": "FEARFUL",
+        "intent_type": "spread_rumor",
+        "event_tick": 10
+      }
+    },
+    {
+      "_global_order": 24,
+      "source": "maid_lusya",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Господин Торнин, мне кажется, что в подвале происходит что-то нехорошее. Должно быть, кто-то там страдает от боли. Мы должны проверить и помочь, если с кем-нибудь случилось несчастье. Беспокойство охватывает меня...",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Господин Торнин, мне кажется, что в подвале происходит что-то нехорошее. Должно быть, кто-то там страдает от боли. Мы должны проверить и помочь, если с кем-нибудь случилось несчастье. Беспокойство охватывает меня...",
+        "topic": "наблюдение",
+        "exposure": "normal",
+        "tone": "FEARFUL",
+        "intent_type": "spread_rumor",
+        "event_tick": 10
+      }
+    },
+    {
+      "_global_order": 25,
+      "source": "tavern_keeper_tornin",
+      "target_id": "maid_lusya",
+      "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "maid_lusya",
+        "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+        "topic": "наблюдение",
+        "exposure": "normal",
+        "tone": "ANGRY",
+        "intent_type": "spread_rumor",
+        "event_tick": 10
+      }
+    },
+    {
+      "_global_order": 26,
+      "source": "maid_lusya",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи?",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи?",
+        "topic": "безопасность",
+        "exposure": "normal",
+        "tone": "FEARFUL",
+        "intent_type": "spread_rumor",
+        "event_tick": 11
+      }
+    },
+    {
+      "_global_order": 27,
+      "source": "merchant_goran",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения.",
+        "topic": "встреча",
+        "exposure": "normal",
+        "tone": "NEUTRAL",
+        "intent_type": "spread_rumor",
+        "event_tick": 11
+      }
+    },
+    {
+      "_global_order": 28,
+      "source": "blacksmith_orm",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Нет, я не распространяю слухи. Но если тебе интересно, могу рассказать о том, как качество моих вещей на порядок выше любых чужеземных товаров. Городу нужны хорошие ремесленники, а не лжецы и шарлатаны. Жди, пока я снова проверю свою сталь.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Нет, я не распространяю слухи. Но если тебе интересно, могу рассказать о том, как качество моих вещей на порядок выше любых чужеземных товаров. Городу нужны хорошие ремесленники, а не лжецы и шарлатаны. Жди, пока я снова проверю свою сталь.",
+        "topic": "наблюдение",
+        "exposure": "normal",
+        "tone": "ANGRY",
+        "intent_type": "spread_rumor",
+        "event_tick": 12
+      }
+    },
+    {
+      "_global_order": 29,
+      "source": "guard_borko",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Аа, Торнин, разведывать что-то хочешь? Знаю пару секретов, но не для всех они интересны. Ведь всем известно, что взятки - это 'компенсация за риск'. Но если ценник по твоему вкусу, могу поделиться.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Аа, Торнин, разведывать что-то хочешь? Знаю пару секретов, но не для всех они интересны. Ведь всем известно, что взятки - это 'компенсация за риск'. Но если ценник по твоему вкусу, могу поделиться.",
+        "topic": "наблюдение",
+        "exposure": "normal",
+        "tone": "FEARFUL",
+        "intent_type": "spread_rumor",
+        "event_tick": 12
+      }
+    },
+    {
+      "_global_order": 30,
+      "source": "maid_lusya",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи? Беспокойство охватывает меня...",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи? Беспокойство охватывает меня...",
+        "topic": "наблюдение",
+        "exposure": "normal",
+        "tone": "FEARFUL",
+        "intent_type": "spread_rumor",
+        "event_tick": 12
+      }
+    },
+    {
+      "_global_order": 31,
+      "source": "merchant_goran",
+      "target_id": "tavern_keeper_tornin",
+      "text": "Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения.",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "text": "Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения.",
+        "topic": "желания",
+        "exposure": "normal",
+        "tone": "NEUTRAL",
+        "intent_type": "spread_rumor",
+        "event_tick": 12
+      }
+    },
+    {
+      "_global_order": 32,
+      "source": "tavern_keeper_tornin",
+      "target_id": "maid_lusya",
+      "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: встреча",
+      "intent_type": "spread_rumor",
+      "payload": {
+        "target_id": "maid_lusya",
+        "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: встреча",
+        "topic": "встреча",
+        "exposure": "normal",
+        "tone": "ANGRY",
+        "intent_type": "spread_rumor",
+        "event_tick": 12
+      }
+    }
+  ],
+  "claim_events": [
+    {
+      "_global_order": 5,
+      "source": "blacksmith_orm",
+      "target_id": "tavern_keeper_tornin",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "verified_by": "proposition_verifier",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "proposition": {
+          "subject_id": "player",
+          "predicate": "insulted",
+          "object_id": "tavern_keeper_tornin",
+          "polarity": true
+        },
+        "speech_act": "assert",
+        "tick": 0,
+        "verified_by": "proposition_verifier",
+        "event_tick": 4
+      }
+    },
+    {
+      "_global_order": 7,
+      "source": "guard_borko",
+      "target_id": "tavern_keeper_tornin",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "verified_by": "proposition_verifier",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "proposition": {
+          "subject_id": "player",
+          "predicate": "insulted",
+          "object_id": "tavern_keeper_tornin",
+          "polarity": true
+        },
+        "speech_act": "assert",
+        "tick": 0,
+        "verified_by": "proposition_verifier",
+        "event_tick": 5
+      }
+    },
+    {
+      "_global_order": 9,
+      "source": "maid_lusya",
+      "target_id": "tavern_keeper_tornin",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "verified_by": "proposition_verifier",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "proposition": {
+          "subject_id": "player",
+          "predicate": "insulted",
+          "object_id": "tavern_keeper_tornin",
+          "polarity": true
+        },
+        "speech_act": "assert",
+        "tick": 0,
+        "verified_by": "proposition_verifier",
+        "event_tick": 5
+      }
+    },
+    {
+      "_global_order": 17,
+      "source": "guard_borko",
+      "target_id": "tavern_keeper_tornin",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "verified_by": "proposition_verifier",
+      "payload": {
+        "target_id": "tavern_keeper_tornin",
+        "proposition": {
+          "subject_id": "player",
+          "predicate": "insulted",
+          "object_id": "tavern_keeper_tornin",
+          "polarity": true
+        },
+        "speech_act": "assert",
+        "tick": 0,
+        "verified_by": "proposition_verifier",
+        "event_tick": 8
+      }
+    }
+  ],
+  "verifier_records": [
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Ааа, ну что тебе нужно, Торнин. Говорят, ты тут разгуливаешь без причины.' raw='NO\\n\\nРеплика NPC \"А'"
+    },
+    {
+      "status": "YES",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, чужеземцы разводят непонятные сказки и подрывают цены на наши работы. Городу нужен порядок, а не их басни и хитрые трюки. Ведьма или нет - но они вредят наш'"
+    },
+    {
+      "status": "YES",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, что за природа такая? В стражу не попалось, а тут разгуливаешь без причины. Вроде как охранять должен, но сам себя пустил? Такого еще не было! Значи'"
+    },
+    {
+      "status": "YES",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, мне рассказали о том, что Tester вас обидел. Я это знаю и хотела вам сообщить. Но будьте осторожны, он может быть опасен.'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, разведать что-то хотите? У меня есть информация для тех, кто готова заплатить. Но за такие новости приходится платить хорошо.' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад приветствовать вас в моём магазине. Однако, к сожалению, мне не о чем посочетать.' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Я слышала, что ночью оттуда доносится крики... Должно быть, кто-то там страдает. Мы должны проверить.' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, эти торговцы вредят нашей кузнечной делу. Городу нужен порядок и безопасность. Жди, я проверю сталь своей руды.' raw='NO'"
+    },
+    {
+      "status": "YES",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, я слышал, что тебе не везет с охраной. Хоть и есть такие, кто готов заплатить хорошее деньги за секреты, но надо знать, для кого держать рот. А то е'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, разведать что-то хотите? У меня есть информация для тех, кто готова заплатить хорошо. Но не все равное, а то еще один разочарованный стражник на све' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения. Но всегда можно найти что-то интересное среди' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Я слышала, господин Торнин, что в подвале что-то происходит. Там доносится плач и стоны, как от боли. Можете проверить? Возможно, там кто-то нуждается в помощи ' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, торговцы вредят кузнечному делу. Городу нужен порядок. Жди, я проверю сталь своей руды.' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, я слышал, что тебе не везет с охраной. Хоть и есть такие, кто готов заплатить хорошее деньги за секреты, но надо знать, для кого держать рот.' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, мне кажется, что в подвале происходит что-то нехорошее. Должно быть, кто-то там страдает от боли. Мы должны проверить и помочь, если с кем-нибу' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, торговцы вредят кузнечному делу. Городу нужен порядок. Жди, я проверю сталь своей руды.' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения.' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи?' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head=\"Аа, Торнин, разведывать что-то хочешь? Знаю пару секретов, но не для всех они интересны. Ведь всем известно, что взятки - это 'компенсация за риск'. Но если цен\" raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения.' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи? Бе' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Нет, я не распространяю слухи. Но если тебе интересно, могу рассказать о том, как качество моих вещей на порядок выше любых чужеземных товаров. Городу нужны хор' raw='NO'"
+    }
+  ],
+  "claim_to_verifier_linkage": [
+    {
+      "claim_capture_order": 5,
+      "claim_source": "blacksmith_orm",
+      "claim_target_id": "tavern_keeper_tornin",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "verifier_records_count": 22,
+      "verifier_statuses": [
+        "NO",
+        "YES"
+      ],
+      "verifier_records": [
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Ааа, ну что тебе нужно, Торнин. Говорят, ты тут разгуливаешь без причины.' raw='NO\\n\\nРеплика NPC \"А'"
+        },
+        {
+          "status": "YES",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, чужеземцы разводят непонятные сказки и подрывают цены на наши работы. Городу нужен порядок, а не их басни и хитрые трюки. Ведьма или нет - но они вредят наш'"
+        },
+        {
+          "status": "YES",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, что за природа такая? В стражу не попалось, а тут разгуливаешь без причины. Вроде как охранять должен, но сам себя пустил? Такого еще не было! Значи'"
+        },
+        {
+          "status": "YES",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, мне рассказали о том, что Tester вас обидел. Я это знаю и хотела вам сообщить. Но будьте осторожны, он может быть опасен.'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, разведать что-то хотите? У меня есть информация для тех, кто готова заплатить. Но за такие новости приходится платить хорошо.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад приветствовать вас в моём магазине. Однако, к сожалению, мне не о чем посочетать.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Я слышала, что ночью оттуда доносится крики... Должно быть, кто-то там страдает. Мы должны проверить.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, эти торговцы вредят нашей кузнечной делу. Городу нужен порядок и безопасность. Жди, я проверю сталь своей руды.' raw='NO'"
+        },
+        {
+          "status": "YES",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, я слышал, что тебе не везет с охраной. Хоть и есть такие, кто готов заплатить хорошее деньги за секреты, но надо знать, для кого держать рот. А то е'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, разведать что-то хотите? У меня есть информация для тех, кто готова заплатить хорошо. Но не все равное, а то еще один разочарованный стражник на све' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения. Но всегда можно найти что-то интересное среди' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Я слышала, господин Торнин, что в подвале что-то происходит. Там доносится плач и стоны, как от боли. Можете проверить? Возможно, там кто-то нуждается в помощи ' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, торговцы вредят кузнечному делу. Городу нужен порядок. Жди, я проверю сталь своей руды.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, я слышал, что тебе не везет с охраной. Хоть и есть такие, кто готов заплатить хорошее деньги за секреты, но надо знать, для кого держать рот.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, мне кажется, что в подвале происходит что-то нехорошее. Должно быть, кто-то там страдает от боли. Мы должны проверить и помочь, если с кем-нибу' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, торговцы вредят кузнечному делу. Городу нужен порядок. Жди, я проверю сталь своей руды.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи?' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head=\"Аа, Торнин, разведывать что-то хочешь? Знаю пару секретов, но не для всех они интересны. Ведь всем известно, что взятки - это 'компенсация за риск'. Но если цен\" raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи? Бе' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Нет, я не распространяю слухи. Но если тебе интересно, могу рассказать о том, как качество моих вещей на порядок выше любых чужеземных товаров. Городу нужны хор' raw='NO'"
+        }
+      ],
+      "linkage_complete": true,
+      "verifier_linkage_method": "proposition_dict_match_with_polarity"
+    },
+    {
+      "claim_capture_order": 7,
+      "claim_source": "guard_borko",
+      "claim_target_id": "tavern_keeper_tornin",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "verifier_records_count": 22,
+      "verifier_statuses": [
+        "NO",
+        "YES"
+      ],
+      "verifier_records": [
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Ааа, ну что тебе нужно, Торнин. Говорят, ты тут разгуливаешь без причины.' raw='NO\\n\\nРеплика NPC \"А'"
+        },
+        {
+          "status": "YES",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, чужеземцы разводят непонятные сказки и подрывают цены на наши работы. Городу нужен порядок, а не их басни и хитрые трюки. Ведьма или нет - но они вредят наш'"
+        },
+        {
+          "status": "YES",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, что за природа такая? В стражу не попалось, а тут разгуливаешь без причины. Вроде как охранять должен, но сам себя пустил? Такого еще не было! Значи'"
+        },
+        {
+          "status": "YES",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, мне рассказали о том, что Tester вас обидел. Я это знаю и хотела вам сообщить. Но будьте осторожны, он может быть опасен.'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, разведать что-то хотите? У меня есть информация для тех, кто готова заплатить. Но за такие новости приходится платить хорошо.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад приветствовать вас в моём магазине. Однако, к сожалению, мне не о чем посочетать.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Я слышала, что ночью оттуда доносится крики... Должно быть, кто-то там страдает. Мы должны проверить.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, эти торговцы вредят нашей кузнечной делу. Городу нужен порядок и безопасность. Жди, я проверю сталь своей руды.' raw='NO'"
+        },
+        {
+          "status": "YES",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, я слышал, что тебе не везет с охраной. Хоть и есть такие, кто готов заплатить хорошее деньги за секреты, но надо знать, для кого держать рот. А то е'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, разведать что-то хотите? У меня есть информация для тех, кто готова заплатить хорошо. Но не все равное, а то еще один разочарованный стражник на све' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения. Но всегда можно найти что-то интересное среди' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Я слышала, господин Торнин, что в подвале что-то происходит. Там доносится плач и стоны, как от боли. Можете проверить? Возможно, там кто-то нуждается в помощи ' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, торговцы вредят кузнечному делу. Городу нужен порядок. Жди, я проверю сталь своей руды.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, я слышал, что тебе не везет с охраной. Хоть и есть такие, кто готов заплатить хорошее деньги за секреты, но надо знать, для кого держать рот.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, мне кажется, что в подвале происходит что-то нехорошее. Должно быть, кто-то там страдает от боли. Мы должны проверить и помочь, если с кем-нибу' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, торговцы вредят кузнечному делу. Городу нужен порядок. Жди, я проверю сталь своей руды.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи?' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head=\"Аа, Торнин, разведывать что-то хочешь? Знаю пару секретов, но не для всех они интересны. Ведь всем известно, что взятки - это 'компенсация за риск'. Но если цен\" raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи? Бе' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Нет, я не распространяю слухи. Но если тебе интересно, могу рассказать о том, как качество моих вещей на порядок выше любых чужеземных товаров. Городу нужны хор' raw='NO'"
+        }
+      ],
+      "linkage_complete": true,
+      "verifier_linkage_method": "proposition_dict_match_with_polarity"
+    },
+    {
+      "claim_capture_order": 9,
+      "claim_source": "maid_lusya",
+      "claim_target_id": "tavern_keeper_tornin",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "verifier_records_count": 22,
+      "verifier_statuses": [
+        "NO",
+        "YES"
+      ],
+      "verifier_records": [
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Ааа, ну что тебе нужно, Торнин. Говорят, ты тут разгуливаешь без причины.' raw='NO\\n\\nРеплика NPC \"А'"
+        },
+        {
+          "status": "YES",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, чужеземцы разводят непонятные сказки и подрывают цены на наши работы. Городу нужен порядок, а не их басни и хитрые трюки. Ведьма или нет - но они вредят наш'"
+        },
+        {
+          "status": "YES",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, что за природа такая? В стражу не попалось, а тут разгуливаешь без причины. Вроде как охранять должен, но сам себя пустил? Такого еще не было! Значи'"
+        },
+        {
+          "status": "YES",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, мне рассказали о том, что Tester вас обидел. Я это знаю и хотела вам сообщить. Но будьте осторожны, он может быть опасен.'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, разведать что-то хотите? У меня есть информация для тех, кто готова заплатить. Но за такие новости приходится платить хорошо.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад приветствовать вас в моём магазине. Однако, к сожалению, мне не о чем посочетать.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Я слышала, что ночью оттуда доносится крики... Должно быть, кто-то там страдает. Мы должны проверить.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, эти торговцы вредят нашей кузнечной делу. Городу нужен порядок и безопасность. Жди, я проверю сталь своей руды.' raw='NO'"
+        },
+        {
+          "status": "YES",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, я слышал, что тебе не везет с охраной. Хоть и есть такие, кто готов заплатить хорошее деньги за секреты, но надо знать, для кого держать рот. А то е'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, разведать что-то хотите? У меня есть информация для тех, кто готова заплатить хорошо. Но не все равное, а то еще один разочарованный стражник на све' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения. Но всегда можно найти что-то интересное среди' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Я слышала, господин Торнин, что в подвале что-то происходит. Там доносится плач и стоны, как от боли. Можете проверить? Возможно, там кто-то нуждается в помощи ' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, торговцы вредят кузнечному делу. Городу нужен порядок. Жди, я проверю сталь своей руды.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, я слышал, что тебе не везет с охраной. Хоть и есть такие, кто готов заплатить хорошее деньги за секреты, но надо знать, для кого держать рот.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, мне кажется, что в подвале происходит что-то нехорошее. Должно быть, кто-то там страдает от боли. Мы должны проверить и помочь, если с кем-нибу' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, торговцы вредят кузнечному делу. Городу нужен порядок. Жди, я проверю сталь своей руды.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи?' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head=\"Аа, Торнин, разведывать что-то хочешь? Знаю пару секретов, но не для всех они интересны. Ведь всем известно, что взятки - это 'компенсация за риск'. Но если цен\" raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи? Бе' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Нет, я не распространяю слухи. Но если тебе интересно, могу рассказать о том, как качество моих вещей на порядок выше любых чужеземных товаров. Городу нужны хор' raw='NO'"
+        }
+      ],
+      "linkage_complete": true,
+      "verifier_linkage_method": "proposition_dict_match_with_polarity"
+    },
+    {
+      "claim_capture_order": 17,
+      "claim_source": "guard_borko",
+      "claim_target_id": "tavern_keeper_tornin",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "verifier_records_count": 22,
+      "verifier_statuses": [
+        "NO",
+        "YES"
+      ],
+      "verifier_records": [
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Ааа, ну что тебе нужно, Торнин. Говорят, ты тут разгуливаешь без причины.' raw='NO\\n\\nРеплика NPC \"А'"
+        },
+        {
+          "status": "YES",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, чужеземцы разводят непонятные сказки и подрывают цены на наши работы. Городу нужен порядок, а не их басни и хитрые трюки. Ведьма или нет - но они вредят наш'"
+        },
+        {
+          "status": "YES",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, что за природа такая? В стражу не попалось, а тут разгуливаешь без причины. Вроде как охранять должен, но сам себя пустил? Такого еще не было! Значи'"
+        },
+        {
+          "status": "YES",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, мне рассказали о том, что Tester вас обидел. Я это знаю и хотела вам сообщить. Но будьте осторожны, он может быть опасен.'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, разведать что-то хотите? У меня есть информация для тех, кто готова заплатить. Но за такие новости приходится платить хорошо.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад приветствовать вас в моём магазине. Однако, к сожалению, мне не о чем посочетать.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Я слышала, что ночью оттуда доносится крики... Должно быть, кто-то там страдает. Мы должны проверить.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, эти торговцы вредят нашей кузнечной делу. Городу нужен порядок и безопасность. Жди, я проверю сталь своей руды.' raw='NO'"
+        },
+        {
+          "status": "YES",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, я слышал, что тебе не везет с охраной. Хоть и есть такие, кто готов заплатить хорошее деньги за секреты, но надо знать, для кого держать рот. А то е'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, разведать что-то хотите? У меня есть информация для тех, кто готова заплатить хорошо. Но не все равное, а то еще один разочарованный стражник на све' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения. Но всегда можно найти что-то интересное среди' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Я слышала, господин Торнин, что в подвале что-то происходит. Там доносится плач и стоны, как от боли. Можете проверить? Возможно, там кто-то нуждается в помощи ' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, торговцы вредят кузнечному делу. Городу нужен порядок. Жди, я проверю сталь своей руды.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, Торнин, я слышал, что тебе не везет с охраной. Хоть и есть такие, кто готов заплатить хорошее деньги за секреты, но надо знать, для кого держать рот.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, мне кажется, что в подвале происходит что-то нехорошее. Должно быть, кто-то там страдает от боли. Мы должны проверить и помочь, если с кем-нибу' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, торговцы вредят кузнечному делу. Городу нужен порядок. Жди, я проверю сталь своей руды.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи?' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head=\"Аа, Торнин, разведывать что-то хочешь? Знаю пару секретов, но не для всех они интересны. Ведь всем известно, что взятки - это 'компенсация за риск'. Но если цен\" raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад видеть вас у себя в лавке. К сожалению, сегодня у меня нет ничего особенного для предложения.' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи? Бе' raw='NO'"
+        },
+        {
+          "status": "NO",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "proposition_parse_ok": true,
+          "level": "INFO",
+          "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Нет, я не распространяю слухи. Но если тебе интересно, могу рассказать о том, как качество моих вещей на порядок выше любых чужеземных товаров. Городу нужны хор' raw='NO'"
+        }
+      ],
+      "linkage_complete": true,
+      "verifier_linkage_method": "proposition_dict_match_with_polarity"
+    }
+  ],
+  "tornin_reactions": {
+    "spoke_count": 4,
+    "spoke_events": [
+      {
+        "_global_order": 10,
+        "source": "tavern_keeper_tornin",
+        "target_id": "maid_lusya",
+        "text": "По ночам слышны крики со стороны старой башни.",
+        "intent_type": "talk",
+        "payload": {
+          "target_id": "maid_lusya",
+          "text": "По ночам слышны крики со стороны старой башни.",
+          "topic": "встреча",
+          "exposure": "normal",
+          "tone": "ANGRY",
+          "intent_type": "talk",
+          "event_tick": 5
+        }
+      },
+      {
+        "_global_order": 15,
+        "source": "tavern_keeper_tornin",
+        "target_id": "maid_lusya",
+        "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+        "intent_type": "spread_rumor",
+        "payload": {
+          "target_id": "maid_lusya",
+          "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+          "topic": "наблюдение",
+          "exposure": "normal",
+          "tone": "ANGRY",
+          "intent_type": "spread_rumor",
+          "event_tick": 7
+        }
+      },
+      {
+        "_global_order": 25,
+        "source": "tavern_keeper_tornin",
+        "target_id": "maid_lusya",
+        "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+        "intent_type": "spread_rumor",
+        "payload": {
+          "target_id": "maid_lusya",
+          "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+          "topic": "наблюдение",
+          "exposure": "normal",
+          "tone": "ANGRY",
+          "intent_type": "spread_rumor",
+          "event_tick": 10
+        }
+      },
+      {
+        "_global_order": 32,
+        "source": "tavern_keeper_tornin",
+        "target_id": "maid_lusya",
+        "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: встреча",
+        "intent_type": "spread_rumor",
+        "payload": {
+          "target_id": "maid_lusya",
+          "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: встреча",
+          "topic": "встреча",
+          "exposure": "normal",
+          "tone": "ANGRY",
+          "intent_type": "spread_rumor",
+          "event_tick": 12
+        }
+      }
+    ],
+    "disclaimer": "Zero reactions is not a defect by itself. For a reaction, an NPC needs its own decision, suitable context, and ability to act."
+  },
+  "lusya_to_tornin": {
+    "spoke_count": 6,
+    "claim_count": 1,
+    "spoke_events": [
+      {
+        "_global_order": 8,
+        "source": "maid_lusya",
+        "target_id": "tavern_keeper_tornin",
+        "text": "Господин Торнин, мне рассказали о том, что Tester вас обидел. Я это знаю и хотела вам сообщить. Но будьте осторожны, он может быть опасен.",
+        "intent_type": "spread_rumor",
+        "payload": {
+          "target_id": "tavern_keeper_tornin",
+          "text": "Господин Торнин, мне рассказали о том, что Tester вас обидел. Я это знаю и хотела вам сообщить. Но будьте осторожны, он может быть опасен.",
+          "topic": "наблюдение",
+          "exposure": "normal",
+          "tone": "FEARFUL",
+          "intent_type": "spread_rumor",
+          "event_tick": 5
+        }
+      },
+      {
+        "_global_order": 14,
+        "source": "maid_lusya",
+        "target_id": "tavern_keeper_tornin",
+        "text": "Я слышала, что ночью оттуда доносится крики... Должно быть, кто-то там страдает. Мы должны проверить.",
+        "intent_type": "spread_rumor",
+        "payload": {
+          "target_id": "tavern_keeper_tornin",
+          "text": "Я слышала, что ночью оттуда доносится крики... Должно быть, кто-то там страдает. Мы должны проверить.",
+          "topic": "встреча",
+          "exposure": "normal",
+          "tone": "FEARFUL",
+          "intent_type": "spread_rumor",
+          "event_tick": 7
+        }
+      },
+      {
+        "_global_order": 20,
+        "source": "maid_lusya",
+        "target_id": "tavern_keeper_tornin",
+        "text": "Я слышала, господин Торнин, что в подвале что-то происходит. Там доносится плач и стоны, как от боли. Можете проверить? Возможно, там кто-то нуждается в помощи или защите. Мы должны быть добрыми и разоблачить зло.",
+        "intent_type": "spread_rumor",
+        "payload": {
+          "target_id": "tavern_keeper_tornin",
+          "text": "Я слышала, господин Торнин, что в подвале что-то происходит. Там доносится плач и стоны, как от боли. Можете проверить? Возможно, там кто-то нуждается в помощи или защите. Мы должны быть добрыми и разоблачить зло.",
+          "topic": "встреча",
+          "exposure": "normal",
+          "tone": "FEARFUL",
+          "intent_type": "spread_rumor",
+          "event_tick": 9
+        }
+      },
+      {
+        "_global_order": 24,
+        "source": "maid_lusya",
+        "target_id": "tavern_keeper_tornin",
+        "text": "Господин Торнин, мне кажется, что в подвале происходит что-то нехорошее. Должно быть, кто-то там страдает от боли. Мы должны проверить и помочь, если с кем-нибудь случилось несчастье. Беспокойство охватывает меня...",
+        "intent_type": "spread_rumor",
+        "payload": {
+          "target_id": "tavern_keeper_tornin",
+          "text": "Господин Торнин, мне кажется, что в подвале происходит что-то нехорошее. Должно быть, кто-то там страдает от боли. Мы должны проверить и помочь, если с кем-нибудь случилось несчастье. Беспокойство охватывает меня...",
+          "topic": "наблюдение",
+          "exposure": "normal",
+          "tone": "FEARFUL",
+          "intent_type": "spread_rumor",
+          "event_tick": 10
+        }
+      },
+      {
+        "_global_order": 26,
+        "source": "maid_lusya",
+        "target_id": "tavern_keeper_tornin",
+        "text": "Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи?",
+        "intent_type": "spread_rumor",
+        "payload": {
+          "target_id": "tavern_keeper_tornin",
+          "text": "Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи?",
+          "topic": "безопасность",
+          "exposure": "normal",
+          "tone": "FEARFUL",
+          "intent_type": "spread_rumor",
+          "event_tick": 11
+        }
+      },
+      {
+        "_global_order": 30,
+        "source": "maid_lusya",
+        "target_id": "tavern_keeper_tornin",
+        "text": "Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи? Беспокойство охватывает меня...",
+        "intent_type": "spread_rumor",
+        "payload": {
+          "target_id": "tavern_keeper_tornin",
+          "text": "Господин Торнин, я слышала странные звуки в подвале. Мне кажется, там происходит что-то нехорошее. Мы должны проверить, может быть кто-то нуждается в помощи? Беспокойство охватывает меня...",
+          "topic": "наблюдение",
+          "exposure": "normal",
+          "tone": "FEARFUL",
+          "intent_type": "spread_rumor",
+          "event_tick": 12
+        }
+      }
+    ],
+    "claim_events": [
+      {
+        "_global_order": 9,
+        "source": "maid_lusya",
+        "target_id": "tavern_keeper_tornin",
+        "proposition": {
+          "subject_id": "player",
+          "predicate": "insulted",
+          "object_id": "tavern_keeper_tornin",
+          "polarity": true
+        },
+        "verified_by": "proposition_verifier",
+        "payload": {
+          "target_id": "tavern_keeper_tornin",
+          "proposition": {
+            "subject_id": "player",
+            "predicate": "insulted",
+            "object_id": "tavern_keeper_tornin",
+            "polarity": true
+          },
+          "speech_act": "assert",
+          "tick": 0,
+          "verified_by": "proposition_verifier",
+          "event_tick": 5
+        }
+      }
+    ]
+  },
+  "hypotheses_for_research": [
+    "confidence < REPORT_CONFIDENCE_THRESHOLD (0.25)",
+    "cold-start блокировка cognition context resolver",
+    "не было адресованного диалога с Торниным (target_id != tornin)"
+  ],
+  "hypotheses_disclaimer": "Эти гипотезы представлены для последующего исследования и не являются диагностическими выводами. Нулевое количество реплик Торнина само по себе не доказывает ни одну из них. Для реакции нужны собственное решение, подходящий контекст и возможность действовать."
+}

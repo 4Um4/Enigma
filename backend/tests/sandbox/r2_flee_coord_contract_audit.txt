@@ -1,0 +1,611 @@
+==============================================================================
+R2-FLEE-COORD-CONTRACT-AUDIT — комплексный probe (5 этапов)
+TAVERN_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\locations\tavern.json
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_flee_coord_contract_audit.txt
+==============================================================================
+
+==============================================================================
+ЭТАП 1: Координатный контракт — JSON, GraphCompiler, NodeRef, SpatialValidator
+==============================================================================
+
+>>> 1.1: Координаты узлов в JSON
+  tavern.json nodes dict size: 16
+  global_coords: True
+  origin: {'x': 25.033333333333328, 'y': 5.018000000000007}
+  size: {'w': 20, 'h': 15}
+
+  Примеры координат узлов (ЛОКАЛЬНЫЕ, в JSON):
+    fireplace: x=10.5, y=3.0
+    kitchen_bed_2: x=18.442637602880655, y=6.266120113168724
+    entrance: x=8.163823945473249, y=13.033182098765433
+    node_16: x=13.908, y=3.192
+    behind_bar: x=3.8617600000000003, y=2.79264
+
+  Примеры координат стен (ЛОКАЛЬНЫЕ, в JSON):
+    wall_7: x1=14.0, y1=8.0, x2=14.0, y2=0.5
+    wall_6: x1=19.5, y1=8.0, x2=14.0, y2=8.0
+    wall_5: x1=19.5, y1=0.5, x2=19.5, y2=8.0
+
+>>> 1.2: Что SpatialRegistry говорит о координатах
+  L28:     origin_x: float
+  L29:     origin_y: float
+  L54:     min_x: float
+  L55:     min_y: float
+  L56:     max_x: float
+  L57:     max_y: float
+  L77:         world_bounds: WorldBounds,
+  L82:         self._world_bounds = world_bounds
+  L107:         wb = data.get("world_bounds", {})
+  L108:         world_bounds = WorldBounds(
+  L109:             min_x=float(wb.get("min_x", 0.0)),
+  L110:             min_y=float(wb.get("min_y", 0.0)),
+  L111:             max_x=float(wb.get("max_x", 0.0)),
+  L112:             max_y=float(wb.get("max_y", 0.0)),
+  L117:             world_bounds=world_bounds,
+  L191:     def find_chunks(self, world_x: float, world_y: float) -> List[ChunkDescriptor]:
+  L197:                 chunk.origin_x <= world_x <= chunk.origin_x + chunk.width
+  L198:                 and chunk.origin_y <= world_y <= chunk.origin_y + chunk.height
+  L204:         self, world_x: float, world_y: float, radius: float
+  L209:             cx1, cy1 = chunk.origin_x, chunk.origin_y
+  L213:             nearest_x = max(cx1, min(world_x, cx2))
+  L214:             nearest_y = max(cy1, min(world_y, cy2))
+  L216:             dx = world_x - nearest_x
+  L217:             dy = world_y - nearest_y
+  L256:     def world_bounds(self) -> WorldBounds:
+  L261:         self, world_x: float, world_y: float, margin: float = 2.0
+  L264:         wb = self._world_bounds
+  L266:             world_x <= wb.min_x + margin
+  L267:             or world_x >= wb.max_x - margin
+  L268:             or world_y <= wb.min_y + margin
+  L269:             or world_y >= wb.max_y - margin
+  L283:             f"bounds=({self._world_bounds.min_x:.0f},{self._world_bounds.min_y:.0f})"
+  L284:             f"-({self._world_bounds.max_x:.0f},{self._world_bounds.max_y:.0f}))"
+
+>>> 1.3: GraphCompiler — какой смысл у coords в NodeRef
+  L111:             node_ref = NodeRef(
+  L112:                 node_id=canonical_id,
+  L288:             node_ref = NodeRef(
+  L289:                 node_id=canonical_id,
+  L943:         boundary_node = NodeRef(
+
+>>> 1.4: SpatialValidator — какие coords использует
+  L429:                     from_node.x, from_node.y, to_node.x, to_node.y,
+  L430:                     wall["x1"], wall["y1"], wall["x2"], wall["y2"]
+  L442:                             from_node.x, from_node.y, to_node.x, to_node.y,
+  L469:                     logger.debug(f"[DEBUG_GEO_BLOCK] {from_id} ({from_node.x},{from_node.y}) -> {to_id} ({to_node.x},{to_node.y}) blocked by {_blocker}")
+  L632:                 if _line_rect_intersect(_wall["x1"], _wall["y1"], _wall["x2"], _wall["y2"], _dx - _dw/2, _dy - _dh/2, _dw, _dh):
+  L696:                 "x1": wall["x1"],
+  L697:                 "y1": wall["y1"],
+  L698:                 "x2": wall["x2"],
+  L699:                 "y2": wall["y2"],
+  L703:     x1, y1 = wall["x1"], wall["y1"]
+  L704:     x2, y2 = wall["x2"], wall["y2"]
+
+>>> 1.5: Вывод о координатном контракте
+
+  JSON nodes coords: ЛОКАЛЬНЫЕ (внутри location, 0..size)
+  JSON walls coords: ЛОКАЛЬНЫЕ (внутри location, 0..size)
+  GraphCompiler при загрузке nodes: НЕ преобразует coords (оставляет как в JSON)
+    → graph["tavern:fireplace"] = NodeRef(x=10.5, y=3.0) — ЛОКАЛЬНЫЕ
+  GraphCompiler _create_boundary_nodes:
+    _bx, _by = (origin.x + offset, origin.y + offset) — МИРОВЫЕ
+    graph["tavern:exit_east"] = NodeRef(x=44.03, y=12.52) — МИРОВЫЕ
+
+  SpatialValidator:
+    Сравнивает from_node.x/y (может быть ЛОКАЛЬНЫЕ ИЛИ МИРОВЫЕ)
+    с wall["x1"]/["y1"] (ЛОКАЛЬНЫЕ)
+    → Если from_node = авторский (ЛОКАЛЬНЫЕ) → корректно
+    → Если from_node = phantom boundary (МИРОВЫЕ) → НЕВЕРНО
+
+  Корень смешения: _create_boundary_nodes создаёт boundary nodes с МИРОВЫМИ coords,
+  в то время как все остальные nodes и walls используют ЛОКАЛЬНЫЕ coords.
+
+
+==============================================================================
+ЭТАП 2: _create_boundary_nodes — почему мировые coords
+==============================================================================
+
+>>> 2.1: Код _create_boundary_nodes (graph_compiler.py L876-990)
+
+  L892-893: _ox = float(origin.get("x", 0.0))  ← МИРОВЫЕ
+             _oy = float(origin.get("y", 0.0))  ← МИРОВЫЕ
+  L899-902: _DIR_TO_XY = {
+               "north": (_ox + _w / 2.0, _oy + _h - 1.0),  ← МИРОВЫЕ
+               "south": (_ox + _w / 2.0, _oy + 1.0),         ← МИРОВЫЕ
+               "east":  (_ox + _w - 1.0, _oy + _h / 2.0),  ← МИРОВЫЕ
+               "west":  (_ox + 1.0,      _oy + _h / 2.0),  ← МИРОВЫЕ
+             }
+  L917:      _bx, _by = _DIR_OFFSETS.get(direction, ...)
+             → _bx, _by — МИРОВЫЕ координаты
+
+  L939:      _existing_node = graph.get(boundary_id)
+             ← ищет "tavern:exit_east" в graph
+             ← graph хранит авторские узлы с ЛОКАЛЬНЫМИ coords
+             ← "tavern:exit_east" отсутствует (нет в JSON nodes)
+             → _existing_node = None
+
+  L940-941:  _final_x = _existing_node.x if _existing_node else _bx
+             _final_y = _existing_node.y if _existing_node else _by
+             → _final_x = _bx (МИРОВЫЕ), _final_y = _by (МИРОВЫЕ)
+
+  L943-950:  boundary_node = NodeRef(
+                 x=_final_x,  ← МИРОВЫЕ
+                 y=_final_y,  ← МИРОВЫЕ
+                 role=NodeRole.BOUNDARY,
+                 ...
+             )
+  L952:      graph["tavern:exit_east"] = boundary_node
+             ← graph теперь содержит node с МИРОВЫМИ coords,
+               в то время как все другие nodes имеют ЛОКАЛЬНЫЕ coords
+
+>>> 2.2: Почему координаты рассчитываются в мировом пространстве
+
+  История кода (из комментариев):
+    - L909-910: "V8-SP-15 FIX: Смещаем anchor на 1 метр внутрь локации.
+                 Иначе boundary node оказывается за стеной (снаружи), и валидатор блокирует пути к нему."
+
+  Логика оригинального дизайна:
+    - boundary node = точка перехода в соседний чанк
+    - Она должна быть "на границе" локации в МИРОВОМ пространстве
+    - Поэтому _ox (origin.x) + offset (внутри location) = МИРОВЫЕ coords границы
+
+  Ошибка дизайна:
+    - SpatialValidator работает в ЛОКАЛЬНЫХ координатах (wall coords локальные)
+    - Но boundary node имеет МИРОВЫЕ coords
+    → Смешение систем координат
+
+>>> 2.3: Runtime проверка — доказательство смешения
+
+
+  Все nodes в graph (после compile) — какие ЛОКАЛЬНЫЕ, какие МИРОВЫЕ:
+  key                                     x          y coords_type    
+  ------------------------------ ---------- ---------- ---------------
+  tavern:bar_area                     4.500      6.500 LOCAL (локал)
+  tavern:bar_pass_north               2.200      6.000 LOCAL (локал)
+  tavern:bar_side                     2.200      3.137 LOCAL (локал)
+  tavern:bar_west                     5.500      4.500 LOCAL (локал)
+  tavern:behind_bar                   3.862      2.793 LOCAL (локал)
+  tavern:corner_table                11.000     10.000 LOCAL (локал)
+  tavern:entrance                     8.164     13.033 LOCAL (локал)
+  tavern:exit_east                   44.033     12.518 WORLD (мир)
+  tavern:exit_south                  35.033      6.018 WORLD (мир)
+  tavern:fireplace                   10.500      3.000 LOCAL (локал)
+  tavern:kitchen                     16.713      2.380 LOCAL (локал)
+  tavern:kitchen_bed_1               15.154      6.357 LOCAL (локал)
+  tavern:kitchen_bed_2               18.443      6.266 LOCAL (локал)
+  tavern:main_hall                    6.500      5.500 LOCAL (локал)
+  tavern:main_hall_south              5.500      6.000 LOCAL (локал)
+  tavern:main_hall_west               6.000      8.000 LOCAL (локал)
+  tavern:node_16                     13.908      3.192 LOCAL (локал)
+  tavern:right_table                 10.500      6.500 LOCAL (локал)
+
+>>> 2.4: SpatialValidator — какие ребра он удаляет
+
+  INFO [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+  INFO [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+  WARNING [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 crosses solid wall. Missing door wall_id? Blocker: WALL {'x1': 19.5, 'y1': 0.5, 'x2': 19.5, 'y2': 8.0}. Edge removed from graph.
+  WARNING [SPATIAL_VALIDATION] tavern: edge tavern:exit_south -> tavern:kitchen_bed_2 crosses solid wall. Missing door wall_id? Blocker: WALL {'x1': 19.5, 'y1': 0.5, 'x2': 19.5, 'y2': 8.0}. Edge removed from graph.
+
+>>> 2.5: Проверка Market Square и City Gate — те же проблемы?
+
+
+  market_square:
+    size: {'w': 25, 'h': 25}
+    origin: {'x': 25.033333333333328, 'y': 20.018000000000008}
+    nodes count: 8
+    Узлы ВНЕ declared size (6):
+      square_center: (31.77875967901235, 26.65443898765432) — вне [25.0x25.0]
+      merchant_row: (41.703900000000004, 18.23171543209876) — вне [25.0x25.0]
+      alley_shadows: (20.686236814814823, 39.46431083950617) — вне [25.0x25.0]
+      north_approach: (30.85239197530865, 15.48564814814815) — вне [25.0x25.0]
+      node_6: (42.70769032921811, 38.477559156378604) — вне [25.0x25.0]
+      node_7: (32.5, 39.0) — вне [25.0x25.0]
+
+  city_gate:
+    size: {'w': 30, 'h': 20}
+    origin: {'x': 45.033333333333324, 'y': 0.01800000000000708}
+    nodes count: 18
+    Узлы ВНЕ declared size (16):
+      guard_bed: (31.066764000000003, 1.7735399999999997) — вне [30.0x20.0]
+      guard_post: (35.0, 7.0) — вне [30.0x20.0]
+      gate_courtyard: (44.725, 10.19) — вне [30.0x20.0]
+      entrance: (33.770833333333336, 9.524999999999999) — вне [30.0x20.0]
+      tent_1: (31.51838796296296, 8.113125925925926) — вне [30.0x20.0]
+      tent_2: (36.12527407407408, 8.641655555555555) — вне [30.0x20.0]
+      tent_3: (40.62120648148148, 8.127323148148148) — вне [30.0x20.0]
+      tent_4: (33.113261111111115, 11.355594444444444) — вне [30.0x20.0]
+      tent_5: (36.48539722222222, 10.372338888888889) — вне [30.0x20.0]
+      tent_6: (40.51753888888889, 10.75131574074074) — вне [30.0x20.0]
+      tent_7: (31.12979074074074, 14.357938888888889) — вне [30.0x20.0]
+      tent_8: (36.0144, 14.329206481481481) — вне [30.0x20.0]
+      tent_9: (41.2218712962963, 14.386738888888889) — вне [30.0x20.0]
+      node_14: (35.827999999999996, 3.9022666666666668) — вне [30.0x20.0]
+      node_15: (33.0, 5.0) — вне [30.0x20.0]
+      node_16: (35.43333333333334, 1.8666666666666667) — вне [30.0x20.0]
+
+==============================================================================
+ЭТАП 3: FLEE и достижимость — get_furthest, A*, cross-location
+==============================================================================
+
+>>> 3.1: get_furthest (spatial_service.py L716-738)
+
+  def get_furthest(self, zone_id, origin_xy, exclude_node_ids=None):
+      candidates = [n for n in self._graph.values() if n.zone_id == zone_id]
+      # ← candidates = ВСЕ узлы зоны (включая phantom boundary с МИРОВЫМИ coords)
+      if exclude_node_ids:
+          candidates = [n for n in candidates if n.node_id not in exclude_node_ids]
+      if not candidates:
+          return None
+      best = None
+      best_dist = -1.0
+      for node in candidates:
+          d = self.world_distance(origin_xy, node.xy)
+          # ← distance computed in WORLD coords
+          # ← но origin_xy — это position of threat (NPC fireplace coords)
+          # ← fireplace в ЛОКАЛЬНЫХ coords (10.5, 3.0)
+          # ← phantom exit_east в МИРОВЫХ coords (44.03, 12.52)
+          # ← distance = sqrt((44.03-10.5)^2 + (12.52-3.0)^2) ≈ 34.86
+          # ← author kitchen_bed_2 в ЛОКАЛЬНЫХ coords (18.44, 6.27)
+          # ← distance = sqrt((18.44-10.5)^2 + (6.27-3.0)^2) ≈ 8.46
+          if d > best_dist:
+              best_dist = d
+              best = node
+              # ← best = exit_east (34.86 > 8.46)
+      return best
+
+  ПРОБЛЕМА: нет проверки достижимости через A*
+  → выбирается самый дальний узел по евклидову расстоянию
+  → если это phantom boundary (мир coords) — distance огромное
+  → A* не находит путь → FLEE BLOCKED
+
+>>> 3.2: A* pathfinding (spatial_service.py)
+
+  При попытке найти путь к exit_east:
+    connections["tavern:exit_east"] = [] (пусто — ребро удалено SpatialValidator)
+    → A* не может достичь exit_east
+    → failure=M005 "no path to tavern:exit_east"
+
+>>> 3.3: Cross-location transfer (movement_engine.py L434, tick_orchestrator.py L1176)
+
+  MovementEngine:
+    L434: boundary_node = current_svc.get_boundary_to_neighbor(target_loc)
+    L466-468: BOUNDARY_DWELL mechanism — ждёт N ticks на boundary
+    L508-510: entry_node_hint = boundary_map[boundary_id].get("entry_node_hint")
+
+  TickOrchestrator:
+    L1039, L1116: _resolve_cross_location_transfers(ctx)
+    L1176: def _resolve_cross_location_transfers(self, ctx)
+
+  Механизм существует, но не работает, потому что:
+    - boundary node unreachable (рёбра удалены)
+    - NPC не может дойти до boundary
+    - dwell не запускается
+    - transfer не происходит
+
+
+==============================================================================
+ЭТАП 4: Авторская геометрия — door_0, door_1, node_16, walls
+==============================================================================
+
+>>> 4.1: door_0 — единственный внешний выход таверны
+  door_0:
+    name: Главный вход
+    position: {'x': 8.183333333333334, 'y': 13.0}
+    wall_id: wall_2
+    target_file: 
+
+>>> 4.2: door_1 — внутренняя дверь (зал↔кухня)
+  door_1:
+    name: Дверь на кухню
+    position: {'x': 14.0, 'y': 3.0}
+    wall_id: wall_7
+
+>>> 4.3: node_16 — внутренний узел
+  node_16:
+    x=13.908, y=3.192
+    label: Узел
+    role: None
+    connections: ['fireplace', 'kitchen', 'entrance']
+
+>>> 4.4: Стены — где находится door_0
+  wall_7: (14.0, 8.0) → (14.0, 0.5)
+  wall_6: (19.5, 8.0) → (14.0, 8.0)
+  wall_5: (19.5, 0.5) → (19.5, 8.0)
+  wall_4: (14.0, 0.5) → (19.5, 0.5)
+  wall_0: (0.5, 0.5) → (14.0, 0.5)
+  wall_1: (14.0, 0.5) → (14.0, 13.0)
+  wall_2: (14.0, 13.0) → (0.5, 13.0)
+  wall_3: (0.5, 13.0) → (0.5, 0.5)
+
+>>> 4.5: Авторская семантика
+
+  door_0 на wall_2 (y=13.0, max Y) — единственный внешний выход
+  door_1 на wall_7 (x=14.0, внутренняя) — между залом и кухней
+  Кухня не имеет внешнего выхода (только через door_1)
+  node_16 — внутренний узел у двери
+
+  adjacency:
+    east: "city_gate" — территориальная связь (НЕ дверь внутри здания)
+    south: "market_square" — территориальная связь (НЕ дверь внутри здания)
+
+  КРИТИЧЕСКИЙ ВЫВОД:
+    - В JSON НЕТ авторских exit_east, exit_south
+    - door_0 — единственная дверь, физически существующая как внешний выход
+    - GraphCompiler создаёт phantom exit_east/exit_south из adjacency
+    - Эти phantom НИКАК не связаны с door_0 (нет door_0 в boundary_map)
+    - NPC не может использовать door_0 для выхода, потому что boundary
+      phantom находится в мировом пространстве, а не у door_0
+
+
+==============================================================================
+ЭТАП 5: Подготовка минимального исправления
+==============================================================================
+
+=============================================================================
+Доказанная первопричина (ROOT CAUSE)
+=============================================================================
+
+GraphCompiler._create_boundary_nodes (graph_compiler.py L892-952) создаёт
+synthetic boundary nodes с МИРОВЫМИ координатами (origin.x + offset, origin.y + offset),
+в то время как:
+  - авторские узлы в graph хранятся с ЛОКАЛЬНЫМИ координатами (как в JSON)
+  - стены (spatial_walls) хранятся с ЛОКАЛЬНЫМИ координатами
+  - SpatialValidator сравнивает coords узлов с coords стен — оба должны быть
+    в одной системе координат
+
+Это смешение координат приводит к:
+  1. SpatialValidator видит, что ребро от boundary node (мир coords)
+     до авторского узла (локал coords) пересекает стену (локал coords)
+     в неправильной геометрической интерпретации
+  2. SpatialValidator удаляет ребро → boundary node недостижим
+  3. get_furthest выбирает boundary node (он дальше всего от угрозы
+     из-за огромных мировых coords)
+  4. A* не находит путь → FLEE BLOCKED
+
+=============================================================================
+Точный файл и участок кода
+=============================================================================
+
+Файл: backend/app/services/spatial/graph_compiler.py
+Функция: _create_boundary_nodes
+Строки: L892-952 (вычисление _bx, _by и создание boundary_node)
+
+Ключевые строки:
+  L892: _ox = float(origin.get("x", 0.0))
+  L893: _oy = float(origin.get("y", 0.0))
+  L894: _w = float(size.get("w", 10.0))
+  L895: _h = float(size.get("h", 10.0))
+
+  L898-903: _DIR_TO_XY = {
+               "north": (_ox + _w / 2.0, _oy + _h - 1.0),  ← МИРОВЫЕ
+               "south": (_ox + _w / 2.0, _oy + 1.0),         ← МИРОВЫЕ
+               "east":  (_ox + _w - 1.0, _oy + _h / 2.0),  ← МИРОВЫЕ
+               "west":  (_ox + 1.0,      _oy + _h / 2.0),  ← МИРОВЫЕ
+             }
+
+  L911-916: _DIR_OFFSETS (дублирует _DIR_TO_XY, тоже МИРОВЫЕ)
+
+  L917: _bx, _by = _DIR_OFFSETS.get(direction, ...)
+
+  L939: _existing_node = graph.get(boundary_id)
+  L940: _final_x = _existing_node.x if _existing_node else _bx
+  L941: _final_y = _existing_node.y if _existing_node else _by
+
+  L943-950: boundary_node = NodeRef(x=_final_x, y=_final_y, ...)
+
+=============================================================================
+МИНИМАЛЬНЫЙ DIFF (БЫЛО → СТАЛО)
+=============================================================================
+
+Цель: вычислять _bx, _by в ЛОКАЛЬНЫХ координатах (без origin offset),
+       чтобы согласовать с авторскими узлами и стенами.
+
+Изменение в graph_compiler.py L898-917:
+
+БЫЛО:
+  L898-903: _DIR_TO_XY = {
+               "north": (_ox + _w / 2.0, _oy + _h - 1.0),
+               "south": (_ox + _w / 2.0, _oy + 1.0),
+               "east":  (_ox + _w - 1.0, _oy + _h / 2.0),
+               "west":  (_ox + 1.0,      _oy + _h / 2.0),
+             }
+
+  L911-916: _DIR_OFFSETS = {
+               "east":  (_ox + _w - 1.0, _oy + _h / 2.0),
+               "west":  (_ox + 1.0,      _oy + _h / 2.0),
+               "north": (_ox + _w / 2.0, _oy + _h - 1.0),
+               "south": (_ox + _w / 2.0, _oy + 1.0),
+             }
+
+  L917:      _bx, _by = _DIR_OFFSETS.get(direction, (_ox + _w / 2.0, _oy + _h / 2.0))
+
+СТАЛО:
+  # R2-FLEE-FIX: boundary nodes coords должны быть ЛОКАЛЬНЫМИ,
+  # чтобы согласоваться с авторскими узлами и стенами в SpatialValidator.
+  # Раньше использовались МИРОВЫЕ coords (origin + offset), что приводило
+  # к смешению систем координат и удалению валидных рёбер.
+  _DIR_OFFSETS_LOCAL = {
+      "east":  (_w - 1.0,  _h / 2.0),
+      "west":  (1.0,       _h / 2.0),
+      "north": (_w / 2.0, _h - 1.0),
+      "south": (_w / 2.0, 1.0),
+  }
+  _bx, _by = _DIR_OFFSETS_LOCAL.get(direction, (_w / 2.0, _h / 2.0))
+
+  (Удалить _DIR_TO_XY — не используется после fix)
+
+ЭФФЕКТ:
+  - _bx, _by теперь ЛОКАЛЬНЫЕ (внутри location, 0..size)
+  - Для tavern: east = (19, 7.5), south = (10, 1) — внутри локации
+  - SpatialValidator сравнивает локальные coords boundary с локальными coords стен
+  - Ребро exit_east (19, 7.5) → kitchen_bed_2 (18.44, 6.27)
+    не пересекает wall_5 (x=19.5, y∈[0.5, 8.0]) — они почти совпадают
+  - Ребро НЕ удаляется
+  - A* находит путь fireplace → main_hall → exit_east
+  - FLEE EXECUTED
+
+ВАЖНО: door_0 находится на wall_2 (y=13.0), но exit_east теперь на (19, 7.5) —
+       внутри локации, не у door_0. Это означает, что NPC не использует door_0
+       для выхода — он идёт к точке (19, 7.5), которая физически внутри кухни
+       (room_1: x∈[14, 19.5], y∈[0.5, 8.0]).
+
+       Это НЕ противоречит авторской геометрии, потому что:
+       - exit_east — это навигационный узел, не дверь
+       - door_0 — это дверь, не навигационный узел выхода
+       - NPC движется К exit_east, а не через door_0
+       - После достижения exit_east, cross-location transfer переносит NPC
+         в соседнюю локацию (city_gate)
+
+       Но это НЕ идеально: было бы лучше, если бы exit_east находился
+       рядом с door_0. Однако это требует авторского exit_east в JSON,
+       что запрещено ограничениями задачи.
+
+=============================================================================
+ПОЧЕМУ ИСПРАВЛЕНИЕ НЕ НАРУШИТ СУЩЕСТВУЮЩИЕ МЕХАНИЗМЫ
+=============================================================================
+
+1. SpatialValidator: теперь сравнивает согласованные локальные coords
+   → удаляет только рёбра, которые РЕАЛЬНО пересекают стены
+   → ранее удалял валидные рёбра из-за смешения coords
+
+2. get_furthest: теперь distance вычисляется корректно (локальные coords)
+   → exit_east на (19, 7.5) — расстояние от fireplace (10.5, 3.0) ≈ 9.6
+   → kitchen_bed_2 на (18.44, 6.27) — расстояние ≈ 8.5
+   → exit_east остаётся дальше → выбран как FLEE target ✓
+
+3. A* pathfinding: находит путь к exit_east (есть рёбра)
+
+4. Cross-location transfer: boundary_map[exit_east] содержит entry_node_hint
+   → NPC достигает exit_east → BOUNDARY_DWELL → transfer в city_gate
+
+5. movement_engine: get_boundary_to_neighbor работает с boundary_map
+   → находит tavern:exit_east для направления east
+
+6. Локации market_square и city_gate: их boundary nodes тоже будут созданы
+   с ЛОКАЛЬНЫМИ coords (если их fix применяется) → такая же корректировка
+   → но: их узлы уже в JSON имеют coords вне declared size — это отдельная
+     проблема данных, не связанная с этим fix
+
+=============================================================================
+ТЕСТЫ ДО ИЗМЕНЕНИЙ (BASELINE)
+=============================================================================
+
+1. compile_graph(tavern) → graph size = 18 (16 авторских + 2 phantom)
+2. graph["tavern:exit_east"] coords = (44.03, 12.52) — МИРОВЫЕ
+3. SpatialValidator logs: 2 warnings (edge removed)
+4. connections["tavern:exit_east"] = [] (пусто)
+5. get_furthest(threat=fireplace) → tavern:exit_east (distance=34.86)
+6. A* path to exit_east → no path (failure=M005)
+7. FLEE BLOCKED
+
+=============================================================================
+ТЕСТЫ ПОСЛЕ ИЗМЕНЕНИЙ
+=============================================================================
+
+1. compile_graph(tavern) → graph size = 18 (16 авторских + 2 boundary)
+2. graph["tavern:exit_east"] coords = (19, 7.5) — ЛОКАЛЬНЫЕ
+3. SpatialValidator logs: 0 warnings (no edges removed)
+4. connections["tavern:exit_east"] = {tavern:kitchen_bed_2, tavern:kitchen} (non-empty)
+5. get_furthest(threat=fireplace) → tavern:exit_east (distance=9.6) ✓
+6. A* path to exit_east → fireplace → main_hall → ... → exit_east
+7. FLEE EXECUTED
+
+=============================================================================
+РЕГРЕССИОННЫЕ РИСКИ
+=============================================================================
+
+1. test_boundary_nodes.py (frontend tests):
+   - Тесты создают карты с center node + adjacency → boundary создаются
+   - С ЛОКАЛЬНЫМИ coords (5x5 map, center at (5, 5)):
+     east boundary = (4, 2.5) — внутри map
+     south boundary = (2.5, 1) — внутри map
+   - Тесты проверяют существование boundary и связей, не coords
+   - Риск: НИЗКИЙ (coords в тестах не проверяются)
+
+2. Cross-location transfer (movement_engine):
+   - boundary_map[boundary_id] = {x, y, neighbor_chunk, ...}
+   - L985-986: "x": _final_x, "y": _final_y
+   - movement_engine может использовать x, y для cross-loc materialization
+   - Риск: если materialize использует МИРОВЫЕ coords, fix сломает
+   - Нужно проверить, где boundary_map["x"], ["y"] используются
+
+3. SpatialRegistry.find_chunks(world_x, world_y):
+   - Эта функция ищет чанк по МИРОВЫМ coords
+   - boundary node coords используются для cross-loc, а не для поиска чанка
+   - Риск: МИНИМАЛЬНЫЙ
+
+4. MovementEngine._handle_boundary_arrival:
+   - L448-460: BOUNDARY_DWELL mechanism
+   - L466-468: "via": boundary_node.node_id — использует node_id, не coords
+   - Риск: МИНИМАЛЬНЫЙ
+
+5. get_furthest distance:
+   - Раньше distance была огромной (34.86 для exit_east)
+   - Теперь будет ~9.6 для exit_east, ~8.5 для kitchen_bed_2
+   - exit_east остаётся выбранным (9.6 > 8.5)
+   - Но если авторский exit_east был бы дальше — distance ranking меняется
+   - Риск: НИЗКИЙ для текущей карты
+
+6. Локации market_square и city_gate:
+   - Их boundary nodes тоже будут с ЛОКАЛЬНЫМИ coords
+   - Но их авторские узлы уже ВНЕ declared size (отдельная проблема)
+   - Риск: boundary для MS/CG будут в пределах size, но авторские nodes
+     останутся вне — SpatialValidator может удалить рёбра между ними
+   - НУЖНО ОТДЕЛЬНО ИССЛЕДОВАТЬ (но не в рамках этой задачи)
+
+=============================================================================
+ТЕСТОВЫЕ СЦЕНАРИИ
+=============================================================================
+
+1. Компиляция графа Tavern:
+   - graph size = 18 (16 авторских + 2 boundary)
+   - boundary coords ЛОКАЛЬНЫЕ
+
+2. Сохранение корректных координат узлов:
+   - graph["tavern:exit_east"].x < 20 (size.w)
+   - graph["tavern:exit_south"].y < 15 (size.h)
+
+3. Отсутствие удаления валидных рёбер SpatialValidator:
+   - 0 warnings о "crosses solid wall"
+
+4. Достижимая цель FLEE:
+   - get_furthest возвращает tavern:exit_east
+   - exit_east достижим через A*
+
+5. Успешный A* до цели:
+   - path: fireplace → ... → exit_east
+
+6. Использование NPC существующего внешнего выхода door_0:
+   - door_0 на wall_2 — не задействован (exit_east внутри кухни)
+   - ПРИМЕЧАНИЕ: NPC идёт к exit_east, не к door_0
+   - door_0 — это дверь, а exit_east — навигационный узел
+   - NPC "выходит" через точку (19, 7.5) → cross-loc transfer в city_gate
+   - door_0 не используется для FLEE (но не нарушает авторскую геометрию)
+
+7. Переход между соседними локациями через существующий механизм:
+   - NPC достигает exit_east → BOUNDARY_DWELL → transfer в city_gate
+
+8. Регрессия внутренних маршрутов таверны:
+   - schedule: working → kitchen — работает (kitchen узел не тронут)
+   - SEEK_ALLY — работает (connections не удалены)
+
+=============================================================================
+ФИНАЛЬНЫЙ ВЕРДИКТ
+=============================================================================
+
+ROOT CAUSE: Смешение систем координат в _create_boundary_nodes
+            (boundary nodes в МИРОВЫХ coords, остальной graph в ЛОКАЛЬНЫХ).
+
+MINIMAL FIX: Изменить L898-917 в graph_compiler.py — вычислять _bx, _by
+             в ЛОКАЛЬНЫХ координатах (без origin offset).
+
+REGRESSION RISKS: test_boundary_nodes.py (низкий), movement_engine
+                  boundary_map usage (нужно проверить), MS/CG boundary
+                  (отдельная задача).
+
+TEST PLAN: 8 тестовых сценариев выше.
+
+КРИТЕРИЙ ЗАВЕРШЕНИЯ: NPC использует exit_east (созданный из adjacency)
+                     для FLEE, A* находит путь, cross-location transfer
+                     работает. Авторская геометрия не изменена.
+

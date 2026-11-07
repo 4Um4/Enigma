@@ -1,0 +1,706 @@
+==============================================================================
+R2-EDITOR-CATALOG-PANEL full dump — read-only
+PROJECT_ROOT: C:\DDD\Codex\VSC_Enigma\Enigma
+CATALOG_PANEL: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\ui\catalog_panel.py
+ASSETS_DIR: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\assets
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_catalog_panel_full.txt
+==============================================================================
+
+==============================================================================
+STEP 1: catalog_panel.py — FULL DUMP (every line)
+==============================================================================
+
+Total lines: 435
+Total chars: 17663
+
+L   1: """ME-2.1 Step F: CatalogPanel — asset catalog UI for Map Editor.
+L   2: 
+L   3: Toggle with F3. Shows search, category filter, card list, preview.
+L   4: Selecting a blueprint sets selected_object_type + tool=TOOL_OBJECT.
+L   5: Uses AssetStore + CatalogIndex + ResourceValidator (Steps A-D).
+L   6: 
+L   7: NOT a second storage — reads from AssetStore via CatalogIndex.
+L   8: Does NOT mix NPC catalog with object catalog.
+L   9: """
+L  10: 
+L  11: from __future__ import annotations
+L  12: 
+L  13: from pathlib import Path
+L  14: from typing import Optional
+L  15: 
+L  16: import pygame
+L  17: from assets.asset_store import AssetStore
+L  18: from assets.catalog_index import CatalogIndex
+L  19: from assets.resource_validator import ResourceValidator, ValidationResult
+L  20: 
+L  21: 
+L  22: class CatalogPanel:
+L  23:     """Asset catalog panel for browsing and selecting blueprints."""
+L  24: 
+L  25:     def __init__(
+L  26:         self,
+L  27:         x: int,
+L  28:         y: int,
+L  29:         w: int,
+L  30:         h: int,
+L  31:         assets_dir: Path,
+L  32:         pixels_dir: Path,
+L  33:     ) -> None:
+L  34:         self.rect = pygame.Rect(x, y, w, h)
+L  35:         self._assets_dir = Path(assets_dir)
+L  36:         self._pixels_dir = Path(pixels_dir)
+L  37:         self.active = False
+L  38: 
+L  39:         # Data layers
+L  40:         self._store: Optional[AssetStore] = None
+L  41:         self._index: Optional[CatalogIndex] = None
+L  42:         self._validator: Optional[ResourceValidator] = None
+L  43: 
+L  44:         # UI state
+L  45:         self._search_query = ""
+L  46:         self._search_active = False
+L  47:         self._selected_category: Optional[str] = None
+L  48:         self._scroll_offset = 0
+L  49:         self._selected_bp_id: Optional[str] = None
+L  50:         self._validation: Optional[ValidationResult] = None
+L  51:         self._filtered_ids: list[str] = []
+L  52:         self._card_rects: list[tuple[str, pygame.Rect]] = []
+L  53: 
+L  54:         # Layout
+L  55:         pad = 6
+L  56:         self._search_rect = pygame.Rect(pad, pad, w - pad * 2 - 20, 22)
+L  57:         self._close_rect = pygame.Rect(w - 20 - pad, pad, 20, 22)
+L  58:         cat_y = pad + 22 + pad
+L  59:         self._cat_rects: list[tuple[str, pygame.Rect]] = []
+L  60:         self._cat_y = cat_y
+L  61:         self._list_y = cat_y + 24 + pad
+L  62:         self._list_h = h - self._list_y - 120
+L  63:         self._preview_y = self._list_y + self._list_h + pad
+L  64: 
+L  65:         # Colors
+L  66:         self._bg = (30, 30, 40)
+L  67:         self._border = (60, 60, 80)
+L  68:         self._card_bg = (40, 40, 55)
+L  69:         self._card_sel = (60, 80, 120)
+L  70:         self._card_hover = (50, 50, 65)
+L  71:         self._text = (200, 200, 220)
+L  72:         self._text_dim = (120, 120, 140)
+L  73:         self._text_error = (220, 80, 80)
+L  74:         self._text_warn = (220, 180, 80)
+L  75:         self._text_ok = (80, 200, 80)
+L  76:         self._input_bg = (20, 20, 30)
+L  77:         self._btn_bg = (50, 50, 70)
+L  78:         self._btn_hover = (70, 70, 100)
+L  79: 
+L  80:         # Russian category display names
+L  81:         self._category_ru = {
+L  82:             "furniture": "Меб",
+L  83:             "wall_object": "Стн",
+L  84:             "transition": "Пер",
+L  85:             "nature": "Прд",
+L  86:             "interactive": "Инт",
+L  87:             "decoration": "Дкр",
+L  88:         }
+L  89: 
+L  90:         # Callbacks (set by editor)
+L  91:         self.on_select: Optional[callable] = None  # callback(bp_id: str)
+L  92:         self.on_place: Optional[callable] = None  # callback(bp_id: str)
+L  93:         # ME-2.1-G-3: double-click → open inspector (read-only)
+L  94:         self.on_inspect: Optional[callable] = None  # callback(bp_id: str)
+L  95:         self._last_click_bp_id: Optional[str] = None
+L  96:         self._last_click_time: float = 0.0
+L  97: 
+L  98:     def open(self) -> None:
+L  99:         """Load AssetStore + CatalogIndex + Validator. Activate refresh."""
+L 100:         self._store = AssetStore(self._assets_dir)
+L 101:         self._store.load()
+L 102:         self._index = CatalogIndex(self._store)
+L 103:         self._validator = ResourceValidator(self._pixels_dir)
+L 104: 
+L 105:         # ME-2.1 Foundation fix: activate AssetStore as source of truth
+L 106:         from data_manager import refresh_object_presets
+L 107:         from sprite_registry import refresh_entity_sprite_map
+L 108: 
+L 109:         refresh_object_presets(self._store)
+L 110:         refresh_entity_sprite_map()
+L 111: 
+L 112:         self.active = True
+L 113:         self._search_query = ""
+L 114:         self._selected_category = None
+L 115:         self._scroll_offset = 0
+L 116:         self._selected_bp_id = None
+L 117:         self._validation = None
+L 118:         self._update_filtered()
+L 119:         self._update_category_rects()
+L 120: 
+L 121:     def close(self) -> None:
+L 122:         """Close catalog."""
+L 123:         self.active = False
+L 124:         self._search_active = False
+L 125: 
+L 126:     @property
+L 127:     def store(self):
+L 128:         """AssetStore (для переиспользования в BlueprintEditor)."""
+L 129:         return self._store
+L 130: 
+L 131:     @property
+L 132:     def validator(self):
+L 133:         """ResourceValidator (для переиспользования в BlueprintEditor)."""
+L 134:         return self._validator
+L 135: 
+L 136:     @property
+L 137:     def selected_bp_id(self) -> Optional[str]:
+L 138:         """Выбранный blueprint_id (для F4 — открыть inspector выбранного)."""
+L 139:         return self._selected_bp_id
+L 140: 
+L 141:     @property
+L 142:     def catalog_index(self):
+L 143:         """CatalogIndex (для переиспользования в BlueprintInspectorPanel G-5)."""
+L 144:         return self._index
+L 145: 
+L 146:     def handle_event(self, event: pygame.event.Event) -> bool:
+L 147:         """Handle event. Returns True if consumed (editor should stop)."""
+L 148:         if not self.active:
+L 149:             return False
+L 150: 
+L 151:         mx, my = pygame.mouse.get_pos()
+L 152:         rx, ry = self.rect.x, self.rect.y
+L 153: 
+L 154:         if event.type == pygame.KEYDOWN:
+L 155:             if event.key == pygame.K_ESCAPE:
+L 156:                 self.close()
+L 157:                 return True
+L 158:             if self._search_active:
+L 159:                 if event.key == pygame.K_BACKSPACE:
+L 160:                     self._search_query = self._search_query[:-1]
+L 161:                     self._update_filtered()
+L 162:                     return True
+L 163:                 if event.key == pygame.K_RETURN:
+L 164:                     self._search_active = False
+L 165:                     return True
+L 166:                 if event.unicode and event.unicode.isprintable():
+L 167:                     self._search_query += event.unicode
+L 168:                     self._update_filtered()
+L 169:                     return True
+L 170:             if event.key == pygame.K_F3:
+L 171:                 self.close()
+L 172:                 return True
+L 173: 
+L 174:         elif event.type == pygame.MOUSEBUTTONDOWN:
+L 175:             if event.button == 1:
+L 176:                 # Close button (absolute)
+L 177:                 close_abs = self._close_rect.move(rx, ry)
+L 178:                 if close_abs.collidepoint(mx, my):
+L 179:                     self.close()
+L 180:                     return True
+L 181:                 # Search bar (absolute)
+L 182:                 search_abs = self._search_rect.move(rx, ry)
+L 183:                 if search_abs.collidepoint(mx, my):
+L 184:                     self._search_active = True
+L 185:                     return True
+L 186:                 else:
+L 187:                     self._search_active = False
+L 188:                 # "All" button (absolute)
+L 189:                 all_abs = pygame.Rect(rx + 6, ry + self._cat_y, 30, 20)
+L 190:                 if all_abs.collidepoint(mx, my):
+L 191:                     self._selected_category = None
+L 192:                     self._update_filtered()
+L 193:                     return True
+L 194:                 # Category buttons (absolute — compute positions matching draw)
+L 195:                 cx = rx + 40  # matches draw: rx+6 + 34
+L 196:                 for cat, rect in self._cat_rects:
+L 197:                     cat_abs = pygame.Rect(cx, ry + self._cat_y, rect.w, rect.h)
+L 198:                     if cat_abs.collidepoint(mx, my):
+L 199:                         self._selected_category = None if self._selected_category == cat else cat
+L 200:                         self._update_filtered()
+L 201:                         return True
+L 202:                     cx += rect.w + 3
+L 203:                 # Cards (already absolute — use mx,my directly)
+L 204:                 for bp_id, rect in self._card_rects:
+L 205:                     if rect.collidepoint(mx, my):
+L 206:                         # ME-2.1-G-3: double-click detection → on_inspect
+L 207:                         import time
+L 208: 
+L 209:                         now = time.monotonic()
+L 210:                         if self._last_click_bp_id == bp_id and (now - self._last_click_time) < 0.4:
+L 211:                             # Double-click → open inspector
+L 212:                             if self.on_inspect:
+L 213:                                 self.on_inspect(bp_id)
+L 214:                             self._last_click_bp_id = None
+L 215:                             self._last_click_time = 0.0
+L 216:                         else:
+L 217:                             # Single-click → select (existing behaviour)
+L 218:                             self._select_blueprint(bp_id)
+L 219:                             self._last_click_bp_id = bp_id
+L 220:                             self._last_click_time = now
+L 221:                         return True
+L 222:                 # Place button (absolute — matches draw position)
+L 223:                 place_abs = pygame.Rect(rx + 6, ry + self._preview_y + 92, self.rect.w - 12, 24)
+L 224:                 if place_abs.collidepoint(mx, my):
+L 225:                     if self._selected_bp_id and self._validation and self._validation.can_place:
+L 226:                         if self.on_place:
+L 227:                             self.on_place(self._selected_bp_id)
+L 228:                         self.close()
+L 229:                         return True
+L 230: 
+L 231:             elif event.button == 4:  # Scroll up
+L 232:                 self._scroll_offset = max(0, self._scroll_offset - 3)
+L 233:                 return True
+L 234:             elif event.button == 5:  # Scroll down
+L 235:                 self._scroll_offset += 3
+L 236:                 return True
+L 237: 
+L 238:         return False
+L 239: 
+L 240:     def draw(self, screen: pygame.Surface, font, font_small, font_bold) -> None:
+L 241:         """Draw catalog panel."""
+L 242:         if not self.active:
+L 243:             return
+L 244: 
+L 245:         # Panel background
+L 246:         pygame.draw.rect(screen, self._bg, self.rect)
+L 247:         pygame.draw.rect(screen, self._border, self.rect, 1)
+L 248: 
+L 249:         rx = self.rect.x
+L 250:         ry = self.rect.y
+L 251: 
+L 252:         # Search bar
+L 253:         search_rect = self._search_rect.move(rx, ry)
+L 254:         pygame.draw.rect(screen, self._input_bg, search_rect)
+L 255:         pygame.draw.rect(screen, self._border, search_rect, 1)
+L 256:         search_text = self._search_query
+L 257:         if self._search_active:
+L 258:             search_text += "|"
+L 259:         label = font_small.render(f"🔍 {search_text}", True, self._text)
+L 260:         screen.blit(label, (search_rect.x + 4, search_rect.y + 4))
+L 261: 
+L 262:         # Close button
+L 263:         close_rect = self._close_rect.move(rx, ry)
+L 264:         pygame.draw.rect(screen, self._btn_bg, close_rect)
+L 265:         pygame.draw.rect(screen, self._border, close_rect, 1)
+L 266:         close_label = font_small.render("✕", True, self._text)
+L 267:         screen.blit(close_label, (close_rect.x + 6, close_rect.y + 4))
+L 268: 
+L 269:         # Category buttons
+L 270:         cx = rx + 6
+L 271:         cy = ry + self._cat_y
+L 272:         # "All" button
+L 273:         all_rect = pygame.Rect(cx, cy, 30, 20)
+L 274:         color = self._card_sel if self._selected_category is None else self._btn_bg
+L 275:         pygame.draw.rect(screen, color, all_rect)
+L 276:         pygame.draw.rect(screen, self._border, all_rect, 1)
+L 277:         all_label = font_small.render("Все", True, self._text)
+L 278:         screen.blit(all_label, (all_rect.x + 4, all_rect.y + 3))
+L 279: 
+L 280:         cx += 34
+L 281:         for cat, rect in self._cat_rects:
+L 282:             r = rect.move(rx, ry)
+L 283:             r.x = cx
+L 284:             r.y = cy
+L 285:             color = self._card_sel if self._selected_category == cat else self._btn_bg
+L 286:             pygame.draw.rect(screen, color, r)
+L 287:             pygame.draw.rect(screen, self._border, r, 1)
+L 288:             short = self._category_ru.get(cat, cat[:4])
+L 289:             cat_label = font_small.render(short, True, self._text)
+L 290:             screen.blit(cat_label, (r.x + 3, r.y + 3))
+L 291:             cx += r.w + 3
+L 292: 
+L 293:         # Card list
+L 294:         self._card_rects = []
+L 295:         list_y = ry + self._list_y
+L 296:         card_h = 22
+L 297:         max_cards = self._list_h // card_h
+L 298: 
+L 299:         visible_ids = self._filtered_ids[self._scroll_offset : self._scroll_offset + max_cards]
+L 300: 
+L 301:         for i, bp_id in enumerate(visible_ids):
+L 302:             card_y = list_y + i * card_h
+L 303:             card_rect = pygame.Rect(rx + 4, card_y, self.rect.w - 8, card_h - 2)
+L 304:             self._card_rects.append((bp_id, card_rect))
+L 305: 
+L 306:             is_selected = bp_id == self._selected_bp_id
+L 307:             color = self._card_sel if is_selected else self._card_bg
+L 308:             pygame.draw.rect(screen, color, card_rect)
+L 309: 
+L 310:             preview = self._index.get_preview(bp_id) if self._index else None
+L 311:             if preview:
+L 312:                 label_text = preview.get("label", bp_id)
+L 313:                 card_label = font_small.render(label_text, True, self._text)
+L 314:                 screen.blit(card_label, (card_rect.x + 4, card_rect.y + 3))
+L 315: 
+L 316:                 cat_text = self._category_ru.get(preview.get("category", ""), preview.get("category", ""))
+L 317:                 cat_label = font_small.render(cat_text, True, self._text_dim)
+L 318:                 screen.blit(cat_label, (card_rect.right - cat_label.get_width() - 4, card_rect.y + 3))
+L 319: 
+L 320:         # Scroll indicator
+L 321:         if len(self._filtered_ids) > max_cards:
+L 322:             scroll_text = font_small.render(
+L 323:                 f"({self._scroll_offset + 1}-{min(self._scroll_offset + max_cards, len(self._filtered_ids))}"
+L 324:                 f"/{len(self._filtered_ids)})",
+L 325:                 True,
+L 326:                 self._text_dim,
+L 327:             )
+L 328:             screen.blit(scroll_text, (rx + 4, list_y + self._list_h - 16))
+L 329: 
+L 330:         # Preview area
+L 331:         pv_y = ry + self._preview_y
+L 332:         pygame.draw.line(screen, self._border, (rx + 4, pv_y), (rx + self.rect.w - 4, pv_y))
+L 333: 
+L 334:         if self._selected_bp_id and self._index:
+L 335:             preview = self._index.get_preview(self._selected_bp_id)
+L 336:             if preview:
+L 337:                 # Label
+L 338:                 lbl = font_bold.render(preview.get("label", ""), True, self._text)
+L 339:                 screen.blit(lbl, (rx + 6, pv_y + 4))
+L 340: 
+L 341:                 # Validation status
+L 342:                 if self._validation:
+L 343:                     if self._validation.can_place:
+L 344:                         status = "✅ Готов к размещению"
+L 345:                         status_color = self._text_ok
+L 346:                     else:
+L 347:                         status = "❌ Нельзя разместить"
+L 348:                         status_color = self._text_error
+L 349:                     status_label = font_small.render(status, True, status_color)
+L 350:                     screen.blit(status_label, (rx + 6, pv_y + 24))
+L 351: 
+L 352:                     # Show errors/warnings
+L 353:                     issue_y = pv_y + 40
+L 354:                     for issue in self._validation.issues[:3]:
+L 355:                         if issue.level == "error":
+L 356:                             prefix = "❌"
+L 357:                             color = self._text_error
+L 358:                         elif issue.level == "warning":
+L 359:                             prefix = "⚠"
+L 360:                             color = self._text_warn
+L 361:                         else:
+L 362:                             prefix = "ℹ"
+L 363:                             color = self._text_dim
+L 364:                         issue_text = font_small.render(f"{prefix} {issue.message[:40]}", True, color)
+L 365:                         screen.blit(issue_text, (rx + 6, issue_y))
+L 366:                         issue_y += 14
+L 367: 
+L 368:                 # Category + tags
+L 369:                 cat_str = self._category_ru.get(preview.get("category", ""), preview.get("category", ""))
+L 370:                 tags_str = ", ".join(preview.get("tags", [])[:4])
+L 371:                 cat_label = font_small.render(f"Кат: {cat_str}", True, self._text_dim)
+L 372:                 screen.blit(cat_label, (rx + 6, pv_y + 60))
+L 373:                 tags_label = font_small.render(f"Теги: {tags_str}", True, self._text_dim)
+L 374:                 screen.blit(tags_label, (rx + 6, pv_y + 74))
+L 375: 
+L 376:                 # Place button
+L 377:                 place_rect = pygame.Rect(rx + 6, pv_y + 92, self.rect.w - 12, 24)
+L 378:                 can = self._validation and self._validation.can_place
+L 379:                 color = self._btn_hover if can else (40, 40, 40)
+L 380:                 pygame.draw.rect(screen, color, place_rect)
+L 381:                 pygame.draw.rect(screen, self._border, place_rect, 1)
+L 382:                 place_text = "→ Разместить на карте" if can else "Нельзя разместить"
+L 383:                 place_label = font.render(place_text, True, self._text if can else self._text_dim)
+L 384:                 screen.blit(
+L 385:                     place_label,
+L 386:                     (place_rect.x + 8, place_rect.y + 4),
+L 387:                 )
+L 388: 
+L 389:         # Footer
+L 390:         count_text = font_small.render(
+L 391:             f"{self._index.count if self._index else 0} ассетов",
+L 392:             True,
+L 393:             self._text_dim,
+L 394:         )
+L 395:         screen.blit(count_text, (rx + 4, self.rect.bottom - 16))
+L 396: 
+L 397:     def _update_filtered(self) -> None:
+L 398:         """Rebuild filtered blueprint list."""
+L 399:         if not self._index:
+L 400:             self._filtered_ids = []
+L 401:             return
+L 402:         if self._search_query:
+L 403:             searched = set(self._index.search(self._search_query))
+L 404:         else:
+L 405:             searched = set(self._index.list_all())
+L 406:         if self._selected_category:
+L 407:             filtered = set(self._index.filter(category=self._selected_category))
+L 408:             self._filtered_ids = sorted(searched & filtered)
+L 409:         else:
+L 410:             self._filtered_ids = sorted(searched)
+L 411:         self._scroll_offset = 0
+L 412: 
+L 413:     def _update_category_rects(self) -> None:
+L 414:         """Build category button rects with Russian labels."""
+L 415:         self._cat_rects = []
+L 416:         if not self._index:
+L 417:             return
+L 418:         x = 40  # after "Все" button
+L 419:         for cat in self._index.list_categories():
+L 420:             w = 32  # fixed width, fits 6 buttons + "Все" in 250px
+L 421:             self._cat_rects.append((cat, pygame.Rect(0, 0, w, 20)))
+L 422:             x += w + 3
+L 423: 
+L 424:     def _select_blueprint(self, bp_id: str) -> None:
+L 425:         """Select a blueprint and validate it."""
+L 426:         self._selected_bp_id = bp_id
+L 427:         if self._store and self._validator:
+L 428:             record = self._store.get_blueprint(bp_id)
+L 429:             if record and record.data:
+L 430:                 self._validation = self._validator.validate_blueprint(record.data)
+L 431:             else:
+L 432:                 self._validation = None
+L 433:         if self.on_select:
+L 434:             self.on_select(bp_id)
+L 435: 
+
+==============================================================================
+STEP 2: Find method containing `self._store = AssetStore(...)` (L100)
+==============================================================================
+
+Found at L100:         self._store = AssetStore(self._assets_dir)
+
+Containing method: L98:     def open(self) -> None:
+
+--- Full method body (L98 onwards, ~30 lines) ---
+L  98:     def open(self) -> None:
+L  99:         """Load AssetStore + CatalogIndex + Validator. Activate refresh."""
+L 100:         self._store = AssetStore(self._assets_dir)
+L 101:         self._store.load()
+L 102:         self._index = CatalogIndex(self._store)
+L 103:         self._validator = ResourceValidator(self._pixels_dir)
+L 104: 
+L 105:         # ME-2.1 Foundation fix: activate AssetStore as source of truth
+L 106:         from data_manager import refresh_object_presets
+L 107:         from sprite_registry import refresh_entity_sprite_map
+L 108: 
+L 109:         refresh_object_presets(self._store)
+L 110:         refresh_entity_sprite_map()
+L 111: 
+L 112:         self.active = True
+L 113:         self._search_query = ""
+L 114:         self._selected_category = None
+L 115:         self._scroll_offset = 0
+L 116:         self._selected_bp_id = None
+L 117:         self._validation = None
+L 118:         self._update_filtered()
+L 119:         self._update_category_rects()
+L 120: 
+L 121:     def close(self) -> None:
+L 122:         """Close catalog."""
+L 123:         self.active = False
+L 124:         self._search_active = False
+L 125: 
+L 126:     @property
+L 127:     def store(self):
+
+==============================================================================
+STEP 3: Is the load/activate method called from __init__?
+==============================================================================
+
+Method name: open
+
+Searching for self.open() calls in catalog_panel.py __init__...
+
+  >>> 'open()' is NOT called from catalog_panel.py __init__ or first 80 lines
+  >>> This means: after CatalogPanel(...) constructor, _store is STILL None
+  >>> Editor must explicitly call catalog_panel.open() to load store
+
+--- All callers of self.open() / catalog_panel.open() across project ---
+  frontend\map_editor\assets\blueprint_editor.py L293:                 f"Откройте новую сессию через BlueprintEditor.open()."
+  frontend\map_editor\core\event_handler.py L92:                         core.catalog_panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L35:         panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L43:         panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L48:         panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L57:         panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L67:         panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L75:         panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L82:         panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L93:         panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L100:         panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L109:         panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L120:         panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L127:         panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L133:         panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L143:         panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L154:         panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L166:         panel.open()
+  frontend\map_editor\tests\test_me21_catalog_ui.py L173:         panel.open()
+  frontend\map_editor\tests\test_me21_g4_editor.py L327:         # После save panel.open() вызывается заново — новая сессия
+  frontend\map_editor\ui\blueprint_inspector.py L461:         """Открыть редактор для blueprint_id через BlueprintEditor.open()."""
+
+==============================================================================
+STEP 4: @property store — how EditorCore accesses self.catalog_panel.store
+==============================================================================
+
+Searching for `def store` or `@property` near `store` in catalog_panel.py...
+
+Found @property at L126:     @property
+L 126:     @property
+L 127:     def store(self):
+L 128:         """AssetStore (для переиспользования в BlueprintEditor)."""
+L 129:         return self._store
+L 130: 
+L 131:     @property
+L 132:     def validator(self):
+
+Found def store at L127:     def store(self):
+
+--- `def store` (any decorator) in catalog_panel.py ---
+  L127:     def store(self):
+  L126:     @property
+  L128:         """AssetStore (для переиспользования в BlueprintEditor)."""
+  L129:         return self._store
+  L130: 
+  L131:     @property
+  L132:     def validator(self):
+
+==============================================================================
+STEP 5: Check frontend/map_editor/assets/ directory
+==============================================================================
+Found: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\assets
+Items in assets/: 9
+  __init__.py/
+  __pycache__/(dir)
+  asset_store.py/
+  blueprint_editor.py/
+  catalog_index.py/
+  catalogs/(dir)
+  resource_formats.py/
+  resource_resolver.py/
+  resource_validator.py/
+
+--- JSON files in assets/ (catalog/blueprint candidates) ---
+Total JSON files: 30
+  frontend\map_editor\assets\catalogs\base\blueprints\apple_tree.json (1006 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\bar.json (949 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\bed.json (976 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\bones.json (991 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\bookshelf.json (1027 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\campfire.json (1064 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\cauldron.json (987 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\chair.json (970 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\decoration.json (955 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\door.json (1217 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\door_transition.json (1308 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\gap.json (1128 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\grass.json (979 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\hatch.json (1120 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\heart.json (1000 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\heart_empty.json (1023 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\ladder.json (970 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\palm.json (975 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\portal_magic.json (1081 bytes)
+  frontend\map_editor\assets\catalogs\base\blueprints\rocks.json (964 bytes)
+  ... and 10 more
+
+==============================================================================
+STEP 6: editor_core.py L370-410 (assertion + immediate context)
+==============================================================================
+L 371:         self._observatory_lock = threading.Lock()
+L 372: 
+L 373:         # === Панель свойств ===
+L 374:         panel_x = screen_w - self.panel_width
+L 375:         panel_y = self.menu_height + self.toolbar_height + 10
+L 376:         panel_h = screen_h - panel_y - self.status_height - 10
+L 377:         self.property_panel = PropertyPanel(panel_x, panel_y, self.panel_width, panel_h)
+L 378:         # ME-2.1-F: Catalog panel (F3 to toggle)
+L 379:         catalog_x = 0
+L 380:         catalog_y = self.menu_height + self.toolbar_height + 10
+L 381:         catalog_w = 250
+L 382:         catalog_h = screen_h - catalog_y - self.status_height - 10
+L 383:         from ui.catalog_panel import CatalogPanel
+L 384: 
+L 385:         self.catalog_panel = CatalogPanel(
+L 386:             catalog_x,
+L 387:             catalog_y,
+L 388:             catalog_w,
+L 389:             catalog_h,
+L 390:             Path(__file__).parent / "assets",
+L 391:             Path(__file__).parent / "pixels",
+L 392:         )
+L 393:         self.catalog_panel.on_place = lambda bp_id: self._catalog_place(bp_id)
+L 394: 
+L 395:         # ME-2.1-G-4: BlueprintInspectorPanel (редактор через EditSession)
+L 396:         from assets.blueprint_editor import BlueprintEditor
+L 397:         from ui.blueprint_inspector import BlueprintInspectorPanel
+L 398: 
+L 399:         _store = self.catalog_panel.store
+L 400:         assert _store is not None, "CatalogPanel.store должен быть загружен до BlueprintEditor"
+L 401:         self._blueprint_editor = BlueprintEditor(
+L 402:             asset_store=_store,
+L 403:             validator=self.catalog_panel.validator,
+L 404:         )
+L 405:         inspector_x = catalog_x + catalog_w + 10
+L 406:         inspector_w = 420
+L 407: 
+L 408:         def _count_bp_instances(bp_id: str) -> int:
+L 409:             """G-9: Подсчёт экземпляров Blueprint в активной локации."""
+L 410:             if not self.current_file or self.current_file not in self.dm.locations:
+
+==============================================================================
+STEP 7: All AssetStore() constructor calls in frontend/map_editor
+==============================================================================
+
+Searching for `AssetStore(` instantiations...
+  frontend\map_editor\data_manager.py L923:             store = AssetStore(ASSETS_DIR, campaign_id=campaign_id)
+  frontend\map_editor\tests\test_me21_catalog.py L27:     store = AssetStore(_ASSETS_DIR)
+  frontend\map_editor\tests\test_me21_catalog.py L181:         store = AssetStore(Path("/nonexistent"))
+  frontend\map_editor\tests\test_me21_derive.py L34:     store = AssetStore(_ASSETS_DIR)
+  frontend\map_editor\tests\test_me21_derive.py L146:         store = AssetStore(Path("/nonexistent/path"))
+  frontend\map_editor\tests\test_me21_g10_e2e.py L40:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g1_write_api.py L60:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g1_write_api.py L166:         store2 = AssetStore(isolated_assets["assets_dir"])
+  frontend\map_editor\tests\test_me21_g2_edit_session.py L67:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g3_inspector.py L55:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g4_editor.py L53:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g5_categories.py L54:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g6_metadata.py L54:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g7_history_override.py L64:     store_global = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g7_history_override.py L68:     store_campaign = AssetStore(assets_dir, campaign_id="Open_road")
+  frontend\map_editor\tests\test_me21_g7_history_override.py L199:         store = AssetStore(assets_dir, campaign_id="Open_road")
+  frontend\map_editor\tests\test_me21_g8_new_from.py L34:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g9_propagation.py L50:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L359:         store = _FakeAssetStore(
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L383:         store = _FakeAssetStore(
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L411:         store = _FakeAssetStore(
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L447:         store = _FakeAssetStore(
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L470:         store = _FakeAssetStore(
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L497:         store = _FakeAssetStore({})  # пустой store
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L508:         store = _FakeAssetStore({})
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L533:         store1 = _FakeAssetStore({"chair": _FakeResourceRecord("chair", 1, "global:base", store1_path)})
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L534:         store2 = _FakeAssetStore({"chair": _FakeResourceRecord("chair", 1, "global:base", store2_path)})
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L563:         store = _FakeAssetStore({})
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L607:         store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L653:         store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_hierarchy.py L27:     store = AssetStore(_ASSETS_DIR)
+  frontend\map_editor\tests\test_me21_validator.py L32:     store = AssetStore(_ASSETS_DIR)
+  frontend\map_editor\tests\test_me21_validator.py L151:         store = AssetStore(_ASSETS_DIR)
+  frontend\map_editor\tests\test_me21_validator.py L158:         store = AssetStore(_ASSETS_DIR)
+  frontend\map_editor\tests\test_overrides_initial_state.py L66:     store = AssetStore(assets_dir, campaign_id=None)
+  frontend\map_editor\ui\catalog_panel.py L100:         self._store = AssetStore(self._assets_dir)
+
+==============================================================================
+STEP 8: VERDICT — root cause analysis
+==============================================================================
+
+ANALYSIS:
+
+  1. CatalogPanel.__init__ sets self._store = None  (catalog_panel.py L40)
+  2. Real store loading happens on L100-101 in method: '    def open(self) -> None:'
+  3. The load method is NOT called from __init__
+  4. editor_core.py L385-392 calls CatalogPanel(...) but does NOT call the load method
+  5. editor_core.py L399 accesses self.catalog_panel.store → returns None
+  6. L400 assertion fails
+
+ROOT CAUSE (hypothesis to confirm):
+  CatalogPanel was refactored (likely in commits 556d239e, cb3febad, or 72fc49e3)
+  to move store.load() out of __init__ into a separate method (e.g. load() or activate()).
+  editor_core.py was NOT updated to call this method explicitly.
+  Therefore, when EditorCore creates CatalogPanel and immediately reads .store,
+  _store is still None.
+
+PROPOSED FIX (will detail after method name confirmation):
+  Add explicit call in editor_core.py between L392 (CatalogPanel created) and L399 (read .store):
+    self.catalog_panel.<method_name>()   # ← ADD THIS LINE
+  This is a one-line fix that restores the contract:
+  store MUST be loaded before BlueprintEditor reads it.
+
+  The assertion at L400 should NOT be removed — it correctly enforces the invariant.
+  No dummy store, no fake catalog.
+

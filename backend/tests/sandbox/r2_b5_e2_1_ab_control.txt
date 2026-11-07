@@ -1,0 +1,126 @@
+==============================================================================
+R2-B5-E2.1 — Paired A/B control experiment
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_e2_1_ab_control.txt
+==============================================================================
+
+DESIGN:
+  Control A:    fresh build, NO PLAYER_INSULTS, run idle_tick
+  Experiment B: fresh build, WITH PLAYER_INSULTS, run idle_tick
+  Compare maid_lusya DecisionHub outputs
+
+
+==============================================================================
+RUN A — CONTROL (no PLAYER_INSULTS)
+==============================================================================
+  temp dir: C:\Users\lipir\AppData\Local\Temp\r2_b5_e2_1_A_g43lqkba
+  A: loaded 6 NPCs
+  A: store.get('maid_lusya', expected_prop) = None
+  A: ctx.report_proposition (pre-tick) = None
+  A: ctx.max_confidence (pre-tick) = 0.0
+
+  A: calling loop.idle_tick('Open_road', 'tavern') ...
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+  A: idle_tick returned type=dict
+  A: captured 0 log entries
+  A: parsed data keys: []
+
+==============================================================================
+RUN B — EXPERIMENT (WITH PLAYER_INSULTS)
+==============================================================================
+  temp dir: C:\Users\lipir\AppData\Local\Temp\r2_b5_e2_1_B_c8_6fh6f
+  B: loaded 6 NPCs
+  B (pre-publish): store.get('maid_lusya', expected_prop) = None
+  B (pre-publish): ctx.report_proposition = None
+  B: PLAYER_INSULTS published
+  B (post-publish): store.get('maid_lusya', expected_prop).confidence = 0.5
+  B (post-publish): ctx.report_proposition = Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True)
+  B (post-publish): ctx.max_confidence = 0.5
+
+  B: calling loop.idle_tick('Open_road', 'tavern') ...
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+  B: idle_tick returned type=dict
+  B: captured 0 log entries
+  B: parsed data keys: []
+
+==============================================================================
+A vs B COMPARISON
+==============================================================================
+
+  === DecisionHub winner ===
+  A winner: N/A (score=N/A)
+  B winner: N/A (score=N/A)
+  winner changed: False
+
+  === Top 3 intents (with scores) ===
+  A top3: []
+  B top3: []
+
+  SPREAD_RUMOR score:
+    A: NOT IN TOP3
+    B: NOT IN TOP3
+
+  SEEK_ALLY score:
+    A: NOT IN TOP3
+    B: NOT IN TOP3
+
+  === fear_drive ===
+  A fear_drive: N/A
+  B fear_drive: N/A
+
+  === social_pressure (BREAK_PROGRESS) ===
+  A: trust_min=N/A fear_max=N/A social_pressure=N/A
+  B: trust_min=N/A fear_max=N/A social_pressure=N/A
+
+  === emotion_emergent ===
+  A: emotion=N/A social_pressure=N/A
+  B: emotion=N/A social_pressure=N/A
+
+  === grievance (CAUSAL_SLICE_GRIEVANCE) ===
+  A: desired_change=N/A methods=N/A
+  B: desired_change=N/A methods=N/A
+
+  === [BREAK] records (resistance progression) ===
+  A: 0 BREAK records
+  B: 0 BREAK records
+
+  === [DIAG_RISK_ATK] records ===
+  A: 0 records
+  B: 0 records
+
+  === WHY/DECISION components (winner's components) ===
+  A comps: {}
+  B comps: {}
+
+  component delta (B - A):
+
+  === threshold, pressure, accumulated ===
+  A: threshold=N/A pressure=N/A accumulated=N/A
+  B: threshold=N/A pressure=N/A accumulated=N/A
+
+  === [DECISION_HUB_RETURN] ===
+  A: intent=N/A comm_built=N/A epistemic_context=N/A
+  B: intent=N/A comm_built=N/A epistemic_context=N/A
+
+  === [EPISTEMIC_REPORT_TARGET] ===
+  A: None
+  B: None
+
+==============================================================================
+VERDICT — B5-E2.1 paired A/B
+==============================================================================
+  A winner: N/A (0.0)
+  B winner: N/A (0.0)
+  A SPREAD_RUMOR score: None
+  B SPREAD_RUMOR score: None
+
+  >>> VERDICT: needs manual inspection of comparison above

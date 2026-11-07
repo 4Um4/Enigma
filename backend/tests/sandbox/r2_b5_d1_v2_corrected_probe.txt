@@ -1,0 +1,477 @@
+==============================================================================
+R2-B5-D1 CORRECTED PROBE v2
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d1_v2_corrected_probe.txt
+==============================================================================
+
+CORRECTIONS from v1:
+  1. Directly inspects sub._get_spatial_query (NOT via spy)
+  2. Identifies actual PLAYER_INSULTS handler via cb.__name__
+  3. Reads source of the handler method
+  4. Does NOT call bus.clear() — preserves subscribers
+  5. Spies on the CORRECT handler method
+  6. Verdict based on ACTUAL runtime data, not defaults
+
+==============================================================================
+STAGE A: _get_spatial_query_for_subscriber() source confirmation
+==============================================================================
+  _get_spatial_query_for_subscriber at L419..L452:
+  L 419:     def _get_spatial_query_for_subscriber(self) -> Any:
+  L 420:         """Провайдер SpatialQueryService для NpcDialogueSubscriber (eavesdrop).
+  L 421:         S196 FIX: Берёт актуальный SpatialQueryService из shared_context,
+  L 422:         устраняя зависимость от mutable hidden state _current_spatial_query.
+  L 423:         S197 FIX: Если spatial_query отсутствует, конструирует его на лету из scene_state."""
+  L 424:         _shared_ctx = getattr(self._tick_orch, "_shared_context", None)  # noqa: ENIGMA002
+  L 425:         if _shared_ctx is not None:
+  L 426:             _sq = getattr(_shared_ctx, "spatial_query", None)  # noqa: ENIGMA002
+  L 427:             if _sq is not None:
+  L 428:                 return _sq
+  L 429: 
+  L 430:         _sq = getattr(self, "_current_spatial_query", None)  # noqa: ENIGMA002
+  L 431:         if _sq is not None:
+  L 432:             return _sq
+  L 433: 
+  L 434:         # S197 FIX: Fallback - конструируем на лету, чтобы избежать INV-SPATIAL-QUERY при ранних событиях
+  L 435:         _campaign_id = getattr(self, "_current_campaign_id", "Open_road")
+  L 436:         _scene = self.scene_manager.get_scene_state(_campaign_id, "tavern")
+  L 437:         if not _scene:
+  L 438:             _scene = self.scene_manager.get_scene_state(_campaign_id, "city_gate")
+  L 439: 
+  L 440:         if _scene:
+  L 441:             from app.services.spatial.spatial_query_service import SpatialQueryService
+  L 442:             _new_sq = SpatialQueryService(
+  L 443:                 npc_positions=_scene.get("npc_positions", {}),
+  L 444:                 scene_state=_scene
+  L 445:             )
+  L 446:             self._current_spatial_query = _new_sq
+  L 447:             logger.warning("[SPATIAL_FALLBACK] SpatialQueryService was missing, constructed on-the-fly.")
+  L 448:             return _new_sq
+  L 449: 
+  L 450:         logger.error("SpatialQueryService missing in GameLoop for NpcDialogueSubscriber (eavesdrop).")
+  L 451:         raise RuntimeError("INV-SPATIAL-QUERY: Missing spatial_query during NPC_SPOKE handling and scene_state is unavailable.")
+  L 452: 
+
+  --- ClaimEventSubscriber construction (L605..L625) ---
+  L 605:             _epistemic_store = EpistemicStore.from_dict(_epistemic_data)
+  L 606:             _reliability_provider = TrustBasedReliabilityProvider(rel_store, _campaign_id)
+  L 607:             _belief_engine = BeliefRevisionEngine(reliability_provider=_reliability_provider)
+  L 608:             _resolver = EpistemicContextResolver(store=_epistemic_store)
+  L 609: 
+  L 610:             _subscriber = ClaimEventSubscriber(
+  L 611:                 engine=_belief_engine,
+  L 612:                 store=_epistemic_store,
+  L 613:                 spatial_query_provider=self._get_spatial_query_for_subscriber
+  L 614:             )
+  L 615:             # Шаг 4 (1α): ссылка для PlayerSpeechActSubscriber — детерминированный
+  L 616:             # канал SELF_INTRODUCTION → EpistemicStore (без публикаций в шину).
+  L 617:             self._claim_event_subscriber = _subscriber
+  L 618:             _bus = get_event_bus()
+  L 619:             _bus.subscribe(EventType.COMMUNICATION_CLAIM, _subscriber.on_claim_event)
+  L 620:             # S199 (Фаза 8.3): Подписка на NPC_SPOKE для детерминированного fallback и интеграции игрока.
+  L 621:             _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
+  L 622:             # G1 (GC-SOCIAL-01, Stage-1.5): симметрия testimony-канала — речь
+  L 623:             # игрока порождает ClaimEvent для слышащих NPC (мембрана унаследована:
+  L 624:             # distance+can_observe по event.radius). НЕ понимание речи: proposition
+  L 625:             # приходит только из DM-вектора (ADR-035); без вектора — no-op.
+
+  --- All _bus.subscribe lines in game_loop.py ---
+  L549:             _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
+  L550:             _bus.subscribe(EventType.NPC_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
+  L559:             _bus.subscribe(EventType.NPC_SPOKE, _npc_speech_act_sub.on_npc_spoke)
+  L560:             _bus.subscribe(EventType.PLAYER_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
+  L576:             _bus.subscribe(EventType.PLAYER_SPOKE, _speech_act_sub.on_player_spoke)
+  L579:             _bus.subscribe(EventType.NPC_SPOKE, self._on_npc_spoke_economy_tracker)
+  L619:             _bus.subscribe(EventType.COMMUNICATION_CLAIM, _subscriber.on_claim_event)
+  L621:             _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
+  L627:             _bus.subscribe(EventType.PLAYER_SPOKE, _subscriber.on_player_spoke)
+  L631:             _bus.subscribe(EventType.PLAYER_INSULTS, _subscriber.on_player_spoke)
+  L636:             _bus.subscribe(EventType.SOCIAL_ACTION, _social_sub.on_social_action)
+  L649:             _bus.subscribe(EventType.THEFT, _obs_sub.on_world_event)
+  L653:             _bus.subscribe(EventType.PLAYER_ATTACKED, _obs_sub.on_world_event)
+
+==============================================================================
+STAGE B: PerceptualKernel.can_observe() — confirmed from v1
+==============================================================================
+  can_observe at L646..L662:
+  L 646:     def can_observe(
+  L 647:         event: Any,
+  L 648:         distance: float,
+  L 649:         observer_id: str,
+  L 650:         target_id: Optional[str] = None
+  L 651:     ) -> bool:
+  L 652:         """Stage 1 Task 1.5: Event Visibility filter.
+  L 653:         Проверяет, может ли NPC воспринять событие.
+  L 654:         """
+  L 655:         if event.visibility == "private":
+  L 656:             return bool(observer_id == event.source)
+  L 657:         if event.visibility == "whisper":
+  L 658:             return bool(observer_id == event.source or observer_id == target_id)
+  L 659:         # public
+  L 660:         return bool(distance <= event.radius)
+  L 661: 
+  L 662: 
+
+  --- HEARING_RADIUS references in npc_state.py ---
+
+  SEMANTICS CONFIRMED:
+    - can_observe uses event.radius (NOT HEARING_RADIUS)
+    - For visibility='public': return bool(distance <= event.radius)
+    - event.radius = 999.0 in PLAYER_INSULTS → distance 10.086m is WITHIN range
+    - maid_lusya CAN observe if she is in listeners list
+
+==============================================================================
+STAGE C: CORRECTED runtime verification
+==============================================================================
+
+--- C.0: enumerate ALL ClaimEventSubscriber registrations in EventBus ---
+  bus._handlers[player_insults] → on_player_spoke (sub id=2267072839168)
+  bus._handlers[PLAYER_SPOKE] → on_player_spoke (sub id=2267072839168)
+  bus._handlers[npc_spoke] → on_npc_spoke (sub id=2267072839168)
+  bus._handlers[communication_claim] → on_claim_event (sub id=2267072839168)
+
+  Total ClaimEventSubscriber registrations: 4
+  Distinct subscriber instances: 1
+
+  >>> PLAYER_INSULTS handler identified:
+      event_type: player_insults
+      handler_method: on_player_spoke
+      subscriber_id: 2267072839168
+
+--- C.1: DIRECT inspection of sub._get_spatial_query ---
+  getattr(sub, '_get_spatial_query') = <bound method GameLoop._get_spatial_query_for_subscriber of <app.services.game_loop.game_loop.GameLoop object at 0x0000020FD6A25160>>
+  type: method
+  callable: True
+  __self__: GameLoop (id=2267048726880)
+  __name__: _get_spatial_query_for_subscriber
+  __self__ is loop? True
+
+  --- Calling provider directly ---
+  Result: <app.services.spatial.spatial_query_service.SpatialQueryService object at 0x0000020FD85B7A10>
+  Type: SpatialQueryService
+  _npc_positions keys: ['maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin', 'merchant_goran', 'guard_borko', 'thief_shadow', 'player']
+  'player' in _npc_positions: True
+  'maid_lusya' in _npc_positions: True
+  sq.distance('player', 'maid_lusya') = 10.09
+
+--- C.2: Read source of PLAYER_INSULTS handler method ---
+  Handler method: on_player_spoke
+  on_player_spoke at L89..L177:
+  L  89:     def on_player_spoke(self, event: Any) -> None:
+  L  90:         """G1 (GC-SOCIAL-01, Stage-1.5): PLAYER_SPOKE → ClaimEvent для слышащих
+  L  91:         NPC — симметрия testimony-канала (NPC→player доказан S200/β-G6).
+  L  92:         Зеркало on_npc_spoke-фоллбека: proposition строится ТОЛЬКО из DM-вектора
+  L  93:         (ADR-035: semantic_action/target_reference/target_id). Обычный dialogue
+  L  94:         без вектора — no-op: Stage-1.5 не «понимает» речь (граница M2/D —
+  L  95:         self-relevance/secret-семантика запрещены). Мембрана унаследована из
+  L  96:         on_claim_event (distance + can_observe по event.radius = SSOT Р-В)."""
+  L  97:         import dataclasses  # локальный — прецедент on_npc_spoke (шрам трека: №181)
+  L  98: 
+  L  99:         if not hasattr(event, "payload"):
+  L 100:             return
+  L 101: 
+  L 102:         payload = event.payload
+  L 103:         # COGNITIVE-CONTINUITY-01: PLAYER_INSULTS → Proposition(player, INSULTED, victim).
+  L 104:         # Ветка перед semantic_action / free-ASSERT: оскорбление — отдельный канал,
+  L 105:         # не требует DM-вектора. subject = игрок (оскорбитель), object = жертва.
+  L 106:         # Мембрана on_claim_event (distance + can_observe) фильтрует слушателей.
+  L 107:         _evt_type = str(getattr(event, "type", "") or "")
+  L 108:         _action_type = str(payload.get("action_type", "") or "")
+  L 109:         if "player_insults" in (_evt_type, _action_type):
+  L 110:             _victim = payload.get("target_id") or ""
+  L 111:             if _victim:
+  L 112:                 _new_payload = dict(payload)
+  L 113:                 _new_payload["proposition"] = {
+  L 114:                     "subject_id": getattr(event, "source", "player"),
+  L 115:                     "predicate": Predicate.INSULTED.value,
+  L 116:                     "object_id": _victim,
+  L 117:                     "polarity": True,
+  L 118:                 }
+  L 119:                 _new_payload.setdefault("claim_id", f"player-claim-{event.id}")
+  L 120:                 _new_payload.setdefault("speech_act", "insult")
+  L 121:                 self.on_claim_event(dataclasses.replace(event, payload=_new_payload))
+  L 122:             return
+  L 123:         semantic_action = payload.get("semantic_action")
+  L 124:         if not semantic_action:
+  L 125:             # USL-1.4 (ADR-O-437): free ASSERT path — игрок сказал что-то без
+  L 126:             # DM-вектора. Строим proposition(speaker, ASSERTS, content) и
+  L 127:             # делегируем on_claim_event. Существующие гейты эпистемики
+  L 128:             # (Proposition-guard line 154-189, can_observe line 217,
+  L 129:             # BeliefRevisionEngine + trust) фильтруют невалидные утверждения.
+  L 130:             # PLAYER_ASSERTION → CANON запрещён (USL-2) — on_claim_event
+  L 131:             # не пишет в канон/TruthState. Вердикт Мастера: не ограничивать
+  L 132:             # ASSERT временными маркерами — пусть все свободные утверждения
+  L 133:             # проходят через гейты.
+  L 134:             _content = payload.get("content") or ""
+  L 135:             if _content:
+  L 136:                 _speaker = getattr(event, "source", "player")
+  L 137:                 _new_payload = dict(payload)
+  L 138:                 _new_payload["proposition"] = {
+  L 139:                     "subject_id": _speaker,
+  L 140:                     "predicate": Predicate.ASSERTS.value,
+  L 141:                     "object_id": str(_content)[:300],
+  L 142:                     "polarity": True,
+  L 143:                 }
+  L 144:                 _new_payload.setdefault("claim_id", f"player-claim-{event.id}")
+  L 145:                 _new_payload.setdefault("speech_act", "assert")
+  L 146:                 _new_event = dataclasses.replace(event, payload=_new_payload)
+  L 147:                 self.on_claim_event(_new_event)
+  L 148:             return  # G1: без DM-вектора обработка завершена
+  L 149: 
+  L 150:         subject_of_claim = payload.get("target_reference") or payload.get("target_id")
+  L 151:         speaker = getattr(event, "source", "player")
+  L 152: 
+  L 153:         prop = None
+  L 154:         if semantic_action == "ACCUSE" and subject_of_claim:
+  L 155:             # "Игрок обвиняет target в краже" → target украл неизвестно что
+  L 156:             # (зеркало NPC-фоллбека accuse→STOLE, №177)
+  L 157:             prop = Proposition(subject_id=subject_of_claim, predicate=Predicate.STOLE, object_id="unknown")
+  L 158:         elif semantic_action == "THREATEN" and subject_of_claim:
+  L 159:             # "Игрок угрожает target" → игрок напал(угроза) на target
+  L 160:             prop = Proposition(subject_id=speaker, predicate=Predicate.ATTACKED, object_id=subject_of_claim)
+  L 161:         elif semantic_action == "HELP" and subject_of_claim:
+  L 162:             # "Игрок помог target" → игрок помог target
+  L 163:             prop = Proposition(subject_id=speaker, predicate=Predicate.HELPED, object_id=subject_of_claim)
+  L 164: 
+  L 165:         if prop:
+  L 166:             new_payload = dict(payload)
+  L 167:             new_payload["proposition"] = {
+  L 168:                 "subject_id": prop.subject_id,
+  L 169:                 "predicate": prop.predicate.value,
+  L 170:                 "object_id": prop.object_id,
+  L 171:                 "polarity": True,
+  L 172:             }
+  L 173:             new_payload.setdefault("claim_id", f"player-claim-{event.id}")
+  L 174:             new_payload.setdefault("speech_act", "assert")
+  L 175:             new_event = dataclasses.replace(event, payload=new_payload)
+  L 176:             self.on_claim_event(new_event)
+  L 177: 
+
+  --- Also reading on_claim_event (for comparison) ---
+  on_claim_event at L178..L318:
+  L 178:     def on_claim_event(self, event: Any) -> None:
+  L 179:         if not hasattr(event, 'payload'):
+  L 180:             logger.warning("[CLAIM_SUB] Event has no payload")
+  L 181:             return
+  L 182: 
+  L 183:         payload = event.payload
+  L 184:         prop_data = payload.get("proposition")
+  L 185:         if not prop_data:
+  L 186:             logger.warning("[CLAIM_SUB] No proposition in payload")
+  L 187:             return
+  L 188: 
+  L 189:         try:
+  L 190:             prop = Proposition(
+  L 191:                 subject_id=prop_data.get("subject_id"),
+  L 192:                 predicate=Predicate(prop_data.get("predicate")),
+  L 193:                 object_id=prop_data.get("object_id"),
+  L 194:                 polarity=prop_data.get("polarity", True)
+  L 195:             )
+  L 196: 
+  L 197:             # Proposition-guard (Understanding research, очередь №3, вердикт Мастера):
+  L 198:             # мусорная пропозиция не доезжает до веры. Галлюцинации LLM вида
+  L 199:             # {predicate: stole, object_id: None, polarity: None} ранее рождали
+  L 200:             # веры "[X] stole(player->None) conf=0.0" — повреждение эпистемики.
+  L 201:             # Проверяем СКОНСТРУИРОВАННЫЙ prop: .get(key, default) не подставляет
+  L 202:             # default при ключе со значением None.
+  L 203:             # Легитимные каналы не задеваются: observation-ветка и оба fallback'а
+  L 204:             # уже guard'ят target_id до построения пропозиции.
+  L 205:             _guard_reason = None
+  L 206:             if not prop.subject_id:
+  L 207:                 _guard_reason = f"empty subject_id={prop.subject_id!r}"
+  L 208:             elif not prop.object_id:
+  L 209:                 _guard_reason = f"empty object_id={prop.object_id!r}"
+  L 210:             elif prop.polarity is None:
+  L 211:                 _guard_reason = "polarity=None"  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
+  L 212:             else:
+  L 213:                 # ⑤-B фаза-2 (S292): акторная мембрана subject'а. Claim о
+  L 214:                 # не-акторе (subject='tavern:exit_south' — узел графа из
+  L 215:                 # movement-семантики) попадал в EpistemicStore → S197-
+  L 216:                 # таргетинг резолвил дверь целью WARN → шторм ~60/мин.
+  L 217:                 # sanity_membrane.can_address — третий потребитель шва
+  L 218:                 # (§ENIGMA-002: два домена есть → ADR-кандидат). Player —
+  L 219:                 # легальный subject (NPC верят про игрока). Fail-closed:
+  L 220:                 # мусорный claim не доходит до веры НИКОГДА.
+  L 221:                 from app.domain.sanity_membrane import can_address
+  L 222:                 if not can_address(event.source, str(prop.subject_id)) and str(prop.subject_id) != "player":
+  L 223:                     _guard_reason = (
+  L 224:                         f"non-actor subject_id={prop.subject_id!r} "
+  L 225:                         f"(sanity_membrane: claim о не-акторе не создаёт веру)"
+  L 226:                     )
+  L 227:             if _guard_reason:
+  L 228:                 print(f"[CLAIM_GUARD] proposition REJECTED: {_guard_reason} "
+  L 229:                       f"(predicate={getattr(prop.predicate, 'value', prop.predicate)}, "
+  L 230:                       f"source={getattr(event, 'source', '?')})")  # временный зонд исследования
+  L 231:                 return
+  L 232: 
+  L 233:             # S192.1: Perception Membrane Hardening.
+  L 234:             # target_id — это семантический адресат, но физически услышать могут только те, кто в радиусе.
+  L 235:             # Телепатия (передача убеждений без физического контакта) запрещена.
+  L 236:             _listeners = set()
+  L 237: 
+  L 238:             # S202: Определяем источник звука. Если это атака, звук исходит от цели (удар).
+  L 239:             _origin_id = event.source
+  L 240:             _prop_data = payload.get("proposition")
+  L 241:             if _prop_data and _prop_data.get("predicate") == "attacked":
+  L 242:                 _origin_id = payload.get("target_id", event.source)
+  L 243: 
+  L 244:             if self._get_spatial_query:
+  L 245:                 _sq = self._get_spatial_query()
+  L 246:                 if _sq:
+  L 247:                     _npc_positions = getattr(_sq, "_npc_positions", {})  # noqa: ENIGMA002
+  L 248:                     # S198: Если spatial_query пуст, fallback на target_id (гарантия детерминизма)
+  L 249:                     if not _npc_positions:
+  L 250:                         _primary_target = payload.get("target_id")
+  L 251:                         if _primary_target:
+  L 252:                             _listeners.add(_primary_target)
+  L 253:                     else:
+  L 254:                         from app.models.npc_state import PerceptualKernel
+  L 255:                         for _nid in _npc_positions.keys():
+  L 256:                             # S199 (Фаза 8.3): Игрок больше не исключается — он полноправный наблюдатель.
+  L 257:                             if _nid == _origin_id:
+  L 258:                                 continue
+  L 259:                             _dist = _sq.distance(_origin_id, _nid)
+  L 260:                             if PerceptualKernel.can_observe(event, _dist, _nid, payload.get("target_id")):
+  L 261:                                 _listeners.add(_nid)
+  L 262:                         # S198: Явно проверяем target_id, даже если он отсутствует в _npc_positions
+  L 263:                         _primary_target = payload.get("target_id")
+  L 264:                         if _primary_target and _primary_target not in _listeners:
+  L 265:                             if _primary_target not in _npc_positions:
+  L 266:                                 _listeners.add(_primary_target)
+  L 267:                             else:
+  L 268:                                 _dist = _sq.distance(_origin_id, _primary_target)
+  L 269:                                 if PerceptualKernel.can_observe(event, _dist, _primary_target, _primary_target):
+  L 270:                                     _listeners.add(_primary_target)
+  L 271:                 else:
+  L 272:                     _primary_target = payload.get("target_id")
+  L 273:                     if _primary_target:
+  L 274:                         _listeners.add(_primary_target)
+  L 275:             else:
+  L 276:                 _primary_target = payload.get("target_id")
+  L 277:                 if _primary_target:
+  L 278:                     _listeners.add(_primary_target)
+  L 279: 
+  L 280:             for _listener_id in _listeners:
+  L 281:                 # DEBT-R4 (S208): изоляция per-listener. Сбой ревизии одного
+  L 282:                 # слушателя не должен молча убивать убеждения остальных
+  L 283:                 # (класс инцидента S207: один битый элемент глушит хвост цикла).
+  L 284:                 # Политика ARCH-017: Belief → degrade (продолжаем), но отказ
+  L 285:                 # наблюдаем с идентификатором жертвы. Полная типизация ошибок
+  L 286:                 # (PerceptionError-категории) — отдельная задача, не здесь.
+  L 287:                 try:
+  L 288:                     claim = ClaimEvent(
+  L 289:                         event_id=str(event.id),
+  L 290:                         claim_id=payload.get("claim_id", str(event.id)),
+  L 291:                         speaker_id=event.source,
+  L 292:                         listener_id=_listener_id,
+  L 293:                         proposition=prop,
+  L 294:                         speech_act=SpeechAct(payload.get("speech_act", "assert")),
+  L 295:                         # R4 (Claim Bridge): событийное время — event_tick
+  L 296:                         # (ADR-O-399, ставится drain'ом в payload), fallback
+  L 297:                         # на legacy "tick". Неверный ноль устранён.
+  L 298:                         tick=int(payload.get("event_tick", 0) or payload.get("tick", 0) or 0)
+  L 299:                     )
+  L 300:                     existing = self._store.get(_listener_id, prop)
+  L 301:                     # COGNITIVE-CONTINUITY-01: provenance chain — original_source_id
+  L 302:                     # from speaker record (if exists), else speaker is original.
+  L 303:                     _speaker_record = self._store.get(event.source, prop)
+  L 304:                     _speaker_orig = _speaker_record.original_source_id if _speaker_record else event.source
+  L 305:                     updated_record = self._engine.revise(
+  L 306:                         _listener_id, claim, existing,
+  L 307:                         reliability_context={"source_type": "testimony", "original_source_id": _speaker_orig}
+  L 308:                     )
+  L 309:                     self._store.upsert(updated_record)
+  L 310:                 except Exception as _listener_err:
+  L 311:                     logger.error(
+  L 312:                         f"[CLAIM_SUB] Belief revision failed: listener={_listener_id}, "
+  L 313:                         f"claim={payload.get('claim_id', event.id)}: {_listener_err}",
+  L 314:                         exc_info=True,
+  L 315:                     )
+  L 316: 
+  L 317:         except Exception as e:
+  L 318:             logger.exception(f"[CLAIM_SUB] Failed to process claim event: {e}")
+
+--- C.3: Attach spy to on_player_spoke + BeliefRevisionEngine ---
+  spy attached: engine.revise
+  spy attached: sub.on_player_spoke
+
+--- C.4: Preserving EventBus subscribers (NOT clearing) ---
+  bus._handlers keys (before publish): 23 event types
+    tick_completed
+    player_attacks
+    player_attack
+    PLAYER_ATTACKED
+    player_threatens
+    player_insults
+    theft
+    intimidation
+    help
+    object_destroyed
+
+--- C.5: Publishing PLAYER_INSULTS ---
+  event.source=player, target_id=tavern_keeper_tornin, radius=999.0
+  event.visibility=public
+  event.type=EventType.PLAYER_INSULTS
+  Published.
+
+--- C.6: Captured runtime values ---
+  [captured dict is EMPTY — spy did not fire]
+  >>> This means the handler method was NOT called by EventBus
+  >>> Possible causes:
+      - EventBus.publish() does not dispatch synchronously
+      - The registered handler method name differs from what we spied on
+      - The event was filtered before reaching the handler
+
+--- C.7: ALL engine_calls during PLAYER_INSULTS ---
+  [0] method=revise
+       arg: 'blacksmith_orm'
+       arg: ClaimEvent(event_id='01ee3cd5-8457-51bf-e3e2-0e6ca0798b94', claim_id='player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94', speaker_id='player', listener_id='blacksmith_orm', proposition=Proposition(sub
+       arg: None
+  [1] method=revise
+       arg: 'guard_borko'
+       arg: ClaimEvent(event_id='01ee3cd5-8457-51bf-e3e2-0e6ca0798b94', claim_id='player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94', speaker_id='player', listener_id='guard_borko', proposition=Proposition(subjec
+       arg: None
+  [2] method=revise
+       arg: 'tavern_keeper_tornin'
+       arg: ClaimEvent(event_id='01ee3cd5-8457-51bf-e3e2-0e6ca0798b94', claim_id='player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94', speaker_id='player', listener_id='tavern_keeper_tornin', proposition=Propositi
+       arg: None
+  [3] method=revise
+       arg: 'maid_lusya'
+       arg: ClaimEvent(event_id='01ee3cd5-8457-51bf-e3e2-0e6ca0798b94', claim_id='player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94', speaker_id='player', listener_id='maid_lusya', proposition=Proposition(subject
+       arg: None
+  [4] method=revise
+       arg: 'thief_shadow'
+       arg: ClaimEvent(event_id='01ee3cd5-8457-51bf-e3e2-0e6ca0798b94', claim_id='player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94', speaker_id='player', listener_id='thief_shadow', proposition=Proposition(subje
+       arg: None
+  [5] method=revise
+       arg: 'merchant_goran'
+       arg: ClaimEvent(event_id='01ee3cd5-8457-51bf-e3e2-0e6ca0798b94', claim_id='player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94', speaker_id='player', listener_id='merchant_goran', proposition=Proposition(sub
+       arg: None
+
+--- C.8: ALL store_calls during PLAYER_INSULTS ---
+  (none — EpistemicStore was NOT called)
+
+==============================================================================
+STAGE D: VERDICT — based on ACTUAL runtime data
+==============================================================================
+
+  FACTS (from direct inspection, NOT spy):
+    Direct _get_spatial_query is None: False
+    Direct _get_spatial_query callable: True
+    Handler method for PLAYER_INSULTS: on_player_spoke
+    Total ClaimEventSubscriber registrations: 4
+
+  FACTS (from spy, if fired):
+    Spy fired: False
+
+  >>> VERDICT: 4. OTHER — provider OK but spy didn't fire
+  >>> RATIONALE: Direct inspection shows _get_spatial_query IS callable (NOT None). Provider wiring is CORRECT. But the spy on the handler method did not fire. This means EventBus.publish(PLAYER_INSULTS) did not dispatch to the handler synchronously, OR the handler method name differs. The bug is NOT in the provider — it's in event dispatch or handler registration.
+
+  >>> MINIMAL FIX PLAN:
+    - Investigate downstream consumers
+
+==============================================================================
+FINAL SUMMARY
+==============================================================================
+  Stage A pass: True
+  Stage B pass: True
+  Stage C pass: True
+  Verdict:      4. OTHER — provider OK but spy didn't fire

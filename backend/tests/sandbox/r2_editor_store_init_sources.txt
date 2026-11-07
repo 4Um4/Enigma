@@ -1,0 +1,1047 @@
+==============================================================================
+R2-EDITOR-STORE-INIT archaeology probe — READ-ONLY
+PROJECT_ROOT: C:\DDD\Codex\VSC_Enigma\Enigma
+EDITOR_CORE: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\editor_core.py
+GAME_LAUNCHER: C:\DDD\Codex\VSC_Enigma\Enigma\game_launcher.py
+MAP_EDITOR_DIR: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_editor_store_init_sources.txt
+==============================================================================
+
+==============================================================================
+STEP 1: editor_core.py around L380-420 (assertion + surrounding code)
+==============================================================================
+File: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\editor_core.py
+L 380:         catalog_y = self.menu_height + self.toolbar_height + 10
+L 381:         catalog_w = 250
+L 382:         catalog_h = screen_h - catalog_y - self.status_height - 10
+L 383:         from ui.catalog_panel import CatalogPanel
+L 384: 
+L 385:         self.catalog_panel = CatalogPanel(
+L 386:             catalog_x,
+L 387:             catalog_y,
+L 388:             catalog_w,
+L 389:             catalog_h,
+L 390:             Path(__file__).parent / "assets",
+L 391:             Path(__file__).parent / "pixels",
+L 392:         )
+L 393:         self.catalog_panel.on_place = lambda bp_id: self._catalog_place(bp_id)
+L 394: 
+L 395:         # ME-2.1-G-4: BlueprintInspectorPanel (редактор через EditSession)
+L 396:         from assets.blueprint_editor import BlueprintEditor
+L 397:         from ui.blueprint_inspector import BlueprintInspectorPanel
+L 398: 
+L 399:         _store = self.catalog_panel.store
+L 400:         assert _store is not None, "CatalogPanel.store должен быть загружен до BlueprintEditor"
+L 401:         self._blueprint_editor = BlueprintEditor(
+L 402:             asset_store=_store,
+L 403:             validator=self.catalog_panel.validator,
+L 404:         )
+L 405:         inspector_x = catalog_x + catalog_w + 10
+L 406:         inspector_w = 420
+L 407: 
+L 408:         def _count_bp_instances(bp_id: str) -> int:
+L 409:             """G-9: Подсчёт экземпляров Blueprint в активной локации."""
+L 410:             if not self.current_file or self.current_file not in self.dm.locations:
+L 411:                 return 0
+L 412:             loc = self.dm.locations[self.current_file]
+L 413:             return sum(1 for o in loc.get("objects", []) if o.get("type") == bp_id)
+L 414: 
+L 415:         self.inspector_panel = BlueprintInspectorPanel(
+L 416:             inspector_x,
+L 417:             catalog_y,
+L 418:             inspector_w,
+L 419:             catalog_h,
+L 420:             self._blueprint_editor,
+
+==============================================================================
+STEP 2: CatalogPanel class — find definition + .store field
+==============================================================================
+
+Files containing CatalogPanel/CatalogStore/catalog_store: 4
+  frontend\map_editor\editor_core.py
+  frontend\map_editor\tests\test_me21_catalog_ui.py
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py
+  frontend\map_editor\ui\catalog_panel.py
+
+--- frontend\map_editor\editor_core.py ---
+
+  --- '.store =' assignments in editor_core.py ---
+  L399:         _store = self.catalog_panel.store
+
+--- frontend\map_editor\tests\test_me21_catalog_ui.py ---
+
+  --- '.store =' assignments in test_me21_catalog_ui.py ---
+
+--- frontend\map_editor\tests\test_me21_h1_resource_resolver.py ---
+
+  --- '.store =' assignments in test_me21_h1_resource_resolver.py ---
+  L359:         store = _FakeAssetStore(
+  L383:         store = _FakeAssetStore(
+  L411:         store = _FakeAssetStore(
+  L447:         store = _FakeAssetStore(
+  L470:         store = _FakeAssetStore(
+  L497:         store = _FakeAssetStore({})  # пустой store
+  L508:         store = _FakeAssetStore({})
+  L563:         store = _FakeAssetStore({})
+  L607:         store = AssetStore(assets_dir)
+  L653:         store = AssetStore(assets_dir)
+
+--- frontend\map_editor\ui\catalog_panel.py ---
+
+  === class CatalogPanel: (at L22) ===
+  L  22: class CatalogPanel:
+  L  23:     """Asset catalog panel for browsing and selecting blueprints."""
+  L  24: 
+  L  25:     def __init__(
+  L  26:         self,
+  L  27:         x: int,
+  L  28:         y: int,
+  L  29:         w: int,
+  L  30:         h: int,
+  L  31:         assets_dir: Path,
+  L  32:         pixels_dir: Path,
+  L  33:     ) -> None:
+  L  34:         self.rect = pygame.Rect(x, y, w, h)
+  L  35:         self._assets_dir = Path(assets_dir)
+  L  36:         self._pixels_dir = Path(pixels_dir)
+  L  37:         self.active = False
+  L  38: 
+  L  39:         # Data layers
+  L  40:         self._store: Optional[AssetStore] = None
+  L  41:         self._index: Optional[CatalogIndex] = None
+  L  42:         self._validator: Optional[ResourceValidator] = None
+  L  43: 
+  L  44:         # UI state
+  L  45:         self._search_query = ""
+  L  46:         self._search_active = False
+  L  47:         self._selected_category: Optional[str] = None
+  L  48:         self._scroll_offset = 0
+  L  49:         self._selected_bp_id: Optional[str] = None
+  L  50:         self._validation: Optional[ValidationResult] = None
+  L  51:         self._filtered_ids: list[str] = []
+  L  52:         self._card_rects: list[tuple[str, pygame.Rect]] = []
+  L  53: 
+  L  54:         # Layout
+  L  55:         pad = 6
+  L  56:         self._search_rect = pygame.Rect(pad, pad, w - pad * 2 - 20, 22)
+  L  57:         self._close_rect = pygame.Rect(w - 20 - pad, pad, 20, 22)
+  L  58:         cat_y = pad + 22 + pad
+  L  59:         self._cat_rects: list[tuple[str, pygame.Rect]] = []
+  L  60:         self._cat_y = cat_y
+  L  61:         self._list_y = cat_y + 24 + pad
+
+  --- '.store =' assignments in catalog_panel.py ---
+  L100:         self._store = AssetStore(self._assets_dir)
+
+==============================================================================
+STEP 3: BlueprintEditor class — how it receives store
+==============================================================================
+
+--- Found in frontend\map_editor\assets\blueprint_editor.py ---
+
+Full BlueprintEditor class (L307–L404):
+L 307: class BlueprintEditor:
+L 308:     """Фасад для создания EditSession (ME-2.1-G-2).
+L 309: 
+L 310:     Не владеет состоянием — только открывает сессии поверх AssetStore.
+L 311:     Каждый open() создаёт независимую EditSession с deepcopy snapshot.
+L 312: 
+L 313:     Контракт: UI получает EditSession, НЕ BlueprintRecord. AssetStore остаётся
+L 314:     единственным владельцем сохранённого состояния.
+L 315:     """
+L 316: 
+L 317:     def __init__(
+L 318:         self,
+L 319:         asset_store: AssetStore,
+L 320:         validator: Optional[Any] = None,
+L 321:     ) -> None:
+L 322:         self._store = asset_store
+L 323:         self._validator = validator
+L 324: 
+L 325:     def open(self, blueprint_id: str) -> EditSession:
+L 326:         """Открыть EditSession для blueprint_id.
+L 327: 
+L 328:         Читает актуальный record из store (повторное открытие получает актуальное
+L 329:         состояние — инвариант 7). Поднимает AssetStoreError если blueprint_id
+L 330:         не найден.
+L 331:         """
+L 332:         record = self._store.get_blueprint(blueprint_id)
+L 333:         if record is None:
+L 334:             raise AssetStoreError(f"Blueprint '{blueprint_id}' не найден в AssetStore — open невозможен")
+L 335:         original = _deep_copy(record.data)
+L 336:         working = _deep_copy(record.data)
+L 337:         return EditSession(
+L 338:             blueprint_id=blueprint_id,
+L 339:             original=original,
+L 340:             working=working,
+L 341:             opened_version=record.version,
+L 342:             opened_fingerprint=record.fingerprint,
+L 343:             opened_record=record,
+L 344:             store=self._store,
+L 345:             validator=self._validator,
+L 346:         )
+L 347: 
+L 348:     def new_from(self, source_id: str, new_id: str) -> EditSession:
+L 349:         """Создать EditSession для нового blueprint на основе существующего (G-8).
+L 350: 
+L 351:         Контракт Master:
+L 352:         1. Получает исходный Blueprint через AssetStore.
+L 353:         2. Проверяет допустимость new_id.
+L 354:         3. Проверяет отсутствие такого ID в каталоге.
+L 355:         4. Создаёт глубокую независимую копию.
+L 356:         5. Заменяет blueprint_id.
+L 357:         6. Устанавливает version = 1.
+L 358:         7. Устанавливает compat = 1.
+L 359:         8. Создаёт новую EditSession в состоянии NEW.
+L 360:         9. Возвращает её без изменения исходного Blueprint и без регистрации.
+L 361:         """
+L 362:         import re
+L 363: 
+L 364:         # 1. Получить исходный Blueprint
+L 365:         record = self._store.get_blueprint(source_id)
+L 366:         if record is None:
+L 367:             raise AssetStoreError(f"Source Blueprint '{source_id}' не найден")
+L 368: 
+L 369:         # 2. Проверить допустимость new_id
+L 370:         if not isinstance(new_id, str) or not new_id:
+L 371:             raise AssetStoreError("new_id должен быть непустой строкой")
+L 372:         if not re.match(r"^[a-zA-Z0-9_]+$", new_id):
+L 373:             raise AssetStoreError(f"new_id '{new_id}' недопустим — только латиница, цифры, _")
+L 374: 
+L 375:         # 3. Проверить отсутствие ID в каталоге
+L 376:         if new_id in self._store.list_blueprints():
+L 377:             raise AssetStoreError(f"Blueprint '{new_id}' уже существует в каталоге")
+L 378: 
+L 379:         # 4. Глубокая независимая копия
+L 380:         working = _deep_copy(record.data)
+L 381: 
+L 382:         # 5. Заменить blueprint_id
+L 383:         working["blueprint_id"] = new_id
+L 384: 
+L 385:         # 6. version = 1
+L 386:         working["version"] = 1
+L 387: 
+L 388:         # 7. compat = 1
+L 389:         working["compat"] = 1
+L 390: 
+L 391:         # 8. Создать EditSession в состоянии NEW
+L 392:         original = _deep_copy(working)  # dirty=False изначально
+L 393:         return EditSession(
+L 394:             blueprint_id=new_id,
+L 395:             original=original,
+L 396:             working=working,
+L 397:             opened_version=1,
+L 398:             opened_fingerprint="",  # нет файла на диске
+L 399:             opened_record=None,  # нет существующего record
+L 400:             store=self._store,
+L 401:             validator=self._validator,
+L 402:             is_new=True,
+L 403:         )
+L 404: 
+
+==============================================================================
+STEP 4: EditorCore.__init__ and _init_ui — initialization order
+==============================================================================
+
+Found class EditorCore at L93
+
+--- method __init__ (L96–L228) ---
+L  96:     def __init__(self, width: int = 1400, height: int = 900):
+L  97:         pygame.init()
+L  98:         pygame.display.set_caption("R4 Spatial Map Editor v2.0")
+L  99:         # S3.16: единый источник размера с игрой — display_manager
+L 100:         # (user_settings.yaml): редактор и игра открываются одинаково,
+L 101:         # а не каждый со своим захардкоженным размером
+L 102:         try:
+L 103:             from display_manager import load_display_settings
+L 104: 
+L 105:             _ds = load_display_settings().get("resolution", {}) or {}
+L 106:             width = int(_ds.get("width", width))
+L 107:             height = int(_ds.get("height", height))
+L 108:         except Exception:
+L 109:             pass  # нет конфига/модуля — прежние размеры (безопасно)
+L 110:         self.screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
+L 111:         self.clock = pygame.time.Clock()
+L 112: 
+L 113:         # Шрифты
+L 114:         self.font = pygame.font.SysFont("consolas", 14)
+L 115:         self.font_bold = pygame.font.SysFont("consolas", 14, bold=True)
+L 116:         self.font_small = pygame.font.SysFont("consolas", 11)
+L 117:         self.font_large = pygame.font.SysFont("consolas", 16, bold=True)
+L 118: 
+L 119:         # Данные
+L 120:         self.dm = DataManager()
+L 121:         self.cm = CampaignManager(self.dm)
+L 122:         self.undo = UndoManager()
+L 123:         self.clipboard = {"walls": [], "objects": [], "origin": (0.0, 0.0)}
+L 124:         self.current_z: int = 0
+L 125: 
+L 126:         # Состояние
+L 127:         self.mode = MODE_WORLD
+L 128:         self.current_file: Optional[str] = None
+L 129:         self._dragging_location: Optional[str] = None
+L 130:         self._drag_offset = (0, 0)
+L 131:         self.tool = None  # None = режим покоя (выделение)
+L 132:         self.selected_object: Optional[Tuple[str, Any]] = None
+L 133: 
+L 134:         # Камера
+L 135:         self.camera_x = 0.0
+L 136:         self.camera_y = 0.0
+L 137:         self.zoom = 1.0
+L 138:         self.dragging_camera = False
+L 139:         # GAME-PREVIEW-IMPLEMENTATION-1: toggle F11 in MODE_LOCAL
+L 140:         self.preview_active: bool = False
+L 141:         self._preview_cam_offset: tuple[float, float] = (0.0, 0.0)
+L 142:         self._dragging_location: Optional[str] = None  # WORLD-MAP-PLACEMENT-INTEGRITY-1
+L 143:         self.camera_speed = 15  # пикселей за кадр при стрелках
+L 144: 
+L 145:         # Двойной клик для переименования
+L 146:         self._last_click_time: int = 0
+L 147:         self._last_click_pos: Tuple[int, int] = (0, 0)
+L 148: 
+L 149:         # Перекрытые комнаты — циклический выбор
+L 150:         self._overlap_room_ids: List[str] = []
+L 151:         self._overlap_index: int = -1
+L 152: 
+L 153:         # Позиция для размещения надписи (временная, до диалога)
+L 154:         self._pending_label_pos: Optional[Tuple[float, float]] = None
+L 155:         self._open_file_path: Optional[Any] = None  # путь к открытому файлу напрямую
+L 156: 
+L 157:         # Рисование
+L 158:         self.wall_drawing = False
+L 159:         self.wall_start: Optional[Tuple[float, float]] = None
+L 160:         self.room_drawing = False
+L 161:         self.room_start: Optional[Tuple[float, float]] = None
+L 162:         self.node_link_start: Optional[str] = None  # S143: ID узла-источника для создания связи
+L 163: 
+L 164:         # UI
+L 165:         self.menu_height = 30
+L 166:         self.toolbar_height = 45
+L 167:         self.panel_width = 300
+L 168:         self.status_height = 25
+L 169: 
+L 170:         self.dialog: Optional[ModalDialog] = None
+L 171:         self.toast_message = ""
+L 172:         self.toast_timer = 0
+L 173: 
+L 174:         # Настройки
+L 175:         self.show_grid = True
+L 176:         self.show_walls = True
+L 177:         self.show_objects = True
+L 178:         self.show_rooms = True
+L 179: 
+L 180:         # Выбранные типы
+L 181:         self.selected_object_type = "table"
+L 182:         from render.map_renderer import MapRenderer
+L 183: 
+L 184:         self.renderer = MapRenderer()
+L 185: 
+L 186:         from core.event_handler import EventHandler
+L 187: 
+L 188:         self.event_handler = EventHandler()
+L 189: 
+L 190:         from tools.interaction import InteractionManager
+L 191: 
+L 192:         self.interaction_manager = InteractionManager()
+L 193: 
+L 194:         from ui.property_builder import PropertyBuilder
+L 195: 
+L 196:         self.property_builder = PropertyBuilder()
+L 197: 
+L 198:         from ui.lab_screen import LabScreen
+L 199: 
+L 200:         self.lab_screen = LabScreen(self)
+L 201:         from ui_workbench.workbench_screen import WorkbenchScreen
+L 202: 
+L 203:         self.workbench_screen = WorkbenchScreen(self)
+L 204:         # CCH-3: редактор хроник (ленивый импорт, паттерн lab_screen)
+L 205:         from chronicle.editor_screen import ChronicleScreen
+L 206: 
+L 207:         self.chronicle_screen = ChronicleScreen(self)
+L 208: 
+L 209:         self.selected_npc_id: str = ""  # id реального NPC из config
+L 210:         self._npc_list: List[Dict[str, str]] = load_npc_individuals()
+L 211:         if self._npc_list:
+L 212:             self.selected_npc_id = self._npc_list[0]["id"]
+L 213: 
+L 214:         # Состояние ресайза и перетаскивания
+L 215:         self._resizing: Optional[Dict[str, Any]] = None
+L 216:         self._dragging_entity: Optional[Dict[str, Any]] = None
+L 217: 
+L 218:         # Инициализация UI
+L 219:         self._init_ui()
+L 220: 
+L 221:         # Инициализация реестра спрайтов
+L 222:         info = sprite_registry.get_sheet_info("Deadbeat/deadbeat_b.png")
+L 223:         if info:
+L 224:             print(f"Спрайтшит загружен: {info['cols']}x{info['rows']} тайлов")
+L 225: 
+L 226:         # BUG-P1-18: Хардкод "Open_road" удален. Редактор стартует пустым.
+L 227:         self._show_toast("Добро пожаловать! Откройте или создайте кампанию через меню File")
+L 228: 
+
+--- method _init_ui (L229–L442) ---
+L 229:     def _init_ui(self):
+L 230:         """Инициализирует элементы интерфейса"""
+L 231:         screen_w = self.screen.get_width()
+L 232:         screen_h = self.screen.get_height()
+L 233: 
+L 234:         # === Меню (кнопки в верхней панели) ===
+L 235:         self.menu_buttons = []
+L 236: 
+L 237:         # File
+L 238:         self.btn_file = Button(10, 2, 60, 26, "File", on_click=self._show_file_menu)
+L 239:         self.menu_buttons.append(self.btn_file)
+L 240: 
+L 241:         # View
+L 242:         self.btn_view = Button(75, 2, 60, 26, "View", on_click=self._toggle_grid)
+L 243:         self.menu_buttons.append(self.btn_view)
+L 244: 
+L 245:         # === Тулбар ===
+L 246:         toolbar_y = self.menu_height + 5
+L 247:         self.toolbar_buttons = []
+L 248: 
+L 249:         # Группа: Строительство
+L 250:         x = 10
+L 251:         self.btn_tool_wall = ToggleButton(
+L 252:             x,
+L 253:             toolbar_y,
+L 254:             80,
+L 255:             32,
+L 256:             "🧱 Стена",
+L 257:             on_toggle=lambda s: self._set_tool(TOOL_WALL) if s else None,
+L 258:         )
+L 259:         self.toolbar_buttons.append(self.btn_tool_wall)
+L 260:         x += 90
+L 261: 
+L 262:         self.btn_tool_room = ToggleButton(
+L 263:             x,
+L 264:             toolbar_y,
+L 265:             90,
+L 266:             32,
+L 267:             "📦 Комната",
+L 268:             on_toggle=lambda s: self._set_tool(TOOL_ROOM) if s else None,
+L 269:         )
+L 270:         self.toolbar_buttons.append(self.btn_tool_room)
+L 271:         x += 100
+L 272: 
+L 273:         # Группа: Объекты
+L 274:         x += 10
+L 275:         self.btn_tool_object = ToggleButton(
+L 276:             x,
+L 277:             toolbar_y,
+L 278:             90,
+L 279:             32,
+L 280:             "🪑 Объект",
+L 281:             on_toggle=lambda s: self._set_tool(TOOL_OBJECT) if s else None,
+L 282:         )
+L 283:         self.toolbar_buttons.append(self.btn_tool_object)
+L 284:         x += 100
+L 285: 
+L 286:         self.btn_tool_passage = ToggleButton(
+L 287:             x,
+L 288:             toolbar_y,
+L 289:             90,
+L 290:             32,
+L 291:             "🕳️ Проход",
+L 292:             on_toggle=lambda s: self._set_tool(TOOL_PASSAGE) if s else None,
+L 293:         )
+L 294:         self.toolbar_buttons.append(self.btn_tool_passage)
+L 295:         x += 100
+L 296: 
+L 297:         self.btn_tool_label = ToggleButton(
+L 298:             x,
+L 299:             toolbar_y,
+L 300:             80,
+L 301:             32,
+L 302:             "📝 Надпись",
+L 303:             on_toggle=lambda s: self._set_tool(TOOL_LABEL) if s else None,
+L 304:         )
+L 305:         self.toolbar_buttons.append(self.btn_tool_label)
+L 306:         x += 90
+L 307: 
+L 308:         # Группа: Сущности
+L 309:         x += 10
+L 310:         self.btn_tool_npc = ToggleButton(
+L 311:             x,
+L 312:             toolbar_y,
+L 313:             80,
+L 314:             32,
+L 315:             "👤 NPC",
+L 316:             on_toggle=lambda s: self._set_tool(TOOL_NPC) if s else None,
+L 317:         )
+L 318:         self.toolbar_buttons.append(self.btn_tool_npc)
+L 319:         x += 90
+L 320: 
+L 321:         self.btn_tool_spawn = ToggleButton(
+L 322:             x,
+L 323:             toolbar_y,
+L 324:             90,
+L 325:             32,
+L 326:             "🏁 Спавн",
+L 327:             on_toggle=lambda s: self._set_tool(TOOL_SPAWN) if s else None,
+L 328:         )
+L 329:         self.toolbar_buttons.append(self.btn_tool_spawn)
+L 330:         x += 100
+L 331: 
+L 332:         # Группа: Удаление
+L 333:         x += 10
+L 334:         self.btn_tool_delete = ToggleButton(
+L 335:             x,
+L 336:             toolbar_y,
+L 337:             90,
+L 338:             32,
+L 339:             "🗑️ Удалить",
+L 340:             on_toggle=lambda s: self._set_tool(TOOL_DELETE) if s else None,
+L 341:         )
+L 342:         self.toolbar_buttons.append(self.btn_tool_delete)
+L 343:         x += 100
+L 344: 
+L 345:         self.btn_tool_node = ToggleButton(
+L 346:             x,
+L 347:             toolbar_y,
+L 348:             80,
+L 349:             32,
+L 350:             "🔵 Узел",
+L 351:             on_toggle=lambda s: self._set_tool(TOOL_NODE) if s else None,
+L 352:         )
+L 353:         self.toolbar_buttons.append(self.btn_tool_node)
+L 354: 
+L 355:         # Группа: Observatory (ADR-O-330)
+L 356:         x += 100
+L 357:         self.btn_simulate = Button(
+L 358:             x,
+L 359:             toolbar_y,
+L 360:             120,
+L 361:             32,
+L 362:             "▶ Симуляция",
+L 363:             on_click=self._toggle_simulation,
+L 364:         )
+L 365:         self.toolbar_buttons.append(self.btn_simulate)
+L 366:         self.observatory_data = None
+L 367:         self._observatory_revision = 0
+L 368:         self._geometry_hash = 0
+L 369:         self._last_edit_time = 0
+L 370:         self._spatial_dirty = False
+L 371:         self._observatory_lock = threading.Lock()
+L 372: 
+L 373:         # === Панель свойств ===
+L 374:         panel_x = screen_w - self.panel_width
+L 375:         panel_y = self.menu_height + self.toolbar_height + 10
+L 376:         panel_h = screen_h - panel_y - self.status_height - 10
+L 377:         self.property_panel = PropertyPanel(panel_x, panel_y, self.panel_width, panel_h)
+L 378:         # ME-2.1-F: Catalog panel (F3 to toggle)
+L 379:         catalog_x = 0
+L 380:         catalog_y = self.menu_height + self.toolbar_height + 10
+L 381:         catalog_w = 250
+L 382:         catalog_h = screen_h - catalog_y - self.status_height - 10
+L 383:         from ui.catalog_panel import CatalogPanel
+L 384: 
+L 385:         self.catalog_panel = CatalogPanel(
+L 386:             catalog_x,
+L 387:             catalog_y,
+L 388:             catalog_w,
+L 389:             catalog_h,
+L 390:             Path(__file__).parent / "assets",
+L 391:             Path(__file__).parent / "pixels",
+L 392:         )
+L 393:         self.catalog_panel.on_place = lambda bp_id: self._catalog_place(bp_id)
+L 394: 
+L 395:         # ME-2.1-G-4: BlueprintInspectorPanel (редактор через EditSession)
+L 396:         from assets.blueprint_editor import BlueprintEditor
+L 397:         from ui.blueprint_inspector import BlueprintInspectorPanel
+L 398: 
+L 399:         _store = self.catalog_panel.store
+L 400:         assert _store is not None, "CatalogPanel.store должен быть загружен до BlueprintEditor"
+L 401:         self._blueprint_editor = BlueprintEditor(
+L 402:             asset_store=_store,
+L 403:             validator=self.catalog_panel.validator,
+L 404:         )
+L 405:         inspector_x = catalog_x + catalog_w + 10
+L 406:         inspector_w = 420
+L 407: 
+L 408:         def _count_bp_instances(bp_id: str) -> int:
+L 409:             """G-9: Подсчёт экземпляров Blueprint в активной локации."""
+L 410:             if not self.current_file or self.current_file not in self.dm.locations:
+L 411:                 return 0
+L 412:             loc = self.dm.locations[self.current_file]
+L 413:             return sum(1 for o in loc.get("objects", []) if o.get("type") == bp_id)
+L 414: 
+L 415:         self.inspector_panel = BlueprintInspectorPanel(
+L 416:             inspector_x,
+L 417:             catalog_y,
+L 418:             inspector_w,
+L 419:             catalog_h,
+L 420:             self._blueprint_editor,
+L 421:             catalog_index=self.catalog_panel.catalog_index,
+L 422:             count_instances=_count_bp_instances,
+L 423:             show_toast=self._show_toast,
+L 424:         )
+L 425:         # Double-click в каталоге → открыть редактор
+L 426:         self.catalog_panel.on_inspect = lambda bp_id: self.inspector_panel.open(bp_id)
+L 427: 
+L 428:         # ME-2.1-H-1: ResourceResolver wiring.
+L 429:         # Создаётся ОДИН раз в __init__ после CatalogPanel (store готов).
+L 430:         # Default = LegacyDirResolver(pixels/). ResourceResolver(store, legacy)
+L 431:         # делегирует canonical -> AssetStore, fallback -> pixels/.
+L 432:         # При смене кампании (R1) — вызывается _invalidate_sprite_cache().
+L 433:         self._legacy_resolver = LegacyDirResolver(Path(__file__).parent / "pixels")
+L 434:         self._resolver = ResourceResolver(self.catalog_panel.store, self._legacy_resolver)
+L 435:         sprite_registry.set_resolver(self._resolver)
+L 436: 
+L 437:         # === Дропдауны для типов объектов ===
+L 438:         self.object_dropdown: Optional[Dropdown] = None
+L 439: 
+L 440:         # === Кнопки в панели ===
+L 441:         self.panel_buttons = []
+L 442: 
+
+==============================================================================
+STEP 5: game_launcher.py _launch_editor — launch path
+==============================================================================
+
+Found _launch_editor at L526, ends at L534
+L 526: def _launch_editor() -> None:
+L 527:     """Запускает редактор карт и возвращает управление после его закрытия"""
+L 528:     from map_editor.editor_core import EditorCore
+L 529: 
+L 530:     editor = EditorCore(WINDOW_WIDTH, WINDOW_HEIGHT)
+L 531:     editor.run()
+L 532:     # EditorCore больше не вызывает pygame.quit()/sys.exit() — управление возвращается сюда
+L 533: 
+L 534: 
+
+==============================================================================
+STEP 6: git log — recent changes to editor_core.py and related files
+==============================================================================
+
+Target files for git log:
+  - frontend/map_editor/editor_core.py
+  - frontend/map_editor
+  - frontend/map_editor/assets/blueprint_editor.py
+  - frontend/map_editor/ui/catalog_panel.py
+
+--- git log for frontend/map_editor/editor_core.py (last 20 commits) ---
+556d239e ME-2.1-H-1: ResourceResolver foundation — единая точка разрешения resource_id -> файл
+cb3febad ME-2.1-G-9: Propagation hint (toast после save, без auto-update)
+72fc49e3 ME-2.1-G-5: Categories multiselect (tree-view, checkbox, unknown preservation, legacy projection)
+df8c565c V.0.5.4.5.1_Хорошо_поработал: полное сохранение проекта на новую ветку; версия проекта синхронизирована 0.5.4.5.0 на 0.5.4.5.1 (version.txt, backend/pyproject.toml, CITATION.cff, README.md, frontend/constants.py, docs roadmap); в .gitignore добавлены временные артефакты прогонов (.pytest_tmp, tmp_test_g4, g4_*.txt, mypy_check_run.txt)
+906eacd2 ME-2.1-G-3: BlueprintInspectorPanel — read-only инспектор (первый интеграционный тест)
+f95eabde ME-2.1-F-FIX: coordinate system + Russian UI
+70fc1341 ME-2.1-F: Catalog UI — search, filter, preview, placement
+0e6c3982 WORLD-MAP-PLACEMENT-INTEGRITY-1: overlap diagnostics + drag integrity
+120ee494 GAME-PREVIEW-PAN: arrow-key panning in Game Preview
+aa3d4ac2 GAME-PREVIEW-IMPLEMENTATION-1: build_geometry + F11 Game Preview
+3941523d ME-2.8-FIX: SCALE unification — editor_core 40->20, coordinate space separation
+651618a1 ME-2.8: SCALE audit — 40/20 mismatch is INTENTIONAL, not unified
+d85ef720 S337: CCH-3 step B — chronicle_editor skeleton (api/editor_core/launcher, 3-pane MVP) + game_menu CHRONICLE_EDITOR + MODE_CHRONICLE F7 in map_editor (editor_screen delegate) + HttpClient.put; flat-imports dual-root fix, L4-hotfix carried, isolation/ruff/compileall green
+4c0b83ef ruff: 166→0 — все категории закрыты (автофиксы 29 + ручные 15 + E701 format 121)
+86bb4763 chore: релиз-гигиена — версии SSOT 0.5.4.2.1, mypy 132 -> 109, WOUNDS-TZ FIX сериализации аватара
+000c3a35 V.0.5.4.2.0_Интерфейс: полное сохранение локального проекта. Версии унифицированы до 0.5.4.2.0 во всех 5 SSOT-источниках, mypy 153→132 (-21 ошибка, 0 новых) аннотационными правками без вмешательства в логику.
+fc2175ac V.0.5.4.1.7_Болтаем_2: полное сохранение проекта. Версии унифицированы до 0.5.4.1.7 (version.txt, CITATION.cff + date-released 2026-09-26, backend/pyproject.toml, frontend/constants.py PROJECT_VERSION, README.md + ветка). Mypy-доводка: -10 ошибок (184→174) в 8 файлах без вмешательства в логику — intent_compressor (2 name-defined: добавлен module-level logger, ранее NameError-риск в рантайме на ветках ValueError), constants (WEAPON_REACH_M: dict -> dict[str, float], корень no-any-return в effective_reach_m), turn_pipeline (cast(dict) на возврате _prepare_and_lock_scene), campaign_lifecycle (var-annotated _npcs_for_commit: list[Any]), game_loop (2: Optional[WorldContinuityMode] implicit-Optional в new_game + cast(list) на _resolve_npcs_light_snapshot), relationship_store (аннотация data: Dict[str, Any] на json.loads), layered_memory (cast(Dict) на json.load), dialogue_consolidator (cast(Optional[str]) на structural summary). Гейты: mypy backend/app в стиле CI (mypy.ini) 174 ошибки/0 целевых, py_compile OK (9 файлов), ruff-автофиксы (71: import-sort/F401/W292 по базе, конфиг fix=true), pytest 36 passed (intent/roundtrip/relationship-gc11/board-gates/pattern-watermark/outbox-determinism). UI/прочее: workbench, game_screen, отчёты сессии, новые sandbox-микротесты (claim_guard, reconciler_v0, x1_intent_shadowing и др.).
+7c1b4f74 V.0.5.4.1.6_Болтаем_1: полное сохранение проекта. Версии унифицированы до 0.5.4.1.6 (version.txt, CITATION.cff, backend/pyproject.toml, frontend/constants.py PROJECT_VERSION, README.md + ветка). Mypy-доводка: -20 ошибок в 3 файлах без вмешательства в логику — relationship_store/layered_memory/dialogue_consolidator удалены 3 протухших unused-ignore [no-any-return] (warn_return_any=false в app.services.*), новый override в pyproject глушит 17 import-untyped (yaml/psutil/networkx/pymorphy3 — библиотеки без py.typed). Гейты: mypy backend/app в стиле CI — 0 unused-ignore/0 import-untyped, py_compile OK, pytest memory/dialogue: 227 passed, 1 pre-existing failure test_relationship_state_store (падает и без правок — ассертит содержимое scene_state_manager.py, не связано с изменениями). UI/прочее: workbench, game_screen, map_editor, board-сервисы, отчёты сессии.
+1863fd57 V.0.5.4.1.3_Проектирую_UI: полное сохранение проекта перед ветвлением UI-работ.
+636d7975 V.0.5.4.1.0_КросЛокация: полное сохранение проекта; версии 0.5.4.1.0 (version.txt, backend/pyproject.toml, frontend/constants.py, README — единообразие). Mypy-доводка: 32 ошибки закрыто без вмешательства в логику (movement_bridge NameError self → модульный de-dup store, movement_engine setattr/var-аннотации, tick_utils Any-аннотации + list|None default, game_loop_accessor/llm_compressor/llama_cpp/routes cast-ы, routes_debug/routes_stream/reduction/affordance_shadow/time_advance аннотации, traversal int(), phase_1_input str(), r3_direct_builder var-аннотации). Ruff-автофиксы (fix=true): импорты/пробелы по backend+frontend. Фикс W293/F841 в routes.py
+
+
+--- git log for frontend/map_editor (last 20 commits) ---
+db0e0f12 Spatial fix: door_1 repositioned to cover rib intersection (kitchen → node_16)
+dfccf011 Сохранение перед созданием ветки V.0.5.4.5.4_Два_шага_1
+5ffb9796 chore: версия 0.5.4.5.3 — единообразие версий и подготовка к релизу V.0.5.4.5.3_Полшага_1
+556d239e ME-2.1-H-1: ResourceResolver foundation — единая точка разрешения resource_id -> файл
+6192bff1 chore: версия 0.5.4.5.2 — единообразие версий и準備 кリリース V.0.5.4.5.2
+09d74997 FIX-G10: изоляция OBJECT_PRESETS (fixture preserve) + ruff F841 fix
+dd4a1f13 ME-2.1-G-10: E2E Integration — полный сквозной контракт Blueprint Editor
+cb3febad ME-2.1-G-9: Propagation hint (toast после save, без auto-update)
+29f0fa77 ME-2.1-G-8: New-from clone (save_new_blueprint_atomic, SessionState.NEW, is_new routing)
+370b4f02 ME-2.1-G-7: History view + override banner (campaign version detection)
+22c75d00 ME-2.1-G-6: Metadata + default_properties (raw JSON editor, cross-check, no auto-sync)
+72fc49e3 ME-2.1-G-5: Categories multiselect (tree-view, checkbox, unknown preservation, legacy projection)
+dc1f628b ME-2.1-G-4: BlueprintInspectorPanel → editor (типизированные виджеты, Save/Cancel, live validation)
+df8c565c V.0.5.4.5.1_Хорошо_поработал: полное сохранение проекта на новую ветку; версия проекта синхронизирована 0.5.4.5.0 на 0.5.4.5.1 (version.txt, backend/pyproject.toml, CITATION.cff, README.md, frontend/constants.py, docs roadmap); в .gitignore добавлены временные артефакты прогонов (.pytest_tmp, tmp_test_g4, g4_*.txt, mypy_check_run.txt)
+906eacd2 ME-2.1-G-3: BlueprintInspectorPanel — read-only инспектор (первый интеграционный тест)
+932c298f ME-2.1-G-2: BlueprintEditor Core — EditSession (независимая рабочая копия)
+ebb85ba6 ME-2.1-G-1: AssetStore write-API — save_blueprint_atomic (R1+R2+R3 closed)
+3cfb374e ME-2.1-E: Category hierarchy + multiple membership
+5b0b66a7 ME-2.1-F-FIX4: remove emoji from card labels (consolas font)
+2cd8a20d ME-2.1-F-FIX3: category buttons fit panel (3-char labels, 32px width)
+
+
+--- git log for frontend/map_editor/assets/blueprint_editor.py (last 20 commits) ---
+29f0fa77 ME-2.1-G-8: New-from clone (save_new_blueprint_atomic, SessionState.NEW, is_new routing)
+932c298f ME-2.1-G-2: BlueprintEditor Core — EditSession (независимая рабочая копия)
+
+
+--- git log for frontend/map_editor/ui/catalog_panel.py (last 20 commits) ---
+72fc49e3 ME-2.1-G-5: Categories multiselect (tree-view, checkbox, unknown preservation, legacy projection)
+906eacd2 ME-2.1-G-3: BlueprintInspectorPanel — read-only инспектор (первый интеграционный тест)
+5b0b66a7 ME-2.1-F-FIX4: remove emoji from card labels (consolas font)
+2cd8a20d ME-2.1-F-FIX3: category buttons fit panel (3-char labels, 32px width)
+98c8f10b ME-2.1-F-FIX2: Russian category names + button width
+f95eabde ME-2.1-F-FIX: coordinate system + Russian UI
+70fc1341 ME-2.1-F: Catalog UI — search, filter, preview, placement
+
+
+--- git log for frontend/map_editor (last 15 commits) ---
+db0e0f12 Spatial fix: door_1 repositioned to cover rib intersection (kitchen → node_16)
+dfccf011 Сохранение перед созданием ветки V.0.5.4.5.4_Два_шага_1
+5ffb9796 chore: версия 0.5.4.5.3 — единообразие версий и подготовка к релизу V.0.5.4.5.3_Полшага_1
+556d239e ME-2.1-H-1: ResourceResolver foundation — единая точка разрешения resource_id -> файл
+6192bff1 chore: версия 0.5.4.5.2 — единообразие версий и準備 кリリース V.0.5.4.5.2
+09d74997 FIX-G10: изоляция OBJECT_PRESETS (fixture preserve) + ruff F841 fix
+dd4a1f13 ME-2.1-G-10: E2E Integration — полный сквозной контракт Blueprint Editor
+cb3febad ME-2.1-G-9: Propagation hint (toast после save, без auto-update)
+29f0fa77 ME-2.1-G-8: New-from clone (save_new_blueprint_atomic, SessionState.NEW, is_new routing)
+370b4f02 ME-2.1-G-7: History view + override banner (campaign version detection)
+22c75d00 ME-2.1-G-6: Metadata + default_properties (raw JSON editor, cross-check, no auto-sync)
+72fc49e3 ME-2.1-G-5: Categories multiselect (tree-view, checkbox, unknown preservation, legacy projection)
+dc1f628b ME-2.1-G-4: BlueprintInspectorPanel → editor (типизированные виджеты, Save/Cancel, live validation)
+df8c565c V.0.5.4.5.1_Хорошо_поработал: полное сохранение проекта на новую ветку; версия проекта синхронизирована 0.5.4.5.0 на 0.5.4.5.1 (version.txt, backend/pyproject.toml, CITATION.cff, README.md, frontend/constants.py, docs roadmap); в .gitignore добавлены временные артефакты прогонов (.pytest_tmp, tmp_test_g4, g4_*.txt, mypy_check_run.txt)
+906eacd2 ME-2.1-G-3: BlueprintInspectorPanel — read-only инспектор (первый интеграционный тест)
+
+
+==============================================================================
+STEP 7: circular imports and lazy initialization checks
+==============================================================================
+
+--- 'import' lines referencing CatalogPanel / CatalogStore ---
+  frontend\map_editor\editor_core.py L383:         from ui.catalog_panel import CatalogPanel
+  frontend\map_editor\tests\test_me21_catalog_ui.py L21: from ui.catalog_panel import CatalogPanel
+
+--- lazy initialization patterns (TYPE_CHECKING, lazy_*) ---
+
+--- try/except around catalog loading ---
+  frontend\map_editor\assets\asset_store.py L223:             raise ValueError("campaign_id не может называться 'catalogs'")
+  frontend\map_editor\assets\asset_store.py L222:         if campaign_id == _GLOBAL_CATALOGS_DIR:
+  frontend\map_editor\assets\asset_store.py L224:         self._campaign_id = campaign_id
+
+
+==============================================================================
+STEP 8: catalog loading file/path discovery
+==============================================================================
+
+Looking for catalog data files (templates, blueprints) that CatalogPanel.store
+might load. Common locations: frontend/map_editor/data, frontend/map_editor/catalog,
+frontend/map_editor/templates, etc.
+
+--- candidate catalog data files ---
+
+--- references to catalog_path / load_catalog / catalog_file in code ---
+  frontend\map_editor\data_manager.py L878:         self._asset_store = self._build_asset_store(None)
+  frontend\map_editor\data_manager.py L897:         self._asset_store = self._build_asset_store(campaign_id)
+  frontend\map_editor\data_manager.py L911:             store.load()
+  frontend\map_editor\data_manager.py L912:         self._asset_store = store
+  frontend\map_editor\data_manager.py L923:             store = AssetStore(ASSETS_DIR, campaign_id=campaign_id)
+  frontend\map_editor\data_manager.py L924:             store.load()
+  frontend\map_editor\editor_core.py L399:         _store = self.catalog_panel.store
+  frontend\map_editor\assets\asset_store.py L254:                     self._load_catalog(catalog, f"{_SOURCE_GLOBAL}:{catalog.name}", problems)
+  frontend\map_editor\assets\asset_store.py L261:                 self._load_catalog(own, f"{_SOURCE_CAMPAIGN}:{self._campaign_id}", problems)
+  frontend\map_editor\assets\asset_store.py L400:         test_store = AssetStore.__new__(AssetStore)
+  frontend\map_editor\assets\asset_store.py L417:         #    в _load_catalog не заходит в подпапки)
+  frontend\map_editor\assets\asset_store.py L574:         test_store = AssetStore.__new__(AssetStore)
+  frontend\map_editor\assets\asset_store.py L645:     def _load_catalog(self, catalog_dir: Path, source: str, problems: List[str]) -> None:
+  frontend\map_editor\assets\asset_store.py L1109:             test_store = AssetStore.__new__(AssetStore)
+  frontend\map_editor\assets\blueprint_editor.py L128:         self._store = store  # weak ref, НЕ владеет
+  frontend\map_editor\assets\blueprint_editor.py L322:         self._store = asset_store
+  frontend\map_editor\assets\catalog_index.py L25:         self._store = asset_store
+  frontend\map_editor\assets\resource_resolver.py L197:         self._store = asset_store
+  frontend\map_editor\tests\test_me21_catalog.py L27:     store = AssetStore(_ASSETS_DIR)
+  frontend\map_editor\tests\test_me21_catalog.py L28:     store.load()
+  frontend\map_editor\tests\test_me21_catalog.py L181:         store = AssetStore(Path("/nonexistent"))
+  frontend\map_editor\tests\test_me21_catalog.py L182:         store.load()
+  frontend\map_editor\tests\test_me21_derive.py L34:     store = AssetStore(_ASSETS_DIR)
+  frontend\map_editor\tests\test_me21_derive.py L35:     store.load()
+  frontend\map_editor\tests\test_me21_derive.py L44:         store = _load_store()
+  frontend\map_editor\tests\test_me21_derive.py L51:         store = _load_store()
+  frontend\map_editor\tests\test_me21_derive.py L58:         store = _load_store()
+  frontend\map_editor\tests\test_me21_derive.py L64:         store = _load_store()
+  frontend\map_editor\tests\test_me21_derive.py L70:         store = _load_store()
+  frontend\map_editor\tests\test_me21_derive.py L77:         store = _load_store()
+  frontend\map_editor\tests\test_me21_derive.py L83:         store = _load_store()
+  frontend\map_editor\tests\test_me21_derive.py L89:         store = _load_store()
+  frontend\map_editor\tests\test_me21_derive.py L95:         store = _load_store()
+  frontend\map_editor\tests\test_me21_derive.py L101:         store = _load_store()
+  frontend\map_editor\tests\test_me21_derive.py L112:         store = _load_store()
+  frontend\map_editor\tests\test_me21_derive.py L120:         store = _load_store()
+  frontend\map_editor\tests\test_me21_derive.py L128:         store = _load_store()
+  frontend\map_editor\tests\test_me21_derive.py L146:         store = AssetStore(Path("/nonexistent/path"))
+  frontend\map_editor\tests\test_me21_derive.py L147:         store.load()  # no dir → empty store
+  frontend\map_editor\tests\test_me21_derive.py L159:         store = _load_store()
+  frontend\map_editor\tests\test_me21_derive.py L169:         store = _load_store()
+  frontend\map_editor\tests\test_me21_g10_e2e.py L40:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g10_e2e.py L41:     store.load()
+  frontend\map_editor\tests\test_me21_g10_e2e.py L86:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g10_e2e.py L122:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g10_e2e.py L134:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g10_e2e.py L145:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g10_e2e.py L184:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g10_e2e.py L199:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g10_e2e.py L221:         store.load()
+  frontend\map_editor\tests\test_me21_g10_e2e.py L227:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g10_e2e.py L243:         store.load()
+  frontend\map_editor\tests\test_me21_g10_e2e.py L250:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g10_e2e.py L256:         store.load()
+  frontend\map_editor\tests\test_me21_g10_e2e.py L267:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g10_e2e.py L283:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g10_e2e.py L287:         store.load()
+  frontend\map_editor\tests\test_me21_g1_write_api.py L60:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g1_write_api.py L61:     store.load()
+  frontend\map_editor\tests\test_me21_g1_write_api.py L83:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L100:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L119:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L154:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L179:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L193:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L205:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L220:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L233:         store.load()
+  frontend\map_editor\tests\test_me21_g1_write_api.py L247:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L260:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L267:         # 2. Внешнее изменение файла с version=2 (БЕЗ store.load())
+  frontend\map_editor\tests\test_me21_g1_write_api.py L300:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L339:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L360:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L378:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L402:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L439:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L454:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L471:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g1_write_api.py L482:         store.load()
+  frontend\map_editor\tests\test_me21_g1_write_api.py L491:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g2_edit_session.py L67:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g2_edit_session.py L68:     store.load()
+  frontend\map_editor\tests\test_me21_g2_edit_session.py L99:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g2_edit_session.py L211:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g2_edit_session.py L220:         store.load()
+  frontend\map_editor\tests\test_me21_g2_edit_session.py L235:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g2_edit_session.py L262:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g2_edit_session.py L297:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g2_edit_session.py L306:         store.load()
+  frontend\map_editor\tests\test_me21_g2_edit_session.py L322:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g2_edit_session.py L332:         store.load()
+  frontend\map_editor\tests\test_me21_g2_edit_session.py L400:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g2_edit_session.py L411:         store.load()
+  frontend\map_editor\tests\test_me21_g3_inspector.py L55:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g3_inspector.py L56:     store.load()
+  frontend\map_editor\tests\test_me21_g3_inspector.py L130:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g3_inspector.py L247:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g3_inspector.py L257:         store.load()
+  frontend\map_editor\tests\test_me21_g3_inspector.py L282:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g4_editor.py L53:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g4_editor.py L54:     store.load()
+  frontend\map_editor\tests\test_me21_g4_editor.py L208:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g4_editor.py L231:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g4_editor.py L247:         store.load()
+  frontend\map_editor\tests\test_me21_g4_editor.py L258:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g4_editor.py L273:         store.load()
+  frontend\map_editor\tests\test_me21_g4_editor.py L367:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g4_editor.py L384:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g5_categories.py L54:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g5_categories.py L55:     store.load()
+  frontend\map_editor\tests\test_me21_g5_categories.py L253:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g5_categories.py L261:         store.load()
+  frontend\map_editor\tests\test_me21_g5_categories.py L289:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g5_categories.py L304:         store.load()
+  frontend\map_editor\tests\test_me21_g6_metadata.py L54:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g6_metadata.py L55:     store.load()
+  frontend\map_editor\tests\test_me21_g6_metadata.py L239:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g6_metadata.py L252:         store.load()
+  frontend\map_editor\tests\test_me21_g7_history_override.py L107:         store = isolated_assets["store_global"]
+  frontend\map_editor\tests\test_me21_g7_history_override.py L124:         store = isolated_assets["store_global"]
+  frontend\map_editor\tests\test_me21_g7_history_override.py L150:         store = isolated_assets["store_global"]
+  frontend\map_editor\tests\test_me21_g7_history_override.py L159:         store = isolated_assets["store_campaign"]
+  frontend\map_editor\tests\test_me21_g7_history_override.py L173:         store = isolated_assets["store_campaign"]
+  frontend\map_editor\tests\test_me21_g7_history_override.py L199:         store = AssetStore(assets_dir, campaign_id="Open_road")
+  frontend\map_editor\tests\test_me21_g7_history_override.py L200:         store.load()
+  frontend\map_editor\tests\test_me21_g7_history_override.py L216:         store = isolated_assets["store_global"]
+  frontend\map_editor\tests\test_me21_g7_history_override.py L248:         store = isolated_assets["store_global"]
+  frontend\map_editor\tests\test_me21_g7_history_override.py L263:         store = isolated_assets["store_global"]
+  frontend\map_editor\tests\test_me21_g7_history_override.py L275:         store.load()
+  frontend\map_editor\tests\test_me21_g7_history_override.py L288:         store = isolated_assets["store_global"]
+  frontend\map_editor\tests\test_me21_g7_history_override.py L310:         store = isolated_assets["store_global"]
+  frontend\map_editor\tests\test_me21_g7_history_override.py L322:         store.load()
+  frontend\map_editor\tests\test_me21_g8_new_from.py L34:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g8_new_from.py L35:     store.load()
+  frontend\map_editor\tests\test_me21_g8_new_from.py L127:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g8_new_from.py L137:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g8_new_from.py L191:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g8_new_from.py L196:         store.load()
+  frontend\map_editor\tests\test_me21_g9_propagation.py L50:     store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_g9_propagation.py L51:     store.load()
+  frontend\map_editor\tests\test_me21_g9_propagation.py L154:         store = isolated_assets["store"]
+  frontend\map_editor\tests\test_me21_g9_propagation.py L164:         store.load()
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L359:         store = _FakeAssetStore(
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L383:         store = _FakeAssetStore(
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L411:         store = _FakeAssetStore(
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L447:         store = _FakeAssetStore(
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L470:         store = _FakeAssetStore(
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L497:         store = _FakeAssetStore({})  # пустой store
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L508:         store = _FakeAssetStore({})
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L563:         store = _FakeAssetStore({})
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L607:         store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L608:         store.load()
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L653:         store = AssetStore(assets_dir)
+  frontend\map_editor\tests\test_me21_h1_resource_resolver.py L654:         store.load()
+  frontend\map_editor\tests\test_me21_hierarchy.py L27:     store = AssetStore(_ASSETS_DIR)
+  frontend\map_editor\tests\test_me21_hierarchy.py L28:     store.load()
+  frontend\map_editor\tests\test_me21_validator.py L32:     store = AssetStore(_ASSETS_DIR)
+  frontend\map_editor\tests\test_me21_validator.py L33:     store.load()
+  frontend\map_editor\tests\test_me21_validator.py L151:         store = AssetStore(_ASSETS_DIR)
+  frontend\map_editor\tests\test_me21_validator.py L152:         store.load()
+  frontend\map_editor\tests\test_me21_validator.py L158:         store = AssetStore(_ASSETS_DIR)
+  frontend\map_editor\tests\test_me21_validator.py L159:         store.load()
+  frontend\map_editor\tests\test_overrides_initial_state.py L66:     store = AssetStore(assets_dir, campaign_id=None)
+  frontend\map_editor\tests\test_overrides_initial_state.py L67:     store.load()
+  frontend\map_editor\ui\catalog_panel.py L100:         self._store = AssetStore(self._assets_dir)
+  frontend\map_editor\ui\catalog_panel.py L101:         self._store.load()
+
+==============================================================================
+STEP 9: compare launch paths — game_launcher vs other entry points
+==============================================================================
+
+Find ALL files that instantiate EditorCore or call _launch_editor:
+
+
+Found 14 references:
+  game_launcher.py L520:     _launch_editor: блокирующий запуск, управление возвращается в меню."""
+  game_launcher.py L526: def _launch_editor() -> None:
+  game_launcher.py L530:     editor = EditorCore(WINDOW_WIDTH, WINDOW_HEIGHT)
+  game_launcher.py L696:                 _launch_editor()
+  frontend\chronicle_editor\chronicle_app.py L889:         self._core = ChronicleEditorCore(
+  frontend\map_editor\editor_core.py L2013:     app = EditorCore()
+  frontend\map_editor\editor_launcher.py L80:         app = EditorCore(width=1400, height=900)
+  frontend\map_editor\chronicle\editor_screen.py L35:         self._editor = ChronicleEditorCore(
+  frontend\map_editor\tests\test_game_preview_mode.py L170:             EditorCore._draw_game_preview(core)
+  frontend\map_editor\tests\test_game_preview_mode.py L180:             EditorCore._draw_game_preview(core)
+  frontend\map_editor\tests\test_game_preview_mode.py L194:         EditorCore._draw_game_preview(core)
+  frontend\map_editor\tests\test_game_preview_mode.py L203:             EditorCore._draw_game_preview(core)
+  frontend\map_editor\tests\test_game_preview_mode.py L213:             EditorCore._draw_game_preview(core)
+  frontend\map_editor\tests\test_game_preview_mode.py L231:             EditorCore._draw_game_preview(core)
+
+--- editor entry points (__main__.py, run_editor.py, etc.) ---
+
+==============================================================================
+STEP 10: editor_core.py imports section (L1-60)
+==============================================================================
+L   1: """
+L   2: map_editor/editor_core.py
+L   3: Главный редактор карт - ядро приложения
+L   4: """
+L   5: 
+L   6: import json
+L   7: import threading
+L   8: import urllib.error
+L   9: import urllib.request
+L  10: from copy import deepcopy
+L  11: from dataclasses import dataclass
+L  12: from pathlib import Path
+L  13: from typing import Any, Dict, List, Optional, Tuple
+L  14: 
+L  15: import pygame
+L  16: 
+L  17: # ME-2.1-H-1: ResourceResolver — единая точка разрешения resource_id → файл.
+L  18: # Wiring в __init__ (после CatalogPanel) + инвалидация при смене кампании (R1).
+L  19: from assets.resource_resolver import LegacyDirResolver, ResourceResolver
+L  20: from campaign_manager import CampaignManager
+L  21: from core.commands import (
+L  22:     PasteCommand,
+L  23:     RenameCommand,
+L  24:     SimpleNodeUpdateCommand,
+L  25:     TogglePassabilityCommand,
+L  26:     UndoManager,
+L  27: )
+L  28: from core.geometry import Geometry
+L  29: from data_manager import (
+L  30:     OBJECT_PRESETS,
+L  31:     DataManager,
+L  32:     load_npc_individuals,
+L  33: )
+L  34: from sprite_registry import sprite_registry
+L  35: from ui_components import (
+L  36:     COLORS,
+L  37:     Button,
+L  38:     Dropdown,
+L  39:     DropDownMenu,
+L  40:     ModalDialog,
+L  41:     PropertyPanel,
+L  42:     ToggleButton,
+L  43: )
+L  44: 
+L  45: # === Константы редактора ===
+L  46: SCALE = 20  # пикселей в 1 метре (ME-2.8-FIX: unified with geometry/renderer/event_handler/interaction)
+L  47: MIN_ZOOM = 0.3
+L  48: MAX_ZOOM = 3.0
+L  49: ZOOM_STEP = 1.2
+L  50: 
+L  51: # Инструменты
+L  52: from tools.constants import (
+L  53:     MODE_CHRONICLE,
+L  54:     MODE_LAB,
+L  55:     MODE_LOCAL,
+L  56:     MODE_UIWORKBENCH,
+L  57:     MODE_WORLD,
+L  58:     TOOL_DELETE,
+L  59:     TOOL_LABEL,
+L  60:     TOOL_NODE,
+
+==============================================================================
+STEP 11: VERDICT — root cause analysis (PROPOSAL based on findings)
+==============================================================================
+
+Based on findings above, the root cause analysis should answer:
+
+1. WHERE CatalogPanel.store is created:
+   - Search Step 2 for ".store = " assignments
+   - Search Step 8 for "CatalogStore(" instantiations
+
+2. WHO owns the store:
+   - Is it a global module-level variable?
+   - Is it created in EditorCore.__init__?
+   - Is it created in CatalogPanel.__init__?
+   - Is it passed from game_launcher.py?
+
+3. HOW BlueprintEditor receives store:
+   - Step 3 shows BlueprintEditor.__init__ signature
+   - Step 1 shows L400 assertion + how _store is obtained
+
+4. WHY store is None when launched via game_launcher.py:
+   - Step 5 shows _launch_editor code
+   - If game_launcher instantiates EditorCore without prior CatalogPanel setup → store=None
+   - Step 9 may reveal other launch paths that DO set up store properly
+
+5. WHETHER recent git changes caused the regression:
+   - Step 6 shows git log for editor_core.py and related files
+
+6. CIRCULAR IMPORTS / lazy init:
+   - Step 7 shows TYPE_CHECKING and lazy patterns
+
+7. DIFFERENCE between launcher and other launch paths:
+   - Step 9 compares all EditorCore instantiation points
+
+INSPECT THE FINDINGS ABOVE AND DERIVE THE ROOT CAUSE.
+
+A common pattern in such bugs:
+  - EditorCore.__init__ calls _init_ui() which creates BlueprintEditor
+  - BlueprintEditor expects CatalogPanel.store to be set
+  - CatalogPanel is created BEFORE BlueprintEditor in _init_ui
+  - But if CatalogPanel.store assignment is conditional (try/except, or
+    depends on a file that doesn't exist, or depends on a path that
+    differs when run via game_launcher vs. directly), then store=None
+    → AssertionError at L400
+
+PROPOSED FIX STRUCTURE (will be detailed after root cause confirmation):
+  - Identify the exact line where .store should be assigned
+  - Identify the failure mode (file not found? path resolution? conditional?)
+  - Fix the contract: ensure store is ALWAYS loaded before BlueprintEditor
+  - Do NOT remove the assertion (it's a valid invariant)
+  - Do NOT use dummy store
+
+
+==============================================================================
+INTEGRITY CHECK — verifying all Steps 1-11 present in output buffer
+==============================================================================
+
+
+==============================================================================
+STDERR (probe-level errors / traceback only):
+==============================================================================

@@ -1,0 +1,413 @@
+==============================================================================
+R2-BUTTERFLY-B5-CHAIN-BREAKPOINT — локализация точки разрыва
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_butterfly_b5_chain_breakpoint.txt
+==============================================================================
+
+==============================================================================
+ПОЛНЫЙ ЭКСПЕРИМЕНТ — 20 ticks с PLAYER_INSULTS
+==============================================================================
+
+  LLM available: True
+
+  Publishing PLAYER_INSULTS (target=tavern_keeper_tornin)...
+  PLAYER_INSULTS published ✓
+
+  Running 20 ticks...
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=0 actors=[]
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['guard_borko', 'merchant_goran']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=4 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] engine_changes=2 targets=['blacksmith_orm', 'blacksmith_orm']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=5 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['maid_lusya', 'maid_lusya', 'tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=6 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['merchant_goran']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=7 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=6 targets=['maid_lusya', 'maid_lusya', 'blacksmith_orm', 'blacksmith_orm', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=8 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=0 actors=[]
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=9 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=6 targets=['maid_lusya', 'maid_lusya', 'blacksmith_orm', 'blacksmith_orm', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=10 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['guard_borko', 'merchant_goran', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=6 targets=['guard_borko', 'guard_borko', 'merchant_goran', 'merchant_goran', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=11 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=12 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] engine_changes=4 targets=['merchant_goran', 'merchant_goran', 'blacksmith_orm', 'blacksmith_orm']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=13 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=14 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=6 targets=['merchant_goran', 'merchant_goran', 'maid_lusya', 'maid_lusya', 'blacksmith_orm']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=15 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['guard_borko', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=16 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['merchant_goran', 'merchant_goran', 'maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=17 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['guard_borko', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=18 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['merchant_goran', 'merchant_goran', 'maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=19 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=20 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['merchant_goran', 'merchant_goran', 'blacksmith_orm', 'blacksmith_orm']
+[Z-DIAG] is_player=False interventions=[]
+
+==============================================================================
+ЭТАП A: Belief Люси — проверка EpistemicStore после PLAYER_INSULTS
+==============================================================================
+
+  maid_lusya epistemic records: 0
+
+  >>> Люсьина belief об оскорблении: НЕ НАЙДЕН ✗
+  >>> Точка разрыва: PLAYER_INSULTS → EpistemicStore(maid_lusya)
+  >>> Возможные причины:
+      - ClaimEventSubscriber.on_player_spoke не обработал PLAYER_INSULTS
+      - spatial_query_provider не найден (None)
+      - PerceptualKernel.can_observe вернул False
+      - Люсьина не в радиусе hearing (HEARING_RADIUS=10.0)
+
+==============================================================================
+ЭТАП B: DecisionHub Люси — все решения за эксперимент
+==============================================================================
+
+  maid_lusya last intent:
+
+==============================================================================
+ЭТАП C: DialogueExecutor — проверка выполнения коммуникации
+==============================================================================
+
+  Task scheduler executors: [<TaskKind.DIALOGUE: 'dialogue'>]
+
+==============================================================================
+ЭТАП D: ClaimEventSubscriber — on_npc_spoke fallback для spread_rumor
+==============================================================================
+
+--- D.1: on_npc_spoke — полный код (L41-87) ---
+  L41:     def on_npc_spoke(self, event: Any) -> None:
+  L42:         """
+  L43:         Фаза 8.3: Детерминированный fallback для NPC_SPOKE.
+  L44:         Если LLM не предоставила proposition, извлекает его из intent_type.
+  L45:         """
+  L46:         import dataclasses
+  L47: 
+  L48:         if not hasattr(event, 'payload'):
+  L49:             return
+  L50: 
+  L51:         payload = event.payload
+  L52:         # Если LLM уже предоставила proposition, COMMUNICATION_CLAIM обработает его.
+  L53:         if payload.get("proposition"):
+  L54:             return
+  L55: 
+  L56:         intent_type = payload.get("intent_type", "talk")
+  L57:         target_id = payload.get("target_id")
+  L58:         speaker_id = event.source
+  L59: 
+  L60:         # Маппинг интентов на пропозиции
+  L61:         # subject_id — кто совершил действие, object_id — над кем/чем.
+  L62:         prop = None
+  L63:         if intent_type == "accuse" and target_id:
+  L64:             # "Я обвиняю тебя в краже" -> target украл неизвестно что
+  L65:             prop = Proposition(subject_id=target_id, predicate=Predicate.STOLE, object_id="unknown")
+  L66:         elif intent_type == "praise" and target_id:
+  L67:             # "Я хвалю тебя за помощь" -> target помог неизвестно кому
+  L68:             prop = Proposition(subject_id=target_id, predicate=Predicate.HELPED, object_id="unknown")
+  L69:         elif intent_type in ("intimidate", "attack") and target_id:
+  L70:             # "Я угрожаю тебе" -> speaker напал на target
+  L71:             prop = Proposition(subject_id=speaker_id, predicate=Predicate.ATTACKED, object_id=target_id)
+  L72: 
+  L73:         if prop:
+  L74:             # Создаём НОВЫЙ payload и НОВЫЙ event, чтобы не мутировать frozen EventDTO
+  L75:             new_payload = dict(payload)
+  L76:             new_payload["proposition"] = {
+  L77:                 "subject_id": prop.subject_id,
+  L78:                 "predicate": prop.predicate.value,
+  L79:                 "object_id": prop.object_id,
+  L80:                 "polarity": True
+  L81:             }
+  L82:             new_payload.setdefault("claim_id", f"fallback-{event.id}")
+  L83:             new_payload.setdefault("speech_act", "assert")
+  L84: 
+  L85:             # Создаём новый event с теми же полями, но новым payload
+  L86:             new_event = dataclasses.replace(event, payload=new_payload)
+  L87:             self.on_claim_event(new_event)
+
+>>> D.2: Анализ fallback для spread_rumor
+
+  on_npc_spoke (L41-87) обрабатывает NPC_SPOKE БЕЗ proposition:
+    1. Если payload.get("proposition") есть → return (обработает on_claim_event)
+    2. Если proposition НЕТ → fallback: маппинг intent_type → proposition:
+       - intent_type == "accuse" → Proposition(target, STOLE, unknown)
+       - intent_type == "praise" → Proposition(target, HELPED, unknown)
+       - intent_type in ("intimidate", "attack") → Proposition(speaker, ATTACKED, target)
+    3. Если prop создан → on_claim_event вызывается с новым payload
+
+  ПРОВЕРКА: есть ли маппинг для "spread_rumor"?
+
+  ✗ НЕТ маппинга для spread_rumor в on_npc_spoke fallback!
+  >>> Когда Lusya выбирает SPREAD_RUMOR и LLM не генерирует proposition:
+      1. NPC_SPOKE публикуется с intent_type='spread_rumor'
+      2. on_npc_spoke проверяет payload.get('proposition') → None
+      3. Fallback: intent_type='spread_rumor' не маппится в Proposition
+      4. prop = None → on_claim_event НЕ вызывается
+      5. BeliefRevisionEngine НЕ вызывается
+      6. EpistemicStore Торнина НЕ обновляется
+  >>> Это ВТОРОЙ DEFEKT (после mock LLM)
+
+--- D.3: on_player_spoke — обработка PLAYER_INSULTS (L89-122) ---
+  L89:     def on_player_spoke(self, event: Any) -> None:
+  L90:         """G1 (GC-SOCIAL-01, Stage-1.5): PLAYER_SPOKE → ClaimEvent для слышащих
+  L91:         NPC — симметрия testimony-канала (NPC→player доказан S200/β-G6).
+  L92:         Зеркало on_npc_spoke-фоллбека: proposition строится ТОЛЬКО из DM-вектора
+  L93:         (ADR-035: semantic_action/target_reference/target_id). Обычный dialogue
+  L94:         без вектора — no-op: Stage-1.5 не «понимает» речь (граница M2/D —
+  L95:         self-relevance/secret-семантика запрещены). Мембрана унаследована из
+  L96:         on_claim_event (distance + can_observe по event.radius = SSOT Р-В)."""
+  L97:         import dataclasses  # локальный — прецедент on_npc_spoke (шрам трека: №181)
+  L98: 
+  L99:         if not hasattr(event, "payload"):
+  L100:             return
+  L101: 
+  L102:         payload = event.payload
+  L103:         # COGNITIVE-CONTINUITY-01: PLAYER_INSULTS → Proposition(player, INSULTED, victim).
+  L104:         # Ветка перед semantic_action / free-ASSERT: оскорбление — отдельный канал,
+  L105:         # не требует DM-вектора. subject = игрок (оскорбитель), object = жертва.
+  L106:         # Мембрана on_claim_event (distance + can_observe) фильтрует слушателей.
+  L107:         _evt_type = str(getattr(event, "type", "") or "")
+  L108:         _action_type = str(payload.get("action_type", "") or "")
+  L109:         if "player_insults" in (_evt_type, _action_type):
+  L110:             _victim = payload.get("target_id") or ""
+  L111:             if _victim:
+  L112:                 _new_payload = dict(payload)
+  L113:                 _new_payload["proposition"] = {
+  L114:                     "subject_id": getattr(event, "source", "player"),
+  L115:                     "predicate": Predicate.INSULTED.value,
+  L116:                     "object_id": _victim,
+  L117:                     "polarity": True,
+  L118:                 }
+  L119:                 _new_payload.setdefault("claim_id", f"player-claim-{event.id}")
+  L120:                 _new_payload.setdefault("speech_act", "insult")
+  L121:                 self.on_claim_event(dataclasses.replace(event, payload=_new_payload))
+  L122:             return
+
+>>> D.4: Анализ on_player_spoke для PLAYER_INSULTS
+
+  on_player_spoke (L89-122) обрабатывает PLAYER_INSULTS:
+    1. Проверяет event.type или payload.action_type на "player_insults"
+    2. Если да → создаёт proposition:
+       subject_id = player (оскорбитель)
+       predicate = INSULTED
+       object_id = target_id (жертва)
+       polarity = True
+    3. Вызывает on_claim_event с новым payload
+
+  ПРОВЕРКА: должен ли этот путь работать для PLAYER_INSULTS?
+  → Да, если event type = "player_insults" или action_type = "player_insults"
+  → После on_claim_event → spatial membrane → listeners → BeliefRevisionEngine
+
+  Но! on_claim_event использует spatial_query для фильтрации слушателей:
+    - HEARING_RADIUS = 10.0
+    - PerceptualKernel.can_observe проверяет дистанцию
+
+  Если Люся в радиусе 10м от источника события (player) → она услышит
+  → BeliefRevisionEngine.revise(maid_lusya) → EpistemicStore(maid_lusya).upsert
+
+  Вопрос: откуда берётся позиция игрока (event.source = "player")?
+  → Если игрок не в npc_positions → spatial_query не найдёт его
+  → _listeners может быть пустым → belief не создаётся
+
+
+--- D.5: Проверка позиции игрока в scene_state ---
+
+==============================================================================
+ЭТАП E: Real LLM — проверка доступности
+==============================================================================
+
+  LLM server (http://127.0.0.1:8181/health): AVAILABLE ✓
+  >>> Real LLM доступен — можно запустить эксперимент без mock
+
+==============================================================================
+ИТОГОВЫЙ ОТЧЁТ — точка разрыва цепочки
+==============================================================================
+
+=============================================================================
+ПОЛНАЯ ВРЕМЕННАЯ ШКАЛА СОБЫТИЙ
+=============================================================================
+
+  tick 0: PLAYER_INSULTS published (target=tavern_keeper_tornin)
+          → ClaimEventSubscriber.on_player_spoke вызывается
+          → proposition: player/INSULTED/tavern_keeper_tornin
+          → on_claim_event → spatial membrane → listeners
+
+  tick 1-20: game loop running
+
+ЭТАП A — Belief Люси: ✗ НЕ НАЙДЕН
+  >>> ТОЧКА РАЗРЫВА #1: PLAYER_INSULTS → EpistemicStore(maid_lusya)
+  >>> on_player_spoke создал proposition, но belief не записался
+  >>> Возможные причины:
+      - spatial_query_provider = None (нет spatial)
+      - player не в npc_positions → distance не вычисляется
+      - PerceptualKernel.can_observe вернул False
+      - HEARING_RADIUS = 10.0 — Люсьина слишком далеко
+
+ЭТАП B — DecisionHub Люси: SPREAD_RUMOR = ✗ НЕТ
+  last intent: ?
+  last target: ?
+  >>> Люсьина НЕ выбрала SPREAD_RUMOR
+  >>> Возможные причины:
+      - Нет belief об оскорблении → нет report_proposition → нет spread_rumor boost
+
+ЭТАП C — DialogueExecutor: LLM = Mock
+  >>> Mock LLM не генерирует proposition в NPC_SPOKE payload
+  >>> NPC_SPOKE публикуется с has_proposition=False
+
+ЭТАП D — ClaimEventSubscriber: spread_rumor fallback = ✗ НЕТ
+  >>> ПРОИЗВОДСТВЕННЫЙ ДЕФЕКТ: on_npc_spoke не маппит spread_rumor → proposition
+  >>> Когда NPC выбирает SPREAD_RUMOR и LLM не генерирует proposition:
+      1. NPC_SPOKE публикуется с intent_type='spread_rumor'
+      2. on_npc_spoke: payload.get('proposition') → None
+      3. Fallback маппит: accuse→STOLE, praise→HELPED, intimidate/attack→ATTACKED
+      4. spread_rumor: НЕТ маппинга!
+      5. prop = None → on_claim_event НЕ вызывается
+      6. BeliefRevisionEngine НЕ вызывается
+      7. EpistemicStore слушателя НЕ обновляется
+
+ЭТАП E — Real LLM: AVAILABLE ✓
+
+=============================================================================
+ТОЧНАЯ ПЕРВАЯ ТОЧКА РАЗРЫВА
+=============================================================================
+
+  ПЕРВАЯ ТОЧКА РАЗРЫВА: PLAYER_INSULTS → EpistemicStore(maid_lusya)
+  Люсьин belief об оскорблении НЕ создан.
+  Без belief → нет report_proposition → нет SPREAD_RUMOR boost → нет речи → нет слуха
+
+=============================================================================
+СПИСОК ПОТЕНЦИАЛЬНЫХ ПРОИЗВОДСТВЕННЫХ ДЕФЕКТОВ
+=============================================================================
+
+  ДЕФЕКТ B5-D1: PLAYER_INSULTS не создаёт belief в EpistemicStore(maid_lusya)
+    Severity: CRITICAL
+    Evidence: stage_a: has_belief=False
+    Possible cause: spatial_query_provider=None или player не в npc_positions
+
+  ДЕФЕКТ B5-D2: on_npc_spoke fallback не маппит spread_rumor → Proposition
+    Severity: HIGH
+    Evidence: claim_event_subscriber.py L56-71: только accuse, praise, intimidate, attack
+    Possible cause: spread_rumor intent не имеет маппинга на Predicate
+
+  ДЕФЕКТ B5-D3: Mock LLM не генерирует proposition в NPC_SPOKE payload
+    Severity: INFO
+    Evidence: stage_c: is_mock_llm=True
+    Possible cause: LLM server недоступен на 8181
+
+
+=============================================================================
+УЧАСТКИ, ТРЕБУЮЩИЕ REAL LLM
+=============================================================================
+
+  1. Проверка, генерирует ли LLM proposition в NPC_SPOKE payload
+     (если LLM возвращает структурированный output с proposition —
+     fallback в on_npc_spoke не нужен)
+  2. Фактическое содержание реплик Торнина (русский текст)
+  3. Причинная связь реплик с услышанным
+  4. Выбор TALK vs SPREAD_RUMOR в DecisionHub при real LLM context
+
+  Без real LLM:
+  - Этапы A-D доказаны статически (по коду)
+  - Этап E (содержание) невозможен
+

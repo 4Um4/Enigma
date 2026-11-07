@@ -1,0 +1,457 @@
+==============================================================================
+R2-B5-E2 v2 — DecisionHub: report_proposition → SPREAD_RUMOR intent
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_e2_decision_hub_v2.txt
+==============================================================================
+
+v2 fixes from v1:
+  1. Import DecisionHub via `from app.services.npc.decision_hub import`
+  2. Search game_loop.py + tick_orchestrator.py for DecisionHub wiring
+  3. Read class structure (decorators, methods)
+  4. Try static/class/instance invocation
+
+
+==============================================================================
+STEP 1: locate sub, store, resolver
+==============================================================================
+  sub._store: id=2387941358096
+  resolver: id=2387941359104 via loop._tick_orch._epistemic_context_resolver
+
+==============================================================================
+STEP 2: import DecisionHub via `from app.services.npc.decision_hub`
+==============================================================================
+  DecisionHub class imported: <class 'app.services.npc.decision_hub.DecisionHub'>
+  module: app.services.npc.decision_hub
+  file: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\decision_hub.py
+
+==============================================================================
+STEP 3: search production for DecisionHub wiring
+==============================================================================
+  app\main.py L57:     "app.services.world.world_tick_engine",  # DecisionHub.compute errors
+  app\main.py L59:     "app.services.npc.decision_hub",  # compute() signature errors
+  scripts\verify_autonomous_world.py L108:     decision_hub_return_count = log_content.count("[DECISION_HUB_RETURN]")
+  scripts\verify_autonomous_world.py L144:     if decision_hub_return_count < 10:
+  scripts\verify_autonomous_world.py L145:         failures.append(f"C: only {decision_hub_return_count} DECISION_HUB_RETURN logs (expected ≥10)")
+  scripts\verify_autonomous_world.py L146:         print(f"❌ C FAILED: only {decision_hub_return_count} DECISION_HUB_RETURN")
+  scripts\verify_autonomous_world.py L148:         print(f"✅ C PASSED: {decision_hub_return_count} DECISION_HUB_RETURN logs")
+  app\domain\attention.py L16:         совокупности факторов и реализуется выбором DecisionHub.
+  app\models\event_resolution.py L17:   DecisionSignals — решение (constraints, biases). Только для DecisionHub.
+  app\models\event_resolution.py L76:         """Для сериализации и передачи в DecisionHub."""
+  app\models\npc_state.py L666:     Динамическое состояние NPC. Источник правды для DecisionHub.
+  app\models\npc_state.py L698:         "test_decision_hub_goal_boost": {"life_project", "life_project_state"},
+  app\models\npc_state.py L699:         "tests.test_decision_hub_goal_boost": {"life_project", "life_project_state"},
+  app\models\npc_state.py L1409:     Контракт чтения для DecisionHub.
+  app\models\state_delta.py L100:     - DecisionHub.compute() → DecisionResult.deltas: StateDeltas
+  app\services\action\dm_orchestrator.py L19:     from app.services.npc.decision_hub import EventContext
+  app\services\action\dm_orchestrator.py L68:         Возвращает DMResult с EventContext, готовым для DecisionHub.
+  app\services\action\dm_scene_builder.py L7: Зависимости: app.services.action.dm_router.RawEvent, app.services.npc.decision_hub.EventContext
+  app\services\action\dm_scene_builder.py L16:     from app.services.npc.decision_hub import EventContext
+  app\services\action\dm_scene_builder.py L151:         from app.services.npc.decision_hub import EventContext
+  app\services\calibration\config_overlay.py L6:     from-import. Причина: потребители (decision_hub.py:27-43) биндят имена
+  app\services\calibration\experiment_runner.py L46: _REQUIRE_LOADED: Tuple[str, ...] = ("app.services.npc.decision_hub",)
+  app\services\calibration\superbox_adapter.py L90:             require_loaded=("app.services.npc.decision_hub",),
+  app\services\cfrm\pressure_translator.py L61:     Вызывается из LifeEngine/WorldTickEngine для передачи каузального контекста в DecisionHub.
+  app\services\character\character_filter.py L6: Точка вставки: ПОСЛЕ DM Router, ДО DecisionHub.
+  app\services\economy\economic_modifier.py L5: EconomicModifier — модификатор score для DecisionHub.
+  app\services\economy\economic_modifier.py L17: ИНТЕГРАЦИЯ: Вызывается в DecisionHub._score_all() после _score_components().
+  app\services\economy\economic_modifier.py L88:     Рассчитывает экономические модификаторы score для DecisionHub.
+  app\services\economy\need_engine.py L34:     """Драйвы, генерируемые NeedEngine для DecisionHub."""
+  app\services\economy\need_engine.py L68:     Сигнал от NeedEngine к DecisionHub.
+  app\services\economy\opportunity_engine.py L18: Вызывается DecisionHub.compute() один раз — до _get_possible_intents().
+  app\services\economy\__init__.py L11: Часть economic_profiles, живая сегодня, продолжает работать через DecisionHub.
+  app\services\game_loop\dm_phase.py L10: Зависимости: phase_1_input, time_advance, spatial/player_target_pipeline, scene/scene_event_layer, npc/decision_hub
+
+  --- DecisionHub( construction sites ---
+
+  >>> app\services\npc\npc_tick_pipeline.py L1058: decision = DecisionHub(rng=_rng).compute(
+      L1054:                             }
+      L1055:             except Exception as _mem_err:
+      L1056:                 logger.warning(f"[MEM-3] npc_memory_modifiers failed for {npc_id}: {_mem_err}")
+      L1057: 
+  >>> L1058:             decision = DecisionHub(rng=_rng).compute(
+      L1059:                 state=state_l2,
+      L1060:                 personality=profile_l0,
+      L1061:                 effective_drives=_effective_drives,
+      L1062:                 event=_event_for_interp,
+      L1063:                 identity=_identity,
+      L1064:                 eco_modifiers=_all_modifiers or None,
+      L1065:                 social_modifiers=_social_mods or None,
+      L1066:                 reputation_modifiers=_rep_modifiers_for_hub,
+      L1067:                 drive_modifiers=_drive_modifiers_for_hub or None,
+      L1068:                 reflex_constraints=_reflex_constraints,
+      L1069:                 topic=_topic,
+      L1070:                 decision_ctx=_decision_ctx,
+      L1071:                 spatial_query=state.spatial_query,
+      L1072:                 all_npc_ids=_all_npc_ids,
+      L1073:                 pending_response_target=_response_target, # S129: Bridge 7
+
+  >>> app\services\world\world_tick_engine.py L9: - Для каждого major NPC в локации: DecisionHub(event_type="world_tick").
+      L   5: Фаза 3.4 — WorldTickEngine: проактивный цикл NPC между ходами игрока.
+      L   6: 
+      L   7: Принципы:
+      L   8:   - Вызывается из game_loop после обработки действия игрока.
+  >>> L   9:   - Для каждого major NPC в локации: DecisionHub(event_type="world_tick").
+      L  10:   - LLM НЕ участвует. Только Python.
+      L  11:   - Результат: список ProactiveDecision для внедрения в SceneOutcome.
+      L  12:   - NPC может: блокировать путь, искать союзника, предложить работу,
+      L  13:     распространить слух, позвать на помощь, сменить роль.
+      L  14: """
+      L  15: 
+      L  16: 
+      L  17: import logging
+      L  18: from dataclasses import dataclass
+      L  19: from typing import Any, Dict, List, Optional, Tuple
+      L  20: 
+      L  21: from app.core.constants import (
+      L  22:     MIN_PROACTIVE_SCORE,
+      L  23:     PROACTIVE_INTENT_PENALTY,
+      L  24:     WORLD_TICK_EVERY_TURNS,
+
+  >>> app\services\world\world_tick_engine.py L207: hub = DecisionHub(rng=_rng)
+      L 203:             # KERNEL-ISOLATION: per-NPC deterministic RNG.
+      L 204:             from app.services.npc.kernel_rng import KernelRNG
+      L 205: 
+      L 206:             _rng = KernelRNG(tick=tick_num, npc_id=npc_id, salt="world_tick_engine")
+  >>> L 207:             hub = DecisionHub(rng=_rng)
+      L 208: 
+      L 209:             try:
+      L 210:                 result = hub.compute(
+      L 211:                     state=_npc_state,
+      L 212:                     personality=profile_l0,
+      L 213:                     event=tick_event,
+      L 214:                     effective_drives=_effective_drives,  # L3-P2 mandatory
+      L 215:                     scene_state=scene_state,
+      L 216:                     social_modifiers=combined if combined else None,  # noqa: ENIGMA001
+      L 217:                     decision_ctx=_decision_ctx,
+      L 218:                 )
+      L 219:                 logger.debug(
+      L 220:                     f"[DECISION_HUB] npc={npc_id} tick={tick_num} intent={result.intent.value} score={result.score:.3f} [world_tick]"
+      L 221:                 )
+      L 222: 
+
+==============================================================================
+STEP 4: read DecisionHub class structure
+==============================================================================
+  file: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\decision_hub.py
+  total lines: 2152
+
+  --- class DecisionHub definition + structure ---
+  L 227: class DecisionHub:
+  L 228:     """
+  L 229:     Ядро интеллекта NPC. Чистая функция — читает, считает, возвращает.
+  L 230: 
+  L 231:     Формула score():
+  L 232:       score(action) =
+  L 233:           (drive_weight × context_relevance)
+  L 234:         + emotion_weight
+  L 235:         + relationship_modifier
+  L 236:         - (fear × risk)
+  L 237:         + intent_inertia        ← инерция текущего intent
+  L 238:         + noise                 ← ±10% рандом
+  L 239:     """
+  L 240: 
+  L 241:     def __init__(
+  L 242:         self,
+  L 243:         rng: Optional["KernelRNG"] = None,
+  L 244:         seed: Optional[int] = None,
+  L 245:     ) -> None:
+  L 246:         """Инициализация DecisionHub с детерминированным источником RNG.
+  L 247: 
+  L 248:         Args:
+  L 249:             rng: Экземпляр KernelRNG (предпочтительно). Если передан, используется как источник RNG.
+  L 250:                  Должен быть привязан к (tick, npc_id) для воспроизводимости (replay determinism).
+  L 251:             seed: Устаревший параметр seed. Используется ТОЛЬКО если rng is None.
+  L 252:                   Оставлен для обратной совместимости с тестами.
+  L 253: 
+  L 254:         KERNEL-ISOLATION: в production ВСЕГДА передаётся rng (не seed).
+  L 255:         seed=None + rng=None → недетерминированно (ТОЛЬКО ДЛЯ DEBUG).
+  L 256:         """
+  L 257:         # Тип _rng: KernelRNG (prod) или random.Random (legacy/debug)
+  L 258:         self._rng: Union["KernelRNG", random.Random]
+  L 259:         if rng is not None:
+  L 260:             self._rng = rng
+  L 261:         else:
+  L 262:             # Легаси-путь или debug. random.Random(None) → недетерминированно.
+  L 263:             self._rng = random.Random(seed)
+  L 264: 
+  L 265:         self._social_delta_engine = SocialDeltaEngine()
+  L 266:         self._last_redirect = 0.0  # инициализация scoring component
+  L 267:         self._last_dominant_drive = (
+  L 268:             "neutral"  # redirect direction: control/fear/neutral
+  L 269:         )
+  L 270: 
+  L 271:     # Вербальные интенты — для них строится CommunicationIntent (Устав 2.2)
+  L 272:     _VERBAL_INTENTS: Set[str] = {
+  L 273:         Intent.TALK.value,
+  L 274:         Intent.WARN.value,
+  L 275:         Intent.TRADE.value,
+  L 276:         Intent.REQUEST_SERVICE.value,
+  L 277:         Intent.OFFER_JOB.value,
+  L 278:         Intent.SPREAD_RUMOR.value,
+  L 279:         Intent.CALL_FOR_HELP.value,
+  L 280:         Intent.INTIMIDATE.value,
+  L 281:         Intent.EXPLAIN.value,
+  L 282:         Intent.APPROACH.value,
+  L 283:         Intent.CHANGE_ROLE.value,
+  L 284:     }
+  L 285: 
+  L 286:     def _get_rel_value(self, state: Any, target_id: str, attr: str) -> Optional[float]:
+  L 287:         """S135: Чтение из SSOT (RelationshipStore). Шкала: -100..100 (0.0 = neutral).
+  L 288:         Возвращает None, если отношение UNKNOWN (Vacuum).
+  L 289:         """
+  L 290:         # 1. SSOT (RelationshipStore) - имеет абсолютный приоритет
+  L 291:         if self._rel_store is not None:
+  L 292:             # API: get(campaign_id, source) -> Dict[str, Any] (ключ "source→target")
+  L 293:             _all_rels = self._rel_store.get(self._campaign_id, state.npc_id)
+  L 294:             _target_key = f"{state.npc_id}→{target_id}"
+  L 295:             _target_rel = _all_rels.get(_target_key, {})
+  L 296:             _val = _target_rel.get(attr)
+  L 297:             if _val is not None:
+  L 298:                 return float(_val)
+  L 299:             # Если SSOT доступен, но записи нет — это Vacuum (None).
+  L 300:             # Мы НЕ падаем в relationship_cache, чтобы избежать stale shadow truth.
+  L 301:             return None
+  L 302: 
+  L 303:         # 2. M1b.3.1: fallback УДАЛЁН — SSOT недоступным больше не бывает
+  L 304:         #    (V2 RAM-authoritative; store инъектирован при построении).
+  L 305:         #    Vacuum (Нет знания об отношении) — единственный исход
+  L 306:         #    при отсутствии записи.
+  ... (1846 more lines)
+
+  --- all methods in DecisionHub (with decorators) ---
+  L119: @dataclass
+  L137: @dataclass
+  L150:     @property
+  L151:     def npc_id(self) -> str:
+  L154:     @property
+  L155:     def intent(self) -> Intent:
+  L158:     @property
+  L159:     def score(self) -> float:
+  L162:     @property
+  L163:     def deltas(self) -> List[StateDeltas]:
+  L166:     @property
+  L167:     def intent_target(self) -> Optional[str]:
+  L170:     @property
+  L171:     def scores_trace(self) -> Dict[str, float]:
+  L174:     @property
+  L175:     def narrative_fact(self) -> Optional[str]:
+  L178:     @property
+  L179:     def explanation_mode(self) -> bool:
+  L188: @dataclass
+  L217:     def __post_init__(self) -> None:
+  L241:     def __init__(
+  L286:     def _get_rel_value(self, state: Any, target_id: str, attr: str) -> Optional[float]:
+  L309:     def _build_communication(
+  L428:     @staticmethod
+  L429:     def apply_modifiers(
+  L462:     def compute(
+  L1006:     def _steal_affinity(self, state: NPCState, personality: NPCProfileL0) -> float:
+  L1020:     def _get_possible_intents(
+  L1054:     def _is_intent_available(
+  L1124:     def _score_all(
+  L1208:     def _behavior_mask_modifier(
+  L1264:     def _relationship_modifier(
+  L1318:     def _removed_social_satiation_modifier(
+  L1339:     def _score_components(
+  L1477:     def _score_one(
+  L1502:     def _drive_relevance(
+  L1549:     def _context_relevance(
+  L1688:     def _emotion_modifier(
+  L1803:     def _trait_modifier(
+  L1830:     def _intent_inertia(self, state: NPCState) -> float:
+  L1858:     def _intent_exhaustion(self, state: NPCState) -> float:
+  L1888:     def _get_commitment(self, state: NPCState) -> float:
+  L1911:     def _commitment_threshold(self, commitment: float) -> float:
+  L1925:     def _switching_cost(
+  L1983:     def _resolve_target(
+  L2094:     def _compute_deltas(
+  L2117:     def _explain_mode(
+
+
+==============================================================================
+STEP 5: SPREAD_RUMOR boost computation in DecisionHub
+==============================================================================
+
+  >>> L81:         Intent.SPREAD_RUMOR,
+      L  79:         Intent.OFFER_JOB,
+      L  80:         Intent.REQUEST_SERVICE,
+  >>> L  81:         Intent.SPREAD_RUMOR,
+      L  82:         Intent.CALL_FOR_HELP,
+      L  83:         Intent.CHANGE_ROLE,
+      L  84:         Intent.STEAL,  # S209: кража — проактивна (WORLD_TICK only); окно windup даёт шанс обнаружения
+      L  85:         Intent.TALK,  # S118 FIX: Диалоги теперь проактивны (TZ §4.1)
+      L  86:     }
+
+  >>> L278:         Intent.SPREAD_RUMOR.value,
+      L 276:         Intent.REQUEST_SERVICE.value,
+      L 277:         Intent.OFFER_JOB.value,
+  >>> L 278:         Intent.SPREAD_RUMOR.value,
+      L 279:         Intent.CALL_FOR_HELP.value,
+      L 280:         Intent.INTIMIDATE.value,
+      L 281:         Intent.EXPLAIN.value,
+      L 282:         Intent.APPROACH.value,
+      L 283:         Intent.CHANGE_ROLE.value,
+
+  >>> L358:         # Вердикт Мастера Q1: только spread_rumor + INSULTED predicate.
+      L 356:             _proposition = getattr(epistemic_context, "report_proposition", None)
+      L 357:         # Stage B: narrow fallback from claims_about_self (priority 3).
+  >>> L 358:         # Вердикт Мастера Q1: только spread_rumor + INSULTED predicate.
+      L 359:         # Proposition передаётся as-is (без мутации polarity/confidence/source/provenance).
+      L 360:         # claims_about_self отсортирован по confidence (desc) в Resolver (Change 1).
+      L 361:         if _proposition is None and epistemic_context is not None and intent_value == "spread_rumor":
+      L 362:             _claims = getattr(epistemic_context, "claims_about_self", ())
+      L 363:             for _cl in _claims:
+
+  >>> L361:         if _proposition is None and epistemic_context is not None and intent_value == "spread_rumor":
+      L 359:         # Proposition передаётся as-is (без мутации polarity/confidence/source/provenance).
+      L 360:         # claims_about_self отсортирован по confidence (desc) в Resolver (Change 1).
+  >>> L 361:         if _proposition is None and epistemic_context is not None and intent_value == "spread_rumor":
+      L 362:             _claims = getattr(epistemic_context, "claims_about_self", ())
+      L 363:             for _cl in _claims:
+      L 364:                 if _cl.predicate == Predicate.INSULTED:
+      L 365:                     _proposition = _cl
+      L 366:                     break
+
+  >>> L395:                 if intent_value != "spread_rumor":
+      L 393:                 _src = "none"
+      L 394:                 _pkey = None
+  >>> L 395:                 if intent_value != "spread_rumor":
+      L 396:                     _reason = "llm_not_required"
+      L 397:                 elif _trig or _rep or _claims_n > 0:
+      L 398:                     _reason = "no_compatible_proposition"
+      L 399:                 else:
+      L 400:                     _reason = "no_proposition"
+
+  >>> L943:             Intent.SPREAD_RUMOR,
+      L 941:             Intent.FLEE,
+      L 942:             Intent.EXPLAIN,
+  >>> L 943:             Intent.SPREAD_RUMOR,
+      L 944:             Intent.CALL_FOR_HELP,
+      L 945:             Intent.REQUEST_SERVICE,
+      L 946:         ):
+      L 947:             logger.info(
+      L 948:                 f"[INTENT_DEGRADE] {state.npc_id}: {best_intent.value} без target → OBSERVE"
+
+  >>> L1307:         Intent.SPREAD_RUMOR.value,
+      L1305:         Intent.REQUEST_SERVICE.value,
+      L1306:         Intent.OFFER_JOB.value,
+  >>> L1307:         Intent.SPREAD_RUMOR.value,
+      L1308:         Intent.CALL_FOR_HELP.value,
+      L1309:         Intent.APPROACH.value,
+      L1310:     }
+      L1311:     # Реакция на контакт — social_incoming модификатор
+      L1312:     _INCOMING_SOCIAL = {
+
+  >>> L1530:             Intent.SPREAD_RUMOR.value: "significance",
+      L1528:             Intent.OFFER_JOB.value: "desire",
+      L1529:             Intent.REQUEST_SERVICE.value: "desire",
+  >>> L1530:             Intent.SPREAD_RUMOR.value: "significance",
+      L1531:             Intent.CALL_FOR_HELP.value: "significance",
+      L1532:             Intent.CHANGE_ROLE.value: "desire",
+      L1533:             Intent.APPROACH.value: "desire",
+      L1534:         }
+      L1535:         drive_key = _INTENT_DRIVE.get(intent, "desire")
+
+  >>> L1674:                     "ruler": ["spread_rumor", "call_for_help", "change_role"],
+      L1672:                     "warrior": ["ambush", "block_path", "call_for_help"],
+      L1673:                     "knowledge_seeker": ["request_service", "seek_ally"],
+  >>> L1674:                     "ruler": ["spread_rumor", "call_for_help", "change_role"],
+      L1675:                     # Кризисные направления (L2.7)
+      L1676:                     "isolation": ["flee", "block_path"],
+      L1677:                     "revenge": ["ambush", "attack"],
+      L1678:                     "hermit": ["flee", "observe"],
+      L1679:                 }
+
+  >>> L1969:                 Intent.SPREAD_RUMOR.value,
+      L1967:                 Intent.TALK.value,
+      L1968:                 Intent.SEEK_ALLY.value,
+  >>> L1969:                 Intent.SPREAD_RUMOR.value,
+      L1970:                 Intent.CALL_FOR_HELP.value,
+      L1971:             },
+      L1972:         }
+      L1973:         current_intent_str = state.intent.value if state.intent else ""
+      L1974:         aligned = current_intent_str in _DRIVE_INTENTS.get(current_drive, set())
+
+  >>> L2025:         # Интенты: talk/spread_rumor/warn. Report — фолбэк после warn→subject.
+      L2023:         # Для report-пропозиции (INSULTED третьего лица) заинтересованная
+      L2024:         # сторона — object_id (жертва), не subject_id (оскорбитель).
+  >>> L2025:         # Интенты: talk/spread_rumor/warn. Report — фолбэк после warn→subject.
+      L2026:         if intent in ("talk", "spread_rumor", "warn"):
+      L2027:             _rep = getattr(epistemic_context, "report_proposition", None) if epistemic_context else None
+      L2028:             if _rep is not None:
+      L2029:                 _stakeholder = str(_rep.object_id or "")
+      L2030:                 if _stakeholder and _stakeholder != state.npc_id:
+
+  >>> L2026:         if intent in ("talk", "spread_rumor", "warn"):
+      L2024:         # сторона — object_id (жертва), не subject_id (оскорбитель).
+      L2025:         # Интенты: talk/spread_rumor/warn. Report — фолбэк после warn→subject.
+  >>> L2026:         if intent in ("talk", "spread_rumor", "warn"):
+      L2027:             _rep = getattr(epistemic_context, "report_proposition", None) if epistemic_context else None
+      L2028:             if _rep is not None:
+      L2029:                 _stakeholder = str(_rep.object_id or "")
+      L2030:                 if _stakeholder and _stakeholder != state.npc_id:
+      L2031:                     from app.domain.sanity_membrane import can_address
+
+==============================================================================
+STEP 6: epistemic_dispositions.py — maid disposition
+==============================================================================
+  L18:     "guard":         {"report": 1.4, "warn": 0.5, "attack": 0.4, "spread_rumor": 0.0, "talk": 0.2},
+  L20:     "maid":          {"report": 0.1, "warn": 0.3, "attack": 0.0, "spread_rumor": 1.3, "talk": 0.6},
+  L21:     "barmaid":       {"report": 0.1, "warn": 0.3, "attack": 0.0, "spread_rumor": 1.3, "talk": 0.6},
+  L23:     "merchant":      {"report": 0.4, "warn": 1.4, "attack": 0.3, "spread_rumor": 0.2, "talk": 0.3},
+  L25:     "tavern_keeper": {"report": 0.2, "warn": 0.6, "attack": 0.3, "spread_rumor": 0.3, "talk": 1.2},
+  L26:     "innkeeper":     {"report": 0.2, "warn": 0.6, "attack": 0.3, "spread_rumor": 0.3, "talk": 1.2},
+  L28:     "commoner":      {"report": 0.2, "warn": 1.0, "attack": 0.3, "spread_rumor": 0.3, "talk": 0.4},
+  L30:     "thief":         {"report": 0.0, "warn": 0.1, "attack": 0.0, "spread_rumor": 0.2, "talk": 0.2},
+  L31:     "bandit":        {"report": 0.0, "warn": 0.1, "attack": 0.2, "spread_rumor": 0.2, "talk": 0.2},
+  L33:     "priest":        {"report": 0.3, "warn": 0.8, "attack": 0.0, "spread_rumor": 0.1, "talk": 0.9},
+
+==============================================================================
+STEP 7: publish PLAYER_INSULTS + verify ctx
+==============================================================================
+  store.get('maid_lusya', expected_prop).confidence = 0.5
+  ctx.report_proposition = Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True)
+  ctx.max_confidence = 0.5
+
+==============================================================================
+STEP 8: get maid_lusya NPC state
+==============================================================================
+  scene['npc_states'] count: 0
+  available NPCs: []
+  [maid_lusya NPC state NOT FOUND]
+
+==============================================================================
+STEP 9: invoke DecisionHub for maid_lusya
+==============================================================================
+  [no decide method found on DecisionHub class]
+
+==============================================================================
+STEP 10: inspect decision result
+==============================================================================
+  [no decision result captured]
+
+==============================================================================
+STEP 11: trace execution — where DecisionHub output flows
+==============================================================================
+  scripts\b3_prompt_forensics.py L34:     from app.services.execution.dialogue_executor import DialogueExecutor
+  app\models\npc_state.py L1024:         # счётчиках (StateApplicator._apply_intent).
+  app\models\state_delta.py L139:     # StateApplicator применяет в NPCState.intent (инерция: _apply_intent),
+  app\services\execution\dialogue_executor.py L2: path: /backend/app/services/execution/dialogue_executor.py
+  app\services\game_loop\task_scheduler.py L4: Зависимости: app.domain.execution, app.services.execution.dialogue_executor, app.services.execution.dialogue_materializer
+  app\services\game_loop\task_scheduler.py L38: from app.services.execution.dialogue_executor import DialogueExecutor
+  app\services\npc\npc_loader.py L1022:     # StateApplicator._apply_intent (не ctor-kwargs: сигнатура __init__
+  app\services\npc\state_applicator.py L273:             self._apply_intent(new_state, result, current_tick)
+  app\services\npc\state_applicator.py L662:     def _apply_intent(
+  app\services\npc\state_applicator.py L766:         # (ядро инерции = StateApplicator._apply_intent; apply() и дельта-путь
+  app\services\phases\commit_phase.py L87:     # цикл намерения (_apply_intent state_applicator:678 пишет current_tick
+
+==============================================================================
+STEP 12: VERDICT
+==============================================================================
+  DecisionHub class imported: True
+  DecisionHub instance found: False
+  ctx.report_proposition present: True
+  decision result captured: False
+
+
+  >>> VERDICT: INCONCLUSIVE — could not invoke DecisionHub
+  >>> Need to inspect wiring sites from Step 3 + class structure from Step 4

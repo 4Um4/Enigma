@@ -1,0 +1,284 @@
+==============================================================================
+R2-B5-E1 — EpistemicContextResolver.resolve('maid_lusya') after PLAYER_INSULTS
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_e1_context_resolver.txt
+==============================================================================
+
+GOAL: Confirm Lusya's belief record appears in EpistemicContext
+      returned by production resolver — NOT manual threshold calc.
+
+
+==============================================================================
+STEP 1: locate ClaimEventSubscriber + EpistemicStore
+==============================================================================
+  Found ClaimEventSubscriber id=1610199989760 via bus._handlers[player_insults]
+  sub._store: id=1610199988416 type=EpistemicStore
+
+==============================================================================
+STEP 2: locate production EpistemicContextResolver
+==============================================================================
+  Found EpistemicContextResolver id=1610199989424
+  via loop._tick_orch._epistemic_context_resolver
+
+  --- resolver attributes ---
+    resolver._store: <app.services.npc.epistemic_store.EpistemicStore object at 0x00000176E765F8C0> (type=EpistemicStore)
+
+==============================================================================
+STEP 3: verify resolver.store IS sub._store (same instance)
+==============================================================================
+  resolver._store: id=1610199988416 type=EpistemicStore
+  sub._store:     id=1610199988416 type=EpistemicStore
+  SAME INSTANCE: True
+  >>> CONFIRMED: same store instance — resolver will see Lusya's belief
+
+==============================================================================
+STEP 4: read production source of EpistemicContextResolver.resolve()
+==============================================================================
+  resolve() at L59..L150:
+  L  59:     def resolve(self, agent_id: str) -> EpistemicContext:
+  L  60:         records = self._store.get_all_for_agent(agent_id)
+  L  61: 
+  L  62:         threats = []
+  L  63:         allies = []
+  L  64:         violations = 0
+  L  65:         max_conf = 0.0
+  L  66:         # S197: Сохраняем утверждение с максимальной уверенностью для Causal Provenance.
+  L  67:         _trigger_prop = None
+  L  68:         _trigger_conf = 0.0  # GATE-TRIGGER-01: трекер conf только угрозных записей
+  L  69:         # GC-RELEVANCE-01 (R1): клеймы о самом себе — отдельный канал сбора.
+  L  70:         # Stage B: track (proposition, confidence) pairs for sort-by-confidence
+  L  71:         about_self_with_conf = []
+  L  72:         max_self_conf = 0.0
+  L  73:         # COGNITIVE-CONTINUITY-01: report-канал. Знание об оскорблении третьего
+  L  74:         # лица — отдельный канал от threat (trigger) и self-relevance (about_self).
+  L  75:         _report_prop = None
+  L  76:         _report_conf = 0.0
+  L  77: 
+  L  78:         for record in records:
+  L  79:             pred = record.proposition.predicate
+  L  80:             subj = record.proposition.subject_id
+  L  81:             _obj = record.proposition.object_id
+  L  82: 
+  L  83:             # COGNITIVE-CONTINUITY-01: agent — жертва оскорбления (object_id == agent_id).
+  L  84:             # Канал about_self: салиентность собственного имени. Работает при любой
+  L  85:             # confidence > 0 (оскорбление себя — всегда салиентно).
+  L  86:             if pred == Predicate.INSULTED and _obj == agent_id:
+  L  87:                 about_self_with_conf.append((record.proposition, record.confidence))
+  L  88:                 if record.confidence > max_self_conf:
+  L  89:                     max_self_conf = record.confidence
+  L  90:                 continue
+  L  91: 
+  L  92:             # COGNITIVE-CONTINUITY-01: report-канал. Знание об оскорблении третьего
+  L  93:             # лица (object_id != agent_id, subject_id != agent_id). Отдельный порог
+  L  94:             # (REPORT_CONFIDENCE_THRESHOLD < CONFIDENCE_THRESHOLD): report — салиентность,
+  L  95:             # не угроза; слышанное через цепочку свидетельств дешевеет.
+  L  96:             if (pred in REPORT_PREDICATES
+  L  97:                     and record.confidence >= REPORT_CONFIDENCE_THRESHOLD
+  L  98:                     and _obj != agent_id
+  L  99:                     and subj != agent_id):
+  L 100:                 if record.confidence > _report_conf:
+  L 101:                     _report_conf = record.confidence
+  L 102:                     _report_prop = record.proposition
+  L 103: 
+  L 104:             if record.confidence < CONFIDENCE_THRESHOLD:
+  L 105:                 continue
+  L 106: 
+  L 107:             if subj == agent_id:
+  L 108:                 # GC-RELEVANCE-01 (R1): «обо мне» — не угроза в собственном лице,
+  L 109:                 # не violation и не trigger (Epistemic Targeting DecisionHub:1922
+  L 110:                 # целился бы warn-ом в самого себя). Полная развязка каналов.
+  L 111:                 about_self_with_conf.append((record.proposition, record.confidence))
+  L 112:                 if record.confidence > max_self_conf:
+  L 113:                     max_self_conf = record.confidence
+  L 114:                 continue
+  L 115: 
+  L 116:             if record.confidence > max_conf:
+  L 117:                 max_conf = record.confidence
+  L 118:             # GATE-TRIGGER-01: trigger — только угрозный предикат,
+  L 119:             # развязанный от max_conf-трекера (питает to_modifiers):
+  L 120:             # HELPED conf=0.9, идущий раньше STOLE conf=0.7, больше не
+  L 121:             # крадёт триггер у угрозы — гейт на СВОЁМ условии, уровень цикла.
+  L 122:             if pred in _THREAT_PREDICATES and record.confidence > _trigger_conf:
+  L 123:                 _trigger_conf = record.confidence
+  L 124:                 _trigger_prop = record.proposition
+  L 125: 
+  L 126:             if pred in _THREAT_PREDICATES:
+  L 127:                 if subj not in threats:
+  L 128:                     threats.append(subj)
+  L 129:                 violations += 1
+  L 130:             elif pred == Predicate.HELPED:
+  L 131:                 if subj not in allies:
+  L 132:                     allies.append(subj)
+  L 133: 
+  L 134:         # Stage B: sort by confidence (desc) — consistent with trigger/report
+  L 135:         # selection pattern. claims_about_self[0] = highest-confidence self-claim.
+  L 136:         about_self_with_conf.sort(key=lambda x: x[1], reverse=True)
+  L 137:         return EpistemicContext(
+  L 138:             agent_id=agent_id,
+  L 139:             perceived_threats=tuple(threats),
+  L 140:             perceived_allies=tuple(allies),
+  L 141:             perceived_violations=violations,
+  L 142:             max_confidence=max_conf,
+  L 143:             trigger_proposition=_trigger_prop,
+  L 144:             claims_about_self=tuple(p for p, _ in about_self_with_conf),
+  L 145:             max_self_confidence=max_self_conf,
+  L 146:             # COGNITIVE-CONTINUITY-01: report-канал. Proposition об оскорблении
+  L 147:             # третьего лица — для DecisionHub report-targeting (Этап 4).
+  L 148:             report_proposition=_report_prop
+  L 149:         )
+  L 150: 
+
+  --- REPORT_CONFIDENCE_THRESHOLD constant ---
+  L32: REPORT_CONFIDENCE_THRESHOLD = 0.25
+  L97:                     and record.confidence >= REPORT_CONFIDENCE_THRESHOLD
+
+  --- report_proposition assignment sites ---
+  L148:             report_proposition=_report_prop
+
+  --- claims_about_self assignment sites ---
+  L135:         # selection pattern. claims_about_self[0] = highest-confidence self-claim.
+  L144:             claims_about_self=tuple(p for p, _ in about_self_with_conf),
+
+==============================================================================
+STEP 5: baseline — resolver.resolve('maid_lusya') BEFORE publish
+==============================================================================
+  resolver.resolve('maid_lusya') returned: EpistemicContext(agent_id='maid_lusya', perceived_threats=(), perceived_allies=(), perceived_violations=0, max_confidence=0.0, trigger_proposition=None, claims_about_self=(), max_self_confidence=0.0, report_proposition=None)
+  type: EpistemicContext
+  --- EpistemicContext dump (BEFORE) ---
+{
+  "_type": "EpistemicContext",
+  "agent_id": "maid_lusya",
+  "perceived_threats": [],
+  "perceived_allies": [],
+  "perceived_violations": 0,
+  "max_confidence": 0.0,
+  "trigger_proposition": null,
+  "claims_about_self": [],
+  "max_self_confidence": 0.0,
+  "report_proposition": null
+}
+
+==============================================================================
+STEP 6: publish PLAYER_INSULTS
+==============================================================================
+  event.source=player
+  payload.target_id=tavern_keeper_tornin
+  payload.radius=999.0
+  Publishing...
+  Published.
+
+  --- sanity: store.get('maid_lusya', expected_prop) ---
+  store record: confidence=0.5, source_id=player
+
+==============================================================================
+STEP 7: after — resolver.resolve('maid_lusya') AFTER publish
+==============================================================================
+  resolver.resolve('maid_lusya') returned: EpistemicContext(agent_id='maid_lusya', perceived_threats=(), perceived_allies=(), perceived_violations=0, max_confidence=0.5, trigger_proposition=None, claims_about_self=(), max_self_confidence=0.0, report_proposition=Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True))
+  type: EpistemicContext
+  --- EpistemicContext dump (AFTER) ---
+{
+  "_type": "EpistemicContext",
+  "agent_id": "maid_lusya",
+  "perceived_threats": [],
+  "perceived_allies": [],
+  "perceived_violations": 0,
+  "max_confidence": 0.5,
+  "trigger_proposition": null,
+  "claims_about_self": [],
+  "max_self_confidence": 0.0,
+  "report_proposition": {
+    "_type": "Proposition",
+    "subject_id": "player",
+    "predicate": {
+      "_type": "Predicate",
+      "_value_": "insulted",
+      "_name_": "INSULTED",
+      "_sort_order_": 6
+    },
+    "object_id": "tavern_keeper_tornin",
+    "polarity": true
+  }
+}
+
+==============================================================================
+STEP 8: focused inspection — report_proposition field
+==============================================================================
+  report_proposition access: attr report_proposition
+  report_proposition value: Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True)
+  type: Proposition
+
+  --- report_proposition details ---
+{
+  "_type": "Proposition",
+  "subject_id": "player",
+  "predicate": {
+    "_type": "Predicate",
+    "_value_": "insulted",
+    "_name_": "INSULTED",
+    "_sort_order_": 6
+  },
+  "object_id": "tavern_keeper_tornin",
+  "polarity": true
+}
+
+  --- exact match check ---
+  expected: subject_id=player, predicate=insulted, object_id=tavern_keeper_tornin
+  actual:   subject_id='player', predicate='insulted', object_id='tavern_keeper_tornin'
+  MATCH: True
+
+==============================================================================
+STEP 9: inspect claims_about_self (for completeness)
+==============================================================================
+  claims_about_self: ()
+  type: tuple
+
+  --- claims_about_self details ---
+[]
+
+==============================================================================
+STEP 10: baseline vs after comparison
+==============================================================================
+  baseline_ctx: EpistemicContext(agent_id='maid_lusya', perceived_threats=(), perceived_allies=(), perceived_violations=0, max_confidence=0.0, trigger_proposition=None, claims_about_self=(), max_self_confidence=0.0, report_proposition=None)
+  after_ctx:    EpistemicContext(agent_id='maid_lusya', perceived_threats=(), perceived_allies=(), perceived_violations=0, max_confidence=0.5, trigger_proposition=None, claims_about_self=(), max_self_confidence=0.0, report_proposition=Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True))
+
+  --- baseline keys ---
+    _type: EpistemicContext
+    agent_id: maid_lusya
+    claims_about_self: []
+    max_confidence: 0.0
+    max_self_confidence: 0.0
+    perceived_allies: []
+    perceived_threats: []
+    perceived_violations: 0
+    report_proposition: None
+    trigger_proposition: None
+
+  --- after keys ---
+    _type: EpistemicContext
+    agent_id: maid_lusya
+    claims_about_self: []
+    max_confidence: 0.5
+    max_self_confidence: 0.0
+    perceived_allies: []
+    perceived_threats: []
+    perceived_violations: 0
+    report_proposition: {'_type': 'Proposition', 'subject_id': 'player', 'predicate': {'_type': 'Predica
+    trigger_proposition: None
+
+==============================================================================
+STEP 11: VERDICT
+==============================================================================
+  resolver found:               True
+  resolver.store IS sub._store:  True
+  report_proposition exists:     True
+  report_proposition matches expected: True
+
+  >>> VERDICT: B5-E1 IS NOT A DEFECT
+  >>> Production EpistemicContextResolver.resolve('maid_lusya') DID return
+  >>> the report_proposition = Proposition(player, INSULTED, tavern_keeper_tornin)
+  >>> in the EpistemicContext, after PLAYER_INSULTS.
+  >>>
+  >>> B5-E1 chain segment works:
+  >>>   belief(Lusya, confidence=0.5) → resolver → report_proposition in context
+  >>>
+  >>> NEXT: investigate B5-E2 — DecisionHub — does it produce SPREAD_RUMOR intent
+  >>> when given this EpistemicContext?

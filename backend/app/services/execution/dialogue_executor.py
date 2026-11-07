@@ -171,6 +171,20 @@ class DialogueExecutor:
                 return
             except Exception as e:
                 logger.error(f"[DIALOGUE_EXEC] LLM call failed (timeout or error) for {task.owner_id}: {e}")
+                # Stage B Observability (вердикт Мастера Q4): llm_materialization_failed.
+                try:
+                    from app.services.logging_tools import jsonl_log
+                    jsonl_log({
+                        "level": "ERROR",
+                        "agent": "template_fallback",
+                        "fallback_reason": "llm_materialization_failed",
+                        "npc_id": task.owner_id,
+                        "intent_type": req.intent_type,
+                        "target_id": req.target_id,
+                        "error": str(e),
+                    })
+                except Exception:
+                    logger.debug("[OBS] llm_materialization_failed observability skipped (non-critical)")
                 yield Artifact(
                     task_id=task.task_id,
                     success=False,

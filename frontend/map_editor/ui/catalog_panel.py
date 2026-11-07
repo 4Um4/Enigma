@@ -95,8 +95,15 @@ class CatalogPanel:
         self._last_click_bp_id: Optional[str] = None
         self._last_click_time: float = 0.0
 
-    def open(self) -> None:
-        """Load AssetStore + CatalogIndex + Validator. Activate refresh."""
+    def load(self) -> None:
+        """Load AssetStore + CatalogIndex + Validator without activating UI.
+
+        Idempotent — safe to call multiple times. Used by EditorCore.__init__
+        to ensure store is available for BlueprintEditor before user opens
+        catalog via F3.
+        """
+        if self._store is not None:
+            return  # already loaded
         self._store = AssetStore(self._assets_dir)
         self._store.load()
         self._index = CatalogIndex(self._store)
@@ -109,6 +116,9 @@ class CatalogPanel:
         refresh_object_presets(self._store)
         refresh_entity_sprite_map()
 
+    def open(self) -> None:
+        """Activate catalog panel for display (F3). Loads data if not yet loaded."""
+        self.load()  # idempotent — load if not yet loaded
         self.active = True
         self._search_query = ""
         self._selected_category = None

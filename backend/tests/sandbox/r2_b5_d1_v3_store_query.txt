@@ -1,0 +1,196 @@
+==============================================================================
+R2-B5-D1 v3 — direct EpistemicStore query after PLAYER_INSULTS
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d1_v3_store_query.txt
+==============================================================================
+
+GOAL: Confirm whether belief is actually created in EpistemicStore
+      after PLAYER_INSULTS, by directly querying the store.
+      NO SPY — just publish, then query.
+
+
+==============================================================================
+STEP 1: locate ClaimEventSubscriber instance
+==============================================================================
+  Found ClaimEventSubscriber id=1997571997184
+  via bus._handlers[player_insults] → on_player_spoke
+  engine: <app.services.npc.belief_revision_engine.BeliefRevisionEngine object at 0x000001D11891BB60> (BeliefRevisionEngine)
+  store:  <app.services.npc.epistemic_store.EpistemicStore object at 0x000001D11891B8C0> (EpistemicStore)
+
+==============================================================================
+STEP 2: enumerate NPCs in scene_state
+==============================================================================
+  NPCs (excluding player): ['maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin', 'merchant_goran', 'guard_borko', 'thief_shadow']
+  target_id for PLAYER_INSULTS: tavern_keeper_tornin
+  expected proposition: Proposition(player, INSULTED, tavern_keeper_tornin)
+
+==============================================================================
+STEP 3: capture store state BEFORE publish (baseline)
+==============================================================================
+  Expected proposition: Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True)
+  [BEFORE] maid_lusya: None
+  [BEFORE] blacksmith_orm: None
+  [BEFORE] tavern_keeper_tornin: None
+  [BEFORE] merchant_goran: None
+  [BEFORE] guard_borko: None
+  [BEFORE] thief_shadow: None
+  [BEFORE] player: None
+
+  --- store.get_all_for_agent for each NPC (BEFORE) ---
+  maid_lusya: 0 records
+  blacksmith_orm: 0 records
+  tavern_keeper_tornin: 0 records
+  merchant_goran: 0 records
+  guard_borko: 0 records
+  thief_shadow: 0 records
+  player: 0 records
+
+==============================================================================
+STEP 4: publish PLAYER_INSULTS
+==============================================================================
+  event.source=player
+  event.type=EventType.PLAYER_INSULTS
+  event.visibility=public
+  payload.target_id=tavern_keeper_tornin
+  payload.radius=999.0
+
+  Publishing...
+  Published.
+
+==============================================================================
+STEP 5: capture store state AFTER publish
+==============================================================================
+  [AFTER] maid_lusya: HAS record (NEW: True)
+           proposition: Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True)
+           confidence: 0.5
+           source_id: player
+           original_source_id: player
+           last_updated_tick: 1
+           agent_id: maid_lusya
+           source_claim_id: player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94
+           first_observed_tick: 1
+           source_type: testimony
+  [AFTER] blacksmith_orm: HAS record (NEW: True)
+           proposition: Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True)
+           confidence: 0.5
+           source_id: player
+           original_source_id: player
+           last_updated_tick: 1
+           agent_id: blacksmith_orm
+           source_claim_id: player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94
+           first_observed_tick: 1
+           source_type: testimony
+  [AFTER] tavern_keeper_tornin: HAS record (NEW: True)
+           proposition: Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True)
+           confidence: 0.5
+           source_id: player
+           original_source_id: player
+           last_updated_tick: 1
+           agent_id: tavern_keeper_tornin
+           source_claim_id: player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94
+           first_observed_tick: 1
+           source_type: testimony
+  [AFTER] merchant_goran: HAS record (NEW: True)
+           proposition: Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True)
+           confidence: 0.5
+           source_id: player
+           original_source_id: player
+           last_updated_tick: 1
+           agent_id: merchant_goran
+           source_claim_id: player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94
+           first_observed_tick: 1
+           source_type: testimony
+  [AFTER] guard_borko: HAS record (NEW: True)
+           proposition: Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True)
+           confidence: 0.5
+           source_id: player
+           original_source_id: player
+           last_updated_tick: 1
+           agent_id: guard_borko
+           source_claim_id: player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94
+           first_observed_tick: 1
+           source_type: testimony
+  [AFTER] thief_shadow: HAS record (NEW: True)
+           proposition: Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True)
+           confidence: 0.5
+           source_id: player
+           original_source_id: player
+           last_updated_tick: 1
+           agent_id: thief_shadow
+           source_claim_id: player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94
+           first_observed_tick: 1
+           source_type: testimony
+  [AFTER] player: None (no belief created)
+
+  --- store.get_all_for_agent for each NPC (AFTER) ---
+  maid_lusya: 1 records (NEW: +1)
+  blacksmith_orm: 1 records (NEW: +1)
+  tavern_keeper_tornin: 1 records (NEW: +1)
+  merchant_goran: 1 records (NEW: +1)
+  guard_borko: 1 records (NEW: +1)
+  thief_shadow: 1 records (NEW: +1)
+  player: 0 records
+
+==============================================================================
+STEP 6: maid_lusya — detailed belief inspection
+==============================================================================
+  >>> maid_lusya HAS belief about Proposition(player, INSULTED, tavern_keeper_tornin)
+    proposition: Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True)
+    confidence: 0.5
+    source_id: player
+    original_source_id: player
+    last_updated_tick: 1
+    agent_id: maid_lusya
+    source_claim_id: player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94
+    first_observed_tick: 1
+    source_type: testimony
+
+    confidence = 0.5
+    REPORT_CONFIDENCE_THRESHOLD = 0.25
+    activates report_proposition (third-party spread): True
+    activates claims_about_self (Lusya as victim): N/A (Lusya != object_id=tavern_keeper_tornin)
+
+==============================================================================
+STEP 7: tavern_keeper_tornin (the victim) — belief inspection
+==============================================================================
+  >>> tavern_keeper_tornin HAS belief:
+    proposition: Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True)
+    confidence: 0.5
+    source_id: player
+    original_source_id: player
+    last_updated_tick: 1
+    agent_id: tavern_keeper_tornin
+    source_claim_id: player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94
+    first_observed_tick: 1
+    source_type: testimony
+
+    confidence = 0.5
+    activates claims_about_self (Tornin as victim): True
+
+==============================================================================
+STEP 8: summary table — all NPCs
+==============================================================================
+  NPC                         baseline      after    delta  expected_prop       
+  maid_lusya                         0          1        1  YES                 
+  blacksmith_orm                     0          1        1  YES                 
+  tavern_keeper_tornin               0          1        1  YES                 
+  merchant_goran                     0          1        1  YES                 
+  guard_borko                        0          1        1  YES                 
+  thief_shadow                       0          1        1  YES                 
+  player                             0          0        0  no                  
+
+==============================================================================
+STEP 9: VERDICT
+==============================================================================
+  maid_lusya belief about (player, INSULTED, tavern_keeper_tornin): EXISTS
+  maid_lusya total records delta: 1
+  tavern_keeper_tornin belief: EXISTS
+
+  >>> VERDICT: B5-D1 IS NOT A DEFECT
+  >>> maid_lusya DID receive the belief after PLAYER_INSULTS
+  >>> engine.revise was called (v2 confirmed) AND store.upsert succeeded
+  >>> The B5 chain works at least to: PLAYER_INSULTS → maid_lusya belief
+  >>> The bug is DOWNSTREAM — investigate:
+        - EpistemicContextResolver: does it see maid_lusya's belief?
+        - DecisionHub: does SPREAD_RUMOR boost activate?
+        - Lusya's decision: does she choose SPREAD_RUMOR?
+        - NPC_SPOKE propagation to Tornin (B5-D2 territory)

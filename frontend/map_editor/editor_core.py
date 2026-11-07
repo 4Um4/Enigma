@@ -392,6 +392,8 @@ class EditorCore:
         )
         self.catalog_panel.on_place = lambda bp_id: self._catalog_place(bp_id)
 
+        self.catalog_panel.open()
+
         # ME-2.1-G-4: BlueprintInspectorPanel (редактор через EditSession)
         from assets.blueprint_editor import BlueprintEditor
         from ui.blueprint_inspector import BlueprintInspectorPanel

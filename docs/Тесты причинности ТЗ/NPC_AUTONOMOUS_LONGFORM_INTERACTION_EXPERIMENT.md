@@ -709,6 +709,159 @@ E6, E7 — после анализа ПРОГОН-1; E7 обязателен д�
 4. **USL и second-order убеждения (R-16, R-17):** включать только если эксперимент покажет дефицит (например, слухи искажаются непроверяемо); это отдельные архитектурные задачи, не часть этого эксперимента.
 5. **Критерий зрелости функции:** игрок, войдя в таверну, застаёт последствия состоявшихся бесед (изменённые отношения/убеждения/тела), может вмешаться в идущую беседу (через существующие SOCIAL_ACTION/интенты) или не вмешиваться — и обе ветки проходят через одни и те же системы.
 
+
+---
+
+
+## 15. B4: первый реальный прогон (2026-11-07)
+
+**Статус изменён:** «реализация по этому документу ещё не начата» → **«первый эксперимент проведён»**
+
+**Commit:** `021aa7c9` на `V.0.5.4.5.8_Полшага_5`  
+**Длительность:** 4:22 минуты (262 сек) с живым LLM  
+**LLM:** Hermes-3-Llama-3.1-8B.Q4_K_M.gguf (4.9 GB)  
+**LLM auto-start:** Host broker :8182 → llama-server :8181 via `ensure_llm(label="B4")`  
+**Тест:** `backend/tests/gameplay/test_butterfly_b4_verified_belief.py`
+
+### 15.1. Участники прогона (6 NPC одновременно)
+
+| NPC | Роль | Поведение в прогоне |
+|---|---|---|
+| `maid_lusya` | Свидетель + переносчик слуха | Передаёт слух Торнину (1 раз, FEARFUL), затем зацикливается на подвале (5 раз) |
+| `tavern_keeper_tornin` | Жертва оскорбления | Отвечает Люсье (4 реплики, ANGRY), но не про оскорбление |
+| `blacksmith_orm` | Кузнец Орм | Говорит про вред торговцев кузнечному делу |
+| `merchant_goran` | Торговец Горан | Приветствует гостя в магазине |
+| `guard_borko` | Стражник Борко | Тикает, говорит (verbatim из verifier logs) |
+| `thief_shadow` | Вор | Тикает, движение заблокировано (no path to exit_south) |
+
+### 15.2. Оскорбление Торнина — verified transmission
+
+**Сценарий:** Игрок оскорбляет Торнина (PLAYER_INSULTS, tick 2) → Люсья воспринимает → передаёт слух Торнину.
+
+**Результат (tick 5):**
+
+```
+maid_lusya → tavern_keeper_tornin
+  text: "Господин Торнин, мне рассказали о том, что Tester вас обидел.
+         Я это знаю и хотела вам сообщить. Но будьте осторожен, он может быть опасен."
+  intent_type: spread_rumor
+  tone: FEARFUL
+  event_tick: 5
+```
+
+**Verifier:** YES (confirmed)  
+**Proposition:** `{'subject_id':'player', 'predicate':'insulted', 'object_id':'tavern_keeper_tornin', 'polarity':True}`  
+**COMMUNICATION_CLAIM:** delivered (source=maid_lusya, target=tavern_keeper_tornin, verified_by=proposition_verifier)
+
+**Когнитивная цепочка доказана end-to-end через production game loop:**
+```
+PLAYER_INSULTS → EpistemicStore(Lusya) → report_proposition → spread_rumor →
+DialogueExecutor → claim block → LLM → verifier YES → COMMUNICATION_CLAIM →
+membrane → BeliefRevisionEngine → EpistemicStore(Tornin)
+```
+
+### 15.3. Реакция Торнина — голос есть, но не про оскорбление
+
+**4 реплики от Торнина, все адресованы Люсье, все tone=ANGRY:**
+
+| Tick | Text | Intent | LLM/Template |
+|---|---|---|---|
+| 5 | «По ночам слышны крики со стороны старой башни.» | talk | **LLM** ✅ |
+| 7 | `[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение` | spread_rumor | **template** ⚠️ |
+| 10 | `[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение` | spread_rumor | **template** ⚠️ |
+| 12 | `[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: встреча` | spread_rumor | **template** ⚠️ |
+
+**Анализ:**
+- Торнин отвечает Люсье в **тот же tick** (tick 5) — сразу после её речи об оскорблении
+- Tone=ANGRY — эмоциональная реакция на полученную информацию
+- Но **текст не про оскорбление** — первая реплика про ночные крики у башни
+- Реплики 2-4 — **template fallback**, LLM generation упала
+- Причина: `confidence=0.215 < REPORT_CONFIDENCE_THRESHOLD=0.25` → cognition context empty → Tornin не может использовать insult proposition для генерации речи
+
+**Вывод:** Торнин **имеет собственный голос** (4 реплики, ANGRY, адресованы Lusya). Он услышал слух, отреагировал эмоционально, но не смог сформулировать реакцию на оскорбление. Cognition gate блокирует использование полученного belief.
+
+### 15.4. Общение трёх НПС одновременно
+
+**6 NPC тикают в каждом tick:** guard_borko, merchant_goran, maid_lusya, blacksmith_orm, thief_shadow, tavern_keeper_tornin.
+
+**Трёхстороннее общение (Lusya ↔ Tornin + Goran/Orm в фоне):**
+
+| NPC | Реплика (фрагмент) | → Target | Tone | Verifier |
+|---|---|---|---|---|
+| Lusya | «Господин Торнин, мне рассказали о том, что Tester вас обидел...» | Tornin | FEARFUL | **YES** |
+| Lusya | «Я слышала, что ночью оттуда доносится крики...» | Tornin | FEARFUL | NO |
+| Lusya | «в подвале что-то происходит. Там доносится плач и стоны...» | Tornin | FEARFUL | NO |
+| Tornin | «По ночам слышны крики со стороны старой башни.» | Lusya | ANGRY | — |
+| Tornin | `[Intent.SPREAD_RUMOR] ... наблюдение` | Lusya | ANGRY | — |
+| Goran | «Дорогой гость, я рад приветствовать вас в моём магазине...» | ? | — | NO |
+| Orm | «эти торговцы вредят нашей кузнечной делу...» | ? | — | NO |
+| ? | «Да, чужеземцы разводят непонятные сказы и подрывают цены...» | Tornin? | — | **YES** |
+| ? | «Аа, Торнин, что за природа такая? В стражу не попалось...» | Tornin | — | **YES** |
+| ? | «Аа, Торнин, я слышал, что тебе не везет с охраной...» | Tornin | — | **YES** |
+
+**Verifier statistics:** 22 records, 4 YES / 18 NO, all proposition=(player, insulted, tornin, polarity=True), linkage_complete=true.
+
+### 15.5. Характер мира — наблюдения
+
+| NPC | Характер (из реплик) |
+|---|---|
+| **Lusya** | Заботливая, fearful — передаёт слух об оскорблении, предупреждает об опасности. Склонна к зацикливанию (5 реплик про подвал после 1 про оскорбление) |
+| **Tornin** | Раздражён (ANGRY), отвечает Lusya в тот же tick. Но не может сформулировать реакцию на оскорбление — cognition gate блокирует. 3 из 4 реплик — template fallback |
+| **Goran** | Деловой, нейтральный — «Дорогой гость, я рад приветствовать вас в моём магазине» |
+| **Orm** | Недовольный конкурентами — «эти торговцы вредят нашей кузнечной делу» |
+| **Borko** | Тикает, говорит (verbatim из verifier logs) |
+| **Shadow** | Тикает, движение заблокировано (no path to exit_south — spatial graph defect) |
+
+### 15.6. Артефакты прогона
+
+- **Transcript JSON:** `backend/tests/gameplay/data/b4_transcript.json`
+  - `spoke_events` — все NPC_SPOKE с полным payload
+  - `claim_events` — все COMMUNICATION_CLAIM с proposition
+  - `verifier_records` — все verifier log records (status, proposition, level, message)
+  - `claim_to_verifier_linkage` — связь через proposition-dict с polarity, linkage_complete flag
+  - `tornin_reactions` — 4 spoke events, tone=ANGRY
+  - `lusya_to_tornin` — 6 spoke events + 1 claim
+  - `hypotheses_for_research` — 3 гипотезы (marked as research, NOT diagnostics)
+- **stdout:** ALL NPC SPEECH (полный текст) + TORNIN REACTIONS + LUSYA → TORNIN + HYPOTHESES
+
+### 15.7. Критерии успешности — пересмотр
+
+| Критерий (из секции 10) | Статус | Доказательство |
+|---|---|---|
+| NPC самостоятельно сообщает слух | ✅ | Lusya передаёт слух без сценария |
+| Слух доходит через реальный разговор | ✅ | COMMUNICATION_CLAIM delivered через membrane |
+| Verifier подтверждает семантику | ✅ | 4 YES для proposition=(player, insulted, tornin, polarity=True) |
+| Получатель слышит (EpistemicStore updated) | ✅ | Tornin EpistemicStore has INSULTED record |
+| Получатель реагирует | ⚠️ | Tornin отвечает (ANGRY) но не про оскорбление |
+| Реакция использует полученное знание | ❌ | Cognition gate (confidence < 0.25) блокирует |
+| Несколько NPC говорят одновременно | ✅ | 6 NPC тикают, 22 verifier records |
+
+### 15.8. Обнаруженные дефекты (для последующих этапов)
+
+1. **Cognition threshold (B4-COGNITION)** — `REPORT_CONFIDENCE_THRESHOLD=0.25`, Tornin confidence=0.215 → context empty
+2. **Template fallback (B4-TEMPLATE)** — 3 из 4 реплик Tornin = template, LLM generation упала
+3. **Lusya зацикливание** — 5 реплик про подвал после 1 про оскорбление (cold-start?)
+4. **Spatial graph defect** — thief_shadow no path to exit_south (не cognition, но влияет на поведение)
+5. **chronicle_seeder warnings** — множество «связь на неразрешённую сущность» (предсуществующие, не от B4)
+
+### 15.9. Главный вывод эксперимента
+
+> есть ли у Торнина собственный голос после того, как его оскорбили
+
+**Да, голос есть. Но он не про оскорбление.**
+
+Торнин зол (ANGRY), говорит Люсье, но его слова — про ночные крики. Он услышал слух, отреагировал эмоционально, но не смог сформулировать реакцию на оскорбление. Это не дефект Tornin — это **cognition calibration issue**: `confidence=0.215` не достигает threshold `0.25`, поэтому `EpistemicContextResolver` не возвращает proposition для генерации речи.
+
+**Когнитивная инфраструктура работает.** Опыт → память → убеждение → доставка → речь — цепочка доказана через production game loop с живым LLM. Следующий шаг — калибровка threshold, чтобы полученное знание не просто доставлялось, но и **использовалось**.
+
+---
+
+*B4 section добавлен 2026-11-07.  
+Эксперимент проведён на `021aa7c9` (V.0.5.4.5.8_Полшага_5).  
+Transcript: `backend/tests/gameplay/data/b4_transcript.json`*
+
+
+
 ---
 
 ## Приложение А. Быстрая карта файлов (только то, что касается эксперимента)

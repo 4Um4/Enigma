@@ -3,7 +3,7 @@
   "location_id": "market_square",
   "label": "Торговая площадь",
   "origin": {
-    "x": 20.033333333333324,
+    "x": 25.033333333333328,
     "y": 20.018000000000008
   },
   "size": {
@@ -201,7 +201,7 @@
   },
   "global_coords": true,
   "created_at": "2026-06-09T00:00:00",
-  "modified_at": "2026-10-31T11:39:23.254863",
+  "modified_at": "2026-11-07T20:55:58.958578",
   "adjacency": {
     "north": "tavern"
   },

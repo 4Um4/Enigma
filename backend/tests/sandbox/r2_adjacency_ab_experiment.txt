@@ -1,0 +1,322 @@
+==============================================================================
+R2-ADJACENCY-AB-EXPERIMENT — controlled A/B comparison
+Map file: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\locations\tavern.json
+==============================================================================
+
+==============================================================================
+STEP 1: Load original tavern.json (VARIANT A — original)
+==============================================================================
+Original adjacency: {'east': 'city_gate', 'south': 'market_square'}
+Original nodes count: 16
+Original walls count: 8
+Original objects count: 34
+
+==============================================================================
+STEP 2: Create VARIANT B (remove adjacency.east)
+==============================================================================
+Before: {'east': 'city_gate', 'south': 'market_square'}
+After: {'south': 'market_square'}
+
+==============================================================================
+STEP 3: Import compile_graph
+==============================================================================
+Imported from: app.services.spatial.graph_compiler
+Function: <function compile_graph at 0x0000011FD40EBF60>
+
+==============================================================================
+STEP 4: Compile VARIANT A (original — with adjacency.east)
+==============================================================================
+
+--- VARIANT A (original) ---
+  Total nodes in graph: 18
+  Boundary nodes: 2
+  boundary_map entries: 2
+  walls: 11
+  connections: 24 edges
+
+  All node IDs:
+    tavern:bar_area                          (4.5, 6.5)  role=NodeRole.BAR 
+    tavern:bar_pass_north                    (2.2, 6.0)  role=NodeRole.DEFAULT 
+    tavern:bar_side                          (2.2, 3.1371200000000004)  role=NodeRole.DEFAULT 
+    tavern:bar_west                          (5.5, 4.5)  role=NodeRole.DEFAULT 
+    tavern:behind_bar                        (3.8617600000000003, 2.79264)  role=NodeRole.INN_DESK 
+    tavern:corner_table                      (11.0, 10.0)  role=NodeRole.DARK_CORNER 
+    tavern:entrance                          (8.163823945473249, 13.033182098765433)  role=NodeRole.ENTRANCE 
+    tavern:exit_east                         (44.03333333333333, 12.518000000000008)  role=NodeRole.BOUNDARY ← BOUNDARY
+    tavern:exit_south                        (35.03333333333333, 6.018000000000007)  role=NodeRole.BOUNDARY ← BOUNDARY
+    tavern:fireplace                         (10.5, 3.0)  role=NodeRole.DEFAULT 
+    tavern:kitchen                           (16.712863297325104, 2.3801183127572014)  role=NodeRole.SERVING_STATION 
+    tavern:kitchen_bed_1                     (15.154274048353907, 6.357121270576132)  role=NodeRole.BED 
+    tavern:kitchen_bed_2                     (18.442637602880655, 6.266120113168724)  role=NodeRole.BED 
+    tavern:main_hall                         (6.5, 5.5)  role=NodeRole.DEFAULT 
+    tavern:main_hall_south                   (5.5, 6.0)  role=NodeRole.DEFAULT 
+    tavern:main_hall_west                    (6.0, 8.0)  role=NodeRole.DEFAULT 
+    tavern:node_16                           (13.908, 3.192)  role=NodeRole.DEFAULT 
+    tavern:right_table                       (10.5, 6.5)  role=NodeRole.TABLE 
+
+  boundary_map (full):
+{
+  "tavern:exit_east": {
+    "neighbor_chunk": "city_gate",
+    "node_id": "tavern:exit_east",
+    "x": 44.03333333333333,
+    "y": 12.518000000000008,
+    "direction": "east",
+    "entry_direction": "west",
+    "entry_node_hint": "city_gate:exit_west"
+  },
+  "tavern:exit_south": {
+    "neighbor_chunk": "market_square",
+    "node_id": "tavern:exit_south",
+    "x": 35.03333333333333,
+    "y": 6.018000000000007,
+    "direction": "south",
+    "entry_direction": "north",
+    "entry_node_hint": "market_square:exit_north"
+  }
+}
+
+  connections (first 20):
+    tavern:bar_area ↔ tavern:bar_pass_north
+    tavern:bar_area ↔ tavern:bar_west
+    tavern:bar_area ↔ tavern:main_hall_west
+    tavern:bar_pass_north ↔ tavern:bar_area
+    tavern:bar_pass_north ↔ tavern:bar_side
+    tavern:bar_pass_north ↔ tavern:bar_west
+    tavern:bar_side ↔ tavern:bar_pass_north
+    tavern:bar_side ↔ tavern:behind_bar
+    tavern:bar_west ↔ tavern:bar_area
+    tavern:bar_west ↔ tavern:bar_pass_north
+    tavern:bar_west ↔ tavern:main_hall
+    tavern:behind_bar ↔ tavern:bar_side
+    tavern:behind_bar ↔ tavern:fireplace
+    tavern:corner_table ↔ tavern:entrance
+    tavern:corner_table ↔ tavern:main_hall_west
+    tavern:corner_table ↔ tavern:right_table
+    tavern:entrance ↔ tavern:corner_table
+    tavern:entrance ↔ tavern:main_hall_west
+    tavern:entrance ↔ tavern:node_16
+    tavern:fireplace ↔ tavern:behind_bar
+    ... (more edges)
+
+  logs (last 3000 chars):
+    app.services.spatial.graph_compiler [DEBUG] [GRAPH_COMPILER] Orphan room 'room_1' пропущена (nav layer active).
+    app.services.spatial.graph_compiler [DEBUG] [GRAPH_COMPILER] Orphan room 'room_0' пропущена (nav layer active).
+    app.services.spatial.graph_compiler [INFO] [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+    app.services.spatial.graph_compiler [INFO] [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+    app.services.spatial.graph_compiler [INFO] [GRAPH_COMPILER] tavern: compiled 18 nodes, 26 edges, 40 aliases, 2 boundaries (nav=True, rooms=True)
+    app.services.spatial.graph_compiler [DEBUG] [DIAG_SPLIT] wall_7 openings=1 segments=2
+    app.services.spatial.graph_compiler [DEBUG] [DIAG_SPLIT_SEG] {'x1': 14.0, 'y1': 8.0, 'x2': 14.0, 'y2': 4.5}
+    app.services.spatial.graph_compiler [DEBUG] [DIAG_SPLIT_SEG] {'x1': 14.0, 'y1': 1.5, 'x2': 14.0, 'y2': 0.5}
+    app.services.spatial.graph_compiler [DEBUG] [DIAG_RETURN] spatial_walls_count=11
+    app.services.spatial.graph_compiler [WARNING] [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 crosses solid wall. Missing door wall_id? Blocker: WALL {'x1': 19.5, 'y1': 0.5, 'x2': 19.5, 'y2': 8.0}. Edge removed from graph.
+    FIX: Добавьте door wall_id в стену (WALL {'x1': 19.5, 'y1': 0.5, 'x2': 19.5, 'y2': 8.0}) в файле карты, либо удалите ребро tavern:exit_east -> tavern:kitchen_bed_2 из графа.
+    app.services.spatial.graph_compiler [WARNING] [SPATIAL_VALIDATION] tavern: edge tavern:exit_south -> tavern:kitchen_bed_2 crosses solid wall. Missing door wall_id? Blocker: WALL {'x1': 19.5, 'y1': 0.5, 'x2': 19.5, 'y2': 8.0}. Edge removed from graph.
+    FIX: Добавьте door wall_id в стену (WALL {'x1': 19.5, 'y1': 0.5, 'x2': 19.5, 'y2': 8.0}) в файле карты, либо удалите ребро tavern:exit_south -> tavern:kitchen_bed_2 из графа.
+    
+
+==============================================================================
+STEP 5: Compile VARIANT B (without adjacency.east)
+==============================================================================
+
+--- VARIANT B (no east) ---
+  Total nodes in graph: 17
+  Boundary nodes: 1
+  boundary_map entries: 1
+  walls: 11
+  connections: 24 edges
+
+  All node IDs:
+    tavern:bar_area                          (4.5, 6.5)  role=NodeRole.BAR 
+    tavern:bar_pass_north                    (2.2, 6.0)  role=NodeRole.DEFAULT 
+    tavern:bar_side                          (2.2, 3.1371200000000004)  role=NodeRole.DEFAULT 
+    tavern:bar_west                          (5.5, 4.5)  role=NodeRole.DEFAULT 
+    tavern:behind_bar                        (3.8617600000000003, 2.79264)  role=NodeRole.INN_DESK 
+    tavern:corner_table                      (11.0, 10.0)  role=NodeRole.DARK_CORNER 
+    tavern:entrance                          (8.163823945473249, 13.033182098765433)  role=NodeRole.ENTRANCE 
+    tavern:exit_south                        (35.03333333333333, 6.018000000000007)  role=NodeRole.BOUNDARY ← BOUNDARY
+    tavern:fireplace                         (10.5, 3.0)  role=NodeRole.DEFAULT 
+    tavern:kitchen                           (16.712863297325104, 2.3801183127572014)  role=NodeRole.SERVING_STATION 
+    tavern:kitchen_bed_1                     (15.154274048353907, 6.357121270576132)  role=NodeRole.BED 
+    tavern:kitchen_bed_2                     (18.442637602880655, 6.266120113168724)  role=NodeRole.BED 
+    tavern:main_hall                         (6.5, 5.5)  role=NodeRole.DEFAULT 
+    tavern:main_hall_south                   (5.5, 6.0)  role=NodeRole.DEFAULT 
+    tavern:main_hall_west                    (6.0, 8.0)  role=NodeRole.DEFAULT 
+    tavern:node_16                           (13.908, 3.192)  role=NodeRole.DEFAULT 
+    tavern:right_table                       (10.5, 6.5)  role=NodeRole.TABLE 
+
+  boundary_map (full):
+{
+  "tavern:exit_south": {
+    "neighbor_chunk": "market_square",
+    "node_id": "tavern:exit_south",
+    "x": 35.03333333333333,
+    "y": 6.018000000000007,
+    "direction": "south",
+    "entry_direction": "north",
+    "entry_node_hint": "market_square:exit_north"
+  }
+}
+
+  connections (first 20):
+    tavern:bar_area ↔ tavern:bar_pass_north
+    tavern:bar_area ↔ tavern:bar_west
+    tavern:bar_area ↔ tavern:main_hall_west
+    tavern:bar_pass_north ↔ tavern:bar_area
+    tavern:bar_pass_north ↔ tavern:bar_side
+    tavern:bar_pass_north ↔ tavern:bar_west
+    tavern:bar_side ↔ tavern:bar_pass_north
+    tavern:bar_side ↔ tavern:behind_bar
+    tavern:bar_west ↔ tavern:bar_area
+    tavern:bar_west ↔ tavern:bar_pass_north
+    tavern:bar_west ↔ tavern:main_hall
+    tavern:behind_bar ↔ tavern:bar_side
+    tavern:behind_bar ↔ tavern:fireplace
+    tavern:corner_table ↔ tavern:entrance
+    tavern:corner_table ↔ tavern:main_hall_west
+    tavern:corner_table ↔ tavern:right_table
+    tavern:entrance ↔ tavern:corner_table
+    tavern:entrance ↔ tavern:main_hall_west
+    tavern:entrance ↔ tavern:node_16
+    tavern:fireplace ↔ tavern:behind_bar
+    ... (more edges)
+
+  logs (last 3000 chars):
+    app.services.spatial.graph_compiler [DEBUG] [GRAPH_COMPILER] Orphan room 'room_1' пропущена (nav layer active).
+    app.services.spatial.graph_compiler [DEBUG] [GRAPH_COMPILER] Orphan room 'room_0' пропущена (nav layer active).
+    app.services.spatial.graph_compiler [INFO] [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+    app.services.spatial.graph_compiler [INFO] [GRAPH_COMPILER] tavern: compiled 17 nodes, 25 edges, 39 aliases, 1 boundaries (nav=True, rooms=True)
+    app.services.spatial.graph_compiler [DEBUG] [DIAG_SPLIT] wall_7 openings=1 segments=2
+    app.services.spatial.graph_compiler [DEBUG] [DIAG_SPLIT_SEG] {'x1': 14.0, 'y1': 8.0, 'x2': 14.0, 'y2': 4.5}
+    app.services.spatial.graph_compiler [DEBUG] [DIAG_SPLIT_SEG] {'x1': 14.0, 'y1': 1.5, 'x2': 14.0, 'y2': 0.5}
+    app.services.spatial.graph_compiler [DEBUG] [DIAG_RETURN] spatial_walls_count=11
+    app.services.spatial.graph_compiler [WARNING] [SPATIAL_VALIDATION] tavern: edge tavern:exit_south -> tavern:kitchen_bed_2 crosses solid wall. Missing door wall_id? Blocker: WALL {'x1': 19.5, 'y1': 0.5, 'x2': 19.5, 'y2': 8.0}. Edge removed from graph.
+    FIX: Добавьте door wall_id в стену (WALL {'x1': 19.5, 'y1': 0.5, 'x2': 19.5, 'y2': 8.0}) в файле карты, либо удалите ребро tavern:exit_south -> tavern:kitchen_bed_2 из графа.
+    
+
+==============================================================================
+STEP 6: COMPARE A vs B
+==============================================================================
+
+Node IDs only in A (exist when east is present): 1
+  tavern:exit_east  (44.03333333333333, 12.518000000000008)  role=NodeRole.BOUNDARY
+
+Node IDs only in B (exist when east is removed): 0
+
+Boundary nodes only in A: 1
+  tavern:exit_east
+Boundary nodes only in B: 0
+
+Edges only in A: 0
+Edges only in B: 0
+
+boundary_map entries only in A: 1
+  tavern:exit_east: {'neighbor_chunk': 'city_gate', 'node_id': 'tavern:exit_east', 'x': 44.03333333333333, 'y': 12.518000000000008, 'direction': 'east', 'entry_direction': 'west', 'entry_node_hint': 'city_gate:exit_west'}
+boundary_map entries only in B: 0
+
+==============================================================================
+STEP 7: Investigate 'tavern:exit_east' in both variants
+==============================================================================
+
+--- A: tavern:exit_east ---
+  EXISTS in graph
+  x=44.03333333333333, y=12.518000000000008
+  role=NodeRole.BOUNDARY
+  tags=['boundary:exit']
+  Authored in JSON: False
+  Connections: []
+  boundary_map entry: {'neighbor_chunk': 'city_gate', 'node_id': 'tavern:exit_east', 'x': 44.03333333333333, 'y': 12.518000000000008, 'direction': 'east', 'entry_direction': 'west', 'entry_node_hint': 'city_gate:exit_west'}
+
+--- B: tavern:exit_east ---
+  NOT in graph
+
+==============================================================================
+STEP 8: FLEE target selection — which node would get_furthest return?
+==============================================================================
+
+Threat position: fireplace at (10.5, 3.0)
+
+--- A: candidates for get_furthest ---
+  FURTHEST node: tavern:exit_east (distance=34.858)
+    coords: (44.03333333333333, 12.518000000000008)
+    role: NodeRole.BOUNDARY
+
+--- B: candidates for get_furthest ---
+  FURTHEST node: tavern:exit_south (distance=24.718)
+    coords: (35.03333333333333, 6.018000000000007)
+    role: NodeRole.BOUNDARY
+
+==============================================================================
+STEP 9: Trace route Tavern → Market Square → City Gate
+==============================================================================
+
+Original adjacency: {'east': 'city_gate', 'south': 'market_square'}
+
+--- Tavern's boundary_map (VARIANT A) ---
+  tavern:exit_east:
+    neighbor_chunk: city_gate
+    entry_direction: west
+    entry_node_hint: city_gate:exit_west
+    direction: east
+    coords: (44.03333333333333, 12.518000000000008)
+  tavern:exit_south:
+    neighbor_chunk: market_square
+    entry_direction: north
+    entry_node_hint: market_square:exit_north
+    direction: south
+    coords: (35.03333333333333, 6.018000000000007)
+
+--- Tavern's boundary_map (VARIANT B) ---
+  tavern:exit_south:
+    neighbor_chunk: market_square
+    entry_direction: north
+    entry_node_hint: market_square:exit_north
+    direction: south
+    coords: (35.03333333333333, 6.018000000000007)
+
+--- Checking market_square.json for adjacency ---
+market_square adjacency: {'north': 'tavern'}
+market_square nodes (with exit_*): 
+
+--- Checking city_gate.json for adjacency ---
+city_gate adjacency: {'west': 'tavern'}
+city_gate nodes (with exit_*): 
+
+==============================================================================
+STEP 10: VERDICT
+==============================================================================
+
+HYPOTHESIS: adjacency.east = "city_gate" creates phantom eastern boundary nodes
+            that interfere with FLEE target selection.
+
+EVIDENCE:
+  - VARIANT A (with east): 2 boundary nodes
+    IDs: ['tavern:exit_east', 'tavern:exit_south']
+
+  - VARIANT B (no east): 1 boundary nodes
+    IDs: ['tavern:exit_south']
+
+  - Boundary nodes only in A (created by east adjacency):
+    ['tavern:exit_east']
+
+  - Boundary nodes only in B:
+    []
+
+  - FLEE target (furthest from fireplace (10.5, 3.0)):
+    A: see Step 8 for details
+    B: see Step 8 for details
+
+CONCLUSION (based on evidence above):
+  CONFIRMED: adjacency.east creates phantom boundary node tavern:exit_east
+
+  ROUTE ANALYSIS:
+  Tavern → Market Square: through south boundary (entry_node_hint in boundary_map)
+  Market Square → City Gate: depends on market_square.json adjacency
+
+  If hypothesis is confirmed:
+    Minimal diff: remove "east": "city_gate" from tavern.json adjacency
+    Effect: tavern:exit_east will not be synthesized (it's already authored in nodes)
+           OR tavern:exit_east IS authored and remains — check Step 7
+
+  WAIT FOR MASTER'S DECISION before any production change.
+

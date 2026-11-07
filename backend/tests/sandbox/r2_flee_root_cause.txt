@@ -1,0 +1,584 @@
+==============================================================================
+R2-FLEE-ROOT-CAUSE archaeology — find EXACT root cause
+TAVERN_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\locations\tavern.json
+==============================================================================
+
+==============================================================================
+STEP 1: graph_compiler.py — как загружаются nodes в graph
+==============================================================================
+
+--- Поиск циклов загрузки nodes ---
+  L97:             canonical_id = f"{location_id}:{node_id}"
+  L112:                 node_id=canonical_id,
+  L119:                     node_id=node_id,
+  L126:             graph[canonical_id] = node_ref
+  L219:             canonical_id = f"{location_id}:{room_id}"
+  L241:                         _nav_match = f"{location_id}:{nid}"
+  L258:                         _nav_match = f"{location_id}:{nid}"
+  L289:                 node_id=canonical_id,
+  L295:                     node_id=room_id,
+  L301:             graph[canonical_id] = node_ref
+  L325:             from_canonical = alias_map.get(node_id, f"{location_id}:{node_id}")
+  L327:                 to_canonical = alias_map.get(target_id, f"{location_id}:{target_id}")
+  L349:             from_canonical = alias_map.get(from_legacy, f"{location_id}:{from_legacy}")
+  L350:             to_canonical = alias_map.get(to_legacy, f"{location_id}:{to_legacy}")
+  L805:         loc_file = d / f"{location_id}.json"
+  L936:         boundary_id = f"{location_id}:exit_{direction}"
+  L944:             node_id=boundary_id,
+  L952:         graph[boundary_id] = boundary_node
+
+--- compile_graph function — find node loading section ---
+
+Found compile_graph at L44
+L  44: def compile_graph(
+L  45:     editor_data: Dict[str, Any],
+L  46:     location_id: str,
+L  47:     level: Optional[str] = None,
+L  48: ) -> Tuple[
+L  49:     Dict[str, NodeRef],
+L  50:     Dict[str, Set[str]],
+L  51:     Dict[str, str],
+L  52:     Dict[str, Dict[str, Any]],
+L  53:     Dict[str, List[Tuple[float, float]]],
+L  54:     List[Dict[str, Any]],
+L  55:     List[Dict[str, Any]],
+L  56:     List[Dict[str, Any]],
+L  57: ]:
+L  58:     """Компилирует editor JSON в runtime graph + alias_map.
+L  59: 
+L  60:     Аргументы:
+L  61:         editor_data: словарь из editor JSON (с ключами "nodes", "passages")
+L  62:         location_id: идентификатор локации (напр. "tavern_silver_wolf")
+L  63:         level: вертикальный уровень (ground, basement, floor_2)
+L  64: 
+L  65:     Возвращает:
+L  66:         (graph, alias_map)
+L  67:         graph: dict[canonical_id, NodeRef]
+L  68:         alias_map: dict[legacy_id, canonical_id]
+L  69:     """
+L  70:     if not editor_data:
+L  71:         logger.error(
+L  72:             f"[GRAPH_COMPILER] editor_data is None для {location_id}. Возвращаем пустой граф."
+L  73:         )
+L  74:         return {}, {}, {}, {}, {}, [], [], []
+L  75: 
+L  76:     graph: Dict[str, NodeRef] = {}
+L  77:     connections: Dict[str, Set[str]] = {}
+L  78:     alias_map: Dict[str, str] = {}
+L  79: 
+L  80:     # ADR-121: Двухслойная топология
+L  81:     # "nodes" (dict) — навигационная топология (точки пути + связи между ними)
+L  82:     # "rooms" (list) — физические контейнеры (bounding boxes для LOS/коллизий)
+L  83:     # Оба слоя существуют одновременно и компилируются параллельно.
+L  84:     # Ни один слой не деградирует при наличии другого.
+L  85:     nodes_raw = editor_data.get("nodes") or {}
+L  86:     rooms_raw = editor_data.get("rooms")
+L  87:     _has_nav = isinstance(nodes_raw, dict) and bool(nodes_raw)
+L  88:     _has_rooms = isinstance(rooms_raw, (list, dict)) and bool(rooms_raw)
+L  89: 
+L  90:     # ── Layer 1: Навигационная топология (nodes) ──────────────────
+L  91:     # Навигационные узлы имеют точные координаты и явные связи.
+L  92:     # Это первичный слой для pathfinding и семантического резолва.
+L  93:     if _has_nav:
+L  94:         for node_id, node_data in nodes_raw.items():
+L  95:             if not isinstance(node_data, dict):
+L  96:                 continue
+L  97:             canonical_id = f"{location_id}:{node_id}"
+L  98:             nx = node_data.get("x", 0.0)
+L  99:             ny = node_data.get("y", 0.0)
+L 100:             node_label = node_data.get("label", node_data.get("name", node_id))
+L 101: 
+L 102:             # ADR-O-326: JSON role is absolute truth (SSOT). No guessing if role is explicit.
+L 103:             _json_role = node_data.get("role")
+L 104:             _manifest = None
+L 105:             if _json_role:
+L 106:                 try:
+L 107:                     _manifest = NodeRole(_json_role)
+L 108:                 except ValueError:
+L 109:                     _manifest = None
+L 110: 
+L 111:             node_ref = NodeRef(
+L 112:                 node_id=canonical_id,
+L 113:                 x=nx,
+L 114:                 y=ny,
+L 115:                 role=resolve_role(
+L 116:                     node_label=node_label,
+L 117:                     editor_type=node_data.get("type"),
+L 118:                     editor_tags=node_data.get("tags", []),
+L 119:                     node_id=node_id,
+L 120:                     manifest_override=_manifest
+L 121:                 ),
+L 122:                 tags=node_data.get("tags", []),
+L 123:                 zone_id=location_id,
+L 124:                 level=level,
+L 125:             )
+L 126:             graph[canonical_id] = node_ref
+L 127:             alias_map[node_id] = canonical_id
+L 128: 
+L 129:             # name-alias (label → canonical_id)
+L 130:             if node_label and node_label.lower() not in alias_map:
+L 131:                 alias_map[node_label.lower()] = canonical_id
+L 132: 
+L 133:             # Явные алиасы из editor JSON
+L 134:             for alias in node_data.get("aliases", []):
+L 135:                 alias_map[alias.lower()] = canonical_id
+L 136: 
+L 137:             # ADR-114: Role-based legacy aliases
+L 138:             _legacy_names = _ROLE_LEGACY_ALIASES.get(node_ref.role, set())
+L 139:             for _alias in _legacy_names:
+L 140:                 if _alias not in alias_map:
+L 141:                     alias_map[_alias] = canonical_id
+L 142: 
+L 143:     # ── Layer 2: Физические контейнеры (rooms) ────────────────────
+L 144:     # Комнаты — bounding boxes для LOS, коллизий, контейнмента.
+L 145:     # Добавляются в граф ТОЛЬКО если не представлены навигационными узлами.
+L 146:     # Комнаты с навигационным представлением обогащают alias_map своими именами.
+L 147:     rooms: Dict[str, Dict[str, Any]] = {}
+L 148:     if _has_rooms:
+L 149:         if isinstance(rooms_raw, list):
+L 150:             for item in rooms_raw:
+L 151:                 if isinstance(item, dict):
+L 152:                     rid: str = str(item.get("id", item.get("room_id", f"room_{len(rooms)}")))
+L 153:                     rooms[rid] = item
+L 154:         elif isinstance(rooms_raw, dict):
+L 155:             rooms = dict(rooms_raw)
+L 156: 
+L 157:         if rooms:
+L 158:             # ADR-091: Фильтрация container-комнат (внешних границ)
+L 159:             room_ids = list(rooms.keys())
+L 160:             container_ids = set()
+L 161:             for i in range(len(room_ids)):
+L 162:                 for j in range(len(room_ids)):
+L 163:                     if i == j:
+L 164:                         continue
+L 165:                     r1 = rooms[room_ids[i]]
+L 166:                     r2 = rooms[room_ids[j]]
+L 167:                     x1_min, y1_min = r1.get("x", 0.0), r1.get("y", 0.0)
+L 168:                     x1_max = x1_min + r1.get("width", 0.0)
+L 169:                     y1_max = y1_min + r1.get("height", 0.0)
+L 170:                     x2_min, y2_min = r2.get("x", 0.0), r2.get("y", 0.0)
+L 171:                     x2_max = x2_min + r2.get("width", 0.0)
+L 172:                     y2_max = y2_min + r2.get("height", 0.0)
+L 173:                     if (
+L 174:                         x1_min <= x2_min + 0.5
+L 175:                         and y1_min <= y2_min + 0.5
+L 176:                         and x1_max >= x2_max - 0.5
+L 177:                         and y1_max >= y2_max - 0.5
+L 178:                     ):
+L 179:                         container_ids.add(room_ids[i])
+L 180:                         logger.warning(
+L 181:                             f"[GRAPH_COMPILER] Комната '{room_ids[i]}' содержит "
+L 182:                             f"'{room_ids[j]}'. Это внешняя граница — исключена."
+L 183:                         )
+L 184:             if container_ids:
+L 185:                 rooms = {
+L 186:                     rid: data for rid, data in rooms.items() if rid not in container_ids
+L 187:                 }
+L 188: 
+L 189:     if not _has_nav and not rooms:
+L 190:         logger.warning(f"[GRAPH_COMPILER] Нет узлов (rooms/nodes) в {location_id}")
+L 191:         return {}, {}, {}, {}, {}, [], [], []
+L 192: 
+L 193:     # ── Извлечение физической геометрии (ETKE-IK v1) ─────────────
+
+==============================================================================
+STEP 2: _create_boundary_nodes — какой ключ ищется в graph
+==============================================================================
+
+--- L930-960: где _existing_node = graph.get(boundary_id) ---
+L 930:                 _nearest_node = node
+L 931: 
+L 932:         if not _nearest_node:
+L 933:             logger.warning(f"[GRAPH_COMPILER] No navigation node found to attach boundary {direction} in {location_id}")
+L 934:             continue
+L 935: 
+L 936:         boundary_id = f"{location_id}:exit_{direction}"
+L 937:         # V8-SP-15 FIX: Если в JSON уже есть узел exit_east, используем его координаты.
+L 938:         # Иначе используем anchor границы.
+L 939:         _existing_node = graph.get(boundary_id)
+L 940:         _final_x = _existing_node.x if _existing_node else _bx
+L 941:         _final_y = _existing_node.y if _existing_node else _by
+L 942: 
+L 943:         boundary_node = NodeRef(
+L 944:             node_id=boundary_id,
+L 945:             x=_final_x,
+L 946:             y=_final_y,
+L 947:             role=NodeRole.BOUNDARY,
+L 948:             tags=["boundary:exit"],
+L 949:             zone_id=location_id,
+L 950:         )
+L 951: 
+L 952:         graph[boundary_id] = boundary_node
+L 953:         alias_map[f"exit_{direction}"] = boundary_id
+L 954: 
+L 955:         # P4-01 FIX: Соединяем boundary node со всеми навигационными узлами в радиусе 3.0 м
+L 956:         # IPT-CLEANUP: Если узел уже явно прописан в JSON (_existing_node), он уже имеет связи.
+L 957:         # Автогенерация в этом случае создаёт "призрачные" рёбра сквозь стены.
+L 958:         if _existing_node is None:
+L 959:             _CONNECTION_RADIUS = 3.0
+L 960:             _connected_count = 0
+
+АНАЛИЗ:
+  boundary_id = f"{location_id}:exit_{direction}"  ← с префиксом "tavern:exit_east"
+  _existing_node = graph.get(boundary_id)             ← ищет "tavern:exit_east" в graph
+
+  Если graph хранит узлы под ключами БЕЗ префикса (просто "exit_east"),
+  то graph.get("tavern:exit_east") вернёт None → создаётся phantom.
+
+  Если graph хранит узлы под ключами С префиксом ("tavern:exit_east"),
+  то graph.get найдёт авторский узел и использует его координаты.
+
+  Probe Step 3 (runtime) подтвердит, какие именно ключи в graph.
+
+
+==============================================================================
+STEP 3: RUNTIME — dump graph keys after compile_graph
+==============================================================================
+
+>>> Graph has 18 entries
+>>> All keys in graph (sorted):
+  'tavern:bar_area'  (4.5, 6.5)  role=NodeRole.BAR
+  'tavern:bar_pass_north'  (2.2, 6.0)  role=NodeRole.DEFAULT
+  'tavern:bar_side'  (2.2, 3.1371200000000004)  role=NodeRole.DEFAULT
+  'tavern:bar_west'  (5.5, 4.5)  role=NodeRole.DEFAULT
+  'tavern:behind_bar'  (3.8617600000000003, 2.79264)  role=NodeRole.INN_DESK
+  'tavern:corner_table'  (11.0, 10.0)  role=NodeRole.DARK_CORNER
+  'tavern:entrance'  (8.163823945473249, 13.033182098765433)  role=NodeRole.ENTRANCE
+  'tavern:exit_east'  (44.03333333333333, 12.518000000000008)  role=NodeRole.BOUNDARY ← BOUNDARY (synthetic)
+  'tavern:exit_south'  (35.03333333333333, 6.018000000000007)  role=NodeRole.BOUNDARY ← BOUNDARY (synthetic)
+  'tavern:fireplace'  (10.5, 3.0)  role=NodeRole.DEFAULT
+  'tavern:kitchen'  (16.712863297325104, 2.3801183127572014)  role=NodeRole.SERVING_STATION
+  'tavern:kitchen_bed_1'  (15.154274048353907, 6.357121270576132)  role=NodeRole.BED
+  'tavern:kitchen_bed_2'  (18.442637602880655, 6.266120113168724)  role=NodeRole.BED
+  'tavern:main_hall'  (6.5, 5.5)  role=NodeRole.DEFAULT
+  'tavern:main_hall_south'  (5.5, 6.0)  role=NodeRole.DEFAULT
+  'tavern:main_hall_west'  (6.0, 8.0)  role=NodeRole.DEFAULT
+  'tavern:node_16'  (13.908, 3.192)  role=NodeRole.DEFAULT
+  'tavern:right_table'  (10.5, 6.5)  role=NodeRole.TABLE
+
+>>> Специфичная проверка: есть ли 'exit_east' (БЕЗ префикса)?
+  ✗ 'exit_east' НЕ в graph (БЕЗ префикса)
+
+>>> Специфичная проверка: есть ли 'tavern:exit_east' (С префиксом)?
+  ✓ НАЙДЕН: 'tavern:exit_east' в graph
+    x=44.03333333333333, y=12.518000000000008
+    role=NodeRole.BOUNDARY
+
+>>> Сравнение координат:
+  authored exit_east в JSON: x=8.22, y=12.45 (ЛОКАЛЬНЫЕ)
+  phantom tavern:exit_east:   x=44.03, y=12.52 (МИРОВЫЕ = origin + offset)
+  origin: x=25.033, y=5.018
+  offset for east: (origin.x + w - 1, origin.y + h/2) = (25.033+19, 5.018+7.5) = (44.033, 12.518)
+
+>>> SpatialValidator logs (последние 2000 символов):
+  INFO [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+  INFO [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+  WARNING [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 crosses solid wall. Missing door wall_id? Blocker: WALL {'x1': 19.5, 'y1': 0.5, 'x2': 19.5, 'y2': 8.0}. Edge removed from graph.
+  WARNING [SPATIAL_VALIDATION] tavern: edge tavern:exit_south -> tavern:kitchen_bed_2 crosses solid wall. Missing door wall_id? Blocker: WALL {'x1': 19.5, 'y1': 0.5, 'x2': 19.5, 'y2': 8.0}. Edge removed from graph.
+
+==============================================================================
+STEP 4: SpatialValidator — какие координаты сравниваются
+==============================================================================
+
+Вопрос: SpatialValidator сравнивает координаты стен (из JSON, локальные)
+        с координатами узлов (могут быть локальные ИЛИ мировые).
+
+        Если boundary node имеет МИРОВЫЕ координаты (44.03, 12.52),
+        а стены хранятся в ЛОКАЛЬНЫХ координатах (wall_5: x=19.5, y∈[0.5, 8.0]),
+        то отрезок exit_east(44.03, 12.52) → kitchen_bed_2(18.44, 6.27)
+        ПЕРЕСЕКАЕТ wall_5 в локальном пространстве.
+
+        Это смешение систем координат — корневая причина.
+
+        ПРОВЕРКА: SpatialValidator должен либо:
+          (a) Конвертировать boundary node в локальные координаты перед валидацией, или
+          (b) Конвертировать стены в мировые координаты перед валидацией, или
+          (c) GraphCompiler должен хранить boundary node в локальных координатах,
+              если авторский exit_X есть.
+
+
+--- _validate_navigation_geometry (L399 onwards) ---
+L 399: def _validate_navigation_geometry(
+L 400:     graph: Dict[str, Any],
+L 401:     connections: Dict[str, Set[str]],
+L 402:     spatial_walls: List[Dict[str, Any]],
+L 403:     spatial_obstacles: List[Dict[str, Any]],
+L 404:     location_id: str,
+L 405: ) -> None:
+L 406:     """S129: Проверяет, что навигационные рёбра не пересекают физическую геометрию."""
+L 407:     for from_id, neighbors in connections.items():
+L 408:         from_node = graph.get(from_id)
+L 409:         if not from_node:
+L 410:             continue
+L 411: 
+L 412:         # S137.1: Собираем заблокированные рёбра, чтобы удалить их из графа.
+L 413:         _blocked_edges = set()
+L 414:         for to_id in list(neighbors):
+L 415:             # Проверяем только A -> B, чтобы избежать дублирования логов (B -> A)
+L 416:             if from_id > to_id:
+L 417:                 continue
+L 418: 
+L 419:             to_node = graph.get(to_id)
+L 420:             if not to_node:
+L 421:                 continue
+L 422: 
+L 423:             is_blocked = False
+L 424:             _is_wall_block = False  # S-142: Честный флаг блокировки стены
+L 425:             _blocker = ""
+L 426:             # 1. Проверка стен
+L 427:             for wall in spatial_walls:
+L 428:                 if _segments_intersect(
+L 429:                     from_node.x, from_node.y, to_node.x, to_node.y,
+L 430:                     wall["x1"], wall["y1"], wall["x2"], wall["y2"]
+L 431:                 ):
+L 432:                     is_blocked = True
+L 433:                     _is_wall_block = True
+L 434:                     _blocker = f"WALL {wall}"
+L 435:                     break
+L 436: 
+L 437:             # 2. Проверка препятствий (только walk=false)
+L 438:             if not is_blocked:
+L 439:                 for obs in spatial_obstacles:
+L 440:                     if not obs.get("passability", {}).get("walk", True):
+L 441:                         if _line_rect_intersect(
+L 442:                             from_node.x, from_node.y, to_node.x, to_node.y,
+L 443:                             obs["x"], obs["y"], obs["w"], obs["h"]
+L 444:                         ):
+L 445:                             # S140: Не блокируем ребро, если препятствие можно перепрыгнуть.
+L 446:                             # LocalTraversalPlanner построит маршрут с JUMP-сегментом.
+L 447:                             if not obs.get("passability", {}).get("jump_over", False):
+L 448:                                 is_blocked = True
+L 449:                                 _blocker = f"OBSTACLE {obs.get('id', obs)}"
+L 450:                                 break
+L 451: 
+L 452:             if is_blocked:
+L 453:                 # S-142 Topology Gate: Пересечение неразрезанной стены — критическая ошибка карты.
+L 454:                 # Стена уже разрезана дверями (wall_id) на этапе _build_spatial_data.
+L 455:                 # Если ребро пересекает оставшийся сегмент — это архитектурная ошибка карты.
+L 456:                 if _is_wall_block:
+L 457:                     # BUG-TOPO-001 FIX: Временно логируем и удаляем ребро, не роняя SpatialService.
+L 458:                     logger.warning(
+L 459:                         f"[SPATIAL_VALIDATION] {location_id}: edge {from_id} -> {to_id} "
+L 460:                         f"crosses solid wall. Missing door wall_id? Blocker: {_blocker}. Edge removed from graph.\n"
+L 461:                         f"FIX: Добавьте door wall_id в стену ({_blocker}) в файле карты, либо удалите ребро {from_id} -> {to_id} из графа."
+L 462:                     )
+L 463:                     # Немедленно удаляем ребро из connections, чтобы оно не использовалось для маршрутизации
+L 464:                     if from_id in connections:
+L 465:                         connections[from_id].discard(to_id)
+L 466:                     if to_id in connections:
+L 467:                         connections[to_id].discard(from_id)
+L 468:                 else:
+L 469:                     logger.debug(f"[DEBUG_GEO_BLOCK] {from_id} ({from_node.x},{from_node.y}) -> {to_id} ({to_node.x},{to_node.y}) blocked by {_blocker}")
+L 470:                     logger.warning(
+L 471:                         f"[SPATIAL_VALIDATION] {location_id}: edge {from_id} -> {to_id} "
+L 472:                         f"is geometrically blocked! Edge removed from graph.\n"
+L 473:                         f"FIX: Проверьте координаты узлов или добавьте проход в карте."
+L 474:                     )
+L 475:                 _blocked_edges.add((from_id, to_id))
+L 476:                 _blocked_edges.add((to_id, from_id))
+L 477: 
+L 478:         # S140 FIX: Фактическое удаление заблокированных рёбер из графа.
+
+==============================================================================
+STEP 5: Y-axis orientation — интерпретация 'южной стены'
+==============================================================================
+
+Master сказал: 'У Tavern существует только один внешний выход — door_0 на южной стене.'
+
+Из probe r2_tavern_geometry_truth Step 7 (ASCII visualization):
+  wall_0: y=0.5 (минимальный Y) — по моей интерпретации ЮЖНАЯ (если Y↑=север)
+  wall_2: y=13.0 (максимальный Y) — по моей интерпретации СЕВЕРНАЯ (если Y↑=север)
+
+Но door_0 находится на wall_2 (y=13.0), НЕ на wall_0 (y=0.5).
+
+Если Master говорит, что door_0 на "южной стене", то возможны две интерпретации:
+
+ИНТЕРПРЕТАЦИЯ 1: Y↓ = север (как в screen coordinates, типично для редакторов)
+  - wall_2 (y=13) = max Y = ВНИЗУ экрана = ЮГ
+  - wall_0 (y=0.5) = min Y = ВВЕРХУ экрана = СЕВЕР
+  - door_0 на wall_2 → действительно на "южной стене" ✓
+  - exit_east (label "Выход в Город") — exit на восток, физически на wall_2
+
+ИНТЕРПРЕТАЦИЯ 2: Y↑ = север (как в world coordinates)
+  - wall_2 (y=13) = max Y = СЕВЕР
+  - wall_0 (y=0.5) = min Y = ЮГ
+  - door_0 на wall_2 → на "северной стене" ✗ противоречит Master
+
+Как проверить:
+  - В map_editor (frontend) — screen coordinates обычно Y↓
+  - В game world — зависит от конвенции
+  - global_coords: true в JSON означает, что origin используется для world mapping
+
+Если door_0 физически на wall_2 (y=13), и Master называет её "южной стеной",
+то Y в editor увеличивается ВНИЗ (screen-like), и "south" = max Y.
+
+Это означает:
+  - exit_south должен быть на wall_0 (y=0.5)? НЕТ — это север в editor convention
+  - exit_south должен быть на wall_2 (y=13)? ДА — это юг в editor convention
+  - НО! exit_south в boundary_map имеет entry_node_hint "market_square:exit_north"
+    → означает, что market_square находится к ЮГУ от tavern (в мировом смысле)
+
+Возможно, GraphCompiler использует МИРОВЫЕ координаты для boundary:
+  - north boundary = max world Y (верх мира)
+  - south boundary = min world Y (низ мира)
+  - Но tavern origin (25.033, 5.018) — южная часть мира
+  - tavern max world Y = 5.018 + 15 = 20.018 (северная часть)
+  - market_square origin (25.033, 20.018) — к СЕВЕРУ от tavern
+
+Если Master говорит "door_0 на южной стене" (wall_2, y=13), но market_square
+находится к СЕВЕРУ (world Y > tavern max Y), то:
+  - exit_south (по мировым coords) должен вести к market_square?
+  - Но exit_south в мировых coords = (origin.x + w/2, origin.y + 1) = (35.03, 6.02)
+    это НИЖЕ tavern в мировом смысле (Y=6 < origin Y=5.018 + что-то ещё)
+
+Похоже, есть СМЕШЕНИЕ:
+  - exit_south boundary node: мировые coords (35.03, 6.02) — юг мира
+  - Но market_square (adjacency.south) — к северу от tavern (world Y=20+)
+
+Вывод: adjacency.south логически ведёт к market_square, но market_square
+физически находится к СЕВЕРУ от tavern. Это противоречие в данных.
+
+ИЛИ: exit_east — это просто имя (по направлению в мире), а не направление
+физической стены. door_0 (Главный вход) на wall_2 — это вход, через который
+NPC попадает в tavern, и одновременно выход в city_gate (на восток мира).
+
+ВОЗМОЖНАЯ АВТОРСКАЯ МОДЕЛЬ:
+  - door_0 на wall_2 — Главный вход таверны (выход в город)
+  - exit_east — authored узел рядом с door_0, ведёт в city_gate (восток мира)
+  - exit_south (если бы был) — вёл бы в market_square
+  - Но фактически в tavern нет exit_south → рынок недостижим напрямую
+  - Возможно, NPC должен идти через city_gate к market_square
+
+
+--- doors in tavern.json ---
+  door_id=door_0, name=Главный вход
+    position: {'x': 8.183333333333334, 'y': 13.0}
+    wall_id: wall_2
+    target_file: 
+  door_id=door_1, name=Дверь на кухню
+    position: {'x': 14.0, 'y': 3.0}
+    wall_id: wall_7
+    target_file: 
+
+  wall_2: x1=14.0, y1=13.0, x2=0.5, y2=13.0
+  → door_0 at y=13.0 — это wall_2
+
+  wall_0: x1=0.5, y1=0.5, x2=14.0, y2=0.5
+  → Это другая стена (без door в JSON)
+
+==============================================================================
+STEP 6: Минимальный production fix — PROPOSAL
+==============================================================================
+
+=============================================================================
+ГИПОТЕЗА (требует подтверждения Step 3):
+=============================================================================
+
+GraphCompiler хранит авторские узлы под ключами БЕЗ префикса ("exit_east"),
+но _create_boundary_nodes ищет "tavern:exit_east" (С префиксом).
+→ _existing_node = None → создаётся phantom с мировыми координатами.
+
+SpatialValidator сравнивает мировые coords phantom с локальными coords стен.
+→ находит пересечение → удаляет ребро.
+→ A* не находит путь → FLEE BLOCKED.
+
+=============================================================================
+МИНИМАЛЬНЫЙ FIX (одна строка в graph_compiler.py L939):
+=============================================================================
+
+Было:
+  boundary_id = f"{location_id}:exit_{direction}"   # L936
+  _existing_node = graph.get(boundary_id)            # L939 — ищет "tavern:exit_east"
+
+Стало:
+  boundary_id = f"{location_id}:exit_{direction}"   # L936 (не меняется)
+  short_id = f"exit_{direction}"                     # NEW: "exit_east" (без префикса)
+  _existing_node = graph.get(boundary_id) or graph.get(short_id)  # L939 — fallback на short_id
+
+ИЛИ (более чисто):
+  # Если в graph узлы хранятся БЕЗ префикса, ищем по short_id:
+  short_id = f"exit_{direction}"
+  _existing_node = graph.get(short_id) or graph.get(boundary_id)
+
+ЭФФЕКТ:
+  - _existing_node находит авторский exit_east (локальные coords)
+  - _final_x = _existing_node.x (8.22, локальные)
+  - _final_y = _existing_node.y (12.45, локальные)
+  - graph["tavern:exit_east"] = NodeRef(x=8.22, y=12.45, role=BOUNDARY)
+    → использует ЛОКАЛЬНЫЕ координаты, как и все другие узлы
+
+SpatialValidator теперь сравнивает локальные coords boundary с локальными coords стен.
+→ ребро exit_east(8.22, 12.45) ↔ kitchen_bed_2(18.44, 6.27)
+→ отрезок не пересекает wall_5 (которая на x=19.5, y∈[0.5, 8.0])
+   (отрезок проходит через main_hall, не через kitchen)
+→ ребро НЕ удаляется
+→ A* находит путь → FLEE EXECUTED
+
+=============================================================================
+АВТОРСКИЕ ОГРАНИЧЕНИЯ — СОБЛЮДЕНЫ:
+=============================================================================
+
+✓ У Tavern только один внешний выход — door_0 на wall_2 (Master: "южная стена")
+✓ door_1 — внутренняя дверь (не трогается)
+✓ exit_east — это authored узел (label "Выход в Город"), ведёт в city_gate
+  (через door_0 на wall_2)
+✓ Не добавляется exit_south, exit_east, door_2 — используются существующие
+✓ Не перемещаются двери, стены, комнаты, node_16
+✓ Не меняется авторская геометрия
+✓ Не меняется adjacency и JSON
+✓ Не создаётся новый источник истины — используется существующий authored exit_east
+
+=============================================================================
+ПОЧЕМУ ЭТО РАБОТАЕТ (если гипотеза подтверждена):
+=============================================================================
+
+1. authored exit_east уже есть в nodes dict с правильными координатами
+2. GraphCompiler просто должен его НАЙТИ при создании boundary node
+3. Фикс одной строки: fallback search по short_id
+4. SpatialValidator работает корректно, потому что все координаты локальные
+5. A* находит путь fireplace → main_hall → exit_east (через door_0 на wall_2)
+
+ВАЖНО: exit_east в authored nodes имеет координаты (8.22, 12.45).
+Это на wall_2 (y=13.0) — той же стене, что и door_0 (8.18, 13.0).
+Два узла рядом — это правильно: exit_east — это навигационный узел выхода,
+door_0 — физическая дверь на той же стене.
+
+Ребро exit_east ↔ (ближайший внутренний узел) проходит через door_0
+(т.к. door_0 разрезает wall_2) → SpatialValidator пропускает.
+
+=============================================================================
+ТЕСТЫ — ДО ИЗМЕНЕНИЙ (BASELINE):
+=============================================================================
+
+1. FLEE из tavern → BLOCKED (текущее поведение)
+2. tavern:exit_east в graph: phantom с coords (44.03, 12.52)
+3. SpatialValidator: 2 edge removals (exit_east и exit_south)
+4. A* path to exit_east: no path
+
+ТЕСТЫ — ПОСЛЕ ИЗМЕНЕНИЙ:
+1. FLEE из tavern → EXECUTED (NPC идёт к exit_east через door_0)
+2. tavern:exit_east в graph: authored coords (8.22, 12.45)
+3. SpatialValidator: 0-1 edge removals (только exit_south phantom, если есть)
+4. A* path to exit_east: fireplace → main_hall → ... → exit_east
+
+РЕГРЕССИИ:
+- market_square и city_gate НЕ затрагиваются (fix только в graph_compiler.py L939)
+- test_boundary_nodes.py — должен продолжать работать (тесты используют compile_graph
+  с maps без authored exit_X, тогда fallback создаёт phantom — корректное поведение)
+
+=============================================================================
+ОСТАЮЩИЕСЯ РИСКИ:
+=============================================================================
+
+1. Если GraphCompiler ХРАНИТ узлы С префиксом (а не без), то мой fix не нужен
+   — нужно подтвердить Step 3.
+
+2. Если authored exit_east в JSON имеет role="boundary" и НЕ загружается в graph
+   как навигационный узел, нужно изменить и логику загрузки.
+
+3. Если fix ломает другие локации (где нет authored exit_X), нужно добавить
+   guard: использовать short_id только если exit_X имеет role="boundary".
+
+4. Cross-location transfer может всё ещё не работать, если boundary_map
+   использует мировые coords. Но это отдельная задача.
+

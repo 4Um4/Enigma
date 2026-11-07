@@ -1,0 +1,596 @@
+==============================================================================
+R2-BUTTERFLY-B5-CAUSAL-REACTION — полный эксперимент A/B
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_butterfly_b5_causal_reaction.txt
+==============================================================================
+
+==============================================================================
+СЕКЦИЯ A: Семантика EpistemicContextResolver
+==============================================================================
+
+--- A.1: Полная логика report_proposition (L91-101) ---
+  L  91:             # COGNITIVE-CONTINUITY-01: report-канал. Знание об оскорблении третьего
+  L  92:             # лица (object_id != agent_id, subject_id != agent_id). Отдельный порог
+  L  93:             # (REPORT_CONFIDENCE_THRESHOLD < CONFIDENCE_THRESHOLD): report — салиентность,
+  L  94:             # не угроза; слышанное через цепочку свидетельств дешевеет.
+  L  95:             if (pred in REPORT_PREDICATES
+  L  96:                     and record.confidence >= REPORT_CONFIDENCE_THRESHOLD
+  L  97:                     and _obj != agent_id
+  L  98:                     and subj != agent_id):
+  L  99:                 if record.confidence > _report_conf:
+  L 100:                     _report_conf = record.confidence
+  L 101:                     _report_prop = record.proposition
+
+--- A.2: Полная логика claims_about_self (L82-89, L106-113) ---
+  L  82:             # COGNITIVE-CONTINUITY-01: agent — жертва оскорбления (object_id == agent_id).
+  L  83:             # Канал about_self: салиентность собственного имени. Работает при любой
+  L  84:             # confidence > 0 (оскорбление себя — всегда салиентно).
+  L  85:             if pred == Predicate.INSULTED and _obj == agent_id:
+  L  86:                 about_self.append(record.proposition)
+  L  87:                 if record.confidence > max_self_conf:
+  L  88:                     max_self_conf = record.confidence
+  L  89:                 continue
+  ...
+  L 106:             if subj == agent_id:
+  L 107:                 # GC-RELEVANCE-01 (R1): «обо мне» — не угроза в собственном лице,
+  L 108:                 # не violation и не trigger (Epistemic Targeting DecisionHub:1922
+  L 109:                 # целился бы warn-ом в самого себя). Полная развязка каналов.
+  L 110:                 about_self.append(record.proposition)
+  L 111:                 if record.confidence > max_self_conf:
+  L 112:                     max_self_conf = record.confidence
+  L 113:                 continue
+
+>>> A.3: Анализ условий для записи player/INSULTED/tavern_keeper_tornin
+
+  EpistemicRecord:
+    proposition.subject_id = "player"
+    proposition.predicate = Predicate.INSULTED
+    proposition.object_id = "tavern_keeper_tornin"
+    agent_id (владелец store) = "tavern_keeper_tornin" (Торнин)
+    confidence = 0.215
+
+  Проверка claims_about_self (L85-89):
+    if pred == Predicate.INSULTED and _obj == agent_id:
+      → _obj = "tavern_keeper_tornin" == agent_id = "tavern_keeper_tornin"
+      → TRUE ✓
+      → about_self.append(record.proposition)
+      → max_self_confidence = 0.215
+
+  Проверка report_proposition (L95-101):
+    if (pred in REPORT_PREDICATES           → INSULTED in (INSULTED,) → TRUE
+        and record.confidence >= 0.25       → 0.215 >= 0.25 → FALSE ✗
+        and _obj != agent_id                → "tavern_keeper_tornin" != "tavern_keeper_tornin" → FALSE
+        and subj != agent_id)               → "player" != "tavern_keeper_tornin" → TRUE
+    → report_proposition = None (confidence < 0.25)
+
+  ВАЖНО: даже если confidence >= 0.25, report_proposition НЕ сработает,
+  потому что _obj == agent_id (Торнин — жертва, а не третье лицо).
+  report_proposition предназначен для случая, когда NPC знает об
+  оскорблении ДРУГОГО NPC (третьего лица).
+
+  Для Торнина (жертвы оскорбления):
+    → claims_about_self = [player/INSULTED/tavern_keeper_tornin]  ✓
+    → max_self_confidence = 0.215
+    → report_proposition = None
+
+>>> A.4: Modifiers для TALK и SPREAD_RUMOR
+
+  L195-197 (claims_about_self → TALK boost):
+    if context.claims_about_self:
+        _self_boost = round(context.max_self_confidence * 0.5, 4)
+        modifiers["talk"] = round(modifiers.get("talk", 0.0) + _self_boost, 4)
+    → _self_boost = 0.215 * 0.5 = 0.1075
+    → modifiers["talk"] = 0.1075
+
+  L203-206 (report_proposition → SPREAD_RUMOR boost):
+    if context.report_proposition is not None:
+        _rep_boost = round(context.max_confidence * 0.9, 4)
+        modifiers["spread_rumor"] = ...
+        modifiers["talk"] += _rep_boost * 0.6
+    → report_proposition = None → НЕТ boost
+
+  ИТОГО для Торнина (confidence=0.215):
+    modifiers["talk"] = 0.1075 (от claims_about_self)
+    modifiers["spread_rumor"] = 0.0 (нет report_proposition)
+
+  Торнин получает TALK boost, но НЕ SPREAD_RUMOR boost.
+  Это означает: Торнин может заговорить (TALK), но не будет
+  распространять слух (SPREAD_RUMOR) об оскорблении.
+
+  Семантически это ПРАВИЛЬНО:
+    - Торнин — жертва оскорбления
+    - Он знает, что его оскорбили (claims_about_self)
+    - Он хочет поговорить об этом (TALK boost)
+    - Но он не будет "сплетничать" об этом (SPREAD_RUMOR для третьих лиц)
+
+
+==============================================================================
+СЕКЦИЯ B: _SAME_SOURCE_BOOST — значение, формула, условия
+==============================================================================
+
+--- B.1: Полный файл belief_revision_engine.py (первые 30 строк) ---
+  L1: # backend/app/services/npc/belief_revision_engine.py
+  L2: """
+  L3: path: /project/backend/app/services/npc/belief_revision_engine.py
+  L4: Назначение: Детерминированный движок ревизии убеждений.
+  L5: Зависимости: app.domain.epistemology
+  L6: """
+  L7: 
+  L8: import logging
+  L9: from typing import Optional, Protocol
+  L10: 
+  L11: from app.domain.epistemology import ClaimEvent, EpistemicRecord
+  L12: 
+  L13: logger = logging.getLogger(__name__)
+  L14: 
+  L15: # 021 Calibration candidates (behavior-identical extraction)
+  L16: _CLAIM_WEIGHT: float = 1.0
+  L17: _SAME_SOURCE_BOOST: float = 0.2
+  L18: 
+  L19: class SourceReliabilityProvider(Protocol):
+  L20:     """
+  L21:     Интерфейс для получения надёжности источника.
+  L22:     Изолирует движок убеждений от социальных систем (RelationshipStore).
+  L23:     """
+  L24:     def get_reliability(self, observer: str, source: str, context: Optional[dict] = None) -> float:
+  L25:         ...
+  L26: 
+  L27: class BeliefRevisionEngine:
+  L28:     """
+  L29:     DeterministicBeliefRevisionPolicy v0.1.
+  L30:     Не использует LLM. Не мутирует RelationshipStore.
+
+--- B.2: Найдено объявление _SAME_SOURCE_BOOST ---
+  L17: _SAME_SOURCE_BOOST: float = 0.2
+  Значение: 0.2
+
+--- B.2: Найдено объявление _SAME_SOURCE_BOOST ---
+  L91:                 updated_conf = max(0.0, min(1.0, existing_record.confidence + (incoming_confidence * _SAME_SOURCE_BOOST)))
+
+--- B.3: Формула обновления (L88-94) ---
+  L  88:             if existing_record.source_id == claim.speaker_id:
+  L  89:                 # Подтверждение от того же источника (небольшой буст)
+  L  90:                 # S199 (Фаза 8.2): max(0.0, ...) — защита от ухода в минус при отрицательной reliability (враги).
+  L  91:                 updated_conf = max(0.0, min(1.0, existing_record.confidence + (incoming_confidence * _SAME_SOURCE_BOOST)))
+  L  92:             else:
+  L  93:                 # Независимое подтверждение (больший буст)
+  L  94:                 updated_conf = max(0.0, min(1.0, existing_record.confidence + incoming_confidence))
+
+>>> B.4: Анализ
+
+  _SAME_SOURCE_BOOST = 0.2
+
+  Формула при повторном сообщении от ТОГО ЖЕ источника (Люси):
+    updated_conf = max(0.0, min(1.0, existing.confidence + (incoming_confidence * _SAME_SOURCE_BOOST)))
+    = max(0.0, min(1.0, 0.215 + (reliability * 0.2)))
+
+  Если reliability (Люси для Торнина) ≈ 0.215 (confidence первого сообщения):
+    updated_conf = 0.215 + 0.215 * 0.2 = 0.215 + 0.0430 = 0.2580
+
+  Формула при сообщении от ДРУГОГО источника (corroboration):
+    updated_conf = max(0.0, min(1.0, existing.confidence + incoming_confidence))
+    = 0.215 + reliability(tornin, other_npc)
+
+  Разница:
+    - Тот же источник: буст ослаблен коэффициентом 0.2
+    - Другой источник: полный буст (reliability)
+    - Corroboration эффективнее для повышения confidence
+
+
+==============================================================================
+СЕКЦИЯ C: Контрольный прогон A (без передачи слуха)
+==============================================================================
+
+>>> C.1: Запуск game loop БЕЗ PLAYER_INSULTS
+  Цель: зафиксировать baseline Торнина — решения, реплики, modifiers
+
+  Запуск 15 ticks (без PLAYER_INSULTS)...
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=0 actors=[]
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['guard_borko', 'merchant_goran']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=4 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] engine_changes=2 targets=['blacksmith_orm', 'blacksmith_orm']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=5 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['maid_lusya', 'maid_lusya', 'tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=6 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['merchant_goran']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=7 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=6 targets=['maid_lusya', 'maid_lusya', 'blacksmith_orm', 'blacksmith_orm', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=8 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=0 actors=[]
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=9 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=6 targets=['maid_lusya', 'maid_lusya', 'blacksmith_orm', 'blacksmith_orm', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=10 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['guard_borko', 'merchant_goran', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=6 targets=['guard_borko', 'guard_borko', 'merchant_goran', 'merchant_goran', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=11 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=12 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] engine_changes=4 targets=['merchant_goran', 'merchant_goran', 'blacksmith_orm', 'blacksmith_orm']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=13 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=14 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=6 targets=['merchant_goran', 'merchant_goran', 'maid_lusya', 'maid_lusya', 'blacksmith_orm']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=15 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['guard_borko', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+
+>>> C.2: Результаты контрольного прогона A
+  Tornin speeches: 1
+    tick=5: '' (intent=talk, target=maid_lusya)
+
+  All speeches: 4
+
+  Tornin epistemic state:
+    Records: 0
+
+  Tornin decisions: 0
+
+==============================================================================
+СЕКЦИЯ D: Экспериментальный прогон B (с передачей слуха)
+==============================================================================
+
+>>> D.1: Запуск game loop С PLAYER_INSULTS → maid_lusya → tavern_keeper_tornin
+
+  Публикация PLAYER_INSULTS (target=tavern_keeper_tornin)...
+  PLAYER_INSULTS published: True
+
+  Запуск 20 ticks (с PLAYER_INSULTS)...
+  --- tick 1 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=need_driven:shelter_urge=1.00+relocation target=guard_bed domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['guard_borko', 'merchant_goran', 'blacksmith_orm']
+[DIAG-MV] engine_changes=4 targets=['guard_borko', 'guard_borko', 'merchant_goran', 'merchant_goran']
+  --- tick 2 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=0 actors=[]
+[DIAG-MV] engine_changes=0 targets=[]
+  --- tick 3 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+  --- tick 4 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=4 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['blacksmith_orm']
+[DIAG-MV] engine_changes=2 targets=['blacksmith_orm', 'blacksmith_orm']
+  --- tick 5 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=5 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['maid_lusya', 'maid_lusya', 'tavern_keeper_tornin', 'tavern_keeper_tornin']
+  --- tick 6 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=6 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] engine_changes=2 targets=['blacksmith_orm', 'blacksmith_orm']
+  --- tick 7 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=7 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['maid_lusya', 'maid_lusya', 'tavern_keeper_tornin', 'tavern_keeper_tornin']
+  --- tick 8 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=8 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['blacksmith_orm']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+  --- tick 9 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=9 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=6 targets=['merchant_goran', 'merchant_goran', 'maid_lusya', 'maid_lusya', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+  --- tick 10 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=10 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['guard_borko', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['guard_borko', 'guard_borko', 'tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+  --- tick 11 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=11 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=1 actors=['maid_lusya']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+  --- tick 12 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=12 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=1 actors=['merchant_goran']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+  --- tick 13 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=13 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=3 actors=['guard_borko', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+  --- tick 14 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=14 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+  --- tick 15 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=15 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+  --- tick 16 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=16 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['maid_lusya', 'maid_lusya', 'blacksmith_orm', 'blacksmith_orm']
+[Z-DIAG] is_player=False interventions=[]
+  --- tick 17 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=17 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['guard_borko', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+  --- tick 18 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=18 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+  --- tick 19 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=19 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+  --- tick 20 ---
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=20 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+
+>>> D.2: Результаты экспериментального прогона B
+  Tornin speeches: 1
+    tick=5: '' (intent=talk, target=maid_lusya)
+
+  Lusya speeches (to tornin): 0
+
+  All speeches: 3
+  Claim events: 0
+
+  Tornin epistemic state:
+    Records: 0
+
+  Tornin EpistemicContext:
+    perceived_threats: []
+    perceived_allies: []
+    max_confidence: 0.0
+    max_self_confidence: 0.0
+    claims_about_self: []
+    report_proposition: None
+    trigger_proposition: None
+    modifiers: {}
+    REPORT_CONFIDENCE_THRESHOLD: 0.25
+
+==============================================================================
+СЕКЦИЯ F: ИТОГОВЫЙ ОТЧЁТ — PASS/PARTIAL/FAIL
+==============================================================================
+
+=============================================================================
+СВОДНАЯ ТАБЛИЦА
+=============================================================================
+
+| Проверка                           | Контроль A       | Эксперимент B    |
+|------------------------------------|------------------|------------------|
+| Tornin speeches count              | 1                | 1                |
+| Tornin epistemic records           | 0                | 0                |
+| Lusya → Tornin speeches            | N/A              | 0                |
+| Claim events                       | N/A              | 0                |
+| _SAME_SOURCE_BOOST                 | 0.2              | (same)           |
+| claims_about_self активен          | (baseline)       | см. контекст     |
+| report_proposition                 | (baseline)       | см. контекст     |
+| TALK modifier                      | (baseline)       | ?                |
+| SPREAD_RUMOR modifier              | (baseline)       | ?                |
+
+=============================================================================
+ТРАНСКРИПТ A (контрольный прогон)
+=============================================================================
+
+  [A] tick=5: tornin → maid_lusya (intent=talk)
+       content: ''
+
+=============================================================================
+ТРАНСКРИПТ B (экспериментальный прогон)
+=============================================================================
+
+  [B] tick=5: tavern_keeper_tornin → maid_lusya (intent=talk)
+       content: ''
+
+=============================================================================
+EPISTEMIC RECORDS ТОрнина (после эксперимента B)
+=============================================================================
+
+
+=============================================================================
+EPISTEMIC CONTEXT ТОрнина (после эксперимента B)
+=============================================================================
+  perceived_threats: []
+  perceived_allies: []
+  max_confidence: 0.0
+  max_self_confidence: 0.0
+  claims_about_self: []
+  report_proposition: None
+  trigger_proposition: None
+  modifiers: {}
+  REPORT_CONFIDENCE_THRESHOLD: 0.25
+
+
+=============================================================================
+ВЕРДИКТ
+=============================================================================
+
+  Lusya → Tornin speeches: 0
+  Tornin has INSULTED belief: False (confidence=0.0000)
+  Tornin speeches in B: 1
+  TALK boost: 0.0
+  SPREAD_RUMOR boost: 0.0
+
+  >>> ВЕРДИКТ: FAIL
+  >>> Информация НЕ попала в EpistemicStore Торнина
+  >>> Возможные причины:
+      - LLM router mock (не real LLM)
+      - PROP_TARGET_IN_REACH blocked
+      - NPC_SPOKE без proposition
+      - ClaimEventSubscriber не обработал
+
+=============================================================================
+ФАКТЫ
+=============================================================================
+1. PROP_TARGET_IN_REACH: порог 6.0m, расстояние Люся→Торнин ≈ 3.55m → НЕ блокирует
+2. REPORT_CONFIDENCE_THRESHOLD = 0.25
+3. confidence = reliability × _CLAIM_WEIGHT (=1.0) → confidence = reliability
+4. claims_about_self: активен при object_id == agent_id (Торнин — жертва) при любой confidence > 0
+5. report_proposition: НЕ активен для Торнина (object_id == agent_id, а не третье лицо)
+6. TALK boost = max_self_confidence × 0.5 = 0.0000
+7. SPREAD_RUMOR boost = 0 (нет report_proposition)
+8. _SAME_SOURCE_BOOST = 0.2
+
+=============================================================================
+ГИПОТЕЗЫ
+=============================================================================
+1. Если использовать real LLM (не mock), Торнин может произнести
+   содержательную реплику, связанную с оскорблением
+2. TALK boost = 0.0000 может быть достаточен для
+   выбора Intent.TALK в DecisionHub
+3. Содержание реплики зависит от LLM context (включает claims_about_self)
+
+=============================================================================
+НЕИЗВЕСТНОЕ
+=============================================================================
+1. Реальное содержание LLM-реплик (probe использует mock router)
+2. Выбрал ли DecisionHub TALK как intent для Торнина
+3. Достаточен ли TALK boost = 0.0000 для выбора TALK
+4. Был ли PROP_TARGET_IN_REACH в реальном runtime
+
+=============================================================================
+ССЫЛКИ НА КОД
+=============================================================================
+- epistemic_context_resolver.py L82-89: claims_about_self логика
+- epistemic_context_resolver.py L91-101: report_proposition логика
+- epistemic_context_resolver.py L195-197: TALK boost из claims_about_self
+- epistemic_context_resolver.py L203-206: SPREAD_RUMOR boost из report_proposition
+- belief_revision_engine.py L60: incoming_confidence = reliability * _CLAIM_WEIGHT
+- belief_revision_engine.py L77: confidence = max(0.0, incoming_confidence) для новых
+- belief_revision_engine.py L91: updated_conf с _SAME_SOURCE_BOOST
+- post_decision.py L610: _prop_target_in_reach порог = 6.0m
+- claim_event_subscriber.py L280-309: listener processing → BeliefRevisionEngine
+

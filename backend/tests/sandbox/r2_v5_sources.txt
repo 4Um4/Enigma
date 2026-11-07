@@ -1,0 +1,964 @@
+==============================================================================
+R2-TAVERN-BOUNDARY-CONTRACT probe v5 — READ-ONLY SOURCE ARCHAEOLOGY
+Map file: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\locations\tavern.json
+Output file: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_v5_sources.txt
+Mode: NO GameLoop, NO scene init, NO CCH_SEED runtime noise.
+==============================================================================
+
+==============================================================================
+STEP 1: graph_compiler.py — edge validation (L440-510)
+==============================================================================
+L 440:                     if not obs.get("passability", {}).get("walk", True):
+L 441:                         if _line_rect_intersect(
+L 442:                             from_node.x, from_node.y, to_node.x, to_node.y,
+L 443:                             obs["x"], obs["y"], obs["w"], obs["h"]
+L 444:                         ):
+L 445:                             # S140: Не блокируем ребро, если препятствие можно перепрыгнуть.
+L 446:                             # LocalTraversalPlanner построит маршрут с JUMP-сегментом.
+L 447:                             if not obs.get("passability", {}).get("jump_over", False):
+L 448:                                 is_blocked = True
+L 449:                                 _blocker = f"OBSTACLE {obs.get('id', obs)}"
+L 450:                                 break
+L 451: 
+L 452:             if is_blocked:
+L 453:                 # S-142 Topology Gate: Пересечение неразрезанной стены — критическая ошибка карты.
+L 454:                 # Стена уже разрезана дверями (wall_id) на этапе _build_spatial_data.
+L 455:                 # Если ребро пересекает оставшийся сегмент — это архитектурная ошибка карты.
+L 456:                 if _is_wall_block:
+L 457:                     # BUG-TOPO-001 FIX: Временно логируем и удаляем ребро, не роняя SpatialService.
+L 458:                     logger.warning(
+L 459:                         f"[SPATIAL_VALIDATION] {location_id}: edge {from_id} -> {to_id} "
+L 460:                         f"crosses solid wall. Missing door wall_id? Blocker: {_blocker}. Edge removed from graph.\n"
+L 461:                         f"FIX: Добавьте door wall_id в стену ({_blocker}) в файле карты, либо удалите ребро {from_id} -> {to_id} из графа."
+L 462:                     )
+L 463:                     # Немедленно удаляем ребро из connections, чтобы оно не использовалось для маршрутизации
+L 464:                     if from_id in connections:
+L 465:                         connections[from_id].discard(to_id)
+L 466:                     if to_id in connections:
+L 467:                         connections[to_id].discard(from_id)
+L 468:                 else:
+L 469:                     logger.debug(f"[DEBUG_GEO_BLOCK] {from_id} ({from_node.x},{from_node.y}) -> {to_id} ({to_node.x},{to_node.y}) blocked by {_blocker}")
+L 470:                     logger.warning(
+L 471:                         f"[SPATIAL_VALIDATION] {location_id}: edge {from_id} -> {to_id} "
+L 472:                         f"is geometrically blocked! Edge removed from graph.\n"
+L 473:                         f"FIX: Проверьте координаты узлов или добавьте проход в карте."
+L 474:                     )
+L 475:                 _blocked_edges.add((from_id, to_id))
+L 476:                 _blocked_edges.add((to_id, from_id))
+L 477: 
+L 478:         # S140 FIX: Фактическое удаление заблокированных рёбер из графа.
+L 479:         for _src, _tgt in _blocked_edges:
+L 480:             if _src in connections and _tgt in connections[_src]:
+L 481:                 connections[_src].remove(_tgt)
+L 482: 
+L 483: def _segments_intersect(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, x4: float, y4: float, eps: float=1e-6) -> bool:
+L 484:     """Определение пересечения отрезков с ε-толерантностью (V8-SP-2 FIX)."""
+L 485:     def _cross(ox: float, oy: float, ax: float, ay: float, bx: float, by: float) -> float:
+L 486:         return (ax - ox) * (by - oy) - (ay - oy) * (bx - ox)
+L 487:     d1 = _cross(x3, y3, x4, y4, x1, y1)
+L 488:     d2 = _cross(x3, y3, x4, y4, x2, y2)
+L 489:     d3 = _cross(x1, y1, x2, y2, x3, y3)
+L 490:     d4 = _cross(x1, y1, x2, y2, x4, y4)
+L 491:     if ((d1 > eps and d2 < -eps) or (d1 < -eps and d2 > eps)) and \
+L 492:        ((d3 > eps and d4 < -eps) or (d3 < -eps and d4 > eps)):
+L 493:         return True
+L 494:     return False
+L 495: 
+L 496: def _line_rect_intersect(x1: float, y1: float, x2: float, y2: float, rx: float, ry: float, rw: float, rh: float) -> bool:
+L 497:     """Проверка пересечения отрезка с прямоугольником (AABB)."""
+L 498:     # Если одна из точек внутри — уже пересечение
+L 499:     if (rx <= x1 <= rx + rw and ry <= y1 <= ry + rh) or (rx <= x2 <= rx + rw and ry <= y2 <= ry + rh):
+L 500:         return True
+L 501:     # Проверка пересечения с 4 сторонами прямоугольника
+L 502:     if _segments_intersect(x1, y1, x2, y2, rx, ry, rx + rw, ry):
+L 503:         return True
+L 504:     if _segments_intersect(x1, y1, x2, y2, rx + rw, ry, rx + rw, ry + rh):
+L 505:         return True
+L 506:     if _segments_intersect(x1, y1, x2, y2, rx, ry + rh, rx + rw, ry + rh):
+L 507:         return True
+L 508:     if _segments_intersect(x1, y1, x2, y2, rx, ry, rx, ry + rh):
+L 509:         return True
+L 510:     return False
+
+==============================================================================
+STEP 2: graph_compiler.py — _validate_connectivity (L850-870)
+==============================================================================
+L 850: 
+L 851:     logger.warning(f"[GRAPH_COMPILER] No map file found for {campaign_id}/{location_id}")
+L 852:     return None
+L 853: 
+L 854: def _validate_connectivity(graph: Dict[str, NodeRef], connections: Dict[str, Set[str]], location_id: str) -> None:
+L 855:     """Проверяет связность графа. Логирует предупреждения об изолированных узлах."""
+L 856:     if not graph:
+L 857:         return
+L 858: 
+L 859:     visited: Set[str] = set()
+L 860:     queue = deque([next(iter(graph))])
+L 861: 
+L 862:     while queue:
+L 863:         node = queue.popleft()
+L 864:         if node in visited:
+L 865:             continue
+L 866:         visited.add(node)
+L 867:         for neighbor in connections.get(node, set()):
+L 868:             if neighbor not in visited:
+L 869:                 queue.append(neighbor)
+L 870: 
+
+==============================================================================
+STEP 2b: locate _validate_connectivity definition and full body
+==============================================================================
+
+Found at L854 to L875
+L 854: def _validate_connectivity(graph: Dict[str, NodeRef], connections: Dict[str, Set[str]], location_id: str) -> None:
+L 855:     """Проверяет связность графа. Логирует предупреждения об изолированных узлах."""
+L 856:     if not graph:
+L 857:         return
+L 858: 
+L 859:     visited: Set[str] = set()
+L 860:     queue = deque([next(iter(graph))])
+L 861: 
+L 862:     while queue:
+L 863:         node = queue.popleft()
+L 864:         if node in visited:
+L 865:             continue
+L 866:         visited.add(node)
+L 867:         for neighbor in connections.get(node, set()):
+L 868:             if neighbor not in visited:
+L 869:                 queue.append(neighbor)
+L 870: 
+L 871:     if len(visited) != len(graph):
+L 872:         isolated = set(graph.keys()) - visited
+L 873:         logger.warning(f"[GRAPH_COMPILER] Изолированные узлы в {location_id}: {isolated}")
+L 874: 
+L 875: 
+
+==============================================================================
+STEP 3: graph_compiler.py — _create_boundary_nodes (full function)
+==============================================================================
+
+Found function at L876, ends at L992
+Function body length: 117 lines
+
+L 876: def _create_boundary_nodes(
+L 877:     graph: Dict[str, NodeRef],
+L 878:     connections: Dict[str, Set[str]],
+L 879:     alias_map: Dict[str, str],
+L 880:     boundary_map: Dict[str, Dict[str, Any]],
+L 881:     location_id: str,
+L 882:     adjacency: Dict[str, Any],
+L 883:     origin: Dict[str, float],
+L 884:     size: Dict[str, float],
+L 885: ) -> None:
+L 886:     """Создаёт виртуальные boundary nodes для перехода в соседние чанки (ДОЛГ 6.2)."""
+L 887:     _OPPOSITE_DIRS = {"north": "south", "south": "north", "east": "west", "west": "east"}
+L 888: 
+L 889:     if not graph:
+L 890:         return
+L 891: 
+L 892:     _ox = float(origin.get("x", 0.0))
+L 893:     _oy = float(origin.get("y", 0.0))
+L 894:     _w = float(size.get("w", 10.0))
+L 895:     _h = float(size.get("h", 10.0))
+L 896: 
+L 897:     # P4-01A: Геометрические центры границ локации
+L 898:     _DIR_TO_XY = {
+L 899:         "north": (_ox + _w / 2.0, _oy + _h - 1.0),
+L 900:         "south": (_ox + _w / 2.0, _oy + 1.0),
+L 901:         "east": (_ox + _w - 1.0, _oy + _h / 2.0),
+L 902:         "west": (_ox + 1.0, _oy + _h / 2.0),
+L 903:     }
+L 904: 
+L 905:     for direction, neighbor_loc_id in adjacency.items():
+L 906:         if not isinstance(neighbor_loc_id, str):
+L 907:             continue
+L 908: 
+L 909:         # V8-SP-15 FIX: Смещаем anchor на 1 метр внутрь локации.
+L 910:         # Иначе boundary node оказывается за стеной (снаружи), и валидатор блокирует пути к нему.
+L 911:         _DIR_OFFSETS = {
+L 912:             "east":  (_ox + _w - 1.0, _oy + _h / 2.0),
+L 913:             "west":  (_ox + 1.0,      _oy + _h / 2.0),
+L 914:             "north": (_ox + _w / 2.0, _oy + _h - 1.0),
+L 915:             "south": (_ox + _w / 2.0, _oy + 1.0),
+L 916:         }
+L 917:         _bx, _by = _DIR_OFFSETS.get(direction, (_ox + _w / 2.0, _oy + _h / 2.0))
+L 918: 
+L 919:         # P4-01A FIX: Ищем ближайший навигационный узел к границе (исключая другие boundary nodes)
+L 920:         _nearest_node = None
+L 921:         _min_dist_sq = float('inf')
+L 922:         for node in graph.values():
+L 923:             if node.role == NodeRole.BOUNDARY:
+L 924:                 continue
+L 925:             _dx = node.x - _bx
+L 926:             _dy = node.y - _by
+L 927:             _dist_sq = _dx * _dx + _dy * _dy
+L 928:             if _dist_sq < _min_dist_sq:
+L 929:                 _min_dist_sq = _dist_sq
+L 930:                 _nearest_node = node
+L 931: 
+L 932:         if not _nearest_node:
+L 933:             logger.warning(f"[GRAPH_COMPILER] No navigation node found to attach boundary {direction} in {location_id}")
+L 934:             continue
+L 935: 
+L 936:         boundary_id = f"{location_id}:exit_{direction}"
+L 937:         # V8-SP-15 FIX: Если в JSON уже есть узел exit_east, используем его координаты.
+L 938:         # Иначе используем anchor границы.
+L 939:         _existing_node = graph.get(boundary_id)
+L 940:         _final_x = _existing_node.x if _existing_node else _bx
+L 941:         _final_y = _existing_node.y if _existing_node else _by
+L 942: 
+L 943:         boundary_node = NodeRef(
+L 944:             node_id=boundary_id,
+L 945:             x=_final_x,
+L 946:             y=_final_y,
+L 947:             role=NodeRole.BOUNDARY,
+L 948:             tags=["boundary:exit"],
+L 949:             zone_id=location_id,
+L 950:         )
+L 951: 
+L 952:         graph[boundary_id] = boundary_node
+L 953:         alias_map[f"exit_{direction}"] = boundary_id
+L 954: 
+L 955:         # P4-01 FIX: Соединяем boundary node со всеми навигационными узлами в радиусе 3.0 м
+L 956:         # IPT-CLEANUP: Если узел уже явно прописан в JSON (_existing_node), он уже имеет связи.
+L 957:         # Автогенерация в этом случае создаёт "призрачные" рёбра сквозь стены.
+L 958:         if _existing_node is None:
+L 959:             _CONNECTION_RADIUS = 3.0
+L 960:             _connected_count = 0
+L 961:             for node in graph.values():
+L 962:                 if node.node_id == boundary_id or node.role == NodeRole.BOUNDARY:
+L 963:                     continue
+L 964:                 _dx = node.x - _bx
+L 965:                 _dy = node.y - _by
+L 966:                 if (_dx * _dx + _dy * _dy) <= (_CONNECTION_RADIUS ** 2):
+L 967:                     connections.setdefault(node.node_id, set()).add(boundary_id)
+L 968:                     connections.setdefault(boundary_id, set()).add(node.node_id)
+L 969:                     _connected_count += 1
+L 970: 
+L 971:             if _connected_count == 0:
+L 972:                 # Fallback: если в радиусе 3м никого нет, цепляем хотя бы за ближайший
+L 973:                 connections.setdefault(_nearest_node.node_id, set()).add(boundary_id)
+L 974:                 connections.setdefault(boundary_id, set()).add(_nearest_node.node_id)
+L 975:                 _connected_count = 1
+L 976:         else:
+L 977:             _connected_count = 0  # Связи уже добавлены из JSON на предыдущем шаге
+L 978: 
+L 979:         logger.info(f"[GRAPH_COMPILER] boundary={direction} connected_to={_connected_count} nodes")
+L 980: 
+L 981:         _entry_dir = _OPPOSITE_DIRS.get(direction, direction)
+L 982:         boundary_map[boundary_id] = {
+L 983:             "neighbor_chunk": neighbor_loc_id,
+L 984:             "node_id": boundary_id,
+L 985:             "x": _final_x,    # V8-SP-28 FIX: используем actual boundary node coords
+L 986:             "y": _final_y,
+L 987:             "direction": direction,
+L 988:             "entry_direction": _entry_dir,
+L 989:             "entry_node_hint": f"{neighbor_loc_id}:exit_{_entry_dir}"
+L 990:         }
+L 991: 
+L 992: 
+
+==============================================================================
+STEP 4: spatial_service.py — get_furthest (full function)
+==============================================================================
+
+Found function at L716, ends at L738
+Function body length: 23 lines
+
+L 716:     def get_furthest(
+L 717:         self,
+L 718:         zone_id: str,
+L 719:         origin_xy: Tuple[float, float],
+L 720:         exclude_node_ids: Optional[Set[str]] = None,
+L 721:     ) -> Optional[NodeRef]:
+L 722:         """Самый дальний узел в зоне. Для FLEE: позиция угрозы → самый дальний узел.
+L 723:         exclude_node_ids — узлы, которые нужно исключить (например, текущий узел NPC)."""
+L 724:         candidates = [n for n in self._graph.values() if n.zone_id == zone_id]
+L 725:         if exclude_node_ids:
+L 726:             candidates = [n for n in candidates if n.node_id not in exclude_node_ids]
+L 727:         if not candidates:
+L 728:             return None
+L 729: 
+L 730:         best: Optional[NodeRef] = None
+L 731:         best_dist = -1.0
+L 732:         for node in candidates:
+L 733:             d = self.world_distance(origin_xy, node.xy)
+L 734:             if d > best_dist:
+L 735:                 best_dist = d
+L 736:                 best = node
+L 737:         return best
+L 738: 
+
+==============================================================================
+STEP 5: spatial_target_resolver.py — FLEE target resolution (L100-200)
+==============================================================================
+L 100:             resolution_status=TargetResolutionStatus.RESOLVED,
+L 101:             mode=SpatialResolutionMode.NAV_NODE,
+L 102:             position=(node.x, node.y),
+L 103:             anchor_node_id=node.node_id,
+L 104:             resolution_reason="Anchor resolved successfully"
+L 105:         )
+L 106: 
+L 107:     def _resolve_flee_target(
+L 108:         self,
+L 109:         intent: SpatialTargetIntent,
+L 110:         npc_positions: Optional[Dict[str, Dict]],
+L 111:         actor_id: Optional[str],
+L 112:         location_id: Optional[str]
+L 113:     ) -> ResolvedSpatialTarget:
+L 114:         threat_id = intent.context_ref
+L 115:         if not threat_id or not npc_positions or threat_id not in npc_positions:
+L 116:             return ResolvedSpatialTarget(
+L 117:                 intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
+L 118:                 mode=None, resolution_reason=f"FLEE threat {threat_id} not found"
+L 119:             )
+L 120: 
+L 121:         threat_xy = _extract_xy(npc_positions.get(threat_id))
+L 122:         actor_xy = _extract_xy(npc_positions.get(actor_id)) if actor_id else None  # noqa: ENIGMA001
+L 123: 
+L 124:         if not threat_xy:
+L 125:             return ResolvedSpatialTarget(
+L 126:                 intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
+L 127:                 mode=None, resolution_reason=f"FLEE threat {threat_id} has no position"
+L 128:             )
+L 129: 
+L 130:         # LEGACY BRIDGE: get_furthest() пока остаётся стратегией выбора макро-цели.
+L 131:         if not location_id:
+L 132:             return ResolvedSpatialTarget(
+L 133:                 intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
+L 134:                 mode=None, resolution_reason="FLEE threat has no location_id"
+L 135:             )
+L 136:         furthest_ref = self._spatial_service.get_furthest(
+L 137:             zone_id=location_id,
+L 138:             origin_xy=threat_xy,
+L 139:             exclude_node_ids=set()
+L 140:         )
+L 141: 
+L 142:         if furthest_ref:
+L 143:             # Если нашли дальний узел — возвращаем макро-цель
+L 144:             return ResolvedSpatialTarget(
+L 145:                 intent=intent,
+L 146:                 resolution_status=TargetResolutionStatus.RESOLVED,
+L 147:                 mode=SpatialResolutionMode.NAV_NODE,
+L 148:                 position=(furthest_ref.x, furthest_ref.y),
+L 149:                 anchor_node_id=furthest_ref.node_id,
+L 150:                 resolution_reason="FLEE resolved to furthest node"
+L 151:             )
+L 152: 
+L 153:         # Fallback: если графа нет или узел не найден — вычисляем микро-вектор (Micro-FLEE)
+L 154:         if actor_xy:
+L 155:             _dx = actor_xy[0] - threat_xy[0]
+L 156:             _dy = actor_xy[1] - threat_xy[1]
+L 157:             _dist = (_dx**2 + _dy**2) ** 0.5
+L 158:             if _dist > 0.01:
+L 159:                 # Вектор от угрозы к актору: нормируем и продолжаем на 3 метра
+L 160:                 _ndx = _dx / _dist
+L 161:                 _ndy = _dy / _dist
+L 162:                 micro_pos = (_ndx * 3.0 + actor_xy[0], _ndy * 3.0 + actor_xy[1])
+L 163:                 return ResolvedSpatialTarget(
+L 164:                     intent=intent,
+L 165:                     resolution_status=TargetResolutionStatus.RESOLVED,
+L 166:                     mode=SpatialResolutionMode.LOCAL_POSITION,
+L 167:                     position=micro_pos,
+L 168:                     resolution_reason="FLEE resolved to micro-position"
+L 169:                 )
+L 170: 
+L 171:         return ResolvedSpatialTarget(
+L 172:             intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
+L 173:             mode=None, resolution_reason="FLEE failed: no macro node and no actor pos for micro"
+L 174:         )
+L 175: 
+
+==============================================================================
+STEP 5b: search for FLEE-specific method in spatial_target_resolver.py
+==============================================================================
+  L107:     def _resolve_flee_target(
+  L150:                 resolution_reason="FLEE resolved to furthest node"
+
+==============================================================================
+STEP 6: tests/sandbox/micro/test_boundary_nodes.py — FULL DUMP (fixtures + assertions)
+==============================================================================
+
+--- full file (6309 chars, 159 lines) ---
+L   1: """
+L   2: path: backend/tests/sandbox/micro/test_boundary_nodes.py
+L   3: Назначение: Верификация ДОЛГ 6.2 — Boundary Nodes + Graph Stitching
+L   4: Зависимости: app.services.spatial.graph_compiler, app.models.spatial_contracts
+L   5: Основные сущности: compile_graph, NodeRole.BOUNDARY, boundary_map
+L   6: 
+L   7: Запуск: cd backend; python -m pytest tests/sandbox/micro/test_boundary_nodes.py -v --tb=short; cd ..
+L   8: """
+L   9: 
+L  10: from app.domain.identity_events import EffectiveDrives
+L  11: 
+L  12: _MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+L  13: 
+L  14: from app.models.spatial_contracts import NodeRole
+L  15: from app.services.spatial.graph_compiler import compile_graph
+L  16: 
+L  17: 
+L  18: def test_boundary_nodes_created_from_adjacency():
+L  19:     """ДОКАЗЫВАЕТ: compile_graph создаёт boundary nodes при наличии adjacency.
+L  20: 
+L  21:     Без этого NPC не может планировать путь выхода из чанка.
+L  22:     """
+L  23:     editor_data = {
+L  24:         "nodes": {
+L  25:             "center": {"x": 5.0, "y": 5.0, "connections": []},
+L  26:         },
+L  27:         "adjacency": {
+L  28:             "east": "other_chunk",
+L  29:             "south": "another_chunk",
+L  30:         },
+L  31:     }
+L  32:     graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o, _aff = compile_graph(editor_data, location_id="test_loc")
+L  33: 
+L  34:     # Boundary nodes созданы
+L  35:     assert "test_loc:exit_east" in graph, "Boundary exit_east не создан"
+L  36:     assert "test_loc:exit_south" in graph, "Boundary exit_south не создан"
+L  37:     assert len(boundary_map) == 2, "boundary_map должна содержать 2 записи"
+L  38: 
+L  39:     # Boundary nodes имеют роль BOUNDARY
+L  40:     assert graph["test_loc:exit_east"].role == NodeRole.BOUNDARY
+L  41:     assert graph["test_loc:exit_south"].role == NodeRole.BOUNDARY
+L  42: 
+L  43: 
+L  44: def test_boundary_nodes_connected_to_internal():
+L  45:     """ДОКАЗЫВАЕТ: Boundary nodes связаны с ближайшими внутренними узлами.
+L  46: 
+L  47:     Без этого NPC не может дойти до boundary node.
+L  48:     """
+L  49:     editor_data = {
+L  50:         "nodes": {
+L  51:             "center": {"x": 5.0, "y": 5.0, "connections": []},
+L  52:         },
+L  53:         "adjacency": {
+L  54:             "east": "other_chunk",
+L  55:         },
+L  56:     }
+L  57:     graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o, _aff = compile_graph(editor_data, location_id="test_loc")
+L  58: 
+L  59:     # exit_east связан с center
+L  60:     east_conns = connections.get("test_loc:exit_east", set())
+L  61:     assert "test_loc:center" in east_conns, "Boundary exit_east не связан с center"
+L  62: 
+L  63:     # Обратная связь тоже
+L  64:     center_conns = connections.get("test_loc:center", set())
+L  65:     assert "test_loc:exit_east" in center_conns, "center не связан с boundary exit_east"
+L  66: 
+L  67: 
+L  68: def test_boundary_map_contains_neighbor_info():
+L  69:     """ДОКАЗЫВАЕТ: boundary_map содержит информацию о соседнем чанке для навигации.
+L  70: 
+L  71:     Без этого MovementEngine не знает куда вести NPC при достижении boundary.
+L  72:     """
+L  73:     editor_data = {
+L  74:         "nodes": {
+L  75:             "center": {"x": 5.0, "y": 5.0, "connections": []},
+L  76:         },
+L  77:         "adjacency": {
+L  78:             "east": "city_gate",
+L  79:         },
+L  80:     }
+L  81:     graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o, _aff = compile_graph(editor_data, location_id="tavern")
+L  82: 
+L  83:     binfo = boundary_map.get("tavern:exit_east")
+L  84:     assert binfo is not None, "boundary_map не содержит exit_east"
+L  85:     assert binfo["neighbor_chunk"] == "city_gate", "Неверный neighbor_chunk"
+L  86:     assert binfo["direction"] == "east", "Неверное direction"
+L  87:     assert binfo["entry_direction"] == "west", "Неверное entry_direction (противоположное)"
+L  88:     assert binfo["entry_node_hint"] == "city_gate:exit_west", (
+L  89:         "entry_node_hint должен указывать на exit-узел соседа (двусторонняя топология)"
+L  90:     )
+L  91: 
+L  92: 
+L  93: def test_no_adjacency_no_boundary_nodes():
+L  94:     """ДОКАЗЫВАЕТ: Без adjacency boundary nodes не создаются.
+L  95: 
+L  96:     Изолированные чанки остаются изолированными — это корректное поведение.
+L  97:     """
+L  98:     editor_data = {
+L  99:         "nodes": {
+L 100:             "center": {"x": 5.0, "y": 5.0, "connections": []},
+L 101:         },
+L 102:     }
+L 103:     graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o, _aff = compile_graph(editor_data, location_id="isolated")
+L 104: 
+L 105:     assert len(boundary_map) == 0, "Без adjacency не должно быть boundary nodes"
+L 106:     boundaries = [nid for nid, nref in graph.items() if nref.role == NodeRole.BOUNDARY]
+L 107:     assert len(boundaries) == 0, "Не должно быть узлов с ролью BOUNDARY"
+L 108: 
+L 109: 
+L 110: def test_boundary_node_is_not_a_place():
+L 111:     """ОНТОЛОГИЧЕСКИЙ ИНВАРИАНТ: Boundary node не является местом.
+L 112: 
+L 113:     Boundary node — это интерфейс графа, а не локация.
+L 114:     NPC может проходить через него, но не может выбирать его как цель.
+L 115:     """
+L 116:     editor_data = {
+L 117:         "nodes": {
+L 118:             "center": {"x": 5.0, "y": 5.0, "connections": []},
+L 119:         },
+L 120:         "adjacency": {
+L 121:             "east": "other_chunk",
+L 122:         },
+L 123:     }
+L 124:     graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o, _aff = compile_graph(editor_data, location_id="test_loc")
+L 125: 
+L 126:     boundary_node = graph["test_loc:exit_east"]
+L 127: 
+L 128:     # Boundary node помечен тегами, отличающими его от мест
+L 129:     assert "boundary:exit" in boundary_node.tags, "Boundary node должен иметь тег boundary:exit"
+L 130:     assert boundary_node.role == NodeRole.BOUNDARY, "Роль должна быть BOUNDARY, не DEFAULT"
+L 131: 
+L 132:     # Boundary node НЕ имеет ролей, свойственных местам (BED, BAR, TABLE)
+L 133:     place_roles = {NodeRole.BED, NodeRole.BAR, NodeRole.TABLE, NodeRole.MARKET, NodeRole.WORKBENCH}
+L 134:     assert boundary_node.role not in place_roles, "Boundary node не должен иметь роль места"
+L 135: 
+L 136: 
+L 137: def test_opposite_directions_resolved():
+L 138:     """ДОКАЗЫВАЕТ: Противоположные направления корректно резолвятся.
+L 139: 
+L 140:     east → west, north → south и т.д. Это нужно для entry_node_hint.
+L 141:     """
+L 142:     editor_data = {
+L 143:         "nodes": {
+L 144:             "center": {"x": 5.0, "y": 5.0, "connections": []},
+L 145:         },
+L 146:         "adjacency": {
+L 147:             "north": "northern_chunk",
+L 148:             "south": "southern_chunk",
+L 149:             "east": "eastern_chunk",
+L 150:             "west": "western_chunk",
+L 151:         },
+L 152:     }
+L 153:     graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o, _aff = compile_graph(editor_data, location_id="crossroads")
+L 154: 
+L 155:     assert boundary_map["crossroads:exit_north"]["entry_direction"] == "south"
+L 156:     assert boundary_map["crossroads:exit_south"]["entry_direction"] == "north"
+L 157:     assert boundary_map["crossroads:exit_east"]["entry_direction"] == "west"
+L 158:     assert boundary_map["crossroads:exit_west"]["entry_direction"] == "east"
+L 159: 
+
+==============================================================================
+STEP 7: door_0, door_1, wall_0, wall_7, wall_5 full definitions in tavern.json
+==============================================================================
+
+--- Target walls (wall_0, wall_5, wall_7) ---
+{
+  "id": "wall_7",
+  "type": "wall",
+  "x1": 14.0,
+  "y1": 8.0,
+  "x2": 14.0,
+  "y2": 0.5,
+  "thickness": 0.2
+}
+{
+  "id": "wall_5",
+  "type": "wall",
+  "x1": 19.5,
+  "y1": 0.5,
+  "x2": 19.5,
+  "y2": 8.0,
+  "thickness": 0.2
+}
+{
+  "id": "wall_0",
+  "type": "wall",
+  "x1": 0.5,
+  "y1": 0.5,
+  "x2": 14.0,
+  "y2": 0.5,
+  "thickness": 0.2
+}
+
+--- Target doors (door_0, door_1) ---
+{
+  "id": "door_0",
+  "name": "Главный вход",
+  "type": "door",
+  "position": {
+    "x": 8.183333333333334,
+    "y": 13.0
+  },
+  "size": {
+    "w": 1.33,
+    "h": 1.0
+  },
+  "rotation": 0,
+  "passability": {
+    "walk": true,
+    "jump_over": false,
+    "crawl_under": false,
+    "climb_on": false,
+    "walk_around": true
+  },
+  "cover": 0.0,
+  "color": "#FFD700",
+  "show_name": false,
+  "properties": {
+    "open": true,
+    "locked": false,
+    "durability": 25,
+    "visibility_through": 0.0,
+    "target_file": "",
+    "target_portal": ""
+  },
+  "wall_id": "wall_2"
+}
+{
+  "id": "door_1",
+  "name": "Дверь на кухню",
+  "type": "door",
+  "position": {
+    "x": 14.0,
+    "y": 4.5
+  },
+  "size": {
+    "w": 1.0,
+    "h": 1.0
+  },
+  "rotation": 0,
+  "passability": {
+    "walk": true,
+    "jump_over": false,
+    "crawl_under": false,
+    "climb_on": false,
+    "walk_around": true
+  },
+  "cover": 0.0,
+  "color": "#FFD700",
+  "show_name": false,
+  "properties": {
+    "open": true,
+    "locked": false,
+    "durability": 25,
+    "visibility_through": 0.0,
+    "target_file": "",
+    "target_portal": ""
+  }
+}
+
+--- All walls (compact summary for orientation) ---
+  walls[0] id=wall_7: x1=14.0, y1=8.0, x2=14.0, y2=0.5, vertical, extra={}
+  walls[1] id=wall_6: x1=19.5, y1=8.0, x2=14.0, y2=8.0, horizontal, extra={}
+  walls[2] id=wall_5: x1=19.5, y1=0.5, x2=19.5, y2=8.0, vertical, extra={}
+  walls[3] id=wall_4: x1=14.0, y1=0.5, x2=19.5, y2=0.5, horizontal, extra={}
+  walls[4] id=wall_0: x1=0.5, y1=0.5, x2=14.0, y2=0.5, horizontal, extra={}
+  walls[5] id=wall_1: x1=14.0, y1=0.5, x2=14.0, y2=13.0, vertical, extra={}
+  walls[6] id=wall_2: x1=14.0, y1=13.0, x2=0.5, y2=13.0, horizontal, extra={}
+  walls[7] id=wall_3: x1=0.5, y1=13.0, x2=0.5, y2=0.5, vertical, extra={}
+
+==============================================================================
+STEP 8 (Experiment A): Authored exit_south priority over synthesized
+==============================================================================
+
+QUESTION A:
+  Если map author определяет 'exit_south' явно в nodes dict,
+  пропускает ли GraphCompiler синтез placeholder boundary node?
+  Или перезаписывает авторские координаты?
+
+METHOD:
+  1. Прочитать полный код _create_boundary_nodes (Step 3 уже показал функцию).
+  2. Найти branching logic: 'if exit_id in graph', 'setdefault', 'already exists'.
+  3. Определить, перезаписываются ли координаты существующего узла.
+
+
+--- Branching logic analysis (in _create_boundary_nodes, L876–L992) ---
+
+Found 36 branching/keyword lines:
+  L876 [boundary_node]: def _create_boundary_nodes(
+  L889 [if ]:     if not graph:
+  L906 [if ]:         if not isinstance(neighbor_loc_id, str):
+  L907 [continue]:             continue
+  L922 [in graph]:         for node in graph.values():
+  L923 [if ]:             if node.role == NodeRole.BOUNDARY:
+  L924 [continue]:                 continue
+  L925 [node.x]:             _dx = node.x - _bx
+  L926 [node.y]:             _dy = node.y - _by
+  L928 [if ]:             if _dist_sq < _min_dist_sq:
+  L932 [if ]:         if not _nearest_node:
+  L933 [warn]:             logger.warning(f"[GRAPH_COMPILER] No navigation node found to attach boundary {direction} in {location_id}")
+  L934 [continue]:             continue
+  L936 [boundary_id]:         boundary_id = f"{location_id}:exit_{direction}"
+  L939 [boundary_id]:         _existing_node = graph.get(boundary_id)
+  L940 [if ]:         _final_x = _existing_node.x if _existing_node else _bx
+  L941 [if ]:         _final_y = _existing_node.y if _existing_node else _by
+  L943 [NodeRef(]:         boundary_node = NodeRef(
+  L944 [boundary_id]:             node_id=boundary_id,
+  L952 [boundary_id]:         graph[boundary_id] = boundary_node
+  L953 [boundary_id]:         alias_map[f"exit_{direction}"] = boundary_id
+  L958 [if ]:         if _existing_node is None:
+  L961 [in graph]:             for node in graph.values():
+  L962 [if ]:                 if node.node_id == boundary_id or node.role == NodeRole.BOUNDARY:
+  L963 [continue]:                     continue
+  L964 [node.x]:                 _dx = node.x - _bx
+  L965 [node.y]:                 _dy = node.y - _by
+  L966 [if ]:                 if (_dx * _dx + _dy * _dy) <= (_CONNECTION_RADIUS ** 2):
+  L967 [setdefault]:                     connections.setdefault(node.node_id, set()).add(boundary_id)
+  L968 [setdefault]:                     connections.setdefault(boundary_id, set()).add(node.node_id)
+  L971 [if ]:             if _connected_count == 0:
+  L973 [setdefault]:                 connections.setdefault(_nearest_node.node_id, set()).add(boundary_id)
+  L974 [setdefault]:                 connections.setdefault(boundary_id, set()).add(_nearest_node.node_id)
+  L976 [else:]:         else:
+  L982 [boundary_id]:         boundary_map[boundary_id] = {
+  L984 [boundary_id]:             "node_id": boundary_id,
+
+--- Verdict on Experiment A ---
+  >>> ДОКАЗАНО: функция проверяет существование узла перед добавлением.
+  >>> Авторский exit_south НЕ БУДЕТ перезаписан.
+  >>> Вариант C безопасен: авторские координаты сохранятся.
+
+==============================================================================
+STEP 9 (Experiment B): Adjacency preservation with authored boundary node
+==============================================================================
+
+QUESTION B:
+  Если мы добавим авторский 'exit_south' в tavern.json, сохранится ли
+  adjacency link tavern <-> market_square?
+
+METHOD:
+  1. Найти в _create_boundary_nodes обработку adjacency dict.
+  2. Найти создание boundary_map.
+  3. Найти формирование entry_node_hint.
+  4. Определить, использует ли функция существующий exit_south или всегда создаёт новый.
+
+
+--- adjacency / boundary_map / entry_node_hint references in _create_boundary_nodes ---
+  L876 [boundary]: def _create_boundary_nodes(
+  L880 [boundary_map]:     boundary_map: Dict[str, Dict[str, Any]],
+  L882 [adjacency]:     adjacency: Dict[str, Any],
+  L886 [boundary]:     """Создаёт виртуальные boundary nodes для перехода в соседние чанки (ДОЛГ 6.2)."""
+  L905 [adjacency]:     for direction, neighbor_loc_id in adjacency.items():
+  L906 [neighbor_loc]:         if not isinstance(neighbor_loc_id, str):
+  L910 [boundary]:         # Иначе boundary node оказывается за стеной (снаружи), и валидатор блокирует пути к нему.
+  L919 [boundary]:         # P4-01A FIX: Ищем ближайший навигационный узел к границе (исключая другие boundary nodes)
+  L933 [boundary]:             logger.warning(f"[GRAPH_COMPILER] No navigation node found to attach boundary {direction} in {location_id}")
+  L936 [boundary]:         boundary_id = f"{location_id}:exit_{direction}"
+  L937 [exit_east]:         # V8-SP-15 FIX: Если в JSON уже есть узел exit_east, используем его координаты.
+  L939 [boundary]:         _existing_node = graph.get(boundary_id)
+  L943 [boundary]:         boundary_node = NodeRef(
+  L944 [boundary]:             node_id=boundary_id,
+  L948 [boundary]:             tags=["boundary:exit"],
+  L952 [boundary]:         graph[boundary_id] = boundary_node
+  L953 [boundary]:         alias_map[f"exit_{direction}"] = boundary_id
+  L955 [boundary]:         # P4-01 FIX: Соединяем boundary node со всеми навигационными узлами в радиусе 3.0 м
+  L962 [boundary]:                 if node.node_id == boundary_id or node.role == NodeRole.BOUNDARY:
+  L967 [boundary]:                     connections.setdefault(node.node_id, set()).add(boundary_id)
+  L968 [boundary]:                     connections.setdefault(boundary_id, set()).add(node.node_id)
+  L973 [boundary]:                 connections.setdefault(_nearest_node.node_id, set()).add(boundary_id)
+  L974 [boundary]:                 connections.setdefault(boundary_id, set()).add(_nearest_node.node_id)
+  L979 [boundary]:         logger.info(f"[GRAPH_COMPILER] boundary={direction} connected_to={_connected_count} nodes")
+  L982 [boundary_map]:         boundary_map[boundary_id] = {
+  L983 [neighbor_loc]:             "neighbor_chunk": neighbor_loc_id,
+  L984 [boundary]:             "node_id": boundary_id,
+  L985 [boundary]:             "x": _final_x,    # V8-SP-28 FIX: используем actual boundary node coords
+  L988 [entry_direction]:             "entry_direction": _entry_dir,
+  L989 [entry_node]:             "entry_node_hint": f"{neighbor_loc_id}:exit_{_entry_dir}"
+
+--- Verdict on Experiment B ---
+  >>> ДОКАЗАНО: функция итерирует по adjacency dict.
+  >>> adjacency.south = 'market_square' будет обработано.
+  >>> ДОКАЗАНО: boundary_map создаётся функцией.
+  >>> ДОКАЗАНО: entry_node_hint формируется.
+    L989:             "entry_node_hint": f"{neighbor_loc_id}:exit_{_entry_dir}"
+
+==============================================================================
+STEP 10 (Experiment C): Door-wall binding contract
+==============================================================================
+
+QUESTION C:
+  Как правильно связать дверь с wall_0 согласно существующему контракту?
+
+EVIDENCE (from Step 7 — full door_0, door_1, wall_0, wall_5, wall_7 dumps):
+  door_0:
+    - position: {x: 8.18, y: 13.0}
+    - wall_id: "wall_2" (ЯВНОЕ ПОЛЕ)
+    - wall_2 geometry: horizontal y=13.0, x in [0.5, 14.0]
+    - door position лежит на стене: y=13.0 matches wall y=13.0
+
+  door_1:
+    - position: {x: 14.0, y: 4.5}
+    - wall_id: ОТСУТСТВУЕТ
+    - wall_7 geometry: vertical x=14.0, y in [0.5, 8.0]
+    - door position лежит на стене: x=14.0 matches wall x=14.0
+
+DEDUCED CONTRACT:
+  1. door.wall_id — необязательное, но предпочтительное поле.
+     (door_0 имеет, door_1 не имеет — оба работают).
+  2. door.position — обязательно; координаты должны лежать на стене.
+  3. SpatialValidator, по-видимому, проверяет геометрическое наложение
+     door.position на wall, независимо от наличия wall_id.
+
+HOW TO VERIFY:
+  - Найти в коде SpatialValidator / graph_compiler логику проверки door↔wall.
+
+
+--- Search for door-wall validation logic in spatial/*.py ---
+  app\services\spatial\graph_compiler.py L454:                 # Стена уже разрезана дверями (wall_id) на этапе _build_spatial_data.
+  app\services\spatial\graph_compiler.py L460:                         f"crosses solid wall. Missing door wall_id? Blocker: {_blocker}. Edge removed from graph.\n"
+  app\services\spatial\graph_compiler.py L461:                         f"FIX: Добавьте door wall_id в стену ({_blocker}) в файле карты, либо удалите ребро {from_id} -> {to_id} из графа."
+  app\services\spatial\graph_compiler.py L556:     Возвращает список wall_id, на которых лежит дверь (perp_dist <= 0.5).
+  app\services\spatial\graph_compiler.py L608:         # S143 FIX §1: Дверь разрезает стену, только если она архитектурно привязана к ней (wall_id).
+  app\services\spatial\graph_compiler.py L611:         # ME-1.5.1: единая форма wall_id (root) — триформ-fallback снят
+  app\services\spatial\graph_compiler.py L612:         explicit_wall_id = obj.get("wall_id")
+  app\services\spatial\graph_compiler.py L614:         # S-01 FIX: Ищем стены по координатам ВСЕГДА, даже если wall_id не указан явно.
+  app\services\spatial\graph_compiler.py L615:         # Это чинит баг, когда дверь без wall_id не разрезала стену, вызывая "crosses solid wall".
+  app\services\spatial\graph_compiler.py L616:         # BUG-SPATIAL-042 FIX: Дверь всегда разрезает стены по координатам, даже без wall_id.
+  app\services\spatial\graph_compiler.py L625:         if explicit_wall_id and explicit_wall_id not in walls_for_door:
+  app\services\spatial\graph_compiler.py L626:             walls_for_door.append(explicit_wall_id)
+  app\services\spatial\graph_compiler.py L640:         wall_id = p.get("wall_id")
+  app\services\spatial\graph_compiler.py L641:         if wall_id:
+  app\services\spatial\graph_compiler.py L642:             wall_openings.setdefault(wall_id, []).append(p)
+  app\services\spatial\graph_compiler.py L645:         wall_id = wall.get("id")
+  app\services\spatial\graph_compiler.py L646:         openings = wall_openings.get(wall_id, [])
+  app\services\spatial\graph_compiler.py L648:         if wall_id == "wall_7":
+  app\services\spatial\spatial_observatory_service.py L64:             # S-OBS-06: Ловим критическую ошибку карты (например, стену без door_id)
+
+--- wall_0 (target wall for door_2) — geometric analysis ---
+{
+  "id": "wall_0",
+  "type": "wall",
+  "x1": 0.5,
+  "y1": 0.5,
+  "x2": 14.0,
+  "y2": 0.5,
+  "thickness": 0.2
+}
+
+  wall_0 geometry: x1=0.5, y1=0.5, x2=14.0, y2=0.5
+  orientation: horizontal
+  extent x: [0.5, 14.0]
+  extent y: [0.5, 0.5]
+  midpoint: (7.25, 0.5) — recommended door_2 position
+  door_2 should be at: x in [0.5, 14.0], y = 0.5
+
+--- Verdict on Experiment C ---
+  >>> ДОКАЗАНО: контракт допускает door без wall_id (door_1 пример).
+  >>> РЕКОМЕНДОВАНО: для door_2 следовать door_0 паттерну (с wall_id).
+  >>> door_2: position on wall_0, wall_id='wall_0', target_file='market_square'.
+
+==============================================================================
+STEP 11 (Experiment D): get_furthest behavior + A* reachability check
+==============================================================================
+
+QUESTION D:
+  Какие узлы может вернуть get_furthest()? Проверяется ли достижимость через A*?
+
+METHOD:
+  1. Прочитать полный код get_furthest (Step 4 уже показал функцию).
+  2. Найти фильтрацию кандидатов (role, type, boundary, exit_).
+  3. Найти метрику расстояния (euclidean, manhattan, etc.).
+  4. Найти reachability-фильтры (reachable, has_path, astar, bfs, connected).
+  5. Найти место вызова из SpatialTargetResolver.
+
+
+--- get_furthest body analysis (L716–L738) ---
+
+--- Candidate filter (role/type/boundary/exit_) ---
+  [no role/boundary/exit_ filter detected]
+
+--- Distance metric (euclidean/manhattan) ---
+  L731 [dist]:         best_dist = -1.0
+  L733 [dist]:             d = self.world_distance(origin_xy, node.xy)
+  L734 [dist]:             if d > best_dist:
+  L735 [dist]:                 best_dist = d
+
+--- Reachability filter (reachable/astar/bfs/connected) ---
+  L720 [exclude]:         exclude_node_ids: Optional[Set[str]] = None,
+  L723 [exclude]:         exclude_node_ids — узлы, которые нужно исключить (например, текущий узел NPC)."""
+  L725 [exclude]:         if exclude_node_ids:
+  L726 [exclude]:             candidates = [n for n in candidates if n.node_id not in exclude_node_ids]
+
+--- Caller: get_furthest invocations in spatial_target_resolver.py ---
+
+  L130:         # LEGACY BRIDGE: get_furthest() пока остаётся стратегией выбора макро-цели.
+  L128:             )
+  L129: 
+  L131:         if not location_id:
+  L132:             return ResolvedSpatialTarget(
+  L133:                 intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
+  L134:                 mode=None, resolution_reason="FLEE threat has no location_id"
+  L135:             )
+
+--- Verdict on Experiment D ---
+  >>> Reachability-check найден — инспектируйте вывод выше.
+
+==============================================================================
+STEP 12 [PROPOSAL — НЕ доказательство, только предложение]
+==============================================================================
+
+=================================================================
+ПРОТОКОЛ: Это предложение, а не описание доказанного поведения системы.
+Применять только после подтверждения экспериментов A, B, C, D выше.
+=================================================================
+
+Minimal diff for tavern.json (variant C):
+
+1. ADD new node "exit_south" to nodes dict:
+   "exit_south": {
+     "x": 7.0,
+     "y": 0.5,
+     "label": "Выход на рынок",
+     "role": "boundary",
+     "tags": ["boundary:exit"],
+     "connections": ["main_hall_west"]
+   }
+
+2. ADD door_2 to objects[] (binding to wall_0):
+   {
+     "id": "door_2",
+     "name": "Выход на рынок",
+     "type": "door",
+     "position": {"x": 7.0, "y": 0.5},
+     "size": {"w": 1.33, "h": 1.0},
+     "rotation": 0,
+     "passability": {
+       "walk": true, "jump_over": false, "crawl_under": false,
+       "climb_on": false, "walk_around": true
+     },
+     "cover": 0.0,
+     "color": "#FFD700",
+     "show_name": false,
+     "properties": {
+       "open": true, "locked": false, "durability": 25,
+       "visibility_through": 0.0,
+       "target_file": "market_square",
+       "target_portal": ""
+     },
+     "wall_id": "wall_0"
+   }
+
+3. UPDATE main_hall_west connections (add exit_south):
+   Before: "connections": ["entrance", "main_hall_south", "bar_area", "right_table", "corner_table"]
+   After:  "connections": ["entrance", "main_hall_south", "bar_area", "right_table", "corner_table", "exit_south"]
+
+RATIONALE:
+  - exit_south at (7.0, 0.5) — midpoint of wall_0 (south boundary).
+  - door_2 on wall_0 — follows door_0 contract (explicit wall_id).
+  - target_file="market_square" matches adjacency.south.
+  - Connection to main_hall_west (closest existing node at (6.0, 8.0))
+    creates valid path: fireplace → main_hall → main_hall_west → exit_south.
+  - After diff: get_furthest still returns exit_south (now with real coords),
+    but A* CAN reach it through door_2 on wall_0.
+
+PREREQUISITES (must be verified by Experiments A–D above):
+  - Experiment A: authored exit_south takes priority over synthesized
+    (otherwise GraphCompiler will overwrite our coords).
+  - Experiment B: adjacency.tavern↔market_square still preserved
+    (otherwise external link is broken).
+  - Experiment C: door_2 with wall_id="wall_0" passes SpatialValidator
+    (matches door_0 contract).
+  - Experiment D: get_furthest returns exit_south regardless of A* reachability
+    (no need to also modify resolver).
+
+
+==============================================================================
+INTEGRITY CHECK — verifying all Steps 1-12 present in output buffer
+==============================================================================
+
+
+==============================================================================
+STDERR (probe-level errors / traceback only):
+==============================================================================

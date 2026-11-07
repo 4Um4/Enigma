@@ -1,0 +1,177 @@
+==============================================================================
+R2-B5-D1 SPATIAL PERCEPTION FORENSIC PROBE
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d1_perception_forensic.txt
+==============================================================================
+
+==============================================================================
+ПРОВЕРКА 1: PerceptualKernel.can_observe() — полная реализация
+==============================================================================
+
+  Found at: tests\sandbox\r2_b5_d1_perception_forensic.py
+[can_observe not found in file]
+  L47:     def __init__(self, *streams):
+  L49:     def write(self, data):
+  L53:     def flush(self):
+  L64: def _print_section(title: str) -> None:
+  L71: def _read_lines(path: Path, start: int, end: int) -> List[str]:
+  L81: def _find_function_bounds(src: str, func_name: str):
+  L85:         if line.startswith("def ") and func_name in line:
+  L88:         if line.startswith("    def ") and func_name in line:
+  L93:     indent_of_def = len(lines[func_start]) - len(lines[func_start].lstrip())
+  L100:         if cur_indent <= indent_of_def and (line.lstrip().startswith("def ") or line.lstrip().startswith("class ")):
+  L109: def check1_perceptual_kernel() -> Dict[str, Any]:
+  L122:         if "class PerceptualKernel" in src or "def can_observe" in src:
+  L152:                 if "def " in line:
+  L174: def check2_runtime_distance() -> Dict[str, Any]:
+  L302:                 def _spy_on_claim(event):
+  L427: def check3_runtime_provider(captured: Dict) -> Dict[str, Any]:
+  L461: def check4_all_npcs(captured: Dict) -> Dict[str, Any]:
+  L506: def final_verdict(captured: Dict) -> None:
+  L603: def main() -> int:
+
+--- HEARING_RADIUS references ---
+  L155:     # Search for HEARING_RADIUS in this file
+  L156:     print(f"\n--- HEARING_RADIUS references ---")
+  L158:         if "HEARING_RADIUS" in line or "hearing_radius" in line.lower():
+  L230:         print(f"  HEARING_RADIUS = 10.0")
+  L231:         print(f"  distance <= HEARING_RADIUS: {dist <= 10.0}")
+  L468:     print(f"\n{'NPC':<25} {'distance':>10} {'can_observe':>12} {'HEARING_RADIUS':>15} {'event.radius':>15} {'in_listeners':>15}")
+  L471:     HEARING_RADIUS = 10.0
+  L482:         print(f"  {nid:<25} {str(d):>10} {str(co_result):>12} {HEARING_RADIUS:>15.1f} {event_radius:>15.1f} {str(in_listeners):>15}")
+  L488:   HEARING_RADIUS = {HEARING_RADIUS}
+  L494:   Если can_observe использует HEARING_RADIUS (10.0):
+  L544:                 print(f"   → distance {ml_dist:.4f}m > HEARING_RADIUS 10.0m → НЕ в радиусе")
+  L545:                 print(f"   → event.radius = {captured.get('payload_radius', '?')}, но can_observe использует HEARING_RADIUS")
+  L547:                 print(f"   → distance {ml_dist:.4f}m <= HEARING_RADIUS 10.0m, но can_observe всё равно False")
+  L563:         print(f"   → event.radius = {event_radius}, но can_observe проверяет HEARING_RADIUS = 10.0")
+  L566:         print(f"       if dist <= min(event.radius, HEARING_RADIUS): can_observe = True")
+  L567:         print(f"     → Если так, то 999.0 не помогает, т.к. HEARING_RADIUS = 10.0 ограничивает")
+  L581:         print(f"   → HEARING_RADIUS = 10.0 — это радиус обычной речи, не крика")
+  L592:         print(f"     Если event имеет radius > HEARING_RADIUS (публичное событие):")
+  L593:         print(f"       использовать event.radius вместо HEARING_RADIUS")
+
+--- radius references ---
+  L164:         if "radius" in line.lower() and ("event" in line.lower() or "payload" in line.lower() or "self" in line.lower()):
+  L232:         print(f"  distance <= event.radius (999.0): {dist <= 999.0}")
+  L310:                     captured_state["payload_radius"] = payload.get("radius")
+  L468:     print(f"\n{'NPC':<25} {'distance':>10} {'can_observe':>12} {'HEARING_RADIUS':>15} {'event.radius':>15} {'in_listeners':>15}")
+  L472:     event_radius = captured.get("payload_radius", 999.0)
+  L482:         print(f"  {nid:<25} {str(d):>10} {str(co_result):>12} {HEARING_RADIUS:>15.1f} {event_radius:>15.1f} {str(in_listeners):>15}")
+  L487:   event.radius = {event_radius}
+  L490:   Если can_observe использует event.radius (999.0):
+  L545:                 print(f"   → event.radius = {captured.get('payload_radius', '?')}, но can_observe использует HEARING_RADIUS")
+  L558: 2. ПОЧЕМУ event.radius=999.0 НЕ ОБЕСПЕЧИВАЕТ ВОСПРИЯТИЕ:
+  L561:     event_radius = captured.get("payload_radius", "?")
+  L563:         print(f"   → event.radius = {event_radius}, но can_observe проверяет HEARING_RADIUS = 10.0")
+  L564:         print(f"   → event.radius используется для can_observe event.radius parameter,")
+  L566:         print(f"       if dist <= min(event.radius, HEARING_RADIUS): can_observe = True")
+  L592:         print(f"     Если event имеет radius > HEARING_RADIUS (публичное событие):")
+  L593:         print(f"       использовать event.radius вместо HEARING_RADIUS")
+
+==============================================================================
+ПРОВЕРКА 2: Runtime distance — фактические значения в момент PLAYER_INSULTS
+==============================================================================
+
+--- Runtime npc_positions (from scene_state) ---
+  npc_positions keys: ['maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin', 'merchant_goran', 'guard_borko', 'thief_shadow', 'player']
+  maid_lusya: position=fireplace, local=(7.98736111111111, 1.8263888888888888)
+  blacksmith_orm: position=fireplace, local=(10.5, 4.0)
+  tavern_keeper_tornin: position=behind_bar, local=(4.5, 2.5)
+  merchant_goran: position=right_table, local=(10.1, 6.1)
+  guard_borko: position=kitchen, local=(16.700000000000003, 3.7750000000000004)
+  thief_shadow: position=corner_table, local=(11.5, 11.0)
+  player: position=entrance, local=(8.204957561728396, 11.90991512345679)
+
+--- Player coords ---
+  player: local_position=(8.204957561728396, 11.90991512345679)
+  player position (node): entrance
+
+--- maid_lusya coords ---
+  maid_lusya: local_position=(7.98736111111111, 1.8263888888888888)
+  maid_lusya position (node): fireplace
+
+--- Distance player ↔ maid_lusya ---
+  dx = 8.204957561728396 - 7.98736111111111 = 0.217596
+  dy = 11.90991512345679 - 1.8263888888888888 = 10.083526
+  distance = hypot(0.217596, 10.083526) = 10.085874m
+  HEARING_RADIUS = 10.0
+  distance <= HEARING_RADIUS: False
+  distance <= event.radius (999.0): True
+
+--- SpatialQueryService ---
+  NOT FOUND
+
+--- Publishing PLAYER_INSULTS and spying on on_claim_event ---
+  ClaimEventSubscriber instance not found in tick_orch
+
+  PLAYER_INSULTS published
+
+--- Captured state from on_claim_event spy ---
+
+==============================================================================
+ПРОВЕРКА 3: Runtime provider — _get_spatial_query, _sq, can_observe
+==============================================================================
+
+--- Данные из captured_state ---
+
+  has_spatial_provider: N/A
+  has_sq: N/A
+  sq_npc_positions_keys: N/A
+  origin_id: N/A
+
+  sq_player_data: N/A
+
+--- Distances from player to each NPC ---
+
+
+--- can_observe results ---
+
+
+==============================================================================
+ПРОВЕРКА 4: Все NPC — distance, can_observe, listeners
+==============================================================================
+
+NPC                         distance  can_observe  HEARING_RADIUS    event.radius    in_listeners
+--------------------------------------------------------------------------------------------
+
+--- Итог ---
+
+  event.radius = 999.0
+  HEARING_RADIUS = 10.0
+
+  Если can_observe использует event.radius (999.0):
+    → ВСЕ NPC в радиусе → ВСЕ слушатели
+    → maid_lusya ДОЛЖНА быть в listeners
+
+  Если can_observe использует HEARING_RADIUS (10.0):
+    → Только NPC в радиусе 10m → maid_lusya может НЕ быть в listeners
+    → зависит от фактического distance
+
+
+==============================================================================
+ИТОГ — однозначный вывод
+==============================================================================
+
+=============================================================================
+ОДНОЗНАЧНЫЙ ВЫВОД
+=============================================================================
+
+1. КАКОЙ ИМЕННО ФИЛЬТР ИСКЛЮЧАЕТ ЛЮСЮ:
+
+   → _get_spatial_query = None (provider не существует)
+   → on_claim_event fallback: target_id добавляется в listeners
+   → maid_lusya НЕ target_id (target = tavern_keeper_tornin)
+   → maid_lusya НЕ в listeners
+   → Причина: spatial_query_provider не настроен в production
+
+2. ПОЧЕМУ event.radius=999.0 НЕ ОБЕСПЕЧИВАЕТ ВОСПРИЯТИЕ:
+
+   → Нужно проверить PerceptualKernel.can_observe код (Проверка 1)
+
+3. ЯВЛЯЕТСЯ ЛИ ПОВЕДЕНИЕ ОЖИДАЕМЫМ ИГРОВЫМ ПРАВИЛОМ ИЛИ ДЕФЕКТОМ:
+
+   → Нужно больше данных (см. Проверку 1 и 2)
+
+4. МИНИМАЛЬНОЕ ИЗМЕНЕНИЕ (если дефект существует):
+
+   → Зависит от результатов Проверки 1 (PerceptualKernel код)

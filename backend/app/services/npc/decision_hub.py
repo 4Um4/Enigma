@@ -17,6 +17,7 @@ import logging
 import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union, cast
+from app.domain.epistemology import Predicate
 
 if TYPE_CHECKING:
     from app.services.npc.kernel_rng import KernelRNG
@@ -353,6 +354,65 @@ class DecisionHub:
         # COGNITIVE-CONTINUITY-01: report-пропозиция — фолбэк, trigger (угроза) приоритетен.
         if _proposition is None and epistemic_context is not None:
             _proposition = getattr(epistemic_context, "report_proposition", None)
+        # Stage B: narrow fallback from claims_about_self (priority 3).
+        # Вердикт Мастера Q1: только spread_rumor + INSULTED predicate.
+        # Proposition передаётся as-is (без мутации polarity/confidence/source/provenance).
+        # claims_about_self отсортирован по confidence (desc) в Resolver (Change 1).
+        if _proposition is None and epistemic_context is not None and intent_value == "spread_rumor":
+            _claims = getattr(epistemic_context, "claims_about_self", ())
+            for _cl in _claims:
+                if _cl.predicate == Predicate.INSULTED:
+                    _proposition = _cl
+                    break
+
+        # Stage B Observability (вердикт Мастера Q4): log proposition selection.
+        # Расширение существующего jsonl_log mechanism (logging_tools.py:14).
+        try:
+            from app.services.logging_tools import jsonl_log
+            _trig_prop = getattr(epistemic_context, "trigger_proposition", None) if epistemic_context else None
+            _rep_prop = getattr(epistemic_context, "report_proposition", None) if epistemic_context else None
+            _trig = _trig_prop is not None
+            _rep = _rep_prop is not None
+            _claims = getattr(epistemic_context, "claims_about_self", ()) if epistemic_context else ()
+            _claims_n = len(_claims)
+            if _proposition is not None:
+                if _trig and _proposition == _trig_prop:
+                    _src = "trigger"
+                elif _rep and _proposition == _rep_prop:
+                    _src = "report"
+                else:
+                    _src = "claims_about_self"
+                _reason = None
+                _pkey = {
+                    "subject": _proposition.subject_id,
+                    "predicate": _proposition.predicate.value,
+                    "object": _proposition.object_id,
+                    "polarity": _proposition.polarity,
+                }
+            else:
+                _src = "none"
+                _pkey = None
+                if intent_value != "spread_rumor":
+                    _reason = "llm_not_required"
+                elif _trig or _rep or _claims_n > 0:
+                    _reason = "no_compatible_proposition"
+                else:
+                    _reason = "no_proposition"
+            jsonl_log({
+                "level": "INFO",
+                "agent": "proposition_selection",
+                "npc_id": npc_id,
+                "intent_type": intent_value,
+                "target_id": intent_target,
+                "trigger_available": _trig,
+                "report_available": _rep,
+                "claims_about_self_count": _claims_n,
+                "selected_source": _src,
+                "fallback_reason": _reason,
+                "proposition_key": _pkey,
+            })
+        except Exception:
+            logger.debug("[OBS] proposition_selection observability skipped (non-critical)")
 
         return CommunicationIntent(
             speaker=npc_id,

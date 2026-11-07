@@ -889,32 +889,42 @@ def _create_boundary_nodes(
     if not graph:
         return
 
-    _ox = float(origin.get("x", 0.0))
-    _oy = float(origin.get("y", 0.0))
     _w = float(size.get("w", 10.0))
     _h = float(size.get("h", 10.0))
 
-    # P4-01A: Геометрические центры границ локации
-    _DIR_TO_XY = {
-        "north": (_ox + _w / 2.0, _oy + _h - 1.0),
-        "south": (_ox + _w / 2.0, _oy + 1.0),
-        "east": (_ox + _w - 1.0, _oy + _h / 2.0),
-        "west": (_ox + 1.0, _oy + _h / 2.0),
+    # R2-FLEE-FIX: boundary nodes coords в ЛОКАЛЬНОЙ системе (без origin offset).
+    # Раньше: МИРОВЫЕ coords (origin + offset) → смешение с локальными coords
+    # авторских узлов и стен → SpatialValidator удалял валидные рёбра.
+    # Теперь: ЛОКАЛЬНЫЕ coords, согласованные с авторскими узлами и стенами.
+    _DIR_OFFSETS_LOCAL = {
+        "east":  (_w - 1.0,  _h / 2.0),
+        "west":  (1.0,       _h / 2.0),
+        "north": (_w / 2.0, _h - 1.0),
+        "south": (_w / 2.0, 1.0),
     }
+
+    # R2-FLEE-ROUTE-FIX: предпочтение авторскому entrance (role=ENTRANCE)
+    # текущей локации. entrance — "внешнее пространство" за дверью (door_0).
+    # Использование entrance coords связывает boundary node с реальным выходом,
+    # а не с direction offset. NPC выходит через door_0, как задумано автором.
+    # ИНВАРИАНТ: graph гарантированно содержит только узлы текущей локации
+    # (canonical_id = f"{location_id}:{node_id}"). Фильтр по префиксу —
+    # защитная проверка на случай будущих изменений контракта graph.
+    _entrance_node = None
+    _loc_prefix = f"{location_id}:"
+    for _n in graph.values():
+        _n_id = getattr(_n, "node_id", "")
+        if not _n_id.startswith(_loc_prefix):
+            continue  # узел чужой локации — пропускаем
+        if str(getattr(_n, "role", "")).endswith("ENTRANCE"):
+            _entrance_node = _n
+            break  # детерминированно: первый ENTRANCE текущей локации
 
     for direction, neighbor_loc_id in adjacency.items():
         if not isinstance(neighbor_loc_id, str):
             continue
 
-        # V8-SP-15 FIX: Смещаем anchor на 1 метр внутрь локации.
-        # Иначе boundary node оказывается за стеной (снаружи), и валидатор блокирует пути к нему.
-        _DIR_OFFSETS = {
-            "east":  (_ox + _w - 1.0, _oy + _h / 2.0),
-            "west":  (_ox + 1.0,      _oy + _h / 2.0),
-            "north": (_ox + _w / 2.0, _oy + _h - 1.0),
-            "south": (_ox + _w / 2.0, _oy + 1.0),
-        }
-        _bx, _by = _DIR_OFFSETS.get(direction, (_ox + _w / 2.0, _oy + _h / 2.0))
+        _bx, _by = _DIR_OFFSETS_LOCAL.get(direction, (_w / 2.0, _h / 2.0))
 
         # P4-01A FIX: Ищем ближайший навигационный узел к границе (исключая другие boundary nodes)
         _nearest_node = None
@@ -934,11 +944,21 @@ def _create_boundary_nodes(
             continue
 
         boundary_id = f"{location_id}:exit_{direction}"
-        # V8-SP-15 FIX: Если в JSON уже есть узел exit_east, используем его координаты.
-        # Иначе используем anchor границы.
         _existing_node = graph.get(boundary_id)
-        _final_x = _existing_node.x if _existing_node else _bx
-        _final_y = _existing_node.y if _existing_node else _by
+
+        # Приоритет coords: authored boundary > entrance текущей локации > direction offset (LOCAL).
+        # 1) authored exit_{direction} — автор явно задал coords boundary node.
+        # 2) entrance (role=ENTRANCE) — авторская точка выхода из здания (door_0).
+        # 3) direction offset в LOCAL coords — fallback для локаций без entrance.
+        if _existing_node:
+            _final_x = _existing_node.x
+            _final_y = _existing_node.y
+        elif _entrance_node:
+            _final_x = _entrance_node.x
+            _final_y = _entrance_node.y
+        else:
+            _final_x = _bx
+            _final_y = _by
 
         boundary_node = NodeRef(
             node_id=boundary_id,
@@ -958,11 +978,14 @@ def _create_boundary_nodes(
         if _existing_node is None:
             _CONNECTION_RADIUS = 3.0
             _connected_count = 0
+            # R2-FLEE-FIX: авто-связи от final coords (entrance или direction offset),
+            # не от сырого direction offset. Иначе связи строятся от точки (19, 7.5),
+            # а boundary node находится в (8.16, 13.03) — связи проходят сквозь стены.
             for node in graph.values():
                 if node.node_id == boundary_id or node.role == NodeRole.BOUNDARY:
                     continue
-                _dx = node.x - _bx
-                _dy = node.y - _by
+                _dx = node.x - _final_x
+                _dy = node.y - _final_y
                 if (_dx * _dx + _dy * _dy) <= (_CONNECTION_RADIUS ** 2):
                     connections.setdefault(node.node_id, set()).add(boundary_id)
                     connections.setdefault(boundary_id, set()).add(node.node_id)

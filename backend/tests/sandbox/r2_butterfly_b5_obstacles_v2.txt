@@ -1,0 +1,1010 @@
+==============================================================================
+R2-BUTTERFLY-B5-OBSTACLES v2 — чтение реализаций
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_butterfly_b5_obstacles_v2.txt
+==============================================================================
+
+==============================================================================
+ЧТЕНИЕ 1: _prop_target_in_reach — реализация, порог дистанции
+==============================================================================
+
+Found _prop_target_in_reach at L585, ends at L615
+Function body (31 lines):
+
+L 585: def _prop_target_in_reach(scene_state: dict, speaker_id: str, target_id: str) -> bool:
+L 586:     """COGNITIVE-CONTINUITY-01: клейм доставляем, если адресат в пределах речи
+L 587:     (SSOT exposure 'normal' = 6.0 м, domain/communication.py) и в той же локации.
+L 588:     Иначе — approach: NPC сначала подходит (существующее движение).
+L 589:     Fail-closed: любая ошибка/отсутствие данных → False → approach."""
+L 590:     try:
+L 591:         _positions = scene_state.get("npc_positions", {})
+L 592:         _sp = _positions.get(speaker_id, {})
+L 593:         _tp = _positions.get(target_id, {})
+L 594:         if not _sp or not _tp:
+L 595:             return False
+L 596:         _s_pos = str(_sp.get("position", ""))
+L 597:         _t_pos = str(_tp.get("position", ""))
+L 598:         if _s_pos.split(":")[0] != _t_pos.split(":")[0]:
+L 599:             return False
+L 600:         _s_local = _sp.get("local_position")
+L 601:         _t_local = _tp.get("local_position")
+L 602:         if _s_local is None or _t_local is None:
+L 603:             return False
+L 604:         import math
+L 605:         # FIX: local_position is dict {"x":.., "y":..} — use .get(), not [0]/[1]
+L 606:         _sx = _s_local.get("x", 0.0) if isinstance(_s_local, dict) else _s_local[0]
+L 607:         _sy = _s_local.get("y", 0.0) if isinstance(_s_local, dict) else _s_local[1]
+L 608:         _tx = _t_local.get("x", 0.0) if isinstance(_t_local, dict) else _t_local[0]
+L 609:         _ty = _t_local.get("y", 0.0) if isinstance(_t_local, dict) else _t_local[1]
+L 610:         return math.hypot(_sx - _tx, _sy - _ty) <= 6.0
+L 611:     except Exception as _e:
+L 612:         import logging
+L 613:         logging.getLogger(__name__).warning(f"[PROP_TARGET_IN_REACH] failed for {speaker_id}->{target_id}: {_e}")
+L 614:         return False
+L 615: 
+
+--- Контекст L605-620 (вокруг warning PROP_TARGET_IN_REACH) ---
+L 605:         # FIX: local_position is dict {"x":.., "y":..} — use .get(), not [0]/[1]
+L 606:         _sx = _s_local.get("x", 0.0) if isinstance(_s_local, dict) else _s_local[0]
+L 607:         _sy = _s_local.get("y", 0.0) if isinstance(_s_local, dict) else _s_local[1]
+L 608:         _tx = _t_local.get("x", 0.0) if isinstance(_t_local, dict) else _t_local[0]
+L 609:         _ty = _t_local.get("y", 0.0) if isinstance(_t_local, dict) else _t_local[1]
+L 610:         return math.hypot(_sx - _tx, _sy - _ty) <= 6.0
+L 611:     except Exception as _e:
+L 612:         import logging
+L 613:         logging.getLogger(__name__).warning(f"[PROP_TARGET_IN_REACH] failed for {speaker_id}->{target_id}: {_e}")
+L 614:         return False
+L 615: 
+
+--- test_butterfly_cold_start.py — условия тестов ---
+# backend/tests/micro/test_butterfly_cold_start.py
+"""COGNITIVE-CONTINUITY-01 Etap 5 — cold-start клейм delivery (proposition exception)."""
+from app.services.phases.post_decision import _prop_target_in_reach
+
+
+def test_target_in_reach_same_location_close():
+    scene = {"npc_positions": {
+        "maid_lusya": {"position": "tavern:kitchen", "local_position": (0.0, 0.0)},
+        "tavern_keeper_tornin": {"position": "tavern:bar", "local_position": (5.0, 0.0)},
+    }}
+    assert _prop_target_in_reach(scene, "maid_lusya", "tavern_keeper_tornin") is True
+
+
+def test_target_out_of_reach_far():
+    scene = {"npc_positions": {
+        "maid_lusya": {"position": "tavern:kitchen", "local_position": (0.0, 0.0)},
+        "tavern_keeper_tornin": {"position": "tavern:bar", "local_position": (12.0, 0.0)},
+    }}
+    assert _prop_target_in_reach(scene, "maid_lusya", "tavern_keeper_tornin") is False
+
+
+def test_target_different_location():
+    scene = {"npc_positions": {
+        "maid_lusya": {"position": "tavern:kitchen", "local_position": (0.0, 0.0)},
+        "tavern_keeper_tornin": {"position": "street:main", "local_position": (1.0, 0.0)},
+    }}
+    assert _prop_target_in_reach(scene, "maid_lusya", "tavern_keeper_tornin") is False
+
+
+def test_target_missing_data():
+    scene = {"npc_positions": {"maid_lusya": {"position": "tavern:kitchen"}}}
+    assert _prop_target_in_reach(scene, "maid_lusya", "tavern_keeper_tornin") is False
+
+==============================================================================
+ЧТЕНИЕ 2: BeliefRevisionEngine — формула confidence
+==============================================================================
+
+--- Поиск 'BeliefRevisionEngine' ---
+  Найдено 81 совпадений:
+  tests\gameplay\test_butterfly_b4_verified_belief.py L3: #   через production цепочку: COMMUNICATION_CLAIM → membrane → BeliefRevisionEngine → EpistemicStore
+  tests\gameplay\test_butterfly_b4_verified_belief.py L32: → BeliefRevisionEngine, не напрямую из EpistemicStore Люси.
+  tests\gameplay\test_butterfly_full_game_loop.py L5: #   BeliefRevisionEngine → EpistemicStore → EpistemicContextResolver →
+  tests\gameplay\test_butterfly_full_game_loop.py L21:   4. BeliefRevisionEngine → EpistemicStore.upsert (per-listener, source_id=player).
+  tests\gameplay\test_butterfly_full_game_loop.py L32: Production-путь НЕ подменён: EventBus → ClaimEventSubscriber → BeliefRevisionEngine →
+  tests\gameplay\test_butterfly_full_game_loop.py L264:         BeliefRevisionEngine → EpistemicStore), не через direct revise().
+  tests\gameplay\test_butterfly_full_game_loop.py L348:         - original_source_id == "player" — multi-hop provenance сохранён (G10 fix в BeliefRevisionEngine)
+  tests\gameplay\test_butterfly_full_game_loop.py L407:             #     BeliefRevisionEngine L99: _orig_src = existing_record.original_source_id
+  tests\gameplay\test_butterfly_full_game_loop.py L414:                 f"Multi-hop provenance chain broken — BeliefRevisionEngine G10 fix "
+  tests\gameplay\test_gc05_production_path_testimony.py L19:      BeliefRevisionEngine -> EpistemicStore.
+  tests\gameplay\test_gc05_production_path_testimony.py L41:   - BeliefRevisionEngine.revise()
+  tests\gameplay\test_gc05_testimony_belief_behavior.py L28:   - BeliefRevisionEngine → EpistemicStore → EpistemicRecord
+  tests\gameplay\test_gc05_testimony_belief_behavior.py L119:         → BeliefRevisionEngine → EpistemicStore.
+  tests\micro\test_act_consumer.py L22: from app.services.npc.belief_revision_engine import BeliefRevisionEngine
+  tests\micro\test_act_consumer.py L45:     engine = BeliefRevisionEngine(reliability_provider=_FlatReliability())
+
+--- Поиск 'belief_revision' ---
+  Найдено 41 совпадений:
+  tests\micro\test_act_consumer.py L11:     app.domain.epistemology, app.services.npc.belief_revision_engine.
+  tests\micro\test_act_consumer.py L22: from app.services.npc.belief_revision_engine import BeliefRevisionEngine
+  tests\micro\test_butterfly_insult_proposition.py L16: from app.services.npc.belief_revision_engine import BeliefRevisionEngine
+  tests\micro\test_butterfly_provenance_chain.py L9: from app.services.npc.belief_revision_engine import BeliefRevisionEngine
+  tests\micro\test_player_speech_claim.py L7: #   app.services.npc.epistemic_store, app.services.npc.belief_revision_engine
+  tests\micro\test_self_relevance_gate.py L8: # Зависимости: app.domain.epistemology, belief_revision_engine, epistemic_context_resolver, decision_hub
+  tests\micro\test_self_relevance_gate.py L29: from app.services.npc.belief_revision_engine import BeliefRevisionEngine
+  tests\micro\test_self_relevance_gate.py L79:     # confidence = reliability × _CLAIM_WEIGHT (=1.0, belief_revision_engine);
+  tests\sandbox\p5a_step_22_spies.py L19: from app.services.npc.belief_revision_engine import BeliefRevisionEngine
+  tests\sandbox\p5a_step_22_spies.py L61:     wrap(engine, "revise", "A4.belief_revision_engine.revise")
+  tests\sandbox\p5a_step_22_spies.py L129:         "A4.belief_revision_engine.revise:ENTER": "A4.belief_revision_engine.revise:ENTER" in tags_seen,
+  tests\sandbox\p5a_step_22_spies.py L130:         "A4.belief_revision_engine.revise:EXIT": "A4.belief_revision_engine.revise:EXIT" in tags_seen,
+  tests\sandbox\p5a_step_22_spies.py L145:     elif not summary["A4.belief_revision_engine.revise:ENTER"]:
+  tests\sandbox\p5a_step_23_production_probe.py L34: from app.services.npc.belief_revision_engine import BeliefRevisionEngine
+  tests\sandbox\p5a_step_23_production_probe.py L142:             _stamp("A4.belief_revision_engine.revise:ENTER",
+
+--- Поиск 'revise_belief' ---
+  Найдено 0 совпадений:
+
+--- Поиск 'update_confidence' ---
+  Найдено 1 совпадений:
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L285:                                        "update_confidence", "confidence_factor"])
+
+--- Поиск 'compute_confidence' ---
+  Найдено 20 совпадений:
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L283:     print("\n--- Поиск вычисления confidence (confidence =, _confidence, compute_confidence) ---")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L284:     results = _grep_in_dir(_BACKEND, ["confidence =", "_confidence =", "compute_confidence",
+  app\services\perception\perception_physics_engine.py L171:     def _compute_confidence(
+  app\services\perception\perception_physics_engine.py L221:             conf = self._compute_confidence(visibility, 0.8, body.muscle_tension)
+  app\services\perception\perception_physics_engine.py L237:             conf = self._compute_confidence(visibility, resolution, body.collapse)
+  app\services\perception\perception_physics_engine.py L253:             conf = self._compute_confidence(
+  app\services\perception\perception_physics_engine.py L283:             conf = self._compute_confidence(visibility, resolution, 0.7)
+  app\services\perception\perception_physics_engine.py L322:             conf = self._compute_confidence(visibility, resolution, 0.9)
+  app\services\perception\perception_physics_engine.py L352:             conf = self._compute_confidence(visibility, resolution, hands.grip_strength)
+  app\services\perception\perception_physics_engine.py L379:             conf = self._compute_confidence(visibility, resolution, micro.jaw_clench)
+  app\services\perception\perception_physics_engine.py L395:             conf = self._compute_confidence(
+  app\services\perception\perception_physics_engine.py L413:             conf = self._compute_confidence(
+  app\services\perception\perception_physics_engine.py L441:             conf = self._compute_confidence(audibility, 1.0, voice.tremor)
+  app\services\perception\perception_physics_engine.py L456:         conf_pitch = self._compute_confidence(audibility, 1.0, 0.5)
+  app\services\perception\perception_physics_engine.py L506:             conf = self._compute_confidence(
+
+--- Поиск 'testimony_confidence' ---
+  Найдено 0 совпадений:
+
+--- Поиск '_CLAIM_WEIGHT' ---
+  Найдено 4 совпадений:
+  tests\gameplay\test_butterfly_full_game_loop.py L418:             # (3) confidence > 0 — belief не нулевой (reliability × _CLAIM_WEIGHT)
+  tests\micro\test_self_relevance_gate.py L79:     # confidence = reliability × _CLAIM_WEIGHT (=1.0, belief_revision_engine);
+  app\services\npc\belief_revision_engine.py L16: _CLAIM_WEIGHT: float = 1.0
+  app\services\npc\belief_revision_engine.py L60:         incoming_confidence = reliability * _CLAIM_WEIGHT
+
+--- Поиск 'trust_factor' ---
+  Найдено 6 совпадений:
+  tests\gameplay\test_r6_causal_slice_hunger.py L163: def test_a1_trust_factor_alive():
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L313:                                         "trust_factor", "credibility"])
+  app\models\economy.py L464:         trust_factor = 1.0
+  app\models\economy.py L466:             trust_factor = 0.9 - (buyer_trust - 0.7) * 0.3
+  app\models\economy.py L468:             trust_factor = 1.0 + (0.3 - buyer_trust) * 0.5
+  app\models\economy.py L476:             base * inflation_factor * local_factor * trust_factor * urgency_factor
+
+--- Поиск 'reliability' ---
+  Найдено 121 совпадений:
+  tests\IPT.py L1495:     from app.services.npc.trust_based_reliability_provider import TrustBasedReliabilityProvider
+  tests\IPT.py L1512:     rel_friend = _provider.get_reliability(observer="player", source="npc_friend")
+  tests\IPT.py L1513:     rel_enemy = _provider.get_reliability(observer="player", source="npc_enemy")
+  tests\calibration_lab\test_m0_presets.py L91:     def test_direct_observation_reliability_taboo_enforced(self, tmp_path: Path) -> None:
+  tests\calibration_lab\test_m0_presets.py L101:     def test_direct_observation_reliability_valid_with_fake_module(
+  tests\gameplay\test_butterfly_b4_verified_belief.py L36:   EpistemicRecord.source_type = reliability_context.get("source_type", "testimony")
+  tests\gameplay\test_butterfly_full_game_loop.py L418:             # (3) confidence > 0 — belief не нулевой (reliability × _CLAIM_WEIGHT)
+  tests\gameplay\test_gc05_production_path_testimony.py L21:   7. trust(maid_lusya->guard_borko) влияет на reliability -> confidence.
+  tests\gameplay\test_gc05_production_path_testimony.py L26:   maid_lusya->guard_borko:   trust=+60, fear=0 (reliability=0.6, neutral-positive)
+  tests\gameplay\test_gc05_production_path_testimony.py L42:   - TrustBasedReliabilityProvider.get_reliability()
+  tests\gameplay\test_gc05_production_path_testimony.py L48:   K3: те же условия, но trust(maid_lusya->guard_borko)=-50 (враг, reliability<0)
+  tests\gameplay\test_gc05_production_path_testimony.py L396:                 print("[K3] no target belief formed (reliability<0)")
+  tests\gameplay\test_gc05_production_path_testimony.py L449:             f"Trust-based reliability нарушена."
+  tests\micro\test_act_consumer.py L29:     def get_reliability(self, observer: str, source: str, context=None) -> float:
+  tests\micro\test_act_consumer.py L45:     engine = BeliefRevisionEngine(reliability_provider=_FlatReliability())
+
+--- Поиск 'source_confidence' ---
+  Найдено 1 совпадений:
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L312:     results4 = _grep_in_dir(_BACKEND, ["testimony", "witness", "source_confidence",
+
+--- Поиск 'witness_confidence' ---
+  Найдено 0 совпадений:
+
+--- BeliefRevisionEngine file: app\services\npc\belief_revision_engine.py ---
+
+--- Строки с confidence ---
+  L16: _CLAIM_WEIGHT: float = 1.0
+  L19: class SourceReliabilityProvider(Protocol):
+  L24:     def get_reliability(self, observer: str, source: str, context: Optional[dict] = None) -> float:
+  L32:     def __init__(self, reliability_provider: SourceReliabilityProvider):
+  L33:         self._reliability_provider = reliability_provider
+  L40:         reliability_context: Optional[dict] = None
+  L45:         ADR-O-360: reliability_context позволяет источнику события указать
+  L47:         владелец формулы reliability; движок только пробрасывает контекст.
+  L51:         if reliability_context:
+  L52:             _context.update(reliability_context)
+  L53:         reliability = self._reliability_provider.get_reliability(
+  L60:         incoming_confidence = reliability * _CLAIM_WEIGHT
+  L68:             # reliability_context (по умолчанию "testimony" — канал речи).
+  L70:             _src_type = (reliability_context or {}).get("source_type", "testimony")
+  L71:             # COGNITIVE-CONTINUITY-01: original_source_id from reliability_context (multi-hop chain)
+  L72:             _orig_src = (reliability_context or {}).get("original_source_id", claim.speaker_id)
+  L76:                 # S199 (Фаза 8.3): max(0.0, ...) — защита от ухода в минус при отрицательной reliability (враги).
+  L77:                 confidence=max(0.0, incoming_confidence),
+  L85:             logger.info(f"[BELIEF_REVISE] New belief: {listener_id} believes {claim.proposition.subject_id} {claim.proposition.predicate.value} {claim.proposition.object_id} (conf={new_record.confidence:.2f})")
+  L90:                 # S199 (Фаза 8.2): max(0.0, ...) — защита от ухода в минус при отрицательной reliability (враги).
+  L91:                 updated_conf = max(0.0, min(1.0, existing_record.confidence + (incoming_confidence * _SAME_SOURCE_BOOST)))
+  L94:                 updated_conf = max(0.0, min(1.0, existing_record.confidence + incoming_confidence))
+  L100:             _src_type = existing_record.source_type or (reliability_context or {}).get("source_type", "testimony")
+  L104:                 confidence=updated_conf,
+  L112:             logger.info(f"[BELIEF_REVISE] Updated belief: {listener_id} belief updated to conf={new_record.confidence:.2f}")
+
+--- Полные функции с confidence ---
+
+  Function at L35–L115:
+  L35:     def revise(
+  L36:         self,
+  L37:         listener_id: str,
+  L38:         claim: ClaimEvent,
+  L39:         existing_record: Optional[EpistemicRecord],
+  L40:         reliability_context: Optional[dict] = None
+  L41:     ) -> EpistemicRecord:
+  L42:         """
+  L43:         Обрабатывает ClaimEvent и возвращает новую/обновлённую EpistemicRecord.
+  L44: 
+  L45:         ADR-O-360: reliability_context позволяет источнику события указать
+  L46:         тип канала (testimony / direct_observation). Провайдер — единственный
+  L47:         владелец формулы reliability; движок только пробрасывает контекст.
+  L48:         """
+  L49:         # 1. Оценка надёжности источника (делегируется провайдеру)
+  L50:         _context = {"claim": claim}
+  L51:         if reliability_context:
+  L52:             _context.update(reliability_context)
+  L53:         reliability = self._reliability_provider.get_reliability(
+  L54:             observer=listener_id,
+  L55:             source=claim.speaker_id,
+  L56:             context=_context
+  L57:         )
+  L58: 
+  L59:         # Базовый вес утверждения (в будущем может зависеть от speech_act)
+  L60:         incoming_confidence = reliability * _CLAIM_WEIGHT
+  L61: 
+  L62:         current_tick = claim.tick
+  L63: 
+  L64:         if existing_record is None:
+  L65:             # S199.6 FIX: Восстановлено first-order убеждение (claim.proposition) вместо преждевременного Second-Order ToM (ASSERTS).
+  L66:             # Second-Order ToM будет реализован позже, как отдельный слой (EPISTEMIC-005), после прохождения EPISTEMIC CORE GATE.
+  L67:             # COGNITIVE-CONTINUITY-01: provenance chain. source_type из
+  L68:             # reliability_context (по умолчанию "testimony" — канал речи).
+  L69:             # original_source_id = первичный источник (speaker первой записи).
+  L70:             _src_type = (reliability_context or {}).get("source_type", "testimony")
+  L71:             # COGNITIVE-CONTINUITY-01: original_source_id from reliability_context (multi-hop chain)
+  L72:             _orig_src = (reliability_context or {}).get("original_source_id", claim.speaker_id)
+  L73:             new_record = EpistemicRecord(
+  L74:                 agent_id=listener_id,
+  L75:                 proposition=claim.proposition,  # First-order belief: P (e.g. "B stole X")
+  L76:                 # S199 (Фаза 8.3): max(0.0, ...) — защита от ухода в минус при отрицательной reliability (враги).
+  L77:                 confidence=max(0.0, incoming_confidence),
+  L78:                 source_id=claim.speaker_id,
+  L79:                 source_claim_id=claim.claim_id,
+  L80:                 first_observed_tick=current_tick,
+  L81:                 last_updated_tick=current_tick,
+  L82:                 source_type=_src_type,
+  L83:                 original_source_id=_orig_src
+  L84:             )
+  L85:             logger.info(f"[BELIEF_REVISE] New belief: {listener_id} believes {claim.proposition.subject_id} {claim.proposition.predicate.value} {claim.proposition.object_id} (conf={new_record.confidence:.2f})")
+  L86:         else:
+  L87:             # Обновление существующего убеждения
+  L88:             if existing_record.source_id == claim.speaker_id:
+  L89:                 # Подтверждение от того же источника (небольшой буст)
+  L90:                 # S199 (Фаза 8.2): max(0.0, ...) — защита от ухода в минус при отрицательной reliability (враги).
+  L91:                 updated_conf = max(0.0, min(1.0, existing_record.confidence + (incoming_confidence * _SAME_SOURCE_BOOST)))
+  L92:             else:
+  L93:                 # Независимое подтверждение (больший буст)
+  L94:                 updated_conf = max(0.0, min(1.0, existing_record.confidence + incoming_confidence))
+  L95: 
+  L96:             # COGNITIVE-CONTINUITY-01: original_source_id сохраняется от
+  L97:             # прежней записи (не перезаписывается свежим спикером — G10 fix).
+  L98:             # source_type сохраняется от прежней записи, если не пуст.
+  L99:             _orig_src = existing_record.original_source_id or claim.speaker_id
+  L100:             _src_type = existing_record.source_type or (reliability_context or {}).get("source_type", "testimony")
+  L101:             new_record = EpistemicRecord(
+  L102:                 agent_id=listener_id,
+  L103:                 proposition=claim.proposition,
+  L104:                 confidence=updated_conf,
+  L105:                 source_id=claim.speaker_id, # Обновляем источник на самый свежий
+  L106:                 source_claim_id=claim.claim_id,
+  L107:                 first_observed_tick=existing_record.first_observed_tick,
+  L108:                 last_updated_tick=current_tick,
+  L109:                 source_type=_src_type,
+  L110:                 original_source_id=_orig_src
+  L111:             )
+  L112:             logger.info(f"[BELIEF_REVISE] Updated belief: {listener_id} belief updated to conf={new_record.confidence:.2f}")
+  L113: 
+  L114:         return new_record
+  L115: 
+
+--- self_relevance_gate: tests\micro\test_self_relevance_gate.py ---
+  L9: # Основные сущности: _reliability_stub, _store_spy, GC-RELEVANCE-01 тест-кейсы
+  L36:     """Фиксированная надёжность: изолирует тест от trust-математики S199."""
+  L38:     def get_reliability(self, observer: str, source: str, context=None) -> float:
+  L79:     # confidence = reliability × _CLAIM_WEIGHT (=1.0, belief_revision_engine);
+  L80:     # проверено живым пробом S258: 0.8 при reliability 0.8
+  L81:     assert ctx.max_self_confidence == pytest.approx(_RELIABILITY)
+  L103:     assert ctx.max_self_confidence == 0.0
+  L175:         confidence=0.9,
+  L202:         confidence=0.9,
+  L215:         confidence=0.7,
+  L226:     # max_confidence НЕ тронут фильтром (питает to_modifiers): 0.9 от HELPED
+  L227:     assert ctx.max_confidence == pytest.approx(0.9)
+  L239:         confidence=0.8,
+
+==============================================================================
+ЧТЕНИЕ 3: EpistemicContextResolver — полная логика report_proposition
+==============================================================================
+
+--- Полный файл (209 lines) ---
+L   1: # backend/app/services/npc/epistemic_context_resolver.py
+L   2: """
+L   3: path: /project/backend/app/services/npc/epistemic_context_resolver.py
+L   4: Назначение: Проецирует сырые EpistemicRecord в EpistemicContext для DecisionHub.
+L   5: Зависимости: app.domain.epistemology, app.services.npc.epistemic_store
+L   6: """
+L   7: 
+L   8: import logging
+L   9: 
+L  10: from app.domain.epistemology import EpistemicContext, Predicate
+L  11: from app.services.npc.epistemic_store import EpistemicStore
+L  12: 
+L  13: logger = logging.getLogger(__name__)
+L  14: 
+L  15: # S188: Архитектурный порог уверенности.
+L  16: # Убеждения ниже этого порога не формируют perceived threats/allies.
+L  17: CONFIDENCE_THRESHOLD = 0.5
+L  18: 
+L  19: # GATE-TRIGGER-01 (приёмка ТЗ, баг №2; вердикт Мастера): единый реестр
+L  20: # угрозных предикатов — кормит И threats, И trigger_proposition (одна
+L  21: # константа вместо двух списков, расходящихся при расширении).
+L  22: # EXITS_TO-гео-записи (subject = узел графа, «NPC помнит двери») и HELPED
+L  23: # (союзники) не могут стать WARN-целью S197-таргетинга: sanity_membrane
+L  24: # can_address не различает NPC и узел графа, гвард в DecisionHub прозрачен.
+L  25: _THREAT_PREDICATES = (Predicate.STOLE, Predicate.ATTACKED)
+L  26: 
+L  27: # COGNITIVE-CONTINUITY-01: report-канал — знание об оскорблении третьего лица.
+L  28: # Отдельный порог (не CONFIDENCE_THRESHOLD): report — салиентность, а не угроза.
+L  29: # Слышанное через цепочку свидетельств дешевеет (trust×100/100).
+L  30: # Калибровочный кандидат, меняется отдельной ревизией.
+L  31: REPORT_PREDICATES = (Predicate.INSULTED,)
+L  32: REPORT_CONFIDENCE_THRESHOLD = 0.25
+L  33: 
+L  34: class EpistemicContextResolver:
+L  35:     """
+L  36:     Преобразует EpistemicStore -> EpistemicContext.
+L  37:     Чистая функция (Read-Only). Не мутирует Store.
+L  38:     """
+L  39:     def __init__(self, store: EpistemicStore):
+L  40:         self._store = store
+L  41: 
+L  42:     def get_confidence_for_subject(self, agent_id: str, subject_id: str) -> float:
+L  43:         """S211 (§18): проекция убеждения агента о КОНКРЕТНОМ субъекте.
+L  44: 
+L  45:         Возвращает максимальную confidence по пропозициям с данным subject_id
+L  46:         (polarity=True; опровержения считаются отдельными записями и в
+L  47:         максимум не смешиваются). 0.0 = агент ничего не считает о субъекте.
+L  48:         Гейт игровых возможностей (ACCUSE/BLACKMAIL-future) читает ТОЛЬКО
+L  49:         этот API — никакой прямой доступ к Store вне резолвера (S208).
+L  50:         """
+L  51:         best = 0.0
+L  52:         for r in self._store.get_all_for_agent(agent_id):
+L  53:             if (r.proposition.subject_id == subject_id
+L  54:                     and r.proposition.polarity
+L  55:                     and r.confidence > best):
+L  56:                 best = r.confidence
+L  57:         return best
+L  58: 
+L  59:     def resolve(self, agent_id: str) -> EpistemicContext:
+L  60:         records = self._store.get_all_for_agent(agent_id)
+L  61: 
+L  62:         threats = []
+L  63:         allies = []
+L  64:         violations = 0
+L  65:         max_conf = 0.0
+L  66:         # S197: Сохраняем утверждение с максимальной уверенностью для Causal Provenance.
+L  67:         _trigger_prop = None
+L  68:         _trigger_conf = 0.0  # GATE-TRIGGER-01: трекер conf только угрозных записей
+L  69:         # GC-RELEVANCE-01 (R1): клеймы о самом себе — отдельный канал сбора.
+L  70:         about_self = []
+L  71:         max_self_conf = 0.0
+L  72:         # COGNITIVE-CONTINUITY-01: report-канал. Знание об оскорблении третьего
+L  73:         # лица — отдельный канал от threat (trigger) и self-relevance (about_self).
+L  74:         _report_prop = None
+L  75:         _report_conf = 0.0
+L  76: 
+L  77:         for record in records:
+L  78:             pred = record.proposition.predicate
+L  79:             subj = record.proposition.subject_id
+L  80:             _obj = record.proposition.object_id
+L  81: 
+L  82:             # COGNITIVE-CONTINUITY-01: agent — жертва оскорбления (object_id == agent_id).
+L  83:             # Канал about_self: салиентность собственного имени. Работает при любой
+L  84:             # confidence > 0 (оскорбление себя — всегда салиентно).
+L  85:             if pred == Predicate.INSULTED and _obj == agent_id:
+L  86:                 about_self.append(record.proposition)
+L  87:                 if record.confidence > max_self_conf:
+L  88:                     max_self_conf = record.confidence
+L  89:                 continue
+L  90: 
+L  91:             # COGNITIVE-CONTINUITY-01: report-канал. Знание об оскорблении третьего
+L  92:             # лица (object_id != agent_id, subject_id != agent_id). Отдельный порог
+L  93:             # (REPORT_CONFIDENCE_THRESHOLD < CONFIDENCE_THRESHOLD): report — салиентность,
+L  94:             # не угроза; слышанное через цепочку свидетельств дешевеет.
+L  95:             if (pred in REPORT_PREDICATES
+L  96:                     and record.confidence >= REPORT_CONFIDENCE_THRESHOLD
+L  97:                     and _obj != agent_id
+L  98:                     and subj != agent_id):
+L  99:                 if record.confidence > _report_conf:
+L 100:                     _report_conf = record.confidence
+L 101:                     _report_prop = record.proposition
+L 102: 
+L 103:             if record.confidence < CONFIDENCE_THRESHOLD:
+L 104:                 continue
+L 105: 
+L 106:             if subj == agent_id:
+L 107:                 # GC-RELEVANCE-01 (R1): «обо мне» — не угроза в собственном лице,
+L 108:                 # не violation и не trigger (Epistemic Targeting DecisionHub:1922
+L 109:                 # целился бы warn-ом в самого себя). Полная развязка каналов.
+L 110:                 about_self.append(record.proposition)
+L 111:                 if record.confidence > max_self_conf:
+L 112:                     max_self_conf = record.confidence
+L 113:                 continue
+L 114: 
+L 115:             if record.confidence > max_conf:
+L 116:                 max_conf = record.confidence
+L 117:             # GATE-TRIGGER-01: trigger — только угрозный предикат,
+L 118:             # развязанный от max_conf-трекера (питает to_modifiers):
+L 119:             # HELPED conf=0.9, идущий раньше STOLE conf=0.7, больше не
+L 120:             # крадёт триггер у угрозы — гейт на СВОЁМ условии, уровень цикла.
+L 121:             if pred in _THREAT_PREDICATES and record.confidence > _trigger_conf:
+L 122:                 _trigger_conf = record.confidence
+L 123:                 _trigger_prop = record.proposition
+L 124: 
+L 125:             if pred in _THREAT_PREDICATES:
+L 126:                 if subj not in threats:
+L 127:                     threats.append(subj)
+L 128:                 violations += 1
+L 129:             elif pred == Predicate.HELPED:
+L 130:                 if subj not in allies:
+L 131:                     allies.append(subj)
+L 132: 
+L 133:         return EpistemicContext(
+L 134:             agent_id=agent_id,
+L 135:             perceived_threats=tuple(threats),
+L 136:             perceived_allies=tuple(allies),
+L 137:             perceived_violations=violations,
+L 138:             max_confidence=max_conf,
+L 139:             trigger_proposition=_trigger_prop,
+L 140:             claims_about_self=tuple(about_self),
+L 141:             max_self_confidence=max_self_conf,
+L 142:             # COGNITIVE-CONTINUITY-01: report-канал. Proposition об оскорблении
+L 143:             # третьего лица — для DecisionHub report-targeting (Этап 4).
+L 144:             report_proposition=_report_prop
+L 145:         )
+L 146: 
+L 147:     @staticmethod
+L 148:     def to_modifiers(
+L 149:         context: EpistemicContext, archetype: str = ""
+L 150:     ) -> dict[str, float]:
+L 151:         """
+L 152:         S188: Преобразует EpistemicContext в нейтральные decision modifiers.
+L 153:         DecisionHub получает только числа, не зная об эпистемической семантике.
+L 154: 
+L 155:         S211 (слой 3, R7): архетип-дифференциация. Один и тот же belief
+L 156:         ведёт к разным действиям по натуре агента (disposition-веса поверх
+L 157:         epistemic_boost). archetype="" → прежнее поведение (обратная
+L 158:         совместимость: все существующие вызовы не тронуты).
+L 159:         """
+L 160:         modifiers = {}
+L 161:         if context.perceived_threats:
+L 162:             # S189/S198: базовый буст = confidence × 1.5.
+L 163:             _epistemic_boost = round(context.max_confidence * 1.5, 4)
+L 164:             if archetype:
+L 165:                 from app.domain.epistemic_dispositions import (
+L 166:                     get_epistemic_disposition,
+L 167:                 )
+L 168:                 _disp = get_epistemic_disposition(archetype)
+L 169:                 for _intent, _weight in _disp.items():
+L 170:                     if _weight > 0.0:
+L 171:                         modifiers[_intent] = round(_epistemic_boost * _weight, 4)
+L 172:                 # block_path — не диспозиция, а общий прессинг (все архетипы)
+L 173:                 modifiers["block_path"] = round(_epistemic_boost * 0.5, 4)
+L 174:             else:
+L 175:                 # Легаси-ветка (S198): плоский warn=attack=boost — точка
+L 176:                 # R7-монокультуры, сохранена для вызовов без архетипа.
+L 177:                 modifiers["warn"] = _epistemic_boost
+L 178:                 modifiers["attack"] = _epistemic_boost
+L 179:                 modifiers["block_path"] = round(_epistemic_boost * 0.5, 4)
+L 180: 
+L 181:         # Союзники могут слегка повышать trade/help/approach
+L 182:         if context.perceived_allies:
+L 183:             _ally_boost = round(context.max_confidence * 0.2, 4)
+L 184:             modifiers["trade"] = _ally_boost
+L 185:             modifiers["help"] = _ally_boost
+L 186: 
+L 187:         # GC-RELEVANCE-01 (R2): self-relevance канал. Клейм о самом агенте
+L 188:         # («обвинение в твой адрес») — салиентность собственного имени в
+L 189:         # разговоре: агент вероятнее вступит в диалог. НЕ реакция (контратака/
+L 190:         # оправдание/flee) — разрешение виновности и противостояние клейму
+L 191:         # это RESIST/MODIFY, следующая ступень лестницы AGENCY. Вес вдвое ниже
+L 192:         # threat-буста S198: салиентность, не паника. Ключ "talk" — живой
+L 193:         # в словаре scores (Intent.TALK.value, применение через
+L 194:         # apply_modifiers с lowercase-совпадением).
+L 195:         if context.claims_about_self:
+L 196:             _self_boost = round(context.max_self_confidence * 0.5, 4)
+L 197:             modifiers["talk"] = round(modifiers.get("talk", 0.0) + _self_boost, 4)
+L 198: 
+L 199:         # COGNITIVE-CONTINUITY-01: report-канал. NPC знает об оскорблении третьего
+L 200:         # лица — boost spread_rumor (сплетня — естественная форма) и talk.
+L 201:         # spread_rumor сильнее talk: сообщение — основная цель. Веса — калибровочные
+L 202:         # кандидаты; итоговый выбор — DecisionHub (модификаторы аддитивные).
+L 203:         if context.report_proposition is not None:
+L 204:             _rep_boost = round(context.max_confidence * 0.9, 4)
+L 205:             modifiers["spread_rumor"] = round(modifiers.get("spread_rumor", 0.0) + _rep_boost, 4)
+L 206:             modifiers["talk"] = round(modifiers.get("talk", 0.0) + _rep_boost * 0.6, 4)
+L 207: 
+L 208:         return modifiers
+L 209: 
+
+--- app/domain/epistemology.py (key parts) ---
+  L17: class Predicate(Enum):
+  L86:     predicate: Predicate  # Что произошло
+  L101:         from app.domain.epistemology import Predicate  # forward-ref safe
+  L105:             predicate=Predicate(d["predicate"]),
+  L127: class EpistemicRecord:
+  L134:     confidence: float  # 0.0 - 1.0
+  L135:     source_id: str  # От кого получено (speaker)
+  L141:     # ("testimony"). original_source_id сохраняет первоисточник цепочки
+  L144:     original_source_id: str = ""
+  L147: class EpistemicContext:
+  L157:     max_confidence: float = 0.0
+  L158:     # S197: Causal Provenance. Утверждение, породившее max_confidence.
+  L166:     max_self_confidence: float = 0.0
+  L170:     # Заполняется EpistemicContextResolver для Predicate.INSULTED (и будущих
+  L171:     # REPORT_PREDICATES) при conf >= REPORT_CONFIDENCE_THRESHOLD.
+  L172:     report_proposition: Optional[Proposition] = None
+
+==============================================================================
+ЧТЕНИЕ 4: claim_event_subscriber — как слух записывается в EpistemicStore
+==============================================================================
+
+--- Полный файл (318 lines) ---
+L   1: # backend/app/services/events/claim_event_subscriber.py
+L   2: """
+L   3: path: /project/backend/app/services/events/claim_event_subscriber.py
+L   4: Назначение: Адаптер между инфраструктурным событием (EventDTO) и эпистемической моделью (ClaimEvent).
+L   5: Зависимости: app.domain.epistemology, app.services.events.event_bus
+L   6: """
+L   7: 
+L   8: import logging
+L   9: from typing import Any, Optional
+L  10: 
+L  11: from app.domain.epistemology import ClaimEvent, Predicate, Proposition, SpeechAct
+L  12: from app.services.npc.belief_revision_engine import BeliefRevisionEngine
+L  13: from app.services.npc.epistemic_store import EpistemicStore
+L  14: 
+L  15: logger = logging.getLogger(__name__)
+L  16: 
+L  17: # S20x (ADR-O-357 enforcement): инлайн-провайдер reliability УДАЛЁН.
+L  18: # Каноническая реализация: app/services/npc/trust_based_reliability_provider.py
+L  19: # (TrustBasedReliabilityProvider). Подписчик — потребитель reliability,
+L  20: # но не владелец формулы trust → reliability.
+L  21: 
+L  22: HEARING_RADIUS = 10.0
+L  23: 
+L  24: class ClaimEventSubscriber:
+L  25:     """
+L  26:     Слушает COMMUNICATION_CLAIM и NPC_SPOKE на EventBus.
+L  27:     Преобразует EventDTO в ClaimEvent и передаёт в BeliefRevisionEngine.
+L  28:     S192: Observation Divergence — фильтрует слушателей через пространственную мембрану (SpatialQueryService).
+L  29:     S199 (Фаза 8.3): Поддержка игрока как наблюдателя (observer_id="player").
+L  30:     """
+L  31:     def __init__(
+L  32:         self,
+L  33:         engine: BeliefRevisionEngine,
+L  34:         store: EpistemicStore,
+L  35:         spatial_query_provider: Optional[Any] = None,
+L  36:     ):
+L  37:         self._engine = engine
+L  38:         self._store = store
+L  39:         self._get_spatial_query = spatial_query_provider
+L  40: 
+L  41:     def on_npc_spoke(self, event: Any) -> None:
+L  42:         """
+L  43:         Фаза 8.3: Детерминированный fallback для NPC_SPOKE.
+L  44:         Если LLM не предоставила proposition, извлекает его из intent_type.
+L  45:         """
+L  46:         import dataclasses
+L  47: 
+L  48:         if not hasattr(event, 'payload'):
+L  49:             return
+L  50: 
+L  51:         payload = event.payload
+L  52:         # Если LLM уже предоставила proposition, COMMUNICATION_CLAIM обработает его.
+L  53:         if payload.get("proposition"):
+L  54:             return
+L  55: 
+L  56:         intent_type = payload.get("intent_type", "talk")
+L  57:         target_id = payload.get("target_id")
+L  58:         speaker_id = event.source
+L  59: 
+L  60:         # Маппинг интентов на пропозиции
+L  61:         # subject_id — кто совершил действие, object_id — над кем/чем.
+L  62:         prop = None
+L  63:         if intent_type == "accuse" and target_id:
+L  64:             # "Я обвиняю тебя в краже" -> target украл неизвестно что
+L  65:             prop = Proposition(subject_id=target_id, predicate=Predicate.STOLE, object_id="unknown")
+L  66:         elif intent_type == "praise" and target_id:
+L  67:             # "Я хвалю тебя за помощь" -> target помог неизвестно кому
+L  68:             prop = Proposition(subject_id=target_id, predicate=Predicate.HELPED, object_id="unknown")
+L  69:         elif intent_type in ("intimidate", "attack") and target_id:
+L  70:             # "Я угрожаю тебе" -> speaker напал на target
+L  71:             prop = Proposition(subject_id=speaker_id, predicate=Predicate.ATTACKED, object_id=target_id)
+L  72: 
+L  73:         if prop:
+L  74:             # Создаём НОВЫЙ payload и НОВЫЙ event, чтобы не мутировать frozen EventDTO
+L  75:             new_payload = dict(payload)
+L  76:             new_payload["proposition"] = {
+L  77:                 "subject_id": prop.subject_id,
+L  78:                 "predicate": prop.predicate.value,
+L  79:                 "object_id": prop.object_id,
+L  80:                 "polarity": True
+L  81:             }
+L  82:             new_payload.setdefault("claim_id", f"fallback-{event.id}")
+L  83:             new_payload.setdefault("speech_act", "assert")
+L  84: 
+L  85:             # Создаём новый event с теми же полями, но новым payload
+L  86:             new_event = dataclasses.replace(event, payload=new_payload)
+L  87:             self.on_claim_event(new_event)
+L  88: 
+L  89:     def on_player_spoke(self, event: Any) -> None:
+L  90:         """G1 (GC-SOCIAL-01, Stage-1.5): PLAYER_SPOKE → ClaimEvent для слышащих
+L  91:         NPC — симметрия testimony-канала (NPC→player доказан S200/β-G6).
+L  92:         Зеркало on_npc_spoke-фоллбека: proposition строится ТОЛЬКО из DM-вектора
+L  93:         (ADR-035: semantic_action/target_reference/target_id). Обычный dialogue
+L  94:         без вектора — no-op: Stage-1.5 не «понимает» речь (граница M2/D —
+L  95:         self-relevance/secret-семантика запрещены). Мембрана унаследована из
+L  96:         on_claim_event (distance + can_observe по event.radius = SSOT Р-В)."""
+L  97:         import dataclasses  # локальный — прецедент on_npc_spoke (шрам трека: №181)
+L  98: 
+L  99:         if not hasattr(event, "payload"):
+L 100:             return
+L 101: 
+L 102:         payload = event.payload
+L 103:         # COGNITIVE-CONTINUITY-01: PLAYER_INSULTS → Proposition(player, INSULTED, victim).
+L 104:         # Ветка перед semantic_action / free-ASSERT: оскорбление — отдельный канал,
+L 105:         # не требует DM-вектора. subject = игрок (оскорбитель), object = жертва.
+L 106:         # Мембрана on_claim_event (distance + can_observe) фильтрует слушателей.
+L 107:         _evt_type = str(getattr(event, "type", "") or "")
+L 108:         _action_type = str(payload.get("action_type", "") or "")
+L 109:         if "player_insults" in (_evt_type, _action_type):
+L 110:             _victim = payload.get("target_id") or ""
+L 111:             if _victim:
+L 112:                 _new_payload = dict(payload)
+L 113:                 _new_payload["proposition"] = {
+L 114:                     "subject_id": getattr(event, "source", "player"),
+L 115:                     "predicate": Predicate.INSULTED.value,
+L 116:                     "object_id": _victim,
+L 117:                     "polarity": True,
+L 118:                 }
+L 119:                 _new_payload.setdefault("claim_id", f"player-claim-{event.id}")
+L 120:                 _new_payload.setdefault("speech_act", "insult")
+L 121:                 self.on_claim_event(dataclasses.replace(event, payload=_new_payload))
+L 122:             return
+L 123:         semantic_action = payload.get("semantic_action")
+L 124:         if not semantic_action:
+L 125:             # USL-1.4 (ADR-O-437): free ASSERT path — игрок сказал что-то без
+L 126:             # DM-вектора. Строим proposition(speaker, ASSERTS, content) и
+L 127:             # делегируем on_claim_event. Существующие гейты эпистемики
+L 128:             # (Proposition-guard line 154-189, can_observe line 217,
+L 129:             # BeliefRevisionEngine + trust) фильтруют невалидные утверждения.
+L 130:             # PLAYER_ASSERTION → CANON запрещён (USL-2) — on_claim_event
+L 131:             # не пишет в канон/TruthState. Вердикт Мастера: не ограничивать
+L 132:             # ASSERT временными маркерами — пусть все свободные утверждения
+L 133:             # проходят через гейты.
+L 134:             _content = payload.get("content") or ""
+L 135:             if _content:
+L 136:                 _speaker = getattr(event, "source", "player")
+L 137:                 _new_payload = dict(payload)
+L 138:                 _new_payload["proposition"] = {
+L 139:                     "subject_id": _speaker,
+L 140:                     "predicate": Predicate.ASSERTS.value,
+L 141:                     "object_id": str(_content)[:300],
+L 142:                     "polarity": True,
+L 143:                 }
+L 144:                 _new_payload.setdefault("claim_id", f"player-claim-{event.id}")
+L 145:                 _new_payload.setdefault("speech_act", "assert")
+L 146:                 _new_event = dataclasses.replace(event, payload=_new_payload)
+L 147:                 self.on_claim_event(_new_event)
+L 148:             return  # G1: без DM-вектора обработка завершена
+L 149: 
+L 150:         subject_of_claim = payload.get("target_reference") or payload.get("target_id")
+L 151:         speaker = getattr(event, "source", "player")
+L 152: 
+L 153:         prop = None
+L 154:         if semantic_action == "ACCUSE" and subject_of_claim:
+L 155:             # "Игрок обвиняет target в краже" → target украл неизвестно что
+L 156:             # (зеркало NPC-фоллбека accuse→STOLE, №177)
+L 157:             prop = Proposition(subject_id=subject_of_claim, predicate=Predicate.STOLE, object_id="unknown")
+L 158:         elif semantic_action == "THREATEN" and subject_of_claim:
+L 159:             # "Игрок угрожает target" → игрок напал(угроза) на target
+L 160:             prop = Proposition(subject_id=speaker, predicate=Predicate.ATTACKED, object_id=subject_of_claim)
+L 161:         elif semantic_action == "HELP" and subject_of_claim:
+L 162:             # "Игрок помог target" → игрок помог target
+L 163:             prop = Proposition(subject_id=speaker, predicate=Predicate.HELPED, object_id=subject_of_claim)
+L 164: 
+L 165:         if prop:
+L 166:             new_payload = dict(payload)
+L 167:             new_payload["proposition"] = {
+L 168:                 "subject_id": prop.subject_id,
+L 169:                 "predicate": prop.predicate.value,
+L 170:                 "object_id": prop.object_id,
+L 171:                 "polarity": True,
+L 172:             }
+L 173:             new_payload.setdefault("claim_id", f"player-claim-{event.id}")
+L 174:             new_payload.setdefault("speech_act", "assert")
+L 175:             new_event = dataclasses.replace(event, payload=new_payload)
+L 176:             self.on_claim_event(new_event)
+L 177: 
+L 178:     def on_claim_event(self, event: Any) -> None:
+L 179:         if not hasattr(event, 'payload'):
+L 180:             logger.warning("[CLAIM_SUB] Event has no payload")
+L 181:             return
+L 182: 
+L 183:         payload = event.payload
+L 184:         prop_data = payload.get("proposition")
+L 185:         if not prop_data:
+L 186:             logger.warning("[CLAIM_SUB] No proposition in payload")
+L 187:             return
+L 188: 
+L 189:         try:
+L 190:             prop = Proposition(
+L 191:                 subject_id=prop_data.get("subject_id"),
+L 192:                 predicate=Predicate(prop_data.get("predicate")),
+L 193:                 object_id=prop_data.get("object_id"),
+L 194:                 polarity=prop_data.get("polarity", True)
+L 195:             )
+L 196: 
+L 197:             # Proposition-guard (Understanding research, очередь №3, вердикт Мастера):
+L 198:             # мусорная пропозиция не доезжает до веры. Галлюцинации LLM вида
+L 199:             # {predicate: stole, object_id: None, polarity: None} ранее рождали
+L 200:             # веры "[X] stole(player->None) conf=0.0" — повреждение эпистемики.
+L 201:             # Проверяем СКОНСТРУИРОВАННЫЙ prop: .get(key, default) не подставляет
+L 202:             # default при ключе со значением None.
+L 203:             # Легитимные каналы не задеваются: observation-ветка и оба fallback'а
+L 204:             # уже guard'ят target_id до построения пропозиции.
+L 205:             _guard_reason = None
+L 206:             if not prop.subject_id:
+L 207:                 _guard_reason = f"empty subject_id={prop.subject_id!r}"
+L 208:             elif not prop.object_id:
+L 209:                 _guard_reason = f"empty object_id={prop.object_id!r}"
+L 210:             elif prop.polarity is None:
+L 211:                 _guard_reason = "polarity=None"  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
+L 212:             else:
+L 213:                 # ⑤-B фаза-2 (S292): акторная мембрана subject'а. Claim о
+L 214:                 # не-акторе (subject='tavern:exit_south' — узел графа из
+L 215:                 # movement-семантики) попадал в EpistemicStore → S197-
+L 216:                 # таргетинг резолвил дверь целью WARN → шторм ~60/мин.
+L 217:                 # sanity_membrane.can_address — третий потребитель шва
+L 218:                 # (§ENIGMA-002: два домена есть → ADR-кандидат). Player —
+L 219:                 # легальный subject (NPC верят про игрока). Fail-closed:
+L 220:                 # мусорный claim не доходит до веры НИКОГДА.
+L 221:                 from app.domain.sanity_membrane import can_address
+L 222:                 if not can_address(event.source, str(prop.subject_id)) and str(prop.subject_id) != "player":
+L 223:                     _guard_reason = (
+L 224:                         f"non-actor subject_id={prop.subject_id!r} "
+L 225:                         f"(sanity_membrane: claim о не-акторе не создаёт веру)"
+L 226:                     )
+L 227:             if _guard_reason:
+L 228:                 print(f"[CLAIM_GUARD] proposition REJECTED: {_guard_reason} "
+L 229:                       f"(predicate={getattr(prop.predicate, 'value', prop.predicate)}, "
+L 230:                       f"source={getattr(event, 'source', '?')})")  # временный зонд исследования
+L 231:                 return
+L 232: 
+L 233:             # S192.1: Perception Membrane Hardening.
+L 234:             # target_id — это семантический адресат, но физически услышать могут только те, кто в радиусе.
+L 235:             # Телепатия (передача убеждений без физического контакта) запрещена.
+L 236:             _listeners = set()
+L 237: 
+L 238:             # S202: Определяем источник звука. Если это атака, звук исходит от цели (удар).
+L 239:             _origin_id = event.source
+L 240:             _prop_data = payload.get("proposition")
+L 241:             if _prop_data and _prop_data.get("predicate") == "attacked":
+L 242:                 _origin_id = payload.get("target_id", event.source)
+L 243: 
+L 244:             if self._get_spatial_query:
+L 245:                 _sq = self._get_spatial_query()
+L 246:                 if _sq:
+L 247:                     _npc_positions = getattr(_sq, "_npc_positions", {})  # noqa: ENIGMA002
+L 248:                     # S198: Если spatial_query пуст, fallback на target_id (гарантия детерминизма)
+L 249:                     if not _npc_positions:
+L 250:                         _primary_target = payload.get("target_id")
+L 251:                         if _primary_target:
+L 252:                             _listeners.add(_primary_target)
+L 253:                     else:
+L 254:                         from app.models.npc_state import PerceptualKernel
+L 255:                         for _nid in _npc_positions.keys():
+L 256:                             # S199 (Фаза 8.3): Игрок больше не исключается — он полноправный наблюдатель.
+L 257:                             if _nid == _origin_id:
+L 258:                                 continue
+L 259:                             _dist = _sq.distance(_origin_id, _nid)
+L 260:                             if PerceptualKernel.can_observe(event, _dist, _nid, payload.get("target_id")):
+L 261:                                 _listeners.add(_nid)
+L 262:                         # S198: Явно проверяем target_id, даже если он отсутствует в _npc_positions
+L 263:                         _primary_target = payload.get("target_id")
+L 264:                         if _primary_target and _primary_target not in _listeners:
+L 265:                             if _primary_target not in _npc_positions:
+L 266:                                 _listeners.add(_primary_target)
+L 267:                             else:
+L 268:                                 _dist = _sq.distance(_origin_id, _primary_target)
+L 269:                                 if PerceptualKernel.can_observe(event, _dist, _primary_target, _primary_target):
+L 270:                                     _listeners.add(_primary_target)
+L 271:                 else:
+L 272:                     _primary_target = payload.get("target_id")
+L 273:                     if _primary_target:
+L 274:                         _listeners.add(_primary_target)
+L 275:             else:
+L 276:                 _primary_target = payload.get("target_id")
+L 277:                 if _primary_target:
+L 278:                     _listeners.add(_primary_target)
+L 279: 
+L 280:             for _listener_id in _listeners:
+L 281:                 # DEBT-R4 (S208): изоляция per-listener. Сбой ревизии одного
+L 282:                 # слушателя не должен молча убивать убеждения остальных
+L 283:                 # (класс инцидента S207: один битый элемент глушит хвост цикла).
+L 284:                 # Политика ARCH-017: Belief → degrade (продолжаем), но отказ
+L 285:                 # наблюдаем с идентификатором жертвы. Полная типизация ошибок
+L 286:                 # (PerceptionError-категории) — отдельная задача, не здесь.
+L 287:                 try:
+L 288:                     claim = ClaimEvent(
+L 289:                         event_id=str(event.id),
+L 290:                         claim_id=payload.get("claim_id", str(event.id)),
+L 291:                         speaker_id=event.source,
+L 292:                         listener_id=_listener_id,
+L 293:                         proposition=prop,
+L 294:                         speech_act=SpeechAct(payload.get("speech_act", "assert")),
+L 295:                         # R4 (Claim Bridge): событийное время — event_tick
+L 296:                         # (ADR-O-399, ставится drain'ом в payload), fallback
+L 297:                         # на legacy "tick". Неверный ноль устранён.
+L 298:                         tick=int(payload.get("event_tick", 0) or payload.get("tick", 0) or 0)
+L 299:                     )
+L 300:                     existing = self._store.get(_listener_id, prop)
+L 301:                     # COGNITIVE-CONTINUITY-01: provenance chain — original_source_id
+L 302:                     # from speaker record (if exists), else speaker is original.
+L 303:                     _speaker_record = self._store.get(event.source, prop)
+L 304:                     _speaker_orig = _speaker_record.original_source_id if _speaker_record else event.source
+L 305:                     updated_record = self._engine.revise(
+L 306:                         _listener_id, claim, existing,
+L 307:                         reliability_context={"source_type": "testimony", "original_source_id": _speaker_orig}
+L 308:                     )
+L 309:                     self._store.upsert(updated_record)
+L 310:                 except Exception as _listener_err:
+L 311:                     logger.error(
+L 312:                         f"[CLAIM_SUB] Belief revision failed: listener={_listener_id}, "
+L 313:                         f"claim={payload.get('claim_id', event.id)}: {_listener_err}",
+L 314:                         exc_info=True,
+L 315:                     )
+L 316: 
+L 317:         except Exception as e:
+L 318:             logger.exception(f"[CLAIM_SUB] Failed to process claim event: {e}")
+
+==============================================================================
+ЧТЕНИЕ 5: post_decision.py — SPREAD_RUMOR execution
+==============================================================================
+
+--- Строки с SPREAD_RUMOR / spread_rumor ---
+
+--- Контекст L580-650 (вокруг PROP_TARGET_IN_REACH и SPREAD_RUMOR) ---
+L 580:     if executed_windups > 0:
+L 581:         logger.info(
+L 582:             f"[TICK_ORCH] Фаза 7: {executed_windups} windups executed (EventDTO published)"
+L 583:         )
+L 584: 
+L 585: def _prop_target_in_reach(scene_state: dict, speaker_id: str, target_id: str) -> bool:
+L 586:     """COGNITIVE-CONTINUITY-01: клейм доставляем, если адресат в пределах речи
+L 587:     (SSOT exposure 'normal' = 6.0 м, domain/communication.py) и в той же локации.
+L 588:     Иначе — approach: NPC сначала подходит (существующее движение).
+L 589:     Fail-closed: любая ошибка/отсутствие данных → False → approach."""
+L 590:     try:
+L 591:         _positions = scene_state.get("npc_positions", {})
+L 592:         _sp = _positions.get(speaker_id, {})
+L 593:         _tp = _positions.get(target_id, {})
+L 594:         if not _sp or not _tp:
+L 595:             return False
+L 596:         _s_pos = str(_sp.get("position", ""))
+L 597:         _t_pos = str(_tp.get("position", ""))
+L 598:         if _s_pos.split(":")[0] != _t_pos.split(":")[0]:
+L 599:             return False
+L 600:         _s_local = _sp.get("local_position")
+L 601:         _t_local = _tp.get("local_position")
+L 602:         if _s_local is None or _t_local is None:
+L 603:             return False
+L 604:         import math
+L 605:         # FIX: local_position is dict {"x":.., "y":..} — use .get(), not [0]/[1]
+L 606:         _sx = _s_local.get("x", 0.0) if isinstance(_s_local, dict) else _s_local[0]
+L 607:         _sy = _s_local.get("y", 0.0) if isinstance(_s_local, dict) else _s_local[1]
+L 608:         _tx = _t_local.get("x", 0.0) if isinstance(_t_local, dict) else _t_local[0]
+L 609:         _ty = _t_local.get("y", 0.0) if isinstance(_t_local, dict) else _t_local[1]
+L 610:         return math.hypot(_sx - _tx, _sy - _ty) <= 6.0
+L 611:     except Exception as _e:
+L 612:         import logging
+L 613:         logging.getLogger(__name__).warning(f"[PROP_TARGET_IN_REACH] failed for {speaker_id}->{target_id}: {_e}")
+L 614:         return False
+L 615: 
+
+--- Поиск функции, обрабатывающей spread_rumor ---
+
+==============================================================================
+ИТОГ — полная карта препятствий
+==============================================================================
+
+=============================================================================
+ПОЛНАЯ КАРТА ПРЕПЯТСТВИЙ ДЛЯ BUTTERFLY B5
+=============================================================================
+
+ПРЕПЯТСТВИЕ 1: PROP_TARGET_IN_REACH
+  Файл: app/services/phases/post_decision.py
+  Функция: _prop_target_in_reach(scene, speaker_id, target_id)
+  Порог дистанции: [будет показан в ЧТЕНИИ 1]
+  Условие: speaker и target в одной локации + дистанция <= порога
+  Если BLOCKED: NPC_SPOKE публикуется БЕЗ proposition в payload
+  → слух не доходит до PropositionVerifier
+  → EpistemicStore Торнина НЕ обновляется
+
+ПРЕПЯТСТВИЕ 2: REPORT_CONFIDENCE_THRESHOLD = 0.25
+  Файл: app/services/npc/epistemic_context_resolver.py L32
+  Использование: L95-101 — фильтр для report_proposition
+  Семантика:
+    - EpistemicContextResolver.resolve(agent_id) перебирает все EpistemicRecords
+    - Если pred == Predicate.INSULTED и confidence >= 0.25
+      и object_id != agent_id и subject_id != agent_id
+      → record.proposition становится report_proposition в EpistemicContext
+    - report_proposition кормится в DecisionHub
+    - Если report_proposition есть → DecisionHub может выбрать SPREAD_RUMOR
+  В B4: confidence Торнина = 0.215 < 0.25 → report_proposition = None
+  → нет SPREAD_RUMOR от Торнина → нет причинной реакции
+
+ПРЕПЯТСТВИЕ 3: confidence = 0.215
+  Файл: BeliefRevisionEngine (точный файл — ЧТЕНИЕ 2)
+  Формула: [будет показана в ЧТЕНИИ 2]
+  Ожидаемые коэффициенты:
+    - source confidence (Люси) × trust_factor (Торнин→Люся) × claim_weight
+    - Или: testimony_confidence = source_conf × listener_trust
+  Для преодоления 0.25:
+    - Повысить trust(Торнин, Люся) — но это данные, не production-код
+    - Повторная передача слуха (corroboration) — может повысить confidence
+    - Прямое наблюдение (Торнин сам видит оскорбление) — confidence = 1.0
+
+=============================================================================
+ВОЗМОЖНЫЕ СЦЕНАРИИ ДЛЯ B5
+=============================================================================
+
+Сценарий 1: Преодолеть PROP_TARGET_IN_REACH
+  - Если порог дистанции < 3.55m (расстояние Люся-Торнин)
+  - Нужен NPC movement для сближения
+  - После FLEE fix NPC могут двигаться
+  - Но движение зависит от DecisionHub (schedule/seek_ally)
+  - Можно подождать достаточное количество ticks, пока NPC сблизятся
+
+Сценарий 2: Преодолеть REPORT_CONFIDENCE_THRESHOLD
+  - confidence=0.215 нужно повысить до >= 0.25
+  - Без изменения production-кода:
+    (a) Повторная передача слуха от другого NPC (corroboration)
+    (b) Дополнительные свидетельства (другие NPC тоже передают слух)
+    (c) Больше ticks — если confidence растёт со временем
+  - Если ни один естественный путь не работает → PARTIAL
+
+Сценарий 3: Доказать причинную реакцию даже с confidence < 0.25
+  - Если Торнин всё равно произносит реплику (через TALK, а не SPREAD_RUMOR)
+  - И содержание реплики связано с услышанным
+  - → причинная реакция доказана через TALK, а не SPREAD_RUMOR
+  - Но это слабее (TALK не требует report_proposition)
+
+=============================================================================
+РЕКОМЕНДАЦИЯ
+=============================================================================
+
+1. Прочитать реализации (этот probe v2)
+2. На основе формулы confidence понять, можно ли естественным путём
+   преодолеть 0.25
+3. Если нет — эксперимент B5 с 20 ticks, фиксировать PARTIAL
+   с точной причиной: "confidence 0.215 < threshold 0.25"
+4. Если PROP_TARGET_IN_REACH блокирует → зафиксировать
+   и проверить, могут ли NPC сблизиться за 20 ticks
+

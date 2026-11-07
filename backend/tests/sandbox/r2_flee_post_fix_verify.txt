@@ -1,0 +1,149 @@
+==============================================================================
+R2-FLEE-POST-FIX-VERIFY — проверка после применения production-fix
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_flee_post_fix_verify.txt
+==============================================================================
+
+==============================================================================
+ТЕСТ 1: Tavern — boundary coords ЛОКАЛЬНЫЕ (после fix)
+==============================================================================
+
+  Graph size: 18
+  Expected: 18 (16 authored + 2 boundary)
+
+  exit_east coords: (8.163823945473249, 13.033182098765433)
+  exit_south coords: (8.163823945473249, 13.033182098765433)
+  exit_east is LOCAL: True (x in [0, 20.0], y in [0, 15.0])
+
+  SpatialValidator warnings: 0
+
+  exit_east connections: ['tavern:entrance']
+  exit_south connections: ['tavern:entrance']
+
+  BFS from fireplace:
+    exit_east reachable: True
+    exit_south reachable: True
+
+  exit_east coords match entrance: True
+    entrance: (8.163823945473249, 13.033182098765433)
+    exit_east: (8.163823945473249, 13.033182098765433)
+    → NPC выходит через door_0 (entrance = внешнее пространство)
+
+==============================================================================
+ТЕСТ 2: FLEE target — get_furthest выбирает достижимый exit
+==============================================================================
+
+  FLEE threat: fireplace at (10.5, 3.0)
+  get_furthest result: tavern:entrance
+    coords: (8.163823945473249, 13.033182098765433)
+    role: NodeRole.ENTRANCE
+    is BOUNDARY: False
+    reachable from fireplace: True
+    matches entrance (door_0): True
+    → NPC движется к door_0 (внешний выход) ✓
+
+==============================================================================
+ТЕСТ 3: Авторская геометрия не изменена
+==============================================================================
+
+  Authors nodes count: 16
+  Expected: 16 (не изменено)
+  exit_east in nodes: False ✓
+  exit_south in nodes: False ✓
+
+  door_0:
+    position: {'x': 8.183333333333334, 'y': 13.0}
+    wall_id: wall_2
+
+  door_1:
+    position: {'x': 14.0, 'y': 3.0}
+    wall_id: wall_7
+
+  node_16:
+    x=13.908, y=3.192
+    connections: ['fireplace', 'kitchen', 'entrance']
+
+  Walls count: 8
+  Expected: 8 (не изменено)
+
+  Rooms count: 2
+  Expected: 2 (не изменено)
+
+  adjacency: {'east': 'city_gate', 'south': 'market_square'}
+
+==============================================================================
+ТЕСТ 4: market_square — entrance (node_5) вне declared size
+==============================================================================
+
+  market_square size: W=25.0, H=25.0
+  adjacency: {'north': 'tavern'}
+  nodes count: 8
+
+  Entrance nodes: 1
+    node_5: (21.244855967078202, 17.427211934156375)
+      вне declared size [25.0x25.0]: False
+
+  Graph size: 9
+  boundary_map entries: 1
+
+  market_square:exit_north:
+    neighbor_chunk: tavern
+    coords: (21.244855967078202, 17.427211934156375)
+
+  SpatialValidator warnings: 0
+
+==============================================================================
+ТЕСТ 5: city_gate — нет entrance, fallback на LOCAL direction offsets
+==============================================================================
+
+  city_gate size: W=30.0, H=20.0
+  adjacency: {'west': 'tavern'}
+  nodes count: 18
+  Entrance nodes: 0
+  → Нет entrance → fallback на LOCAL direction offsets
+
+  Graph size: 19
+  boundary_map entries: 1
+
+  city_gate:exit_west:
+    neighbor_chunk: tavern
+    coords: (21.5, 9.25)
+    is LOCAL: True
+
+  SpatialValidator warnings: 0
+
+==============================================================================
+ТЕСТ 6: test_boundary_nodes.py — совместимость (fallback без entrance)
+==============================================================================
+
+  Test map: 5x5 (default size), center node + adjacency
+  Graph size: 3
+  boundary_map entries: 2
+  test_loc:exit_east in graph: True
+  test_loc:exit_south in graph: True
+
+  exit_east coords: (9.0, 5.0)
+  Expected (LOCAL fallback): (9.0, 5.0)
+  exit_south coords: (5.0, 1.0)
+  Expected (LOCAL fallback): (5.0, 1.0)
+
+  center connections: ['test_loc:exit_east', 'test_loc:exit_south']
+  Expected: contains exit_east and exit_south
+
+  ✓ test_boundary_nodes.py compatibility — PASS
+
+==============================================================================
+ИТОГОВАЯ СВОДКА
+==============================================================================
+
+Test                                     Result     Details
+--------------------------------------------------------------------------------
+tavern_boundary_coords                   ✓ PASS     OK
+flee_target                              ✓ PASS     OK
+author_geometry_intact                   ✓ PASS     OK
+market_square_entrance                   ✓ PASS     market_square entrance (node_5) coords outside declared size — separate data issue
+city_gate_fallback                       ✓ PASS     OK
+boundary_nodes_compatibility             ✓ PASS     OK
+
+==============================================================================
+>>> ALL TESTS PASSED — production-fix работает корректно <<<
+==============================================================================

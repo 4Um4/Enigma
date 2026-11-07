@@ -1,0 +1,285 @@
+==============================================================================
+R2-B5-D1 PRODUCTION WIRING FORENSICS
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d1_wiring_forensics.txt
+==============================================================================
+
+==============================================================================
+ЭТАП A: Найти реальную регистрацию ClaimEventSubscriber
+==============================================================================
+
+--- A.1: Все места создания ClaimEventSubscriber ---
+  tests\micro\test_butterfly_insult_proposition.py L39:     return ClaimEventSubscriber(engine, store), store
+  tests\micro\test_player_speech_claim.py L68:     sub = ClaimEventSubscriber(
+  tests\micro\test_player_speech_claim.py L98:     sub = ClaimEventSubscriber(
+  tests\micro\test_player_speech_claim.py L120:     sub = ClaimEventSubscriber(engine=MagicMock(), store=store)
+  tests\micro\test_player_speech_claim.py L136:     sub = ClaimEventSubscriber(
+  tests\micro\test_usl_free_assert.py L43:     sub = ClaimEventSubscriber(engine=engine, store=store)
+  tests\sandbox\p5a_step_22_spies.py L58:     subscriber = ClaimEventSubscriber(engine=engine, store=store, spatial_query_provider=None)
+  tests\sandbox\r2_b5_d1_player_spatial_audit.py L225:             if "ClaimEventSubscriber(" in line or "claim_event_subscriber" in line.lower() and "import" in line.lower():
+  tests\sandbox\r2_b5_d1_wiring_forensics.py L109:     results = _grep_in_dir(_BACKEND, ["ClaimEventSubscriber("])
+  tests\sandbox\micro\test_claim_guard.py L18:     return ClaimEventSubscriber(engine=MagicMock(), store=MagicMock(), spatial_query_provider=None)
+  tests\sandbox\micro\test_observer_causality.py L56:     sub = ClaimEventSubscriber(engine, store, lambda: sq_near)
+  tests\sandbox\micro\test_observer_causality.py L78:     sub = ClaimEventSubscriber(engine, store, lambda: sq_far)
+  tests\sandbox\SUPERBOX\scenarios\epistemic_eventbus_test.py L52:     subscriber = ClaimEventSubscriber(engine, store)
+  tests\sandbox\SUPERBOX\scenarios\epistemic_player_belief_test.py L63:     subscriber = ClaimEventSubscriber(
+  tests\sandbox\SUPERBOX\scenarios\epistemic_reliability_baseline_test.py L82:     subscriber = ClaimEventSubscriber(
+  tests\sandbox\SUPERBOX\scenarios\epistemic_reliability_baseline_test.py L239:     subscriber = ClaimEventSubscriber(
+  tests\sandbox\SUPERBOX\scenarios\epistemic_runtime_closure_test.py L56:     subscriber = ClaimEventSubscriber(
+  tests\sandbox\SUPERBOX\scenarios\epistemic_scheduler_closure_test.py L60:     subscriber = ClaimEventSubscriber(
+  tests\sandbox\SUPERBOX\scenarios\gc_social_test.py L12: # Зависимости: TavernGameplayHarness (GC-00 §5a.2), ClaimEventSubscriber(G1),
+  app\services\game_loop\game_loop.py L610:             _subscriber = ClaimEventSubscriber(
+
+--- A.2: Все регистрации обработчиков в EventBus ---
+  app\services\events\claim_event_subscriber.py L41:     def on_npc_spoke(self, event: Any) -> None:
+  app\services\events\claim_event_subscriber.py L87:             self.on_claim_event(new_event)
+  app\services\events\claim_event_subscriber.py L89:     def on_player_spoke(self, event: Any) -> None:
+  app\services\events\claim_event_subscriber.py L92:         Зеркало on_npc_spoke-фоллбека: proposition строится ТОЛЬКО из DM-вектора
+  app\services\events\claim_event_subscriber.py L96:         on_claim_event (distance + can_observe по event.radius = SSOT Р-В)."""
+  app\services\events\claim_event_subscriber.py L97:         import dataclasses  # локальный — прецедент on_npc_spoke (шрам трека: №181)
+  app\services\events\claim_event_subscriber.py L106:         # Мембрана on_claim_event (distance + can_observe) фильтрует слушателей.
+  app\services\events\claim_event_subscriber.py L121:                 self.on_claim_event(dataclasses.replace(event, payload=_new_payload))
+  app\services\events\claim_event_subscriber.py L127:             # делегируем on_claim_event. Существующие гейты эпистемики
+  app\services\events\claim_event_subscriber.py L130:             # PLAYER_ASSERTION → CANON запрещён (USL-2) — on_claim_event
+  app\services\events\claim_event_subscriber.py L147:                 self.on_claim_event(_new_event)
+  app\services\events\claim_event_subscriber.py L176:             self.on_claim_event(new_event)
+  app\services\events\claim_event_subscriber.py L178:     def on_claim_event(self, event: Any) -> None:
+  app\services\events\npc_dialogue_subscriber.py L185:     def on_npc_spoke(self, event: Any) -> None:
+  app\services\events\npc_speech_act_subscriber.py L9: - ClaimEventSubscriber НЕ трогается (его on_npc_spoke для Proposition-фолбэка);
+  app\services\events\npc_speech_act_subscriber.py L50:     def on_npc_spoke(self, event: Any) -> None:
+  app\services\events\npc_speech_act_subscriber.py L63:             # Guards (симметрия с NpcDialogueSubscriber.on_npc_spoke:210)
+  app\services\events\player_speech_act_subscriber.py L33:         claim_subscriber_provider: Any = None,  # Шаг 4 (1α): ленивый геттер ClaimEventSubscriber
+  app\services\events\player_speech_act_subscriber.py L40:         self._get_claim_subscriber = claim_subscriber_provider or (lambda: None)
+  app\services\events\player_speech_act_subscriber.py L42:     def on_player_spoke(self, event: Any) -> None:
+  app\services\events\player_speech_act_subscriber.py L94:                 # LLM не участвует. Мембрана слышимости — внутри on_claim_event.
+  app\services\events\player_speech_act_subscriber.py L95:                 _claim_sub = self._get_claim_subscriber()
+  app\services\events\player_speech_act_subscriber.py L110:                     _claim_sub.on_claim_event(
+  app\services\events\player_speech_act_subscriber.py L119:             logger.warning(f"[SPEECH_ACT] on_player_spoke failed: {e}")
+  app\services\game_loop\game_loop.py L453:     def _on_npc_spoke_economy_tracker(self, event: Any) -> None:
+  app\services\game_loop\game_loop.py L549:             _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
+  app\services\game_loop\game_loop.py L559:             _bus.subscribe(EventType.NPC_SPOKE, _npc_speech_act_sub.on_npc_spoke)
+  app\services\game_loop\game_loop.py L572:                 claim_subscriber_provider=lambda: getattr(  # noqa: ENIGMA002
+  app\services\game_loop\game_loop.py L576:             _bus.subscribe(EventType.PLAYER_SPOKE, _speech_act_sub.on_player_spoke)
+  app\services\game_loop\game_loop.py L579:             _bus.subscribe(EventType.NPC_SPOKE, self._on_npc_spoke_economy_tracker)
+  app\services\game_loop\game_loop.py L619:             _bus.subscribe(EventType.COMMUNICATION_CLAIM, _subscriber.on_claim_event)
+  app\services\game_loop\game_loop.py L621:             _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
+  app\services\game_loop\game_loop.py L627:             _bus.subscribe(EventType.PLAYER_SPOKE, _subscriber.on_player_spoke)
+  app\services\game_loop\game_loop.py L628:             # COGNITIVE-CONTINUITY-01: PLAYER_INSULTS → on_player_spoke (G1 fix).
+  app\services\game_loop\game_loop.py L629:             # on_player_spoke определяет PLAYER_INSULTS по event.type и строит
+  app\services\game_loop\game_loop.py L631:             _bus.subscribe(EventType.PLAYER_INSULTS, _subscriber.on_player_spoke)
+
+--- A.3: Контекст создания ClaimEventSubscriber ---
+
+  File: app\services\game_loop\game_loop.py
+       L601: 
+       L602:             # S193: Загружаем убеждения из scene_state, если они там есть.
+       L603:             _scene = self.scene_manager.get_scene_state(_campaign_id, "tavern")
+       L604:             _epistemic_data = _scene.get("epistemic_records", []) if _scene else []
+       L605:             _epistemic_store = EpistemicStore.from_dict(_epistemic_data)
+       L606:             _reliability_provider = TrustBasedReliabilityProvider(rel_store, _campaign_id)
+       L607:             _belief_engine = BeliefRevisionEngine(reliability_provider=_reliability_provider)
+       L608:             _resolver = EpistemicContextResolver(store=_epistemic_store)
+       L609: 
+   >>> L610:             _subscriber = ClaimEventSubscriber(
+       L611:                 engine=_belief_engine,
+       L612:                 store=_epistemic_store,
+       L613:                 spatial_query_provider=self._get_spatial_query_for_subscriber
+       L614:             )
+       L615:             # Шаг 4 (1α): ссылка для PlayerSpeechActSubscriber — детерминированный
+       L616:             # канал SELF_INTRODUCTION → EpistemicStore (без публикаций в шину).
+       L617:             self._claim_event_subscriber = _subscriber
+       L618:             _bus = get_event_bus()
+       L619:             _bus.subscribe(EventType.COMMUNICATION_CLAIM, _subscriber.on_claim_event)
+       L620:             # S199 (Фаза 8.3): Подписка на NPC_SPOKE для детерминированного fallback и интеграции игрока.
+       L621:             _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
+       L622:             # G1 (GC-SOCIAL-01, Stage-1.5): симметрия testimony-канала — речь
+       L623:             # игрока порождает ClaimEvent для слышащих NPC (мембрана унаследована:
+       L624:             # distance+can_observe по event.radius). НЕ понимание речи: proposition
+       L625:             # приходит только из DM-вектора (ADR-035); без вектора — no-op.
+
+==============================================================================
+ЭТАП B: Проверить реальный экземпляр ClaimEventSubscriber
+==============================================================================
+
+--- B.1: Поиск ClaimEventSubscriber в EventBus subscribers ---
+  bus._handlers: type=dict, keys/len=21
+    tick_completed: 1 callbacks
+    player_attacks: 3 callbacks
+    player_attack: 2 callbacks
+    PLAYER_ATTACKED: 3 callbacks
+    player_threatens: 2 callbacks
+    player_insults: 2 callbacks
+    theft: 2 callbacks
+    intimidation: 2 callbacks
+    help: 2 callbacks
+    object_destroyed: 1 callbacks
+    combat: 2 callbacks
+    betrayal: 1 callbacks
+    saved_life: 1 callbacks
+    player_interacts: 1 callbacks
+    PLAYER_SPOKE: 4 callbacks
+    actor_attacks: 2 callbacks
+    npc_spoke: 6 callbacks
+    npc_moved: 1 callbacks
+    npc_proximity_close: 2 callbacks
+    npc_proximity_leave: 1 callbacks
+    npc_addresses_player: 1 callbacks
+
+--- B.2: Поиск в атрибутах game_loop ---
+
+--- B.3: Поиск в tick_orch ---
+
+--- B.4: Поиск в ServiceFactory ---
+
+  ClaimEventSubscriber NOT FOUND anywhere in runtime
+  → Possibly created lazily or via different mechanism
+
+==============================================================================
+ЭТАП C: Проследить production composition (build_game_loop)
+==============================================================================
+
+--- C.1: Поиск ClaimEventSubscriber в game_loop_builder.py ---
+
+--- C.2: Поиск SpatialQueryService в game_loop_builder.py ---
+
+--- C.3: Поиск spatial_query в scene_state_manager.py ---
+  L700:         # SpatialQueryService является авторитетом. player_distances — derived projection.
+
+--- C.4: Поиск в tick_orchestrator.py ---
+  L1725:                         # publisher phase_1_input — consumer claim_event_subscriber:103
+
+--- C.5: Поиск spatial_query_provider = / spatial_query_provider= ---
+  app\services\events\claim_event_subscriber.py L35:         spatial_query_provider: Optional[Any] = None,
+  app\services\events\claim_event_subscriber.py L39:         self._get_spatial_query = spatial_query_provider
+  app\services\events\dialogue_memory_subscriber.py L23:         spatial_query_provider: Any = None,
+  app\services\events\dialogue_memory_subscriber.py L28:         self._get_spatial_query = spatial_query_provider
+  app\services\events\npc_dialogue_subscriber.py L52:         spatial_query_provider: Any = None,
+  app\services\events\npc_dialogue_subscriber.py L76:         self._get_spatial_query = spatial_query_provider
+  app\services\events\observation_subscriber.py L64:         spatial_query_provider: Optional[Callable[[], Any]] = None,
+  app\services\events\observation_subscriber.py L69:         self._get_spatial_query = spatial_query_provider
+  app\services\game_loop\game_loop.py L518:                 spatial_query_provider=self._get_spatial_query_for_subscriber,
+  app\services\game_loop\game_loop.py L544:                 spatial_query_provider=self._get_spatial_query_for_subscriber
+  app\services\game_loop\game_loop.py L613:                 spatial_query_provider=self._get_spatial_query_for_subscriber
+  app\services\game_loop\game_loop.py L646:                 spatial_query_provider=self._get_spatial_query_for_subscriber,
+
+==============================================================================
+ЭТАП D: Подтвердить ветку listeners (runtime trace)
+==============================================================================
+  [ClaimEventSubscriber not found — cannot trace runtime]
+
+==============================================================================
+ЭТАП E: PerceptualKernel.can_observe — семантика радиуса
+==============================================================================
+
+  Found at: tests\sandbox\r2_b5_d1_perception_forensic.py
+
+--- can_observe method ---
+  can_observe at L122–L173:
+  L122:         if "class PerceptualKernel" in src or "def can_observe" in src:
+  L123:             pk_path = f
+  L124:             break
+  L125: 
+  L126:     if pk_path is None:
+  L127:         print("[PerceptualKernel not found]")
+  L128:         result["error"] = "PerceptualKernel not found"
+  L129:         return result
+  L130: 
+  L131:     print(f"\n  Found at: {pk_path.relative_to(_BACKEND)}")
+  L132:     src = pk_path.read_text(encoding="utf-8", errors="replace")
+  L133:     lines = src.split("\n")
+  L134: 
+  L135:     # Print full file if small, otherwise just the class
+  L136:     if len(lines) < 300:
+  L137:         print(f"\n--- Full file ({len(lines)} lines) ---")
+  L138:         for i, line in enumerate(lines, 1):
+  L139:             print(f"L{i:4d}: {line}")
+  L140:     else:
+  L141:         # Print can_observe method + surrounding context
+  L142:         bounds = _find_function_bounds(src, "can_observe")
+  L143:         if bounds:
+  L144:             start, end = bounds
+  L145:             print(f"\n--- can_observe (L{start+1}–L{end}) ---")
+  L146:             for j in range(start, end):
+  L147:                 print(f"L{j+1}: {lines[j]}")
+  L148:         else:
+  L149:             print("[can_observe not found in file]")
+  L150:             # Print all method definitions
+  L151:             for i, line in enumerate(lines, 1):
+  L152:                 if "def " in line:
+  L153:                     print(f"  L{i}: {line.rstrip()}")
+  L154: 
+  L155:     # Search for HEARING_RADIUS in this file
+  L156:     print(f"\n--- HEARING_RADIUS references ---")
+  L157:     for i, line in enumerate(lines, 1):
+  L158:         if "HEARING_RADIUS" in line or "hearing_radius" in line.lower():
+  L159:             print(f"  L{i}: {line.rstrip()}")
+  L160: 
+  L161:     # Search for radius usage
+  L162:     print(f"\n--- radius references ---")
+  L163:     for i, line in enumerate(lines, 1):
+  L164:         if "radius" in line.lower() and ("event" in line.lower() or "payload" in line.lower() or "self" in line.lower()):
+  L165:             print(f"  L{i}: {line.rstrip()}")
+  L166: 
+  L167:     result["pass"] = True
+  L168:     return result
+  L169: 
+  L170: 
+  L171: # ============================================================================
+  L172: # ПРОВЕРКА 2: Runtime distance — фактические значения
+  L173: # ============================================================================
+
+--- HEARING_RADIUS / radius references ---
+  L155:     # Search for HEARING_RADIUS in this file
+  L156:     print(f"\n--- HEARING_RADIUS references ---")
+  L158:         if "HEARING_RADIUS" in line or "hearing_radius" in line.lower():
+  L164:         if "radius" in line.lower() and ("event" in line.lower() or "payload" in line.lower() or "self" in line.lower()):
+  L230:         print(f"  HEARING_RADIUS = 10.0")
+  L231:         print(f"  distance <= HEARING_RADIUS: {dist <= 10.0}")
+  L232:         print(f"  distance <= event.radius (999.0): {dist <= 999.0}")
+  L310:                     captured_state["payload_radius"] = payload.get("radius")
+  L468:     print(f"\n{'NPC':<25} {'distance':>10} {'can_observe':>12} {'HEARING_RADIUS':>15} {'event.radius':>15} {'in_listeners':>15}")
+  L471:     HEARING_RADIUS = 10.0
+  L472:     event_radius = captured.get("payload_radius", 999.0)
+  L482:         print(f"  {nid:<25} {str(d):>10} {str(co_result):>12} {HEARING_RADIUS:>15.1f} {event_radius:>15.1f} {str(in_listeners):>15}")
+  L487:   event.radius = {event_radius}
+  L488:   HEARING_RADIUS = {HEARING_RADIUS}
+  L490:   Если can_observe использует event.radius (999.0):
+  L494:   Если can_observe использует HEARING_RADIUS (10.0):
+  L544:                 print(f"   → distance {ml_dist:.4f}m > HEARING_RADIUS 10.0m → НЕ в радиусе")
+  L545:                 print(f"   → event.radius = {captured.get('payload_radius', '?')}, но can_observe использует HEARING_RADIUS")
+  L547:                 print(f"   → distance {ml_dist:.4f}m <= HEARING_RADIUS 10.0m, но can_observe всё равно False")
+  L558: 2. ПОЧЕМУ event.radius=999.0 НЕ ОБЕСПЕЧИВАЕТ ВОСПРИЯТИЕ:
+  L561:     event_radius = captured.get("payload_radius", "?")
+  L563:         print(f"   → event.radius = {event_radius}, но can_observe проверяет HEARING_RADIUS = 10.0")
+  L564:         print(f"   → event.radius используется для can_observe event.radius parameter,")
+  L566:         print(f"       if dist <= min(event.radius, HEARING_RADIUS): can_observe = True")
+  L567:         print(f"     → Если так, то 999.0 не помогает, т.к. HEARING_RADIUS = 10.0 ограничивает")
+  L581:         print(f"   → HEARING_RADIUS = 10.0 — это радиус обычной речи, не крика")
+  L592:         print(f"     Если event имеет radius > HEARING_RADIUS (публичное событие):")
+  L593:         print(f"       использовать event.radius вместо HEARING_RADIUS")
+
+==============================================================================
+ИТОГ — один из трёх выводов
+==============================================================================
+
+=============================================================================
+ФАКТЫ
+=============================================================================
+
+  ClaimEventSubscriber найден в runtime: False
+
+=============================================================================
+ВЕРДИКТ
+=============================================================================
+
+  >>> ВЫВОД: 2. MISSING PRODUCTION SERVICE
+  >>> ClaimEventSubscriber НЕ НАЙДЕН в production runtime
+  >>> Возможно, создаётся лениво или через другой механизм
+  >>> Нужно проверить EventBus subscriber registration
+
+=============================================================================
+ССЫЛКИ НА КОД
+=============================================================================
+
+  claim_event_subscriber.py L244-278: spatial membrane (if/else)
+  claim_event_subscriber.py L275-278: fallback (target_id only)
+  PerceptualKernel.can_observe: True

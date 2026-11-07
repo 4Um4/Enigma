@@ -139,14 +139,14 @@
   ],
   "nodes": {
     "entrance": {
-      "x": 8.147157278806583,
-      "y": 13.029182098765434,
+      "x": 8.163823945473249,
+      "y": 13.033182098765433,
       "label": "Вход",
       "role": "entrance",
       "connections": [
         "main_hall_west",
         "corner_table",
-        "exit_east"
+        "node_16"
       ]
     },
     "main_hall_west": {
@@ -238,8 +238,7 @@
       ],
       "connections": [
         "bar_side",
-        "fireplace",
-        "node_17"
+        "fireplace"
       ]
     },
     "fireplace": {
@@ -320,38 +319,14 @@
       ]
     },
     "node_16": {
-      "x": 13.5,
-      "y": 3.0,
+      "x": 13.908,
+      "y": 3.192,
       "label": "Узел",
       "connections": [
         "fireplace",
         "kitchen",
-        "exit_east",
-        "node_17"
+        "entrance"
       ]
-    },
-    "exit_east": {
-      "x": 8.218993333333334,
-      "y": 12.451713333333332,
-      "label": "Выход в Город",
-      "role": "boundary",
-      "tags": [
-        "boundary:exit"
-      ],
-      "connections": [
-        "node_16"
-      ]
-    },
-    "node_17": {
-      "x": 10.0,
-      "y": 1.0,
-      "label": "Узел",
-      "connections": [
-        "behind_bar",
-        "node_16"
-      ],
-      "role": "default",
-      "tags": []
     }
   },
   "objects": [
@@ -1491,7 +1466,7 @@
     }
   ],
   "created_at": "2024-01-15T10:30:00",
-  "modified_at": "2026-10-31T15:09:38.228565",
+  "modified_at": "2026-11-07T20:55:58.959068",
   "origin": {
     "x": 25.033333333333328,
     "y": 5.018000000000007

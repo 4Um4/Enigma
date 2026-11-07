@@ -1,0 +1,181 @@
+==============================================================================
+R2-B5-E2 v4 — invoke loop.idle_tick(), observe maid_lusya's intent
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_e2_decision_hub_v4.txt
+==============================================================================
+
+STRATEGY (using exact production API discovered in v3):
+  1. loop._load_npcs_with_runtime('Open_road') — load NPC states
+  2. Verify maid_lusya NPC state now exists
+  3. Publish PLAYER_INSULTS
+  4. loop.idle_tick('Open_road', 'tavern') — WorldTickEngine (no LLM)
+  5. Inspect maid_lusya.NPCState.intent
+  6. Capture [DECISION_HUB] logs
+
+
+==============================================================================
+STEP 1: locate sub, store, resolver
+==============================================================================
+  sub._store: id=2669124106768
+  resolver: id=2669124107776 via loop._tick_orch._epistemic_context_resolver
+
+==============================================================================
+STEP 2: load NPC states via loop._load_npcs_with_runtime
+==============================================================================
+  _load_npcs_with_runtime('Open_road') returned: type=list, len=6
+  loaded NPC IDs:
+    guard_borko (type=dict)
+    merchant_goran (type=dict)
+    maid_lusya (type=dict)
+    blacksmith_orm (type=dict)
+    thief_shadow (type=dict)
+    tavern_keeper_tornin (type=dict)
+
+==============================================================================
+STEP 3: find maid_lusya NPC state (post-load)
+==============================================================================
+  maid_lusya state FOUND via loop._resolve_npcs_snapshot (list)
+  type: dict
+  id: 2669129327936
+
+==============================================================================
+STEP 4: pre-tick intent inspection
+==============================================================================
+  maid_lusya.intent (pre-tick): None
+
+  --- maid_lusya state top-level attrs (pre-tick) ---
+
+==============================================================================
+STEP 5: publish PLAYER_INSULTS
+==============================================================================
+  store.get('maid_lusya', expected_prop).confidence = 0.5
+  ctx.report_proposition = Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True)
+  ctx.max_confidence = 0.5
+
+==============================================================================
+STEP 6: invoke loop.idle_tick('Open_road', 'tavern')
+==============================================================================
+  signature: idle_tick(campaign_id: 'str', location_id: 'Optional[str]' = None, interventions: "Optional[List['InterventionEvent']]" = None) -> 'dict'
+
+  Calling loop.idle_tick('Open_road', 'tavern')...
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+  SUCCESS: returned type=dict
+  dict keys: ['status', 'changes', 'npc_positions', 'events', 'world_snapshot', 'will_conflict_data', 'npc_addressing']
+
+==============================================================================
+STEP 7: capture [DECISION_HUB] logs from idle_tick
+==============================================================================
+  Total log entries captured: 213
+
+  --- [DECISION_HUB] logs (64) ---
+  [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=guard_borko fear_drive=0.20 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'block_path', 'ambush', 'seek_ally', 'offer_job', 'request_service', 'spread_rumor', 'call_for_help', 'change_role', 'idle']
+  [DEBUG] app.services.npc.decision_hub: [DIAG_RISK_ATK] npc=guard_borko et=EventType.WORLD_TICK et_type=EventType et_val=world_tick provoked=False fear=0.000 risk=0.478 markers=[] perceived_threat=0.00
+  [DEBUG] app.services.npc.decision_hub: [DIAG_COMPONENTS] npc=guard_borko intent=flee base=0.040 comps={'drive': 0.04, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': 0.0, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'redirect': 0.0}
+  [DEBUG] app.services.npc.decision_hub: [DIAG_RISK_ATK] npc=guard_borko et=EventType.WORLD_TICK et_type=EventType et_val=world_tick provoked=False fear=0.000 risk=0.478 markers=[] perceived_threat=0.00
+  [DEBUG] app.services.npc.decision_hub: [DIAG_COMPONENTS] npc=guard_borko intent=attack base=-0.520 comps={'drive': 0.08, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.6, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'redirect': 0.0}
+  [DEBUG] app.services.npc.decision_hub: [DECISION_CTX] applied deformation: aggression_sup=0.00, initiative_sup=0.00, compliance_bias=0.00
+  [DEBUG] app.services.npc.decision_hub: [WHY][DECISION] npc=guard_borko | winner=spread_rumor (0.988) | threat=0.0 | comps={'drive': 0.27, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.0, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'redirect': 0.0, 'noise': -0.026} | current=None (0.000) | threshold=0.150 | pressure=0.988 | accumulated=0.000 | force_switch=False
+  [INFO] app.services.npc.decision_hub: [EPISTEMIC_REPORT_TARGET] npc=guard_borko intent=Intent.SPREAD_RUMOR target=tavern_keeper_tornin predicate=insulted
+  [INFO] app.services.npc.decision_hub: [DECISION_HUB] guard_borko: intent=Intent.SPREAD_RUMOR score=0.988 event=EventType.WORLD_TICK
+  [INFO] app.services.npc.decision_hub: [TRACE][DECISION_SCORE] npc=guard_borko winner=Intent.SPREAD_RUMOR top3=[('spread_rumor', 0.99), ('block_path', 0.53), ('talk', 0.46)]
+  [INFO] app.services.npc.decision_hub: [DECISION_HUB_RETURN] npc=guard_borko intent=Intent.SPREAD_RUMOR comm_built=True epistemic_context=YES
+  [INFO] app.services.npc.npc_tick_pipeline: [DECISION_HUB] guard_borko: intent=Intent.spread_rumor score=0.988 event=unknown
+  [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=merchant_goran fear_drive=0.15 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'seek_ally', 'offer_job', 'request_service', 'spread_rumor', 'call_for_help', 'change_role', 'idle']
+  [DEBUG] app.services.npc.decision_hub: [DIAG_RISK_ATK] npc=merchant_goran et=EventType.WORLD_TICK et_type=EventType et_val=world_tick provoked=False fear=0.000 risk=0.586 markers=[] perceived_threat=0.00
+  [DEBUG] app.services.npc.decision_hub: [DIAG_COMPONENTS] npc=merchant_goran intent=flee base=0.030 comps={'drive': 0.03, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': 0.0, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'redirect': 0.0}
+  [DEBUG] app.services.npc.decision_hub: [DIAG_RISK_ATK] npc=merchant_goran et=EventType.WORLD_TICK et_type=EventType et_val=world_tick provoked=False fear=0.000 risk=0.586 markers=[] perceived_threat=0.00
+  [DEBUG] app.services.npc.decision_hub: [DIAG_COMPONENTS] npc=merchant_goran intent=attack base=-0.560 comps={'drive': 0.04, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.6, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'redirect': 0.0}
+  [DEBUG] app.services.npc.decision_hub: [DECISION_CTX] applied deformation: aggression_sup=0.00, initiative_sup=0.00, compliance_bias=0.00
+  [DEBUG] app.services.npc.decision_hub: [WHY][DECISION] npc=merchant_goran | winner=change_role (0.407) | threat=0.0 | comps={'drive': 0.36, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.0, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'redirect': 0.0, 'noise': 0.047} | current=None (0.000) | threshold=0.150 | pressure=0.407 | accumulated=0.000 | force_switch=False
+  [INFO] app.services.npc.decision_hub: [DECISION_HUB] merchant_goran: intent=Intent.CHANGE_ROLE score=0.407 event=EventType.WORLD_TICK
+  [INFO] app.services.npc.decision_hub: [TRACE][DECISION_SCORE] npc=merchant_goran winner=Intent.CHANGE_ROLE top3=[('change_role', 0.41), ('seek_ally', 0.28), ('help', 0.1)]
+  [INFO] app.services.npc.decision_hub: [DECISION_HUB_RETURN] npc=merchant_goran intent=Intent.CHANGE_ROLE comm_built=True epistemic_context=YES
+  [INFO] app.services.npc.npc_tick_pipeline: [DECISION_HUB] merchant_goran: intent=Intent.change_role score=0.407 event=unknown
+  [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=maid_lusya fear_drive=0.45 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'seek_ally', 'offer_job', 'request_service', 'spread_rumor', 'call_for_help', 'change_role', 'idle']
+  [DEBUG] app.services.npc.decision_hub: [DIAG_RISK_ATK] npc=maid_lusya et=EventType.WORLD_TICK et_type=EventType et_val=world_tick provoked=False fear=0.000 risk=1.000 markers=[] perceived_threat=0.00
+  [DEBUG] app.services.npc.decision_hub: [DIAG_COMPONENTS] npc=maid_lusya intent=flee base=0.090 comps={'drive': 0.09, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': 0.0, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'redirect': 0.0}
+  [DEBUG] app.services.npc.decision_hub: [DIAG_RISK_ATK] npc=maid_lusya et=EventType.WORLD_TICK et_type=EventType et_val=world_tick provoked=False fear=0.000 risk=1.000 markers=[] perceived_threat=0.00
+  [DEBUG] app.services.npc.decision_hub: [DIAG_COMPONENTS] npc=maid_lusya intent=attack base=-0.570 comps={'drive': 0.03, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.6, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'redirect': 0.0}
+  [DEBUG] app.services.npc.decision_hub: [DECISION_CTX] applied deformation: aggression_sup=0.00, initiative_sup=0.00, compliance_bias=0.00
+  [DEBUG] app.services.npc.decision_hub: [WHY][DECISION] npc=maid_lusya | winner=seek_ally (0.348) | threat=0.0 | comps={'drive': 0.26, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.0, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'redirect': 0.0, 'noise': 0.088} | current=None (0.000) | threshold=0.150 | pressure=0.348 | accumulated=0.000 | force_switch=False
+  ... and 34 more
+
+  --- logs mentioning maid_lusya (29) ---
+  [INFO] app.services.npc.life_engine: [SCHED_TRACE] npc=maid_lusya prev='' new='working' CHANGE
+  [INFO] app.services.npc.life_engine: [PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=maid_lusya target=tavern:kitchen reason=schedule:working
+  [INFO] app.services.spatial.movement_engine: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=tavern:node_16 reason=schedule:working exact_xy=(13.908, 3.192) dist=6.08 ticks=4
+  [INFO] app.services.spatial.movement_engine: [MOVEMENT_TRACE] npc=maid_lusya status=VALID_PATH path_len=3 traversal=CREATED
+  [INFO] app.services.event_compiler: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:schedule:working spatial=yes traversal=NEW
+  [INFO] app.services.events.event_bus: [EVENT_BUS] npc_moved от 'maid_lusya' → 1 обработчиков, 0 результатов
+  [INFO] app.services.phases.decision: [BREAK_PROGRESS] npc=maid_lusya trust_min=-40.0 fear_max=60.0 social_pressure=20.0
+  [INFO] app.services.phases.decision: [EMOTION_EMERGENT] npc=maid_lusya emotion=fearful (social_pressure=20.0)
+  [INFO] app.services.npc.break_progress_engine: [BREAK] npc=maid_lusya stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=13.3
+  [WARNING] app.services.npc.npc_tick_pipeline: [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+  [INFO] app.services.npc.domain_phases: [ECO] maid_lusya: +0.020 (бедность +0.020)
+  [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=maid_lusya desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.168, 'warn': 0.045, 'spread_rumor': 0.49, 'call_for_help': 0.0}
+  [DEBUG] app.services.npc.npc_tick_pipeline: [DIAG-OPP] npc=maid_lusya will=None dist=10.1 att=0.00 allies=0
+  [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=maid_lusya fear_drive=0.45 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'seek_ally', 'offer_job', 'request_service', 'spread_rumor', 'call_for_help', 'change_role', 'idle']
+  [DEBUG] app.services.npc.decision_hub: [DIAG_RISK_ATK] npc=maid_lusya et=EventType.WORLD_TICK et_type=EventType et_val=world_tick provoked=False fear=0.000 risk=1.000 markers=[] perceived_threat=0.00
+  [DEBUG] app.services.npc.decision_hub: [DIAG_COMPONENTS] npc=maid_lusya intent=flee base=0.090 comps={'drive': 0.09, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': 0.0, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'redirect': 0.0}
+  [DEBUG] app.services.npc.decision_hub: [DIAG_RISK_ATK] npc=maid_lusya et=EventType.WORLD_TICK et_type=EventType et_val=world_tick provoked=False fear=0.000 risk=1.000 markers=[] perceived_threat=0.00
+  [DEBUG] app.services.npc.decision_hub: [DIAG_COMPONENTS] npc=maid_lusya intent=attack base=-0.570 comps={'drive': 0.03, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.6, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'redirect': 0.0}
+  [DEBUG] app.services.npc.decision_hub: [WHY][DECISION] npc=maid_lusya | winner=seek_ally (0.348) | threat=0.0 | comps={'drive': 0.26, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.0, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'redirect': 0.0, 'noise': 0.088} | current=None (0.000) | threshold=0.150 | pressure=0.348 | accumulated=0.000 | force_switch=False
+  [INFO] app.services.npc.decision_hub: [DECISION_HUB] maid_lusya: intent=Intent.SEEK_ALLY score=0.348 event=EventType.WORLD_TICK
+  ... and 9 more
+
+  --- logs mentioning spread_rumor (20) ---
+  [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=guard_borko desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.168, 'warn': 0.075, 'spread_rumor': 0.49, 'call_for_help': 0.0}
+  [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=guard_borko fear_drive=0.20 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'block_path', 'ambush', 'seek_ally', 'offer_job', 'request_service', 'spread_rumor', 'call_for_help', 'change_role', 'idle']
+  [DEBUG] app.services.npc.decision_hub: [WHY][DECISION] npc=guard_borko | winner=spread_rumor (0.988) | threat=0.0 | comps={'drive': 0.27, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.0, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'redirect': 0.0, 'noise': -0.026} | current=None (0.000) | threshold=0.150 | pressure=0.988 | accumulated=0.000 | force_switch=False
+  [INFO] app.services.npc.decision_hub: [EPISTEMIC_REPORT_TARGET] npc=guard_borko intent=Intent.SPREAD_RUMOR target=tavern_keeper_tornin predicate=insulted
+  [INFO] app.services.npc.decision_hub: [DECISION_HUB] guard_borko: intent=Intent.SPREAD_RUMOR score=0.988 event=EventType.WORLD_TICK
+  [INFO] app.services.npc.decision_hub: [TRACE][DECISION_SCORE] npc=guard_borko winner=Intent.SPREAD_RUMOR top3=[('spread_rumor', 0.99), ('block_path', 0.53), ('talk', 0.46)]
+  [INFO] app.services.npc.decision_hub: [DECISION_HUB_RETURN] npc=guard_borko intent=Intent.SPREAD_RUMOR comm_built=True epistemic_context=YES
+  [INFO] app.services.npc.npc_tick_pipeline: [DECISION_HUB] guard_borko: intent=Intent.spread_rumor score=0.988 event=unknown
+  [DEBUG] app.services.npc.npc_tick_pipeline: [PROACTIVE_MOVE] npc=guard_borko intent=spread_rumor target_node=tavern:behind_bar
+  [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=merchant_goran fear_drive=0.15 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'seek_ally', 'offer_job', 'request_service', 'spread_rumor', 'call_for_help', 'change_role', 'idle']
+  [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=maid_lusya desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.168, 'warn': 0.045, 'spread_rumor': 0.49, 'call_for_help': 0.0}
+  [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=maid_lusya fear_drive=0.45 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'seek_ally', 'offer_job', 'request_service', 'spread_rumor', 'call_for_help', 'change_role', 'idle']
+  [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=blacksmith_orm desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.168, 'warn': 0.15, 'spread_rumor': 0.49, 'call_for_help': 0.0}
+  [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=blacksmith_orm fear_drive=0.05 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'seek_ally', 'offer_job', 'request_service', 'spread_rumor', 'call_for_help', 'change_role', 'idle']
+  [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=thief_shadow desired_change=behavior:guard_borko methods={'intimidate': 0.168, 'warn': 0.015, 'spread_rumor': 0.49, 'call_for_help': 0.0}
+  [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=thief_shadow fear_drive=0.10 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'block_path', 'ambush', 'seek_ally', 'offer_job', 'request_service', 'spread_rumor', 'call_for_help', 'change_role', 'idle']
+  [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=tavern_keeper_tornin desired_change=behavior:maid_lusya methods={'intimidate': 0.168, 'warn': 0.09, 'spread_rumor': 0.49, 'call_for_help': 0.0}
+  [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=tavern_keeper_tornin fear_drive=0.15 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'seek_ally', 'offer_job', 'request_service', 'spread_rumor', 'call_for_help', 'change_role', 'idle']
+  [INFO] app.services.spatial.movement_engine: [PIPELINE][MOVEMENT][RELOCATE] npc=guard_borko → zone=tavern:node_16 reason=proactive_spread_rumor exact_xy=(13.908, 3.192) dist=2.85 ticks=2
+  [INFO] app.services.event_compiler: [SHADOW_COMPILER] compiled: target=guard_borko field=position cause=semantic_relocation:proactive_spread_rumor spatial=yes traversal=NEW
+
+  --- logs mentioning npc_spoke (0) ---
+
+==============================================================================
+STEP 8: post-tick intent inspection
+==============================================================================
+  maid_lusya state FOUND via loop._resolve_npcs_snapshot (list)
+  type: dict, id: 2669197965248
+  >>> DIFFERENT OBJECT from pre-tick
+
+  maid_lusya.intent (post-tick): None
+
+  --- maid_lusya state top-level attrs (post-tick) ---
+
+==============================================================================
+STEP 9: EpistemicStore after tick
+==============================================================================
+  maid_lusya: 1 records
+    {'proposition': "Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, obj", 'confidence': 0.5, 'source_id': 'player', 'original_source_id': 'player'}
+  tavern_keeper_tornin: 1 records
+    {'proposition': "Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, obj", 'confidence': 0.5, 'source_id': 'player', 'original_source_id': 'player'}
+
+==============================================================================
+STEP 10: VERDICT
+==============================================================================
+  maid_lusya.intent post-tick: 
+  was SPREAD_RUMOR selected: False
+
+  >>> VERDICT: INCONCLUSIVE — maid_lusya has no intent field set
+  >>> idle_tick may not have processed maid_lusya
+  >>> Inspect DECISION_HUB logs in Step 7

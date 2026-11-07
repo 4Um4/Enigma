@@ -1,0 +1,737 @@
+==============================================================================
+R2-FLEE-ROOT-CAUSE v2 — 4 проверки + контрольный эксперимент
+TAVERN_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\locations\tavern.json
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_flee_root_cause_v2.txt
+==============================================================================
+
+==============================================================================
+ПРОВЕРКА 1: Полный путь compile_graph — от начала до _create_boundary_nodes
+==============================================================================
+
+compile_graph начинается на L44
+_create_boundary_nodes вызывается на L367
+
+>>> Полный путь compile_graph (L44 – L371):
+>>> Это 323 строк между началом и вызовом
+L  44: def compile_graph(
+L  45:     editor_data: Dict[str, Any],
+L  46:     location_id: str,
+L  47:     level: Optional[str] = None,
+L  48: ) -> Tuple[
+L  49:     Dict[str, NodeRef],
+L  50:     Dict[str, Set[str]],
+L  51:     Dict[str, str],
+L  52:     Dict[str, Dict[str, Any]],
+L  53:     Dict[str, List[Tuple[float, float]]],
+L  54:     List[Dict[str, Any]],
+L  55:     List[Dict[str, Any]],
+L  56:     List[Dict[str, Any]],
+L  57: ]:
+L  58:     """Компилирует editor JSON в runtime graph + alias_map.
+L  59: 
+L  60:     Аргументы:
+L  61:         editor_data: словарь из editor JSON (с ключами "nodes", "passages")
+L  62:         location_id: идентификатор локации (напр. "tavern_silver_wolf")
+L  63:         level: вертикальный уровень (ground, basement, floor_2)
+L  64: 
+L  65:     Возвращает:
+L  66:         (graph, alias_map)
+L  67:         graph: dict[canonical_id, NodeRef]
+L  68:         alias_map: dict[legacy_id, canonical_id]
+L  69:     """
+L  70:     if not editor_data:
+L  71:         logger.error(
+L  72:             f"[GRAPH_COMPILER] editor_data is None для {location_id}. Возвращаем пустой граф."
+L  73:         )
+L  74:         return {}, {}, {}, {}, {}, [], [], []  ← EARLY RETURN
+L  75: 
+L  76:     graph: Dict[str, NodeRef] = {}
+L  77:     connections: Dict[str, Set[str]] = {}
+L  78:     alias_map: Dict[str, str] = {}
+L  79: 
+L  80:     # ADR-121: Двухслойная топология
+L  81:     # "nodes" (dict) — навигационная топология (точки пути + связи между ними)
+L  82:     # "rooms" (list) — физические контейнеры (bounding boxes для LOS/коллизий)
+L  83:     # Оба слоя существуют одновременно и компилируются параллельно.
+L  84:     # Ни один слой не деградирует при наличии другого.
+L  85:     nodes_raw = editor_data.get("nodes") or {}
+L  86:     rooms_raw = editor_data.get("rooms")
+L  87:     _has_nav = isinstance(nodes_raw, dict) and bool(nodes_raw)
+L  88:     _has_rooms = isinstance(rooms_raw, (list, dict)) and bool(rooms_raw)
+L  89: 
+L  90:     # ── Layer 1: Навигационная топология (nodes) ──────────────────
+L  91:     # Навигационные узлы имеют точные координаты и явные связи.
+L  92:     # Это первичный слой для pathfinding и семантического резолва.
+L  93:     if _has_nav:
+L  94:         for node_id, node_data in nodes_raw.items():
+L  95:             if not isinstance(node_data, dict):
+L  96:                 continue
+L  97:             canonical_id = f"{location_id}:{node_id}"
+L  98:             nx = node_data.get("x", 0.0)
+L  99:             ny = node_data.get("y", 0.0)
+L 100:             node_label = node_data.get("label", node_data.get("name", node_id))
+L 101: 
+L 102:             # ADR-O-326: JSON role is absolute truth (SSOT). No guessing if role is explicit.
+L 103:             _json_role = node_data.get("role")
+L 104:             _manifest = None
+L 105:             if _json_role:
+L 106:                 try:
+L 107:                     _manifest = NodeRole(_json_role)
+L 108:                 except ValueError:
+L 109:                     _manifest = None
+L 110: 
+L 111:             node_ref = NodeRef(
+L 112:                 node_id=canonical_id,
+L 113:                 x=nx,
+L 114:                 y=ny,
+L 115:                 role=resolve_role(
+L 116:                     node_label=node_label,
+L 117:                     editor_type=node_data.get("type"),
+L 118:                     editor_tags=node_data.get("tags", []),
+L 119:                     node_id=node_id,
+L 120:                     manifest_override=_manifest
+L 121:                 ),
+L 122:                 tags=node_data.get("tags", []),
+L 123:                 zone_id=location_id,
+L 124:                 level=level,
+L 125:             )
+L 126:             graph[canonical_id] = node_ref  ← GRAPH OP
+L 127:             alias_map[node_id] = canonical_id
+L 128: 
+L 129:             # name-alias (label → canonical_id)
+L 130:             if node_label and node_label.lower() not in alias_map:
+L 131:                 alias_map[node_label.lower()] = canonical_id
+L 132: 
+L 133:             # Явные алиасы из editor JSON
+L 134:             for alias in node_data.get("aliases", []):
+L 135:                 alias_map[alias.lower()] = canonical_id
+L 136: 
+L 137:             # ADR-114: Role-based legacy aliases
+L 138:             _legacy_names = _ROLE_LEGACY_ALIASES.get(node_ref.role, set())
+L 139:             for _alias in _legacy_names:
+L 140:                 if _alias not in alias_map:
+L 141:                     alias_map[_alias] = canonical_id
+L 142: 
+L 143:     # ── Layer 2: Физические контейнеры (rooms) ────────────────────
+L 144:     # Комнаты — bounding boxes для LOS, коллизий, контейнмента.
+L 145:     # Добавляются в граф ТОЛЬКО если не представлены навигационными узлами.
+L 146:     # Комнаты с навигационным представлением обогащают alias_map своими именами.
+L 147:     rooms: Dict[str, Dict[str, Any]] = {}
+L 148:     if _has_rooms:
+L 149:         if isinstance(rooms_raw, list):
+L 150:             for item in rooms_raw:
+L 151:                 if isinstance(item, dict):
+L 152:                     rid: str = str(item.get("id", item.get("room_id", f"room_{len(rooms)}")))
+L 153:                     rooms[rid] = item
+L 154:         elif isinstance(rooms_raw, dict):
+L 155:             rooms = dict(rooms_raw)
+L 156: 
+L 157:         if rooms:
+L 158:             # ADR-091: Фильтрация container-комнат (внешних границ)
+L 159:             room_ids = list(rooms.keys())
+L 160:             container_ids = set()
+L 161:             for i in range(len(room_ids)):
+L 162:                 for j in range(len(room_ids)):
+L 163:                     if i == j:
+L 164:                         continue
+L 165:                     r1 = rooms[room_ids[i]]
+L 166:                     r2 = rooms[room_ids[j]]
+L 167:                     x1_min, y1_min = r1.get("x", 0.0), r1.get("y", 0.0)
+L 168:                     x1_max = x1_min + r1.get("width", 0.0)
+L 169:                     y1_max = y1_min + r1.get("height", 0.0)
+L 170:                     x2_min, y2_min = r2.get("x", 0.0), r2.get("y", 0.0)
+L 171:                     x2_max = x2_min + r2.get("width", 0.0)
+L 172:                     y2_max = y2_min + r2.get("height", 0.0)
+L 173:                     if (
+L 174:                         x1_min <= x2_min + 0.5
+L 175:                         and y1_min <= y2_min + 0.5
+L 176:                         and x1_max >= x2_max - 0.5
+L 177:                         and y1_max >= y2_max - 0.5
+L 178:                     ):
+L 179:                         container_ids.add(room_ids[i])
+L 180:                         logger.warning(
+L 181:                             f"[GRAPH_COMPILER] Комната '{room_ids[i]}' содержит "
+L 182:                             f"'{room_ids[j]}'. Это внешняя граница — исключена."
+L 183:                         )
+L 184:             if container_ids:
+L 185:                 rooms = {
+L 186:                     rid: data for rid, data in rooms.items() if rid not in container_ids
+L 187:                 }
+L 188: 
+L 189:     if not _has_nav and not rooms:
+L 190:         logger.warning(f"[GRAPH_COMPILER] Нет узлов (rooms/nodes) в {location_id}")
+L 191:         return {}, {}, {}, {}, {}, [], [], []  ← EARLY RETURN
+L 192: 
+L 193:     # ── Извлечение физической геометрии (ETKE-IK v1) ─────────────
+L 194:     # Геометрия комнат нужна WorldTopologyProvider для вычисления AffordanceVector.
+L 195:     rooms_geometry: Dict[str, List[Tuple[float, float]]] = {}
+L 196:     for room_id, room_data in rooms.items():
+L 197:         polygon = room_data.get("polygon")
+L 198:         if polygon and isinstance(polygon, list) and len(polygon) >= 3:
+L 199:             rooms_geometry[room_id] = [(float(p[0]), float(p[1])) for p in polygon]
+L 200:         else:
+L 201:             rx = room_data.get("x", 0.0)
+L 202:             ry = room_data.get("y", 0.0)
+L 203:             rw = room_data.get("width") or room_data.get("w") or 0.0
+L 204:             rh = room_data.get("height") or room_data.get("h") or 0.0
+L 205:             if rw > 0 and rh > 0:
+L 206:                 rooms_geometry[room_id] = [
+L 207:                     (rx, ry),
+L 208:                     (rx + rw, ry),
+L 209:                     (rx + rw, ry + rh),
+L 210:                     (rx, ry + rh),
+L 211:                 ]
+L 212: 
+L 213:     # ── Room → graph (orphan rooms + name enrichment) ──────────────
+L 214:     # Для каждой комнаты проверяем: есть ли навигационный узел,
+L 215:     # представляющий эту комнату? Если да — обогащаем alias_map.
+L 216:     # Если нет — добавляем как самостоятельный узел (обратная совместимость).
+L 217:     if rooms:
+L 218:         for room_id, room_data in rooms.items():
+L 219:             canonical_id = f"{location_id}:{room_id}"
+L 220:             room_name = room_data.get("name", "")
+L 221: 
+L 222:             # Стратегия маппинга: name → nav node (по label) или position → nav node (по центроиду)
+L 223:             _nav_match = None
+L 224: 
+L 225:             # 1) Точное совпадение имени комнаты с label навигационного узла
+L 226:             if _has_nav and room_name:
+L 227:                 # N5-style FIX: Гарантируем, что nodes_raw — это dict
+L 228:                 if not isinstance(nodes_raw, dict):
+L 229:                     nodes_raw = {}
+L 230: 
+L 231:                 for nid, ndata in nodes_raw.items():
+L 232:                     if not isinstance(ndata, dict):
+L 233:                         continue
+L 234: 
+L 235:                     # Безопасно извлекаем значение, по умолчанию пустая строка
+L 236:                     nav_label_raw = ndata.get("label", ndata.get("name", ""))
+L 237:                     # Явно приводим к строке, так как JSON может содержать числа или списки
+L 238:                     nav_label = str(nav_label_raw) if nav_label_raw else ""
+L 239: 
+L 240:                     if nav_label and nav_label.lower() == str(room_name).lower():
+L 241:                         _nav_match = f"{location_id}:{nid}"
+L 242:                         break
+L 243: 
+L 244:             # 2) Центроид комнаты рядом с навигационным узлом
+L 245:             if _nav_match is None and _has_nav:
+L 246:                 rx = room_data.get("x", 0.0)
+L 247:                 ry = room_data.get("y", 0.0)
+L 248:                 rw = room_data.get("width") or room_data.get("w") or 0.0
+L 249:                 rh = room_data.get("height") or room_data.get("h") or 0.0
+L 250:                 room_cx = rx + rw / 2
+L 251:                 room_cy = ry + rh / 2
+L 252:                 for nid, ndata in nodes_raw.items():
+L 253:                     if not isinstance(ndata, dict):
+L 254:                         continue
+L 255:                     nav_x = ndata.get("x", 0.0)
+L 256:                     nav_y = ndata.get("y", 0.0)
+L 257:                     if abs(room_cx - nav_x) < 1.0 and abs(room_cy - nav_y) < 1.0:
+L 258:                         _nav_match = f"{location_id}:{nid}"
+L 259:                         break
+L 260: 
+L 261:             if canonical_id in graph or _nav_match:
+L 262:                 # Комната уже представлена навигационным узлом — enrich alias_map
+L 263:                 _target = _nav_match or canonical_id
+L 264:                 if room_name and room_name.lower() not in alias_map:
+L 265:                     alias_map[room_name.lower()] = _target
+L 266:                 for alias in room_data.get("aliases", []):
+L 267:                     if alias.lower() not in alias_map:
+L 268:                         alias_map[alias.lower()] = _target
+L 269:                 continue
+L 270: 
+L 271:             # ADR-S91.1: Навигационная топология (nodes) — первичный источник графа.
+L 272:             # Если есть nodes, orphan rooms (без навигационного узла) — это физические контейнеры (LOS/коллизии),
+L 273:             # а не точки пути. Добавление их в graph создаёт изолированные компоненты.
+L 274:             if _has_nav:
+L 275:                 logger.debug(
+L 276:                     f"[GRAPH_COMPILER] Orphan room '{room_id}' пропущена (nav layer active)."
+L 277:                 )
+L 278:                 continue
+L 279: 
+L 280:             # Orphan room — нет навигационного представления (fallback mode: graph = rooms)
+L 281:             rx = room_data.get("x", 0.0)
+L 282:             ry = room_data.get("y", 0.0)
+L 283:             rw = room_data.get("width") or room_data.get("w") or 0.0
+L 284:             rh = room_data.get("height") or room_data.get("h") or 0.0
+L 285:             center_x = rx + rw / 2
+L 286:             center_y = ry + rh / 2
+L 287: 
+L 288:             node_ref = NodeRef(
+L 289:                 node_id=canonical_id,
+L 290:                 x=center_x,
+L 291:                 y=center_y,
+L 292:                 role=resolve_role(
+L 293:                     node_label=room_data.get("name", room_id),
+L 294:                     editor_type=room_data.get("type"),
+L 295:                     node_id=room_id,
+L 296:                 ),
+L 297:                 tags=room_data.get("tags", []),
+L 298:                 zone_id=location_id,
+L 299:                 level=level,
+L 300:             )
+L 301:             graph[canonical_id] = node_ref  ← GRAPH OP
+L 302:             alias_map[room_id] = canonical_id
+L 303: 
+L 304:             if (
+L 305:                 room_name
+L 306:                 and room_name != room_id
+L 307:                 and room_name.lower() not in alias_map
+L 308:             ):
+L 309:                 alias_map[room_name.lower()] = canonical_id
+L 310: 
+L 311:             for alias in room_data.get("aliases", []):
+L 312:                 alias_map[alias.lower()] = canonical_id
+L 313: 
+L 314:             _legacy_names = _ROLE_LEGACY_ALIASES.get(node_ref.role, set())
+L 315:             for _alias in _legacy_names:
+L 316:                 if _alias not in alias_map:
+L 317:                     alias_map[_alias] = canonical_id
+L 318: 
+L 319:     # ── Компиляция связей ──────────────────────────────────────────
+L 320:     if _has_nav:
+L 321:         # Навигационные связи из per-node connections (первичный источник)
+L 322:         for node_id, node_data in nodes_raw.items():
+L 323:             if not isinstance(node_data, dict):
+L 324:                 continue
+L 325:             from_canonical = alias_map.get(node_id, f"{location_id}:{node_id}")
+L 326:             for target_id in node_data.get("connections", []):
+L 327:                 to_canonical = alias_map.get(target_id, f"{location_id}:{target_id}")
+L 328:                 if from_canonical in graph and to_canonical in graph:
+L 329:                     connections.setdefault(from_canonical, set()).add(to_canonical)
+L 330:                     connections.setdefault(to_canonical, set()).add(from_canonical)
+L 331:                 else:
+L 332:                     logger.warning(
+L 333:                         f"[GRAPH_COMPILER] Пропуск связи {node_id}→{target_id}: "
+L 334:                         f"узел не найден в графе"
+L 335:                     )
+L 336:     else:
+L 337:         # Обратная совместимость: passages/connections из editor JSON
+L 338:         # IPT-CLEANUP FIX: Не автогенерировать рёбра между комнатами, если в карте уже есть явные node connections.
+L 339:         # Иначе появляются "призрачные" рёбра сквозь стены без дверей.
+L 340:         passages = editor_data.get("passages", editor_data.get("connections", []))
+L 341:         if not passages and len(rooms) > 1 and not connections:
+L 342:             passages = _infer_connections_from_adjacency(rooms)
+L 343: 
+L 344:         for passage in passages:
+L 345:             from_legacy = passage.get("from") or ""
+L 346:             to_legacy = passage.get("to") or ""
+L 347:             if not from_legacy or not to_legacy:
+L 348:                 continue
+L 349:             from_canonical = alias_map.get(from_legacy, f"{location_id}:{from_legacy}")
+L 350:             to_canonical = alias_map.get(to_legacy, f"{location_id}:{to_legacy}")
+L 351:             if from_canonical in graph and to_canonical in graph:
+L 352:                 connections.setdefault(from_canonical, set()).add(to_canonical)
+L 353:                 if not passage.get("one_way", False):
+L 354:                     connections.setdefault(to_canonical, set()).add(from_canonical)
+L 355:             else:
+L 356:                 logger.warning(
+L 357:                     f"[GRAPH_COMPILER] Пропуск связи {from_legacy}→{to_legacy}: "
+L 358:                     f"узел не найден в графе"
+L 359:                 )
+L 360: 
+L 361:     # ── Layer 3: Boundary Nodes (ДОЛГ 6.2) ──────────────────────────
+L 362:     # Читаем adjacency и создаём виртуальные узлы выхода из чанка.
+L 363:     # Boundary node — семантическая точка перехода в соседний чанк.
+L 364:     boundary_map: Dict[str, Dict[str, Any]] = {}
+L 365:     adjacency = editor_data.get("adjacency")
+L 366:     if isinstance(adjacency, dict) and adjacency and graph:
+L 367:         _create_boundary_nodes(  ← BOUNDARY CALL
+L 368:             graph=graph,
+L 369:             connections=connections,
+L 370:             alias_map=alias_map,
+L 371:             boundary_map=boundary_map,
+
+==============================================================================
+ПРОВЕРКА 2: Состояние graph ПЕРЕД вызовом _create_boundary_nodes (runtime)
+==============================================================================
+
+>>> Состояние graph ПЕРЕД _create_boundary_nodes:
+  location_id: tavern
+  adjacency: {'east': 'city_gate', 'south': 'market_square'}
+  origin: {'x': 25.033333333333328, 'y': 5.018000000000007}
+  size: {'w': 20, 'h': 15}
+  graph size: 16 entries
+
+  Ключевые проверки:
+    'tavern:exit_east' в graph: False
+    'exit_east' (без префикса) в graph: False
+    'tavern:exit_south' в graph: False
+    'exit_south' (без префикса) в graph: False
+
+  Координаты (если найдены):
+    tavern:exit_east: НЕ в graph
+    exit_east: НЕ в graph
+    tavern:exit_south: НЕ в graph
+    exit_south: НЕ в graph
+
+  Boundary nodes уже в graph (перед _create_boundary_nodes):
+    [нет узлов с role=BOUNDARY в graph перед вызовом]
+
+  Все ключи graph (первые 30, отсортированные):
+    tavern:bar_area
+    tavern:bar_pass_north
+    tavern:bar_side
+    tavern:bar_west
+    tavern:behind_bar
+    tavern:corner_table
+    tavern:entrance
+    tavern:fireplace
+    tavern:kitchen
+    tavern:kitchen_bed_1
+    tavern:kitchen_bed_2
+    tavern:main_hall
+    tavern:main_hall_south
+    tavern:main_hall_west
+    tavern:node_16
+    tavern:right_table
+
+==============================================================================
+ПРОВЕРКА 3: Все операции между загрузкой nodes и созданием boundary
+==============================================================================
+
+>>> Загрузка nodes заканчивается на L127
+>>> _create_boundary_nodes вызывается на L367
+>>> Между ними 240 строк
+
+>>> Все операции между (L127 – L367):
+L 127:             alias_map[node_id] = canonical_id
+L 129:             # name-alias (label → canonical_id)
+L 130:             if node_label and node_label.lower() not in alias_map:
+L 131:                 alias_map[node_label.lower()] = canonical_id
+L 133:             # Явные алиасы из editor JSON
+L 134:             for alias in node_data.get("aliases", []):
+L 135:                 alias_map[alias.lower()] = canonical_id
+L 137:             # ADR-114: Role-based legacy aliases
+L 138:             _legacy_names = _ROLE_LEGACY_ALIASES.get(node_ref.role, set())
+L 139:             for _alias in _legacy_names:
+L 140:                 if _alias not in alias_map:
+L 141:                     alias_map[_alias] = canonical_id
+L 143:     # ── Layer 2: Физические контейнеры (rooms) ────────────────────
+L 144:     # Комнаты — bounding boxes для LOS, коллизий, контейнмента.
+L 145:     # Добавляются в граф ТОЛЬКО если не представлены навигационными узлами.
+L 146:     # Комнаты с навигационным представлением обогащают alias_map своими именами.
+L 147:     rooms: Dict[str, Dict[str, Any]] = {}
+L 148:     if _has_rooms:  ← [if _has]
+L 149:         if isinstance(rooms_raw, list):
+L 150:             for item in rooms_raw:
+L 151:                 if isinstance(item, dict):
+L 152:                     rid: str = str(item.get("id", item.get("room_id", f"room_{len(rooms)}")))
+L 153:                     rooms[rid] = item
+L 154:         elif isinstance(rooms_raw, dict):
+L 155:             rooms = dict(rooms_raw)
+L 157:         if rooms:
+L 158:             # ADR-091: Фильтрация container-комнат (внешних границ)
+L 159:             room_ids = list(rooms.keys())
+L 160:             container_ids = set()
+L 161:             for i in range(len(room_ids)):
+L 162:                 for j in range(len(room_ids)):
+L 163:                     if i == j:
+L 164:                         continue
+L 165:                     r1 = rooms[room_ids[i]]
+L 166:                     r2 = rooms[room_ids[j]]
+L 167:                     x1_min, y1_min = r1.get("x", 0.0), r1.get("y", 0.0)
+L 168:                     x1_max = x1_min + r1.get("width", 0.0)
+L 169:                     y1_max = y1_min + r1.get("height", 0.0)
+L 170:                     x2_min, y2_min = r2.get("x", 0.0), r2.get("y", 0.0)
+L 171:                     x2_max = x2_min + r2.get("width", 0.0)
+L 172:                     y2_max = y2_min + r2.get("height", 0.0)
+L 173:                     if (
+L 174:                         x1_min <= x2_min + 0.5
+L 175:                         and y1_min <= y2_min + 0.5
+L 176:                         and x1_max >= x2_max - 0.5
+L 177:                         and y1_max >= y2_max - 0.5
+L 178:                     ):
+L 179:                         container_ids.add(room_ids[i])
+L 180:                         logger.warning(
+L 181:                             f"[GRAPH_COMPILER] Комната '{room_ids[i]}' содержит "
+L 182:                             f"'{room_ids[j]}'. Это внешняя граница — исключена."
+L 183:                         )
+L 184:             if container_ids:
+L 185:                 rooms = {
+L 186:                     rid: data for rid, data in rooms.items() if rid not in container_ids
+L 187:                 }
+L 189:     if not _has_nav and not rooms:  ← [if not]
+L 190:         logger.warning(f"[GRAPH_COMPILER] Нет узлов (rooms/nodes) в {location_id}")
+L 191:         return {}, {}, {}, {}, {}, [], [], []  ← [return ]
+L 193:     # ── Извлечение физической геометрии (ETKE-IK v1) ─────────────
+L 194:     # Геометрия комнат нужна WorldTopologyProvider для вычисления AffordanceVector.
+L 195:     rooms_geometry: Dict[str, List[Tuple[float, float]]] = {}
+L 196:     for room_id, room_data in rooms.items():
+L 197:         polygon = room_data.get("polygon")
+L 198:         if polygon and isinstance(polygon, list) and len(polygon) >= 3:
+L 199:             rooms_geometry[room_id] = [(float(p[0]), float(p[1])) for p in polygon]
+L 200:         else:
+L 201:             rx = room_data.get("x", 0.0)
+L 202:             ry = room_data.get("y", 0.0)
+L 203:             rw = room_data.get("width") or room_data.get("w") or 0.0
+L 204:             rh = room_data.get("height") or room_data.get("h") or 0.0
+L 205:             if rw > 0 and rh > 0:
+L 206:                 rooms_geometry[room_id] = [
+L 207:                     (rx, ry),
+L 208:                     (rx + rw, ry),
+L 209:                     (rx + rw, ry + rh),
+L 210:                     (rx, ry + rh),
+L 211:                 ]
+L 213:     # ── Room → graph (orphan rooms + name enrichment) ──────────────
+L 214:     # Для каждой комнаты проверяем: есть ли навигационный узел,
+L 215:     # представляющий эту комнату? Если да — обогащаем alias_map.
+L 216:     # Если нет — добавляем как самостоятельный узел (обратная совместимость).
+L 217:     if rooms:
+L 218:         for room_id, room_data in rooms.items():
+L 219:             canonical_id = f"{location_id}:{room_id}"
+L 220:             room_name = room_data.get("name", "")
+L 222:             # Стратегия маппинга: name → nav node (по label) или position → nav node (по центроиду)
+L 223:             _nav_match = None
+L 225:             # 1) Точное совпадение имени комнаты с label навигационного узла
+L 226:             if _has_nav and room_name:  ← [if _has]
+L 227:                 # N5-style FIX: Гарантируем, что nodes_raw — это dict
+L 228:                 if not isinstance(nodes_raw, dict):  ← [if not]
+L 229:                     nodes_raw = {}
+L 231:                 for nid, ndata in nodes_raw.items():
+L 232:                     if not isinstance(ndata, dict):  ← [if not]
+L 233:                         continue
+L 235:                     # Безопасно извлекаем значение, по умолчанию пустая строка
+L 236:                     nav_label_raw = ndata.get("label", ndata.get("name", ""))
+L 237:                     # Явно приводим к строке, так как JSON может содержать числа или списки
+L 238:                     nav_label = str(nav_label_raw) if nav_label_raw else ""
+L 240:                     if nav_label and nav_label.lower() == str(room_name).lower():
+L 241:                         _nav_match = f"{location_id}:{nid}"
+L 242:                         break
+L 244:             # 2) Центроид комнаты рядом с навигационным узлом
+L 245:             if _nav_match is None and _has_nav:
+L 246:                 rx = room_data.get("x", 0.0)
+L 247:                 ry = room_data.get("y", 0.0)
+L 248:                 rw = room_data.get("width") or room_data.get("w") or 0.0
+L 249:                 rh = room_data.get("height") or room_data.get("h") or 0.0
+L 250:                 room_cx = rx + rw / 2
+L 251:                 room_cy = ry + rh / 2
+L 252:                 for nid, ndata in nodes_raw.items():
+L 253:                     if not isinstance(ndata, dict):  ← [if not]
+L 254:                         continue
+L 255:                     nav_x = ndata.get("x", 0.0)
+L 256:                     nav_y = ndata.get("y", 0.0)
+L 257:                     if abs(room_cx - nav_x) < 1.0 and abs(room_cy - nav_y) < 1.0:
+L 258:                         _nav_match = f"{location_id}:{nid}"
+L 259:                         break
+L 261:             if canonical_id in graph or _nav_match:
+L 262:                 # Комната уже представлена навигационным узлом — enrich alias_map
+L 263:                 _target = _nav_match or canonical_id
+L 264:                 if room_name and room_name.lower() not in alias_map:
+L 265:                     alias_map[room_name.lower()] = _target
+L 266:                 for alias in room_data.get("aliases", []):
+L 267:                     if alias.lower() not in alias_map:
+L 268:                         alias_map[alias.lower()] = _target
+L 269:                 continue
+L 271:             # ADR-S91.1: Навигационная топология (nodes) — первичный источник графа.
+L 272:             # Если есть nodes, orphan rooms (без навигационного узла) — это физические контейнеры (LOS/коллизии),
+L 273:             # а не точки пути. Добавление их в graph создаёт изолированные компоненты.
+L 274:             if _has_nav:  ← [if _has]
+L 275:                 logger.debug(
+L 276:                     f"[GRAPH_COMPILER] Orphan room '{room_id}' пропущена (nav layer active)."
+L 277:                 )
+L 278:                 continue
+L 280:             # Orphan room — нет навигационного представления (fallback mode: graph = rooms)  ← [graph = ]
+L 281:             rx = room_data.get("x", 0.0)
+L 282:             ry = room_data.get("y", 0.0)
+L 283:             rw = room_data.get("width") or room_data.get("w") or 0.0
+L 284:             rh = room_data.get("height") or room_data.get("h") or 0.0
+L 285:             center_x = rx + rw / 2
+L 286:             center_y = ry + rh / 2
+L 288:             node_ref = NodeRef(
+L 289:                 node_id=canonical_id,
+L 290:                 x=center_x,
+L 291:                 y=center_y,
+L 292:                 role=resolve_role(
+L 293:                     node_label=room_data.get("name", room_id),
+L 294:                     editor_type=room_data.get("type"),
+L 295:                     node_id=room_id,
+L 296:                 ),
+L 297:                 tags=room_data.get("tags", []),
+L 298:                 zone_id=location_id,
+L 299:                 level=level,
+L 300:             )
+L 301:             graph[canonical_id] = node_ref  ← [graph[]
+L 302:             alias_map[room_id] = canonical_id
+L 304:             if (
+L 305:                 room_name
+L 306:                 and room_name != room_id
+L 307:                 and room_name.lower() not in alias_map
+L 308:             ):
+L 309:                 alias_map[room_name.lower()] = canonical_id
+L 311:             for alias in room_data.get("aliases", []):
+L 312:                 alias_map[alias.lower()] = canonical_id
+L 314:             _legacy_names = _ROLE_LEGACY_ALIASES.get(node_ref.role, set())
+L 315:             for _alias in _legacy_names:
+L 316:                 if _alias not in alias_map:
+L 317:                     alias_map[_alias] = canonical_id
+L 319:     # ── Компиляция связей ──────────────────────────────────────────
+L 320:     if _has_nav:  ← [if _has]
+L 321:         # Навигационные связи из per-node connections (первичный источник)
+L 322:         for node_id, node_data in nodes_raw.items():
+L 323:             if not isinstance(node_data, dict):  ← [if not]
+L 324:                 continue
+L 325:             from_canonical = alias_map.get(node_id, f"{location_id}:{node_id}")
+L 326:             for target_id in node_data.get("connections", []):
+L 327:                 to_canonical = alias_map.get(target_id, f"{location_id}:{target_id}")
+L 328:                 if from_canonical in graph and to_canonical in graph:
+L 329:                     connections.setdefault(from_canonical, set()).add(to_canonical)
+L 330:                     connections.setdefault(to_canonical, set()).add(from_canonical)
+L 331:                 else:
+L 332:                     logger.warning(
+L 333:                         f"[GRAPH_COMPILER] Пропуск связи {node_id}→{target_id}: "
+L 334:                         f"узел не найден в графе"
+L 335:                     )
+L 336:     else:
+L 337:         # Обратная совместимость: passages/connections из editor JSON
+L 338:         # IPT-CLEANUP FIX: Не автогенерировать рёбра между комнатами, если в карте уже есть явные node connections.
+L 339:         # Иначе появляются "призрачные" рёбра сквозь стены без дверей.
+L 340:         passages = editor_data.get("passages", editor_data.get("connections", []))
+L 341:         if not passages and len(rooms) > 1 and not connections:  ← [if not]
+L 342:             passages = _infer_connections_from_adjacency(rooms)
+L 344:         for passage in passages:
+L 345:             from_legacy = passage.get("from") or ""
+L 346:             to_legacy = passage.get("to") or ""
+L 347:             if not from_legacy or not to_legacy:  ← [if not]
+L 348:                 continue
+L 349:             from_canonical = alias_map.get(from_legacy, f"{location_id}:{from_legacy}")
+L 350:             to_canonical = alias_map.get(to_legacy, f"{location_id}:{to_legacy}")
+L 351:             if from_canonical in graph and to_canonical in graph:
+L 352:                 connections.setdefault(from_canonical, set()).add(to_canonical)
+L 353:                 if not passage.get("one_way", False):  ← [if not]
+L 354:                     connections.setdefault(to_canonical, set()).add(from_canonical)
+L 355:             else:
+L 356:                 logger.warning(
+L 357:                     f"[GRAPH_COMPILER] Пропуск связи {from_legacy}→{to_legacy}: "
+L 358:                     f"узел не найден в графе"
+L 359:                 )
+L 361:     # ── Layer 3: Boundary Nodes (ДОЛГ 6.2) ──────────────────────────
+L 362:     # Читаем adjacency и создаём виртуальные узлы выхода из чанка.
+L 363:     # Boundary node — семантическая точка перехода в соседний чанк.
+L 364:     boundary_map: Dict[str, Dict[str, Any]] = {}  ← [boundary]
+L 365:     adjacency = editor_data.get("adjacency")
+L 366:     if isinstance(adjacency, dict) and adjacency and graph:
+L 367:         _create_boundary_nodes(  ← [boundary]
+
+==============================================================================
+ПРОВЕРКА 4: Обработка role=BOUNDARY в graph_compiler.py
+==============================================================================
+
+--- Все строки с 'NodeRole.BOUNDARY' или 'BOUNDARY' ---
+  L361:     # ── Layer 3: Boundary Nodes (ДОЛГ 6.2) ──────────────────────────
+  L363:     # Boundary node — семантическая точка перехода в соседний чанк.
+  L364:     boundary_map: Dict[str, Dict[str, Any]] = {}
+  L367:         _create_boundary_nodes(
+  L371:             boundary_map=boundary_map,
+  L384:         f"{len(boundary_map)} boundaries (nav={_has_nav}, rooms={_has_rooms})"
+  L387:     # ДОЛГ 6.2: _legacy_compile не имеет adjacency → boundary_map пуста
+  L397:     return graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles, affordance_objects
+  L876: def _create_boundary_nodes(
+  L880:     boundary_map: Dict[str, Dict[str, Any]],
+  L886:     """Создаёт виртуальные boundary nodes для перехода в соседние чанки (ДОЛГ 6.2)."""
+  L910:         # Иначе boundary node оказывается за стеной (снаружи), и валидатор блокирует пути к нему.
+  L919:         # P4-01A FIX: Ищем ближайший навигационный узел к границе (исключая другие boundary nodes)
+  L923:             if node.role == NodeRole.BOUNDARY:
+  L933:             logger.warning(f"[GRAPH_COMPILER] No navigation node found to attach boundary {direction} in {location_id}")
+  L936:         boundary_id = f"{location_id}:exit_{direction}"
+  L939:         _existing_node = graph.get(boundary_id)
+  L943:         boundary_node = NodeRef(
+  L944:             node_id=boundary_id,
+  L947:             role=NodeRole.BOUNDARY,
+  L948:             tags=["boundary:exit"],
+  L952:         graph[boundary_id] = boundary_node
+  L953:         alias_map[f"exit_{direction}"] = boundary_id
+  L955:         # P4-01 FIX: Соединяем boundary node со всеми навигационными узлами в радиусе 3.0 м
+  L962:                 if node.node_id == boundary_id or node.role == NodeRole.BOUNDARY:
+  L967:                     connections.setdefault(node.node_id, set()).add(boundary_id)
+  L968:                     connections.setdefault(boundary_id, set()).add(node.node_id)
+  L973:                 connections.setdefault(_nearest_node.node_id, set()).add(boundary_id)
+  L974:                 connections.setdefault(boundary_id, set()).add(_nearest_node.node_id)
+  L979:         logger.info(f"[GRAPH_COMPILER] boundary={direction} connected_to={_connected_count} nodes")
+  L982:         boundary_map[boundary_id] = {
+  L984:             "node_id": boundary_id,
+  L985:             "x": _final_x,    # V8-SP-28 FIX: используем actual boundary node coords
+
+--- Все строки с 'exit_east', 'exit_south', 'exit_north', 'exit_west' ---
+  L937:         # V8-SP-15 FIX: Если в JSON уже есть узел exit_east, используем его координаты.
+
+--- Все строки, где может происходить удаление/фильтрация узлов ---
+  L923:             if node.role == NodeRole.BOUNDARY:
+
+==============================================================================
+КОНТРОЛЬНЫЙ ЭКСПЕРИМЕНТ: зафиксировать _existing_node до вычисления _final_x/_final_y
+==============================================================================
+
+>>> КОНТРОЛЬНЫЙ ЭКСПЕРИМЕНТ — _existing_node для каждого direction:
+
+  Direction: east
+    neighbor_loc_id: city_gate
+    boundary_id (ищется в graph): 'tavern:exit_east'
+    _bx, _by (placeholder coords): (44.033, 12.518)
+    _existing_node is None: True
+    → _final_x БУДЕТ: 44.033 (PHANTOM — мировые coords)
+    → _final_y БУДЕТ: 12.518 (PHANTOM — мировые coords)
+
+  Direction: south
+    neighbor_loc_id: market_square
+    boundary_id (ищется в graph): 'tavern:exit_south'
+    _bx, _by (placeholder coords): (35.033, 6.018)
+    _existing_node is None: True
+    → _final_x БУДЕТ: 35.033 (PHANTOM — мировые coords)
+    → _final_y БУДЕТ: 6.018 (PHANTOM — мировые coords)
+
+==============================================================================
+ИТОГОВЫЙ АНАЛИЗ — связать причину с наблюдаемым результатом
+==============================================================================
+
+ОЖИДАЕМЫЕ РЕЗУЛЬТАТЫ ПРОБ:
+
+ПРОВЕРКА 1 (путь compile_graph):
+  Покажет точные строки от L44 (start) до вызова _create_boundary_nodes.
+  Ожидается: ~370 строк между ними (L44 → ~L380).
+
+ПРОВЕРКА 2 (состояние graph перед _create_boundary_nodes):
+  КРИТИЧНО: есть ли "tavern:exit_east" в graph перед вызовом?
+  - Если ДА → _existing_node должен найтись, и coords будут локальные (8.22, 12.45)
+    → парадокс: probe v1 показал мировые coords. Значит, что-то перезаписывает
+    ПОСЛЕ вызова, или _existing_node теряет ссылку.
+  - Если НЕТ → авторский exit_east не попал в graph под этим ключом.
+    Нужно искать, где он удаляется/переименовывается/фильтруется.
+
+ПРОВЕРКА 3 (операции между загрузкой и boundary):
+  Покажет ВСЕ операции между L127 (graph[canonical_id] = node_ref) и
+  L~380 (_create_boundary_nodes call).
+  Ищем: del graph, graph.pop, filter, if role==BOUNDARY, return early.
+
+ПРОВЕРКА 4 (обработка role=BOUNDARY):
+  Покажет все места в graph_compiler.py, где обрабатывается BOUNDARY role.
+  Ищем: special-casing, filtering, exclusion, role override.
+
+КОНТРОЛЬНЫЙ ЭКСПЕРИМЕНТ:
+  Прямой захват _existing_node внутри _create_boundary_nodes.
+  Даст однозначный ответ: None или не None.
+  Если None → причина в том, что exit_east не в graph под ключом "tavern:exit_east"
+            в момент вызова.
+  Если не None → парадокс, нужно искать перезапись после.
+
+ВОЗМОЖНЫЕ СЦЕНАРИИ:
+
+СЦЕНАРИЙ A: _existing_node = None
+  → exit_east не в graph под "tavern:exit_east" в момент вызова
+  → ПРОВЕРКА 2 покажет, какие ключи ЕСТЬ в graph
+  → ПРОВЕРКА 3 покажет, где exit_east удаляется/переименовывается
+  → Возможно: nodes с role=boundary фильтруются перед _create_boundary_nodes
+    (чтобы избежать дублирования), но потом boundary создаются с мировыми coords
+
+СЦЕНАРИЙ B: _existing_node не None, но coords (44.03, 12.52) мировые
+  → парадокс: авторский exit_east имеет локальные coords (8.22, 12.45)
+  → Значит, в graph лежит НЕ авторский узел, а уже синтетический
+  → Возможно: _create_boundary_nodes вызывается ДВАЖДЫ?
+    Первый раз создаёт phantom, второй раз находит его как "_existing_node"
+
+СЦЕНАРИЙ C: _existing_node не None, coords (8.22, 12.45) локальные
+  → Тогда probe v1 показал неверные данные (что невозможно)
+  → Или graph в probe v1 проверялся ПОСЛЕ какой-то перезаписи
+
+После probe v2 мы выберем ОДИН доказанный дефект и исправим его изолированно.
+

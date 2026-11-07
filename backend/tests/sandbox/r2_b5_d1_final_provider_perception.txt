@@ -1,0 +1,434 @@
+==============================================================================
+R2-B5-D1 FINAL PROVIDER AND PERCEPTION PROBE
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d1_final_provider_perception.txt
+==============================================================================
+
+==============================================================================
+STAGE A: game_loop.py — _get_spatial_query_for_subscriber() + 4 provider wiring sites
+==============================================================================
+
+--- A.1: locate production game_loop.py ---
+  candidate: app\services\game_loop\game_loop.py
+
+--- A.2: search for _get_spatial_query_for_subscriber in production files ---
+  app\services\events\claim_event_subscriber.py L39:         self._get_spatial_query = spatial_query_provider
+  app\services\events\claim_event_subscriber.py L244:             if self._get_spatial_query:
+  app\services\events\claim_event_subscriber.py L245:                 _sq = self._get_spatial_query()
+  app\services\events\dialogue_memory_subscriber.py L28:         self._get_spatial_query = spatial_query_provider
+  app\services\events\dialogue_memory_subscriber.py L37:             _sq = self._get_spatial_query() if self._get_spatial_query else None  # noqa: ENIGMA001
+  app\services\events\npc_dialogue_subscriber.py L76:         self._get_spatial_query = spatial_query_provider
+  app\services\events\npc_dialogue_subscriber.py L138:         if self._get_spatial_query:
+  app\services\events\npc_dialogue_subscriber.py L139:             _sq = self._get_spatial_query()
+  app\services\events\npc_dialogue_subscriber.py L219:             _sq_f2 = self._get_spatial_query() if self._get_spatial_query else None
+  app\services\events\npc_dialogue_subscriber.py L229:         if self._avatar_service and self._get_spatial_query:
+  app\services\events\npc_dialogue_subscriber.py L231:             _spatial_query = self._get_spatial_query()
+  app\services\events\npc_dialogue_subscriber.py L417:         if hasattr(event, "visibility") and self._get_spatial_query:
+  app\services\events\npc_dialogue_subscriber.py L418:             _sq_m = self._get_spatial_query()
+  app\services\events\observation_subscriber.py L69:         self._get_spatial_query = spatial_query_provider
+  app\services\events\observation_subscriber.py L129:         sq = self._get_spatial_query() if self._get_spatial_query else None  # noqa: ENIGMA001
+  app\services\game_loop\game_loop.py L419:     def _get_spatial_query_for_subscriber(self) -> Any:
+  app\services\game_loop\game_loop.py L518:                 spatial_query_provider=self._get_spatial_query_for_subscriber,
+  app\services\game_loop\game_loop.py L544:                 spatial_query_provider=self._get_spatial_query_for_subscriber
+  app\services\game_loop\game_loop.py L613:                 spatial_query_provider=self._get_spatial_query_for_subscriber
+  app\services\game_loop\game_loop.py L646:                 spatial_query_provider=self._get_spatial_query_for_subscriber,
+
+--- A.3: full implementation of _get_spatial_query_for_subscriber ---
+  Found in: app\services\game_loop\game_loop.py
+  Function spans L419..L452 (34 lines):
+
+  L 419:     def _get_spatial_query_for_subscriber(self) -> Any:
+  L 420:         """Провайдер SpatialQueryService для NpcDialogueSubscriber (eavesdrop).
+  L 421:         S196 FIX: Берёт актуальный SpatialQueryService из shared_context,
+  L 422:         устраняя зависимость от mutable hidden state _current_spatial_query.
+  L 423:         S197 FIX: Если spatial_query отсутствует, конструирует его на лету из scene_state."""
+  L 424:         _shared_ctx = getattr(self._tick_orch, "_shared_context", None)  # noqa: ENIGMA002
+  L 425:         if _shared_ctx is not None:
+  L 426:             _sq = getattr(_shared_ctx, "spatial_query", None)  # noqa: ENIGMA002
+  L 427:             if _sq is not None:
+  L 428:                 return _sq
+  L 429: 
+  L 430:         _sq = getattr(self, "_current_spatial_query", None)  # noqa: ENIGMA002
+  L 431:         if _sq is not None:
+  L 432:             return _sq
+  L 433: 
+  L 434:         # S197 FIX: Fallback - конструируем на лету, чтобы избежать INV-SPATIAL-QUERY при ранних событиях
+  L 435:         _campaign_id = getattr(self, "_current_campaign_id", "Open_road")
+  L 436:         _scene = self.scene_manager.get_scene_state(_campaign_id, "tavern")
+  L 437:         if not _scene:
+  L 438:             _scene = self.scene_manager.get_scene_state(_campaign_id, "city_gate")
+  L 439: 
+  L 440:         if _scene:
+  L 441:             from app.services.spatial.spatial_query_service import SpatialQueryService
+  L 442:             _new_sq = SpatialQueryService(
+  L 443:                 npc_positions=_scene.get("npc_positions", {}),
+  L 444:                 scene_state=_scene
+  L 445:             )
+  L 446:             self._current_spatial_query = _new_sq
+  L 447:             logger.warning("[SPATIAL_FALLBACK] SpatialQueryService was missing, constructed on-the-fly.")
+  L 448:             return _new_sq
+  L 449: 
+  L 450:         logger.error("SpatialQueryService missing in GameLoop for NpcDialogueSubscriber (eavesdrop).")
+  L 451:         raise RuntimeError("INV-SPATIAL-QUERY: Missing spatial_query during NPC_SPOKE handling and scene_state is unavailable.")
+  L 452: 
+
+
+--- A.4: static analysis of provider (return value, source, None conditions, lifecycle, npc_positions freshness) ---
+  function_found: True
+  function_name: _get_spatial_query_for_subscriber
+  file: app\services\game_loop\game_loop.py
+  return_value_kind: None
+  source_of_spatial_service: loop attribute or service factory
+  none_conditions: ['_shared_ctx = getattr(self._tick_orch, "_shared_context", None)  # noqa: ENIGMA002', 'if _shared_ctx is not None:', '_sq = getattr(_shared_ctx, "spatial_query", None)  # noqa: ENIGMA002', 'if _sq is not None:', '_sq = getattr(self, "_current_spatial_query", None)  # noqa: ENIGMA002', 'if _sq is not None:']
+  lifecycle_note: None
+  npc_positions_freshness: likely reads live scene_state['npc_positions']
+
+--- A.5: all four provider-passing sites ---
+
+  >>> app\services\events\claim_event_subscriber.py L39: self._get_spatial_query = spatial_query_provider
+  --- context L34..L45 ---
+      L  34:         store: EpistemicStore,
+      L  35:         spatial_query_provider: Optional[Any] = None,
+      L  36:     ):
+      L  37:         self._engine = engine
+      L  38:         self._store = store
+  >>> L  39:         self._get_spatial_query = spatial_query_provider
+      L  40: 
+      L  41:     def on_npc_spoke(self, event: Any) -> None:
+      L  42:         """
+      L  43:         Фаза 8.3: Детерминированный fallback для NPC_SPOKE.
+      L  44:         Если LLM не предоставила proposition, извлекает его из intent_type.
+      L  45:         """
+
+  >>> app\services\events\dialogue_memory_subscriber.py L28: self._get_spatial_query = spatial_query_provider
+  --- context L23..L34 ---
+      L  23:         spatial_query_provider: Any = None,
+      L  24:     ) -> None:
+      L  25:         self._memory = memory_manager
+      L  26:         self._get_npc_states = npc_states_provider
+      L  27:         self._get_campaign_id = campaign_id_provider
+  >>> L  28:         self._get_spatial_query = spatial_query_provider
+      L  29: 
+      L  30:     def on_event(self, event: Any) -> None:
+      L  31:         try:
+      L  32:             _campaign_id = self._get_campaign_id()
+      L  33:             _npc_states = self._get_npc_states()
+      L  34:             if not _npc_states:
+
+  >>> app\services\events\npc_dialogue_subscriber.py L76: self._get_spatial_query = spatial_query_provider
+  --- context L71..L82 ---
+      L  71:         # M17 этап 2: pending-буфер подслушанных обращений (адресат → tentative).
+      L  72:         # Прецедент: add_pending_dialogue_memory (применение в drain-границе).
+      L  73:         # NPC_SPOKE публикуется только в drain (ADR-O-399) → подписчик
+      L  74:         # выполняется в main thread → буфер без гонок.
+      L  75:         self._pending_recognition: list = []
+  >>> L  76:         self._get_spatial_query = spatial_query_provider
+      L  77:         self._l1_chronicle = l1_chronicle
+      L  78:         self._get_tick = tick_provider or (lambda: 0)
+      L  79:         self._extractor = dialogue_update_extractor
+      L  80:         self._get_discovery_bridge = discovery_bridge_provider
+      L  81:         self._subject_resolver = subject_resolver
+      L  82: 
+
+  >>> app\services\events\observation_subscriber.py L69: self._get_spatial_query = spatial_query_provider
+  --- context L64..L75 ---
+      L  64:         spatial_query_provider: Optional[Callable[[], Any]] = None,
+      L  65:         tick_provider: Optional[Callable[[], int]] = None,
+      L  66:     ) -> None:
+      L  67:         self._engine = engine
+      L  68:         self._store = store
+  >>> L  69:         self._get_spatial_query = spatial_query_provider
+      L  70:         self._get_tick = tick_provider or (lambda: 0)
+      L  71: 
+      L  72:     def on_world_event(self, event: Any) -> None:
+      L  73:         """Точка входа EventBus. THEFT → убеждение свидетелей (player, STOLE, target)."""
+      L  74:         event_type = getattr(event, "type", None)  # noqa: ENIGMA002
+      L  75:         # [OBS_DIAG] временный зонд (санитарно, удаляется после G3-B закрытия)
+
+  >>> app\services\game_loop\game_loop.py L518: spatial_query_provider=self._get_spatial_query_for_subscriber,
+  --- context L513..L524 ---
+      L 513:                 npc_states_provider=lambda: (
+      L 514:                     self._resolve_npcs_snapshot(getattr(self, "_current_campaign_id", "Open_road"))
+      L 515:                 ),  # noqa: ENIGMA002
+      L 516:                 campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
+      L 517:                 avatar_service=self.avatar_service,
+  >>> L 518:                 spatial_query_provider=self._get_spatial_query_for_subscriber,
+      L 519:                 l1_chronicle=self._tick_orch.l1_chronicle,
+      L 520:                 tick_provider=lambda: getattr(self, "_current_tick", 0),
+      L 521:                 dialogue_update_extractor=_extractor,
+      L 522:                 # E2 (S256): late-binding моста (прецедент :552-556);
+      L 523:                 # инстанс = инстанс E1 — единый PlayerEpistemicState.
+      L 524:                 discovery_bridge_provider=lambda: getattr(  # noqa: ENIGMA002
+
+  >>> app\services\game_loop\game_loop.py L544: spatial_query_provider=self._get_spatial_query_for_subscriber
+  --- context L539..L550 ---
+      L 539:                 # Провод речь→память NPC оживает здесь.
+      L 540:                 npc_states_provider=lambda: (
+      L 541:                     self._resolve_npcs_snapshot(getattr(self, "_current_campaign_id", "Open_road"))
+      L 542:                 ),  # noqa: ENIGMA002
+      L 543:                 campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
+  >>> L 544:                 spatial_query_provider=self._get_spatial_query_for_subscriber
+      L 545:             )
+      L 546: 
+      L 547:             from app.services.events.event_types import EventType
+      L 548:             _bus = get_event_bus()
+      L 549:             _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
+      L 550:             _bus.subscribe(EventType.NPC_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
+
+  >>> app\services\game_loop\game_loop.py L613: spatial_query_provider=self._get_spatial_query_for_subscriber
+  --- context L608..L619 ---
+      L 608:             _resolver = EpistemicContextResolver(store=_epistemic_store)
+      L 609: 
+      L 610:             _subscriber = ClaimEventSubscriber(
+      L 611:                 engine=_belief_engine,
+      L 612:                 store=_epistemic_store,
+  >>> L 613:                 spatial_query_provider=self._get_spatial_query_for_subscriber
+      L 614:             )
+      L 615:             # Шаг 4 (1α): ссылка для PlayerSpeechActSubscriber — детерминированный
+      L 616:             # канал SELF_INTRODUCTION → EpistemicStore (без публикаций в шину).
+      L 617:             self._claim_event_subscriber = _subscriber
+      L 618:             _bus = get_event_bus()
+      L 619:             _bus.subscribe(EventType.COMMUNICATION_CLAIM, _subscriber.on_claim_event)
+
+  >>> app\services\game_loop\game_loop.py L646: spatial_query_provider=self._get_spatial_query_for_subscriber,
+  --- context L641..L652 ---
+      L 641:             # (существующий метод, без фантомных импортов).
+      L 642:             from app.services.events.observation_subscriber import ObservationSubscriber
+      L 643:             _obs_sub = ObservationSubscriber(
+      L 644:                 engine=_belief_engine,
+      L 645:                 store=_epistemic_store,
+  >>> L 646:                 spatial_query_provider=self._get_spatial_query_for_subscriber,
+      L 647:                 tick_provider=lambda: self._tick_orch.get_current_tick(_campaign_id),
+      L 648:             )
+      L 649:             _bus.subscribe(EventType.THEFT, _obs_sub.on_world_event)
+      L 650:             # G3-B (мини-ревизия ADR-O-360): player-атака — наблюдаемое
+      L 651:             # событие. Свидетели (LOS+radius 10м мембрана) получают belief
+      L 652:             # «player ATTACKED target» через тот же testimony-движок.
+
+  Total provider-passing sites found: 8
+    app\services\events\claim_event_subscriber.py L39: self._get_spatial_query = spatial_query_provider
+    app\services\events\dialogue_memory_subscriber.py L28: self._get_spatial_query = spatial_query_provider
+    app\services\events\npc_dialogue_subscriber.py L76: self._get_spatial_query = spatial_query_provider
+    app\services\events\observation_subscriber.py L69: self._get_spatial_query = spatial_query_provider
+    app\services\game_loop\game_loop.py L518: spatial_query_provider=self._get_spatial_query_for_subscriber,
+    app\services\game_loop\game_loop.py L544: spatial_query_provider=self._get_spatial_query_for_subscriber
+    app\services\game_loop\game_loop.py L613: spatial_query_provider=self._get_spatial_query_for_subscriber
+    app\services\game_loop\game_loop.py L646: spatial_query_provider=self._get_spatial_query_for_subscriber,
+
+--- A.6: ClaimEventSubscriber.__init__ signature ---
+  __init__ at L31..L40:
+  L  31:     def __init__(
+  L  32:         self,
+  L  33:         engine: BeliefRevisionEngine,
+  L  34:         store: EpistemicStore,
+  L  35:         spatial_query_provider: Optional[Any] = None,
+  L  36:     ):
+  L  37:         self._engine = engine
+  L  38:         self._store = store
+  L  39:         self._get_spatial_query = spatial_query_provider
+  L  40: 
+
+==============================================================================
+STAGE B: real production PerceptualKernel.can_observe() — skip probe/test/mock
+==============================================================================
+
+--- B.1: locate all production files defining PerceptualKernel / can_observe ---
+  production match: app\models\npc_state.py
+
+--- B.2: read PerceptualKernel class from production file ---
+  chosen file: app\models\npc_state.py
+
+  class PerceptualKernel spans L580..L663:
+  L 580: class PerceptualKernel:
+  L 581:     """Субъективная модель восприятия NPC. Геометрия пространства решений.
+  L 582: 
+  L 583:     E2.0-c/D2 (DEBT-R9/AUD-D4): guard подполей — PK мутабелен и вложен в
+  L 584:     NPCState, guard хозяина не перехватывает присваивания на подполях
+  L 585:     (экзамен доказал молчаливое принятие прямой записи threat_gradient).
+  L 586:     """
+  L 587: 
+  L 588:     # Разрешённые писатели: сам модуль (dataclass __init__ + _pk_from_dict)
+  L 589:     # и StateApplicator (единый L2-writer, state_applicator.py:1187-1219).
+  L 590:     # Всё остальное (сценарии/тесты/LLM-обвязки) → ArchitecturalViolationError:
+  L 591:     # снаружи DeltaGate пути в психику нет (INV-LLM-NOT-SSOT).
+  L 592:     _PK_ALLOWED_WRITERS = {
+  L 593:         "app.models.npc_state": {"*"},
+  L 594:         "app.services.npc.state_applicator": {"*"},
+  L 595:         # Тестовые исключения (цензус E2.0-c). ВНИМАНИЕ: causal_state_test
+  L 596:         # сюда НЕ вносить — его D2-атака обязана поднимать
+  L 597:         # ArchitecturalViolationError (замок экзамена).
+  L 598:         "tests.sandbox.SUPERBOX.npc_sandbox": {"*"},
+  L 599:         "tests.sandbox.system.test_t06_belief_pipeline": {"*"},
+  L 600:         # sandbox-стресс-тесты эмулируют давление напрямую в ядре
+  L 601:         # (import как "sandbox.*" — без префикса "tests.", см. conftest)
+  L 602:         "sandbox.stress.test_authority_erosion": {"*"},
+  L 603:         "tests.sandbox.stress.test_authority_erosion": {"*"},
+  L 604:         # Системные sandbox-тесты (класс E2.0-c, прецедент выше) эмулируют
+  L 605:         # давление через PK напрямую. Расширение цензуса = mini-ADR,
+  L 606:         # зафиксировано в отчёте сессии. D-группа сюда НЕ вносится.
+  L 607:         # Двойная форма (conftest кладёт backend/ в sys.path — caller виден
+  L 608:         # и как "sandbox.*"; прецедент test_authority_erosion выше).
+  L 609:     }
+  L 610: 
+  L 611:     def __setattr__(self, name: str, value: Any) -> None:
+  L 612:         import sys
+  L 613: 
+  L 614:         _caller = sys._getframe(1).f_globals.get("__name__", "")
+  L 615:         for _mod, _fields in self._PK_ALLOWED_WRITERS.items():
+  L 616:             if _caller == _mod or _caller.startswith(_mod + "."):
+  L 617:                 if "*" in _fields or name in _fields:
+  L 618:                     object.__setattr__(self, name, value)
+  L 619:                     return
+  L 620:         from app.errors import ArchitecturalViolationError
+  L 621: 
+  L 622:         raise ArchitecturalViolationError(f"perceptual_kernel.{name}", _caller)
+  L 623: 
+  L 624:     threat_gradient: float = 0.0
+  L 625:     trust_gradient: float = 0.0
+  L 626:     uncertainty: float = 0.0
+  L 627:     anomaly_score: float = 0.0
+  L 628:     last_hostile_direction: Optional[str] = None
+  L 629:     dominant_emotion: Optional[str] = None
+  L 630:     # S28: Топология деформации utility-space (накопленное давление)
+  L 631:     aggression_inhibition: float = 0.0  # Сдерживание агрессивных векторов
+  L 632:     initiative_suppression: float = 0.0  # Подавление активных действий (паралич)
+  L 633:     compliance_bias: float = 0.0  # Смещение в сторону подчинения/approach
+  L 634:     # ADR-O-143: Somatic Axis — воспринимаемый телесный дистресс (§ENIGMA-S72).
+  L 635:     # НЕ raw pain/shock, а их проекция через PerceptualKernel.
+  L 636:     # Модулируется личностью (willpower → somatic_resistance) в affective_integrator.
+  L 637:     # Пересчитывается каждый тик из body_state (производное поле, не аккумулируемое).
+  L 638:     somatic_urgency: float = 0.0  # (pain_norm + shock_norm) / 2.0
+  L 639:     # ADR-055: Attention Capture — прерывание когнитивной инерции бытовухи.
+  L 640:     # Не mind-control, а фокус внимания. DecisionHub решает, как реагировать.
+  L 641:     recent_directive: Optional[Dict[str, Any]] = (
+  L 642:         None  # {"source": str, "salience": float, "interrupts_routine": bool}
+  L 643:     )
+  L 644: 
+  L 645:     @staticmethod
+  L 646:     def can_observe(
+  L 647:         event: Any,
+  L 648:         distance: float,
+  L 649:         observer_id: str,
+  L 650:         target_id: Optional[str] = None
+  L 651:     ) -> bool:
+  L 652:         """Stage 1 Task 1.5: Event Visibility filter.
+  L 653:         Проверяет, может ли NPC воспринять событие.
+  L 654:         """
+  L 655:         if event.visibility == "private":
+  L 656:             return bool(observer_id == event.source)
+  L 657:         if event.visibility == "whisper":
+  L 658:             return bool(observer_id == event.source or observer_id == target_id)
+  L 659:         # public
+  L 660:         return bool(distance <= event.radius)
+  L 661: 
+  L 662: 
+  L 663: @dataclass
+
+--- B.3: full can_observe method ---
+  can_observe at L646..L663:
+  L 646:     def can_observe(
+  L 647:         event: Any,
+  L 648:         distance: float,
+  L 649:         observer_id: str,
+  L 650:         target_id: Optional[str] = None
+  L 651:     ) -> bool:
+  L 652:         """Stage 1 Task 1.5: Event Visibility filter.
+  L 653:         Проверяет, может ли NPC воспринять событие.
+  L 654:         """
+  L 655:         if event.visibility == "private":
+  L 656:             return bool(observer_id == event.source)
+  L 657:         if event.visibility == "whisper":
+  L 658:             return bool(observer_id == event.source or observer_id == target_id)
+  L 659:         # public
+  L 660:         return bool(distance <= event.radius)
+  L 661: 
+  L 662: 
+  L 663: @dataclass
+
+--- B.4: radius semantics — source of radius, event.radius, HEARING_RADIUS, additional filters, False conditions ---
+  radius_source: None
+  uses_event_radius: True
+  uses_hearing_radius_constant: False
+  additional_filters: []
+  false_conditions: []
+
+--- B.5: HEARING_RADIUS definition site ---
+  app\services\events\claim_event_subscriber.py L22: HEARING_RADIUS = 10.0
+
+==============================================================================
+STAGE C: Runtime verification — 9 values on real PLAYER_INSULTS handler
+==============================================================================
+
+--- C.0: locate real ClaimEventSubscriber instance ---
+  found via bus._handlers[player_insults]: ClaimEventSubscriber id=1955821944320
+
+  Subscriber confirmed: id=1955821944320, type=ClaimEventSubscriber
+  sub._engine: <app.services.npc.belief_revision_engine.BeliefRevisionEngine object at 0x000001C760127B60> (BeliefRevisionEngine)
+  sub._store:  <app.services.npc.epistemic_store.EpistemicStore object at 0x000001C7601278C0> (EpistemicStore)
+
+--- C.1: attach spy on on_claim_event + BeliefRevisionEngine ---
+  spy attached: engine.revise
+  spy attached: sub.on_claim_event
+
+--- Publishing PLAYER_INSULTS ---
+  event.source=player, payload.target_id=tavern_keeper_tornin, payload.radius=999.0
+
+--- C.2: captured 9 runtime values ---
+
+--- C.3: all engine_calls during PLAYER_INSULTS ---
+  (none)
+
+--- C.4: all store_calls during PLAYER_INSULTS ---
+  (none)
+
+==============================================================================
+STAGE D: VERDICT — confirmed cause
+==============================================================================
+
+  FACTS:
+    provider_callable: False
+    provider_result_type: None
+    sq_npc_positions_count: 0
+    sq_npc_positions_keys: []
+    runtime_distance_player_lusya: None
+    can_observe_maid_lusya: None
+    can_observe_error: None
+    belief_revision_called_for_lusya: False
+    epistemic_records_for_lusya_after: 0
+    semantics.radius_source: None
+    semantics.uses_event_radius: True
+    semantics.uses_hearing_radius_constant: False
+
+  >>> VERDICT: 1. PROVIDER RETURNS None
+  >>> RATIONALE: ClaimEventSubscriber._get_spatial_query exists but returns None at runtime. on_claim_event falls back to target_id-only listener list. maid_lusya != target_id (target_id=tavern_keeper_tornin), so she is not in listeners, no belief created.
+
+  >>> MINIMAL FIX PLAN:
+    - Locate where ClaimEventSubscriber is constructed in production
+      (see Stage A.5 wiring sites — usually game_loop.py or game_loop_builder.py)
+    - Pass a provider that returns the live SpatialQueryService bound to scene_state
+    - DO NOT create a new SpatialQueryService; re-bind to loop.scene_manager
+
+  >>> AFFECTED FILES:
+    - app/services/game_loop.py (or game_loop_builder.py — see Stage A)
+    - app/services/events/claim_event_subscriber.py (consumer of provider)
+
+  >>> RISKS:
+    - Spatial membrane will start filtering listeners by distance
+    - NPCs >10m from speaker will be excluded (may affect existing scenes)
+    - maid_lusya at 10.086m > 10.0m HEARING_RADIUS — still excluded even with fix!
+    - So fix #1 alone will NOT unblock B5 — combined with constraint #3 (can_observe excludes)
+
+  >>> REQUIRED TESTS:
+    1. distance('player', 'maid_lusya') returns correct value
+    2. distance('player', 'tavern_keeper_tornin') returns correct value
+    3. NPC↔NPC distance computation does not regress
+    4. PLAYER_INSULTS at valid distance creates belief at maid_lusya
+    5. Confidence and provenance of created belief are correct
+    6. Existing NPC↔NPC communication tests still pass
+
+==============================================================================
+FINAL SUMMARY
+==============================================================================
+  Stage A pass: True
+  Stage B pass: True
+  Stage C pass: True
+  Verdict:     1. PROVIDER RETURNS None

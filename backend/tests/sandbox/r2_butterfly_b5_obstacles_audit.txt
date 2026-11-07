@@ -1,0 +1,759 @@
+==============================================================================
+R2-BUTTERFLY-B5-OBSTACLES — Этап 1: проверка открытых препятствий
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_butterfly_b5_obstacles_audit.txt
+==============================================================================
+
+==============================================================================
+ЭТАП 1.1: PROP_TARGET_IN_REACH — точное место возникновения
+==============================================================================
+
+--- Поиск PROP_TARGET_IN_REACH по всему backend/ ---
+Найдено 18 совпадений:
+  tests\gameplay\test_butterfly_full_game_loop.py L311:         PROP_TARGET_IN_REACH (target вне speech radius — S330 Дефект №3,
+  tests\gameplay\test_butterfly_full_game_loop.py L338:                 print("  blocked by PROP_TARGET_IN_REACH (spatial, S330 Дефект №3)")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L6:   1. PROP_TARGET_IN_REACH — где, почему, условия
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L92: # ЭТАП 1.1: PROP_TARGET_IN_REACH
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L95:     _print_section("ЭТАП 1.1: PROP_TARGET_IN_REACH — точное место возникновения")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L97:     print("\n--- Поиск PROP_TARGET_IN_REACH по всему backend/ ---")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L98:     results = _grep_in_dir(_BACKEND, ["PROP_TARGET_IN_REACH"])
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L107:   PROP_TARGET_IN_REACH — это код ошибки/статус, возникающий когда:
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L113:   - Какой код возвращает PROP_TARGET_IN_REACH
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L118:     # Find the function/method that returns PROP_TARGET_IN_REACH
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L119:     print("\n--- Поиск 'return PROP_TARGET_IN_REACH' или 'PROP_TARGET_IN_REACH' в assignment ---")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L120:     results2 = _grep_in_dir(_BACKEND, ["return.*PROP_TARGET_IN_REACH", "PROP_TARGET_IN_REACH.*=", "= PROP_TARGET_IN_REACH"])
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L133:     # Read the file where PROP_TARGET_IN_REACH is used
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L176:      → в допустимой дистанции (PROP_TARGET_IN_REACH)
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L339:   Нужно найти: какой порог дистанции для PROP_TARGET_IN_REACH?
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L374:     # Find where PROP_TARGET_IN_REACH is checked
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L393: 1. PROP_TARGET_IN_REACH:
+  app\services\phases\post_decision.py L613:         logging.getLogger(__name__).warning(f"[PROP_TARGET_IN_REACH] failed for {speaker_id}->{target_id}: {_e}")
+
+>>> Анализ:
+
+  PROP_TARGET_IN_REACH — это код ошибки/статус, возникающий когда:
+  - NPC (Люся) пытается передать слух (PROP_SPREAD_RUMOR) другому NPC (Торнину)
+  - Но они НЕ находятся в допустимой дистанции друг от друга
+  - Коммуникация блокируется
+
+  Нужно установить:
+  - Какой код возвращает PROP_TARGET_IN_REACH
+  - Какой порог дистанции
+  - Может ли NPC естественно сблизиться
+
+
+--- Поиск 'return PROP_TARGET_IN_REACH' или 'PROP_TARGET_IN_REACH' в assignment ---
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L120:     results2 = _grep_in_dir(_BACKEND, ["return.*PROP_TARGET_IN_REACH", "PROP_TARGET_IN_REACH.*=", "= PROP_TARGET_IN_REACH"])
+
+--- Поиск проверки дистанции (in_reach, target_in_reach, communication_range) ---
+  tests\gameplay\test_butterfly_full_game_loop.py L311:         PROP_TARGET_IN_REACH (target вне speech radius — S330 Дефект №3,
+  tests\gameplay\test_butterfly_full_game_loop.py L338:                 print("  blocked by PROP_TARGET_IN_REACH (spatial, S330 Дефект №3)")
+  tests\micro\test_butterfly_cold_start.py L3: from app.services.phases.post_decision import _prop_target_in_reach
+  tests\micro\test_butterfly_cold_start.py L6: def test_target_in_reach_same_location_close():
+  tests\micro\test_butterfly_cold_start.py L11:     assert _prop_target_in_reach(scene, "maid_lusya", "tavern_keeper_tornin") is True
+  tests\micro\test_butterfly_cold_start.py L19:     assert _prop_target_in_reach(scene, "maid_lusya", "tavern_keeper_tornin") is False
+  tests\micro\test_butterfly_cold_start.py L27:     assert _prop_target_in_reach(scene, "maid_lusya", "tavern_keeper_tornin") is False
+  tests\micro\test_butterfly_cold_start.py L32:     assert _prop_target_in_reach(scene, "maid_lusya", "tavern_keeper_tornin") is False
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L6:   1. PROP_TARGET_IN_REACH — где, почему, условия
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L92: # ЭТАП 1.1: PROP_TARGET_IN_REACH
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L94: def stage1_1_prop_target_in_reach() -> None:
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L95:     _print_section("ЭТАП 1.1: PROP_TARGET_IN_REACH — точное место возникновения")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L97:     print("\n--- Поиск PROP_TARGET_IN_REACH по всему backend/ ---")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L98:     results = _grep_in_dir(_BACKEND, ["PROP_TARGET_IN_REACH"])
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L107:   PROP_TARGET_IN_REACH — это код ошибки/статус, возникающий когда:
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L113:   - Какой код возвращает PROP_TARGET_IN_REACH
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L118:     # Find the function/method that returns PROP_TARGET_IN_REACH
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L119:     print("\n--- Поиск 'return PROP_TARGET_IN_REACH' или 'PROP_TARGET_IN_REACH' в assignment ---")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L120:     results2 = _grep_in_dir(_BACKEND, ["return.*PROP_TARGET_IN_REACH", "PROP_TARGET_IN_REACH.*=", "= PROP_TARGET_IN_REACH"])
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L126:     print("\n--- Поиск проверки дистанции (in_reach, target_in_reach, communication_range) ---")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L127:     results3 = _grep_in_dir(_BACKEND, ["in_reach", "target_in_reach", "communication_range", "comm_range",
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L128:                                        "within_range", "PROP_TARGET"])
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L133:     # Read the file where PROP_TARGET_IN_REACH is used
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L176:      → в допустимой дистанции (PROP_TARGET_IN_REACH)
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L339:   Нужно найти: какой порог дистанции для PROP_TARGET_IN_REACH?
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L374:     # Find where PROP_TARGET_IN_REACH is checked
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L375:     print("\n--- Поиск 'PROP_TARGET' и 'in_reach' в коде ---")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L376:     results2 = _grep_in_dir(_BACKEND, ["PROP_TARGET", "in_reach", "_in_reach", "is_in_reach"])
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L393: 1. PROP_TARGET_IN_REACH:
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L446:         stage1_1_prop_target_in_reach()
+
+--- Контекст: tests\gameplay\test_butterfly_full_game_loop.py ---
+
+  Контекст L302–L321:
+       L302:             _h.dispose()
+       L303: 
+       L304:     def test_npc_speaks_with_claim_block(self) -> None:
+       L305:         """CC-03: belief → DecisionHub → post_decision → NPC_SPOKE through full game loop.
+       L306: 
+       L307:         Доказывает: INSULTED belief → EpistemicContextResolver → spread_rumor boost
+       L308:         → DecisionHub выбирает коммуникативный intent → post_decision → NPC_SPOKE.
+       L309: 
+       L310:         Примечание: spread_rumor-with-proposition delivery может блокироваться
+   >>> L311:         PROP_TARGET_IN_REACH (target вне speech radius — S330 Дефект №3,
+       L312:         pre-existing spatial issue). Тест доказывает NPC_speak через full game
+       L313:         loop (SPY_SPOKE > 0). Если proposition в payload — claim block delivery
+       L314:         доказан; если нет — cognitive loop доказан, доставка блокирована
+       L315:         пространством (не cognitive bug).
+       L316:         """
+       L317:         _h = _run_butterfly(victim=_VICTIM, ticks=8, override_disposition=True)
+       L318:         try:
+       L319:             print(f"[CHECK] SPY_SPOKE: {len(SPY_SPOKE)}")
+       L320:             for s in SPY_SPOKE:
+       L321:                 print(f"  src={s[0]} tgt={s[1]} intent={s[2]} has_prop={s[3]}")
+
+  Контекст L329–L348:
+       L329:                 "CC-03 FAIL: no NPC_SPOKE events — NPCs didn't speak through full game loop."
+       L330:             )
+       L331: 
+       L332:             _with_prop = [s for s in SPY_SPOKE if s[3]]
+       L333:             if len(_with_prop) > 0:
+       L334:                 print(f"[OK] CC-03: {len(_with_prop)} NPC_SPOKE with proposition (claim block delivered)")
+       L335:             else:
+       L336:                 print(f"[OK] CC-03: {len(SPY_SPOKE)} NPC_SPOKE through full game loop")
+       L337:                 print("  [NOTE] No proposition in payload — spread_rumor delivery likely")
+   >>> L338:                 print("  blocked by PROP_TARGET_IN_REACH (spatial, S330 Дефект №3)")
+       L339:                 print("  [NOTE] Cognitive loop proven: belief → DecisionHub → post_decision → NPC_SPOKE")
+       L340:         finally:
+       L341:             _h.dispose()
+       L342: 
+       L343:     def test_listener_belief_from_npc_spoke(self) -> None:
+       L344:         """CC-04: NPC_SPOKE → listener EpistemicStore (provenance chain).
+       L345: 
+       L346:         Решение Мастера 2: усиление provenance assertions.
+       L347:         - source_id == "maid_lusya" — maid_lusya выступает рассказчиком (chain link существует)
+       L348:         - original_source_id == "player" — multi-hop provenance сохранён (G10 fix в BeliefRevisionEngine)
+
+==============================================================================
+ЭТАП 1.2: Условия успешной коммуникации
+==============================================================================
+
+>>> Все условия для успешной передачи слуха (PROP_SPREAD_RUMOR):
+
+  1. Источник (maid_lusya) должен иметь слух в EpistemicStore
+     → после PLAYER_INSULTS, Люся получает belief об оскорблении
+
+  2. DecisionHub должен выбрать Intent.SPREAD_RUMOR для Люси
+     → зависит от условий (willingness, relationship, proximity)
+
+  3. Целевой NPC (tavern_keeper_tornin) должен быть:
+     → в той же локации (tavern)
+     → в допустимой дистанции (PROP_TARGET_IN_REACH)
+     → воспринимать речь (perception enabled)
+
+  4. DialogueExecutor должен вызвать LLM
+     → LLM генерирует текст реплики
+     → NPC_SPOKE событие публикуется
+
+  5. PropositionVerifier должен проверить содержание
+     → extract proposition из речи
+     → сравнить с EpistemicStore Люси
+     → если verified → записать в EpistemicStore Торнина
+
+  6. EpistemicStore Торнина обновляется
+     → source_id = maid_lusya
+     → original_source_id = player
+     → confidence = f(...) (формула, нужно найти)
+
+  7. DecisionHub Торнина принимает решение на основе нового знания
+     → если confidence > REPORT_CONFIDENCE_THRESHOLD → реакция
+
+
+--- Поиск кода выполнения коммуникации (DialogueExecutor, spread_rumor, communicate) ---
+Найдено 220 совпадений:
+  scripts\b3_prompt_forensics.py L34:     from app.services.execution.dialogue_executor import DialogueExecutor
+  scripts\b3_prompt_forensics.py L44:     print("[2] Monkey-patch DialogueExecutor for prompt capture...")
+  scripts\b3_prompt_forensics.py L45:     _orig_gen = DialogueExecutor._generate_with_router
+  scripts\b3_prompt_forensics.py L75:     DialogueExecutor._generate_with_router = _instrumented
+  scripts\b3_prompt_forensics.py L83:         "spread_rumor": 1.4, "talk": 0.8, "intimidate": 0.0,
+  tests\IPT.py L1735:             "spread_rumor", "call_for_help", "change_role"
+  tests\test_decision_hub_goal_boost.py L74:         proactive_intents = ["block_path", "ambush", "seek_ally", "offer_job", "request_service", "spread_rumor", "call_for_help", "change_role"]
+  tests\test_dialogue_context_and_target.py L12: from app.services.execution.dialogue_executor import DialogueExecutor
+  tests\test_dialogue_context_and_target.py L48:     executor = DialogueExecutor(router=mock_router, context_provider=mock_context_provider)
+  tests\test_dialogue_executor_validation.py L7: from app.services.execution.dialogue_executor import DialogueExecutor
+  tests\test_dialogue_executor_validation.py L33:     executor = DialogueExecutor(router=mock_router, context_provider=mock_context_provider)
+  tests\test_dialogue_executor_validation.py L43:     executor = DialogueExecutor(router=mock_router, context_provider=mock_context_provider)
+  tests\test_dialogue_executor_validation.py L53:     executor = DialogueExecutor(router=mock_router, context_provider=mock_context_provider)
+  tests\test_dialogue_npc_npc_context.py L12: from app.services.execution.dialogue_executor import DialogueExecutor
+  tests\test_dialogue_npc_npc_context.py L38:     executor = DialogueExecutor(router=mock_router, context_provider=mock_context_provider)
+  tests\test_enigma_closure_contract.py L89:         """T-02: DialogueExecutor (или VerbalizationContext) должен кормить crystallized beliefs в LLM промпт."""
+  tests\test_enigma_closure_contract.py L90:         # Проверяем в DialogueExecutor, так как именно там собирается промпт
+  tests\test_phase1_validation.py L37:         """L-01..L-05, T-04: Проверка контекста DialogueExecutor."""
+  tests\test_phase1_validation.py L48:         print("\n[L-01..L-05, T-04] PASSED: DialogueExecutor настроен корректно.")
+  tests\gameplay\harness.py L53:     "SPREAD_RUMOR", "CALL_FOR_HELP", "CHANGE_ROLE", "WARN", "TRADE",
+  tests\gameplay\p5a_smoke_direct_insult.py L7:   - подмену DialogueExecutor._router
+  tests\gameplay\test_adr_o323_boundary_arrival_traversal_proposal.py L67:         print("[WIRING] DialogueExecutor._router = None (LLM-free)")
+  tests\gameplay\test_adr_o323_boundary_arrival_traversal_proposal.py L69:         print(f"[WIRING] WARN: DialogueExecutor not found in _executors={list(_executors.keys())}")
+  tests\gameplay\test_adr_o323_boundary_arrival_traversal_proposal.py L74:     # _dlg_executor._router = None выше делает DialogueExecutor LLM-free (stub-text),
+  tests\gameplay\test_butterfly_b3_llm.py L2: # Назначение: B3 — LLM-интеграционный тест production DialogueExecutor + PropositionVerifier.
+  tests\gameplay\test_butterfly_b3_llm.py L23: DialogueExecutor с real router, DialogueMaterializer с production verifier,
+  tests\gameplay\test_butterfly_b3_llm.py L256:     НЕ proof автономности spread_rumor. Production НЕ меняется (restore в finally).
+  tests\gameplay\test_butterfly_b3_llm.py L261:         "spread_rumor": 1.4, "talk": 0.8, "intimidate": 0.0,
+  tests\gameplay\test_butterfly_b3_llm.py L263:     print("[OVERRIDE] maid: spread_rumor=1.4 (TEST FIXTURE — не proof автономности)")
+  tests\gameplay\test_butterfly_b4_verified_belief.py L18: DialogueExecutor, DialogueMaterializer, ThreadPoolExecutor.
+
+--- Поиск подписчиков SPREAD_RUMOR / COMMUNICATION_CLAIM ---
+Найдено 488 совпадений:
+  scripts\_hybrid_diag2.py L100: bus.subscribe(EventType.NPC_SPOKE, spy)
+  scripts\_hybrid_diagnostic.py L81:     bus.subscribe(EventType.NPC_SPOKE, spy)
+  scripts\_hybrid_diagnostic.py L150:     print("  [NO TORNIN SPEECH] — NPC_SPOKE from tornin not captured")
+  scripts\_hybrid_diagnostic.py L151:     print("  Check: DM may have generated narrative without NPC_SPOKE event")
+  scripts\_hybrid_full.py L79: bus.subscribe(EventType.NPC_SPOKE, spy)
+  tests\IPT.py L457:     """INV-DIALOGUE-STM: событие NPC_SPOKE публикуется в EventBus и доходит до STM (P1-7).
+  tests\IPT.py L496:     # Создаём и публикуем событие NPC_SPOKE
+  tests\IPT.py L498:         event_type=EventType.NPC_SPOKE.value,
+  tests\IPT.py L521:         return InvariantResult("INV-DIALOGUE-STM", "CRITICAL", True, "Каузальная цепь NPC_SPOKE -> STM работает.", [])
+  tests\IPT.py L528:             "backend/app/services/events/npc_dialogue_subscriber.py",
+  tests\IPT.py L1444:     """INV-PLAYER-EPISTEMIC-CLOSURE: NPC_SPOKE -> EpistemicStore[player] update."""
+  tests\IPT.py L1457:     # Публикуем NPC_SPOKE с intent_type="accuse"
+  tests\IPT.py L1459:         event_type=EventType.NPC_SPOKE.value,
+  tests\IPT.py L1472:     # Даём время обработать (EventBus синхронный, но ClaimEventSubscriber может быть в потоке)
+  tests\IPT.py L1483:             "NPC_SPOKE (accuse) не породил убеждение в EpistemicStore[player]. Труба разорвана.",
+  tests\IPT.py L1490:     return InvariantResult("INV-PLAYER-EPISTEMIC-CLOSURE", "CRITICAL", True, "NPC_SPOKE -> EpistemicStore[player] работает.", [])
+  tests\IPT.py L1544:         event_type=EventType.COMMUNICATION_CLAIM.value,
+  tests\test_enigma_closure_contract.py L17: NPC_DIALOGUE_SUB_PATH = os.path.join(_APP_DIR, "services", "events", "npc_dialogue_subscriber.py")
+  tests\test_ft3_empty_speech_guard.py L3: Назначение: Регрессия FT-3 — DM-реакции с пустым хвостом не порождают ни NPC_SPOKE,
+  tests\test_ft3_empty_speech_guard.py L35:     bus.subscribe(EventType.NPC_SPOKE, _rec)
+
+==============================================================================
+ЭТАП 1.3: REPORT_CONFIDENCE_THRESHOLD = 0.25 — объявление и использование
+==============================================================================
+
+--- Поиск REPORT_CONFIDENCE_THRESHOLD ---
+Найдено 16 совпадений:
+  tests\gameplay\test_butterfly_b4_verified_belief.py L342:             "confidence < REPORT_CONFIDENCE_THRESHOLD (0.25)",
+  tests\micro\test_butterfly_report_channel.py L13:     REPORT_CONFIDENCE_THRESHOLD,
+  tests\micro\test_butterfly_report_channel.py L69:     """Запись ниже REPORT_CONFIDENCE_THRESHOLD не даёт report."""
+  tests\micro\test_butterfly_report_channel.py L72:                          conf=REPORT_CONFIDENCE_THRESHOLD - 0.01))
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L7:   2. REPORT_CONFIDENCE_THRESHOLD = 0.25 — объявление, использование
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L194:      → если confidence > REPORT_CONFIDENCE_THRESHOLD → реакция
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L217: # ЭТАП 1.3: REPORT_CONFIDENCE_THRESHOLD = 0.25
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L220:     _print_section("ЭТАП 1.3: REPORT_CONFIDENCE_THRESHOLD = 0.25 — объявление и использование")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L222:     print("\n--- Поиск REPORT_CONFIDENCE_THRESHOLD ---")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L223:     results = _grep_in_dir(_BACKEND, ["REPORT_CONFIDENCE_THRESHOLD"])
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L243:                     if "REPORT_CONFIDENCE_THRESHOLD" in l:
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L398: 2. REPORT_CONFIDENCE_THRESHOLD = 0.25:
+  app\domain\epistemology.py L171:     # REPORT_PREDICATES) при conf >= REPORT_CONFIDENCE_THRESHOLD.
+  app\services\npc\epistemic_context_resolver.py L32: REPORT_CONFIDENCE_THRESHOLD = 0.25
+  app\services\npc\epistemic_context_resolver.py L93:             # (REPORT_CONFIDENCE_THRESHOLD < CONFIDENCE_THRESHOLD): report — салиентность,
+  app\services\npc\epistemic_context_resolver.py L96:                     and record.confidence >= REPORT_CONFIDENCE_THRESHOLD
+
+--- Контекст каждого вхождения ---
+
+  Файл: tests\gameplay\test_butterfly_b4_verified_belief.py
+
+  Контекст L338–L352 (вокруг L342):
+       L338:             "spoke_events": _lusya_to_tornin_spoke,
+       L339:             "claim_events": _lusya_to_tornin_claims,
+       L340:         },
+       L341:         "hypotheses_for_research": [
+   >>> L342:             "confidence < REPORT_CONFIDENCE_THRESHOLD (0.25)",
+       L343:             "cold-start блокировка cognition context resolver",
+       L344:             "не было адресованного диалога с Торниным (target_id != tornin)",
+       L345:         ],
+       L346:         "hypotheses_disclaimer": (
+       L347:             "Эти гипотезы представлены для последующего исследования и не "
+       L348:             "являются диагностическими выводами. Нулевое количество реплик "
+       L349:             "Торнина само по себе не доказывает ни одну из них. Для реакции "
+       L350:             "нужны собственное решение, подходящий контекст и возможность действовать."
+       L351:         ),
+       L352:     }
+
+  Файл: tests\micro\test_butterfly_report_channel.py
+
+  Контекст L9–L23 (вокруг L13):
+       L9: 
+       L10: from app.domain.epistemology import EpistemicRecord, Predicate, Proposition
+       L11: from app.services.npc.epistemic_context_resolver import (
+       L12:     EpistemicContextResolver,
+   >>> L13:     REPORT_CONFIDENCE_THRESHOLD,
+       L14: )
+       L15: from app.services.npc.epistemic_store import EpistemicStore
+       L16: 
+       L17: 
+       L18: def _record(agent: str, subj: str, pred: Predicate, obj: str, conf: float = 0.5, tick: int = 1):
+       L19:     """Минимальная EpistemicRecord для тестов."""
+       L20:     return EpistemicRecord(
+       L21:         agent_id=agent,
+       L22:         proposition=Proposition(subject_id=subj, predicate=pred, object_id=obj),
+       L23:         confidence=conf,
+
+  Контекст L65–L79 (вокруг L69):
+       L65:     assert mods.get("talk", 0) > 0, f"self-boost talk missing: {mods}"
+       L66: 
+       L67: 
+       L68: def test_below_threshold_no_report():
+   >>> L69:     """Запись ниже REPORT_CONFIDENCE_THRESHOLD не даёт report."""
+       L70:     store = EpistemicStore()
+       L71:     store.upsert(_record("maid_lusya", "player", Predicate.INSULTED, "tavern_keeper_tornin",
+       L72:                          conf=REPORT_CONFIDENCE_THRESHOLD - 0.01))
+       L73:     resolver = EpistemicContextResolver(store)
+       L74: 
+       L75:     ctx = resolver.resolve("maid_lusya")
+       L76:     assert ctx.report_proposition is None
+       L77: 
+       L78: 
+       L79: def test_stole_does_not_enter_report():
+
+  Контекст L68–L82 (вокруг L72):
+       L68: def test_below_threshold_no_report():
+       L69:     """Запись ниже REPORT_CONFIDENCE_THRESHOLD не даёт report."""
+       L70:     store = EpistemicStore()
+       L71:     store.upsert(_record("maid_lusya", "player", Predicate.INSULTED, "tavern_keeper_tornin",
+   >>> L72:                          conf=REPORT_CONFIDENCE_THRESHOLD - 0.01))
+       L73:     resolver = EpistemicContextResolver(store)
+       L74: 
+       L75:     ctx = resolver.resolve("maid_lusya")
+       L76:     assert ctx.report_proposition is None
+       L77: 
+       L78: 
+       L79: def test_stole_does_not_enter_report():
+       L80:     """STOLE-запись не попадает в report (разделение каналов сохранено)."""
+       L81:     store = EpistemicStore()
+       L82:     store.upsert(_record("maid_lusya", "guard_borko", Predicate.STOLE, "merchant_goran", conf=0.7))
+
+  Файл: tests\sandbox\r2_butterfly_b5_obstacles_audit.py
+
+  Контекст L3–L17 (вокруг L7):
+       L3: R2-BUTTERFLY-B5-OBSTACLES — Этап 1: проверка открытых препятствий.
+       L4: 
+       L5: Цель: исследовать
+       L6:   1. PROP_TARGET_IN_REACH — где, почему, условия
+   >>> L7:   2. REPORT_CONFIDENCE_THRESHOLD = 0.25 — объявление, использование
+       L8:   3. confidence = 0.215 — формула, источники, коэффициенты
+       L9: 
+       L10: READ-ONLY. Production-код не менять.
+       L11: """
+       L12: from __future__ import annotations
+       L13: import os, sys, json, traceback
+       L14: from pathlib import Path
+       L15: from typing import Any, Dict, List, Optional, Tuple
+       L16: import io
+       L17: 
+
+  Контекст L190–L204 (вокруг L194):
+       L190:      → original_source_id = player
+       L191:      → confidence = f(...) (формула, нужно найти)
+       L192: 
+       L193:   7. DecisionHub Торнина принимает решение на основе нового знания
+   >>> L194:      → если confidence > REPORT_CONFIDENCE_THRESHOLD → реакция
+       L195: """)
+       L196: 
+       L197:     # Find communication execution code
+       L198:     print("\n--- Поиск кода выполнения коммуникации (DialogueExecutor, spread_rumor, communicate) ---")
+       L199:     results = _grep_in_dir(_BACKEND, ["spread_rumor", "SPREAD_RUMOR", "DialogueExecutor",
+       L200:                                        "communicate", "propagate_rumor", "claim_subscriber"])
+       L201:     print(f"Найдено {len(results)} совпадений:")
+       L202:     for path, ln, line in results[:30]:
+       L203:         rel = path.relative_to(_BACKEND) if path.is_relative_to(_BACKEND) else path
+       L204:         print(f"  {rel} L{ln}: {line}")
+
+  Контекст L213–L227 (вокруг L217):
+       L213:         print(f"  {rel} L{ln}: {line}")
+       L214: 
+       L215: 
+       L216: # ============================================================================
+   >>> L217: # ЭТАП 1.3: REPORT_CONFIDENCE_THRESHOLD = 0.25
+       L218: # ============================================================================
+       L219: def stage1_3_report_confidence_threshold() -> None:
+       L220:     _print_section("ЭТАП 1.3: REPORT_CONFIDENCE_THRESHOLD = 0.25 — объявление и использование")
+       L221: 
+       L222:     print("\n--- Поиск REPORT_CONFIDENCE_THRESHOLD ---")
+       L223:     results = _grep_in_dir(_BACKEND, ["REPORT_CONFIDENCE_THRESHOLD"])
+       L224:     print(f"Найдено {len(results)} совпадений:")
+       L225:     for path, ln, line in results:
+       L226:         rel = path.relative_to(_BACKEND) if path.is_relative_to(_BACKEND) else path
+       L227:         print(f"  {rel} L{ln}: {line}")
+
+  Контекст L216–L230 (вокруг L220):
+       L216: # ============================================================================
+       L217: # ЭТАП 1.3: REPORT_CONFIDENCE_THRESHOLD = 0.25
+       L218: # ============================================================================
+       L219: def stage1_3_report_confidence_threshold() -> None:
+   >>> L220:     _print_section("ЭТАП 1.3: REPORT_CONFIDENCE_THRESHOLD = 0.25 — объявление и использование")
+       L221: 
+       L222:     print("\n--- Поиск REPORT_CONFIDENCE_THRESHOLD ---")
+       L223:     results = _grep_in_dir(_BACKEND, ["REPORT_CONFIDENCE_THRESHOLD"])
+       L224:     print(f"Найдено {len(results)} совпадений:")
+       L225:     for path, ln, line in results:
+       L226:         rel = path.relative_to(_BACKEND) if path.is_relative_to(_BACKEND) else path
+       L227:         print(f"  {rel} L{ln}: {line}")
+       L228: 
+       L229:     # Read context around each occurrence
+       L230:     if results:
+
+  Контекст L218–L232 (вокруг L222):
+       L218: # ============================================================================
+       L219: def stage1_3_report_confidence_threshold() -> None:
+       L220:     _print_section("ЭТАП 1.3: REPORT_CONFIDENCE_THRESHOLD = 0.25 — объявление и использование")
+       L221: 
+   >>> L222:     print("\n--- Поиск REPORT_CONFIDENCE_THRESHOLD ---")
+       L223:     results = _grep_in_dir(_BACKEND, ["REPORT_CONFIDENCE_THRESHOLD"])
+       L224:     print(f"Найдено {len(results)} совпадений:")
+       L225:     for path, ln, line in results:
+       L226:         rel = path.relative_to(_BACKEND) if path.is_relative_to(_BACKEND) else path
+       L227:         print(f"  {rel} L{ln}: {line}")
+       L228: 
+       L229:     # Read context around each occurrence
+       L230:     if results:
+       L231:         print(f"\n--- Контекст каждого вхождения ---")
+       L232:         files_shown = set()
+
+  Контекст L219–L233 (вокруг L223):
+       L219: def stage1_3_report_confidence_threshold() -> None:
+       L220:     _print_section("ЭТАП 1.3: REPORT_CONFIDENCE_THRESHOLD = 0.25 — объявление и использование")
+       L221: 
+       L222:     print("\n--- Поиск REPORT_CONFIDENCE_THRESHOLD ---")
+   >>> L223:     results = _grep_in_dir(_BACKEND, ["REPORT_CONFIDENCE_THRESHOLD"])
+       L224:     print(f"Найдено {len(results)} совпадений:")
+       L225:     for path, ln, line in results:
+       L226:         rel = path.relative_to(_BACKEND) if path.is_relative_to(_BACKEND) else path
+       L227:         print(f"  {rel} L{ln}: {line}")
+       L228: 
+       L229:     # Read context around each occurrence
+       L230:     if results:
+       L231:         print(f"\n--- Контекст каждого вхождения ---")
+       L232:         files_shown = set()
+       L233:         for path, ln, line in results:
+
+  Контекст L239–L253 (вокруг L243):
+       L239:                 lines = src.split("\n")
+       L240:                 print(f"\n  Файл: {path.relative_to(_BACKEND)}")
+       L241:                 # Find all occurrences in this file
+       L242:                 for i, l in enumerate(lines, 1):
+   >>> L243:                     if "REPORT_CONFIDENCE_THRESHOLD" in l:
+       L244:                         start = max(0, i - 5)
+       L245:                         end = min(len(lines), i + 10)
+       L246:                         print(f"\n  Контекст L{start+1}–L{end} (вокруг L{i}):")
+       L247:                         for j in range(start, end):
+       L248:                             marker = " >>>" if j + 1 == i else "    "
+       L249:                             print(f"  {marker} L{j+1}: {lines[j]}")
+       L250:             except Exception as e:
+       L251:                 print(f"  [read error: {e}]")
+       L252: 
+       L253: 
+
+  Контекст L394–L408 (вокруг L398):
+       L394:    - Нужно найти точный код, который возвращает этот статус
+       L395:    - Нужно найти порог дистанции
+       L396:    - Нужно проверить, могут ли NPC сблизиться естественно
+       L397: 
+   >>> L398: 2. REPORT_CONFIDENCE_THRESHOLD = 0.25:
+       L399:    - Нужно найти все места использования
+       L400:    - Нужно понять, к каким операциям применяется (DecisionHub? EpistemicStore?)
+       L401:    - Константу НЕ менять
+       L402: 
+       L403: 3. confidence = 0.215:
+       L404:    - Нужно найти формулу
+       L405:    - Нужно понять, можно ли повысить confidence естественным путём
+       L406:      (повторная передача, corroborating evidence)
+       L407:    - Confidence НЕ повышать искусственно
+       L408: 
+
+  Файл: app\domain\epistemology.py
+
+  Контекст L167–L173 (вокруг L171):
+       L167:     # COGNITIVE-CONTINUITY-01: report-канал. Знание об оскорблении третьего
+       L168:     # лица — отдельный канал от threat (trigger) и self-relevance
+       L169:     # (claims_about_self). NPC может решить сообщить жертве.
+       L170:     # Заполняется EpistemicContextResolver для Predicate.INSULTED (и будущих
+   >>> L171:     # REPORT_PREDICATES) при conf >= REPORT_CONFIDENCE_THRESHOLD.
+       L172:     report_proposition: Optional[Proposition] = None
+       L173: 
+
+  Файл: app\services\npc\epistemic_context_resolver.py
+
+  Контекст L28–L42 (вокруг L32):
+       L28: # Отдельный порог (не CONFIDENCE_THRESHOLD): report — салиентность, а не угроза.
+       L29: # Слышанное через цепочку свидетельств дешевеет (trust×100/100).
+       L30: # Калибровочный кандидат, меняется отдельной ревизией.
+       L31: REPORT_PREDICATES = (Predicate.INSULTED,)
+   >>> L32: REPORT_CONFIDENCE_THRESHOLD = 0.25
+       L33: 
+       L34: class EpistemicContextResolver:
+       L35:     """
+       L36:     Преобразует EpistemicStore -> EpistemicContext.
+       L37:     Чистая функция (Read-Only). Не мутирует Store.
+       L38:     """
+       L39:     def __init__(self, store: EpistemicStore):
+       L40:         self._store = store
+       L41: 
+       L42:     def get_confidence_for_subject(self, agent_id: str, subject_id: str) -> float:
+
+  Контекст L89–L103 (вокруг L93):
+       L89:                 continue
+       L90: 
+       L91:             # COGNITIVE-CONTINUITY-01: report-канал. Знание об оскорблении третьего
+       L92:             # лица (object_id != agent_id, subject_id != agent_id). Отдельный порог
+   >>> L93:             # (REPORT_CONFIDENCE_THRESHOLD < CONFIDENCE_THRESHOLD): report — салиентность,
+       L94:             # не угроза; слышанное через цепочку свидетельств дешевеет.
+       L95:             if (pred in REPORT_PREDICATES
+       L96:                     and record.confidence >= REPORT_CONFIDENCE_THRESHOLD
+       L97:                     and _obj != agent_id
+       L98:                     and subj != agent_id):
+       L99:                 if record.confidence > _report_conf:
+       L100:                     _report_conf = record.confidence
+       L101:                     _report_prop = record.proposition
+       L102: 
+       L103:             if record.confidence < CONFIDENCE_THRESHOLD:
+
+  Контекст L92–L106 (вокруг L96):
+       L92:             # лица (object_id != agent_id, subject_id != agent_id). Отдельный порог
+       L93:             # (REPORT_CONFIDENCE_THRESHOLD < CONFIDENCE_THRESHOLD): report — салиентность,
+       L94:             # не угроза; слышанное через цепочку свидетельств дешевеет.
+       L95:             if (pred in REPORT_PREDICATES
+   >>> L96:                     and record.confidence >= REPORT_CONFIDENCE_THRESHOLD
+       L97:                     and _obj != agent_id
+       L98:                     and subj != agent_id):
+       L99:                 if record.confidence > _report_conf:
+       L100:                     _report_conf = record.confidence
+       L101:                     _report_prop = record.proposition
+       L102: 
+       L103:             if record.confidence < CONFIDENCE_THRESHOLD:
+       L104:                 continue
+       L105: 
+       L106:             if subj == agent_id:
+
+==============================================================================
+ЭТАП 1.4: Формула confidence = 0.215 — происхождение
+==============================================================================
+
+>>> Из B4:
+  Торнин получил запись в EpistemicStore:
+    source_id = maid_lusya
+    original_source_id = player
+    confidence = 0.215
+    testimony (type)
+
+  Это значение 0.215 — результат формулы, учитывающей:
+  - confidence источника (Люси)
+  - доверие Торнина к Люси
+  - количество источников (corroboration)
+  - время / затухание
+  - тип знания (testimony vs direct observation)
+
+>>> Нужно найти:
+  1. Где вычисляется confidence при записи в EpistemicStore
+  2. Какие коэффициенты используются
+  3. Можно ли повысить confidence без изменения production-кода
+     (например, повторная передача слуха, corroborating evidence)
+
+
+--- Поиск вычисления confidence (confidence =, _confidence, compute_confidence) ---
+Найдено 92 совпадений (показаны первые 30):
+  tests\test_cfrm_models.py L80:         assert result.confidence == 1.0
+  tests\test_cfrm_models.py L100:         assert result.confidence == 0.2
+  tests\test_event_memory.py L46:         assert mem.confidence == 1.0
+  tests\test_new_8_recognition_memory.py L34:     confidence = loaded_scene["player_recognition"][npc_id].get("confidence", 0.0)
+  tests\test_new_8_recognition_memory.py L35:     assert confidence == 1.0
+  tests\test_new_8_scene_manager.py L67:     confidence = next_scene["player_recognition"][npc_id].get("confidence", 0.0)
+  tests\test_new_8_scene_manager.py L68:     assert confidence == 1.0, f"Confidence сбросился после тика! Ожидалось 1.0, получено {confidence}"
+  tests\test_phase_a_memory_fixes.py L720:     assert c.confidence == 0.3  # истинность не выросла
+  tests\test_scene_outcome_builder.py L653:         assert outcome.actors[0].visibility_confidence == 1.0
+  tests\gameplay\p5a_smoke_direct_insult.py L322:         print(f"[4.2]   confidence = {_td['confidence']!r}", flush=True)
+  tests\gameplay\p5a_smoke_direct_insult.py L427:         print(f"  confidence = {_td['confidence']!r}", flush=True)
+  tests\gameplay\test_butterfly_b4_verified_belief.py L752:             crit6_confidence = False
+  tests\gameplay\test_butterfly_b4_verified_belief.py L760:                 crit6_confidence = _conf > 0
+  tests\gameplay\test_p5_production_save_load.py L92:         assert pos.confidence == 0.5, f"confidence changed: {pos.confidence}"
+  tests\micro\test_act_consumer.py L136:     assert store.get("merchant_goran").confidence == _before
+  tests\micro\test_chronicle_cch2.py L66:     assert items[0].confidence == 0.95
+  tests\micro\test_chronicle_cch2.py L129:     assert items[0].confidence == 0.5 and items[0].needs_confirmation is True
+  tests\micro\test_chronicle_cch2.py L139:     assert items[0].question is None and items[0].confidence == 0.9
+  tests\micro\test_claim_bridge_chain.py L70:     topic_confidence = 0.0
+  tests\micro\test_cov12_faction_resolver.py L127:     assert item.confidence == 0.9
+  tests\micro\test_dlg1_speaker_symmetry.py L203:     assert p_session.claims[0].confidence == n_session.claims[0].confidence
+  tests\micro\test_self_relevance_gate.py L79:     # confidence = reliability × _CLAIM_WEIGHT (=1.0, belief_revision_engine);
+  tests\micro\test_self_relevance_gate.py L81:     assert ctx.max_self_confidence == pytest.approx(_RELIABILITY)
+  tests\micro\test_self_relevance_gate.py L103:     assert ctx.max_self_confidence == 0.0
+  tests\micro\test_self_relevance_gate.py L227:     assert ctx.max_confidence == pytest.approx(0.9)
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L8:   3. confidence = 0.215 — формула, источники, коэффициенты
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L191:      → confidence = f(...) (формула, нужно найти)
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L255: # ЭТАП 1.4: Формула confidence = 0.215
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L258:     _print_section("ЭТАП 1.4: Формула confidence = 0.215 — происхождение")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L265:     confidence = 0.215
+
+--- Поиск EpistemicStore.update / add_belief / record ---
+Найдено 476 совпадений (показаны первые 20):
+  scripts\_hybrid_diag2.py L63: store = getattr(tick_orch, "_epistemic_store", None) if tick_orch else None
+  scripts\_hybrid_diag2.py L81: resolver = CognitionContextResolver(memory_manager=mm, epistemic_store=store)
+  scripts\_hybrid_diagnostic.py L59:     return getattr(tick_orch, "_epistemic_store", None) if tick_orch else None
+  scripts\_hybrid_diagnostic.py L67:     resolver = CognitionContextResolver(memory_manager=mm, epistemic_store=store)
+  scripts\_hybrid_full.py L54: store = getattr(tick_orch, "_epistemic_store", None)
+  scripts\_hybrid_full.py L64: resolver = CognitionContextResolver(memory_manager=mm, epistemic_store=store)
+  tests\IPT.py L1444:     """INV-PLAYER-EPISTEMIC-CLOSURE: NPC_SPOKE -> EpistemicStore[player] update."""
+  tests\IPT.py L1448:     _epistemic_store = getattr(world.game_loop._tick_orch, "_epistemic_store", None)
+  tests\IPT.py L1449:     if not _epistemic_store:
+  tests\IPT.py L1450:         return InvariantResult("INV-PLAYER-EPISTEMIC-CLOSURE", "CRITICAL", False, "EpistemicStore not initialized", [])
+  tests\IPT.py L1453:     _epistemic_store._records = {k: v for k, v in _epistemic_store._records.items() if k[0] != "player"}
+  tests\IPT.py L1476:     _player_beliefs = _epistemic_store.get_all_for_agent("player")
+  tests\IPT.py L1483:             "NPC_SPOKE (accuse) не породил убеждение в EpistemicStore[player]. Труба разорвана.",
+  tests\IPT.py L1490:     return InvariantResult("INV-PLAYER-EPISTEMIC-CLOSURE", "CRITICAL", True, "NPC_SPOKE -> EpistemicStore[player] работает.", [])
+  tests\IPT.py L1497:     _epistemic_store = getattr(world.game_loop._tick_orch, "_epistemic_store", None)
+  tests\IPT.py L1498:     if not _epistemic_store:
+  tests\IPT.py L1499:         return InvariantResult("INV-EPISTEMIC-TRUST-MONOTONICITY", "CRITICAL", False, "EpistemicStore not initialized", [])
+  tests\test_board_acceptance_gates.py L11:          EpistemicStore) byte-for-byte не изменились;
+  tests\test_board_acceptance_gates.py L145: # ══ G3: ИЗОЛЯЦИЯ (живой EpistemicStore → player_beliefs) ════════
+  tests\test_board_acceptance_gates.py L149:     не изменились. Проверка против НАСТОЯЩЕЙ проекции: EpistemicStore с
+
+--- Поиск литерала 0.215 ---
+  tests\test_action_commitment.py L1912:         assert _h.fatigue_delta == 0.215
+  tests\test_action_commitment.py L1936:         """RUN (load 0.9): wear 0.225 − recovery 0.01 = +0.215/тик."""
+  tests\test_action_commitment.py L1938:         assert _p.fatigue_delta == 0.215
+  tests\test_action_commitment.py L2010:             payload=PhysiologyPayload(fatigue_delta=0.215),
+  tests\test_action_commitment.py L2020:         # (ii) СОХРАННОСТЬ: вклад combat'а не теряется (при split было 0.215)
+  tests\test_action_commitment.py L2041:         _applicator._apply_physiology_deltas(_state, 0, 0, 0.215, 0, [], [], [], 0)
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L8:   3. confidence = 0.215 — формула, источники, коэффициенты
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L255: # ЭТАП 1.4: Формула confidence = 0.215
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L258:     _print_section("ЭТАП 1.4: Формула confidence = 0.215 — происхождение")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L265:     confidence = 0.215
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L268:   Это значение 0.215 — результат формулы, учитывающей:
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L300:     # Search for 0.215 literal (unlikely but check)
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L301:     print("\n--- Поиск литерала 0.215 ---")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L302:     results3 = _grep_in_dir(_BACKEND, ["0.215"])
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L308:         print("  [0.215 не найден как литерал — вычисляется формулой]")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L403: 3. confidence = 0.215:
+
+--- Поиск формулы testimony confidence ---
+Найдено 316 совпадений (показаны первые 20):
+  tests\test_combat_pipeline_e2e.py L105:         npc_witness = _make_npc(npc_id="npc_witness", dexterity=8.0, willpower=30.0)
+  tests\test_combat_pipeline_e2e.py L109:         all_npcs = [npc_target, npc_witness]
+  tests\test_combat_pipeline_e2e.py L159:         # 4.2 Свидетель (npc_witness) получает эмпатический каскад от боли цели
+  tests\test_combat_pipeline_e2e.py L160:         witness_emotion_deltas = [
+  tests\test_combat_pipeline_e2e.py L161:             d for d in reaction_result.deltas if d.npc_id == "npc_witness" and d.domain == DeltaDomain.EMOTION
+  tests\test_combat_pipeline_e2e.py L163:         assert len(witness_emotion_deltas) > 0, "Свидетель должен получить эмоциональную дельту"
+  tests\test_combat_pipeline_e2e.py L165:         emotion_payload = witness_emotion_deltas[0].payload
+  tests\test_combat_pipeline_e2e.py L184:         npc_witness = _make_npc(npc_id="npc_witness", willpower=50.0)
+  tests\test_combat_pipeline_e2e.py L185:         all_npcs = [_make_npc(npc_id="npc_1"), npc_witness]
+  tests\test_combat_pipeline_e2e.py L196:         witness_emotion_deltas = [
+  tests\test_combat_pipeline_e2e.py L197:             d for d in reaction_result.deltas if d.npc_id == "npc_witness" and d.domain == DeltaDomain.EMOTION
+  tests\test_combat_pipeline_e2e.py L199:         assert len(witness_emotion_deltas) > 0, "Базовая реакция на атаку должна быть"
+  tests\test_combat_pipeline_e2e.py L201:         emotion_payload = witness_emotion_deltas[0].payload
+  tests\test_combat_pipeline_e2e.py L203:         # Для witness с willpower=50 это около 6.6, точно < 10.0
+  tests\test_decision_calibration.py L91:         witness_count=4,
+  tests\test_decision_calibration.py L105:         witness_count=2,
+  tests\test_decision_calibration.py L153:     def test_control_npc_warns_with_witnesses(
+  tests\test_decision_calibration.py L160:         Социальное давление (witness_count) активирует control-реакции.
+  tests\test_decision_calibration.py L169:             witness_count=5,
+  tests\test_decision_calibration.py L355:             witness_count=2,
+
+==============================================================================
+ЭТАП 1.5: Может ли NPC естественно сблизиться
+==============================================================================
+
+>>> Вопрос: могут ли Люся и Торнин естественно оказаться в допустимой дистанции?
+
+  Известные позиции NPC в tavern.json:
+    maid_lusya: (7.99, 1.83) — рядом с fireplace
+    tavern_keeper_tornin: (4.5, 2.5) — за стойкой (behind_bar)
+
+  Distance(maid_lusya, tavern_keeper_tornin):
+    = sqrt((7.99 - 4.5)^2 + (1.83 - 2.5)^2)
+    = sqrt(12.18 + 0.45)
+    = sqrt(12.63)
+    ≈ 3.55m
+
+  Нужно найти: какой порог дистанции для PROP_TARGET_IN_REACH?
+  Если порог = 3.0m → расстояние 3.55m > 3.0m → BLOCKED
+  Если порог = 5.0m → 3.55m < 5.0m → OK
+
+  NPC могут сблизиться естественно через:
+    - schedule: working → kitchen → movement к node_16 → fireplace
+    - SEEK_ALLY: движение к другому NPC
+    - FLEE: движение от угрозы (теперь работает через door_0)
+
+  После FLEE fix NPC могут двигаться. Но для коммуникации
+  нужно, чтобы оба NPC были в одной точке/радиусе одновременно.
+
+
+--- Поиск порога дистанции коммуникации ---
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L354:     results = _grep_in_dir(_BACKEND, ["COMMUNICATION_RADIUS", "COMM_RANGE", "TALK_RADIUS",
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L355:                                        "DIALOGUE_RADIUS", "SPEECH_RADIUS", "comm_distance",
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L356:                                        "talk_distance", "dialogue_distance"])
+
+--- Поиск в constants.py ---
+  L34: PERCEPTION_RADIUS: Final[dict[str, float]] = {
+  L38: PERCEPTION_FALLBACK_DISTANCE: Final[float] = 8.0  # fallback если tier неизвестен
+  L77: SCORE_NOISE_RANGE: Final[float] = 0.10
+  L104: # Commitment Model
+  L105: COMMITMENT_BASE_THRESHOLD: Final[float] = 0.15
+  L106: COMMITMENT_K: Final[float] = 2.5
+  L107: COMMITMENT_BONUS_K: Final[float] = 0.10
+  L319: NPC_RADIUS_FOCUSED: int = 10
+  L320: NPC_RADIUS_DEFAULT: int = 7
+  L324: PLAYER_COLLISION_RADIUS: float = 0.25
+  L326: NPC_SPEECH_BUBBLE_LIFETIME_MS: int = 6000
+  L327: PLAYER_SPEECH_BUBBLE_LIFETIME_MS: int = 4000
+  L328: VISIBILITY_RADIUS_M: float = 20.0
+  L331: COLLISION_RADIUS: float = 0.8
+  L337: HIDDEN_DISTANCE: float = 15.0
+  L347: # UX-FB (Тай): техдетали отказа — в dialogue_log, не игроку (UX-3).
+
+--- Поиск 'PROP_TARGET' и 'in_reach' в коде ---
+  tests\gameplay\test_butterfly_full_game_loop.py L311:         PROP_TARGET_IN_REACH (target вне speech radius — S330 Дефект №3,
+  tests\gameplay\test_butterfly_full_game_loop.py L338:                 print("  blocked by PROP_TARGET_IN_REACH (spatial, S330 Дефект №3)")
+  tests\micro\test_butterfly_cold_start.py L3: from app.services.phases.post_decision import _prop_target_in_reach
+  tests\micro\test_butterfly_cold_start.py L6: def test_target_in_reach_same_location_close():
+  tests\micro\test_butterfly_cold_start.py L11:     assert _prop_target_in_reach(scene, "maid_lusya", "tavern_keeper_tornin") is True
+  tests\micro\test_butterfly_cold_start.py L19:     assert _prop_target_in_reach(scene, "maid_lusya", "tavern_keeper_tornin") is False
+  tests\micro\test_butterfly_cold_start.py L27:     assert _prop_target_in_reach(scene, "maid_lusya", "tavern_keeper_tornin") is False
+  tests\micro\test_butterfly_cold_start.py L32:     assert _prop_target_in_reach(scene, "maid_lusya", "tavern_keeper_tornin") is False
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L6:   1. PROP_TARGET_IN_REACH — где, почему, условия
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L92: # ЭТАП 1.1: PROP_TARGET_IN_REACH
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L94: def stage1_1_prop_target_in_reach() -> None:
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L95:     _print_section("ЭТАП 1.1: PROP_TARGET_IN_REACH — точное место возникновения")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L97:     print("\n--- Поиск PROP_TARGET_IN_REACH по всему backend/ ---")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L98:     results = _grep_in_dir(_BACKEND, ["PROP_TARGET_IN_REACH"])
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L107:   PROP_TARGET_IN_REACH — это код ошибки/статус, возникающий когда:
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L113:   - Какой код возвращает PROP_TARGET_IN_REACH
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L118:     # Find the function/method that returns PROP_TARGET_IN_REACH
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L119:     print("\n--- Поиск 'return PROP_TARGET_IN_REACH' или 'PROP_TARGET_IN_REACH' в assignment ---")
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L120:     results2 = _grep_in_dir(_BACKEND, ["return.*PROP_TARGET_IN_REACH", "PROP_TARGET_IN_REACH.*=", "= PROP_TARGET_IN_REACH"])
+  tests\sandbox\r2_butterfly_b5_obstacles_audit.py L126:     print("\n--- Поиск проверки дистанции (in_reach, target_in_reach, communication_range) ---")
+
+==============================================================================
+ИТОГ ЭТАПА 1 — сводка открытых препятствий
+==============================================================================
+
+=============================================================================
+ОТКРЫТЫЕ ПРЕПЯТСТВИЯ (после исследования)
+=============================================================================
+
+1. PROP_TARGET_IN_REACH:
+   - Нужно найти точный код, который возвращает этот статус
+   - Нужно найти порог дистанции
+   - Нужно проверить, могут ли NPC сблизиться естественно
+
+2. REPORT_CONFIDENCE_THRESHOLD = 0.25:
+   - Нужно найти все места использования
+   - Нужно понять, к каким операциям применяется (DecisionHub? EpistemicStore?)
+   - Константу НЕ менять
+
+3. confidence = 0.215:
+   - Нужно найти формулу
+   - Нужно понять, можно ли повысить confidence естественным путём
+     (повторная передача, corroborating evidence)
+   - Confidence НЕ повышать искусственно
+
+=============================================================================
+СЛЕДУЮЩИЕ ШАГИ
+=============================================================================
+
+После Этапа 1 (этот probe):
+  - Если препятствия найдены и понятны → Этап 2 (baseline Торнина)
+  - Если препятствия непреодолимы без изменения production-кода →
+    зафиксировать и доложить Master
+
+Этап 2: baseline Торнина
+  - Снимок состояния до передачи слуха
+  - EpistemicStore, beliefs, intents, decisions
+
+Этап 3: Контрольный прогон A (без слуха)
+  - Решения Торнина без передачи слуха
+  - Фактические реплики
+
+Этап 4: Экспериментальный прогон B (с слухом)
+  - Полная цепочка: PLAYER_INSULTS → Люся → Торнин
+  - 10 шагов от решения Люси до реплики Торнина
+
+Этап 5: LLM — real Hermes-3-8B
+
+Этап 7: Итоговый отчёт PASS/PARTIAL/FAIL
+
