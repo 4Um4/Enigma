@@ -93,21 +93,16 @@ def main() -> int:
     bus.subscribe(EventType.NPC_MOVED, _spy_moved)
     bus.subscribe(EventType.NPC_PROXIMITY_CLOSE, _spy_proximity)
 
-    # Слой 1 (украдено из IPT): поднять LLM-сервер, если на машине есть модель.
+    # Слой 1: acquire lease через Host broker SDK (Этап 4.1.3.5).
+    # _llm_up сохраняется для stub-роутер fallback (Слой 2 ниже).
     _llm_up = False
     try:
-        import atexit as _atexit
-
-        _REPO_ROOT = Path(__file__).resolve().parents[5]
-        if str(_REPO_ROOT) not in sys.path:
-            sys.path.insert(0, str(_REPO_ROOT))
-        from scripts.llm_server_manager import kill_llama_server, start_llama_server
-
-        _llm_up = bool(start_llama_server())
-        _atexit.register(kill_llama_server)
-        print(f"[G0] llm_server_manager: start={'OK' if _llm_up else 'FAIL'}")
-    except ModuleNotFoundError as _e:
-        print(f"[G0] llm_server_manager недоступен ({_e})")
+        from app.services.llm.runtime.client import ensure_llm
+        ensure_llm(label="cog_p2")
+        _llm_up = True
+        print("[G0] Host SDK: lease=OK")
+    except Exception as _e:
+        print(f"[G0] LLM недоступна ({_e})")
     # Слой 2: если сервера нет — stub-роутер (goran-прецедент) с robust-поиском
     # держателя (атрибуты переименовывались к S264+ — ищем, не угадываем).
     if not _llm_up:
