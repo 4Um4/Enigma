@@ -86,7 +86,8 @@ def _check_llama_health() -> bool:
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         opener.open(f"{settings.llama_cpp_server_url}/health", timeout=2)
         return True
-    except Exception:
+    except Exception as e:
+        print(f"[LLM_HOST] llama health check failed: {e}")
         return False
 
 

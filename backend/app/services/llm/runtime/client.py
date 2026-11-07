@@ -45,7 +45,8 @@ def _check_host_health() -> Optional[dict]:
         with opener.open(f"{_host_url()}/health", timeout=_HEALTH_TIMEOUT) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return data if data.get("protocol_version") == _PROTOCOL_VERSION else None
-    except Exception:
+    except Exception as e:
+        print(f"[LLM_SDK] Host health check failed: {e}")
         return None
 
 
@@ -101,7 +102,8 @@ def _get_create_time() -> float:
     try:
         import psutil
         return psutil.Process(os.getpid()).create_time()
-    except Exception:
+    except Exception as e:
+        print(f"[LLM_SDK] psutil create_time unavailable: {e}")
         return 0.0
 
 

@@ -21,8 +21,7 @@ FRAGMENTS = [
 ]
 
 def run_test(model_path, model_name):
-    pass  # Этап 0: taskkill /IM removed (Устав §19.1.2)
-    except: pass
+    # Этап 0: taskkill /IM removed — try/except eliminated (Устав §19.1.2)
     time.sleep(2)
     proc = subprocess.Popen(
         [str(MODELS_DIR / "llama" / "llama-server.exe"),

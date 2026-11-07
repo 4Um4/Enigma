@@ -24,10 +24,7 @@ if not model_path.exists():
 print(f"[PROBE] Модель: {model_path.name} ({model_path.stat().st_size / 1024**3:.2f} GB)")
 
 # 1. Kill existing llama-server
-try:
-    # Этап 0: taskkill /IM removed (Устав §19.1.2)
-except Exception:
-    pass
+# Этап 0: taskkill /IM removed — try/except eliminated (Устав §19.1.2)
 time.sleep(2)
 
 # 2. Spawn llama-server on 8181
