@@ -1,0 +1,1 @@
+﻿USL-2 CANONICALIZATION: 5 NPC canonized (291 entries) + prompt SUBJECT_ATTRIBUTION fix + AUTHOR_REVIEW_OVERRIDE + age anchors cleanup

@@ -1,0 +1,2119 @@
+{
+  "verdict": "GREEN",
+  "reason": "all checks passed — both scenarios produced real Tornin LLM speech without stubs",
+  "timestamp": 1793987597.7556329,
+  "timeout_sec": 600,
+  "A": {
+    "scenario": "A",
+    "errors": [],
+    "started_at": 1793987569.4935074,
+    "baseline": {
+      "tornin_records_count": 0,
+      "target_belief_present": false,
+      "records": []
+    },
+    "event_published": {
+      "event_id": "8746874f-2d53-f13a-e20b-17a59f04596f",
+      "event_type": "player_insults",
+      "radius": 50.0
+    },
+    "post_publish": {
+      "tornin_records_count": 1,
+      "target_belief_present": true,
+      "target_record": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true,
+        "confidence": 0.5,
+        "source_id": "player",
+        "provenance": null,
+        "record_type": "EpistemicRecord",
+        "tick": null
+      },
+      "records": [
+        {
+          "subject_id": "player",
+          "predicate": "insulted",
+          "object_id": "tavern_keeper_tornin",
+          "polarity": true,
+          "confidence": 0.5,
+          "source_id": "player",
+          "provenance": null,
+          "record_type": "EpistemicRecord",
+          "tick": null
+        }
+      ]
+    },
+    "cognition_block": "Что NPC знает (убеждения с provenance):\n- player оскорбил tavern_keeper_tornin (уверенность: 0.50, тебе сообщил(а) player)",
+    "cognition_block_length": 122,
+    "cognition_has_insult": true,
+    "player_action": {
+      "start_monotonic": 880904.4381456,
+      "end_monotonic": 880916.3193523,
+      "duration_sec": 11.881206699996255,
+      "response": {
+        "dm_response": "Торнин поднимает голову, смотрит на тебя с хриплым смешанным выражением удивления и недоволства. \"Что тебе нужно?\" - спрашивает он внезапно, умывая стакан рукой. Его глаза неуверенно скользят по твоему лицу, пытаясь определить твою интенцию.",
+        "npc_reactions": [
+          "Торнин Серебряная Луна: Что тебе нужно?"
+        ],
+        "world_changes": [],
+        "journal_entry_id": "732fe588-1565-420a-9067-f209ca72f8b5",
+        "traces": [
+          {
+            "agent": "performance",
+            "output": {
+              "turn_elapsed_ms": 11847
+            }
+          },
+          {
+            "agent": "world_scheduler",
+            "output": {
+              "triggered": false,
+              "events": []
+            }
+          },
+          {
+            "agent": "rules",
+            "output": {
+              "checks": []
+            }
+          },
+          {
+            "agent": "npc",
+            "output": {
+              "npc_reactions": [],
+              "npc_actions": [],
+              "dm_frame": {
+                "focus_npcs": "<truncated>",
+                "background_npcs": "<truncated>",
+                "player_line": "<truncated>",
+                "tension_line": "<truncated>",
+                "scene_line": "<truncated>",
+                "hidden_pressure": "<truncated>",
+                "voice_map": "<truncated>",
+                "observed_facts": "<truncated>"
+              }
+            }
+          },
+          {
+            "agent": "dm",
+            "output": {
+              "dm_response": "Торнин поднимает голову, смотрит на тебя с хриплым смешанным выражением удивления и недоволства. \"Что тебе нужно?\" - спрашивает он внезапно, умывая стакан рукой. Его глаза неуверенно скользят по твоему лицу, пытаясь определить твою интенцию.",
+              "npc_reactions": [
+                "<truncated>"
+              ]
+            }
+          },
+          {
+            "agent": "python_engines",
+            "output": {
+              "dm_result": {
+                "is_valid": "<truncated>",
+                "event_context": "<truncated>",
+                "scene_context": "<truncated>",
+                "error": "<truncated>"
+              },
+              "npc_contexts": [
+                "<truncated>",
+                "<truncated>",
+                "<truncated>",
+                "<truncated>",
+                "<truncated>",
+                "<truncated>"
+              ]
+            }
+          },
+          {
+            "agent": "game_loop",
+            "output": {
+              "pipeline_duration_ms": 11847
+            }
+          }
+        ],
+        "world_snapshot": {
+          "tick": 1,
+          "version": 1,
+          "last_event_id": null,
+          "player_position": [
+            8.204957561728396,
+            11.90991512345679
+          ],
+          "npc_positions": {
+            "maid_lusya": {
+              "npc_id": "maid_lusya",
+              "local_position": {
+                "x": "<truncated>",
+                "y": "<truncated>",
+                "z": "<truncated>"
+              },
+              "location_id": "tavern",
+              "facing": "south",
+              "body_heading": 0.20976292424836157,
+              "head_yaw": 0.0,
+              "activity": "serving_tables",
+              "name": "Люся",
+              "display_name": "Незнакомец",
+              "recognition_confidence": 0.0,
+              "initiative_suppression": 0.0,
+              "velocity": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "exertion_level": 0.0
+            },
+            "blacksmith_orm": {
+              "npc_id": "blacksmith_orm",
+              "local_position": {
+                "x": "<truncated>",
+                "y": "<truncated>",
+                "z": "<truncated>"
+              },
+              "location_id": "tavern",
+              "facing": "south",
+              "body_heading": 2.782821983319221,
+              "head_yaw": 0.0,
+              "activity": "Обедает в общем зале",
+              "name": "Кузнец Орм",
+              "display_name": "Незнакомец",
+              "recognition_confidence": 0.0,
+              "initiative_suppression": 0.0,
+              "velocity": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "exertion_level": 0.0
+            },
+            "tavern_keeper_tornin": {
+              "npc_id": "tavern_keeper_tornin",
+              "local_position": {
+                "x": "<truncated>",
+                "y": "<truncated>",
+                "z": "<truncated>"
+              },
+              "location_id": "tavern",
+              "facing": "south",
+              "body_heading": 0.08314123188844123,
+              "head_yaw": 0.0,
+              "activity": "Обедает за столом",
+              "name": "Торнин Серебряная Луна",
+              "display_name": "Незнакомец",
+              "recognition_confidence": 0.0,
+              "initiative_suppression": 0.0,
+              "velocity": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "exertion_level": 0.0
+            },
+            "merchant_goran": {
+              "npc_id": "merchant_goran",
+              "local_position": {
+                "x": "<truncated>",
+                "y": "<truncated>",
+                "z": "<truncated>"
+              },
+              "location_id": "tavern",
+              "facing": "south",
+              "body_heading": -2.9764439761751667,
+              "head_yaw": 0.0,
+              "activity": "eating",
+              "name": "Купец Горан",
+              "display_name": "Незнакомец",
+              "recognition_confidence": 0.0,
+              "initiative_suppression": 0.0,
+              "velocity": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "exertion_level": 0.0
+            },
+            "guard_borko": {
+              "npc_id": "guard_borko",
+              "local_position": {
+                "x": "<truncated>",
+                "y": "<truncated>",
+                "z": "<truncated>"
+              },
+              "location_id": "tavern",
+              "facing": "south",
+              "body_heading": 1.5708,
+              "head_yaw": 0.0,
+              "activity": "",
+              "name": "Стражник Борко",
+              "display_name": "Незнакомец",
+              "recognition_confidence": 0.0,
+              "initiative_suppression": 0.0,
+              "velocity": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "exertion_level": 0.0
+            },
+            "thief_shadow": {
+              "npc_id": "thief_shadow",
+              "local_position": {
+                "x": "<truncated>",
+                "y": "<truncated>",
+                "z": "<truncated>"
+              },
+              "location_id": "tavern",
+              "facing": "south",
+              "body_heading": 1.5708,
+              "head_yaw": 0.0,
+              "activity": "",
+              "name": "Тень",
+              "display_name": "Незнакомец",
+              "recognition_confidence": 0.0,
+              "initiative_suppression": 0.0,
+              "velocity": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "exertion_level": 0.0
+            }
+          },
+          "available_actions": [
+            "look",
+            "move",
+            "talk"
+          ],
+          "location_id": "tavern",
+          "weather": "warm_busy",
+          "time_of_day": "12:00",
+          "visible_events": [],
+          "dialog_journal": [
+            {
+              "speaker": "Tester",
+              "text": "Торнин, привет, как дела?",
+              "channel": "self",
+              "event_id": "",
+              "tick": 0,
+              "provenance_complete": false,
+              "spans": []
+            },
+            {
+              "speaker": "Рассказчик",
+              "text": "Торнин поднимает голову, смотрит на тебя с хриплым смешанным выражением удивления и недоволства. \"Что тебе нужно?\" - спрашивает он внезапно, умывая стакан рукой. Его глаза неуверенно скользят по твоему лицу, пытаясь определить твою интенцию.",
+              "channel": "narrative",
+              "event_id": "28f79bcb-54e0-868f-41d1-4eaf509f05f1",
+              "tick": 1,
+              "provenance_complete": true,
+              "spans": []
+            }
+          ],
+          "game_time_seconds": 43210,
+          "active_traversals": {
+            "merchant_goran": {
+              "npc_id": "merchant_goran",
+              "status": "MOVING",
+              "from_node": "right_table",
+              "target_node": "tavern:main_hall",
+              "path_waypoints": [
+                "<truncated>",
+                "<truncated>",
+                "<truncated>",
+                "<truncated>"
+              ],
+              "current_waypoint_idx": 0,
+              "started_tick": 1,
+              "duration_ticks": 2,
+              "speed": 2.0,
+              "locomotion": "WALK"
+            },
+            "maid_lusya": {
+              "npc_id": "maid_lusya",
+              "status": "MOVING",
+              "from_node": "node_17",
+              "target_node": "tavern:node_16",
+              "path_waypoints": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "current_waypoint_idx": 0,
+              "started_tick": 1,
+              "duration_ticks": 3,
+              "speed": 2.0,
+              "locomotion": "WALK"
+            },
+            "blacksmith_orm": {
+              "npc_id": "blacksmith_orm",
+              "status": "MOVING",
+              "from_node": "fireplace",
+              "target_node": "tavern:main_hall",
+              "path_waypoints": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "current_waypoint_idx": 0,
+              "started_tick": 1,
+              "duration_ticks": 3,
+              "speed": 2.0,
+              "locomotion": "WALK"
+            },
+            "tavern_keeper_tornin": {
+              "npc_id": "tavern_keeper_tornin",
+              "status": "MOVING",
+              "from_node": "behind_bar",
+              "target_node": "tavern:fireplace",
+              "path_waypoints": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "current_waypoint_idx": 0,
+              "started_tick": 1,
+              "duration_ticks": 4,
+              "speed": 2.0,
+              "locomotion": "WALK"
+            }
+          },
+          "avatar_state": {
+            "physical_state": "healthy",
+            "mental_state": "calm",
+            "perceptual_stability": 1.0,
+            "cognitive_coherence": 1.0,
+            "sensory_noise": 0.0,
+            "motor_disruption": 0.0,
+            "perceptual_latency": 0.0,
+            "reality_reconciliation_rate": 1.0,
+            "blood_visibility": 0.0,
+            "breathing_profile": "calm",
+            "posture_state": "upright",
+            "life_status": "ALIVE",
+            "will_resistance": 0.0,
+            "embodied_vector": null
+          },
+          "ambient_phenomenology": {
+            "emotional_temperature": -1.0,
+            "proximity_compression": 1.0,
+            "directional_pressure_bias": [
+              0.0,
+              0.0
+            ]
+          },
+          "player_beliefs": [],
+          "npc_beliefs_about_player": [
+            {
+              "agent_id": "maid_lusya",
+              "proposition": {
+                "subject_id": "<truncated>",
+                "predicate": "<truncated>",
+                "object_id": "<truncated>",
+                "polarity": "<truncated>"
+              },
+              "confidence": 0.5,
+              "source_id": "player",
+              "source_claim_id": "player-claim-76357952-b608-fb6b-8064-a027b64f7d7d",
+              "first_observed_tick": 0,
+              "last_updated_tick": 0,
+              "source_type": "testimony",
+              "original_source_id": "player"
+            },
+            {
+              "agent_id": "merchant_goran",
+              "proposition": {
+                "subject_id": "<truncated>",
+                "predicate": "<truncated>",
+                "object_id": "<truncated>",
+                "polarity": "<truncated>"
+              },
+              "confidence": 0.5,
+              "source_id": "player",
+              "source_claim_id": "player-claim-76357952-b608-fb6b-8064-a027b64f7d7d",
+              "first_observed_tick": 0,
+              "last_updated_tick": 0,
+              "source_type": "testimony",
+              "original_source_id": "player"
+            },
+            {
+              "agent_id": "tavern_keeper_tornin",
+              "proposition": {
+                "subject_id": "<truncated>",
+                "predicate": "<truncated>",
+                "object_id": "<truncated>",
+                "polarity": "<truncated>"
+              },
+              "confidence": 0.5,
+              "source_id": "player",
+              "source_claim_id": "player-claim-76357952-b608-fb6b-8064-a027b64f7d7d",
+              "first_observed_tick": 0,
+              "last_updated_tick": 0,
+              "source_type": "testimony",
+              "original_source_id": "player"
+            },
+            {
+              "agent_id": "blacksmith_orm",
+              "proposition": {
+                "subject_id": "<truncated>",
+                "predicate": "<truncated>",
+                "object_id": "<truncated>",
+                "polarity": "<truncated>"
+              },
+              "confidence": 0.5,
+              "source_id": "player",
+              "source_claim_id": "player-claim-76357952-b608-fb6b-8064-a027b64f7d7d",
+              "first_observed_tick": 0,
+              "last_updated_tick": 0,
+              "source_type": "testimony",
+              "original_source_id": "player"
+            },
+            {
+              "agent_id": "thief_shadow",
+              "proposition": {
+                "subject_id": "<truncated>",
+                "predicate": "<truncated>",
+                "object_id": "<truncated>",
+                "polarity": "<truncated>"
+              },
+              "confidence": 0.5,
+              "source_id": "player",
+              "source_claim_id": "player-claim-76357952-b608-fb6b-8064-a027b64f7d7d",
+              "first_observed_tick": 0,
+              "last_updated_tick": 0,
+              "source_type": "testimony",
+              "original_source_id": "player"
+            },
+            {
+              "agent_id": "guard_borko",
+              "proposition": {
+                "subject_id": "<truncated>",
+                "predicate": "<truncated>",
+                "object_id": "<truncated>",
+                "polarity": "<truncated>"
+              },
+              "confidence": 0.5,
+              "source_id": "player",
+              "source_claim_id": "player-claim-76357952-b608-fb6b-8064-a027b64f7d7d",
+              "first_observed_tick": 0,
+              "last_updated_tick": 0,
+              "source_type": "testimony",
+              "original_source_id": "player"
+            }
+          ],
+          "player_perception": {
+            "avatar_desync": null,
+            "active_perceptions": [],
+            "peripheral_cues": [],
+            "manifestations": [],
+            "echo_count": 0,
+            "reconstruction_events": [],
+            "embodied_traces": [],
+            "observed_facts": [
+              "- voice_tempo (maid_lusya, confidence=0.21)",
+              "- movement_speed (maid_lusya, confidence=0.27)",
+              "- movement_speed (maid_lusya, confidence=0.22)",
+              "- voice_tempo (blacksmith_orm, confidence=0.28)",
+              "- movement_speed (blacksmith_orm, confidence=0.38)",
+              "- movement_speed (blacksmith_orm, confidence=0.26)",
+              "- voice_tempo (tavern_keeper_tornin, confidence=0.21)",
+              "- movement_speed (tavern_keeper_tornin, confidence=0.27)",
+              "- voice_tempo (merchant_goran, confidence=0.37)",
+              "- movement_speed (merchant_goran, confidence=0.50)",
+              "- movement_speed (merchant_goran, confidence=0.31)",
+              "- voice_tempo (thief_shadow, confidence=0.49)"
+            ]
+          },
+          "recent_dialogues": [],
+          "player_body_topology": {
+            "avatar_id": "player",
+            "strength_score": 10,
+            "hands": {
+              "right_hand": {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              "left_hand": {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              }
+            },
+            "belt": [
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              }
+            ],
+            "pockets": [
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              }
+            ],
+            "backpack": [
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              }
+            ],
+            "worn": {
+              "worn_torso": {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              "worn_legs": {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              "worn_feet": {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              "worn_cloak": {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              }
+            },
+            "hidden": [
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              }
+            ],
+            "contents": {}
+          },
+          "visual_dto": {
+            "npcs": [
+              {
+                "npc_id": "<truncated>",
+                "display_name": "<truncated>",
+                "name_certainty": "<truncated>",
+                "pose_overlay": "<truncated>",
+                "gaze_arrow": "<truncated>",
+                "activity_badge": "<truncated>",
+                "blur_intensity": "<truncated>",
+                "noise_intensity": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "display_name": "<truncated>",
+                "name_certainty": "<truncated>",
+                "pose_overlay": "<truncated>",
+                "gaze_arrow": "<truncated>",
+                "activity_badge": "<truncated>",
+                "blur_intensity": "<truncated>",
+                "noise_intensity": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "display_name": "<truncated>",
+                "name_certainty": "<truncated>",
+                "pose_overlay": "<truncated>",
+                "gaze_arrow": "<truncated>",
+                "activity_badge": "<truncated>",
+                "blur_intensity": "<truncated>",
+                "noise_intensity": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "display_name": "<truncated>",
+                "name_certainty": "<truncated>",
+                "pose_overlay": "<truncated>",
+                "gaze_arrow": "<truncated>",
+                "activity_badge": "<truncated>",
+                "blur_intensity": "<truncated>",
+                "noise_intensity": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "display_name": "<truncated>",
+                "name_certainty": "<truncated>",
+                "pose_overlay": "<truncated>",
+                "gaze_arrow": "<truncated>",
+                "activity_badge": "<truncated>",
+                "blur_intensity": "<truncated>",
+                "noise_intensity": "<truncated>"
+              }
+            ]
+          },
+          "audible_dto": {
+            "voices": [
+              {
+                "npc_id": "<truncated>",
+                "tempo": "<truncated>",
+                "pitch": "<truncated>",
+                "loudness": "<truncated>",
+                "tremor": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "tempo": "<truncated>",
+                "pitch": "<truncated>",
+                "loudness": "<truncated>",
+                "tremor": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "tempo": "<truncated>",
+                "pitch": "<truncated>",
+                "loudness": "<truncated>",
+                "tremor": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "tempo": "<truncated>",
+                "pitch": "<truncated>",
+                "loudness": "<truncated>",
+                "tremor": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "tempo": "<truncated>",
+                "pitch": "<truncated>",
+                "loudness": "<truncated>",
+                "tremor": "<truncated>"
+              }
+            ],
+            "breathing_sounds": [
+              {
+                "npc_id": "<truncated>",
+                "rate": "<truncated>",
+                "depth": "<truncated>",
+                "irregularity": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "rate": "<truncated>",
+                "depth": "<truncated>",
+                "irregularity": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "rate": "<truncated>",
+                "depth": "<truncated>",
+                "irregularity": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "rate": "<truncated>",
+                "depth": "<truncated>",
+                "irregularity": "<truncated>"
+              }
+            ]
+          },
+          "embodied_status": null,
+          "perceived_narratives": []
+        },
+        "npc_positions": {
+          "maid_lusya": {
+            "npc_id": "maid_lusya",
+            "local_position": {
+              "x": 7.98736111111111,
+              "y": 1.8263888888888888,
+              "z": 0.0
+            },
+            "location_id": "tavern",
+            "facing": "south",
+            "body_heading": 0.20976292424836157,
+            "head_yaw": 0.0,
+            "activity": "serving_tables",
+            "name": "Люся",
+            "display_name": "Незнакомец",
+            "recognition_confidence": 0.0,
+            "initiative_suppression": 0.0,
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "exertion_level": 0.0
+          },
+          "blacksmith_orm": {
+            "npc_id": "blacksmith_orm",
+            "local_position": {
+              "x": 10.5,
+              "y": 4.0,
+              "z": 0.0
+            },
+            "location_id": "tavern",
+            "facing": "south",
+            "body_heading": 2.782821983319221,
+            "head_yaw": 0.0,
+            "activity": "Обедает в общем зале",
+            "name": "Кузнец Орм",
+            "display_name": "Незнакомец",
+            "recognition_confidence": 0.0,
+            "initiative_suppression": 0.0,
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "exertion_level": 0.0
+          },
+          "tavern_keeper_tornin": {
+            "npc_id": "tavern_keeper_tornin",
+            "local_position": {
+              "x": 4.5,
+              "y": 2.5,
+              "z": 0.0
+            },
+            "location_id": "tavern",
+            "facing": "south",
+            "body_heading": 0.08314123188844123,
+            "head_yaw": 0.0,
+            "activity": "Обедает за столом",
+            "name": "Торнин Серебряная Луна",
+            "display_name": "Незнакомец",
+            "recognition_confidence": 0.0,
+            "initiative_suppression": 0.0,
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "exertion_level": 0.0
+          },
+          "merchant_goran": {
+            "npc_id": "merchant_goran",
+            "local_position": {
+              "x": 10.1,
+              "y": 6.1,
+              "z": 0.0
+            },
+            "location_id": "tavern",
+            "facing": "south",
+            "body_heading": -2.9764439761751667,
+            "head_yaw": 0.0,
+            "activity": "eating",
+            "name": "Купец Горан",
+            "display_name": "Незнакомец",
+            "recognition_confidence": 0.0,
+            "initiative_suppression": 0.0,
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "exertion_level": 0.0
+          },
+          "guard_borko": {
+            "npc_id": "guard_borko",
+            "local_position": {
+              "x": 16.700000000000003,
+              "y": 3.7750000000000004,
+              "z": 0.0
+            },
+            "location_id": "tavern",
+            "facing": "south",
+            "body_heading": 1.5708,
+            "head_yaw": 0.0,
+            "activity": "",
+            "name": "Стражник Борко",
+            "display_name": "Незнакомец",
+            "recognition_confidence": 0.0,
+            "initiative_suppression": 0.0,
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "exertion_level": 0.0
+          },
+          "thief_shadow": {
+            "npc_id": "thief_shadow",
+            "local_position": {
+              "x": 11.5,
+              "y": 11.0,
+              "z": 0.0
+            },
+            "location_id": "tavern",
+            "facing": "south",
+            "body_heading": 1.5708,
+            "head_yaw": 0.0,
+            "activity": "",
+            "name": "Тень",
+            "display_name": "Незнакомец",
+            "recognition_confidence": 0.0,
+            "initiative_suppression": 0.0,
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "exertion_level": 0.0
+          }
+        },
+        "will_conflict_data": null,
+        "player_intent_projection": {
+          "action": "DIALOGUE",
+          "target": "tavern_keeper_tornin",
+          "semantic_action": "DIALOGUE",
+          "target_reference": "Торнин",
+          "target_id": "tavern_keeper_tornin",
+          "actor_id": "player",
+          "addressee": "тавернный хозяин Торнин",
+          "semantic_acts": [
+            {
+              "type": "GREETING",
+              "params": {},
+              "source_fields": {
+                "speech_act": "<truncated>",
+                "requested_outcome": "<truncated>"
+              }
+            }
+          ]
+        },
+        "observed_facts": [
+          "- voice_tempo (maid_lusya, confidence=0.21)",
+          "- movement_speed (maid_lusya, confidence=0.27)",
+          "- movement_speed (maid_lusya, confidence=0.22)",
+          "- voice_tempo (blacksmith_orm, confidence=0.28)",
+          "- movement_speed (blacksmith_orm, confidence=0.38)",
+          "- movement_speed (blacksmith_orm, confidence=0.26)",
+          "- voice_tempo (tavern_keeper_tornin, confidence=0.21)",
+          "- movement_speed (tavern_keeper_tornin, confidence=0.27)",
+          "- voice_tempo (merchant_goran, confidence=0.37)",
+          "- movement_speed (merchant_goran, confidence=0.50)",
+          "- movement_speed (merchant_goran, confidence=0.31)",
+          "- voice_tempo (thief_shadow, confidence=0.49)"
+        ],
+        "llm_degraded": false
+      },
+      "error": null
+    },
+    "all_npc_speeches": [
+      {
+        "speaker_id": "tavern_keeper_tornin",
+        "text": "Что тебе нужно?",
+        "intent_type": "",
+        "tone": "NEUTRAL",
+        "topic": "",
+        "target_id": "player",
+        "exposure": "",
+        "event_id": "6985602d-80c3-5e32-d179-7a376657a338",
+        "event_type": "npc_spoke",
+        "tick": null,
+        "captured_at_monotonic": 880916.2843752
+      }
+    ],
+    "tornin_speeches": [
+      {
+        "speaker_id": "tavern_keeper_tornin",
+        "text": "Что тебе нужно?",
+        "intent_type": "",
+        "tone": "NEUTRAL",
+        "topic": "",
+        "target_id": "player",
+        "exposure": "",
+        "event_id": "6985602d-80c3-5e32-d179-7a376657a338",
+        "event_type": "npc_spoke",
+        "tick": null,
+        "captured_at_monotonic": 880916.2843752
+      }
+    ],
+    "stub_detected_in_speeches": false,
+    "stub_detected_in_response": false,
+    "stub_detected": false,
+    "all_speakers": [
+      "tavern_keeper_tornin"
+    ],
+    "tornin_speech_count": 1,
+    "finished_at": 1793987582.8548887,
+    "total_duration_sec": 13.36138129234314
+  },
+  "B": {
+    "scenario": "B",
+    "errors": [],
+    "started_at": 1793987588.2889173,
+    "baseline": {
+      "tornin_records_count": 0,
+      "target_belief_present": false,
+      "records": []
+    },
+    "event_published": null,
+    "post_publish": {
+      "tornin_records_count": 0,
+      "target_belief_present": false,
+      "target_record": null,
+      "records": []
+    },
+    "cognition_block": "",
+    "cognition_block_length": 0,
+    "cognition_has_insult": false,
+    "player_action": {
+      "start_monotonic": 880923.0448993,
+      "end_monotonic": 880931.116067,
+      "duration_sec": 8.071167699992657,
+      "response": {
+        "dm_response": "Торнин поднимает голову и смотрит на тебя прямо в глаза. Голос его становится чуть холоднее, когда он отвечает:\n\"Что тебе нужно, путник? Если ты здесь из-за слухов о защите таверны, то я не буду обсуждать это с кем угодно, кроме моих прямых партнеров.\"",
+        "npc_reactions": [
+          "Торнин Серебряная Луна: Что тебе нужно, путник? Если ты здесь из-за слухов о защите таверны, то я не буду обсуждать это с кем угодно, кроме моих прямых партнеров."
+        ],
+        "world_changes": [],
+        "journal_entry_id": "946cab19-b536-406a-8698-02ed505d29d7",
+        "traces": [
+          {
+            "agent": "performance",
+            "output": {
+              "turn_elapsed_ms": 8056
+            }
+          },
+          {
+            "agent": "world_scheduler",
+            "output": {
+              "triggered": false,
+              "events": []
+            }
+          },
+          {
+            "agent": "rules",
+            "output": {
+              "checks": []
+            }
+          },
+          {
+            "agent": "npc",
+            "output": {
+              "npc_reactions": [],
+              "npc_actions": [],
+              "dm_frame": {
+                "focus_npcs": "<truncated>",
+                "background_npcs": "<truncated>",
+                "player_line": "<truncated>",
+                "tension_line": "<truncated>",
+                "scene_line": "<truncated>",
+                "hidden_pressure": "<truncated>",
+                "voice_map": "<truncated>",
+                "observed_facts": "<truncated>"
+              }
+            }
+          },
+          {
+            "agent": "dm",
+            "output": {
+              "dm_response": "Торнин поднимает голову и смотрит на тебя прямо в глаза. Голос его становится чуть холоднее, когда он отвечает:\n\"Что тебе нужно, путник? Если ты здесь из-за слухов о защите таверны, то я не буду обсуждать это с кем угодно, кроме моих прямых партнеров.\"",
+              "npc_reactions": [
+                "<truncated>"
+              ]
+            }
+          },
+          {
+            "agent": "python_engines",
+            "output": {
+              "dm_result": {
+                "is_valid": "<truncated>",
+                "event_context": "<truncated>",
+                "scene_context": "<truncated>",
+                "error": "<truncated>"
+              },
+              "npc_contexts": [
+                "<truncated>",
+                "<truncated>",
+                "<truncated>",
+                "<truncated>",
+                "<truncated>",
+                "<truncated>"
+              ]
+            }
+          },
+          {
+            "agent": "game_loop",
+            "output": {
+              "pipeline_duration_ms": 8056
+            }
+          }
+        ],
+        "world_snapshot": {
+          "tick": 1,
+          "version": 1,
+          "last_event_id": null,
+          "player_position": [
+            8.204957561728396,
+            11.90991512345679
+          ],
+          "npc_positions": {
+            "maid_lusya": {
+              "npc_id": "maid_lusya",
+              "local_position": {
+                "x": "<truncated>",
+                "y": "<truncated>",
+                "z": "<truncated>"
+              },
+              "location_id": "tavern",
+              "facing": "south",
+              "body_heading": 0.20976292424836157,
+              "head_yaw": 0.0,
+              "activity": "serving_tables",
+              "name": "Люся",
+              "display_name": "Незнакомец",
+              "recognition_confidence": 0.0,
+              "initiative_suppression": 0.0,
+              "velocity": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "exertion_level": 0.0
+            },
+            "blacksmith_orm": {
+              "npc_id": "blacksmith_orm",
+              "local_position": {
+                "x": "<truncated>",
+                "y": "<truncated>",
+                "z": "<truncated>"
+              },
+              "location_id": "tavern",
+              "facing": "south",
+              "body_heading": 2.782821983319221,
+              "head_yaw": 0.0,
+              "activity": "Обедает в общем зале",
+              "name": "Кузнец Орм",
+              "display_name": "Незнакомец",
+              "recognition_confidence": 0.0,
+              "initiative_suppression": 0.0,
+              "velocity": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "exertion_level": 0.0
+            },
+            "tavern_keeper_tornin": {
+              "npc_id": "tavern_keeper_tornin",
+              "local_position": {
+                "x": "<truncated>",
+                "y": "<truncated>",
+                "z": "<truncated>"
+              },
+              "location_id": "tavern",
+              "facing": "south",
+              "body_heading": 0.08314123188844123,
+              "head_yaw": 0.0,
+              "activity": "Обедает за столом",
+              "name": "Торнин Серебряная Луна",
+              "display_name": "Незнакомец",
+              "recognition_confidence": 0.0,
+              "initiative_suppression": 0.0,
+              "velocity": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "exertion_level": 0.0
+            },
+            "merchant_goran": {
+              "npc_id": "merchant_goran",
+              "local_position": {
+                "x": "<truncated>",
+                "y": "<truncated>",
+                "z": "<truncated>"
+              },
+              "location_id": "tavern",
+              "facing": "south",
+              "body_heading": -2.9764439761751667,
+              "head_yaw": 0.0,
+              "activity": "eating",
+              "name": "Купец Горан",
+              "display_name": "Незнакомец",
+              "recognition_confidence": 0.0,
+              "initiative_suppression": 0.0,
+              "velocity": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "exertion_level": 0.0
+            },
+            "guard_borko": {
+              "npc_id": "guard_borko",
+              "local_position": {
+                "x": "<truncated>",
+                "y": "<truncated>",
+                "z": "<truncated>"
+              },
+              "location_id": "tavern",
+              "facing": "south",
+              "body_heading": 1.5708,
+              "head_yaw": 0.0,
+              "activity": "",
+              "name": "Стражник Борко",
+              "display_name": "Незнакомец",
+              "recognition_confidence": 0.0,
+              "initiative_suppression": 0.0,
+              "velocity": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "exertion_level": 0.0
+            },
+            "thief_shadow": {
+              "npc_id": "thief_shadow",
+              "local_position": {
+                "x": "<truncated>",
+                "y": "<truncated>",
+                "z": "<truncated>"
+              },
+              "location_id": "tavern",
+              "facing": "south",
+              "body_heading": 1.5708,
+              "head_yaw": 0.0,
+              "activity": "",
+              "name": "Тень",
+              "display_name": "Незнакомец",
+              "recognition_confidence": 0.0,
+              "initiative_suppression": 0.0,
+              "velocity": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "exertion_level": 0.0
+            }
+          },
+          "available_actions": [
+            "look",
+            "move",
+            "talk"
+          ],
+          "location_id": "tavern",
+          "weather": "warm_busy",
+          "time_of_day": "12:00",
+          "visible_events": [],
+          "dialog_journal": [
+            {
+              "speaker": "Tester",
+              "text": "Торнин, привет, как дела?",
+              "channel": "self",
+              "event_id": "",
+              "tick": 0,
+              "provenance_complete": false,
+              "spans": []
+            },
+            {
+              "speaker": "Рассказчик",
+              "text": "Торнин поднимает голову и смотрит на тебя прямо в глаза. Голос его становится чуть холоднее, когда он отвечает:\n\"Что тебе нужно, путник? Если ты здесь из-за слухов о защите таверны, то я не буду обсуждать это с кем угодно, кроме моих прямых партнеров.\"",
+              "channel": "narrative",
+              "event_id": "28f79bcb-54e0-868f-41d1-4eaf509f05f1",
+              "tick": 1,
+              "provenance_complete": true,
+              "spans": []
+            }
+          ],
+          "game_time_seconds": 43210,
+          "active_traversals": {
+            "merchant_goran": {
+              "npc_id": "merchant_goran",
+              "status": "MOVING",
+              "from_node": "right_table",
+              "target_node": "tavern:main_hall",
+              "path_waypoints": [
+                "<truncated>",
+                "<truncated>",
+                "<truncated>",
+                "<truncated>"
+              ],
+              "current_waypoint_idx": 0,
+              "started_tick": 1,
+              "duration_ticks": 2,
+              "speed": 2.0,
+              "locomotion": "WALK"
+            },
+            "maid_lusya": {
+              "npc_id": "maid_lusya",
+              "status": "MOVING",
+              "from_node": "node_17",
+              "target_node": "tavern:node_16",
+              "path_waypoints": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "current_waypoint_idx": 0,
+              "started_tick": 1,
+              "duration_ticks": 3,
+              "speed": 2.0,
+              "locomotion": "WALK"
+            },
+            "blacksmith_orm": {
+              "npc_id": "blacksmith_orm",
+              "status": "MOVING",
+              "from_node": "fireplace",
+              "target_node": "tavern:main_hall",
+              "path_waypoints": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "current_waypoint_idx": 0,
+              "started_tick": 1,
+              "duration_ticks": 3,
+              "speed": 2.0,
+              "locomotion": "WALK"
+            },
+            "tavern_keeper_tornin": {
+              "npc_id": "tavern_keeper_tornin",
+              "status": "MOVING",
+              "from_node": "behind_bar",
+              "target_node": "tavern:fireplace",
+              "path_waypoints": [
+                "<truncated>",
+                "<truncated>"
+              ],
+              "current_waypoint_idx": 0,
+              "started_tick": 1,
+              "duration_ticks": 4,
+              "speed": 2.0,
+              "locomotion": "WALK"
+            }
+          },
+          "avatar_state": {
+            "physical_state": "healthy",
+            "mental_state": "calm",
+            "perceptual_stability": 1.0,
+            "cognitive_coherence": 1.0,
+            "sensory_noise": 0.0,
+            "motor_disruption": 0.0,
+            "perceptual_latency": 0.0,
+            "reality_reconciliation_rate": 1.0,
+            "blood_visibility": 0.0,
+            "breathing_profile": "calm",
+            "posture_state": "upright",
+            "life_status": "ALIVE",
+            "will_resistance": 0.0,
+            "embodied_vector": null
+          },
+          "ambient_phenomenology": {
+            "emotional_temperature": -1.0,
+            "proximity_compression": 1.0,
+            "directional_pressure_bias": [
+              0.0,
+              0.0
+            ]
+          },
+          "player_beliefs": [],
+          "npc_beliefs_about_player": [],
+          "player_perception": {
+            "avatar_desync": null,
+            "active_perceptions": [],
+            "peripheral_cues": [],
+            "manifestations": [],
+            "echo_count": 0,
+            "reconstruction_events": [],
+            "embodied_traces": [],
+            "observed_facts": [
+              "- voice_tempo (maid_lusya, confidence=0.21)",
+              "- movement_speed (maid_lusya, confidence=0.27)",
+              "- movement_speed (maid_lusya, confidence=0.22)",
+              "- voice_tempo (blacksmith_orm, confidence=0.28)",
+              "- movement_speed (blacksmith_orm, confidence=0.38)",
+              "- movement_speed (blacksmith_orm, confidence=0.26)",
+              "- voice_tempo (tavern_keeper_tornin, confidence=0.21)",
+              "- movement_speed (tavern_keeper_tornin, confidence=0.27)",
+              "- voice_tempo (merchant_goran, confidence=0.37)",
+              "- movement_speed (merchant_goran, confidence=0.50)",
+              "- movement_speed (merchant_goran, confidence=0.31)",
+              "- voice_tempo (thief_shadow, confidence=0.49)"
+            ]
+          },
+          "recent_dialogues": [],
+          "player_body_topology": {
+            "avatar_id": "player",
+            "strength_score": 10,
+            "hands": {
+              "right_hand": {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              "left_hand": {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              }
+            },
+            "belt": [
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              }
+            ],
+            "pockets": [
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              }
+            ],
+            "backpack": [
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              }
+            ],
+            "worn": {
+              "worn_torso": {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              "worn_legs": {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              "worn_feet": {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              "worn_cloak": {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              }
+            },
+            "hidden": [
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              },
+              {
+                "slot_id": "<truncated>",
+                "slot_type": "<truncated>",
+                "body_part": "<truncated>",
+                "accessibility": "<truncated>",
+                "visibility": "<truncated>",
+                "requires_inspection": "<truncated>",
+                "capacity": "<truncated>",
+                "max_bulk": "<truncated>",
+                "item_type_restriction": "<truncated>",
+                "is_locked": "<truncated>",
+                "lock_difficulty": "<truncated>",
+                "concealment": "<truncated>",
+                "don_time_ticks": "<truncated>",
+                "doff_time_ticks": "<truncated>"
+              }
+            ],
+            "contents": {}
+          },
+          "visual_dto": {
+            "npcs": [
+              {
+                "npc_id": "<truncated>",
+                "display_name": "<truncated>",
+                "name_certainty": "<truncated>",
+                "pose_overlay": "<truncated>",
+                "gaze_arrow": "<truncated>",
+                "activity_badge": "<truncated>",
+                "blur_intensity": "<truncated>",
+                "noise_intensity": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "display_name": "<truncated>",
+                "name_certainty": "<truncated>",
+                "pose_overlay": "<truncated>",
+                "gaze_arrow": "<truncated>",
+                "activity_badge": "<truncated>",
+                "blur_intensity": "<truncated>",
+                "noise_intensity": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "display_name": "<truncated>",
+                "name_certainty": "<truncated>",
+                "pose_overlay": "<truncated>",
+                "gaze_arrow": "<truncated>",
+                "activity_badge": "<truncated>",
+                "blur_intensity": "<truncated>",
+                "noise_intensity": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "display_name": "<truncated>",
+                "name_certainty": "<truncated>",
+                "pose_overlay": "<truncated>",
+                "gaze_arrow": "<truncated>",
+                "activity_badge": "<truncated>",
+                "blur_intensity": "<truncated>",
+                "noise_intensity": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "display_name": "<truncated>",
+                "name_certainty": "<truncated>",
+                "pose_overlay": "<truncated>",
+                "gaze_arrow": "<truncated>",
+                "activity_badge": "<truncated>",
+                "blur_intensity": "<truncated>",
+                "noise_intensity": "<truncated>"
+              }
+            ]
+          },
+          "audible_dto": {
+            "voices": [
+              {
+                "npc_id": "<truncated>",
+                "tempo": "<truncated>",
+                "pitch": "<truncated>",
+                "loudness": "<truncated>",
+                "tremor": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "tempo": "<truncated>",
+                "pitch": "<truncated>",
+                "loudness": "<truncated>",
+                "tremor": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "tempo": "<truncated>",
+                "pitch": "<truncated>",
+                "loudness": "<truncated>",
+                "tremor": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "tempo": "<truncated>",
+                "pitch": "<truncated>",
+                "loudness": "<truncated>",
+                "tremor": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "tempo": "<truncated>",
+                "pitch": "<truncated>",
+                "loudness": "<truncated>",
+                "tremor": "<truncated>"
+              }
+            ],
+            "breathing_sounds": [
+              {
+                "npc_id": "<truncated>",
+                "rate": "<truncated>",
+                "depth": "<truncated>",
+                "irregularity": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "rate": "<truncated>",
+                "depth": "<truncated>",
+                "irregularity": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "rate": "<truncated>",
+                "depth": "<truncated>",
+                "irregularity": "<truncated>"
+              },
+              {
+                "npc_id": "<truncated>",
+                "rate": "<truncated>",
+                "depth": "<truncated>",
+                "irregularity": "<truncated>"
+              }
+            ]
+          },
+          "embodied_status": null,
+          "perceived_narratives": []
+        },
+        "npc_positions": {
+          "maid_lusya": {
+            "npc_id": "maid_lusya",
+            "local_position": {
+              "x": 7.98736111111111,
+              "y": 1.8263888888888888,
+              "z": 0.0
+            },
+            "location_id": "tavern",
+            "facing": "south",
+            "body_heading": 0.20976292424836157,
+            "head_yaw": 0.0,
+            "activity": "serving_tables",
+            "name": "Люся",
+            "display_name": "Незнакомец",
+            "recognition_confidence": 0.0,
+            "initiative_suppression": 0.0,
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "exertion_level": 0.0
+          },
+          "blacksmith_orm": {
+            "npc_id": "blacksmith_orm",
+            "local_position": {
+              "x": 10.5,
+              "y": 4.0,
+              "z": 0.0
+            },
+            "location_id": "tavern",
+            "facing": "south",
+            "body_heading": 2.782821983319221,
+            "head_yaw": 0.0,
+            "activity": "Обедает в общем зале",
+            "name": "Кузнец Орм",
+            "display_name": "Незнакомец",
+            "recognition_confidence": 0.0,
+            "initiative_suppression": 0.0,
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "exertion_level": 0.0
+          },
+          "tavern_keeper_tornin": {
+            "npc_id": "tavern_keeper_tornin",
+            "local_position": {
+              "x": 4.5,
+              "y": 2.5,
+              "z": 0.0
+            },
+            "location_id": "tavern",
+            "facing": "south",
+            "body_heading": 0.08314123188844123,
+            "head_yaw": 0.0,
+            "activity": "Обедает за столом",
+            "name": "Торнин Серебряная Луна",
+            "display_name": "Незнакомец",
+            "recognition_confidence": 0.0,
+            "initiative_suppression": 0.0,
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "exertion_level": 0.0
+          },
+          "merchant_goran": {
+            "npc_id": "merchant_goran",
+            "local_position": {
+              "x": 10.1,
+              "y": 6.1,
+              "z": 0.0
+            },
+            "location_id": "tavern",
+            "facing": "south",
+            "body_heading": -2.9764439761751667,
+            "head_yaw": 0.0,
+            "activity": "eating",
+            "name": "Купец Горан",
+            "display_name": "Незнакомец",
+            "recognition_confidence": 0.0,
+            "initiative_suppression": 0.0,
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "exertion_level": 0.0
+          },
+          "guard_borko": {
+            "npc_id": "guard_borko",
+            "local_position": {
+              "x": 16.700000000000003,
+              "y": 3.7750000000000004,
+              "z": 0.0
+            },
+            "location_id": "tavern",
+            "facing": "south",
+            "body_heading": 1.5708,
+            "head_yaw": 0.0,
+            "activity": "",
+            "name": "Стражник Борко",
+            "display_name": "Незнакомец",
+            "recognition_confidence": 0.0,
+            "initiative_suppression": 0.0,
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "exertion_level": 0.0
+          },
+          "thief_shadow": {
+            "npc_id": "thief_shadow",
+            "local_position": {
+              "x": 11.5,
+              "y": 11.0,
+              "z": 0.0
+            },
+            "location_id": "tavern",
+            "facing": "south",
+            "body_heading": 1.5708,
+            "head_yaw": 0.0,
+            "activity": "",
+            "name": "Тень",
+            "display_name": "Незнакомец",
+            "recognition_confidence": 0.0,
+            "initiative_suppression": 0.0,
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "exertion_level": 0.0
+          }
+        },
+        "will_conflict_data": null,
+        "player_intent_projection": {
+          "action": "DIALOGUE",
+          "target": "tavern_keeper_tornin",
+          "semantic_action": "DIALOGUE",
+          "target_reference": "Торнин",
+          "target_id": "tavern_keeper_tornin",
+          "actor_id": "player",
+          "addressee": "тавернный хозяин Торнин",
+          "semantic_acts": [
+            {
+              "type": "GREETING",
+              "params": {},
+              "source_fields": {
+                "speech_act": "<truncated>",
+                "requested_outcome": "<truncated>"
+              }
+            }
+          ]
+        },
+        "observed_facts": [
+          "- voice_tempo (maid_lusya, confidence=0.21)",
+          "- movement_speed (maid_lusya, confidence=0.27)",
+          "- movement_speed (maid_lusya, confidence=0.22)",
+          "- voice_tempo (blacksmith_orm, confidence=0.28)",
+          "- movement_speed (blacksmith_orm, confidence=0.38)",
+          "- movement_speed (blacksmith_orm, confidence=0.26)",
+          "- voice_tempo (tavern_keeper_tornin, confidence=0.21)",
+          "- movement_speed (tavern_keeper_tornin, confidence=0.27)",
+          "- voice_tempo (merchant_goran, confidence=0.37)",
+          "- movement_speed (merchant_goran, confidence=0.50)",
+          "- movement_speed (merchant_goran, confidence=0.31)",
+          "- voice_tempo (thief_shadow, confidence=0.49)"
+        ],
+        "llm_degraded": false
+      },
+      "error": null
+    },
+    "all_npc_speeches": [
+      {
+        "speaker_id": "tavern_keeper_tornin",
+        "text": "Что тебе нужно, путник? Если ты здесь из-за слухов о защите таверны, то я не буду обсуждать это с кем угодно, кроме моих",
+        "intent_type": "",
+        "tone": "NEUTRAL",
+        "topic": "",
+        "target_id": "player",
+        "exposure": "",
+        "event_id": "6985602d-80c3-5e32-d179-7a376657a338",
+        "event_type": "npc_spoke",
+        "tick": null,
+        "captured_at_monotonic": 880931.1001083
+      }
+    ],
+    "tornin_speeches": [
+      {
+        "speaker_id": "tavern_keeper_tornin",
+        "text": "Что тебе нужно, путник? Если ты здесь из-за слухов о защите таверны, то я не буду обсуждать это с кем угодно, кроме моих",
+        "intent_type": "",
+        "tone": "NEUTRAL",
+        "topic": "",
+        "target_id": "player",
+        "exposure": "",
+        "event_id": "6985602d-80c3-5e32-d179-7a376657a338",
+        "event_type": "npc_spoke",
+        "tick": null,
+        "captured_at_monotonic": 880931.1001083
+      }
+    ],
+    "stub_detected_in_speeches": false,
+    "stub_detected_in_response": false,
+    "stub_detected": false,
+    "all_speakers": [
+      "tavern_keeper_tornin"
+    ],
+    "tornin_speech_count": 1,
+    "finished_at": 1793987597.6502256,
+    "total_duration_sec": 9.361308336257935
+  }
+}

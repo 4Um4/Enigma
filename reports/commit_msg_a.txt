@@ -1,0 +1,1 @@
+﻿USL-2 P2 FIX: beliefs runtime — to_persistence_dict round-trip guard + LifeEngine._apply_cch4_seed for COLD paths

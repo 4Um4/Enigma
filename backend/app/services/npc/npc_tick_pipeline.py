@@ -1244,6 +1244,7 @@ class NpcTickPipeline:
                                         actor_id=npc_id,
                                         target_node_id=_target_node,
                                         reason=f"proactive_{_intent_value}",
+                                        intent_type=_intent_value,
                                         body_capabilities=state_l2.body_capabilities
                                     )
                             except Exception as _e:
@@ -1772,6 +1773,7 @@ def _resolve_reactive_movement(
                 from_node_id=current_node,
                 location_id=location_id,
                 reason="reactive:flee",
+                intent_type="flee",
                 priority=PRIORITY_REACTIVE,
             )
         return None

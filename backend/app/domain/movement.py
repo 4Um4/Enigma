@@ -47,6 +47,11 @@ class MacroMovementGoal:
     from_node_id: str = ""  # текущий узел — для pathfinding (Слой 2)
     location_id: str = ""  # для загрузки правильного графа
     reason: str = ""  # "need_driven:hunger", "schedule:working"
+    # P5-G Phase 1: DecisionHub Intent value (e.g., "flee", "seek_ally").
+    # Пустая строка = legacy intent (LifeEngine schedule/need) — использует
+    # legacy B1.5 string-based path. Заполненный intent_type = новый путь
+    # через CommitmentArbiter (единый verdict).
+    intent_type: str = ""
     domain: IntentDomain = (
         IntentDomain.ROUTINE
     )  # ДОЛГ 4.3: Онтологический домен намерения

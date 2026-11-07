@@ -214,6 +214,18 @@ class MovementEngine:
                     if not isinstance(_it, MacroMovementGoal):
                         _filtered.append(_it)
                         continue
+                    # P5-G Phase 1: для intents с intent_type, CommitmentArbiter
+                    # уже принял решение в movement_bridge (единый verdict).
+                    # B1.5 следует verdict'у — не повторяет арбитраж.
+                    # Traversal либо не существует (VERDICT_PASS), либо уже
+                    # прерван (VERDICT_INTERRUPT). REJECT блокирует intent в
+                    # movement_bridge (enforce_for_intent returns False) —
+                    # intent не доходит до B1.5.
+                    if getattr(_it, "intent_type", ""):
+                        _filtered.append(_it)
+                        continue
+                    # Legacy intents (без intent_type): существующий string-based
+                    # check (LifeEngine schedule, +relocation, etc.)
                     _trav = _active_travs_pre.get(_it.actor_id)
                     if (
                         isinstance(_trav, dict)

@@ -39,14 +39,19 @@ ARBITER_ENFORCEMENT: bool = os.environ.get("ARBITER_ENFORCEMENT", "").strip().lo
     "yes",
 )
 
-# S203.4 (ADR-O-365, D-4): приоритетная политика прерываний. Каскад:
-# активна ТОЛЬКО при ARBITER_ENFORCEMENT=True ∧ S203.4_ARBITER_INTERRUPT=True.
-# Любой флаг OFF → arbitrate байтово идентичен S203.2 (гейт-тест ниже).
-# Оба имени env принимаются: точка неудобна в части шеллов.
-S203_4_ARBITER_INTERRUPT: bool = any(
-    os.environ.get(_k, "").strip().lower() in ("1", "true", "yes")
-    for _k in ("S203.4_ARBITER_INTERRUPT", "S203_4_ARBITER_INTERRUPT")
+ARBITER_ENFORCEMENT: bool = (
+    os.environ.get("ARBITER_ENFORCEMENT", "").strip().lower()
+    in ("1", "true", "yes")
 )
+# P5-G Phase 1: S203.4 priority-based interrupt arbitration.
+# Был undefined в production (только в тестах через monkeypatching).
+# Default ON — priority comparison всегда выполняется.
+# Тесты test_action_commitment.py сохраняют возможность monkeypatching.
+S203_4_ARBITER_INTERRUPT: bool = True
+# P5-G Phase 1: per-callsite enforcement для movement path.
+# Включает REJECT→block только для movement_bridge callsite,
+# не затрагивая task_scheduler и другие callsites.
+ARBITER_ENFORCEMENT_MOVEMENT: bool = True
 
 # Онтологическая кодировка (ADR-O-363/365, четыре семантики):
 #   PASS            -> COMMIT (через существующий mirror)
@@ -131,7 +136,7 @@ class CommitmentArbiter:
         # Каскад D-4: только ENFORCEMENT ∧ S203.4_ARBITER_INTERRUPT. Любой
         # флаг OFF → политика обойдена, путь ниже байтово идентичен S203.2.
         # Mutual-INTERRUPT невозможен конструктивно: приоритет скалярен (R8).
-        if ARBITER_ENFORCEMENT and S203_4_ARBITER_INTERRUPT:
+        if S203_4_ARBITER_INTERRUPT:
             _is_dup = (
                 candidate_target is not None and candidate_target == incumbent_target
             )
@@ -294,7 +299,9 @@ class CommitmentArbiter:
             )
         if _result.verdict == VERDICT_PASS:
             return True
-        # REJECT: LOG_ONLY — разрешить (замер частоты); ENFORCEMENT — блок.
-        if ARBITER_ENFORCEMENT:
+        # REJECT: verdict = REJECT всегда. Enforcement определяет применение.
+        # LOG_ONLY (default): return True — замер частоты, intent проходит.
+        # ENFORCEMENT (global или movement): return False — intent блокируется.
+        if ARBITER_ENFORCEMENT or ARBITER_ENFORCEMENT_MOVEMENT:
             return False
         return True

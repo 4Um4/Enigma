@@ -53,6 +53,12 @@ _DOMAIN_TO_PRIORITY: Dict[str, int] = {
 # Windowed-действия (windup-класс, S209): окно подготовки 2 тика.
 _WINDOWED_ACTIONS: frozenset[str] = frozenset({"attack", "steal"})
 
+# P5-G Phase 1: SURVIVAL-действия — прерывают ROUTINE traversal.
+# Расширяет существующий pattern (_WINDOWED_ACTIONS), не создаёт
+# второй registry. FLEE → PRIORITY_SURVIVAL (6) > ROUTINE (2) + 3 = 5.
+# FLEE выбирается DecisionHub только при fear_drive > FEAR_FLEE_THRESHOLD (0.65).
+_SURVIVAL_ACTIONS: frozenset[str] = frozenset({"flee"})
+
 
 def resolve_candidate_priority(
     intent_type: str = "",
@@ -75,6 +81,8 @@ def resolve_candidate_priority(
     """
     if intent_type in _WINDOWED_ACTIONS:
         return PRIORITY_WINDOWED
+    if intent_type in _SURVIVAL_ACTIONS:
+        return PRIORITY_SURVIVAL
     if intent_type == "sleep":
         return PRIORITY_SLEEP
     # Нормализация: на входе IntentDomain Enum (гейты передают getattr(intent,
