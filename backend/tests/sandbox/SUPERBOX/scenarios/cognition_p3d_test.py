@@ -45,20 +45,17 @@ import atexit
 
 atexit.register(lambda: shutil.rmtree(_TEMP, ignore_errors=True))
 
+# Этап 4.1.3.2: migrated to Host broker SDK. ensure_llm(label="cog_p3d")
+# acquire lease через Host broker :8182; release выполняется SDK через
+# module-level atexit handler. cognition_p3d_test больше НЕ владеет
+# llama-server lifecycle (принцип Мастера: идентификация ≠ владение).
 try:
-    _REPO_ROOT = BACKEND_ROOT.parent
-    if str(_REPO_ROOT) not in sys.path:
-        sys.path.insert(0, str(_REPO_ROOT))
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
-
-    if not start_llama_server():
-        print("[G0] ⚠ LLM не поднялась — семантика MOVE резолвится fast-path")
-    atexit.register(kill_llama_server)
-except (ModuleNotFoundError, OSError) as _e:
-    # P1-fix (ТЗДНЯ): FileNotFoundError/PermissionError от Popen при отсутствии
-    # llama-server (CI-чекут без gitignored "Models LLM/") — не ModuleNotFoundError;
-    # ронял collection всего набора тестов.
-    print(f"[G0] llm_server_manager недоступен ({_e})")
+    from app.services.llm.runtime.client import ensure_llm
+    ensure_llm(label="cog_p3d")
+except Exception as _e:
+    # P1-fix (ТЗДНЯ) preserved: любой отказ (CI без Models LLM/, OSError,
+    # RuntimeError) — не роняет collection. SDK раширяет catch до Exception.
+    print(f"[G0] LLM недоступна ({_e}) — семантика MOVE резолвится fast-path")
 
 from app.domain.attention import AttentionObservation
 from app.models.schemas import ChatTurnRequest, PlayerAction
