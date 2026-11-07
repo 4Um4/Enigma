@@ -47,19 +47,17 @@ import atexit
 
 atexit.register(lambda: shutil.rmtree(_TEMP, ignore_errors=True))
 
-# LLM-слой (украдено из MVP/IPT): run_turn тянет DM-фазу
+# LLM-слой через Host broker SDK: run_turn тянет DM-фазу
+# Этап 4.1.3.1: migrated to Host broker SDK. ensure_llm(label="cog_p2g3x")
+# acquire lease через Host broker :8182; release выполняется SDK через
+# module-level atexit handler. cognition_p2_g3x_test больше НЕ владеет
+# llama-server lifecycle (принцип Мастера: идентификация ≠ владение).
 try:
-    _REPO_ROOT = BACKEND_ROOT.parent
-    if str(_REPO_ROOT) not in sys.path:
-        sys.path.insert(0, str(_REPO_ROOT))
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
-
-    if not start_llama_server():
-        print("[G3-X] ⚠ LLM не поднялась — DM-фаза будет деградировать, "
-              "но семантика MOVE резолвится fast-path")
-    atexit.register(kill_llama_server)
-except ModuleNotFoundError as _e:
-    print(f"[G3-X] llm_server_manager недоступен ({_e})")
+    from app.services.llm.runtime.client import ensure_llm
+    ensure_llm(label="cog_p2g3x")
+except Exception as _e:
+    print(f"[G3-X] ⚠ LLM недоступна ({_e}) — DM-фаза будет деградировать, "
+          "но семантика MOVE резолвится fast-path")
 
 from app.models.schemas import ChatTurnRequest, PlayerAction
 from app.services.game_loop_builder import build_game_loop
