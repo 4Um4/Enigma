@@ -21,15 +21,21 @@ if str(_BACKEND_DIR) not in sys.path:
 if str(_ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(_ROOT_DIR))
 
-# Автоматический запуск/остановка LLM для MVP
+# Автоматический запуск/остановка LLM для MVP через Host broker SDK
+#
+# Этап 4.1.2: migrated to Host broker SDK. ensure_llm(label="superbox_mvp")
+# acquire lease через Host broker :8182; release выполняется SDK через
+# module-level atexit handler. run_terminal_mvp больше НЕ владеет
+# llama-server lifecycle (принцип Мастера: идентификация ≠
+# владение). atexit.register(release_lease) уже внутри SDK (client.py:215,
+# module-level) — НЕ дублируем. Host/llama-server переживают shutdown runner.
 try:
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
-    _llm_ok = start_llama_server()
-    if not _llm_ok:
-        print("⚠️ Внимание: LLM не запущена. Нарратив будет недоступен.")
-    atexit.register(kill_llama_server)
-except ModuleNotFoundError as e:
-    print(f"⚠️ Внимание: Модуль LLM-сервера не найден ({e}). MVP продолжает работу без LLM.")
+    from app.services.llm.runtime.client import ensure_llm
+    ensure_llm(label="superbox_mvp")
+except Exception as _e:
+    # Любой отказ (CI без Models LLM/, таймаут Host startup, OSError, RuntimeError)
+    # — MVP продолжает работу без LLM; нарратив будет недоступен.
+    print(f"⚠️ Внимание: LLM недоступна ({_e}). MVP продолжает работу без LLM.")
 
 from app.services.llm.provider_manager import initialize_model_pool
 
