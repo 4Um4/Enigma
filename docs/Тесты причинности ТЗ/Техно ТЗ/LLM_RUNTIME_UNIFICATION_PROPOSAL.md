@@ -351,7 +351,7 @@ RAM (16 ГБ): веса mmap ~4.6–4.9 ГБ + backend+фронтенд+тест
 | 1 | ✅ ЗАВЕРШЕН | fb738628 | LLM_RUNTIME_ЭТАП1_IMPACT.md |
 | 2 | ✅ ЗАВЕРШЕН | 351a5e02 | LLM_RUNTIME_ЭТАП2_IMPACT.md |
 | 3 | ✅ ЗАВЕРШЕН | c01799ca+0ed3d8aa+95fe4ec2+53f7c2d4+19664c9a+c560623c+3281ead3+96fd9047 | LLM_RUNTIME_ЭТАП3_IMPACT.md |
-| 4 | 🔄 В ПРОГРЕССЕ (14/30) | S417: baeb2548→246eed16 | — |
+| 4 | ✅ ЗАВЕРШЕН (30/30) | S417: baeb2548→246eed16; S418: 9c85d436→36563594 | — |
 | 5 | ⏳ PENDING | — | — |
 | 6 | ⏳ PENDING | — | — |
 
