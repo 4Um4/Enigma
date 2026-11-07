@@ -387,7 +387,8 @@ class DialogueExecutor:
             return ""
         try:
             records = self._epistemic_store.get_all_for_agent(agent_id)
-        except Exception:
+        except Exception as e:
+            print(f"[DIALOGUE_EXECUTOR] _epistemic_store.get_all_for_agent(agent_id={agent_id}) failed: {e}")
             return ""
         negations = [r for r in records if not r.proposition.polarity]
         if not negations:

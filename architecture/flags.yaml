@@ -72,6 +72,14 @@ flags:
     adr: ADR-O-351
     owner: B
     note: "SSOT replay-контура (вердикт Мастера); active сейчас ~ passive (известное ограничение); env-имя AIDM_REPLAY_MODE"
+  ENIGMA_LLM_HOST:
+    type: env
+    read_mode: call
+    default: ""
+    effective_default: "on"
+    verdict: ROLLOUT-ON
+    owner: master
+    note: "LLM runtime selection: env не установлен = Host broker :8182 (прод-путь по умолчанию, effective on). ENIGMA_LLM_HOST=off — осознанный opt-out в legacy scripts.llm_server_manager (переходный период, будет удалён после полной миграции всех потребителей). Авария Host → RuntimeError, автоматического fallback к legacy НЕ происходит. §19 LAW OF SINGULAR LLM RUNTIME AUTHORITY."
 
   # ── ROLLOUT-PENDING (готовые контуры — кандидаты цикла «включили -> погоняли») ──
   ARBITER_ENFORCEMENT:
