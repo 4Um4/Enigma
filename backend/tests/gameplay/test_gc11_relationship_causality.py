@@ -47,37 +47,21 @@ _LLM_STATE = {"started": False}
 def _ensure_llm() -> None:
     """Пакет 3 (ТЗ АУДИТ-01, INFRA-D1): самодостаточность GC-11.
 
-    Принцип Мастера: реальный LLM всегда; не поднят — поднимаем штатным
-    менеджером проекта (прецедент: шапка IPT.py — start_llama_server +
-    atexit kill; KILLER_SPIRIT: призраков не оставляем). Закрывает
-    order-dependence: прежде тест был зелёным в полном сюите только
-    потому, что сервер поднимал кто-то до него. Мок не подставляется
-    никогда (ADR-O-425: честный отказ, не ложь). Не поднялся — тесты
-    честно уйдут в INFRA-skip поздней классификацией (§9.13-4)."""
-    import time
-
+    Этап 4.1.9: migrated to Host broker SDK. Принцип Мастера: идентификация ≠ владение.
+    ensure_llm handles start + health + atexit(release_lease). _LLM_STATE — dead code."""
     if _llm_alive():
         return
     try:
-        from scripts.llm_server_manager import kill_llama_server, start_llama_server
+        from app.services.llm.runtime.client import ensure_llm
+        ensure_llm(label="gc11")
+        import time
+        _waited = 0
+        while not _llm_alive() and _waited < 30:
+            time.sleep(1.0)
+            _waited += 1
+        print(f"[GC11-LMM] ensure_llm(); health({_waited}s): {_llm_alive()}")
     except Exception as e:
-        print(f"[GC11-LMM] scripts.llm_server_manager недоступен: {e}")
-        return
-    _ok = start_llama_server()
-    # Загрузка модели не мгновенна: опрос здоровья до ~30с (страховка).
-    _waited = 0
-    while not _llm_alive() and _waited < 30:
-        time.sleep(1.0)
-        _waited += 1
-    print(
-        f"[GC11-LMM] start_llama_server() → {_ok}; "
-        f"health({_waited}s): {_llm_alive()}"
-    )
-    if _llm_alive() and not _LLM_STATE["started"]:
-        import atexit
-
-        atexit.register(kill_llama_server)
-        _LLM_STATE["started"] = True
+        print(f"[GC11-LMM] LLM недоступна ({e})")
 
 
 def _v2_rel(harness, npc_id: str, target: str):

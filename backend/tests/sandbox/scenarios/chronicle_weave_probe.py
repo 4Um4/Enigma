@@ -203,24 +203,16 @@ def _llm_alive() -> bool:
 
 
 def _ensure_llm() -> bool:
-    """Паттерн chronicle_decompose_probe: сервер поднимается в ЭТОМ процессе."""
+    """Этап 4.1.10: migrated to Host broker SDK. Принцип Мастера: идентификация ≠ владение."""
     if _llm_alive():
         return True
-    _probe = Path(__file__).resolve()
-    repo_root = None
-    for cand in _probe.parents:
-        if (cand / "scripts" / "llm_server_manager.py").is_file():
-            repo_root = cand
-            break
-    if repo_root is None:
-        print("[RED] корень репо не найден")
+    try:
+        from app.services.llm.runtime.client import ensure_llm
+        ensure_llm(label="chronicle_weave")
+        return True
+    except Exception as e:
+        print(f"[RED] LLM недоступна ({e})")
         return False
-    if str(repo_root) not in sys.path:
-        sys.path.insert(0, str(repo_root))
-    from scripts.llm_server_manager import start_llama_server
-
-    print("[LLM_MANAGER] health refused → поднимаю сервер менеджером проекта...")
-    return bool(start_llama_server())
 
 
 def build_registry() -> CanonicalRegistry:

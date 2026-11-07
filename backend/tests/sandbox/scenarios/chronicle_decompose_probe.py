@@ -49,34 +49,12 @@ def main() -> int:
             print(f"[RED] {name} :: {detail}")
 
     if not _llm_alive():
-        # Паттерн IPT: менеджер проекта поднимает сервер ВНУТРИ нашего процесса
-        # (SPAWN-ребёнок живёт, пока жив родитель; отдельные python -c его теряли).
-        # Корень репо ищем вверх по дереву по якорю scripts/llm_server_manager.py —
-        # без зависимости от глубины __file__ (урок: parents[3] = backend, не root).
-        import sys
-        from pathlib import Path as _P
-
-        _probe = _P(__file__).resolve()
-        _repo_root = None
-        for _cand in _probe.parents:
-            if (_cand / "scripts" / "llm_server_manager.py").is_file():
-                _repo_root = _cand
-                break
-        if _repo_root is None:
-            print(f"[RED] LLM_UNAVAILABLE :: корень репо не найден вверх от {_probe}")
-            print("Итог: GREEN=0 RED=1")
-            return 1
-        if str(_repo_root) not in sys.path:
-            sys.path.insert(0, str(_repo_root))
+        # Этап 4.1.10: migrated to Host broker SDK. Принцип Мастера: идентификация ≠ владение.
         try:
-            from scripts.llm_server_manager import start_llama_server
-            print("[LLM_MANAGER] health refused → поднимаю сервер менеджером проекта...")
-            if not start_llama_server():
-                print("[RED] LLM_UNAVAILABLE :: start_llama_server вернул False")
-                print("Итог: GREEN=0 RED=1")
-                return 1
-        except ImportError as e:
-            print(f"[RED] LLM_UNAVAILABLE :: менеджер недоступен: {e}")
+            from app.services.llm.runtime.client import ensure_llm
+            ensure_llm(label="chronicle_decompose")
+        except Exception as e:
+            print(f"[RED] LLM_UNAVAILABLE :: {e}")
             print("Итог: GREEN=0 RED=1")
             return 1
 

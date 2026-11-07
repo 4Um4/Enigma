@@ -54,16 +54,14 @@ def _port_open(port: int) -> bool:
         return s.connect_ex(("127.0.0.1", port)) == 0
 
 
-# (a) LLM — через готовый менеджер, как в IPT.
-# Guard: kill_llama_server регистрируем ТОЛЬКО если сами подняли.
+# (a) LLM — через Host broker SDK (Этап 4.1.9).
+# Принцип Мастера: идентификация ≠ владение. ensure_llm handles reuse/start + atexit(release_lease).
 _llm_started_here = False
 try:
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
-    if not _port_open(8181):
-        if start_llama_server():
-            _llm_started_here = True
-            atexit.register(kill_llama_server)
-except (ModuleNotFoundError, OSError) as _e:
+    from app.services.llm.runtime.client import ensure_llm
+    ensure_llm(label="cch8")
+    _llm_started_here = True
+except Exception as _e:
     print(f"⚠️ B1: LLM недоступна ({_e})", file=sys.stderr)
 
 
