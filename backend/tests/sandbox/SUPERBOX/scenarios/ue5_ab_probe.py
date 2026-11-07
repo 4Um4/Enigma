@@ -21,11 +21,16 @@ for _p in (str(_BACKEND), str(_ROOT)):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from scripts.llm_server_manager import kill_llama_server, start_llama_server
+from app.services.llm.runtime.client import ensure_llm
 
-_llm_ok = start_llama_server()
-if os.environ.get("ENIGMA_DET_KEEP_SERVER") != "1":
-    atexit.register(kill_llama_server)
+# Этап 4.1.5.4: migrated to Host broker SDK. ENIGMA_DET_KEEP_SERVER — redundant.
+# Принцип Мастера: идентификация ≠ владение.
+_llm_ok = True
+try:
+    ensure_llm(label="ue5_ab")
+except Exception as _e:
+    print(f"ВНИМАНИЕ: LLM недоступна ({_e})")
+    _llm_ok = False
 
 from app.services.input.intent_compressor import IntentCompressor
 from app.services.input.llm_compressor_client import LlamaCppCompressorClient
