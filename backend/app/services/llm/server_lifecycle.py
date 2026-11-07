@@ -192,13 +192,12 @@ def _spawn_llama_server() -> dict:
     _stderr_path.parent.mkdir(parents=True, exist_ok=True)
     _stderr_file = open(_stderr_path, "a", encoding="utf-8")
     try:
+        from app.services.llm.runtime._proc import silent_subprocess_kwargs
         _proc = _sp.Popen(
             _cmd,
             stdout=_sp.DEVNULL,
             stderr=_stderr_file,
-            creationflags=_sp.CREATE_NO_WINDOW
-            if hasattr(_sp, "CREATE_NO_WINDOW")
-            else 0,
+            **silent_subprocess_kwargs(),
         )
     finally:
         _stderr_file.close()

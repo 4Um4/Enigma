@@ -133,7 +133,26 @@ def _install_spies(harness: TavernGameplayHarness) -> None:
 
 
 def _override_witness_disposition() -> None:
-    """Test fixture: maid disposition — spread_rumor dominant (прецедент gc05 guard)."""
+    """TEST FIXTURE (Решение Мастера 1): искусственное смещение disposition weights.
+
+    НЕ является доказательством автономного выбора spread_rumor DecisionHub'ом —
+    это test fixture для гарантии, что maid_lusya выберет spread_rumor и full-loop
+    delivery будет доказан. Production epistemic_dispositions.py НЕ меняется.
+
+    Используется в:
+      - test_npc_speaks_with_claim_block (CC-03)
+      - test_listener_belief_from_npc_spoke (CC-04)
+
+    НЕ используется в:
+      - test_insult_creates_belief_through_membrane (CC-02) — membrane не зависит от disposition
+      - test_negative_membrane_isolation (negative) — membrane filters по distance
+
+    Будущий autonomy test (без override) — отдельная задача: доказать, что
+    DecisionHub выбирает spread_rumor естественным образом при наличии
+    report_proposition в EpistemicContextResolver.
+
+    Прецедент: gc05 guard disposition override.
+    """
     from app.domain import epistemic_dispositions as _ed
     _keys = list(_ed.EPISTEMIC_DISPOSITIONS.keys())
     print(f"[OVERRIDE] Available dispositions: {_keys}")
@@ -322,7 +341,26 @@ class TestButterflyFullGameLoop:
             _h.dispose()
 
     def test_listener_belief_from_npc_spoke(self) -> None:
-        """CC-04: NPC_SPOKE → listener EpistemicStore (provenance chain)."""
+        """CC-04: NPC_SPOKE → listener EpistemicStore (provenance chain).
+
+        Решение Мастера 2: усиление provenance assertions.
+        - source_id == "maid_lusya" — maid_lusya выступает рассказчиком (chain link существует)
+        - original_source_id == "player" — multi-hop provenance сохранён (G10 fix в BeliefRevisionEngine)
+        - confidence > 0 — belief не нулевой
+
+        Примечание о multi-hop chain:
+          В сценарии с override_disposition maid_lusya распространяет слух первой
+          (spread_rumor=1.4). Другие NPC (merchant_goran, guard_borko, ...) тоже
+          могут выбирать spread_rumor через естественные disposition weights,
+          образуя цепочку пересказов. Торнин может получить belief от любого
+          рассказчика (например, merchant_goran), а не обязательно от maid_lusya
+          напрямую.
+
+          Contract provenance: original_source_id="player" сохраняется независимо
+          от того, кто последний рассказчик (source_id). Assertion source_id
+          применяется к любому chain record — это доказывает, что maid_lusya
+          выступала рассказчиком (chain link), а не что Торнин получил лично от неё.
+        """
         _h = _run_butterfly(victim=_VICTIM, ticks=10, override_disposition=True)
         try:
             _all = _read_all_epistemic(_h)
@@ -335,16 +373,58 @@ class TestButterflyFullGameLoop:
                     if _src and _src != "player" and _src != "direct_observation":
                         _chain.append((_aid, r))
                         _p = r.get("proposition", {})
+                        _orig = r.get("original_source_id", "")
                         print(
                             f"  [CHAIN] {_aid}: prop={_p.get('predicate')} "
-                            f"subj={_p.get('subject_id')} src={_src}"
+                            f"subj={_p.get('subject_id')} src={_src} "
+                            f"orig={_orig} conf={r.get('confidence')}"
                         )
 
             assert len(_chain) > 0, (
                 f"CC-04 FAIL: no EpistemicRecord from NPC_SPOKE. "
                 f"Agents: {list(_all.keys())}. SPY_SPOKE: {len(SPY_SPOKE)}."
             )
-            print(f"[OK] CC-04: {len(_chain)} chain records")
+
+            # Решение Мастера 2: provenance assertions
+            # (1) source_id == "maid_lusya" — maid_lusya выступает рассказчиком.
+            #     Применяем к любому chain record: в multi-hop сценарии maid_lusya
+            #     рассказывает одному NPC (например, merchant_goran), который затем
+            #     пересказывает остальным. Chain link maid_lusya → merchant_goran
+            #     документирован в record merchant_goran с source_id="maid_lusya".
+            _maid_chain = [
+                (_a, r) for (_a, r) in _chain
+                if r.get("source_id") == "maid_lusya"
+            ]
+            assert len(_maid_chain) > 0, (
+                f"CC-04 FAIL: no chain record with source_id='maid_lusya'. "
+                f"Chain sources: {[r.get('source_id') for (_a, r) in _chain]}. "
+                f"maid_lusya did not spread rumor — override_disposition or "
+                f"EpistemicContextResolver.report_proposition may have failed."
+            )
+
+            # (2) original_source_id == "player" — multi-hop provenance сохранён.
+            #     Поле персистится в to_dict (epistemic_store.py:81) и from_dict (L112).
+            #     BeliefRevisionEngine L99: _orig_src = existing_record.original_source_id
+            #     or claim.speaker_id — при update сохраняется от прежней записи.
+            _maid_rec = _maid_chain[0][1]
+            _orig = _maid_rec.get("original_source_id", "")
+            assert _orig == "player", (
+                f"CC-04 FAIL: original_source_id={_orig!r} (expected 'player'). "
+                f"Record: {_maid_rec}. "
+                f"Multi-hop provenance chain broken — BeliefRevisionEngine G10 fix "
+                f"(original_source_id preservation) may have failed."
+            )
+
+            # (3) confidence > 0 — belief не нулевой (reliability × _CLAIM_WEIGHT)
+            _conf = _maid_rec.get("confidence", 0)
+            assert _conf > 0, (
+                f"CC-04 FAIL: confidence={_conf} (expected > 0). Record: {_maid_rec}"
+            )
+
+            print(f"[OK] CC-04: {len(_chain)} chain records; "
+                  f"maid_lusya chain link confirmed: "
+                  f"source_id=maid_lusya, original_source_id=player, "
+                  f"confidence={_conf}")
         finally:
             _h.dispose()
 

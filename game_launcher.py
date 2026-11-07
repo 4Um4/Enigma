@@ -266,9 +266,7 @@ def _ensure_llm_running() -> Optional[subprocess.Popen]:
         _LLM_DIAG["detail"] = _model_path
         return None
 
-    _creation_flags = 0
-    if sys.platform == 'win32':
-        _creation_flags = 0x08000000  # CREATE_NO_WINDOW
+    from app.services.llm.runtime._proc import silent_subprocess_kwargs
 
     # Лог для LLM
     _llm_log_path = Path(_ROOT) / "backend" / "logs" / "llama_server.log"
@@ -300,7 +298,7 @@ def _ensure_llm_running() -> Optional[subprocess.Popen]:
         cwd=os.path.dirname(_llm_exe),
         stdout=_llm_log,
         stderr=_llm_log,
-        creationflags=_creation_flags
+        **silent_subprocess_kwargs(),
     )
     print(f"  ○ Запуск LLM сервера (PID {proc.pid})...")
     return proc
