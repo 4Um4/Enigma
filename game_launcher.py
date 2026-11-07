@@ -225,18 +225,10 @@ def _ensure_llm_running() -> Optional[subprocess.Popen]:
     «сервер грузится» (порт занят) от «сервера нет»; дубль на порт =
     два процесса, VRAM-голод, 503 на NARRATIVE."""
 
-    # Локальный импорт конфига
+    # Этап 5: migrated to Host broker SDK. ensure_llm handles lock + spawn + health.
+    # Принцип Мастера: идентификация ≠ владение.
     from app.core.config import settings as _enigma_settings  # type: ignore
-    from app.services.llm.server_lifecycle import acquire_llama_server_lock
-    _llm_port = getattr(_enigma_settings, "llama_cpp_port", 8181)
-    _llm_url = f"http://127.0.0.1:{_llm_port}/health"
-
-    # ПРОЦЕССНЫЙ ЛОК (единственный): reuse = не спавнить (готов ИЛИ грузится)
-    _verdict, _why = acquire_llama_server_lock(_llm_port, _llm_url)
-    if _verdict == "reuse":
-        print(f"  ✓ LLM сервер уже запущен или грузится ({_why})")
-        return None
-    # spawn: порт свободен — единственный легальный Popen ниже
+    from app.services.llm.runtime.client import ensure_llm
 
     # Ищем исполняемый файл llama-server
     _llm_exe = os.path.join(_ROOT, "Models LLM", "llama", "llama-server.exe")
@@ -266,42 +258,17 @@ def _ensure_llm_running() -> Optional[subprocess.Popen]:
         _LLM_DIAG["detail"] = _model_path
         return None
 
-    from app.services.llm.runtime._proc import silent_subprocess_kwargs
-
-    # Лог для LLM
-    _llm_log_path = Path(_ROOT) / "backend" / "logs" / "llama_server.log"
-    _llm_log_path.parent.mkdir(parents=True, exist_ok=True)
-    _llm_log = open(str(_llm_log_path), "a", encoding="utf-8")
-
-    # LOG-GATE-UI: запоминаем размер лога — если llama-server умрёт, читаем
-    # только свежий вывод (ошибки прошлых запусков не попадут в диагноз).
+    # Этап 5: ensure_llm через Host broker SDK (pinned lease для game session).
+    # Брокер владеет spawn + lock + health + log. Launcher отпускает lease при выходе
+    # (release_lease регистрируется ВНУТРИ SDK via atexit).
     try:
-        _LLM_DIAG["log_offset"] = _llm_log_path.stat().st_size
-    except Exception:
-        _LLM_DIAG["log_offset"] = 0
-
-    try:
-        _gpu_layers = getattr(_enigma_settings, "gpu_layers", 35)
-    except Exception:
-        _gpu_layers = 35
-
-    proc = subprocess.Popen(
-        [
-            _llm_exe,
-            "--host", "127.0.0.1",
-            "--port", str(_llm_port),
-            "-m", _model_path,
-            "-c", "8192",
-            "-ngl", str(_gpu_layers),
-            "--metrics"
-        ],
-        cwd=os.path.dirname(_llm_exe),
-        stdout=_llm_log,
-        stderr=_llm_log,
-        **silent_subprocess_kwargs(),
-    )
-    print(f"  ○ Запуск LLM сервера (PID {proc.pid})...")
-    return proc
+        ensure_llm(label="game", pinned=True)
+        print("  ✓ LLM сервер обеспечен через Host broker (pinned lease)")
+    except Exception as e:
+        print(f"  ✗ LLM недоступна: {e}")
+        _LLM_DIAG["reason"] = "broker_error"
+        _LLM_DIAG["detail"] = str(e)
+    return None
 
 
 def _ensure_servers_running() -> tuple:
@@ -877,8 +844,10 @@ def main() -> None:
                 except Exception:
                     pass
 
-        # 2. Убиваем всё, что слушает порты (фоллбэк для зомби без Popen-ссылки)
-        for _port in [_enigma_settings.api_port, _enigma_settings.llama_cpp_port]:
+        # 2. Убиваем всё, что слушает backend-порт (фоллбэк для зомби без Popen-ссылки)
+        # Этап 5: LLM port (8181) EXCLUDED — Host broker owns llama-server.
+        # Kill-by-port on 8181 would break broker's server for other clients (Устав §19).
+        for _port in [_enigma_settings.api_port]:
             try:
                 _find = subprocess.run(
                     ["netstat", "-ano"],
@@ -903,6 +872,12 @@ def main() -> None:
     elif backend_proc is not None and backend_proc.poll() is None:
         backend_proc.terminate()
 
+    # Этап 5: release LLM lease before hard exit (os._exit bypasses atexit).
+    try:
+        from app.services.llm.runtime.client import release_lease
+        release_lease()
+    except Exception:
+        pass
     # Принудительно убиваем процесс игры, чтобы не было зомби (Фикс PyInstaller/Windows)
     import os
     os._exit(0)
