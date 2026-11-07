@@ -50,16 +50,17 @@ _settings.saves_dir = str(_SAVES)
 import atexit
 
 atexit.register(lambda: shutil.rmtree(_TEMP, ignore_errors=True))
-_LLM_KILL = None
+# Этап 4.1.3.4: migrated to Host broker SDK. ensure_llm(label="cog_p3e")
+# acquire lease через Host broker :8182; release выполняется SDK через
+# module-level atexit handler. cognition_p3e_test больше НЕ владеет
+# llama-server lifecycle (принцип Мастера: идентификация ≠
+# владение). _LLM_KILL removed — release_lease() in finally/early-return replaces it.
+release_lease = lambda: None  # noqa: E731 — fallback if SDK unavailable
 try:
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
-
-    if not start_llama_server():
-        print("[P3E] ⚠ LLM не поднялась")
-    _LLM_KILL = kill_llama_server
-    atexit.register(kill_llama_server)
-except ModuleNotFoundError as _e:
-    print(f"[P3E] llm_manager: {_e}")
+    from app.services.llm.runtime.client import ensure_llm, release_lease
+    ensure_llm(label="cog_p3e")
+except Exception as _e:
+    print(f"[P3E] LLM недоступна ({_e})")
 
 from app.models.schemas import ChatTurnRequest, PlayerAction
 from app.services.game_loop_builder import build_game_loop
@@ -282,11 +283,10 @@ async def main_async() -> int:
             # не краш сценария (директива: RED = данные для разбора).
             print("[P3E] RED-ПРИЧИНА: пул G3-целей пуст (все NPC отсеяны "
                   "B0-фильтром: спят/бегут/движутся). Сценарий завершён досрочно.")
-            if _LLM_KILL:
-                try:
-                    _LLM_KILL()
-                except Exception:  # noqa: BLE001
-                    pass
+            try:
+                release_lease()
+            except Exception:  # noqa: BLE001
+                pass
             print("P3E ИТОГО: RED (нет субъектов восприятия)")
             return 1
         print(f"[B0] baseline зафиксирован: G3-цели={G3_NPC} | "
@@ -399,11 +399,10 @@ async def main_async() -> int:
             t += 1
     finally:
         _restore_mov(wrap)
-        if _LLM_KILL:
-            try:
-                _LLM_KILL()
-            except Exception as e:  # noqa: BLE001
-                print(f"[P3E] LLM-kill fault: {e!r}")
+        try:
+            release_lease()
+        except Exception as e:  # noqa: BLE001
+            print(f"[P3E] LLM-release fault: {e!r}")
 
     # ══════════ ГЕЙТЫ ══════════
     print("\n" + "=" * 64)
