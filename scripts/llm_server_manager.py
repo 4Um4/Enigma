@@ -22,6 +22,8 @@ sys.path.insert(0, str(_BACKEND_DIR))
 
 from app.core.config import settings
 from app.services.llm.server_lifecycle import acquire_llama_server_lock
+from app.services.llm.runtime._proc import silent_subprocess_kwargs
+
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +148,7 @@ def start_llama_server() -> bool:
             server_cmd,
             stdout=subprocess.DEVNULL,
             stderr=_stderr_file,
-            creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0,
+            **silent_subprocess_kwargs(),
         )
     finally:
         _stderr_file.close()

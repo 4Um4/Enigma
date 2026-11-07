@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Optional
 
 from app.core.config import settings
+from app.services.llm.runtime._proc import silent_subprocess_kwargs
 
 _PROTOCOL_VERSION = "llm-host-v1"
 _HOST_STARTUP_TIMEOUT = 30
@@ -62,7 +63,13 @@ def _start_host() -> bool:
         ]
         kwargs = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL, "cwd": _BACKEND_DIR}
         if sys.platform == "win32":
-            kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+            # Merge CREATE_NEW_PROCESS_GROUP (so we can Ctrl-Break the Host later)
+            # with silent_subprocess_kwargs(): CREATE_NO_WINDOW | DETACHED_PROCESS
+            # + STARTUPINFO(SW_HIDE) → no console window flash, no taskbar entry.
+            _silent = silent_subprocess_kwargs()
+            kwargs["creationflags"] = _silent.get("creationflags", 0) | subprocess.CREATE_NEW_PROCESS_GROUP
+            if "startupinfo" in _silent:
+                kwargs["startupinfo"] = _silent["startupinfo"]
         else:
             kwargs["start_new_session"] = True
         subprocess.Popen(cmd, **kwargs)
