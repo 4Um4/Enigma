@@ -47,12 +47,19 @@ import copy
 import json
 import logging
 import os
+import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, List, Optional
 from urllib.parse import urlparse
 from uuid import uuid4
+
+# sys.path patch — позволяет запускать без `cd backend`
+_BACKEND = Path(__file__).parent.parent.parent  # backend/
+sys.path.insert(0, str(_BACKEND))
+_ROOT = _BACKEND.parent  # Enigma/
+sys.path.insert(0, str(_ROOT))
 
 import pytest
 from tests.gameplay.harness import TavernGameplayHarness
@@ -602,6 +609,48 @@ class TestButterflyB4VerifiedBelief:
         6. Качество: confidence>0, source_type=testimony
         7. Cognition: EpistemicContextResolver возвращает proposition
         """
+        # AUTO-START LLM via Host broker (:8182 → spawns llama-server :8181)
+        # Pattern from IPT.py: ensure_llm(label=...) — discovery + spawn Host
+        # (если мёртв) + POST /ensure (respawn llama-server если мёртв) +
+        # heartbeat thread; release_lease регистрируется в atexit ВНУТРИ SDK
+        # (app.services.llm.runtime.client.ensure_llm) — НЕ дублируем.
+        # Вердикт Мастера: Host broker и llama-server переживают shutdown
+        # управляющего процесса (release_lease отпускает lease, процессы НЕ kill).
+        try:
+            from app.services.llm.runtime.client import ensure_llm
+
+            ensure_llm(label="B4")
+        except Exception as _llm_err:
+            # Любой отказ (CI без Models LLM/, таймаут Host startup, OSError
+            # из Popen, RuntimeError из /ensure) — продолжаем без LLM; pre-flight
+            # check ниже пропустит тест. Широкий catch вместо (ModuleNotFoundError,
+            # OSError) — Host/SDK поднимает RuntimeError при невозможности lease.
+            print(f"⚠️ B4: LLM auto-start failed ({_llm_err!r}). MVP продолжает без LLM.")
+
+        # KILLER_SPIRIT (санкция Мастера): убийца призрачных backend-связок
+        # Ланчер умирает, не убив детей (llama-server:8181 + uvicorn:8000).
+        # Каждый запуск B4 = гигиена проекта: осиротевшие связки убиваются ДО
+        # инвариантов. Деградация канала, не тика: любой отказ уборщика
+        # печатается громко и НЕ роняет B4 (L4: без тихих глотаний).
+        # Opt-out: env B4_NO_REAPER=1 (CI/спец-прогоны).
+        try:
+            if os.environ.get("B4_NO_REAPER", "").strip().lower() not in (
+                "1",
+                "true",
+                "yes",
+            ):
+                from scripts.ghost_reaper import reap as _reap
+
+                _reaper_pre = _reap(dry_run=False)
+                print(
+                    "[B4] KILLER_SPIRIT старт: убито="
+                    f"{len(_reaper_pre.get('killed', []))}, пощажено="
+                    f"{len(_reaper_pre.get('spared', []))}, отказов="
+                    f"{len(_reaper_pre.get('fault', []))}"
+                )
+        except Exception as _reaper_exc:  # noqa: BLE001 — канальный отказ, не тика
+            print(f"[B4] KILLER_SPIRIT FAULT (не критично): {_reaper_exc!r}")
+
         # PRE-FLIGHT
         if not _check_b4_approved():
             pytest.skip("ENIGMA_B4_APPROVED != 1")
