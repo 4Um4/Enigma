@@ -142,3 +142,19 @@ def test_environment(monkeypatch):
     monkeypatch.setattr(
         "app.core.config.settings.model_qwen_7b_path", MODELS_DIR / "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
     )
+
+
+@pytest.fixture(scope="session")
+def llm_runtime():
+    """Session-scoped LLM runtime via Host broker.
+
+    Tests explicitly requesting this fixture share one SDK lease.
+    Not autouse — only tests that request llm_runtime get a real LLM.
+    """
+    from app.services.llm.runtime.client import ensure_llm, release_lease
+
+    url = ensure_llm(label="pytest")
+    try:
+        yield url
+    finally:
+        release_lease()
