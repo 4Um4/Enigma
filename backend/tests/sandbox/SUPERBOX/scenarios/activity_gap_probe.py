@@ -43,16 +43,15 @@ _settings.saves_dir = str(_SAVES)
 import atexit
 
 atexit.register(lambda: shutil.rmtree(_TEMP, ignore_errors=True))
-_LLM_KILL = None
-try:
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
+from app.services.llm.runtime.client import ensure_llm, release_lease
 
-    if not start_llama_server():
-        print("[PROBE] ⚠ LLM не поднялась")
-    _LLM_KILL = kill_llama_server
-    atexit.register(kill_llama_server)
-except ModuleNotFoundError as _e:
-    print(f"[PROBE] llm_manager: {_e}")
+# Этап 4.1.7: migrated to Host broker SDK. Принцип Мастера: идентификация ≠ владение.
+_LLM_KILL = lambda: None  # no-op fallback; SDK owns release_lease via atexit
+try:
+    ensure_llm(label="activity_gap")
+    _LLM_KILL = release_lease
+except Exception as _e:
+    print(f"[PROBE] LLM недоступна ({_e})")
 
 from app.models.schemas import ChatTurnRequest, PlayerAction
 from app.services.game_loop_builder import build_game_loop

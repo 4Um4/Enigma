@@ -18,16 +18,16 @@ sys.path.insert(0, str(BACKEND_ROOT))
 _ROOT = BACKEND_ROOT.parent
 sys.path.insert(0, str(_ROOT))
 
-import atexit
 import time
 
+from app.services.llm.runtime.client import ensure_llm
+
+# Этап 4.1.7: migrated to Host broker SDK. Принцип Мастера: идентификация ≠ владение.
+_llm_ok = True
 try:
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
-    print("Запускаю LLM-сервер для M1-probe...")
-    _llm_ok = start_llama_server()
-    atexit.register(kill_llama_server)
-except Exception as e:
-    print(f"ВНИМАНИЕ: менеджер LLM недоступен ({e}).")
+    ensure_llm(label="m1_self_intro")
+except Exception as _e:
+    print(f"ВНИМАНИЕ: LLM недоступна ({_e})")
     _llm_ok = False
 
 from app.domain.intent_profile import IntentSemanticField

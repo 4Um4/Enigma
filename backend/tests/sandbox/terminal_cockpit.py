@@ -28,31 +28,19 @@ def _llm_noop() -> bool:
 kill_llama_server: Callable[[], Any] = _llm_noop
 start_llama_server: Callable[[], Any] = _llm_noop
 
+import time as _t
+import urllib.request as _ur
+
+from app.services.llm.runtime.client import ensure_llm
+
+# Этап 4.1.8: migrated to Host broker SDK. health-валидация — внутри SDK (Host broker watchdog).
+# Принцип Мастера: идентификация ≠ владение. _llm_noop stubs (L23-29) — dead code, safe fallback.
+_llm_ok = True
 try:
-    import time as _t
-    import urllib.request as _ur
-
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
-
-    _llm_ok = start_llama_server()
-    # health-валидация: «запущен» менеджера ≠ «жив» порта (урок 10061:
-    # менеджер кеширует состояние умершего чужого сервера)
-    if _llm_ok:
-        for _ in range(15):
-            try:
-                _ur.urlopen("http://localhost:8181/health", timeout=2).read()
-                break
-            except Exception:
-                _t.sleep(2)
-        else:
-            print("[COCKPIT] LLM-порт не отвечает — пробуем переподъём")
-            _llm_ok = start_llama_server()
-    if _llm_ok:
-        atexit.register(kill_llama_server)
-    else:
-        print("[COCKPIT] LLM не поднят — нарратив будет деградировать")
-except ModuleNotFoundError as _e:
-    print(f"[COCKPIT] LLM-менеджер недоступен ({_e})")
+    ensure_llm(label="cockpit")
+except Exception as _e:
+    print(f"[COCKPIT] LLM недоступна ({_e}) — нарратив будет деградировать")
+    _llm_ok = False
 
 from app.services.llm.provider_manager import initialize_model_pool
 
@@ -262,7 +250,7 @@ class Cockpit:
         except Exception:
             print("  LLM мёртв — поднимаю…")
             try:
-                start_llama_server()
+                ensure_llm(label="cockpit")
             except Exception:  # noqa: ENIGMA001
                 print("  [restart] LLM не поднялся")
 
@@ -326,23 +314,21 @@ async def main() -> None:
             except Exception:
                 print("  LLM мёртв — поднимаю…")
                 try:
-                    if start_llama_server():
-                        # валидация: ждём health, а не «запущен»
-                        import time as _t
+                    ensure_llm(label="cockpit")
+                    # валидация: ждём health (диагностика для UI)
+                    import time as _t
 
-                        for _ in range(15):
-                            try:
-                                _ur.urlopen(
-                                    "http://localhost:8181/health", timeout=2
-                                ).read()
-                                print("  LLM поднят и здоров")
-                                break
-                            except Exception:
-                                _t.sleep(2)
-                        else:
-                            print("  [new] LLM не отвечает после 30с")
+                    for _ in range(15):
+                        try:
+                            _ur.urlopen(
+                                "http://localhost:8181/health", timeout=2
+                            ).read()
+                            print("  LLM поднят и здоров")
+                            break
+                        except Exception:
+                            _t.sleep(2)
                     else:
-                        print("  [new] LLM не поднялся")
+                        print("  [new] LLM не отвечает после 30с")
                 except Exception as llm_e:  # noqa: ENIGMA001
                     print(f"  [new] LLM-подъём: {llm_e}")
             continue

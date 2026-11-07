@@ -27,15 +27,12 @@ for _p in (str(_BACKEND_DIR), str(_ROOT_DIR)):
         sys.path.insert(0, _p)
 
 # LLM: реплики NPC генерирует llama-server; память действий игрока пишется и без него
+# Этап 4.1.8: migrated to Host broker SDK. Принцип Мастера: идентификация ≠ владение.
+from app.services.llm.runtime.client import ensure_llm
 try:
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
-
-    if start_llama_server():
-        atexit.register(kill_llama_server)
-    else:
-        print("[XRAY] LLM не запущен — реплики NPC недоступны; память игрока пишется")
-except ModuleNotFoundError as _llm_err:
-    print(f"[XRAY] LLM-менеджер недоступен ({_llm_err}) — продолжаем без LLM")
+    ensure_llm(label="phase_a_xray")
+except Exception as _e:
+    print(f"[XRAY] LLM недоступна ({_e}) — продолжаем без LLM")
 
 from app.services.llm.provider_manager import initialize_model_pool
 
