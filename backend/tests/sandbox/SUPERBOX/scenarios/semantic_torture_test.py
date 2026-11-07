@@ -20,46 +20,16 @@ sys.path.insert(0, str(BACKEND_ROOT))
 _ROOT = BACKEND_ROOT.parent
 sys.path.insert(0, str(_ROOT))
 
-# Автоматический запуск/остановка LLM для S203 Torture Test
+# Этап 4.1.6: migrated to Host broker SDK. Принцип Мастера: идентификация ≠ владение.
+from app.services.llm.runtime.client import ensure_llm
+_llm_ok = True
 try:
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
-    print("Запускаю LLM-сервер для S203...")
-    _llm_ok = start_llama_server()
-    if not _llm_ok:
-        print("⚠️ Внимание: LLM не запущена. Тест S203 будет провален (Fast Path не покрывает все кейсы).")
-    atexit.register(kill_llama_server)
-except ModuleNotFoundError as e:
-    print(f"⚠️ Внимание: Модуль LLM-сервера не найден ({e}). S203 продолжает работу без LLM.")
-    _llm_ok = False
-except Exception as e:
-    print(f"⚠️ Внимание: Ошибка при запуске LLM ({e}). S203 продолжает работу без LLM.")
+    ensure_llm(label="semantic_torture")
+except Exception as _e:
+    print(f"ВНИМАНИЕ: LLM недоступна ({_e})")
     _llm_ok = False
 
-import atexit
 
-try:
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
-    print("Запускаю LLM-сервер для M1-probe...")
-    _llm_ok = start_llama_server()
-    if not _llm_ok:
-        print("ВНИМАНИЕ: LLM не запущена — прогон INVALID (не измерение понимания).")
-    atexit.register(kill_llama_server)
-except Exception as e:
-    print(f"ВНИМАНИЕ: менеджер LLM недоступен ({e}) — подними сервер вручную.")
-    _llm_ok = False
-
-import atexit
-
-try:
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
-    print("Запускаю LLM-сервер для M1-probe...")
-    _llm_ok = start_llama_server()
-    if not _llm_ok:
-        print("ВНИМАНИЕ: LLM не запущена — прогон INVALID (не измерение понимания).")
-    atexit.register(kill_llama_server)
-except Exception as e:
-    print(f"ВНИМАНИЕ: менеджер LLM недоступен ({e}) — подними сервер вручную.")
-    _llm_ok = False
 
 from app.domain.intent_profile import IntentSemanticField
 from app.services.input.intent_compressor import IntentCompressor

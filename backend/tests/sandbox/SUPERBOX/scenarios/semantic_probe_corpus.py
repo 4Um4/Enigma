@@ -22,20 +22,15 @@ sys.path.insert(0, str(BACKEND_ROOT))
 _ROOT = BACKEND_ROOT.parent
 sys.path.insert(0, str(_ROOT))
 
-import atexit
+from app.services.llm.runtime.client import ensure_llm
 
+# Этап 4.1.6: migrated to Host broker SDK. ENIGMA_DET_KEEP_SERVER — redundant.
+# Принцип Мастера: идентификация ≠ владение.
+_llm_ok = True
 try:
-    from scripts.llm_server_manager import kill_llama_server, start_llama_server
-    print("Запускаю LLM-сервер для probe corpus...")
-    _llm_ok = start_llama_server()
-    # M2-протокол (матрица M1/M2/M3, вердикт Мастера): при
-    # ENIGMA_DET_KEEP_SERVER=1 сервер НЕ убивается на выходе — следующий
-    # прогон REUSE-ит тот же инстанс (тёплый замер). Обязателен ручной
-    # teardown по PID порта после пары.
-    if os.environ.get("ENIGMA_DET_KEEP_SERVER") != "1":
-        atexit.register(kill_llama_server)
-except Exception as e:
-    print(f"ВНИМАНИЕ: менеджер LLM недоступен ({e}).")
+    ensure_llm(label="semantic_probe_corpus")
+except Exception as _e:
+    print(f"ВНИМАНИЕ: LLM недоступна ({_e})")
     _llm_ok = False
 
 
