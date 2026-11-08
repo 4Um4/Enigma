@@ -1,8 +1,9 @@
 # backend/data/runtime_ports.py
 # -*- coding: utf-8 -*-
 """
-Runtime port management for Enigma.
-Handles dynamic assignment, saving, and loading of LLM/API ports.
+DEPRECATED (Этап 6): Use app.core.config.settings for port values.
+This module is kept for backward compatibility only.
+Legacy: divergent port 8080 vs settings 8181.
 """
 
 import json

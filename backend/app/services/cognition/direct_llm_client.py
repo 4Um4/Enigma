@@ -23,10 +23,14 @@ class DirectLLMClient:
 
     def __init__(
         self,
-        server_url: str = "http://localhost:8181",
+        server_url: str = "",
         model: str = "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf",
         temperature: float = 0.0,
     ):
+        # Этап 6: SSOT — URL from settings.llama_cpp_server_url (not hardcoded).
+        if not server_url:
+            from app.core.config import settings as _s
+            server_url = _s.llama_cpp_server_url
         self._server_url = server_url.rstrip("/")
         self._model = model
         self._temperature = temperature

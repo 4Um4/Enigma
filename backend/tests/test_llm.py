@@ -29,17 +29,9 @@ def test_multimodel():
     print("=" * 50)
     print()
 
-    # Read dynamic port from runtime_ports.json
-    try:
-        from data.runtime_ports import load_ports
-
-        ports = load_ports()
-        llm_port = ports.get("llm_port", 8080)
-    except Exception as e:
-        print(
-            f"[WARN] Could not read ports, using 8080: {str(e).encode('utf-8', errors='replace').decode('utf-8', errors='ignore')}"
-        )
-        llm_port = 8080
+    # Этап 6: SSOT — port from settings.llama_cpp_port (not runtime_ports.json).
+    from app.core.config import settings as _enigma_settings
+    llm_port = _enigma_settings.llama_cpp_port
 
     server_url = f"http://127.0.0.1:{llm_port}"
 

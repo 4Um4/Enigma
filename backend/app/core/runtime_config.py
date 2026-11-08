@@ -12,7 +12,8 @@ from data.runtime_ports import get_runtime_ports
 
 
 def get_llm_url() -> str:
-    """Get current LLM server URL."""
+    """DEPRECATED (Этап 6): Use settings.llama_cpp_server_url instead.
+    Get current LLM server URL."""
     ports = get_runtime_ports()
     return f"http://127.0.0.1:{ports['llm_port']}"
 

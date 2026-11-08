@@ -83,8 +83,10 @@ def run_homeostatic_sandbox():
         print(f"[ERROR] Импорт не удался. {e}")
         return
 
-    # 1. Запуск LLM сервера
-    server_proc = _start_llama_server(settings)
+    # Этап 6: migrated to Host broker SDK. ensure_llm handles spawn + health.
+    from app.services.llm.runtime.client import ensure_llm
+    ensure_llm(label="homeostatic_dialogue")
+    server_proc = None  # legacy: _start_llama_server removed; broker owns server
 
     print("=== ИНИЦИАЛИЗАЦИЯ ПЕСОЧНИЦЫ ===")
 
