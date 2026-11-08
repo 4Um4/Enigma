@@ -337,7 +337,8 @@
 **Ступень 2 — RE-01: M2/D → G/H → K → Полигон M**
 - [x] M2/D — ✅ S326 (ADR-O-418): `RelationshipEventSemantics` (dormant) + первый живой needs-writer через `update_needs` + формат RE-событий (4 needs-touching + канон-реестр 21; SUPERBOX 2/2). NEI — не расшифровано, вердикт Мастера: не блокер. Далее K.
 - [x] G/H — ✅ S329 (ADR-O-419): три механизма разведены — время→потребность (gen_rate в NeedSlot + фон фрустрации Фр1 по порогу rigidity + распад Фр2; контур Фазы 0.5 в run_phase_0_5 за флагом RELATIONSHIP_DYNAMICS_ENABLED default OFF; квант 3600 с = техническая дискретизация; все NPC независимо от сна), событие→потребность (O-418 + релаксационная волна Фр2 в INTIMATE_ENCOUNTER = дельта, не присваивание), SLEEP→WAKE (wake_transition_deltas no-op в _wake_from_sleep; формы не утверждены раундами — никакого reset()); pure-readout Ф1/Ф3/Ф4/С5; Cause = детерминированный uuid5; SUPERBOX re_gh_dynamics_test 2/2 (mark=46800, p=0.0542); micro 21/21; манифест +need_slot.gen_rate DEBT; книга кванта вне census (CONTAINER_DOMAINS — эскалация Мастеру). Далее K.
-- [ ] K — полный removal-test
+- [x] K.1 — ✅ S421 (dual-init устранён; V2RelationshipBackend в __init__)
+- [ ] K.2 — cosmetic: state_applicator.py:62 type-hint import
 - [ ] Полигон M — пресеты, INV-1, диф-тест раннего внимания О-2 (последний хвост Р17)
 
 **Ступень 3 — Р18 «Адаптация»** (после M2/D либо параллельно; досье не трогает рантайм)
@@ -620,7 +621,8 @@
 - [x] **M1b.5** — закрыт S322: helper удалён целиком (71384bba); legacy store — не прод-SSOT (фаза K); vestigial provider v2 — опровергнут (несущий sync-тракт); AUD-D5(б) fail-loud + тест (ec67f730/f97208b9).
 - [x] **M2/D** — ✅ S326 (ADR-O-418): `RelationshipEventSemantics` (dormant) + первый живой needs-writer через `update_needs` + формат RE-событий (4 needs-touching + канон-реестр 21; SUPERBOX 2/2).
 - [x] **G/H** — ✅ S329 (ADR-O-419): time-driven динамика (gen_rate/фон Фр1/распад Фр2) + волна Фр2 (дельта) + wake-хук no-op + Ф1/Ф3/Ф4/С5 pure-readout; SUPERBOX 2/2, IPT 51/51. След: K (removal-test).
-- [ ] **K** — полный removal-test.
+- [x] **K.1** — ✅ S421 (dual-init устранён; V2RelationshipBackend в __init__)
+- [ ] **K.2** — cosmetic: state_applicator.py:62 type-hint import
 - [ ] **Полигон M** — пресеты, INV-1, диф-тест раннего внимания **О-2** (единственный хвост Р17).
 
 ### 2.2. Р18 «Адаптация» (открытый раунд)
@@ -1508,7 +1510,9 @@ P0-сводка: собственного P0 нет (P1×3, P2×3 — целос
 - [x] **A1** RE-01 M1b.5 закрыт S322: helper удалён целиком (71384bba); legacy store — судьба по факту readers (не прод-SSOT после cutover; фаза K); vestigial provider v2 — опровергнут: несущий sync-тракт; AUD-D5(б) fail-loud + регресс-тест (ec67f730/f97208b9).
 - [x] **A2** RE-01 M2/D: ✅ S326 (ADR-O-418) — `RelationshipEventSemantics` + needs-writer + формат RE-событий; E1-потребность закрыта этим же writer'ом.
 - [x] **A3** G/H: ✅ S329 (ADR-O-419) — динамика через стор доказана (SUPERBOX 2/2).
-- [ ] **A4** K: removal-test; Полигон M: INV-1, О-2.
+- [x] **A4-K.1** ✅ S421 (dual-init устранён)
+- [ ] **A4-K.2** cosmetic: state_applicator.py:62 import
+- [ ] **A4-PoligonM** INV-1, О-2
 - [x] **A5** GC-11 ✅ S320 (ADR-O-416): L3-gate исполнен живым harness — event→V2-RAM доказан (trust 0→20 read-back стора = «delta applied» верифицирована чтением), поведенческий ноль = RED-находка RE-D2 выборка 5.
 - [ ] **A6** RE-D7: каноническая схема campaign-bootstrap JSON (отдельный ADR).
 - [ ] **A7** BC-2 → BC-3 (Эпистемический контур, §3.5): вывод меняет прогноз; прогноз меняет DecisionHub. Full-cell GC-04.

@@ -25,7 +25,10 @@ from app.services.memory.dialogue_consolidator import DialogueConsolidator
 from app.services.memory.dialogue_session import DialogueSession
 from app.services.memory.importance_engine import score_event
 from app.services.memory.promotion_engine import MemoryPromotionEngine
-from app.services.memory.relationship_store import RelationshipStore
+
+# A4-K.1 (S421): legacy RelationshipStore instance не создаётся в прод-пути.
+# Класс остаётся для 18+ тестов-фикстур (mock backend); мигратор читает JSON
+# напрямую через RelationshipStateStore.migrate_legacy_relationships (standalone reader).
 from app.services.memory.resonance_engine import ResonanceEngine
 from app.services.memory.working_memory import WorkingMemory
 from app.services.npc.perception_filter import calculate_clarity
@@ -40,15 +43,16 @@ class MemoryManager:
         import threading
         self._identity_lock = threading.RLock()
         self._working = WorkingMemory(maxlen=self.WORKING_MEMORY_SIZE)
-        # S313: dual-backend M1b.4.2 (legacy store / v2 cutover) — duck-typing
-        self._relationships: Any = RelationshipStore(data_dir=data_dir)
-        # M1b.4.2 (ADR-O-371): v2-cutover держателя. Легаси-инстанс выше
-        # создаётся для М1b.1-совместимости (существующие сейвы читаются
-        # мигратором); переключение на v2 — switch_to_v2_relationships()
-        # из конструктора GameLoop (когда существует provider-источник сцены).
-        # До switch: runtime на легаси (M1b.2-гейт); после: единственный
-        # носитель — scene_state.directed (легаси-инстанс теряет владельца).
+        # A4-K.1 (S421): S234 cutover завершён — V2 backend сразу в __init__,
+        # без создания legacy RelationshipStore-инстанса. M1b.1-совместимость
+        # обеспечивается мигратором (RelationshipStateStore.migrate_legacy_relationships
+        # — standalone JSON reader, не зависит от класса RelationshipStore).
+        # npc_provider передаётся позже через switch_to_v2_relationships()
+        # из GameLoop.__init__ (game_loop.py:144) — V2 backend переподнимается.
         self._v2_scene_ref: Dict[str, Any] = {"scene": None}
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+        _provider = lambda: self._v2_scene_ref["scene"] or {}  # noqa: E731
+        self._relationships: Any = V2RelationshipBackend(_provider, npc_provider=None)
         self._tick_counters: Dict[str, int] = {}
         self._resonance = ResonanceEngine()
         # Накопленные черты из ResonanceEngine — фактический NPCIdentityL1 (in-memory)
@@ -72,10 +76,11 @@ class MemoryManager:
         self._dialogue_consolidator = DialogueConsolidator()
 
     def switch_to_v2_relationships(self, npc_provider: Optional[Callable] = None) -> None:
-        """M1b.4.2 cutover + M1b.3.2 npc_provider: _relationships :=
-        V2RelationshipBackend (RAM-authoritative, late-bind; lazy-bootstrap
-        через npc_provider закрывает второй прод-путь входа при живой
-        сцене). Вызывается ИЗ GameLoop.__init__ до захвата подписчиками."""
+        """A4-K.1 (S###): V2 backend уже стоит с __init__ (legacy bridge убран).
+        Метод сохранён для обратной совместимости с GameLoop wiring (game_loop.py:144):
+        переподнимает V2 backend с переданным npc_provider (lazy-bootstrap для
+        второго прод-пути входа при живой сцене). Без npc_provider — no-op
+        (V2 уже стоит с __init__)."""
         from app.services.social.v2_relationship_backend import V2RelationshipBackend
 
         _provider = lambda: self._v2_scene_ref["scene"] or {}  # noqa: E731

@@ -543,3 +543,20 @@
 
 - USL-1.5: CanonicalRegistry bridge — `registry_builder.CanonicalRegistry` → input-контур
 - USL-1.6: Regression + Activation — финальные тесты, флаги, DTO Registry
+
+## S421 — A4-K.1: dual-init self._relationships устранён (RE-01)
+
+### Суть
+В MemoryManager.__init__ устранён dual-init: RelationshipStore(data_dir) заменён на V2RelationshipBackend через lazy lambda. Метод switch_to_v2_relationships() сохранён для обратной совместимости.
+
+### Тесты
+- pytest 257 passed (test_relationship_state_store + test_action_consequence_compiler + test_phase_a_memory_fixes + test_tick_orchestrator_full_loop)
+- IPT baseline: 52 passed / 2 failed (чужие CRITICAL, Branch B Avatar WIP)
+
+### ADR
+- ADR-O-438 A4-K.1 — ACTIVE
+- IMPACT: docs/audits/ADR-O-438_IMPACT.md
+
+### Pending
+- A4-K.2: cosmetic cleanup — state_applicator.py:62 type-hint import
+- A4-PoligonM: пресеты, INV-1, диф-тест О-2
