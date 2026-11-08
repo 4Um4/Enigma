@@ -560,3 +560,14 @@
 ### Pending
 - A4-K.2: cosmetic cleanup — state_applicator.py:62 type-hint import
 - A4-PoligonM: пресеты, INV-1, диф-тест О-2
+
+## S422 — A4-K.2: cosmetic cleanup state_applicator.py (RE-01)
+
+### Суть
+Import RelationshipStore перемещён из runtime (line 62) в TYPE_CHECKING блок (line 29). Type hint сохранён через PEP 563 string annotation. Runtime import устранён.
+
+### Тесты
+- pytest 207 passed (test_state_applicator_pipeline + test_relationship_state_store)
+
+### Pending
+- A4-PoligonM: пресеты, INV-1, диф-тест О-2

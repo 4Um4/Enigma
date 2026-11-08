@@ -849,7 +849,7 @@ Status: ACTIVE (USL-1.1/1.2/1.3 GREEN; USL-1.4/1.5/1.6 — pending)
 Files (full: ADR-O-437_IMPACT.md): `backend/app/domain/usl.py`, `backend/app/services/chronicle/biography_adapter.py`, `backend/app/services/input/interactive_language_adapter.py`, `backend/tests/micro/test_usl_types.py`, `backend/tests/micro/test_usl_biography_adapter.py`, `backend/tests/micro/test_usl_interactive_adapter.py`
 ADR-O-438 [STANDARD] A4-K.1: dual-init self._relationships устранён (S421, ветвь А; RE-01 track)
 Суть: В MemoryManager.__init__ устранён dual-init — RelationshipStore(data_dir) больше не создаётся в прод-пути; V2RelationshipBackend стоит сразу через lazy lambda. Метод switch_to_v2_relationships() сохранён для обратной совместимости. Класс RelationshipStore сохранён для 18+ тест-фикстур. Импорт в state_applicator.py:62 — A4-K.2 candidate.
-Status: ACTIVE (K.1 GREEN; K.2 — cosmetic, pending)
+Status: ACTIVE (K.1 + K.2 GREEN; A4-PoligonM pending)
 Files (full: ADR-O-438_IMPACT.md): backend/app/services/memory/memory_manager.py
 
 ---

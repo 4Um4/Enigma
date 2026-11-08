@@ -26,6 +26,7 @@ from dataclasses import asdict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 if TYPE_CHECKING:
+    from app.services.memory.relationship_store import RelationshipStore
     from app.models.npc.beliefs import BeliefDelta
     from app.services.npc.resolution_engine import ResolutionOutcome
 
@@ -59,7 +60,6 @@ from app.models.physical import (
 )
 from app.models.psychological import CausalEntry, Cause
 from app.models.state_delta import DeltaDomain, StateDeltas
-from app.services.memory.relationship_store import RelationshipStore
 from app.services.npc.decision_hub import DecisionResult
 from app.services.npc.kernel_rng import KernelRNG
 from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
