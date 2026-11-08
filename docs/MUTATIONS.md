@@ -269,6 +269,8 @@
 
 - **S419** LLM Runtime Unification Этап 5 (production integration): game_launcher.py (`0cc44230`) + main.py (`e54b74ce`) migrated to Host broker SDK — _ensure_llm_running → ensure_llm(label="game", pinned=True); _background_llm_startup → ensure_llm(label="backend"); shutdown terminate → release_lease(); port-scan LLM port excluded; release_lease before os._exit; readiness.py NO changes; d61 DEFERRED (broker /restart, Этап 4 PROPOSAL) · IPT 52/2 (0 regressions) · e2e pending · Anti-Race: pathspec-only
 
+- **S420** LLM Runtime Unification Этап 6 (SSOT port + legacy cleanup, `9145ead8`): direct_llm_client hardcoded URL → settings; test_llm runtime_ports 8080 → settings.llama_cpp_port; runtime_ports.py + runtime_config.py DEPRECATED; logs/spawn_prod_llama.py deleted; system tests _start_llama_server → ensure_llm · Criterion: 0 taskkill/Stop-Process (met); hardcoded 8181 reduced in production code (scripts/tests lower priority — follow-up) · IPT 52/2 (0 regressions) · Anti-Race: pathspec-only · LLM Runtime Unification Этапы 0-6 COMPLETE (d61 deferred — broker /restart)
+
 ## 3. Живые хвосты (открытое; владелец обязателен)
 
 ### Эскалации Мастеру (решения вне компетенции преемника)
