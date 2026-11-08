@@ -89,7 +89,7 @@ Player → Lusya → Tornin → Borko
 | CC-01 | ✅ → ⚠️ | EpistemicStore хранит belief от PLAYER_INSULTS + **B4: through game loop** | confidence=0.215 < 0.25 threshold → cognition context empty |
 | CC-02 | ⚠️ → ✅ | Provenance chain test + **B4: membrane proven (COMMUNICATION_CLAIM delivered Lusya→Tornin)** | belief revision через membrane не isolated |
 | CC-03 | ⚠️ → ✅ | Provenance chain + report targeting + cold-start + **B4: full game loop end-to-end** | — |
-| CC-04 | ⚠️ | CognitionContextResolver читает EpistemicStore + **B4: idle ticks tested** | cognition context empty for Tornin (confidence < 0.25) |
+| CC-04 | ✅ | CognitionContextResolver читает EpistemicStore + **B4-R13: cog_block доходит до ModelRouter** + **B4-R14: Knowledge/Communication separation (produces_claim gate, commit b16bb9a7)** | применительно к доказанной доставке cog_block в ModelRouter + развязке знания и коммуникации |
 | CC-05 | ❌ | Cognition block feed DMFrame (L412) | Не верифицирован с LLM |
 | CC-06 | ⚠️ | Round-trip serialization test | Не через SQLite save/load |
 | CC-07 | ⚠️ → ✅ | Sound gate SSOT + membrane filter + **B4: in full game loop** | — |
@@ -228,6 +228,31 @@ ticks 7, 10, 12: template fallback
 
 - `backend/tests/gameplay/data/b4_transcript.json` — full structured transcript
 - stdout: ALL NPC SPEECH + TORNIN REACTIONS + LUSYA → TORNIN + HYPOTHESES
+
+### 9.6. B4-R13/R14: PROMPT_INJECTION + Knowledge/Communication separation
+
+**Commit:** `82eb0495` (WIP, незакоммиченный late wiring)
+**Метод:** TavernGameplayHarness + canonical PLAYER_INSULTS + transparent router recorder
+
+Три независимых вердикта — ВСЕ PASS:
+- RESOLVER_PASS: resolve_block вернул текст с полным provenance
+- INJECTION_PASS: cog_block маркеры найдены в user_prompt (36/41)
+- ROUTER_PASS: Router фактически получил prompts с cog_block маркерами
+
+Production-path полностью работает. Cog_block с provenance доходит до ModelRouter.
+
+B4-R8 расхождение — открыто. B4-R9 — отдельный прогон с неверным payload (не связан с B4-R8).
+
+B4-R14-A: NO SAFE EXISTING MECHANISM для изоляции одной Proposition в EpistemicStore.
+B4-R14-B: альтернатива Мастера — тестовый адаптер на границе ModelRouter.
+
+**B4-R14 (2026-11-08): Knowledge/Communication separation — CLOSED**
+**Commit:** `b16bb9a7`
+**Change:** гейт `if produces_claim(intent_value):` вокруг извлечения Proposition в `decision_hub.py` (39 строк). Non-claim интенты не получают Proposition автоматически — NPC знает, но не сообщает. Claim интенты сохраняют.
+**Доказательства:** 7/7 unit test PASS, B5-F1.1 A/B PASS, cold-start 4/4 PASS.
+**Регрессии (pre-existing):** P5A (LLM infra), B4 test (cognition context).
+
+B4-R14-A/B: superseded by B4-R14 gate.
 
 ---
 

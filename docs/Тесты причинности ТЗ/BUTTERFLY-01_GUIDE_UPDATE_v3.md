@@ -108,7 +108,7 @@ DialogueExecutor.execute() → _generate_with_router → LLM (Hermes-3):
 | CC-01 | ✅ → ⚠️ | **B4: belief stored after PLAYER_INSULTS through game loop** — но confidence=0.215 < 0.25 threshold |
 | CC-02 | ⚠️ | **B4: membrane proven (COMMUNICATION_CLAIM delivered Lusya→Tornin)** — но belief revision через membrane не isolated |
 | CC-03 | ✅ | **B4: full game loop proven end-to-end** — Lusya speaks → verifier YES → claim → Tornin receives |
-| CC-04 | ⚠️ | **B4: idle ticks tested (advance_ticks 2+10)** — но cognition context empty for Tornin (confidence < 0.25) |
+| CC-04 | ⚠️ → ✅ | **B4: idle ticks tested** + **B4-R14: Knowledge/Communication separation (produces_claim gate, commit b16bb9a7)** — cog_block delivery proven, развязка доказана; cognition context empty (confidence < 0.25) — отдельная calibration проблема |
 | CC-05 | ❌ | DMFrame не верифицирован с LLM |
 | CC-06 | ⚠️ | Не через SQLite save/load |
 | CC-07 | ✅ | **B4: sound gate + membrane in full game loop** — claim delivered through production membrane |
@@ -256,6 +256,46 @@ B4 test FAILED с 2 criteria not met:
 **Да, голос есть. Но он не про оскорбление.** Tornin зол (ANGRY), говорит Lusya, но его слова — про ночные крики. Он услышал слух, отреагировал эмоционально, но не смог сформулировать реакцию на оскорбление. Cognition gate (confidence < 0.25) блокирует использование insult proposition для генерации речи.
 
 Это не дефект Tornin. Это **cognition calibration issue** — следующий приоритет (B4-COGNITION).
+
+## 8. B4-R13: production-path PROMPT_INJECTION verification (2026-11-08)
+
+**Commit:** `82eb0495` (WIP, незакоммиченный late wiring)
+**Метод:** TavernGameplayHarness + canonical PLAYER_INSULTS + transparent router recorder
+**LLM:** Production ModelRouter (Hermes-3-Llama-3.1-8B)
+
+### 8.1. Три независимых вердикта — ВСЕ PASS
+
+| Вердикт | Результат | Доказательство |
+|---|---|---|
+| RESOLVER_PASS | ✅ True | resolve_block вернул текст с полным provenance |
+| INJECTION_PASS | ✅ True | cog_block маркеры найдены в user_prompt (36/41) |
+| ROUTER_PASS | ✅ True | Router фактически получил prompts с cog_block маркерами |
+
+### 8.2. Production-path полностью работает
+
+Cog_block с provenance (source_id, original_source_id, confidence, source_type) действительно формируется CognitionContextResolver и доходит до ModelRouter через production-path dialogue_executor.py:599-611 → _generate_with_router → router.request_for_agent.
+
+Доказано transparent router recorder'ом: 36 из 41 LLM-вызовов Торнина содержат маркеры.
+
+### 8.3. B4-R8 расхождение — открыто
+
+Доказано: текущий production-path работает. Не доказано: почему в B4-R8 лог промптов не содержал cog_block. Причина расхождения артефактов остаётся открытой. Особенно существенна разница временных меток файлов (llm_full_prompts.jsonl 14:29 vs enigma_audit.jsonl 15:27).
+
+### 8.4. B4-R9 — отдельный прогон
+
+B4-R9 не создал belief из-за неверного payload ключа (victim вместо target_id). Это не доказывает, что B4-R8 использовал неверный payload. B4-R9 — диагностический сценарий с собственной ошибкой, не связанный с B4-R8 артефактами.
+
+### 8.5. B4-R14-A — аудит изоляции belief (superseded by B4-R14 gate)
+
+Вердикт: NO SAFE EXISTING MECHANISM. EpistemicStore не имеет штатного API для удаления/изоляции одной Proposition. PLAYER_INSULTS создаёт 4 побочных эффекта (belief + stress + fear + trust + social), которые нельзя разделить через существующие механизмы.
+
+**Статус:** superseded by B4-R14 gate (commit `b16bb9a7`). Развязка решена через produces_claim гейт — non-claim интенты не получают Proposition, claim интенты сохраняют. 7/7 PASS, A/B PASS.
+
+### 8.6. B4-R14-B — альтернатива Мастера (superseded by B4-R14 gate)
+
+Тестовый адаптер на границе ModelRouter: одинаковая игровая история (PLAYER_INSULTS + belief + stress/fear/trust), но cog_block исключён из user_prompt в Control A. Это позволяет проверить когнитивное влияние, не ломая архитектуру хранилища убеждений. Условие валидности: claim_block не должен утекать факт оскорбления в Control A.
+
+**Статус:** superseded by B4-R14 gate (commit `b16bb9a7`). Развязка в production code, не через тестовый адаптер.
 
 ---
 
