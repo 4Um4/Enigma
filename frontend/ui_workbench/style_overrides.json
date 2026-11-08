@@ -454,7 +454,7 @@
       }
     }
   },
-  "target": "journal",
+  "target": "time_scale",
   "role": "text",
   "global": true,
   "window_global": {

@@ -32,6 +32,11 @@ ROAD_MAP_MUSOR/
 .venv/
 venv/
 .venv311/
+
+# Type check / test caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
 # OS
 .DS_Store
 Thumbs.db

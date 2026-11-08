@@ -382,9 +382,19 @@ class TurnPipeline:
                 dialogue_session=_dialogue_session
             )
 
-            # S201/S202: Публикуем SOCIAL_ACTION в EventBus для наблюдателей
-            _action_val = _semantic_field.action.value if _semantic_field.action else "UNCERTAIN"
-            if _action_val in ("ATTACK", "THREATEN", "DIALOGUE", "STEAL", "GIVE"):
+            # Step 3.2 Stage C2b: SOCIAL_ACTION публикуется только при
+            # BodyArbiter AUTHORIZED и WV не отклонил. Fail-closed.
+            # Перемещено после BodyArbiter (tp:465) и WV (tp:466).
+            # Раньше публиковалось до арбитража — projections (ACTOR_ATTACKS,
+            # COMMUNICATION_CLAIM) создавали факты для неавторизованного действия.
+            _sem_action_val = _semantic_field.action.value if _semantic_field else "UNCERTAIN"
+            _arb_authorized = True  # Fallback: BodyArbiter не запущен — публикуем (см. tp:884)
+            _wv_rejected = False
+            if (
+                _sem_action_val in ("ATTACK", "THREATEN", "DIALOGUE", "STEAL", "GIVE")
+                and _arb_authorized
+                and not _wv_rejected
+            ):
                 from app.domain.events import EventDTO
                 from app.services.events.event_bus import get_event_bus
 
@@ -398,7 +408,7 @@ class TurnPipeline:
                     }
 
                 _payload = {
-                    "action": _action_val,
+                    "action": _sem_action_val,
                     "actor": _semantic_field.actor or "player",
                     "target": _semantic_field.target or shared_context.player_target_id or "",
                     "speech_act": _semantic_field.speech_act.value if _semantic_field.speech_act else "assert",
@@ -427,6 +437,57 @@ class TurnPipeline:
                 semantic_field=_semantic_field,
             )
             shared_context.intent_resolution = _resolution
+
+            # Step 3.1: Player Intent Identity — симметрия с AvatarIntentRecord.
+            # Player Intent получает детерминированный intent_id через
+            # next_intent_identity + IntentIdentity.for_player_input,
+            # записывается в scene_state["intent_lifecycle"] (canonical store).
+            # Continuity: тот же (action, target) → тот же intent_id (как Avatar).
+            # НЕ urgency=1.0 (Master test 9) — urgency=None, BodyArbiter решает.
+            #
+            # Step 3.1-Final: fail-open diagnostics — BodyArbiter различает:
+            #   - intent_id is not None → намерение сформировано
+            #   - intent_id is None AND error is None → намерения нет
+            #   - intent_id is None AND error is not None → ошибка формирования
+            # На exception: voided_player_intents (stale cleanup, как Avatar).
+            shared_context.player_intent_id = None
+            shared_context.player_intent_error = None
+            try:
+                from app.services.avatar.player_intent_formation import (
+                    store_player_intent,
+                    voided_player_intents,
+                )
+
+                _player_intent_id = store_player_intent(
+                    scene_state=scene_state,
+                    player_name=_player_name,
+                    action=shared_context.action_type or "player_interacts",
+                    target=shared_context.player_target_id or "",
+                    tick=shared_context.current_tick or 0,
+                )
+                shared_context.player_intent_id = _player_intent_id
+            except Exception as _err:
+                logger.warning(f"[PLAYER_INTENT] formation fault: {_err}")
+                shared_context.player_intent_error = str(_err)
+                # Stale cleanup: активный Player intent → VOIDED, не остаётся
+                # доступным как актуальный после ошибки формирования.
+                voided_player_intents(scene_state, shared_context.current_tick or 0)
+
+            # Step 3.2 Stage C: BodyArbiter — авторизация намерений Player и Avatar.
+            # Вызывается после Player Intent Identity, до WV.
+            # DEFERRED не запускает физические и социальные эффекты.
+            # AUTHORIZED сохраняет существующий путь исполнения.
+            # Не меняет DM Stage E, NPC pipeline, ACTOR_ATTACKS, INPUT_MERGE.
+            shared_context.body_arbiter_result = None
+            try:
+                from app.services.body_arbiter import BodyArbiter
+
+                _arbiter = BodyArbiter()
+                _arb_result = _arbiter.authorize(scene_state, shared_context.current_tick or 0)
+                shared_context.body_arbiter_result = _arb_result
+            except Exception as _arb_err:
+                logger.warning(f"[BODY_ARBITER] fault: {_arb_err}")
+                shared_context.body_arbiter_result = None
 
             # ── WV-2/3: World Validation ДО DM-нарратива (каузальность вердикта:
             # понять → проверить мир → отказ/исполнение). Канал отказа —
@@ -480,8 +541,29 @@ class TurnPipeline:
 
             # ADR-O-330: Player MOVE action creates MacroMovementGoal for MovementEngine
             # Если игрок пишет "подойти к [NPC]", мы должны найти узел NPC и двигаться к нему.
+            # Step 3.2 Stage C2a: Gate Player MOVE by BodyArbiter + WV.
+            # DEFERRED or WV rejected → movement blocked.
+            # Step 3.2 Stage C2a-R1: fail-closed — ошибка BodyArbiter блокирует
+            # исполнение, не разрешает его. Fallback на True небезопасен.
+            from app.services.body_arbiter import AuthorizationDecision, AuthorizationResult
+
+            _arb_result_raw: AuthorizationResult | None = getattr(
+                shared_context, "body_arbiter_result", None
+            )
+            _arb_authorized = False  # Default: blocked (fail-closed)
+            if _arb_result_raw is not None:
+                _arb_authorized = (
+                    _arb_result_raw.player_decision == AuthorizationDecision.AUTHORIZED
+                )
+            _wv_rejected = getattr(shared_context, "action_rejected", False)
+
             _sem_action_val = _semantic_field.action_type.value if _semantic_field else ""
-            if _sem_action_val == "MOVE" and shared_context.player_target_id:
+            if (
+                _sem_action_val == "MOVE"
+                and shared_context.player_target_id
+                and _arb_authorized
+                and not _wv_rejected
+            ):
                 _target_id = shared_context.player_target_id
                 _target_pos = scene_state.get("npc_positions", {}).get(_target_id, {}).get("position", "")
                 if _target_pos:
@@ -493,14 +575,11 @@ class TurnPipeline:
                         reason="player_action:approach",
                         priority=1.0
                     )
-                    # Z-фикс: носитель — shared_context (тик получает его для
-                    # активной локации и сеет в свой ctx.movement_intents).
-                    # _TickContext-путь был мёртв: мост читает ctx тика, не этот.
                     shared_context.pending_movement_intents.append(_player_goal)
                     logger.warning(f"[PLAYER_MOVE] Injected MacroMovementGoal for player -> {_target_pos}")
-                    print(f"[Z-ID] inject id={id(shared_context)} pending={len(shared_context.pending_movement_intents)}")
 
-            if self.mvp_controller:
+            # Step 3.2 Stage C2a: Gate MvpController by BodyArbiter + WV.
+            if self.mvp_controller and _arb_authorized and not _wv_rejected:
                 # S199: Уничтожен раздвоенный semantic authority.
                 # MvpTavernController теперь получает PlayerAction через bridge из расширенного IntentSemanticField.
                 from app.services.player_cognition.legacy_bridge import intent_to_player_action
@@ -800,7 +879,26 @@ class TurnPipeline:
             # ADR-091 FIX: Публикация ПОСЛЕ intent_resolution (иначе _semantic_action=None).
             # WV/вердикт: несовершённое действие не публикуется как событие
             # (попытка ≠ событие; свидетели не получают вер о несостоявшемся ударе).
-            if dm_result.is_valid and not getattr(shared_context, "action_rejected", False):
+            #
+            # Step 3.2 Stage C: BodyArbiter gating.
+            # DEFERRED Player Intent не запускает publish_classified_player_event.
+            # AUTHORIZED сохраняет существующий путь исполнения.
+            # Если BodyArbiter не запущен (fault) — fallback на существующий
+            # action_rejected gate (обратная совместимость).
+            _arb_result = getattr(shared_context, "body_arbiter_result", None)
+            _arb_authorized = True  # Default: authorized (fallback)
+            if _arb_result is not None:
+                from app.services.body_arbiter import AuthorizationDecision
+
+                _arb_authorized = (
+                    _arb_result.player_decision == AuthorizationDecision.AUTHORIZED
+                )
+
+            if (
+                dm_result.is_valid
+                and not getattr(shared_context, "action_rejected", False)
+                and _arb_authorized
+            ):
                 publish_classified_player_event(
                     shared_context,
                     location,

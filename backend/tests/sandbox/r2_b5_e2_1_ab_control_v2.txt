@@ -1,0 +1,214 @@
+==============================================================================
+R2-B5-E2.1 v2 — Paired A/B control experiment (robust log capture)
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_e2_1_ab_control_v2.txt
+==============================================================================
+
+DESIGN:
+  Control A:    fresh build, NO PLAYER_INSULTS, run idle_tick
+  Experiment B: fresh build, WITH PLAYER_INSULTS, run idle_tick
+  Compare maid_lusya DecisionHub outputs
+
+v2 FIXES from v1:
+  - Re-install log capture AFTER each build_game_loop
+  - Attach handler to specific loggers (not just root)
+  - Force propagate=True
+
+
+==============================================================================
+RUN A — CONTROL (no PLAYER_INSULTS)
+==============================================================================
+  temp dir: C:\Users\lipir\AppData\Local\Temp\r2_b5_e2_1_A_qa8vcbrw
+  A: loaded 6 NPCs
+  A: store.get('maid_lusya', expected_prop) = None
+  A: ctx.report_proposition (pre-tick) = None
+  A: ctx.max_confidence (pre-tick) = 0.0
+
+  A: calling loop.idle_tick('Open_road', 'tavern') ...
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+  A: idle_tick returned type=dict
+  A: captured 1315 log entries
+  A: first 10 log entries:
+    [DEBUG] app.services.scene_state_manager: [LOAD] campaign=Open_road recog_keys=[]
+    [DEBUG] app.services.scene_state_manager: [LOAD] campaign=Open_road recog_keys=[]
+    [DEBUG] app.services.scene_state_manager: [SCENE_REHYDRATE] NEW dict id=2092612200896 from persistence caller=C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\scene_init.py:448 trav_keys=
+    [DEBUG] app.services.scene_state_manager: [SCENE_REHYDRATE] NEW dict id=2092612200896 from persistence caller=C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\scene_init.py:448 trav_keys=
+    [INFO] app.services.scene_state.editor_locator: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+    [INFO] app.services.scene_state.editor_locator: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+    [DEBUG] app.services.spatial.graph_compiler: [GRAPH_COMPILER] Orphan room 'room_1' пропущена (nav layer active).
+    [DEBUG] app.services.spatial.graph_compiler: [GRAPH_COMPILER] Orphan room 'room_1' пропущена (nav layer active).
+    [DEBUG] app.services.spatial.graph_compiler: [GRAPH_COMPILER] Orphan room 'room_0' пропущена (nav layer active).
+    [DEBUG] app.services.spatial.graph_compiler: [GRAPH_COMPILER] Orphan room 'room_0' пропущена (nav layer active).
+  A: parsed maid_lusya data: [('why_decision', 'dict'), ('decision_hub_return', 'dict'), ('decision_hub_main', 'dict'), ('break_progress', 'dict'), ('emotion_emergent', 'dict'), ('break_records', 'list'), ('diag_score_all', 'dict'), ('diag_risk_atk_records', 'list'), ('causal_slice_grievance', 'dict')]
+
+==============================================================================
+RUN B — EXPERIMENT (WITH PLAYER_INSULTS)
+==============================================================================
+  temp dir: C:\Users\lipir\AppData\Local\Temp\r2_b5_e2_1_B_h3oienqz
+  B: loaded 6 NPCs
+  B (pre-publish): store.get('maid_lusya', expected_prop) = None
+  B (pre-publish): ctx.report_proposition = None
+  B: PLAYER_INSULTS published
+  B (post-publish): store.get('maid_lusya', expected_prop).confidence = 0.5
+  B (post-publish): ctx.report_proposition = Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True)
+  B (post-publish): ctx.max_confidence = 0.5
+
+  B: calling loop.idle_tick('Open_road', 'tavern') ...
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+  B: idle_tick returned type=dict
+  B: captured 1153 log entries
+  B: first 10 log entries:
+    [DEBUG] app.services.scene_state_manager: [LOAD] campaign=Open_road recog_keys=[]
+    [DEBUG] app.services.scene_state_manager: [LOAD] campaign=Open_road recog_keys=[]
+    [DEBUG] app.services.scene_state_manager: [SCENE_REHYDRATE] NEW dict id=2092693982720 from persistence caller=C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\scene_init.py:448 trav_keys=
+    [DEBUG] app.services.scene_state_manager: [SCENE_REHYDRATE] NEW dict id=2092693982720 from persistence caller=C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\scene_init.py:448 trav_keys=
+    [INFO] app.services.scene_state.editor_locator: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+    [INFO] app.services.scene_state.editor_locator: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+    [INFO] app.services.scene_state.editor_locator: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+    [INFO] app.services.scene_state.editor_locator: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+    [DEBUG] app.services.spatial.graph_compiler: [DIAG_SPLIT] wall_7 openings=1 segments=2
+    [DEBUG] app.services.spatial.graph_compiler: [DIAG_SPLIT] wall_7 openings=1 segments=2
+  B: parsed maid_lusya data: [('why_decision', 'dict'), ('decision_hub_return', 'dict'), ('decision_hub_main', 'dict'), ('break_progress', 'dict'), ('emotion_emergent', 'dict'), ('break_records', 'list'), ('diag_score_all', 'dict'), ('diag_risk_atk_records', 'list'), ('causal_slice_grievance', 'dict')]
+
+==============================================================================
+Sanity check: data for ALL NPCs (B only)
+==============================================================================
+  maid_lusya:
+    winner: seek_ally (0.348)
+    top3: N/A
+    [DECISION_HUB]: intent=Intent.seek_ally score=0.348
+    [DECISION_HUB_RETURN]: intent=Intent.SEEK_ALLY comm_built=False epistemic_context=YES
+  guard_borko:
+    winner: spread_rumor (0.988)
+    top3: [('spread_rumor', 0.99), ('block_path', 0.48), ('talk', 0.41)]
+    [DECISION_HUB]: intent=Intent.spread_rumor score=0.988
+    [DECISION_HUB_RETURN]: intent=Intent.SPREAD_RUMOR comm_built=True epistemic_context=YES
+  merchant_goran:
+    winner: change_role (0.407)
+    top3: [('change_role', 0.41), ('seek_ally', 0.2), ('help', 0.01)]
+    [DECISION_HUB]: intent=Intent.change_role score=0.407
+    [DECISION_HUB_RETURN]: intent=Intent.CHANGE_ROLE comm_built=True epistemic_context=YES
+  blacksmith_orm:
+    winner: change_role (0.387)
+    top3: [('change_role', 0.39), ('seek_ally', 0.14), ('trade', -0.04)]
+    [DECISION_HUB]: intent=Intent.change_role score=0.387
+    [DECISION_HUB_RETURN]: intent=Intent.CHANGE_ROLE comm_built=True epistemic_context=YES
+  thief_shadow:
+    winner: observe (0.279)
+    top3: N/A
+    [DECISION_HUB]: intent=Intent.observe score=0.279
+    [DECISION_HUB_RETURN]: intent=Intent.OBSERVE comm_built=False epistemic_context=YES
+  tavern_keeper_tornin:
+    winner: seek_ally (0.272)
+    top3: N/A
+    [DECISION_HUB]: intent=Intent.seek_ally score=0.272
+    [DECISION_HUB_RETURN]: intent=Intent.SEEK_ALLY comm_built=False epistemic_context=YES
+
+==============================================================================
+A vs B COMPARISON — maid_lusya
+==============================================================================
+
+  === DecisionHub winner ===
+  A winner: seek_ally (score=0.348)
+  B winner: seek_ally (score=0.348)
+  winner changed: False
+
+  === Top 3 intents (with scores) ===
+  A top3: []
+  B top3: []
+
+  SPREAD_RUMOR score:
+    A: NOT IN TOP3
+    B: NOT IN TOP3
+
+  SEEK_ALLY score:
+    A: NOT IN TOP3
+    B: NOT IN TOP3
+
+  === fear_drive ===
+  A fear_drive: 0.45
+  B fear_drive: 0.45
+  delta: +0.0000
+
+  === social_pressure (BREAK_PROGRESS) ===
+  A: trust_min=-40.0 fear_max=60.0 social_pressure=20.0
+  B: trust_min=-40.0 fear_max=60.0 social_pressure=20.0
+
+  === emotion_emergent ===
+  A: emotion=fearful social_pressure=20.0
+  B: emotion=fearful social_pressure=20.0
+
+  === grievance (CAUSAL_SLICE_GRIEVANCE) ===
+  A: desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.168, 'warn': 0.045, 'spread_rumor': 0.49, 'call_for_help': 0.0}
+  B: desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.168, 'warn': 0.045, 'spread_rumor': 0.49, 'call_for_help': 0.0}
+
+  === [BREAK] records (resistance progression) ===
+  A: 3 BREAK records
+    {'npc': 'maid_lusya', 'stage': 'resistance', 'integrity': 1.0, 'integrity_delta': -0.0022, 'pressure': 13.3}
+    {'npc': 'maid_lusya', 'stage': 'resistance', 'integrity': 1.0, 'integrity_delta': -0.0022, 'pressure': 13.3}
+    {'npc': 'maid_lusya', 'stage': 'resistance', 'integrity': 1.0, 'integrity_delta': -0.0022, 'pressure': 13.3}
+  B: 3 BREAK records
+    {'npc': 'maid_lusya', 'stage': 'resistance', 'integrity': 0.998, 'integrity_delta': -0.0022, 'pressure': 13.3}
+    {'npc': 'maid_lusya', 'stage': 'resistance', 'integrity': 0.998, 'integrity_delta': -0.0022, 'pressure': 13.3}
+    {'npc': 'maid_lusya', 'stage': 'resistance', 'integrity': 0.998, 'integrity_delta': -0.0022, 'pressure': 13.3}
+
+  === [DIAG_RISK_ATK] records ===
+  A: 6 records
+    {'npc': 'maid_lusya', 'fear': 0.0, 'risk': 1.0, 'perceived_threat': 0.0}
+    {'npc': 'maid_lusya', 'fear': 0.0, 'risk': 1.0, 'perceived_threat': 0.0}
+    {'npc': 'maid_lusya', 'fear': 0.0, 'risk': 1.0, 'perceived_threat': 0.0}
+    {'npc': 'maid_lusya', 'fear': 0.0, 'risk': 1.0, 'perceived_threat': 0.0}
+    {'npc': 'maid_lusya', 'fear': 0.0, 'risk': 1.0, 'perceived_threat': 0.0}
+  B: 6 records
+    {'npc': 'maid_lusya', 'fear': 0.0, 'risk': 1.0, 'perceived_threat': 0.0}
+    {'npc': 'maid_lusya', 'fear': 0.0, 'risk': 1.0, 'perceived_threat': 0.0}
+    {'npc': 'maid_lusya', 'fear': 0.0, 'risk': 1.0, 'perceived_threat': 0.0}
+    {'npc': 'maid_lusya', 'fear': 0.0, 'risk': 1.0, 'perceived_threat': 0.0}
+    {'npc': 'maid_lusya', 'fear': 0.0, 'risk': 1.0, 'perceived_threat': 0.0}
+
+  === WHY/DECISION components (winner's components) ===
+  A comps: {'drive': 0.26, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.0, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'redirect': 0.0, 'noise': 0.088}
+  B comps: {'drive': 0.26, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.0, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'redirect': 0.0, 'inertia': 0.0, 'noise': 0.088}
+
+  component delta (B - A):
+    drive                A=+0.2600  B=+0.2600  delta=+0.0000
+    emotion              A=+0.0000  B=+0.0000  delta=+0.0000
+    inertia              A=+0.0000  B=+0.0000  delta=+0.0000
+    noise                A=+0.0880  B=+0.0880  delta=+0.0000
+    opportunity          A=+0.0000  B=+0.0000  delta=+0.0000
+    redirect             A=+0.0000  B=+0.0000  delta=+0.0000
+    relationship         A=+0.0000  B=+0.0000  delta=+0.0000
+    risk_penalty         A=-0.0000  B=-0.0000  delta=+0.0000
+    social               A=+0.0000  B=+0.0000  delta=+0.0000
+    trait                A=+0.0000  B=+0.0000  delta=+0.0000
+
+  === threshold, pressure, accumulated ===
+  A: threshold=0.15 pressure=0.348 accumulated=0.0
+  B: threshold=0.15 pressure=0.0 accumulated=0.0
+
+  === [DECISION_HUB_RETURN] ===
+  A: intent=Intent.SEEK_ALLY comm_built=False epistemic_context=YES
+  B: intent=Intent.SEEK_ALLY comm_built=False epistemic_context=YES
+
+  === [EPISTEMIC_REPORT_TARGET] ===
+  A: None
+  B: None
+
+==============================================================================
+VERDICT — B5-E2.1 paired A/B
+==============================================================================
+  A winner: seek_ally (0.348)
+  B winner: seek_ally (0.348)
+  A SPREAD_RUMOR score: None
+  B SPREAD_RUMOR score: None
+
+  >>> VERDICT: needs manual inspection of comparison above

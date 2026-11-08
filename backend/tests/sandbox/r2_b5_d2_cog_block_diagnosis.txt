@@ -1,0 +1,210 @@
+==============================================================================
+R2-B5-D2 — Cognition Block Diagnosis (B4-R8 read-only diagnostic)
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d2_cog_block_diagnosis.txt
+==============================================================================
+
+Цель: доказать, что тот же экземпляр EpistemicStore, содержащий
+убеждение Торнина, реально доступен DialogueExecutor во время
+формирования cognition block.
+
+Запреты соблюдены:
+  - production-код не меняется
+  - второй EpistemicStore не создаётся
+  - убеждение не внедряется вручную (только через PLAYER_INSULTS)
+  - confidence thresholds не меняются
+  - NPC не принуждается к spread_rumor
+  - PropositionVerifier не меняется
+  - claim block / polarity / topic / scoring / prompt — не тронуты
+  - B4-R1 не запускается
+  - существующие артефакты не удаляются (новый файл)
+
+
+==============================================================================
+PHASE 1: Build game loop with log capture
+==============================================================================
+  temp_dir: C:\Users\lipir\AppData\Local\Temp\r2_b5_d2_cog_block_i97_tzmp
+  settings.data_dir: C:\DDD\Codex\VSC_Enigma\Enigma\backend\data
+  settings.saves_dir: C:\Users\lipir\AppData\Local\Temp\r2_b5_d2_cog_block_i97_tzmp
+
+  Calling build_game_loop(settings.data_dir)...
+  build_game_loop returned: GameLoop
+
+==============================================================================
+PHASE 2: Inspect post-build state
+==============================================================================
+--- 2.1: Log records during build (Epistemic Core registration) ---
+  No log records matching 'epistemic core' / 'failed to register' / '[game_loop]' / 'epistemic'
+
+--- 2.2: tick_orch._epistemic_store ---
+  loop._tick_orch: <app.services.tick_orchestrator.TickOrchestrator object at 0x00000233CAEA6E40>
+  tick_orch._epistemic_store: <app.services.npc.epistemic_store.EpistemicStore object at 0x00000233CE02FCB0>
+    type: EpistemicStore
+    id: 2421522889904
+    is None: False
+    class: app.services.npc.epistemic_store.EpistemicStore
+
+--- 2.3: Production DialogueExecutor._epistemic_store ---
+  task_scheduler: <app.services.game_loop.task_scheduler.TaskScheduler object at 0x00000233CAFA2E40>
+  task_scheduler._executors: {<TaskKind.DIALOGUE: 'dialogue'>: <app.services.execution.dialogue_executor.DialogueExecutor object at 0x00000233CAFA3CB0>}
+  DialogueExecutor: <app.services.execution.dialogue_executor.DialogueExecutor object at 0x00000233CAFA3CB0>
+  dialogue_executor._epistemic_store: <app.services.npc.epistemic_store.EpistemicStore object at 0x00000233CE02FCB0>
+    type: EpistemicStore
+    id: 2421522889904
+    is None: False
+    class: app.services.npc.epistemic_store.EpistemicStore
+  dialogue_executor._memory_manager: <app.services.memory.memory_manager.MemoryManager object at 0x00000233CA947230>
+    is None: False
+    type: MemoryManager
+
+--- 2.4: Production code reference (dialogue_executor.py:599-611) ---
+  Source: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\execution\dialogue_executor.py
+  Lines 599-611 (cognition block construction in _generate_with_router):
+  L 599:         if self._epistemic_store is not None and self._memory_manager is not None:
+  L 600:             try:
+  L 601:                 from app.services.npc.cognition_context import CognitionContextResolver
+  L 602:                 _cog = CognitionContextResolver(
+  L 603:                     self._memory_manager,
+  L 604:                     epistemic_store=self._epistemic_store,
+  L 605:                     context_provider=lambda npc_id: self._get_context(task.campaign_id, npc_id),
+  L 606:                 )
+  L 607:                 _cog_block = _cog.resolve_block(task.owner_id, req.target_id or "player")
+  L 608:                 if _cog_block:
+  L 609:                     user_prompt += "\n" + _cog_block + "\n"
+  L 610:             except Exception as _cog_e:
+  L 611:                 logger.warning(f"[DIALOGUE_EXEC] cognition block failed: {_cog_e}")
+
+
+==============================================================================
+PHASE 3: Instance identity check (tick_orch vs DialogueExecutor)
+==============================================================================
+  Both stores present. Checking identity...
+    tick_orch store id: 2421522889904
+    DE store id:        2421522889904
+    'is' operator: True
+    id() equality: True
+  >>> SAME INSTANCE — wiring is correct (H1 REFUTED)
+
+
+==============================================================================
+PHASE 4: Publish PLAYER_INSULTS (production event path)
+==============================================================================
+  This is the production event path for creating Tornin's belief.
+  Not manual injection — uses real EventBus + ClaimEventSubscriber.
+
+  EventBus: <app.services.events.event_bus.EventBus object at 0x00000233CA9474D0>
+  EventType imported from app.services.events.event_types
+  EventDTO imported from: app.domain.events
+  EventDTO.__init__ signature: (self, id: 'UUID', type: 'str', source: 'str', timestamp: 'float', payload: 'Dict[str, Any]', visibility: "Literal['public', 'private', 'whisper']", radius: 'float', persistence_level: "Literal['working', 'session', 'campaign']") -> None
+  EventDTO.create signature: (event_type: 'str', source: 'str', payload: 'Dict[str, Any]', *, visibility: "Literal['public', 'private', 'whisper']" = 'public', radius: 'float' = 999.0, persistence_level: "Literal['working', 'session', 'campaign']" = 'session', timestamp: 'float' = 0.0, ordinal: 'int' = 0, event_id: 'UUID | None' = None) -> "'EventDTO'"
+  Event constructed via kwargs
+  Event: type=player_insults, source=player
+    payload={'victim': 'tavern_keeper_tornin', 'insult_text': 'Торнин, ты жалкий трус!', 'severity': 0.8}
+
+  Publishing to EventBus (synchronous, subscribers process immediately)...
+  Publish returned.
+
+
+==============================================================================
+PHASE 5: Tornin's belief in tick_orch._epistemic_store
+==============================================================================
+  tick_orch_store.get_all_for_agent('tavern_keeper_tornin'):
+    count: 0
+
+
+==============================================================================
+PHASE 6: Tornin's belief in DialogueExecutor._epistemic_store
+==============================================================================
+  de_store.get_all_for_agent('tavern_keeper_tornin'):
+    count: 0
+
+
+==============================================================================
+PHASE 7: Manual invocation of CognitionContextResolver.resolve_block
+==============================================================================
+  (Same construction as dialogue_executor.py:599-611)
+  (ADDITIONAL check per Master's spec — does NOT replace production-path verification)
+
+  CognitionContextResolver constructed: <app.services.npc.cognition_context.CognitionContextResolver object at 0x00000233CE4A9A90>
+    using store id: 2421522889904
+    using memory_manager id: 2421465313840
+
+  Calling cog.resolve_block('tavern_keeper_tornin', 'maid_lusya')...
+  resolve_block returned:
+    type: str
+    length: 0
+    is empty: True
+    content:
+    ----------------------------------------------------------------------
+    
+    ----------------------------------------------------------------------
+
+
+==============================================================================
+PHASE 8: Manual invocation of CognitionContextResolver._format_beliefs
+==============================================================================
+  (Internal method — to identify exact failure point if resolve_block fails)
+
+  Calling cog._format_beliefs('tavern_keeper_tornin')...
+  _format_beliefs returned:
+    type: list
+    length: 0
+
+
+==============================================================================
+PHASE 9: Direct EpistemicStore.get_all_for_agent (bypass resolver)
+==============================================================================
+  Calling de_store.get_all_for_agent('tavern_keeper_tornin') directly...
+  Direct query returned 0 records
+
+
+==============================================================================
+PHASE 10: Summary — answers to Master's questions
+==============================================================================
+
+  Q1: Результат регистрации Epistemic Core
+  >>> tick_orch._epistemic_store is None: False
+  >>> (If True — registration failed silently; check Phase 2.1 logs)
+  >>> (If False — registration succeeded)
+
+  Q2: Наличие EpistemicStore в TickOrchestrator
+  >>> present: True
+  >>> id: 2421522889904
+  >>> Tornin records count: 0
+
+  Q3: Наличие EpistemicStore в production DialogueExecutor
+  >>> present: True
+  >>> id: 2421522889904
+  >>> Tornin records count: 0
+
+  Q4: Идентичность экземпляров
+  >>> tick_orch store is None: False
+  >>> DE store is None: False
+  >>> same instance: True
+
+  Q5: Наличие убеждения Торнина в том же экземпляре
+  >>> tick_orch records: 0
+  >>> DE records: 0
+  >>> (See Phase 5 and Phase 6 above for record details)
+  >>> (Direct query in Phase 9 bypasses resolver to confirm store contents)
+
+  Q6: Реальное выполнение production-метода формирования cognition block
+  >>> (See Phase 7 — manual invocation replicates dialogue_executor.py:599-611)
+  >>> (If Phase 7 returned non-empty block — production method WORKS)
+  >>> (If Phase 7 returned empty or raised — production method BROKEN)
+
+  Q7: Причина отсутствия блока, если он не формируется
+  >>> (See Phase 8 — _format_beliefs internal method)
+  >>> (See Phase 9 — direct store query bypassing resolver)
+  >>> (If Phase 9 returns records but Phase 7 returns empty — RESOLVER bug)
+  >>> (If Phase 9 returns 0 records — STORE bug or WIRING bug)
+  >>> (If Phase 7 raised exception — see traceback)
+
+
+==============================================================================
+PHASE 11: Cleanup
+==============================================================================
+  Shutting down executor pool...
+  Calling loop.dispose()...
+[GAME_LOOP] Quiesce: dialogue executor drained (cancel_futures)
+  Cleanup complete.
+

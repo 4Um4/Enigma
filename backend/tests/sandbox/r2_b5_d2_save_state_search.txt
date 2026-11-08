@@ -1,0 +1,130 @@
+==============================================================================
+R2-B5-D2 — B4-R9 Stage 1: Find B4-R8 save state
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d2_save_state_search.txt
+==============================================================================
+
+Цель: найти сохранение Open_road, активное во время B4-R8
+(08/11/2026 14:29), проверить, содержит ли оно epistemic_records
+с убеждением Торнина.
+
+READ-ONLY. Не изменяет сохранения.
+
+  project root: C:\DDD\Codex\VSC_Enigma\Enigma
+  backend dir:  C:\DDD\Codex\VSC_Enigma\Enigma\backend
+  settings.data_dir: C:\DDD\Codex\VSC_Enigma\Enigma\backend\data
+  settings.saves_dir: C:\DDD\Codex\VSC_Enigma\Enigma\saves
+
+
+==============================================================================
+STEP 1: List candidate save locations
+==============================================================================
+  settings.saves_dir            : C:\DDD\Codex\VSC_Enigma\Enigma\saves (exists=True)
+    9 entries: ['enigma_memory.db', 'enigma_runtime.db', 'Open_road', 'Open_road.json', 'silver_wolf', 'silver_wolf_audit_live', 'tavern_silver_wolf', 'test_sandbox', '_world_diffs.json']
+  settings.data_dir             : C:\DDD\Codex\VSC_Enigma\Enigma\backend\data (exists=True)
+    15 entries: ['assets', 'b3_prompt_forensics.json', 'campaigns', 'insults_ru.json', 'locations', 'logs', 'pdf_drop', 'replay.db', 'runtime_ports.json', 'runtime_ports.py', 'sandbox_artifacts', 'sessions', 'session_memory_Open_road.jsonl', 'worlds', '__init__.py']
+  backend/saves                 : C:\DDD\Codex\VSC_Enigma\Enigma\backend\saves (exists=True)
+    1 entries: ['enigma_runtime.db']
+  backend/data/saves            : C:\DDD\Codex\VSC_Enigma\Enigma\backend\data\saves (exists=False)
+  backend/data/sessions         : C:\DDD\Codex\VSC_Enigma\Enigma\backend\data\sessions (exists=True)
+    2 entries: ['Open_road', 'tavern_silver_wolf']
+  backend/data/campaigns        : C:\DDD\Codex\VSC_Enigma\Enigma\backend\data\campaigns (exists=True)
+    2 entries: ['Open_road', 'test_campaign']
+  backend/data                  : C:\DDD\Codex\VSC_Enigma\Enigma\backend\data (exists=True)
+    15 entries: ['assets', 'b3_prompt_forensics.json', 'campaigns', 'insults_ru.json', 'locations', 'logs', 'pdf_drop', 'replay.db', 'runtime_ports.json', 'runtime_ports.py', 'sandbox_artifacts', 'sessions', 'session_memory_Open_road.jsonl', 'worlds', '__init__.py']
+
+
+==============================================================================
+STEP 2: Files modified on 08/11/2026 (B4-R8 day, 14:29±3h)
+==============================================================================
+  Window: 2026-11-08 11:00:00 to 2026-11-08 17:00:00
+
+  Found 4 files modified in B4-R8 window:
+    14:29:22      666532 bytes  C:\DDD\Codex\VSC_Enigma\Enigma\backend\data\logs\llm_full_prompts.jsonl
+    15:56:39         117 bytes  C:\DDD\Codex\VSC_Enigma\Enigma\backend\data\sessions\Open_road\world_tick.json <<<
+    15:56:39    50842056 bytes  C:\DDD\Codex\VSC_Enigma\Enigma\backend\data\logs\enigma_audit.jsonl
+    15:56:39   112674745 bytes  C:\DDD\Codex\VSC_Enigma\Enigma\backend\data\logs\scene_changes.jsonl
+
+
+==============================================================================
+STEP 3: Scan candidate dirs for 'epistemic_records' / 'epistemic_store'
+==============================================================================
+
+  --- scanning settings.saves_dir: C:\DDD\Codex\VSC_Enigma\Enigma\saves ---
+
+  --- scanning settings.data_dir: C:\DDD\Codex\VSC_Enigma\Enigma\backend\data ---
+
+  --- scanning backend/saves: C:\DDD\Codex\VSC_Enigma\Enigma\backend\saves ---
+
+  --- scanning backend/data/sessions: C:\DDD\Codex\VSC_Enigma\Enigma\backend\data\sessions ---
+
+  --- scanning backend/data/campaigns: C:\DDD\Codex\VSC_Enigma\Enigma\backend\data\campaigns ---
+
+  --- scanning backend/data: C:\DDD\Codex\VSC_Enigma\Enigma\backend\data ---
+
+  TOTAL findings: 0
+
+
+==============================================================================
+STEP 4: Inspect findings — look for Tornin's INSULTED belief
+==============================================================================
+
+  TOTAL Tornin INSULTED finds: 0
+
+
+==============================================================================
+STEP 5: Match against B4-R8 signature
+==============================================================================
+  B4-R8 expected (from b4r1_results.json):
+    agent_id: tavern_keeper_tornin
+    proposition: (player, insulted, tavern_keeper_tornin, polarity=true)
+    confidence: ~0.6212 (0.6212214285714286)
+    source_id: blacksmith_orm
+    original_source_id: player
+    source_type: testimony
+    first_observed_tick: 0
+    last_updated_tick: 22
+
+
+  TOTAL B4-R8 exact matches: 0
+
+
+==============================================================================
+STEP 6: Check SQLite databases for epistemic_records
+==============================================================================
+  Found 2 SQLite databases:
+    2026-09-19 22:45:21           0 bytes  C:\DDD\Codex\VSC_Enigma\Enigma\backend\saves\enigma_runtime.db
+    2026-09-25 13:26:29  2793283584 bytes  C:\DDD\Codex\VSC_Enigma\Enigma\backend\data\replay.db
+
+  --- Querying each DB for epistemic records ---
+
+  Database: C:\DDD\Codex\VSC_Enigma\Enigma\backend\saves\enigma_runtime.db
+    tables: []
+
+  Database: C:\DDD\Codex\VSC_Enigma\Enigma\backend\data\replay.db
+    tables: ['causal_probes', 'interventions', 'llm_calls', 'scene_changes', 'sessions', 'sqlite_sequence', 'tick_snapshots']
+
+
+==============================================================================
+STEP 7: Check scene_state keys in enigma_runtime.db
+==============================================================================
+  runtime_db: C:\DDD\Codex\VSC_Enigma\Enigma\backend\saves\enigma_runtime.db
+  exists: True
+  Size: 0 bytes
+  Modified: 2026-09-19 22:45:21.318616
+
+  tables: []
+
+
+==============================================================================
+STEP 8: Summary
+==============================================================================
+
+  B4-R8 save state search results:
+  - Tornin INSULTED belief finds: 0
+  - B4-R8 exact signature matches: 0
+
+  Next steps depend on findings:
+  - If exact match found → load via production-path, run resolve_block
+  - If only partial matches → analyze differences
+  - If no matches → fallback to Variant A (production-path scenario)
+

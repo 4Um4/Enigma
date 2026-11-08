@@ -1,0 +1,111 @@
+==============================================================================
+R2-B5-D2 v8 — Stack trace when [DIALOGUE_EXEC] log fires
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d2_executor_lifecycle_v8.txt
+==============================================================================
+
+v8 STRATEGY:
+  - Capture inspect.stack() inside _log_capture.emit
+  - When [DIALOGUE_EXEC] log fires, capture full call stack
+  - Stack shows WHO called execute() — bypassing spy mystery
+
+  loaded 6 NPCs
+  EventBus spy installed
+  PLAYER_INSULTS published
+
+==============================================================================
+Running idle_tick...
+==============================================================================
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+  idle_tick returned: dict
+  status: ok
+
+==============================================================================
+STEP 1: Stack traces for [DIALOGUE_EXEC] logs
+==============================================================================
+  Total [DIALOGUE_EXEC] log records: 1
+  Total stack traces captured: 1
+
+  === Stack trace [0] ===
+    [ 0] C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d2_executor_lifecycle_v8.py:107 in emit
+         code: stack = inspect.stack()
+    [ 6] C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\execution\dialogue_executor.py:130 in execute
+         code: logger.debug(
+    [ 7] C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\task_scheduler.py:732 in _process_tasks_async
+         code: for artifact in artifacts:
+    [ 8] C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\concurrent\futures\thread.py:59 in run
+         code: result = self.fn(*self.args, **self.kwargs)
+    [ 9] C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\concurrent\futures\thread.py:93 in _worker
+         code: work_item.run()
+    [10] C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\threading.py:995 in run
+         code: self._target(*self._args, **self._kwargs)
+    [11] C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\threading.py:1044 in _bootstrap_inner
+         code: self.run()
+    [12] C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\threading.py:1015 in _bootstrap
+         code: self._bootstrap_inner()
+
+==============================================================================
+STEP 2: Find execute() in stack
+==============================================================================
+
+  Stack [0] — looking for execute() in DialogueExecutor:
+    FOUND execute(): C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\execution\dialogue_executor.py:130
+    task_scheduler frame: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\task_scheduler.py:732 in _process_tasks_async
+      code: for artifact in artifacts:
+    game_loop frame: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\task_scheduler.py:732 in _process_tasks_async
+
+==============================================================================
+STEP 3: Tornin belief AFTER idle_tick
+==============================================================================
+  Tornin total records: 1
+    prop=Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, obj
+      conf=0.5 source_id=player orig=player
+
+  NEW Tornin belief with source_id='guard_borko' (orig='player'): False
+
+==============================================================================
+STEP 4: EventBus events
+==============================================================================
+  Total events: 5
+    npc_moved: 4
+    tick_completed: 1
+
+==============================================================================
+STEP 5: ALL logs (key entries)
+==============================================================================
+  Total log records: 475
+  Relevant logs: 20
+    [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=guard_borko desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.168, 'warn': 0.075, 'spread_rumor': 0.49, 'call_for_help': 0.0}
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=guard_borko fear_drive=0.20 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'block_path', 'ambush', 'seek_ally', 'offer_job', 'request_service', 'spread_rumor', 'c
+    [DEBUG] app.services.npc.decision_hub: [WHY][DECISION] npc=guard_borko | winner=spread_rumor (0.988) | threat=0.0 | comps={'drive': 0.27, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.0, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'redirect': 0.0, 'noise': -0.026} | current=None (0.00
+    [INFO] app.services.npc.decision_hub: [TRACE][DECISION_SCORE] npc=guard_borko winner=Intent.SPREAD_RUMOR top3=[('spread_rumor', 0.99), ('block_path', 0.53), ('talk', 0.46)]
+    [INFO] app.services.npc.npc_tick_pipeline: [DECISION_HUB] guard_borko: intent=Intent.spread_rumor score=0.988 event=unknown
+    [DEBUG] app.services.npc.npc_tick_pipeline: [PROACTIVE_MOVE] npc=guard_borko intent=spread_rumor target_node=tavern:behind_bar
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=merchant_goran fear_drive=0.15 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'seek_ally', 'offer_job', 'request_service', 'spread_rumor', 'call_for_help', 'chang
+    [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=maid_lusya desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.168, 'warn': 0.045, 'spread_rumor': 0.49, 'call_for_help': 0.0}
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=maid_lusya fear_drive=0.45 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'seek_ally', 'offer_job', 'request_service', 'spread_rumor', 'call_for_help', 'change_ro
+    [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=blacksmith_orm desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.168, 'warn': 0.15, 'spread_rumor': 0.49, 'call_for_help': 0.0}
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=blacksmith_orm fear_drive=0.05 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'seek_ally', 'offer_job', 'request_service', 'spread_rumor', 'call_for_help', 'chang
+    [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=thief_shadow desired_change=behavior:guard_borko methods={'intimidate': 0.168, 'warn': 0.015, 'spread_rumor': 0.49, 'call_for_help': 0.0}
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=thief_shadow fear_drive=0.10 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'block_path', 'ambush', 'seek_ally', 'offer_job', 'request_service', 'spread_rumor', '
+    [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=tavern_keeper_tornin desired_change=behavior:maid_lusya methods={'intimidate': 0.168, 'warn': 0.09, 'spread_rumor': 0.49, 'call_for_help': 0.0}
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=tavern_keeper_tornin fear_drive=0.15 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'seek_ally', 'offer_job', 'request_service', 'spread_rumor', 'call_for_help', 
+    [DEBUG] app.services.spatial.movement_engine: [PIPELINE][MOVEMENT] npc=guard_borko reason=proactive_spread_rumor local_xy=None
+    [INFO] app.services.spatial.movement_engine: [PIPELINE][MOVEMENT][RELOCATE] npc=guard_borko → zone=tavern:node_16 reason=proactive_spread_rumor exact_xy=(13.908, 3.192) dist=2.85 ticks=2
+    [INFO] app.services.event_compiler: [SHADOW_COMPILER] compiled: target=guard_borko field=position cause=semantic_relocation:proactive_spread_rumor spatial=yes traversal=NEW
+    [DEBUG] app.services.action.commitment_registry: [COMMITMENT] COMMIT npc=guard_borko action=MOVE cause=semantic_relocation:proactive_spread_rumor ordinal=1 parent=None
+    [DEBUG] app.services.execution.dialogue_executor: [DIALOGUE_EXEC] Executing task for guard_borko -> tavern_keeper_tornin on topic 'власть'
+
+==============================================================================
+STEP 6: VERDICT
+==============================================================================
+  >>> execute() called at: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\execution\dialogue_executor.py:130
+  >>> CALLED BY: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\task_scheduler.py:732 in _process_tasks_async
+  >>> Caller code: for artifact in artifacts:
+
+  >>> This identifies WHO calls execute() — bypassing spy issue
+  >>> Next: investigate why spy doesn't trigger from this call path

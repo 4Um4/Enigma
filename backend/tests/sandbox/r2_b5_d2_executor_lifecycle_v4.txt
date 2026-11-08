@@ -1,0 +1,141 @@
+==============================================================================
+R2-B5-D2 v4 — Find ALL DialogueExecutor instances, spy at CLASS level
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d2_executor_lifecycle_v4.txt
+==============================================================================
+
+v4 FIXES from v3:
+  - Spy at CLASS level (DialogueExecutor.execute), not instance
+  - Captures ALL calls regardless of which instance is used
+  - gc.get_objects() to find ALL DialogueExecutor instances
+  - Also spy on DialogueMaterializer.materialize at class level
+
+  loaded 6 NPCs
+
+==============================================================================
+STEP 1: find ALL DialogueExecutor instances (before spy)
+==============================================================================
+  Found 1 DialogueExecutor instance(s) BEFORE spy:
+    id=1582989051616, router=<app.services.llm.router.ModelRouter object at 0x0000017091133770>, router_type=ModelRouter
+
+  --- Find ALL DialogueMaterializer instances ---
+  Found 1 DialogueMaterializer instance(s):
+    id=1582989055648
+
+==============================================================================
+STEP 2: install CLASS-LEVEL spies
+==============================================================================
+  EventBus spy installed
+  DialogueExecutor CLASS spy installed
+  DialogueMaterializer CLASS spy installed
+  IntentEventAdapter CLASS spy installed
+
+  Verify class-level replacement:
+    DialogueExecutor.execute is _instance_spy._spy_execute: True
+    DialogueExecutor._generate_with_router is _instance_spy._spy_gen: True
+
+==============================================================================
+STEP 3: PRE-EXISTING Tornin beliefs
+==============================================================================
+  Tornin pre-existing records: 0
+
+==============================================================================
+STEP 4: publish PLAYER_INSULTS
+==============================================================================
+
+==============================================================================
+STEP 5: clear spies + run idle_tick
+==============================================================================
+  Re-verify spies after reset:
+    DialogueExecutor.execute is _spy_execute: True
+    DialogueMaterializer.materialize is _spy: True
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+  idle_tick returned: dict
+  status: ok
+
+==============================================================================
+STEP 6: spy results
+==============================================================================
+
+  === DialogueExecutor.execute() calls ===
+  Total calls: 1
+  Calls by instance:
+    instance id=1583075288960: 1 call(s)
+      [0] router=None
+          EXCEPTION: TypeError: DialogueExecutor.execute() missing 1 required positional argument: 'task'
+          TRACEBACK: Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d2_executor_lifecycle_v4.py", line 238, in _spy_execute
+    result = self._orig_execute(self_instance, *args, **kwargs)
+TypeError: DialogueExecutor.execute() missing 1 required positional argument: 'task'
+
+
+  === DialogueMaterializer.materialize() calls ===
+  Total calls: 0
+
+  === IntentEventAdapter.to_event() calls ===
+  Total calls: 0
+
+  === EventBus.publish() calls ===
+  Total events: 5
+    npc_moved: 4
+    tick_completed: 1
+
+  --- ALL events with details ---
+    [0] type=npc_moved source=maid_lusya target=? intent=?
+    [1] type=npc_moved source=blacksmith_orm target=? intent=?
+    [2] type=npc_moved source=tavern_keeper_tornin target=? intent=?
+    [3] type=npc_moved source=merchant_goran target=? intent=?
+    [4] type=tick_completed source=tick_orchestrator target=? intent=?
+
+  === ALL DialogueExecutor logs ===
+  Total: 0
+
+  === ALL task_scheduler logs (no filter) ===
+  Total: 0
+
+  === ALL DialogueMaterializer logs ===
+  Total: 0
+
+  === ALL ERROR level logs ===
+  Total: 0
+
+  === ALL WARN level logs ===
+  Total: 9
+    [WARNING] app.services.npc.npc_tick_pipeline: [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+    [WARNING] app.services.npc.npc_tick_pipeline: [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+    [WARNING] app.services.npc.npc_tick_pipeline: [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+    [WARNING] app.services.events.reaction_subscriber: [REACTION_SUB] handle() called with 1 events types=[<EventType.PLAYER_INSULTS: 'player_insults'>]
+    [WARNING] app.services.events.reaction_subscriber: [REACTION_SUB] handle() called with 1 events types=[<EventType.PLAYER_INSULTS: 'player_insults'>]
+    [WARNING] app.services.events.reaction_subscriber: [REACTION_SUB] perceiving_ids count=6 ids=['guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow', 'merchant_goran']
+    [WARNING] app.services.events.reaction_subscriber: [REACTION_SUB] perceiving_ids count=6 ids=['guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow', 'merchant_goran']
+    [WARNING] app.services.events.reaction_subscriber: [REACTION_SUB] 1 events, 6 perceivers, 12 deltas, emotion_deltas=6, tags=[None, None, None, None, None, None]
+    [WARNING] app.services.events.reaction_subscriber: [REACTION_SUB] 1 events, 6 perceivers, 12 deltas, emotion_deltas=6, tags=[None, None, None, None, None, None]
+
+  === ALL DialogueExecutor instances AFTER spy ===
+  Found 1 DialogueExecutor instance(s) AFTER:
+    id=1582989051616, router=<app.services.llm.router.ModelRouter object at 0x0000017091133770>, router_type=ModelRouter
+
+==============================================================================
+STEP 7: Tornin belief AFTER idle_tick
+==============================================================================
+  Tornin total records: 1
+    prop=Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, obj
+      conf=0.5 source_id=player orig=player
+
+  NEW Tornin belief with source_id='guard_borko' (orig='player'): False
+
+==============================================================================
+STEP 8: VERDICT
+==============================================================================
+  DialogueExecutor.execute() called (CLASS spy): 1
+  DialogueMaterializer.materialize() called: 0
+  IntentEventAdapter.to_event() called: 0
+  NPC_SPOKE/SPREAD_RUMOR published: 0
+
+  >>> VERDICT: BREAK — execute() called, materializer NOT called
+  >>> Likely: artifact.success=False (error branch)
+  >>> Last exception: TypeError: DialogueExecutor.execute() missing 1 required positional argument: 'task'

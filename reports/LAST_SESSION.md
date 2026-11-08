@@ -1,4 +1,4 @@
-# ENIGMA Session State — 2026-11-07 20:55
+# ENIGMA Session State — 2026-11-08 17:01
 
 Кампания: `?` | Игрок: `?`
 
@@ -16,7 +16,7 @@
 
 ## DNA — МЕТРИКИ ЗДОРОВЬЯ СИСТЕМЫ
 
-_Сессия: 0.7 мин | Тиков: 0 | LLM-вызовов: 0_
+_Сессия: 2.6 мин | Тиков: 0 | LLM-вызовов: 0_
 
 | Метрика | Значение | Δ от прошлой | Интерпретация для LLM |
 |---------|----------|--------------|----------------------|
@@ -34,7 +34,7 @@ _Сессия: 0.7 мин | Тиков: 0 | LLM-вызовов: 0_
 | **DRI** (Response Integrity) | 100% | → +0.0% | ✅ LLM отвечает на все запросы |
 | **DPI** (Dialogue Pipeline) | 100% | → +0.0% | ✅ Конвейер диалогов стабилен |
 
-_История: `reports/dna_history.jsonl` — 1328 записей_
+_История: `reports/dna_history.jsonl` — 1330 записей_
 
 ## 🟢 КРАСНЫЕ ИНВАРИАНТЫ — ТИХИЕ ДЕГРАДАЦИИ
 
@@ -54,11 +54,11 @@ _Не обнаружено — игра жива._
 _(баги не обнаружены в этой сессии)_
 
 ### Последние изменения (git log -5):
-  - ff973b78 fix(mutations): remove duplicate S417 entry
-  - 14aa967c docs(mutations): S417 — LLM Runtime Этап 4.1 legacy consumers migration (7 files)
-  - 89eed066 fix(llm-runtime-этап4): migrate cognition_p2_test to Host SDK
-  - 0a562f35 fix(llm-runtime-этап4): migrate cognition_p3e_test to Host SDK
-  - 0272af8b fix(llm-runtime-этап4): migrate cognition_attention_integration_test to Host SDK
+  - 568cc5fe docs: удаление завершённых forensic-отчётов из docs\Тесты причинности ТЗ (7 файлов, ~193 КБ)
+  - 82eb0495 docs(readme): reframe — RPG engine, not 'not a game'; infinite replayability through causal NPCs
+  - c2616ee5 docs(zaveschanie): Письмо №16 — LLM Runtime Unification complete (S418-S420)
+  - b9164c68 docs(llm-runtime): delete PROPOSAL — implementation complete (Этапы 0-6)
+  - d1da57e1 docs(llm-runtime): S420 + ETA6_IMPACT + PROPOSAL - Stage 6 COMPLETE
 
 ### Последние записи MUTATIONS.md:
   - (MUTATIONS.md не найден)

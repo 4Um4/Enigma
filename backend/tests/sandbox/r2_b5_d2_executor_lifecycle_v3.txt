@@ -1,0 +1,671 @@
+==============================================================================
+R2-B5-D2 v3 — Trace DialogueExecutor.execute() WITH correctly attached spy
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d2_executor_lifecycle_v3.txt
+==============================================================================
+
+v3 FIXES from v2:
+  1. Find DialogueExecutor via task_scheduler._executors[TaskKind.DIALOGUE]
+  2. Don't filter task_scheduler logs by 'guard_borko' — show ALL
+  3. Read _generate_with_router full implementation
+  4. Spy on _generate_with_router too (if exists)
+  5. Check router presence in executor
+
+
+==============================================================================
+STEP 1: Read DialogueExecutor.execute() + _generate_with_router
+==============================================================================
+  file: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\execution\dialogue_executor.py
+  execute() at L111..L284 (showing L111..L284):
+  L 111:     def execute(self, task: QueuedTask) -> Iterable[Artifact]:
+  L 112:         if not isinstance(task.payload, DialogueRequest):
+  L 113:             logger.error(f"[DIALOGUE_EXEC] Invalid payload type: {type(task.payload)}")
+  L 114:             yield Artifact(
+  L 115:                 task_id=task.task_id,
+  L 116:                 success=False,
+  L 117:                 result_type="error",
+  L 118:                 data={},
+  L 119:                 error_message="Invalid payload for DialogueExecutor",
+  L 120:             )
+  L 121:             return
+  L 122: 
+  L 123:         req = task.payload
+  L 124:         # A1 (RE-D2, вердикт Мастера): provenance текста — по ПРОИСХОЖДЕНИЮ,
+  L 125:         # не эвристикой по содержимому. "llm" ставится только в LLM-ветке;
+  L 126:         # детерминированная материализация (stub / requires_llm=False) содержит
+  L 127:         # machine-id латиницей BY DESIGN — LANG_LEAK (замок S292) к ней не
+  L 128:         # применяется: ложный ретрай звал LLM с потока петли → RE-D2.
+  L 129:         _text_source = "deterministic"
+  L 130:         logger.debug(
+  L 131:             f"[DIALOGUE_EXEC] Executing task for {task.owner_id} -> {req.target_id} on topic '{req.topic}'"
+  L 132:         )
+  L 133: 
+  L 134:         # S197: Извлекаем Proposition на верхнем уровне, чтобы он был доступен во всех ветках
+  L 135:         _proposition = getattr(req, "proposition", None)  # noqa: ENIGMA002
+  L 136: 
+  L 137:         # P7-A: вердикт disclosure выносится ДО вербализации, РОВНО ОДИН
+  L 138:         # раз на реплику (инвариант Мастера). LLM вербализует, не решает.
+  L 139:         _verdict = self._resolve_disclosure_verdict(task, req)
+  L 140: 
+  L 141:         # Если роутер не задан (sandbox/test), возвращаем заглушку
+  L 142:         if self._router is None:
+  L 143:             logger.warning("[DIALOGUE_EXEC] ModelRouter is None! Fallback to stub.")
+  L 144:             text = f"[Заглушка] {task.owner_id} обращается к {req.target_id} по теме: '{req.topic}'"
+  L 145:         elif not requires_llm_materialization(req.intent_type) and not (
+  L 146:             req.intent_type == "spread_rumor" and _proposition is not None
+  L 147:         ):
+  L 148:             # S199.2: Детерминированная материализация для claim-producing интентов без LLM
+  L 149:             text = f"[{req.intent_type}] {task.owner_id} -> {req.target_id}: {req.topic}"
+  L 150:         else:
+  L 151:             # ENIGMA-ARCH-022: LLM Execution Timeout.
+  L 152:             # Использует существующий cancellation boundary (router._abort_generation).
+  L 153:             # В будущем LLM_TIMEOUT_SEC будет вынесен в CalibrationProfile.
+  L 154:             import threading
+  L 155:             _timer = threading.Timer(_L_TIMEOUT_SEC, self._router._abort_generation)
+  L 156: 
+  L 157:             try:
+  L 158:                 _timer.start()
+  L 159:                 _text_source = "llm"
+  L 160:                 text = self._generate_with_router(task, req, _verdict)
+  L 161:             except DialogueContractViolation as e:
+  L 162:                 logger.warning(f"[DIALOGUE_EXEC] Contract violated: {e}")
+  L 163:                 # BUGFIX: Возвращаем error artifact, а не success, т.к. текст не сгенерирован
+  L 164:                 yield Artifact(
+  L 165:                     task_id=task.task_id,
+  L 166:                     success=False,
+  L 167:                     result_type="error",
+  L 168:                     data={},
+  L 169:                     error_message=str(e)
+  L 170:                 )
+  L 171:                 return
+  L 172:             except Exception as e:
+  L 173:                 logger.error(f"[DIALOGUE_EXEC] LLM call failed (timeout or error) for {task.owner_id}: {e}")
+  L 174:                 # Stage B Observability (вердикт Мастера Q4): llm_materialization_failed.
+  L 175:                 try:
+  L 176:                     from app.services.logging_tools import jsonl_log
+  L 177:                     jsonl_log({
+  L 178:                         "level": "ERROR",
+  L 179:                         "agent": "template_fallback",
+  L 180:                         "fallback_reason": "llm_materialization_failed",
+  L 181:                         "npc_id": task.owner_id,
+  L 182:                         "intent_type": req.intent_type,
+  L 183:                         "target_id": req.target_id,
+  L 184:                         "error": str(e),
+  L 185:                     })
+  L 186:                 except Exception:
+  L 187:                     logger.debug("[OBS] llm_materialization_failed observability skipped (non-critical)")
+  L 188:                 yield Artifact(
+  L 189:                     task_id=task.task_id,
+  L 190:                     success=False,
+  L 191:                     result_type="error",
+  L 192:                     data={},
+  L 193:                     error_message=f"LLM execution failed: {e}"
+  L 194:                 )
+  L 195:                 return
+  L 196:             finally:
+  L 197:                 _timer.cancel()
+  L 198: 
+  L 199:         if not text:
+  L 200:             yield Artifact(
+  L 201:                 task_id=task.task_id,
+  L 202:                 success=False,
+  L 203:                 result_type="error",
+  L 204:                 data={},
+  L 205:                 error_message="LLM failed or returned empty text (stub avoided)."
+  L 206:             )
+  L 207:             return
+  L 208: 
+  L 209:         # №3 (S292): language-leak gate. Русскоязычный мир — латинные вставки
+  L 210:         # LLM («Give me a name») ломают нарратив. Честная деградация (ADR-113):
+  L 211:         # измерить → один ретрай с усиленной директивой → при повторе лог+паблиш
+  L 212:         # как есть (не маскируем, не режем слова).
+  L 213:         import re as _re
+  L 214: 
+  L 215:         def _latin_share(s: str) -> float:
+  L 216:             _words = [w for w in _re.split(r"\s+", s.strip()) if w]
+  L 217:             if not _words:
+  L 218:                 return 0.0
+  L 219:             _latin = sum(1 for w in _words if _re.search(r"[A-Za-z]", w))
+  L 220:             return _latin / len(_words)
+  L 221: 
+  L 222:         # A1: LANG_LEAK гейтит ТОЛЬКО текст LLM-происхождения. Детерминированный
+  L 223:         # текст публикуется как есть (machine-id ≠ language leak).
+  L 224:         if _text_source == "llm" and _latin_share(text) >= 0.25:
+  L 225:             logger.warning(
+  L 226:                 f"[LANG_LEAK] {task.owner_id}: latin_share={_latin_share(text):.2f} "
+  L 227:                 f"text={text[:80]!r} — retry with reinforced directive"
+  L 228:             )
+  L 229:             _retry_timer = None  # пред-связывание: finally ссылается всегда
+  L 230:             try:
+  L 231:                 import threading as _th
+  L 232:                 _retry_timer = _th.Timer(_L_TIMEOUT_SEC, self._router._abort_generation)
+  L 233:                 _retry_timer.start()
+  L 234:                 _reinforced = (  # noqa: ENIGMA001
+  L 235:                     f"{req.prepared_prompt}\n\n[СТРОГО: ответ ТОЛЬКО кириллицей. "
+  L 236:                     f"Ни одного латинского слова. Предыдущая попытка отклонена.]"
+  L 237:                 ) if req.prepared_prompt else None
+  L 238:                 _retry_req = (
+  L 239:                     type(req)(**{**req.__dict__, "prepared_prompt": _reinforced})
+  L 240:                     if hasattr(req, "__dict__")
+  L 241:                     else req
+  L 242:                 )
+  L 243:                 text = self._generate_with_router(task, _retry_req, _verdict)
+  L 244:             except Exception as _retry_err:
+  L 245:                 logger.error(f"[LANG_LEAK] retry failed for {task.owner_id}: {_retry_err}")
+  L 246:             finally:
+  L 247:                 if _retry_timer is not None:
+  L 248:                     try:
+  L 249:                         _retry_timer.cancel()
+  L 250:                     except Exception as _cancel_err:
+  L 251:                         # L4 (S292): cancel-сбой логируется; ретрай уже завершён —
+  L 252:                         # исходная генерация не деградирует от этого отказа.
+  L 253:                         logger.debug(f"[LANG_LEAK] retry timer cancel skipped: {_cancel_err}")
+  L 254:         # A1: LANG_LEAK гейтит ТОЛЬКО текст LLM-происхождения. Детерминированный
+  L 255:         # текст публикуется как есть (machine-id ≠ language leak).
+  L 256:         if _text_source == "llm" and _latin_share(text) >= 0.25:
+  L 257:             logger.error(
+  L 258:                 f"[LANG_LEAK] {task.owner_id}: retry still leaked "
+  L 259:                 f"(share={_latin_share(text):.2f}) — publishing as-is (honest degradation)"
+  L 260:             )
+  L 261: 
+  L 262:         # P6/E1 (S255): эмит — ТОЧКА УСПЕШНОЙ ДОСТАВКИ (DISCOVERY IS
+  L 263:         # DELIVERY: решение P5 материально только при доставленной
+  L 264:         # реплике; error-ветки выше не эмитят). Заменил вызов парсера
+  L 265:         # (V8-MVP-12): текст НЕ источник discovery — PROVENANCE, NOT
+  L 266:         # STRINGS. Писатель :109 — отдельным шагом ПОСЛЕ T8/T3.
+  L 267:         self._emit_dialogue_outcome(task, req, _verdict)
+  L 268: 
+  L 269:         yield Artifact(
+  L 270:             task_id=task.task_id,
+  L 271:             success=True,
+  L 272:             result_type="dialogue_line",
+  L 273:             data={
+  L 274:                 "speaker_id": task.owner_id,
+  L 275:                 "target_id": req.target_id,
+  L 276:                 "text": text,
+  L 277:                 "exposure": req.exposure.semantic,
+  L 278:                 "topic": req.topic,
+  L 279:                 "emotional_state": req.emotional_state,
+  L 280:                 "proposition": _proposition, # S198 FIX: Сохраняем эпистемическое утверждение для COMMUNICATION_CLAIM
+  L 281:                 "intent_type": req.intent_type, # S201 FIX: Пробрасываем intent_type для ClaimEventSubscriber fallback
+  L 282:             },
+  L 283:         )
+  L 284: 
+
+  --- _generate_with_router ---
+  _generate_with_router() at L454..L671 (showing L454..L653):
+  L 454:     def _generate_with_router(self, task: QueuedTask, req: DialogueRequest, verdict: Any = None) -> str:
+  L 455:         """Генерация через ModelRouter. Не блокирует симуляцию (Правило 2 ТЗ)."""
+  L 456:         ctx = self._get_context(task.campaign_id, task.owner_id)
+  L 457: 
+  L 458:         # L-05 FIX: Резолвим target_id в имя для LLM, чтобы избежать утечки ID в реплики
+  L 459:         _target_ctx = self._get_context(task.campaign_id, req.target_id) if req.target_id else {}
+  L 460:         _target_name = _target_ctx.get("name", req.target_id)
+  L 461: 
+  L 462:         # L-04: Жёсткий system prompt с языковыми правилами
+  L 463:         system_prompt = (
+  L 464:             "Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реплику (1-2 предложения). "
+  L 465:             "Говори ТОЛЬКО на русском языке. Не используй китайские иероглифы, английский текст или системные теги. "
+  L 466:             "Не описывай свои действия (например, 'идёт к двери'). Только прямая речь. "
+  L 467:             "Не упоминай игрока, симуляцию, интерфейс или механики игры. "
+  L 468:             "Оставайся в образе своего персонажа. "
+  L 469:             f"Тема разговора: {req.topic}. Намерение: {req.intent_type}."
+  L 470:         )
+  L 471: 
+  L 472:         # T-02: Добавляем crystallized beliefs в промпт, чтобы LLM знала отношение NPC
+  L 473:         _beliefs_text = ""
+  L 474:         if self._belief_store:
+  L 475:             _all_beliefs = self._belief_store.get_beliefs(task.owner_id)
+  L 476:             _target_beliefs = [b for b in _all_beliefs if b.source_id == req.target_id]
+  L 477: 
+  L 478:             _TRAIT_TO_TEXT = {
+  L 479:                 "fear": "Ты боишься",
+  L 480:                 "trust": "Ты доверяешь",
+  L 481:                 "loyalty": "Ты предан",
+  L 482:                 "anger": "Ты злишься на",
+  L 483:             }
+  L 484:             for b in _target_beliefs:
+  L 485:                 _phrase = _TRAIT_TO_TEXT.get(b.trait, f"Ты относишься к {_target_name} как к {b.trait}")
+  L 486:                 _beliefs_text += f"{_phrase} {_target_name} (уверенность: {b.weight:.2f}). "
+  L 487: 
+  L 488:         # T-04: Извлекаем npc_npc_context (историю взаимодействий с целью) из DialogueRequest
+  L 489:         _history_text = ""
+  L 490:         if getattr(req, "npc_npc_context", ""):  # noqa: ENIGMA002
+  L 491:             _history_text = f"Твои воспоминания об этой встрече: {req.npc_npc_context} "
+  L 492: 
+  L 493:         # BUG-DL-02 FIX: Инъекция STM-блока (контекст текущего разговора)
+  L 494:         _stm_text = ""
+  L 495:         if self._memory_manager is not None and task.campaign_id:
+  L 496:             _stm_text = self._memory_manager.get_stm_prompt_block_pair(
+  L 497:                 task.campaign_id, task.owner_id, req.target_id
+  L 498:             )
+  L 499: 
+  L 500:         # Hard Contract (Принцип 2): Нет STM -> нельзя говорить canonical dialogue
+  L 501:         # Разрешаем только первый ход (intent_type="greeting"), чтобы установить контакт
+  L 502:         # Исключение: claim-producing интенты (warn, intimidate) не требуют контекста диалога.
+  L 503:         if not _stm_text and req.intent_type not in ("greeting", "approach") and requires_dialogue_context(req.intent_type) and not getattr(req, "proposition", None):
+  L 504:             logger.warning(f"[DIALOGUE_EXEC] No STM for {task.owner_id} -> {req.target_id}, "
+  L 505:                            f"intent '{req.intent_type}' demoted to 'approach' (auto-recover).")
+  L 506:             from dataclasses import replace as _dc_replace
+  L 507:             req = _dc_replace(req, intent_type="approach")
+  L 508: 
+  L 509:         if _stm_text:
+  L 510:             _history_text += f"\n[Контекст текущего разговора]\n{_stm_text}\n"
+  L 511: 
+  L 512:         # V8-DLG-10 FIX: Используем prepared_prompt (из VerbalizationContext) или fallback на ручную сборку
+  L 513:         if req.prepared_prompt:
+  L 514:             user_prompt = req.prepared_prompt
+  L 515:         else:
+  L 516:             # L-03 FIX: Добавляем voice_profile, backstory, author_notes для уникального голоса
+  L 517:             user_prompt = (
+  L 518:                 f"Твоё имя: {ctx.get('name', task.owner_id)}. "
+  L 519:                 f"Краткое описание твоей натуры: {ctx.get('description', 'неизвестно')}. "
+  L 520:             )
+  L 521:             if ctx.get("voice_profile"):
+  L 522:                 user_prompt += f"Твоя манера речи: {ctx['voice_profile']}. "
+  L 523:             if ctx.get("backstory"):
+  L 524:                 user_prompt += f"Твоё прошлое: {ctx['backstory']}. "
+  L 525:             if ctx.get("author_notes"):
+  L 526:                 user_prompt += f"Важные ограничения: {ctx['author_notes']}. "
+  L 527: 
+  L 528:         # COGNITIVE-CONTINUITY-01: claim verbalization — факт, которым ты делишься.
+  L 529:         # LLM получает клейм и сама решает, как его передать своими словами.
+  L 530:         _proposition = getattr(req, "proposition", None)  # extract from DialogueRequest
+  L 531:         _claim_block = ""
+  L 532:         if _proposition is not None:
+  L 533:             _pred_map = {"insulted": "оскорбил", "stole": "украл у", "attacked": "напал на", "helped": "помог"}
+  L 534:             if isinstance(_proposition, dict):
+  L 535:                 _subj_id = _proposition.get("subject_id", "")
+  L 536:                 _pv = _proposition.get("predicate", "")
+  L 537:                 _obj_id = _proposition.get("object_id", "")
+  L 538:             else:
+  L 539:                 _subj_id = _proposition.subject_id
+  L 540:                 _pv = getattr(_proposition.predicate, "value", str(_proposition.predicate))
+  L 541:                 _obj_id = _proposition.object_id
+  L 542:             # COGNITIVE-CONTINUITY-01: resolve IDs to game names via _get_context
+  L 543:             # (same mechanism as CognitionContextResolver — не второй resolver)
+  L 544:             _subj_name = self._get_context(task.campaign_id, _subj_id).get("name", _subj_id) if _subj_id else _subj_id
+  L 545:             _obj_name = self._get_context(task.campaign_id, _obj_id).get("name", _obj_id) if _obj_id else _obj_id
+  L 546:             _pred_text = _pred_map.get(_pv, str(_pv))
+  L 547:             _claim_block = f"[Факт, которым ты делишься]: {_subj_name} {_pred_text} {_obj_name}. Передай это собеседнику своими словами.\n"
+  L 548: 
+  L 549:         # Динамическая часть (добавляется всегда, так как STM и beliefs могли измениться)
+  L 550:         user_prompt += (
+  L 551:             f"Ты обращаешься к: {_target_name}. "
+  L 552:             f"{_beliefs_text}"
+  L 553:             f"{_history_text}"
+  L 554:             f"{_claim_block}"
+  L 555:         )
+  L 556: 
+  L 557:         # COGNITIVE-CONTINUITY-01: cognition block — what NPC knows (beliefs + provenance)
+  L 558:         # Same CognitionContextResolver that feeds DMFrame — one mechanism, all consumers.
+  L 559:         if self._epistemic_store is not None and self._memory_manager is not None:
+  L 560:             try:
+  L 561:                 from app.services.npc.cognition_context import CognitionContextResolver
+  L 562:                 _cog = CognitionContextResolver(
+  L 563:                     self._memory_manager,
+  L 564:                     epistemic_store=self._epistemic_store,
+  L 565:                     context_provider=lambda npc_id: self._get_context(task.campaign_id, npc_id),
+  L 566:                 )
+  L 567:                 _cog_block = _cog.resolve_block(task.owner_id, req.target_id or "player")
+  L 568:                 if _cog_block:
+  L 569:                     user_prompt += "\n" + _cog_block + "\n"
+  L 570:             except Exception as _cog_e:
+  L 571:                 logger.warning(f"[DIALOGUE_EXEC] cognition block failed: {_cog_e}")
+  L 572: 
+  L 573:         # CC-09: causal context — WHY state changed (causal_ledger -> LLM prompt).
+  L 574:         # Не новый SSOT — читает существующий NPCState.causal_ledger (ADR-CAUSAL-SPINE).
+  L 575:         # NPC может объяснить изменение доверия/страха конкретным событием.
+  L 576:         if self._npc_states_provider is not None:
+  L 577:             try:
+  L 578:                 _states = self._npc_states_provider(task.campaign_id)
+  L 579:                 _npc_dict = next(
+  L 580:                     (s for s in (_states or [])
+  L 581:                      if s.get("npc_id") == task.owner_id or s.get("id") == task.owner_id),
+  L 582:                     None,
+  L 583:                 )
+  L 584:                 if _npc_dict:
+  L 585:                     _ledger = _npc_dict.get("causal_ledger", [])
+  L 586:                     if _ledger:
+  L 587:                         _causal_text = self._format_causal_context(_ledger)
+  L 588:                         if _causal_text:
+  L 589:                             user_prompt += "\n" + _causal_text + "\n"
+  L 590:             except Exception as _ce:
+  L 591:                 logger.warning(f"[DIALOGUE_EXEC] causal context failed: {_ce}")
+  L 592: 
+  L 593:         # Priority 4 Part A: contradictions — polarity=False records visible to NPC.
+  L 594:         # NPC видит противоречивые сведения (опровержения) — не разрешает, а учитывает.
+  L 595:         # Не новый SSOT — читает существующий EpistemicStore (ADR-O-354).
+  L 596:         if self._epistemic_store is not None:
+  L 597:             try:
+  L 598:                 _contr_text = self._format_contradictions(task.owner_id, task.campaign_id)
+  L 599:                 if _contr_text:
+  L 600:                     user_prompt += "\n" + _contr_text + "\n"
+  L 601:             except Exception as _ce2:
+  L 602:                 logger.warning(f"[DIALOGUE_EXEC] contradictions failed: {_ce2}")
+  L 603: 
+  L 604:         user_prompt += "Скажи свою реплику:"
+  L 605: 
+  L 606:         # P7-A: директива вердикта в промпт — LLM вербализует, не решает
+  L 607:         _directive = self._verdict_directive(verdict)
+  L 608:         if _directive:
+  L 609:             user_prompt += f" {_directive}"
+  L 610: 
+  L 611:         # B4-R6: Full prompt capture (observability only — no game logic change)
+  L 612:         try:
+  L 613:             import time
+  L 614:             from app.services.logging_tools import log_full_prompt
+  L 615:             log_full_prompt({
+  L 616:                 "event": "llm_request",
+  L 617:                 "request_id": task.task_id,
+  L 618:                 "speaker_id": task.owner_id,
+  L 619:                 "agent_name": "npc",
+  L 620:                 "tick": getattr(task, "tick", None),
+  L 621:                 "campaign_id": task.campaign_id,
+  L 622:                 "intent_type": req.intent_type,
+  L 623:                 "topic": req.topic,
+  L 624:                 "target_id": req.target_id,
+  L 625:                 "proposition": getattr(req, "proposition", None),
+  L 626:                 "system_prompt": system_prompt,
+  L 627:                 "user_prompt": user_prompt,
+  L 628:                 "max_tokens": 100,
+  L 629:                 "timestamp": time.time(),
+  L 630:                 "system_prompt_chars": len(system_prompt),
+  L 631:                 "user_prompt_chars": len(user_prompt),
+  L 632:                 "token_count": "unavailable — use llama-server /tokenize for exact counts",
+  L 633:             })
+  L 634:         except Exception:
+  L 635:             logger.debug("[OBS] full prompt capture skipped (request)")
+  L 636: 
+  L 637:         try:
+  L 638:             from app.services.llm.router import GenerationParams
+  L 639:             raw = self._router.request_for_agent(
+  L 640:                 agent_name="npc",
+  L 641:                 prompt=user_prompt,
+  L 642:                 system_prompt=system_prompt,
+  L 643:                 params=GenerationParams(max_tokens=100)
+  L 644:             )
+  L 645: 
+  L 646:             # L-02: Валидация ответа LLM (отсечение китайского, английского, 4-й стены)
+  L 647:             validation = self._validator.validate(raw)
+  L 648:             if validation.is_fallback:
+  L 649:                 # IPT-CLEANUP: WARNING → INFO. IPT использует fallback/stub LLM, который может возвращать не-русский текст.
+  L 650:                 # В production это останется WARNING, но для IPT-лога это ожидаемый шум.
+  L 651:                 logger.info(f"[DIALOGUE_EXEC] LLM response rejected ({validation.violation}). Using fallback.")
+  L 652: 
+  L 653:             # B4-R6: Response capture
+  ... (18 more lines)
+
+  --- _emit_dialogue_outcome ---
+  _emit_dialogue_outcome() at L339..L360 (showing L339..L360):
+  L 339:     def _emit_dialogue_outcome(self, task: QueuedTask, req: DialogueRequest, verdict: Any) -> None:
+  L 340:         """P7-A: эмит из УЖЕ вычисленного вердикта (точка доставки — та же,
+  L 341:         что в E1: DISCOVERY IS DELIVERY). Повторное вычисление вердикта
+  L 342:         здесь = DOUBLE TRUTH — запрещено (инвариант Мастера)."""
+  L 343:         if verdict is None or self._discovery_bridge is None:
+  L 344:             return
+  L 345:         if (req.target_id or "") != "player":
+  L 346:             return
+  L 347:         try:
+  L 348:             self._discovery_bridge.process(
+  L 349:                 SurfaceEvent(
+  L 350:                     kind=SurfaceKind.DIALOGUE_OUTCOME,
+  L 351:                     tick=task.tick,
+  L 352:                     source_id=task.owner_id,
+  L 353:                     secret_id=verdict.secret_id,
+  L 354:                     disclosure_level=verdict.level,
+  L 355:                     subject_hint=req.topic,
+  L 356:                 )
+  L 357:             )
+  L 358:         except Exception as e:
+  L 359:             logger.warning(f"[P6_E1] emit failed (fail-open): {e}", exc_info=True)
+  L 360: 
+
+==============================================================================
+STEP 2: Read DialogueMaterializer.materialize
+==============================================================================
+  file: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\execution\dialogue_materializer.py
+  materialize() at L61..L131 (showing L61..L131):
+  L  61:     def materialize(self, artifact: Artifact) -> Iterable[Any]:
+  L  62:         if artifact.result_type != "dialogue_line" or not artifact.success:
+  L  63:             return []
+  L  64: 
+  L  65:         data = artifact.data
+  L  66: 
+  L  67:         from app.domain.events import EventDTO
+  L  68: 
+  L  69:         exposure_semantic = data.get("exposure", "normal")
+  L  70:         visibility = "public"
+  L  71:         if exposure_semantic in ["secret", "whisper"]:
+  L  72:             visibility = "whisper"
+  L  73:         elif exposure_semantic == "private":
+  L  74:             visibility = "private"
+  L  75: 
+  L  76:         from app.domain.communication import SELF_TALK_SENTINEL, exposure_radius
+  L  77: 
+  L  78:         _speech_radius = exposure_radius(exposure_semantic)
+  L  79:         if data.get("target_id") == SELF_TALK_SENTINEL:
+  L  80:             visibility = "whisper"
+  L  81:             _speech_radius = exposure_radius("whisper")
+  L  82: 
+  L  83:         from app.services.verbalization.tone_mapper import ToneMapper
+  L  84: 
+  L  85:         _tone = ToneMapper.map(data.get("emotional_state"))
+  L  86: 
+  L  87:         events: list[Any] = []
+  L  88: 
+  L  89:         # NPC_SPOKE публикуется ВСЕГДА — речь состоялась (LLM сгенерировал
+  L  90:         # текст). Proposition здесь НЕТ — это чистое speech-событие.
+  L  91:         events.append(EventDTO.create(
+  L  92:             event_type=EventType.NPC_SPOKE.value,
+  L  93:             source=data["speaker_id"],
+  L  94:             payload={
+  L  95:                 "target_id": data.get("target_id"),
+  L  96:                 "text": data["text"],
+  L  97:                 "topic": data.get("topic"),
+  L  98:                 "exposure": exposure_semantic,
+  L  99:                 "tone": _tone,
+  L 100:                 "intent_type": data.get("intent_type", "talk"),
+  L 101:             },
+  L 102:             visibility=visibility,  # type: ignore[arg-type]
+  L 103:             radius=_speech_radius,
+  L 104:             persistence_level="session",
+  L 105:         ))
+  L 106: 
+  L 107:         # S197 + P5-B: candidate Proposition верифицируется семантически
+  L 108:         # против финального LLM-текста. Только подтверждённый proposition
+  L 109:         # публикуется как COMMUNICATION_CLAIM.
+  L 110:         _prop_data = data.get("proposition")
+  L 111:         if _prop_data:
+  L 112:             _text = data.get("text", "")
+  L 113:             _confirmed = self._verify_proposition(_prop_data, _text, data)
+  L 114:             if _confirmed:
+  L 115:                 events.append(EventDTO.create(
+  L 116:                     event_type=EventType.COMMUNICATION_CLAIM.value,
+  L 117:                     source=data["speaker_id"],
+  L 118:                     payload={
+  L 119:                         "target_id": data.get("target_id"),
+  L 120:                         "proposition": _prop_data,
+  L 121:                         "speech_act": "assert",
+  L 122:                         "tick": 0,
+  L 123:                         "verified_by": "proposition_verifier",
+  L 124:                     },
+  L 125:                     visibility=visibility,  # type: ignore[arg-type]
+  L 126:                     radius=_speech_radius,
+  L 127:                     persistence_level="session",
+  L 128:                 ))
+  L 129: 
+  L 130:         return events
+  L 131: 
+
+==============================================================================
+STEP 3: task_scheduler.drain_task_worker_outbox
+==============================================================================
+  drain_task_worker_outbox() at L247..L284 (showing L247..L284):
+  L 247:     def drain_task_worker_outbox(self, scene_state: dict) -> None:
+  L 248:         """ADR-O-399: deterministic commit артефактов воркера (main thread).
+  L 249: 
+  L 250:         Batch = артефакты, готовые к данной drain boundary (completion-время
+  L 251:         в канон не входит). Порядок записей — сортировка по стабильному ключу
+  L 252:         (submit_tick, task_id). Порядок эффектов per-record зеркалит прежнюю
+  L 253:         последовательность воркера: events → economy → dialogue → speech_reset.
+  L 254:         Две точки вызова: вход execute_pending + idle_tick до unlock_tick
+  L 255:         (симметрия S203.4/F23); третья точка запрещена. Обе — безусловные:
+  L 256:         pending_tasks == 0 не блокирует дренаж готовых артефактов.
+  L 257:         """
+  L 258:         if not self._task_outbox:
+  L 259:             return
+  L 260:         with self._task_outbox_lock:
+  L 261:             batch = self._task_outbox
+  L 262:             self._task_outbox = []
+  L 263:         batch.sort(key=lambda _r: (_r.submit_tick, _r.task_id))
+  L 264:         _bus = get_event_bus()
+  L 265:         for _rec in batch:
+  L 266:             for _ev in _rec.events:
+  L 267:                 # ADR-O-399 Iter1: штамп событийного времени — submit_tick
+  L 268:                 # (main thread). Единственный легальный источник event-time
+  L 269:                 # для L1-датировки; arrival воркера в канон не входит.
+  L 270:                 _payload = getattr(_ev, "payload", None)
+  L 271:                 if isinstance(_payload, dict):
+  L 272:                     _payload.setdefault("event_tick", _rec.submit_tick)
+  L 273:                 _bus.publish(_ev)
+  L 274:             for _npc, _tick in _rec.economy_talks:
+  L 275:                 if self._economy_tracker:
+  L 276:                     self._economy_tracker.record_talk(_npc, _tick)
+  L 277:             if _rec.dialogue_entry is not None:
+  L 278:                 with self._dialogue_lock:
+  L 279:                     self._recent_dialogues.append(_rec.dialogue_entry)
+  L 280:                 # ADR-O-313: зеркалирование в scene_state — только здесь, main thread
+  L 281:                 scene_state.setdefault("recent_dialogues", []).append(_rec.dialogue_entry)
+  L 282:             if _rec.speech_reset is not None and hasattr(self, '_speech_scheduler'):
+  L 283:                 self._speech_scheduler.reset_context(_rec.speech_reset)
+  L 284: 
+
+==============================================================================
+STEP 4: build loop, find DialogueExecutor, attach spies
+==============================================================================
+  loaded 6 NPCs
+  EventBus spy installed
+  IntentEventAdapter spy installed
+
+  --- Find DialogueExecutor via task_scheduler._executors ---
+  task_scheduler: <app.services.game_loop.task_scheduler.TaskScheduler object at 0x0000028A8039F620> (TaskScheduler)
+  task_scheduler._executors: {<TaskKind.DIALOGUE: 'dialogue'>: <app.services.execution.dialogue_executor.DialogueExecutor object at 0x0000028A80408590>}
+    executors[TaskKind.DIALOGUE] = <app.services.execution.dialogue_executor.DialogueExecutor object at 0x0000028A80408590> (DialogueExecutor)
+  >>> Found DialogueExecutor via task_scheduler._executors[<TaskKind.DIALOGUE: 'dialogue'>]
+  [ExecutorSpy] executor._router is None: False
+  [ExecutorSpy] router type: ModelRouter
+
+  DialogueExecutor spy INSTALLED on: <app.services.execution.dialogue_executor.DialogueExecutor object at 0x0000028A80408590>
+  dialogue_executor._router: <app.services.llm.router.ModelRouter object at 0x0000028AFDC33620>
+  dialogue_executor._router is None: False
+
+==============================================================================
+STEP 5: capture PRE-EXISTING Tornin beliefs
+==============================================================================
+  Tornin pre-existing records: 0
+
+==============================================================================
+STEP 6: publish PLAYER_INSULTS
+==============================================================================
+
+==============================================================================
+STEP 7: run idle_tick with all spies active
+==============================================================================
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+  idle_tick returned: dict
+  status: ok
+  events count: 0
+
+==============================================================================
+STEP 8: spy results
+==============================================================================
+
+  === DialogueExecutor.execute() calls ===
+  Total calls: 0
+
+  === _generate_with_router calls ===
+  Total calls: 0
+
+  === IntentEventAdapter.to_event() calls ===
+  Total calls: 0
+
+  === EventBus.publish() calls ===
+  Total events: 5
+    npc_moved: 4
+    tick_completed: 1
+
+  === ALL task_scheduler logs (no filter) ===
+  Total: 0
+
+  === ALL DialogueExecutor logs ===
+  Total: 3
+    [DEBUG] app.services.execution.dialogue_executor: [DIALOGUE_EXEC] Executing task for guard_borko -> tavern_keeper_tornin on topic 'власть'
+    [DEBUG] app.services.execution.dialogue_executor: [DIALOGUE_EXEC] Executing task for guard_borko -> tavern_keeper_tornin on topic 'власть'
+    [DEBUG] app.services.execution.dialogue_executor: [DIALOGUE_EXEC] Executing task for guard_borko -> tavern_keeper_tornin on topic 'власть'
+
+  === DialogueMaterializer logs ===
+  Total: 0
+
+  === IntentEventAdapter logs ===
+  Total: 0
+
+  === NPC_SPOKE / spread_rumor logs ===
+  Total: 64
+    [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=guard_borko desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.168, 'warn': 0.075, 'spread_rumor': 0.49, 'call_for_help': 0.0}
+    [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=guard_borko desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.168, 'warn': 0.075, 'spread_rumor': 0.49, 'call_for_help': 0.0}
+    [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=guard_borko desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.168, 'warn': 0.075, 'spread_rumor': 0.49, 'call_for_help': 0.0}
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=guard_borko fear_drive=0.20 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'block_path', 'ambush', 'seek_ally', 
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=guard_borko fear_drive=0.20 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'block_path', 'ambush', 'seek_ally', 
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=guard_borko fear_drive=0.20 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'block_path', 'ambush', 'seek_ally', 
+    [DEBUG] app.services.npc.decision_hub: [WHY][DECISION] npc=guard_borko | winner=spread_rumor (0.988) | threat=0.0 | comps={'drive': 0.27, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.0, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'red
+    [DEBUG] app.services.npc.decision_hub: [WHY][DECISION] npc=guard_borko | winner=spread_rumor (0.988) | threat=0.0 | comps={'drive': 0.27, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.0, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'red
+    [DEBUG] app.services.npc.decision_hub: [WHY][DECISION] npc=guard_borko | winner=spread_rumor (0.988) | threat=0.0 | comps={'drive': 0.27, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.0, 'trait': 0.0, 'opportunity': 0.0, 'social': 0.0, 'red
+    [INFO] app.services.npc.decision_hub: [EPISTEMIC_REPORT_TARGET] npc=guard_borko intent=Intent.SPREAD_RUMOR target=tavern_keeper_tornin predicate=insulted
+    [INFO] app.services.npc.decision_hub: [EPISTEMIC_REPORT_TARGET] npc=guard_borko intent=Intent.SPREAD_RUMOR target=tavern_keeper_tornin predicate=insulted
+    [INFO] app.services.npc.decision_hub: [EPISTEMIC_REPORT_TARGET] npc=guard_borko intent=Intent.SPREAD_RUMOR target=tavern_keeper_tornin predicate=insulted
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB] guard_borko: intent=Intent.SPREAD_RUMOR score=0.988 event=EventType.WORLD_TICK
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB] guard_borko: intent=Intent.SPREAD_RUMOR score=0.988 event=EventType.WORLD_TICK
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB] guard_borko: intent=Intent.SPREAD_RUMOR score=0.988 event=EventType.WORLD_TICK
+    [INFO] app.services.npc.decision_hub: [TRACE][DECISION_SCORE] npc=guard_borko winner=Intent.SPREAD_RUMOR top3=[('spread_rumor', 0.99), ('block_path', 0.53), ('talk', 0.46)]
+    [INFO] app.services.npc.decision_hub: [TRACE][DECISION_SCORE] npc=guard_borko winner=Intent.SPREAD_RUMOR top3=[('spread_rumor', 0.99), ('block_path', 0.53), ('talk', 0.46)]
+    [INFO] app.services.npc.decision_hub: [TRACE][DECISION_SCORE] npc=guard_borko winner=Intent.SPREAD_RUMOR top3=[('spread_rumor', 0.99), ('block_path', 0.53), ('talk', 0.46)]
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB_RETURN] npc=guard_borko intent=Intent.SPREAD_RUMOR comm_built=True epistemic_context=YES
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB_RETURN] npc=guard_borko intent=Intent.SPREAD_RUMOR comm_built=True epistemic_context=YES
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB_RETURN] npc=guard_borko intent=Intent.SPREAD_RUMOR comm_built=True epistemic_context=YES
+    [INFO] app.services.npc.npc_tick_pipeline: [DECISION_HUB] guard_borko: intent=Intent.spread_rumor score=0.988 event=unknown
+    [INFO] app.services.npc.npc_tick_pipeline: [DECISION_HUB] guard_borko: intent=Intent.spread_rumor score=0.988 event=unknown
+    [INFO] app.services.npc.npc_tick_pipeline: [DECISION_HUB] guard_borko: intent=Intent.spread_rumor score=0.988 event=unknown
+    [DEBUG] app.services.npc.npc_tick_pipeline: [PROACTIVE_MOVE] npc=guard_borko intent=spread_rumor target_node=tavern:behind_bar
+    [DEBUG] app.services.npc.npc_tick_pipeline: [PROACTIVE_MOVE] npc=guard_borko intent=spread_rumor target_node=tavern:behind_bar
+    [DEBUG] app.services.npc.npc_tick_pipeline: [PROACTIVE_MOVE] npc=guard_borko intent=spread_rumor target_node=tavern:behind_bar
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=merchant_goran fear_drive=0.15 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'seek_ally', 'offer_job', 'request
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=merchant_goran fear_drive=0.15 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'seek_ally', 'offer_job', 'request
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=merchant_goran fear_drive=0.15 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 'approach', 'seek_ally', 'offer_job', 'request
+
+  === ALL ERROR level logs ===
+  Total: 0
+
+==============================================================================
+STEP 9: Tornin belief AFTER idle_tick
+==============================================================================
+  Tornin total records: 1
+    prop=Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, obj
+      conf=0.5 source_id=player orig=player
+
+  NEW Tornin belief with source_id='guard_borko' (orig='player'): False
+
+==============================================================================
+STEP 10: VERDICT
+==============================================================================
+  DialogueExecutor.execute() called: 0
+  _generate_with_router called: 0
+  IntentEventAdapter.to_event() called: 0
+  NPC_SPOKE/SPREAD_RUMOR published: 0
+
+  >>> VERDICT: BREAK — DialogueExecutor.execute() NOT called
+  >>> Spy still not attached — check Step 4 output

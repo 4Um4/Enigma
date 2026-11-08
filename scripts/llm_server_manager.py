@@ -34,7 +34,7 @@ def _port_owner_pid(port: int) -> str:
     """PID владельца listening-порта (Windows): psutil → netstat → unknown.
     Возврат строки: 'unknown' — честный ответ, не выдуманный ноль."""
     try:
-        import psutil  # type: ignore[import-untyped]
+        import psutil
 
         for _c in psutil.net_connections(kind="tcp"):
             if (

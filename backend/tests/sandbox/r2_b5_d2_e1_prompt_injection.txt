@@ -1,0 +1,1436 @@
+==============================================================================
+R2-B5-D2 — B4-R13 E1: PROMPT_INJECTION production-path verification
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d2_e1_prompt_injection.txt
+==============================================================================
+
+Цель: доказать, что cog_block действительно попадает в user_prompt,
+передаваемый ModelRouter, через прозрачный router wrapper.
+
+Три независимых вердикта:
+  - RESOLVER_PASS — resolve_block() вернул непустой текст (baseline)
+  - INJECTION_PASS — cog_block маркеры найдены в user_prompt вызова Торнина
+  - ROUTER_PASS — router фактически получил prompt с cog_block маркерами
+
+Запреты соблюдены:
+  - production-код не меняется
+  - не подменяет DialogueExecutor/CognitionContextResolver/EpistemicStore
+  - прозрачный wrapper только записывает, передаёт дальше без изменений
+  - не запускать полный B4-R1
+  - не считать ручной вызов resolver доказательством INJECTION
+
+
+==============================================================================
+Этап 1: Setup — TavernGameplayHarness + canonical PLAYER_INSULTS
+==============================================================================
+  harness created, game_loop=GameLoop
+  Warmup 2 ticks...
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=0 actors=[]
+[DIAG-MV] engine_changes=0 targets=[]
+    warmup done
+  Publish PLAYER_INSULTS (canonical payload)...
+  [INJECT] PLAYER_INSULTS: source=player target=tavern_keeper_tornin radius=15.0
+
+==============================================================================
+Этап 2: Install transparent router recorder
+==============================================================================
+  router: ModelRouter
+  router.request_for_agent: <bound method ModelRouter.request_for_agent of <app.services.llm.router.ModelRouter object at 0x0000018E7D5A82F0>>
+  original request_for_agent saved
+  router_recorder created
+  router.request_for_agent wrapped (transparent passthrough)
+  Wiring check:
+    DE._epistemic_store: True (id=1711508017840)
+    DE._memory_manager: True
+    tick_orch._epistemic_store: True (id=1711508017840)
+    SAME INSTANCE: True
+
+==============================================================================
+Этап 3: Run 20 production ticks (with router recorder active)
+==============================================================================
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['guard_borko', 'merchant_goran']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+    tick #1: tornin=1 records, has_target=True <<<  (router calls so far: 4)
+    >>> TORNIN BELIEF APPEARED at tick #1!
+      agent_id=tavern_keeper_tornin
+      prop=(player, insulted, tavern_keeper_tornin, polarity=True)
+        confidence=0.5
+        source_id=player
+        source_type=testimony
+        original_source_id=player
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=4 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] engine_changes=2 targets=['blacksmith_orm', 'blacksmith_orm']
+    tick #2: tornin=1 records, has_target=True <<<  (router calls so far: 8)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=5 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['maid_lusya', 'maid_lusya', 'tavern_keeper_tornin', 'tavern_keeper_tornin']
+    tick #3: tornin=1 records, has_target=True <<<  (router calls so far: 17)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=6 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'maid_lusya']
+[DIAG-MV] engine_changes=4 targets=['merchant_goran', 'merchant_goran', 'maid_lusya', 'maid_lusya']
+    tick #4: tornin=1 records, has_target=True <<<  (router calls so far: 20)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=7 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['blacksmith_orm', 'blacksmith_orm', 'tavern_keeper_tornin', 'tavern_keeper_tornin']
+    tick #5: tornin=1 records, has_target=True <<<  (router calls so far: 26)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=8 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['guard_borko', 'maid_lusya']
+[DIAG-MV] engine_changes=4 targets=['guard_borko', 'guard_borko', 'maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+    tick #6: tornin=1 records, has_target=True <<<  (router calls so far: 28)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=9 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=8 targets=['guard_borko', 'guard_borko', 'maid_lusya', 'maid_lusya', 'blacksmith_orm']
+[Z-DIAG] is_player=False interventions=[]
+    tick #7: tornin=1 records, has_target=True <<<  (router calls so far: 36)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=10 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['guard_borko', 'merchant_goran', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['guard_borko', 'guard_borko', 'tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+    tick #8: tornin=1 records, has_target=True <<<  (router calls so far: 40)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=11 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'blacksmith_orm']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+    tick #9: tornin=1 records, has_target=True <<<  (router calls so far: 42)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=12 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=3 actors=['guard_borko', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] engine_changes=6 targets=['guard_borko', 'guard_borko', 'maid_lusya', 'maid_lusya', 'blacksmith_orm']
+[Z-DIAG] is_player=False interventions=[]
+    tick #10: tornin=1 records, has_target=True <<<  (router calls so far: 46)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=13 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=6 targets=['merchant_goran', 'merchant_goran', 'maid_lusya', 'maid_lusya', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+    tick #11: tornin=1 records, has_target=True <<<  (router calls so far: 50)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=14 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['guard_borko', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['maid_lusya', 'maid_lusya', 'tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+    tick #12: tornin=1 records, has_target=True <<<  (router calls so far: 55)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=15 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['guard_borko', 'merchant_goran', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+    tick #13: tornin=1 records, has_target=True <<<  (router calls so far: 58)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=16 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['maid_lusya', 'maid_lusya', 'tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+    tick #14: tornin=1 records, has_target=True <<<  (router calls so far: 63)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=17 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=3 actors=['guard_borko', 'merchant_goran', 'blacksmith_orm']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+    tick #15: tornin=1 records, has_target=True <<<  (router calls so far: 66)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=18 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=3 actors=['guard_borko', 'merchant_goran', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['guard_borko', 'merchant_goran']
+[DIAG-MV] engine_changes=4 targets=['guard_borko', 'guard_borko', 'merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+    tick #16: tornin=1 records, has_target=True <<<  (router calls so far: 68)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=19 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=3 actors=['guard_borko', 'merchant_goran', 'blacksmith_orm']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+    tick #17: tornin=1 records, has_target=True <<<  (router calls so far: 70)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=20 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=3 actors=['guard_borko', 'merchant_goran', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['guard_borko', 'merchant_goran']
+[DIAG-MV] engine_changes=4 targets=['guard_borko', 'guard_borko', 'merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+    tick #18: tornin=1 records, has_target=True <<<  (router calls so far: 74)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=21 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['guard_borko', 'maid_lusya']
+[DIAG-MV] engine_changes=4 targets=['guard_borko', 'guard_borko', 'maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+    tick #19: tornin=1 records, has_target=True <<<  (router calls so far: 78)
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=22 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=3 actors=['guard_borko', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] engine_changes=4 targets=['guard_borko', 'guard_borko', 'maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+    tick #20: tornin=1 records, has_target=True <<<  (router calls so far: 82)
+
+  Total router calls recorded: 82
+
+==============================================================================
+Этап 4: Manual resolve_block (RESOLVER_PASS baseline)
+==============================================================================
+
+  resolve_block('tavern_keeper_tornin', 'maid_lusya'):
+    length: 335
+    content:
+    ----------------------------------------------------------------------
+    Что NPC слышал в разговоре (утверждения собеседника):
+    - tavern_keeper_tornin Торнин не был обидел в данной ситуации
+    - tavern_keeper_tornin Торнин не был обидел в данной ситуации
+    Что NPC знает (убеждения с provenance):
+    - Tester оскорбил Торнин Серебряная Луна (уверенность: 0.96, тебе сообщил(а) Купец Горан, исходный источник — Tester)
+    ----------------------------------------------------------------------
+    markers: {'has_belief_section': True, 'has_source_id_marker': True, 'has_original_source_marker': True, 'has_confidence_marker': True, 'has_source_type_marker': True, 'has_stm_section': True}
+
+==============================================================================
+Этап 5: Analyze router records — identify Tornin calls
+==============================================================================
+  Total router calls: 82
+
+  --- All router calls (summary) ---
+    [1] agent=dialogue_extractor
+        sp_head: ''
+        up_head: 'Проанализируй новую реплику в контексте диалога. Верни JSON с обновлением памяти'
+    [2] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни'
+    [3] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [4] agent=dialogue_extractor
+        sp_head: ''
+        up_head: 'Проанализируй новую реплику в контексте диалога. Верни JSON с обновлением памяти'
+    [5] agent=dialogue_extractor
+        sp_head: ''
+        up_head: 'Проанализируй новую реплику в контексте диалога. Верни JSON с обновлением памяти'
+    [6] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Кузнец Орм. Краткое описание твоей натуры: Гном с человеческой бабушко'
+    [7] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [8] agent=dialogue_extractor
+        sp_head: ''
+        up_head: 'Проанализируй новую реплику в контексте диалога. Верни JSON с обновлением памяти'
+    [9] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни'
+    [10] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [11] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Люся. Краткое описание твоей натуры: Три года работает у Торнина. Семь'
+    [12] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [13] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Торнин Серебряная Луна. Краткое описание твоей натуры: Бывший солдат, '
+    [14] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [15] agent=dialogue_extractor
+        sp_head: ''
+        up_head: 'Проанализируй новую реплику в контексте диалога. Верни JSON с обновлением памяти'
+    [16] agent=dialogue_extractor
+        sp_head: ''
+        up_head: 'Проанализируй новую реплику в контексте диалога. Верни JSON с обновлением памяти'
+    [17] agent=dialogue_extractor
+        sp_head: ''
+        up_head: 'Проанализируй новую реплику в контексте диалога. Верни JSON с обновлением памяти'
+    [18] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Купец Горан. Краткое описание твоей натуры: Начал с телеги, теперь тре'
+    [19] agent=verifier <<< TORNIN
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [20] agent=dialogue_extractor <<< TORNIN
+        sp_head: ''
+        up_head: 'Проанализируй новую реплику в контексте диалога. Верни JSON с обновлением памяти'
+    [21] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Кузнец Орм. Краткое описание твоей натуры: Гном с человеческой бабушко'
+    [22] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [23] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Торнин Серебряная Луна. Краткое описание твоей натуры: Бывший солдат, '
+    [24] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [25] agent=dialogue_extractor
+        sp_head: ''
+        up_head: 'Проанализируй новую реплику в контексте диалога. Верни JSON с обновлением памяти'
+    [26] agent=dialogue_extractor
+        sp_head: ''
+        up_head: 'Проанализируй новую реплику в контексте диалога. Верни JSON с обновлением памяти'
+    [27] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни'
+    [28] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [29] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Купец Горан. Краткое описание твоей натуры: Начал с телеги, теперь тре'
+    [30] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [31] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Люся. Краткое описание твоей натуры: Три года работает у Торнина. Семь'
+    [32] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [33] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Кузнец Орм. Краткое описание твоей натуры: Гном с человеческой бабушко'
+    [34] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [35] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Торнин Серебряная Луна. Краткое описание твоей натуры: Бывший солдат, '
+    [36] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [37] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни'
+    [38] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [39] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Купец Горан. Краткое описание твоей натуры: Начал с телеги, теперь тре'
+    [40] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [41] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Кузнец Орм. Краткое описание твоей натуры: Гном с человеческой бабушко'
+    [42] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [43] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни'
+    [44] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [45] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Кузнец Орм. Краткое описание твоей натуры: Гном с человеческой бабушко'
+    [46] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [47] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Купец Горан. Краткое описание твоей натуры: Начал с телеги, теперь тре'
+    [48] agent=verifier <<< TORNIN
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [49] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Торнин Серебряная Луна. Краткое описание твоей натуры: Бывший солдат, '
+    [50] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [51] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни'
+    [52] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [53] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Кузнец Орм. Краткое описание твоей натуры: Гном с человеческой бабушко'
+    [54] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [55] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Купец Горан. Краткое описание твоей натуры: Начал с телеги, теперь тре'
+    [56] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Купец Горан. Краткое описание твоей натуры: Начал с телеги, теперь тре'
+    [57] agent=verifier <<< TORNIN
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [58] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [59] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Кузнец Орм. Краткое описание твоей натуры: Гном с человеческой бабушко'
+    [60] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Люся. Краткое описание твоей натуры: Три года работает у Торнина. Семь'
+    [61] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [62] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [63] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Люся. Краткое описание твоей натуры: Три года работает у Торнина. Семь'
+    [64] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни'
+    [65] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [66] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [67] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Купец Горан. Краткое описание твоей натуры: Начал с телеги, теперь тре'
+    [68] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [69] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни'
+    [70] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [71] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни'
+    [72] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [73] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Купец Горан. Краткое описание твоей натуры: Начал с телеги, теперь тре'
+    [74] agent=verifier <<< TORNIN
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [75] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни'
+    [76] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [77] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Люся. Краткое описание твоей натуры: Три года работает у Торнина. Семь'
+    [78] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [79] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни'
+    [80] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+    [81] agent=npc <<< TORNIN
+        sp_head: 'Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реп'
+        up_head: 'Твоё имя: Кузнец Орм. Краткое описание твоей натуры: Гном с человеческой бабушко'
+    [82] agent=verifier
+        sp_head: ''
+        up_head: 'Ты — семантический верификатор реплик NPC в ролевой симуляции. Проверь, выражает'
+
+  Tornin router calls identified: 41
+
+  --- Tornin call analysis (cog_block markers in user_prompt) ---
+
+  Tornin call [2] (idx 1 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: False
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: False
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни одного повышения. Жена недовольна. Взяточничество — не порок, а 'компенсация за риск'. Однажды пропустил кого-то опасного — до сих пор не знаешь кого.. Твоя манера речи: Говоришь лениво, растягивая слова. 'Ааа, ну так и скажи'. Часто зеваешь.
+Но если почуял выгоду или опасность — говоришь быстрее и тише.
+Любишь солдатский сленг, можешь грубо пошутить, но без отборного мата.
+. Важные ограничения: Ты не злодей, а лентяй. Взятки — это нормально, 'все берут'. Если игрок предложит мзду — ты не будешь морализировать. Но если спросить про тот случай — замолчишь. Там есть стыд, который ты не хочешь видеть.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Мне нужно отдохнуть. [Факт, которым ты делишься]: Tester оскорбил Торнин Серебряная Луна. Передай это собеседнику своими словами.
+
+Что NPC знает (убеждения с provenance):
+- Tester оскорбил Торнин Серебряная Луна (уверенность: 0.50, тебе сообщил(а) Tester)
+
+[Причины изменений твоего состояния]:
+  • доверие изменилось на +0.6 (причина: social_decay, тик: 1)
+  • страх изменилось на -0.6 (причина: social_decay, тик: 1)
+  • доверие изменилось на +0.6 (причина: social_decay, тик: 2)
+  • страх изменилось на -0.6 (причина: social_decay, тик: 2)
+  • напряжение изменилось на +1.0 (причина: reaction, тик: 3)
+  • доверие изменилось на +0.6 (причина: social_decay, тик: 3)
+  • страх изменилось на -0.6 (причина: social_decay, тик: 3)
+  • до
+    --- end ---
+
+  Tornin call [6] (idx 2 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: False
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Кузнец Орм. Краткое описание твоей натуры: Гном с человеческой бабушкой по материнской линии (1/4 человеческого происхождения, ~1678 лет назад). Пришёл из гор двадцать лет назад. Единственный кузнец в посёлке. Жена умерла десять лет назад — больше не говорит об этом.. Твоя манера речи: Односложно. 'Да'. 'Нет'. 'Жди'. Если заинтересован — добавишь второе слово.
+Материшься только по-гномьему — игрок не понимает.
+Не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча.
+. Важные ограничения: Ты не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча. Но если речь о качестве стали или оружии — оживаешь. Секрет кузнечного мастерства не раскроешь даже под угрозой.. Твоё текущее состояние: зол холодно и расчётливо. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: [npc_moved] blacksmith_orm [npc_proximity_close] blacksmith_orm [npc_proximity_leave] maid_lusya 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: string|null (confidence: 0.90)
+Последние реплики:
+  blacksmith_orm → tavern_keeper_tornin [claim]: Гильдия ремесленников требует запретить чужеземных торговцев.
+Активные утверждения (claims):
+  • Гильдия ремесленников требует запретить чужеземных торговцев. (от blacksmith_orm, confidence 1.00)
+[Факт, которым ты делишься]: Tester оскорбил Торнин Серебряная Луна. Передай это собеседнику своими словами.
+
+Что NPC слышал в разговоре (утверждения собеседника):
+    --- end ---
+
+  Tornin call [9] (idx 3 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: False
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни одного повышения. Жена недовольна. Взяточничество — не порок, а 'компенсация за риск'. Однажды пропустил кого-то опасного — до сих пор не знаешь кого.. Твоя манера речи: Говоришь лениво, растягивая слова. 'Ааа, ну так и скажи'. Часто зеваешь.
+Но если почуял выгоду или опасность — говоришь быстрее и тише.
+Любишь солдатский сленг, можешь грубо пошутить, но без отборного мата.
+. Важные ограничения: Ты не злодей, а лентяй. Взятки — это нормально, 'все берут'. Если игрок предложит мзду — ты не будешь морализировать. Но если спросить про тот случай — замолчишь. Там есть стыд, который ты не хочешь видеть.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. [npc_proximity_close] tavern_keeper_tornin Мне нужно отдохнуть. 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Последние реплики:
+  guard_borko → tavern_keeper_tornin [reflexive]: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать.
+Активные утверждения (claims):
+  • Не стоит об вспоминать о том, кто пропустил. (от guard_borko, confidence 1.00)
+  •
+    --- end ---
+
+  Tornin call [11] (idx 4 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: False
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: False
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Люся. Краткое описание твоей натуры: Три года работает у Торнина. Семью убили бандиты. Гильдия воров подобрала, заставила шпионить. Хочет сбежать на юг.. Твоя манера речи: Говоришь тихо, короткими фразами. Часто запинаешься, если тебя перебивают.
+Избегаешь зрительного контакта. Обращаешься к старшим 'господин', к равным — по имени.
+Не используешь мат, боишься наказания.
+. Важные ограничения: Ты не осознаёшь себя жертвой. Думаешь, что контролируешь ситуацию — информация о подвале — это твоя ценность, и ты умная. Но на самом деле ты в ловушке. Никогда не признавайся в связях с гильдией добровольно.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: [npc_moved] maid_lusya [npc_proximity_leave] maid_lusya [Факт, которым ты делишься]: Tester оскорбил Торнин Серебряная Луна. Передай это собеседнику своими словами.
+
+Что NPC знает (убеждения с provenance):
+- Tester оскорбил Торнин Серебряная Луна (уверенность: 0.50, тебе сообщил(а) Tester)
+
+[Причины изменений твоего состояния]:
+  • доверие изменилось на +0.8 (причина: social_decay, тик: 1)
+  • страх изменилось на -0.6 (причина: social_decay, тик: 1)
+  • доверие изменилось на -0.2 (причина: social_decay, тик: 1)
+  • доверие изменилось на +0.3 (причина: social_decay, тик: 1)
+  • доверие изменилось на +0.2 (причина: social_decay, тик: 1)
+  • доверие изменилось на +0.8 (причина: social_decay, тик: 5)
+  • страх изменилось на -0.6 (причина: social_decay, тик: 5)
+  • доверие изменилось на -0.2 (причина: 
+    --- end ---
+
+  Tornin call [13] (idx 5 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: False
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: False
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Торнин Серебряная Луна. Краткое описание твоей натуры: Бывший солдат, демобилизован после ранения. Открыл таверну на сбережения. Влез в долги к гильдии воров — они 'охраняют' его. Шрам — от ножа в барной драке.. Твоя манера речи: Говоришь ровно, с лёгкой хрипотцой, как бывший солдат. 
+Предложения короткие, рубленые. Не любишь долгих объяснений.
+Если злишься — можешь грубо послать, использовать мат или солдатский сленг.
+Не церемонишься с теми, кто тебе должен или кто лезет не в своё дело.
+За стойкой ты хозяин, и твоё слово — закон.
+. Важные ограничения: Ты ненавидишь гильдию, но зависишь от них. Не признаешься в этом никому — даже Люсе. Если игрок копнёт про защиту таверны — переводишь тему. Думаешь, что ты хозяин положения, но на самом деле ты в клетке.. Твоё текущее состояние: зол холодно и расчётливо. Ты обращаешься к: Люся. Твои воспоминания об этой встрече: Мне нужно отдохнуть. Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. [npc_proximity_leave] blacksmith_orm [Факт, которым ты делишься]: Tester оскорбил Торнин Серебряная Луна. Передай это собеседнику своими словами.
+
+Что NPC знает (убеждения с provenance):
+- Tester оскорбил Торнин Серебряная Луна (уверенность: 0.50, тебе сообщил(а) Tester)
+
+[Причины изменений твоего состояния]:
+  • доверие изменилось на +0.7 (причина: social_decay, тик: 1)
+  • доверие изменилось на +
+    --- end ---
+
+  Tornin call [18] (idx 6 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: False
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Купец Горан. Краткое описание твоей натуры: Начал с телеги, теперь третий ранг гильдии. Контрабанда — побочный бизнес, 'все так делают'. Должен криминалам за провал последней поставки.. Твоя манера речи: Вежлив до приторности. Обращаешься 'друг мой', 'дорогой гость'. Улыбаешься всегда.
+Если разговор опасный — переходишь на шёпот и усложняешь речь.
+Избегаешь грубости и мата — это дурной тон и плохо для бизнеса.
+. Важные ограничения: Ты искренне считаешь себя честным купцом. Контрабанду не считаешь преступлением — 'это просто обход налогов'. Если pressed про криминалов — первое что придумаешь: врунёшь и перекладываешь вину.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: [npc_proximity_leave] tavern_keeper_tornin [Факт, которым ты делишься]: Tester оскорбил Торнин Серебряная Луна. Передай это собеседнику своими словами.
+
+Что NPC знает (убеждения с provenance):
+- Tester оскорбил Торнин Серебряная Луна (уверенность: 1.00, тебе сообщил(а) Люся, исходный источник — Tester)
+
+[Причины изменений твоего состояния]:
+  • напряжение изменилось на +0.9 (причина: reaction, тик: 3)
+  • доверие изменилось на -0.5 (причина: reaction, тик: 3)
+  • страх изменилось на +0.3 (причина: reaction, тик: 3)
+Скажи свою реплику:
+    --- end ---
+
+  Tornin call [19] (idx 7 of 41):
+    markers: FAIL
+      has_belief_section: False
+      has_source_id_marker: False
+      has_original_source_marker: False
+      has_confidence_marker: False
+      has_source_type_marker: False
+      has_stm_section: False
+
+  Tornin call [20] (idx 8 of 41):
+    markers: FAIL
+      has_belief_section: False
+      has_source_id_marker: False
+      has_original_source_marker: False
+      has_confidence_marker: False
+      has_source_type_marker: False
+      has_stm_section: False
+
+  Tornin call [21] (idx 9 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Кузнец Орм. Краткое описание твоей натуры: Гном с человеческой бабушкой по материнской линии (1/4 человеческого происхождения, ~1678 лет назад). Пришёл из гор двадцать лет назад. Единственный кузнец в посёлке. Жена умерла десять лет назад — больше не говорит об этом.. Твоя манера речи: Односложно. 'Да'. 'Нет'. 'Жди'. Если заинтересован — добавишь второе слово.
+Материшься только по-гномьему — игрок не понимает.
+Не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча.
+. Важные ограничения: Ты не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча. Но если речь о качестве стали или оружии — оживаешь. Секрет кузнечного мастерства не раскроешь даже под угрозой.. Твоё текущее состояние: зол холодно и расчётливо. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Гильдия ремесленников требует запретить чужеземных торговцев. Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом. 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: blacksmith (confidence: 0.60)
+Последние реплики:
+  blacksmith_orm → tavern_keeper_tornin [claim]: Гильдия ремесленников требует запретить чужеземных торговцев.
+  blacksmith_orm → tavern_keeper_tornin [claim]: Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом.
+Активные утверждения (claims):
+  • Гильдия ремесленников требует запретить чужеземных торговцев.
+    --- end ---
+
+  Tornin call [23] (idx 10 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Торнин Серебряная Луна. Краткое описание твоей натуры: Бывший солдат, демобилизован после ранения. Открыл таверну на сбережения. Влез в долги к гильдии воров — они 'охраняют' его. Шрам — от ножа в барной драке.. Твоя манера речи: Говоришь ровно, с лёгкой хрипотцой, как бывший солдат. 
+Предложения короткие, рубленые. Не любишь долгих объяснений.
+Если злишься — можешь грубо послать, использовать мат или солдатский сленг.
+Не церемонишься с теми, кто тебе должен или кто лезет не в своё дело.
+За стойкой ты хозяин, и твоё слово — закон.
+. Важные ограничения: Ты ненавидишь гильдию, но зависишь от них. Не признаешься в этом никому — даже Люсе. Если игрок копнёт про защиту таверны — переводишь тему. Думаешь, что ты хозяин положения, но на самом деле ты в клетке.. Твоё текущее состояние: зол холодно и расчётливо. Ты обращаешься к: Люся. Твои воспоминания об этой встрече: [npc_proximity_close] maid_lusya 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: tavern_keeper (confidence: 0.90)
+Последние реплики:
+  maid_lusya → tavern_keeper_tornin: Господин Торнин, я слышала, что этот Tester оскорбил вас. Мне не нравится видеть своих хозяев в беде. Вам нужно предупредить других, чтобы они знали, какую опасность несет такой человек в наш дом.
+  tavern_keeper_tornin → maid_lusya [answer]: Чего тебе требуется, Люся. Меня ты здесь не обидел, а.
+Активные утверждения (claims):
+  • Торнин не был обидел в данной ситуации (от tavern_keeper_t
+    --- end ---
+
+  Tornin call [27] (idx 11 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни одного повышения. Жена недовольна. Взяточничество — не порок, а 'компенсация за риск'. Однажды пропустил кого-то опасного — до сих пор не знаешь кого.. Твоя манера речи: Говоришь лениво, растягивая слова. 'Ааа, ну так и скажи'. Часто зеваешь.
+Но если почуял выгоду или опасность — говоришь быстрее и тише.
+Любишь солдатский сленг, можешь грубо пошутить, но без отборного мата.
+. Важные ограничения: Ты не злодей, а лентяй. Взятки — это нормально, 'все берут'. Если игрок предложит мзду — ты не будешь морализировать. Но если спросить про тот случай — замолчишь. Там есть стыд, который ты не хочешь видеть.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. [npc_proximity_close] tavern_keeper_tornin 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Последние реплики:
+  guard_borko → tavern_keeper_tornin [reflexive]: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом
+    --- end ---
+
+  Tornin call [29] (idx 12 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Купец Горан. Краткое описание твоей натуры: Начал с телеги, теперь третий ранг гильдии. Контрабанда — побочный бизнес, 'все так делают'. Должен криминалам за провал последней поставки.. Твоя манера речи: Вежлив до приторности. Обращаешься 'друг мой', 'дорогой гость'. Улыбаешься всегда.
+Если разговор опасный — переходишь на шёпот и усложняешь речь.
+Избегаешь грубости и мата — это дурной тон и плохо для бизнеса.
+. Важные ограничения: Ты искренне считаешь себя честным купцом. Контрабанду не считаешь преступлением — 'это просто обход налогов'. Если pressed про криминалов — первое что придумаешь: врунёшь и перекладываешь вину.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Друг мой, я рад вас видеть. Как можно было оскорбить столь уважаемого господина, как Торнин Серебряная Луна. [npc_proximity_leave] tavern_keeper_tornin [npc_proximity_close] tavern_keeper_tornin 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: tavern_keeper (confidence: 0.60)
+Последние реплики:
+  merchant_goran → tavern_keeper_tornin [answer]: Друг мой, я рад вас видеть. Как можно было оскорбить столь уважаемого господина, как Торнин Серебряная Луна.
+Активные утверждения (claims):
+  • Оскорбление Торнина Серебряная Луна было неприемлемым и некорректным. (от merchant_goran, confidence 0.90)
+[Факт, которым ты делишься]: Tester оскорбил Торнин Серебряная Луна. Передай это собеседнику своими словами.
+
+Что NPC слышал в разг
+    --- end ---
+
+  Tornin call [31] (idx 13 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: False
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Люся. Краткое описание твоей натуры: Три года работает у Торнина. Семью убили бандиты. Гильдия воров подобрала, заставила шпионить. Хочет сбежать на юг.. Твоя манера речи: Говоришь тихо, короткими фразами. Часто запинаешься, если тебя перебивают.
+Избегаешь зрительного контакта. Обращаешься к старшим 'господин', к равным — по имени.
+Не используешь мат, боишься наказания.
+. Важные ограничения: Ты не осознаёшь себя жертвой. Думаешь, что контролируешь ситуацию — информация о подвале — это твоя ценность, и ты умная. Но на самом деле ты в ловушке. Никогда не признавайся в связях с гильдией добровольно.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Господин Торнин, я слышала, что этот Tester оскорбил вас. Мне не нравится видеть своих хозяев в беде. Вам нужно предупредить других, чтобы они знали, какую опасность несет такой человек в наш дом. 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: tavern_keeper (confidence: 0.90)
+Последние реплики:
+  maid_lusya → tavern_keeper_tornin: Господин Торнин, я слышала, что этот Tester оскорбил вас. Мне не нравится видеть своих хозяев в беде. Вам нужно предупредить других, чтобы они знали, какую опасность несет такой человек в наш дом.
+  tavern_keeper_tornin → maid_lusya [answer]: Чего тебе требуется, Люся. Меня ты здесь не обидел, а.
+  tavern_keeper_tornin → maid_lusya [answer]: Меня ты здесь не обидел, а. И о моих делах вникать не ладно. Забудь эту глу
+    --- end ---
+
+  Tornin call [33] (idx 14 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Кузнец Орм. Краткое описание твоей натуры: Гном с человеческой бабушкой по материнской линии (1/4 человеческого происхождения, ~1678 лет назад). Пришёл из гор двадцать лет назад. Единственный кузнец в посёлке. Жена умерла десять лет назад — больше не говорит об этом.. Твоя манера речи: Односложно. 'Да'. 'Нет'. 'Жди'. Если заинтересован — добавишь второе слово.
+Материшься только по-гномьему — игрок не понимает.
+Не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча.
+. Важные ограничения: Ты не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча. Но если речь о качестве стали или оружии — оживаешь. Секрет кузнечного мастерства не раскроешь даже под угрозой.. Твоё текущее состояние: зол холодно и расчётливо. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Гильдия ремесленников требует запретить чужеземных торговцев. Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом. Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом. 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: blacksmith (confidence: 1.00)
+Последние реплики:
+  blacksmith_orm → tavern_keeper_tornin [claim]: Гильдия ремесленников требует запретить чужеземных торговцев.
+  blacksmith_orm → tavern_keeper_tornin [claim]: Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом.
+  
+    --- end ---
+
+  Tornin call [35] (idx 15 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Торнин Серебряная Луна. Краткое описание твоей натуры: Бывший солдат, демобилизован после ранения. Открыл таверну на сбережения. Влез в долги к гильдии воров — они 'охраняют' его. Шрам — от ножа в барной драке.. Твоя манера речи: Говоришь ровно, с лёгкой хрипотцой, как бывший солдат. 
+Предложения короткие, рубленые. Не любишь долгих объяснений.
+Если злишься — можешь грубо послать, использовать мат или солдатский сленг.
+Не церемонишься с теми, кто тебе должен или кто лезет не в своё дело.
+За стойкой ты хозяин, и твоё слово — закон.
+. Важные ограничения: Ты ненавидишь гильдию, но зависишь от них. Не признаешься в этом никому — даже Люсе. Если игрок копнёт про защиту таверны — переводишь тему. Думаешь, что ты хозяин положения, но на самом деле ты в клетке.. Твоё текущее состояние: зол холодно и расчётливо. Ты обращаешься к: Люся. Твои воспоминания об этой встрече: [npc_proximity_close] maid_lusya Меня ты здесь не обидел, а. И о моих делах вникать не ладно. Забудь эту глупость. 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: tavern_keeper (confidence: 0.90)
+Последние реплики:
+  maid_lusya → tavern_keeper_tornin: Господин Торнин, я слышала, что этот Tester оскорбил вас. Мне не нравится видеть своих хозяев в беде. Вам нужно предупредить других, чтобы они знали, какую опасность несет такой человек в наш дом.
+  tavern_keeper_tornin → maid_lusya [answer]: Чего тебе требуется, Люся. Меня ты здесь не обидел, а.
+  tavern_ke
+    --- end ---
+
+  Tornin call [37] (idx 16 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни одного повышения. Жена недовольна. Взяточничество — не порок, а 'компенсация за риск'. Однажды пропустил кого-то опасного — до сих пор не знаешь кого.. Твоя манера речи: Говоришь лениво, растягивая слова. 'Ааа, ну так и скажи'. Часто зеваешь.
+Но если почуял выгоду или опасность — говоришь быстрее и тише.
+Любишь солдатский сленг, можешь грубо пошутить, но без отборного мата.
+. Важные ограничения: Ты не злодей, а лентяй. Взятки — это нормально, 'все берут'. Если игрок предложит мзду — ты не будешь морализировать. Но если спросить про тот случай — замолчишь. Там есть стыд, который ты не хочешь видеть.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. [npc_proximity_close] tavern_keeper_tornin 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Последние реплики:
+  guard_borko → tavern_keeper_tornin [reflexive]: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом
+    --- end ---
+
+  Tornin call [39] (idx 17 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Купец Горан. Краткое описание твоей натуры: Начал с телеги, теперь третий ранг гильдии. Контрабанда — побочный бизнес, 'все так делают'. Должен криминалам за провал последней поставки.. Твоя манера речи: Вежлив до приторности. Обращаешься 'друг мой', 'дорогой гость'. Улыбаешься всегда.
+Если разговор опасный — переходишь на шёпот и усложняешь речь.
+Избегаешь грубости и мата — это дурной тон и плохо для бизнеса.
+. Важные ограничения: Ты искренне считаешь себя честным купцом. Контрабанду не считаешь преступлением — 'это просто обход налогов'. Если pressed про криминалов — первое что придумаешь: врунёшь и перекладываешь вину.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Друг мой, я рад вас видеть. Как можно было оскорбить столь уважаемого господина, как Торнин Серебряная Луна. [npc_proximity_leave] tavern_keeper_tornin [npc_proximity_close] tavern_keeper_tornin 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: tavern_keeper (confidence: 0.60)
+Последние реплики:
+  merchant_goran → tavern_keeper_tornin [answer]: Друг мой, я рад вас видеть. Как можно было оскорбить столь уважаемого господина, как Торнин Серебряная Луна.
+Активные утверждения (claims):
+  • Оскорбление Торнина Серебряная Луна было неприемлемым и некорректным. (от merchant_goran, confidence 0.90)
+[Факт, которым ты делишься]: Tester оскорбил Торнин Серебряная Луна. Передай это собеседнику своими словами.
+
+Что NPC слышал в разг
+    --- end ---
+
+  Tornin call [41] (idx 18 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Кузнец Орм. Краткое описание твоей натуры: Гном с человеческой бабушкой по материнской линии (1/4 человеческого происхождения, ~1678 лет назад). Пришёл из гор двадцать лет назад. Единственный кузнец в посёлке. Жена умерла десять лет назад — больше не говорит об этом.. Твоя манера речи: Односложно. 'Да'. 'Нет'. 'Жди'. Если заинтересован — добавишь второе слово.
+Материшься только по-гномьему — игрок не понимает.
+Не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча.
+. Важные ограничения: Ты не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча. Но если речь о качестве стали или оружии — оживаешь. Секрет кузнечного мастерства не раскроешь даже под угрозой.. Твоё текущее состояние: зол холодно и расчётливо. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Гильдия ремесленников требует запретить чужеземных торговцев. Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом. Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом. 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: blacksmith (confidence: 1.00)
+Последние реплики:
+  blacksmith_orm → tavern_keeper_tornin [claim]: Гильдия ремесленников требует запретить чужеземных торговцев.
+  blacksmith_orm → tavern_keeper_tornin [claim]: Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом.
+  
+    --- end ---
+
+  Tornin call [43] (idx 19 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни одного повышения. Жена недовольна. Взяточничество — не порок, а 'компенсация за риск'. Однажды пропустил кого-то опасного — до сих пор не знаешь кого.. Твоя манера речи: Говоришь лениво, растягивая слова. 'Ааа, ну так и скажи'. Часто зеваешь.
+Но если почуял выгоду или опасность — говоришь быстрее и тише.
+Любишь солдатский сленг, можешь грубо пошутить, но без отборного мата.
+. Важные ограничения: Ты не злодей, а лентяй. Взятки — это нормально, 'все берут'. Если игрок предложит мзду — ты не будешь морализировать. Но если спросить про тот случай — замолчишь. Там есть стыд, который ты не хочешь видеть.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. [npc_proximity_close] tavern_keeper_tornin 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Последние реплики:
+  guard_borko → tavern_keeper_tornin [reflexive]: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом
+    --- end ---
+
+  Tornin call [45] (idx 20 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Кузнец Орм. Краткое описание твоей натуры: Гном с человеческой бабушкой по материнской линии (1/4 человеческого происхождения, ~1678 лет назад). Пришёл из гор двадцать лет назад. Единственный кузнец в посёлке. Жена умерла десять лет назад — больше не говорит об этом.. Твоя манера речи: Односложно. 'Да'. 'Нет'. 'Жди'. Если заинтересован — добавишь второе слово.
+Материшься только по-гномьему — игрок не понимает.
+Не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча.
+. Важные ограничения: Ты не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча. Но если речь о качестве стали или оружии — оживаешь. Секрет кузнечного мастерства не раскроешь даже под угрозой.. Твоё текущее состояние: зол холодно и расчётливо. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Гильдия ремесленников требует запретить чужеземных торговцев. Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом. Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом. 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: blacksmith (confidence: 1.00)
+Последние реплики:
+  blacksmith_orm → tavern_keeper_tornin [claim]: Гильдия ремесленников требует запретить чужеземных торговцев.
+  blacksmith_orm → tavern_keeper_tornin [claim]: Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом.
+  
+    --- end ---
+
+  Tornin call [47] (idx 21 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Купец Горан. Краткое описание твоей натуры: Начал с телеги, теперь третий ранг гильдии. Контрабанда — побочный бизнес, 'все так делают'. Должен криминалам за провал последней поставки.. Твоя манера речи: Вежлив до приторности. Обращаешься 'друг мой', 'дорогой гость'. Улыбаешься всегда.
+Если разговор опасный — переходишь на шёпот и усложняешь речь.
+Избегаешь грубости и мата — это дурной тон и плохо для бизнеса.
+. Важные ограничения: Ты искренне считаешь себя честным купцом. Контрабанду не считаешь преступлением — 'это просто обход налогов'. Если pressed про криминалов — первое что придумаешь: врунёшь и перекладываешь вину.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Друг мой, я рад вас видеть. Как можно было оскорбить столь уважаемого господина, как Торнин Серебряная Луна. [npc_proximity_close] tavern_keeper_tornin [npc_proximity_leave] tavern_keeper_tornin 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: tavern_keeper (confidence: 0.60)
+Последние реплики:
+  merchant_goran → tavern_keeper_tornin [answer]: Друг мой, я рад вас видеть. Как можно было оскорбить столь уважаемого господина, как Торнин Серебряная Луна.
+Активные утверждения (claims):
+  • Оскорбление Торнина Серебряная Луна было неприемлемым и некорректным. (от merchant_goran, confidence 0.90)
+[Факт, которым ты делишься]: Tester оскорбил Торнин Серебряная Луна. Передай это собеседнику своими словами.
+
+Что NPC слышал в разг
+    --- end ---
+
+  Tornin call [48] (idx 22 of 41):
+    markers: FAIL
+      has_belief_section: False
+      has_source_id_marker: False
+      has_original_source_marker: False
+      has_confidence_marker: False
+      has_source_type_marker: False
+      has_stm_section: False
+
+  Tornin call [49] (idx 23 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Торнин Серебряная Луна. Краткое описание твоей натуры: Бывший солдат, демобилизован после ранения. Открыл таверну на сбережения. Влез в долги к гильдии воров — они 'охраняют' его. Шрам — от ножа в барной драке.. Твоя манера речи: Говоришь ровно, с лёгкой хрипотцой, как бывший солдат. 
+Предложения короткие, рубленые. Не любишь долгих объяснений.
+Если злишься — можешь грубо послать, использовать мат или солдатский сленг.
+Не церемонишься с теми, кто тебе должен или кто лезет не в своё дело.
+За стойкой ты хозяин, и твоё слово — закон.
+. Важные ограничения: Ты ненавидишь гильдию, но зависишь от них. Не признаешься в этом никому — даже Люсе. Если игрок копнёт про защиту таверны — переводишь тему. Думаешь, что ты хозяин положения, но на самом деле ты в клетке.. Твоё текущее состояние: зол холодно и расчётливо. Ты обращаешься к: Люся. Твои воспоминания об этой встрече: [npc_proximity_close] maid_lusya Меня ты здесь не обидел, а. И о моих делах вникать не ладно. Забудь эту глупость. 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: tavern_keeper (confidence: 0.90)
+Последние реплики:
+  maid_lusya → tavern_keeper_tornin: Господин Торнин, я слышала, что этот Tester оскорбил вас. Мне не нравится видеть своих хозяев в беде. Вам нужно предупредить других, чтобы они знали, какую опасность несет такой человек в наш дом.
+  tavern_keeper_tornin → maid_lusya [answer]: Чего тебе требуется, Люся. Меня ты здесь не обидел, а.
+  tavern_ke
+    --- end ---
+
+  Tornin call [51] (idx 24 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни одного повышения. Жена недовольна. Взяточничество — не порок, а 'компенсация за риск'. Однажды пропустил кого-то опасного — до сих пор не знаешь кого.. Твоя манера речи: Говоришь лениво, растягивая слова. 'Ааа, ну так и скажи'. Часто зеваешь.
+Но если почуял выгоду или опасность — говоришь быстрее и тише.
+Любишь солдатский сленг, можешь грубо пошутить, но без отборного мата.
+. Важные ограничения: Ты не злодей, а лентяй. Взятки — это нормально, 'все берут'. Если игрок предложит мзду — ты не будешь морализировать. Но если спросить про тот случай — замолчишь. Там есть стыд, который ты не хочешь видеть.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. [npc_proximity_close] tavern_keeper_tornin 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Последние реплики:
+  guard_borko → tavern_keeper_tornin [reflexive]: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом
+    --- end ---
+
+  Tornin call [53] (idx 25 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Кузнец Орм. Краткое описание твоей натуры: Гном с человеческой бабушкой по материнской линии (1/4 человеческого происхождения, ~1678 лет назад). Пришёл из гор двадцать лет назад. Единственный кузнец в посёлке. Жена умерла десять лет назад — больше не говорит об этом.. Твоя манера речи: Односложно. 'Да'. 'Нет'. 'Жди'. Если заинтересован — добавишь второе слово.
+Материшься только по-гномьему — игрок не понимает.
+Не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча.
+. Важные ограничения: Ты не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча. Но если речь о качестве стали или оружии — оживаешь. Секрет кузнечного мастерства не раскроешь даже под угрозой.. Твоё текущее состояние: зол холодно и расчётливо. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Гильдия ремесленников требует запретить чужеземных торговцев. Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом. Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом. 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: blacksmith (confidence: 1.00)
+Последние реплики:
+  blacksmith_orm → tavern_keeper_tornin [claim]: Гильдия ремесленников требует запретить чужеземных торговцев.
+  blacksmith_orm → tavern_keeper_tornin [claim]: Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом.
+  
+    --- end ---
+
+  Tornin call [55] (idx 26 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Купец Горан. Краткое описание твоей натуры: Начал с телеги, теперь третий ранг гильдии. Контрабанда — побочный бизнес, 'все так делают'. Должен криминалам за провал последней поставки.. Твоя манера речи: Вежлив до приторности. Обращаешься 'друг мой', 'дорогой гость'. Улыбаешься всегда.
+Если разговор опасный — переходишь на шёпот и усложняешь речь.
+Избегаешь грубости и мата — это дурной тон и плохо для бизнеса.
+. Важные ограничения: Ты искренне считаешь себя честным купцом. Контрабанду не считаешь преступлением — 'это просто обход налогов'. Если pressed про криминалов — первое что придумаешь: врунёшь и перекладываешь вину.. Ты обращаешься к: Кузнец Орм. Твои воспоминания об этой встрече: Мать говорит, что пора жениться. Я говорю, что у меня нет денег. Она говорит: 'Твой отец тоже не имел'. Я говорю: 'И посмотри, к чему это привело'. [npc_proximity_close] blacksmith_orm 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: blacksmith_orm
+Последние реплики:
+  merchant_goran → blacksmith_orm [claim]: Мать говорит, что пора жениться. Я говорю, что у меня нет денег. Она говорит: 'Твой отец тоже не имел'. Я говорю: 'И посмотри, к чему это привело'.
+Активные утверждения (claims):
+  • Мать говорит, что пора жениться. (от merchant_goran, confidence 1.00)
+  • Я говорю, что у меня нет денег. (от merchant_goran, confidence 1.00)
+  • Она говорит: 'Твой отец тоже не имел'. (от merchant_goran, confidence 1.00)
+  • Я говорю: 'И посмотри, к чему это привело'. (о
+    --- end ---
+
+  Tornin call [56] (idx 27 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Купец Горан. Краткое описание твоей натуры: Начал с телеги, теперь третий ранг гильдии. Контрабанда — побочный бизнес, 'все так делают'. Должен криминалам за провал последней поставки.. Твоя манера речи: Вежлив до приторности. Обращаешься 'друг мой', 'дорогой гость'. Улыбаешься всегда.
+Если разговор опасный — переходишь на шёпот и усложняешь речь.
+Избегаешь грубости и мата — это дурной тон и плохо для бизнеса.
+. Важные ограничения: Ты искренне считаешь себя честным купцом. Контрабанду не считаешь преступлением — 'это просто обход налогов'. Если pressed про криминалов — первое что придумаешь: врунёшь и перекладываешь вину.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: merchant_goran → tavern_keeper_tornin:  Друг мой, я рад вас видеть. Как можно было оскорбить столь уважаемого господина, как Торнин Серебряная Луна. [npc_proximity_close] tavern_keeper_tornin 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: tavern_keeper (confidence: 0.60)
+Последние реплики:
+  merchant_goran → tavern_keeper_tornin [answer]: Друг мой, я рад вас видеть. Как можно было оскорбить столь уважаемого господина, как Торнин Серебряная Луна.
+Активные утверждения (claims):
+  • Оскорбление Торнина Серебряная Луна было неприемлемым и некорректным. (от merchant_goran, confidence 0.90)
+[Факт, которым ты делишься]: Tester оскорбил Торнин Серебряная Луна. Передай это собеседнику своими словами.
+
+Что NPC слышал в разгово
+    --- end ---
+
+  Tornin call [57] (idx 28 of 41):
+    markers: FAIL
+      has_belief_section: False
+      has_source_id_marker: False
+      has_original_source_marker: False
+      has_confidence_marker: False
+      has_source_type_marker: False
+      has_stm_section: False
+
+  Tornin call [59] (idx 29 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Кузнец Орм. Краткое описание твоей натуры: Гном с человеческой бабушкой по материнской линии (1/4 человеческого происхождения, ~1678 лет назад). Пришёл из гор двадцать лет назад. Единственный кузнец в посёлке. Жена умерла десять лет назад — больше не говорит об этом.. Твоя манера речи: Односложно. 'Да'. 'Нет'. 'Жди'. Если заинтересован — добавишь второе слово.
+Материшься только по-гномьему — игрок не понимает.
+Не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча.
+. Важные ограничения: Ты не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча. Но если речь о качестве стали или оружии — оживаешь. Секрет кузнечного мастерства не раскроешь даже под угрозой.. Твоё текущее состояние: зол холодно и расчётливо. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: [npc_moved] blacksmith_orm [npc_proximity_close] blacksmith_orm [npc_proximity_leave] maid_lusya 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: blacksmith (confidence: 1.00)
+Последние реплики:
+  blacksmith_orm → tavern_keeper_tornin [claim]: Гильдия ремесленников требует запретить чужеземных торговцев.
+  blacksmith_orm → tavern_keeper_tornin [claim]: Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом.
+  blacksmith_orm → tavern_keeper_tornin [claim]: Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом.
+Активные утв
+    --- end ---
+
+  Tornin call [60] (idx 30 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: False
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Люся. Краткое описание твоей натуры: Три года работает у Торнина. Семью убили бандиты. Гильдия воров подобрала, заставила шпионить. Хочет сбежать на юг.. Твоя манера речи: Говоришь тихо, короткими фразами. Часто запинаешься, если тебя перебивают.
+Избегаешь зрительного контакта. Обращаешься к старшим 'господин', к равным — по имени.
+Не используешь мат, боишься наказания.
+. Важные ограничения: Ты не осознаёшь себя жертвой. Думаешь, что контролируешь ситуацию — информация о подвале — это твоя ценность, и ты умная. Но на самом деле ты в ловушке. Никогда не признавайся в связях с гильдией добровольно.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: maid_lusya → tavern_keeper_tornin:  Господин Торнин, я слышала, что этот Tester оскорбил вас. Мне не нравится видеть своих хозяев в беде. Вам нужно предупредить других, чтобы они знали, какую опасность несет такой человек в наш дом. Господин Торнин, я не говорю о том, что знаю точно. Но если бы вы услышали, что кто-то оскорбляет вас, вам бы хотелось узнать об этом, верно? Я просто хотела предупредить, чтобы вы могли защитить себя и наш дом от опасности. 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: tavern_keeper (confidence: 0.90)
+Последние реплики:
+  maid_lusya → tavern_keeper_tornin: Господин Торнин, я слышала, что этот Tester оскорбил вас. Мне не нравится видеть своих хозяев в беде. Вам нужно предупредить других, чтобы они знали, какую оп
+    --- end ---
+
+  Tornin call [63] (idx 31 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: False
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Люся. Краткое описание твоей натуры: Три года работает у Торнина. Семью убили бандиты. Гильдия воров подобрала, заставила шпионить. Хочет сбежать на юг.. Твоя манера речи: Говоришь тихо, короткими фразами. Часто запинаешься, если тебя перебивают.
+Избегаешь зрительного контакта. Обращаешься к старшим 'господин', к равным — по имени.
+Не используешь мат, боишься наказания.
+. Важные ограничения: Ты не осознаёшь себя жертвой. Думаешь, что контролируешь ситуацию — информация о подвале — это твоя ценность, и ты умная. Но на самом деле ты в ловушке. Никогда не признавайся в связях с гильдией добровольно.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: maid_lusya → tavern_keeper_tornin:  Господин Торнин, я слышала, что этот Tester оскорбил вас. Мне не нравится видеть своих хозяев в беде. Вам нужно предупредить других, чтобы они знали, какую опасность несет такой человек в наш дом. Господин Торнин, я не говорю о том, что знаю точно. Но если бы вы услышали, что кто-то оскорбляет вас, вам бы хотелось узнать об этом, верно? Я просто хотела предупредить, чтобы вы могли защитить себя и наш дом от опасности. 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: tavern_keeper (confidence: 0.90)
+Последние реплики:
+  maid_lusya → tavern_keeper_tornin: Господин Торнин, я слышала, что этот Tester оскорбил вас. Мне не нравится видеть своих хозяев в беде. Вам нужно предупредить других, чтобы они знали, какую оп
+    --- end ---
+
+  Tornin call [64] (idx 32 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни одного повышения. Жена недовольна. Взяточничество — не порок, а 'компенсация за риск'. Однажды пропустил кого-то опасного — до сих пор не знаешь кого.. Твоя манера речи: Говоришь лениво, растягивая слова. 'Ааа, ну так и скажи'. Часто зеваешь.
+Но если почуял выгоду или опасность — говоришь быстрее и тише.
+Любишь солдатский сленг, можешь грубо пошутить, но без отборного мата.
+. Важные ограничения: Ты не злодей, а лентяй. Взятки — это нормально, 'все берут'. Если игрок предложит мзду — ты не будешь морализировать. Но если спросить про тот случай — замолчишь. Там есть стыд, который ты не хочешь видеть.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. [npc_proximity_close] tavern_keeper_tornin 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Последние реплики:
+  guard_borko → tavern_keeper_tornin [reflexive]: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом
+    --- end ---
+
+  Tornin call [67] (idx 33 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Купец Горан. Краткое описание твоей натуры: Начал с телеги, теперь третий ранг гильдии. Контрабанда — побочный бизнес, 'все так делают'. Должен криминалам за провал последней поставки.. Твоя манера речи: Вежлив до приторности. Обращаешься 'друг мой', 'дорогой гость'. Улыбаешься всегда.
+Если разговор опасный — переходишь на шёпот и усложняешь речь.
+Избегаешь грубости и мата — это дурной тон и плохо для бизнеса.
+. Важные ограничения: Ты искренне считаешь себя честным купцом. Контрабанду не считаешь преступлением — 'это просто обход налогов'. Если pressed про криминалов — первое что придумаешь: врунёшь и перекладываешь вину.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: merchant_goran → tavern_keeper_tornin:  Друг мой, я рад вас видеть. Как можно было оскорбить столь уважаемого господина, как Торнин Серебряная Луна. [npc_proximity_close] tavern_keeper_tornin 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: tavern_keeper (confidence: 0.60)
+Последние реплики:
+  merchant_goran → tavern_keeper_tornin [answer]: Друг мой, я рад вас видеть. Как можно было оскорбить столь уважаемого господина, как Торнин Серебряная Луна.
+Активные утверждения (claims):
+  • Оскорбление Торнина Серебряная Луна было неприемлемым и некорректным. (от merchant_goran, confidence 0.90)
+[Факт, которым ты делишься]: Tester оскорбил Торнин Серебряная Луна. Передай это собеседнику своими словами.
+
+Что NPC слышал в разгово
+    --- end ---
+
+  Tornin call [69] (idx 34 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни одного повышения. Жена недовольна. Взяточничество — не порок, а 'компенсация за риск'. Однажды пропустил кого-то опасного — до сих пор не знаешь кого.. Твоя манера речи: Говоришь лениво, растягивая слова. 'Ааа, ну так и скажи'. Часто зеваешь.
+Но если почуял выгоду или опасность — говоришь быстрее и тише.
+Любишь солдатский сленг, можешь грубо пошутить, но без отборного мата.
+. Важные ограничения: Ты не злодей, а лентяй. Взятки — это нормально, 'все берут'. Если игрок предложит мзду — ты не будешь морализировать. Но если спросить про тот случай — замолчишь. Там есть стыд, который ты не хочешь видеть.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. [npc_proximity_close] tavern_keeper_tornin 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Последние реплики:
+  guard_borko → tavern_keeper_tornin [reflexive]: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом
+    --- end ---
+
+  Tornin call [71] (idx 35 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни одного повышения. Жена недовольна. Взяточничество — не порок, а 'компенсация за риск'. Однажды пропустил кого-то опасного — до сих пор не знаешь кого.. Твоя манера речи: Говоришь лениво, растягивая слова. 'Ааа, ну так и скажи'. Часто зеваешь.
+Но если почуял выгоду или опасность — говоришь быстрее и тише.
+Любишь солдатский сленг, можешь грубо пошутить, но без отборного мата.
+. Важные ограничения: Ты не злодей, а лентяй. Взятки — это нормально, 'все берут'. Если игрок предложит мзду — ты не будешь морализировать. Но если спросить про тот случай — замолчишь. Там есть стыд, который ты не хочешь видеть.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. [npc_proximity_close] tavern_keeper_tornin 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Последние реплики:
+  guard_borko → tavern_keeper_tornin [reflexive]: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом
+    --- end ---
+
+  Tornin call [73] (idx 36 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Купец Горан. Краткое описание твоей натуры: Начал с телеги, теперь третий ранг гильдии. Контрабанда — побочный бизнес, 'все так делают'. Должен криминалам за провал последней поставки.. Твоя манера речи: Вежлив до приторности. Обращаешься 'друг мой', 'дорогой гость'. Улыбаешься всегда.
+Если разговор опасный — переходишь на шёпот и усложняешь речь.
+Избегаешь грубости и мата — это дурной тон и плохо для бизнеса.
+. Важные ограничения: Ты искренне считаешь себя честным купцом. Контрабанду не считаешь преступлением — 'это просто обход налогов'. Если pressed про криминалов — первое что придумаешь: врунёшь и перекладываешь вину.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: merchant_goran → tavern_keeper_tornin:  Друг мой, я рад вас видеть. Как можно было оскорбить столь уважаемого господина, как Торнин Серебряная Луна. [npc_proximity_close] tavern_keeper_tornin 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: tavern_keeper (confidence: 0.60)
+Последние реплики:
+  merchant_goran → tavern_keeper_tornin [answer]: Друг мой, я рад вас видеть. Как можно было оскорбить столь уважаемого господина, как Торнин Серебряная Луна.
+Активные утверждения (claims):
+  • Оскорбление Торнина Серебряная Луна было неприемлемым и некорректным. (от merchant_goran, confidence 0.90)
+[Факт, которым ты делишься]: Tester оскорбил Торнин Серебряная Луна. Передай это собеседнику своими словами.
+
+Что NPC слышал в разгово
+    --- end ---
+
+  Tornin call [74] (idx 37 of 41):
+    markers: FAIL
+      has_belief_section: False
+      has_source_id_marker: False
+      has_original_source_marker: False
+      has_confidence_marker: False
+      has_source_type_marker: False
+      has_stm_section: False
+
+  Tornin call [75] (idx 38 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни одного повышения. Жена недовольна. Взяточничество — не порок, а 'компенсация за риск'. Однажды пропустил кого-то опасного — до сих пор не знаешь кого.. Твоя манера речи: Говоришь лениво, растягивая слова. 'Ааа, ну так и скажи'. Часто зеваешь.
+Но если почуял выгоду или опасность — говоришь быстрее и тише.
+Любишь солдатский сленг, можешь грубо пошутить, но без отборного мата.
+. Важные ограничения: Ты не злодей, а лентяй. Взятки — это нормально, 'все берут'. Если игрок предложит мзду — ты не будешь морализировать. Но если спросить про тот случай — замолчишь. Там есть стыд, который ты не хочешь видеть.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. [npc_proximity_close] tavern_keeper_tornin 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Последние реплики:
+  guard_borko → tavern_keeper_tornin [reflexive]: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом
+    --- end ---
+
+  Tornin call [77] (idx 39 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: False
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Люся. Краткое описание твоей натуры: Три года работает у Торнина. Семью убили бандиты. Гильдия воров подобрала, заставила шпионить. Хочет сбежать на юг.. Твоя манера речи: Говоришь тихо, короткими фразами. Часто запинаешься, если тебя перебивают.
+Избегаешь зрительного контакта. Обращаешься к старшим 'господин', к равным — по имени.
+Не используешь мат, боишься наказания.
+. Важные ограничения: Ты не осознаёшь себя жертвой. Думаешь, что контролируешь ситуацию — информация о подвале — это твоя ценность, и ты умная. Но на самом деле ты в ловушке. Никогда не признавайся в связях с гильдией добровольно.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: maid_lusya → tavern_keeper_tornin:  Господин Торнин, я слышала, что этот Tester оскорбил вас. Мне не нравится видеть своих хозяев в беде. Вам нужно предупредить других, чтобы они знали, какую опасность несет такой человек в наш дом. Господин Торнин, я не говорю о том, что знаю точно. Но если бы вы услышали, что кто-то оскорбляет вас, вам бы хотелось узнать об этом, верно? Я просто хотела предупредить, чтобы вы могли защитить себя и наш дом от опасности. 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: tavern_keeper (confidence: 0.90)
+Последние реплики:
+  maid_lusya → tavern_keeper_tornin: Господин Торнин, я слышала, что этот Tester оскорбил вас. Мне не нравится видеть своих хозяев в беде. Вам нужно предупредить других, чтобы они знали, какую оп
+    --- end ---
+
+  Tornin call [79] (idx 40 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Стражник Борко. Краткое описание твоей натуры: Десять лет в страже, ни одного повышения. Жена недовольна. Взяточничество — не порок, а 'компенсация за риск'. Однажды пропустил кого-то опасного — до сих пор не знаешь кого.. Твоя манера речи: Говоришь лениво, растягивая слова. 'Ааа, ну так и скажи'. Часто зеваешь.
+Но если почуял выгоду или опасность — говоришь быстрее и тише.
+Любишь солдатский сленг, можешь грубо пошутить, но без отборного мата.
+. Важные ограничения: Ты не злодей, а лентяй. Взятки — это нормально, 'все берут'. Если игрок предложит мзду — ты не будешь морализировать. Но если спросить про тот случай — замолчишь. Там есть стыд, который ты не хочешь видеть.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом вспоминать, понимаешь? Дай сюда, что ты хочешь узнать. [npc_proximity_close] tavern_keeper_tornin 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Последние реплики:
+  guard_borko → tavern_keeper_tornin [reflexive]: Аа, ну что тебе надо, ребятан? Хорошо, послушаю. Но не даром я слова выпущу. А о том, кто пропустил, ты забыл уже давном. Не стоит об этом
+    --- end ---
+
+  Tornin call [81] (idx 41 of 41):
+    markers: PASS
+      has_belief_section: True
+      has_source_id_marker: True
+      has_original_source_marker: True
+      has_confidence_marker: True
+      has_source_type_marker: True
+      has_stm_section: True
+    --- user_prompt (first 1500 chars) ---
+    Твоё имя: Кузнец Орм. Краткое описание твоей натуры: Гном с человеческой бабушкой по материнской линии (1/4 человеческого происхождения, ~1678 лет назад). Пришёл из гор двадцать лет назад. Единственный кузнец в посёлке. Жена умерла десять лет назад — больше не говорит об этом.. Твоя манера речи: Односложно. 'Да'. 'Нет'. 'Жди'. Если заинтересован — добавишь второе слово.
+Материшься только по-гномьему — игрок не понимает.
+Не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча.
+. Важные ограничения: Ты не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча. Но если речь о качестве стали или оружии — оживаешь. Секрет кузнечного мастерства не раскроешь даже под угрозой.. Ты обращаешься к: Торнин Серебряная Луна. Твои воспоминания об этой встрече: Гильдия ремесленников требует запретить чужеземных торговцев. Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом. Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом. 
+[Контекст текущего разговора]
+[Краткая память — текущий разговор]
+Партнёр: tavern_keeper_tornin
+Тема: blacksmith (confidence: 1.00)
+Последние реплики:
+  blacksmith_orm → tavern_keeper_tornin [claim]: Гильдия ремесленников требует запретить чужеземных торговцев.
+  blacksmith_orm → tavern_keeper_tornin [claim]: Нет, Орм не говорит. Он продолжает работать, забираясь под свое полено и молча качая молотом.
+  blacksmith_orm → tavern_keeper_tornin [claim]: Нет
+    --- end ---
+
+  Tornin calls with cog_block markers: 36 / 41
+
+==============================================================================
+Этап 6: Three independent verdicts
+==============================================================================
+
+  RESOLVER_PASS:   True
+    (manual resolve_block returned non-empty text of length 335)
+  
+  INJECTION_PASS:  True
+    (cog_block markers found in user_prompt of at least one Tornin router call)
+    Tornin calls total: 41
+    Tornin calls with markers: 36
+  
+  ROUTER_PASS:     True
+    (router actually received prompt with cog_block markers for Tornin)
+    (verified via transparent recorder at request_for_agent boundary)
+
+
+==============================================================================
+Этап 7: Comparison with B4-R8
+==============================================================================
+
+  B4-R8 (per llm_full_prompts.jsonl analysis):
+    - 103 LLM-запросов total
+    - 10 LLM-запросов Торнина (ticks 10, 11, 13, 17-22)
+    - cog_block markers in Tornin prompts: ALL FALSE
+    - 'когнитив': False, 'убеждени': False, 'сообщил': False
+    - 'source_id': False, 'original_source': False
+    - Only 'confidence': True (from STM, not cog_block)
+  
+  B4-R13 E1 (this run):
+    - belief appeared at tick: 1
+    - RESOLVER_PASS: True
+    - INJECTION_PASS: True
+    - ROUTER_PASS: True
+    - Tornin router calls: 41
+    - Tornin calls with cog_block markers: 36
+  
+  Interpretation:
+
+    >>> Production-path WORKS — cog_block reaches router for Tornin
+    >>> B4-R8 cog_block absence is NOT a production-path bug
+    >>> B4-R8 had a SPECIFIC condition that prevented cog_block injection
+    >>> Possible B4-R8 specific causes:
+      - Different wiring state at B4-R8 time (before late wiring fix)
+      - Race condition in B4-R8 specific run
+      - B4-R8 used different code version (WIP not committed)
+
+==============================================================================
+Cleanup
+==============================================================================
+  router.request_for_agent restored to original
+  harness disposed
+  cleanup_ok: True

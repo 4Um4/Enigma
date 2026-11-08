@@ -1,0 +1,1026 @@
+==============================================================================
+R2-B5-D2 v9 — Final diagnostic: real executor behavior
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d2_executor_lifecycle_v9.txt
+==============================================================================
+
+v9 GOAL (per Master, 7 questions):
+  1. Does executor reach _generate_with_router?
+  2. Does _generate_with_router return or block?
+  3. Does Timer fire and what does it interrupt?
+  4. Does execute() return an Artifact?
+  5. Does the result reach materializer.materialize()?
+  6. WHO publishes NPC_SPOKE and under what conditions?
+  7. Does the Future get an exception, result, or remain pending?
+
+
+==============================================================================
+STEP 1: Read full task_scheduler._process_tasks_async
+==============================================================================
+  _process_tasks_async() at L596..L811 (showing L596..L811):
+  L 596:     def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = "", _task_type: str = "canonical", _game_time: float = 0.0, submit_tick: int = 0) -> None:
+  L 597:         """Фоновая обработка задач LLM (ADR-O-399: только compute, observable-эффекты — в drain)."""
+  L 598:         import os as _os
+  L 599:         import time
+  L 600:         # ADR-O-399 / §15.2-паттерн DRIFT_*: test-only латентность воркера.
+  L 601:         # Моделирует время ГОТОВНОСТИ артефакта, не меняет его содержание —
+  L 602:         # гейт controlled-latency детерминизма. Production default = 0.
+  L 603:         _latency_ms = int(_os.environ.get("DRIFT_WORKER_LATENCY_MS", "0"))
+  L 604:         if _latency_ms > 0:
+  L 605:             time.sleep(_latency_ms / 1000.0)
+  L 606: 
+  L 607:         # S203.4: константы fail_reason для терминальных хуков (закон №16).
+  L 608:         # [GC-I01-E2] + INTERRUPT_TASK_STALE_INTENT (flee-гейт ниже).
+  L 609:         from app.domain.action_commitment import (
+  L 610:             FAIL_TASK_CRASH,
+  L 611:             FAIL_TASK_ERROR,
+  L 612:             INTERRUPT_TASK_STALE_INTENT,
+  L 613:         )
+  L 614:         # ADR-O-399: bus воркеру больше не нужен — publish только в drain
+  L 615:         # (main thread). Если это последнее использование get_event_bus в
+  L 616:         # функции — импорт ниже не встречается (проверяет structural probe).
+  L 617:         if not campaign_id:
+  L 618:             campaign_id = scene_state.get("campaign_id", "")
+  L 619: 
+  L 620:         for task_dict in tasks:
+  L 621:             # ADR-O-399: per-task коллекторы артефакта (сброс на каждой задаче)
+  L 622:             _events_collected: list = []
+  L 623:             _talks_collected: list = []
+  L 624:             _dlg_entry = None
+  L 625:             _speech_reset = None
+  L 626:             # B8 (пункт 10, №149/№151-ретракция): worker-гейт — последняя
+  L 627:             # точка прерывания mid-generation. Dispatch-гейты не покрывают
+  L 628:             # in-flight: задача сабмичена ДО смерти (владелец жил — гейты
+  L 629:             # честно прошли), воркер исполняет ПОСЛЕ. Проверка перед
+  L 630:             # executor.execute переспрашивает живость на каждом хопе
+  L 631:             # (enqueue→dequeue→submit→execute) — любые будущие dispatch-точки
+  L 632:             # закрыты by construction. EXPIRED — канонический ADR-O-365
+  L 633:             # terminal-mapping; outbox-дренаж воркера — прецедент D-2.
+  L 634:             if self._owner_is_dead(campaign_id, task_dict.get("owner_id", "")):
+  L 635:                 self._record_task_outcome(task_dict.get("owner_id", ""), "EXPIRED")
+  L 636:                 logger.info(
+  L 637:                     f"[TASK_SCHED] liveness-gate (worker): owner={task_dict.get('owner_id', '')} "
+  L 638:                     f"DEAD → task EXPIRED (mid-generation interrupt)"
+  L 639:                 )
+  L 640:                 continue
+  L 641:             # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт worker — последний рубеж
+  L 642:             # до executor.execute (прецедент B8: задача, сабмиченная до
+  L 643:             # изменения воли, не исполняется; начатая генерация не отзывается).
+  L 644:             if self._owner_intent_flees(campaign_id, task_dict.get("owner_id", "")):
+  L 645:                 self._record_task_outcome(task_dict.get("owner_id", ""), "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+  L 646:                 logger.info(
+  L 647:                     f"[TASK_SCHED] stale-intent-gate (worker): owner={task_dict.get('owner_id', '')} "
+  L 648:                     f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
+  L 649:                 )
+  L 650:                 continue
+  L 651:             self.total_processed_tasks += 1
+  L 652:             task = self._reconstruct_task(task_dict)
+  L 653:             if task is None:
+  L 654:                 # ENIGMA-ARCH-038: Реконструкция провалена. Задача уже отброшена с ERROR-логом.
+  L 655:                 continue
+  L 656: 
+  L 657:             # Блокер 5: Маршрутизация ambient -> NpcConversation, canonical -> DialogueExecutor
+  L 658:             executor: Any  # S313: два несводимых типа исполнителей в одной переменной
+  L 659:             if _task_type == "ambient":
+  L 660:                 executor = self._ambient_executor
+  L 661:             else:
+  L 662:                 executor = self._executors.get(task.kind)
+  L 663: 
+  L 664:             if not executor:
+  L 665:                 logger.warning(f"[SCHEDULER] No executor for kind {task.kind}")
+  L 666:                 if _task_type == "canonical":
+  L 667:                     self._record_task_outcome(task_dict.get("owner_id", ""), "CANCELLED")
+  L 668:                 continue
+  L 669: 
+  L 670:             task.state = TaskState.PROCESSING
+  L 671:             task.campaign_id = campaign_id
+  L 672:             # S203.4: COMMITTED→EXECUTING (только canonical — ambient вне владения, D-8).
+  L 673:             if _task_type == "canonical":
+  L 674:                 self._record_task_outcome(task.owner_id, "EXECUTING")
+  L 675: 
+  L 676:             # ADR-O-313: SocialTargetResolver — если цель не задана, выбираем ближнего NPC
+  L 677:             if isinstance(task.payload, DialogueRequest) and not task.payload.target_id:
+  L 678:                 from dataclasses import replace as dc_replace
+  L 679: 
+  L 680:                 from app.domain.communication import (
+  L 681:                     SELF_TALK_SENTINEL,  # Р-А: доменный сентинел вместо магической строки
+  L 682:                 )
+  L 683: 
+  L 684:                 _resolved_target = SELF_TALK_SENTINEL
+  L 685:                 # C11 FIX: DialogueRequest уже импортирован на уровне модуля
+  L 686: 
+  L 687:                 # P2 FIX: Использование SpatialQueryService для фильтрации по радиусу
+  L 688:                 from app.services.spatial.spatial_query_service import (
+  L 689:                     SpatialQueryService,
+  L 690:                 )
+  L 691: 
+  L 692:                 _sqs = SpatialQueryService(
+  L 693:                     npc_positions=scene_state.get("npc_positions", {}),
+  L 694:                     scene_state=scene_state,
+  L 695:                 )
+  L 696: 
+  L 697:                 _candidates = []
+  L 698:                 _all_npcs = [
+  L 699:                     nid
+  L 700:                     for nid in scene_state.get("npc_positions", {}).keys()
+  L 701:                     if nid != "player" and nid != task.owner_id
+  L 702:                 ]
+  L 703:                 for nid in _all_npcs:
+  L 704:                     _dist = _sqs.distance(task.owner_id, nid)
+  L 705:                     if _dist <= 5.0:
+  L 706:                         _candidates.append(nid)
+  L 707: 
+  L 708:                 if _candidates:
+  L 709:                     # BUG-CORE-011 FIX: Используем KernelRNG вместо глобального random (ADR-O-301).
+  L 710:                     from app.services.npc.kernel_rng import KernelRNG
+  L 711:                     _tick = scene_state.get("tick", 0)
+  L 712:                     _rng = KernelRNG(tick=_tick, npc_id=task.owner_id, salt="task_target_resolve")
+  L 713:                     _resolved_target = _rng.choice(_candidates)
+  L 714: 
+  L 715:                 task.payload = dc_replace(task.payload, target_id=_resolved_target)
+  L 716:                 logger.debug(
+  L 717:                     f"[SCHEDULER] Resolved missing target_id to '{_resolved_target}' for {task.owner_id}"
+  L 718:                 )
+  L 719: 
+  L 720:                 # ADR-O-342: Hard Contract. Если STM пуст для резолвнутой цели, меняем intent на approach
+  L 721:                 if self._memory_manager and task.payload.intent_type not in ("greeting", "approach") and requires_dialogue_context(task.payload.intent_type):
+  L 722:                     _stm_check = self._memory_manager.get_stm_prompt_block_pair(
+  L 723:                         campaign_id, task.owner_id, _resolved_target
+  L 724:                     )
+  L 725:                     if not _stm_check:
+  L 726:                         logger.debug(f"[SCHEDULER] Intercept {task.owner_id} -> {_resolved_target}: No STM, changing intent '{task.payload.intent_type}' to 'approach'")
+  L 727:                         task.payload = dc_replace(task.payload, intent_type="approach")
+  L 728: 
+  L 729:             artifacts = executor.execute(task)
+  L 730: 
+  L 731:             try:
+  L 732:                 for artifact in artifacts:
+  L 733:                     if artifact.success:
+  L 734:                         task.state = TaskState.FINISHED
+  L 735:                         if _task_type == "canonical":
+  L 736:                             self._record_task_outcome(task.owner_id, "COMPLETED")
+  L 737:                         logger.info(f"[TASK_SCHED] dialogue executed: speaker={task.owner_id} target={task.payload.target_id if hasattr(task.payload, 'target_id') else 'unknown'}")
+  L 738: 
+  L 739:                         materializer = self._materializers.get(artifact.result_type)
+  L 740:                         if materializer:
+  L 741:                             try:
+  L 742:                                 events = materializer.materialize(artifact)
+  L 743:                                 # ADR-O-399: publish из воркера запрещён — события
+  L 744:                                 # уходят в артефакт, применяются в drain (main thread)
+  L 745:                                 for ev in events:
+  L 746:                                     _events_collected.append(ev)
+  L 747:                             except Exception as mat_exc:
+  L 748:                                 logger.error(f"[SCHEDULER] Materializer failed for task {task.task_id}: {mat_exc}", exc_info=True)
+  L 749:                                 events = []
+  L 750:                         else:
+  L 751:                             logger.warning(f"[SCHEDULER] No materializer for result_type={artifact.result_type}")
+  L 752:                             events = []
+  L 753: 
+  L 754:                         # ADR-O-313: Кэшируем реплику для Speech Bubbles
+  L 755:                         if artifact.result_type == "dialogue_line" and events:
+  L 756:                             # BUG-N8 FIX: Регистрируем разговор в EconomyTracker
+  L 757:                             if self._economy_tracker:
+  L 758:                                 # ADR-O-399: observable economy — в drain
+  L 759:                                 _talks_collected.append((ev.source, scene_state.get("tick", 0)))
+  L 760:                             import time
+  L 761:                             _dlg_entry = {
+  L 762:                                 "speaker_id": ev.source,
+  L 763:                                 "target_id": ev.payload.get("target_id", ""),
+  L 764:                                 "text": ev.payload.get("text", ""),
+  L 765:                                 # Проброс exposure: материален в ev.payload (DialogueMaterializer),
+  L 766:                                 # потребитель — NarrativeProjector (delivery_type для портретов).
+  L 767:                                 # Чинит потерю provenance в ручной сборке entry.
+  L 768:                                 "exposure": ev.payload.get("exposure", "normal"),
+  L 769:                                 # IRON RIVER D-1/P0-1 (F1a): timestamp — каузальная
+  L 770:                                 # ось game_time (значение уже в точке записи, :564),
+  L 771:                                 # детерминирован и входит в канон-хеш; real_ts —
+  L 772:                                 # UI-staleness (§15.2-исключение), из хеша исключён.
+  L 773:                                 "timestamp": _game_time,
+  L 774:                                 "real_ts": time.time(),
+  L 775:                                 # ADR-O-343 FIX: Используем зафиксированное время тика, чтобы избежать гонки с scene_state.
+  L 776:                                 "game_time": _game_time,
+  L 777:                             }
+  L 778:                             # ADR-O-399: append в RAM-кэш перенесён в drain (main thread);
+  L 779:                             # _dlg_entry уходит в артефакт как есть
+  L 780:                             # ADR-O-313 FIX: Зеркалим в scene_state, иначе CDS видит 0 реплик (INV-DIALOGUE-PIPELINE)
+  L 781:                             # ADR-O-399: зеркалирование в scene_state — только в drain
+  L 782:                     else:
+  L 783:                         logger.error(
+  L 784:                             f"[SCHEDULER] Task {task.task_id} failed: {artifact.error_message}"
+  L 785:                         )
+  L 786:                         task.state = TaskState.FINISHED  # Пока без сложного ретрая
+  L 787:                         if _task_type == "canonical":
+  L 788:                             self._record_task_outcome(task.owner_id, "FAILED", FAIL_TASK_ERROR)
+  L 789:                         self.failed_tasks += 1
+  L 790:                         # ADR-O-343: Сбрасываем DEDUP в SpeechScheduler, чтобы NPC мог повторить попытку
+  L 791:                         if hasattr(self, '_speech_scheduler'):
+  L 792:                             # ADR-O-399: мутация admission-состояния — в drain
+  L 793:                             _speech_reset = task_dict
+  L 794:             except Exception as task_exc:
+  L 795:                 logger.error(f"[SCHEDULER] Crashed during task execution {task.task_id}: {task_exc}", exc_info=True)
+  L 796:                 if _task_type == "canonical":
+  L 797:                     # Закрывает PROCESSING-лимбо (F9): crash-исполнение = FAILED.
+  L 798:                     self._record_task_outcome(task.owner_id, "FAILED", FAIL_TASK_CRASH)
+  L 799:                 self.failed_tasks += 1
+  L 800:                 if hasattr(self, '_speech_scheduler'):
+  L 801:                     # ADR-O-399: reset admission-состояния — в drain (главный поток)
+  L 802:                     _speech_reset = task_dict
+  L 803:                 break
+  L 804:             finally:
+  L 805:                 # ADR-O-399: артефакт задачи уходит в outbox при любом исходе
+  L 806:                 # (success / failed / crash) — эффекты применит drain.
+  L 807:                 self._push_task_artifact(
+  L 808:                     submit_tick, task.task_id, _events_collected,
+  L 809:                     _dlg_entry, _talks_collected, _speech_reset,
+  L 810:                 )
+  L 811: 
+
+==============================================================================
+STEP 2: Read execute_pending (where Future is created)
+==============================================================================
+  execute_pending() at L370..L595 (showing L370..L595):
+  L 370:     def execute_pending(self, scene_state: dict, campaign_id: str) -> None:
+  L 371:         """Берёт задачи из очереди с учётом rate limit и запускает в фоне."""
+  L 372:         # S203.4 (D-2): дренаж ДО разбора — терминалы прошлого цикла применяются
+  L 373:         # ADR-O-399 (точка (а)): артефакты воркера коммитятся ДО dequeue новых задач
+  L 374:         self.drain_task_worker_outbox(scene_state)
+  L 375:         # даже при пустой очереди этого вызова.
+  L 376:         self.drain_commitment_outbox(scene_state)
+  L 377:         pending = scene_state.get("pending_tasks", [])
+  L 378:         if not pending:
+  L 379:             return
+  L 380: 
+  L 381:         # BUG-DLG-006 FIX: Используем game_time_seconds из scene_state вместо wall-clock.
+  L 382:         _game_time = scene_state.get("game_time_seconds", 0.0)
+  L 383: 
+  L 384:         # ADR-O-343: SpeechScheduler Arbitration инициализируется здесь
+  L 385:         if not hasattr(self, '_speech_scheduler'):
+  L 386:             from app.services.game_loop.speech_scheduler import SpeechScheduler
+  L 387:             self._speech_scheduler = SpeechScheduler(self._memory_manager)
+  L 388: 
+  L 389:         # [GC-I01-E2] GC-INTERRUPT-01: причина прерывания (закон №16, локальный
+  L 390:         # импорт — прецедент файла; шрам-закон №1: поверхность перед использованием).
+  L 391:         from app.domain.action_commitment import INTERRUPT_TASK_STALE_INTENT
+  L 392:         from app.domain.intent_profiles import requires_llm_materialization
+  L 393: 
+  L 394:         for task_dict in pending:
+  L 395:             if task_dict.get("kind") == "dialogue":
+  L 396:                 speaker_id = task_dict.get("owner_id", "")
+  L 397:                 _payload = task_dict.get("payload", {})
+  L 398:                 _tone = _payload.get("emotional_state", "neutral").upper()
+  L 399:                 _intent_type = _payload.get("intent_type", "")
+  L 400:                 _has_prop = bool(_payload.get("proposition"))
+  L 401: 
+  L 402:                 # S216 FIX (027.1): Fast-path для задач, не требующих LLM (warn, spread_rumor, steal).
+  L 403:                 # Они исполняются синхронно, минуя DialogueQueue, чтобы не создавать backlog.
+  L 404:                 if not requires_llm_materialization(_intent_type):
+  L 405:                     # FIX [4]: fast-path исполняется СИНХРОННО на вызывающем потоке
+  L 406:                     # (не через _executor_pool). warn/spread_rumor/steal не используют
+  L 407:                     # LLM (stub-режим или детерминированный текст) → мгновенно. Пул с
+  L 408:                     # max_workers=1 (ADR-O-343) более не блокирует доставку: warn-задача
+  L 409:                     # публикует NPC_SPOKE и обновляет EpistemicStore ДО возврата из
+  L 410:                     # execute_pending → поллинг видит conf в том же тике.
+  L 411:                     # LLM-задачи (talk и др.) остаются на пуле — ADR-O-343 не нарушен.
+  L 412:                     # B (пункт 10): liveness-гейт fast-path — тот же ADR-O-365
+  L 413:                     # terminal-mapping, main-thread sync-ветка (как DEDUP).
+  L 414:                     if self._owner_is_dead(campaign_id, speaker_id):
+  L 415:                         self._record_task_outcome(speaker_id, "EXPIRED")
+  L 416:                         logger.info(
+  L 417:                             f"[TASK_SCHED] liveness-gate (fast-path): owner={speaker_id} "
+  L 418:                             f"DEAD → task EXPIRED (mid-generation interrupt)"
+  L 419:                         )
+  L 420:                         continue
+  L 421:                     # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт fast-path (после
+  L 422:                     # death-check): warn/spread_rumor убегающего тоже не
+  L 423:                     # материализуются — воля владельца сильнее типа задачи.
+  L 424:                     if self._owner_intent_flees(campaign_id, speaker_id):
+  L 425:                         self._record_task_outcome(speaker_id, "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+  L 426:                         logger.info(
+  L 427:                             f"[TASK_SCHED] stale-intent-gate (fast-path): owner={speaker_id} "
+  L 428:                             f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
+  L 429:                         )
+  L 430:                         continue
+  L 431:                     # FIX (S271, предгейт P1): fast-path omitил submit_tick →
+  L 432:                     # дефолт 0 → _TaskArtifactRecord.submit_tick=0 → event_tick=0
+  L 433:                     # в drain. Симметрично process_tasks:333 и dequeue-пути :556 —
+  L 434:                     # восстановление существующего контракта, не новая семантика.
+  L 435:                     self._process_tasks_async(scene_state, [task_dict], campaign_id, "canonical", _game_time, scene_state.get("tick", 0))
+  L 436:                     continue
+  L 437: 
+  L 438:                 # S216 FIX (027.1): Классификация canonical/ambient через intent_profiles.
+  L 439:                 # Если интент produces_claim=True ИЛИ payload содержит proposition -> canonical.
+  L 440:                 # Иначе -> ambient. Это предотвращает переполнение canonical-очереди
+  L 441:                 # экономическими и социальными интентами без proposition.
+  L 442:                 if _has_prop or produces_claim(_intent_type):
+  L 443:                     _task_type = "canonical"
+  L 444:                     _priority = 1  # Высокий приоритет (heapq min-heap)
+  L 445:                 else:
+  L 446:                     _task_type = "ambient"
+  L 447:                     _priority = 5  # Низкий приоритет
+  L 448: 
+  L 449:                 # S262 (очередной затор): enqueue-дедуп спикер+интент —
+  L 450:                 # постоянные интенты (TRADE/CALL_FOR_HELP/OFFER_JOB каждый
+  L 451:                 # тик от одного NPC) забивали очередь до капа 20, TALK
+  L 452:                 # конкурировал со спамом в общем heap, ambient-потери
+  L 453:                 # каждый тик (замер: 2-3 OVERFLOW/тик). Дедуп при enqueue
+  L 454:                 # (а не dequeue): в очереди — не более одной задачи на
+  L 455:                 # (speaker, intent); дубли skip с наблюдаемостью.
+  L 456:                 # SpeechScheduler-pacing остаётся тормозом темпа; этот
+  L 457:                 # гейт — тормозом заполнения. Множество живёт на
+  L 458:                 # scheduler'е, очищается при dequeue/mark_completed.
+  L 459:                 _enq_key = (speaker_id, _intent_type)
+  L 460:                 if _enq_key in self._enqueued_keys:
+  L 461:                     # S262-багфикс (молчаливое исчезновение): дедуп-skip
+  L 462:                     # ОБЯЗАН завершать задачу честно — иначе интент висит
+  L 463:                     # в NPC-стейте без исполнителя → from_legacy-валидатор
+  L 464:                     # «intent without target» → TICK_CRASH (поймано тик-1
+  L 465:                     # superbox_social_deterministic). Протокол DEDUP-ветки:
+  L 466:                     # canonical → CANCELLED в реестре обязательств.
+  L 467:                     if _task_type == "canonical":
+  L 468:                         self._record_task_outcome(speaker_id, "CANCELLED")
+  L 469:                     logger.info(
+  L 470:                         "[DLG_ENQ_DEDUP] skip дубликата: speaker=%s intent=%s",
+  L 471:                         speaker_id, _intent_type,
+  L 472:                     )
+  L 473:                     continue
+  L 474:                 # S262: overflow-наблюдаемость (L4; закрывает молчаливую
+  L 475:                 # потерю Н-56): при enqueue на полной очереди — WARNING.
+  L 476:                 _queue_full = (
+  L 477:                     self._dialogue_queue.pending_count() >= 20
+  L 478:                     if hasattr(self._dialogue_queue, "pending_count")
+  L 479:                     else False
+  L 480:                 )
+  L 481:                 if _queue_full:
+  L 482:                     logger.warning(
+  L 483:                         "[DLG_QUEUE_OVERFLOW] enqueue при полной очереди "
+  L 484:                         f"(pending>=20, speaker={speaker_id}, "
+  L 485:                         f"intent={task_dict.get('payload', {}).get('intent_type', '?')})"
+  L 486:                     )
+  L 487:                 self._enqueued_keys.add(_enq_key)
+  L 488:                 self._dialogue_queue.enqueue(
+  L 489:                     task_type=_task_type,
+  L 490:                     payload={
+  L 491:                         "speaker_id": speaker_id,
+  L 492:                         "task_dict": task_dict,
+  L 493:                     },
+  L 494:                     priority=_priority,
+  L 495:                     game_time_seconds=_game_time
+  L 496:                 )
+  L 497: 
+  L 498:         # BUG-CORE-010 / BUG-DLG-005 FIX: Диалоговые задачи перенесены в DialogueQueue.
+  L 499:         # Удаляем их из pending_tasks, чтобы предотвратить бесконечный ре-enqueue и спам кучи.
+  L 500:         # Non-dialogue задачи (если появятся в будущем) остаются в pending.
+  L 501:         scene_state["pending_tasks"] = [
+  L 502:             t for t in pending if t.get("kind") != "dialogue"
+  L 503:         ]
+  L 504: 
+  L 505:         # ADR-O-343: Жёсткий лимит 1 задача на тик для размеренного пейсинга (Human Pacing).
+  L 506:         # В сочетании с SpeechScheduler (2 сек) это даёт плавную последовательность реплик.
+  L 507:         # _MAX_TASKS_PER_TICK moved to module level (021)
+  L 508:         # S262 (DLG-стабилизация, приказ Мастера): адаптивный дренаж —
+  L 509:         # при переполнении очереди (>10) лимит 3/тик, иначе базовый 1.
+  L 510:         # Честный pacing остаётся за SpeechScheduler (2 тика/спикер);
+  L 511:         # дренаж лишь перестаёт душить очередь: enqueue (интент/NPC/тик)
+  L 512:         # стабильно превышал дренаж 1/тик → очередь на капе 20 →
+  L 513:         # молчаливая потеря задач (DLG_QUEUE OVERFLOW, Н-56) → реплики-
+  L 514:         # лотерея (25/3/0/0 в замерах S262).
+  L 515:         _pending_now = (
+  L 516:             self._dialogue_queue.pending_count()
+  L 517:             if hasattr(self._dialogue_queue, "pending_count")
+  L 518:             else 0
+  L 519:         )
+  L 520:         _drain_limit = _MAX_TASKS_PER_TICK + 2 if _pending_now > 10 else _MAX_TASKS_PER_TICK
+  L 521:         _processed_count = 0
+  L 522: 
+  L 523:         while _processed_count < _drain_limit:
+  L 524:             _eligible = self._dialogue_queue.dequeue_next(game_time_seconds=_game_time)
+  L 525:             if not _eligible:
+  L 526:                 break
+  L 527: 
+  L 528:             task_dict = _eligible.payload.get("task_dict", {})
+  L 529:             # S196 FIX: task_type хранится на уровне объекта QueuedDialogue, не внутри payload.
+  L 530:             # Ранее всегда падало в "canonical", отправляя ambient-задачи в LLM (нарушение ADR-O-342).
+  L 531:             _task_type = getattr(_eligible, "task_type", "canonical")
+  L 532: 
+  L 533:             # ADR-O-343: Narrative Arbitration после извлечения из очереди
+  L 534:             # IRON RIVER D-1/P0-2 (F2): admission на каузальной оси —
+  L 535:             # game_time (в scope, BUG-DLG-006), не wall-clock.
+  L 536:             _admitted, _reason = self._speech_scheduler.admit(
+  L 537:                 task_dict, campaign_id, game_time_seconds=_game_time
+  L 538:             )
+  L 539: 
+  L 540:             if not _admitted:
+  L 541:                 if _reason == "PACING":
+  L 542:                     # Возвращаем в очередь для следующего тика.
+  L 543:                     # S262 (F2-регрессия): break был корректен для wall-clock-
+  L 544:                     # pacing (2 сек реального ожидания); на game-time оси
+  L 545:                     # (2 тика) PACING ОДНОГО спикера не должен блокировать
+  L 546:                     # чужие задачи — иначе первая непрошедшая разрывает
+  L 547:                     # весь дренаж (processed=1 при 20 ожидающих, S262-замер).
+  L 548:                     # continue: следующий кандидат очереди.
+  L 549:                     self._dialogue_queue.enqueue(
+  L 550:                         task_type=_task_type,
+  L 551:                         payload=_eligible.payload,
+  L 552:                         priority=-_eligible.priority, # heapq инвертирует обратно
+  L 553:                         game_time_seconds=_game_time
+  L 554:                     )
+  L 555:                     continue
+  L 556:                 elif _reason == "DEDUP":
+  L 557:                     # Уничтожаем спам-дубликат
+  L 558:                     if _task_type == "canonical":
+  L 559:                         # S203.4: DEDUP-смерть → CANCELLED (main-thread sync-путь;
+  L 560:                         # применится дренажем ЭТОГО же idle-окна ниже).
+  L 561:                         self._record_task_outcome(
+  L 562:                             task_dict.get("owner_id", ""), "CANCELLED"
+  L 563:                         )
+  L 564:                     continue
+  L 565: 
+  L 566:             # B (пункт 10, решение Мастера): liveness-гейт при dequeue — смерть
+  L 567:             # прерывает mid-generation: реплика мёртвого не материализуется,
+  L 568:             # задача получает EXPIRED по каноническому ADR-O-365 мэппингу
+  L 569:             # (жизненный цикл убитой задачи = прецедент DEDUP-ветки). Fail-open:
+  L 570:             # нет провайдера/не найден/ошибка → исполнение как раньше.
+  L 571:             if self._owner_is_dead(campaign_id, task_dict.get("owner_id", "")):
+  L 572:                 self._record_task_outcome(task_dict.get("owner_id", ""), "EXPIRED")
+  L 573:                 logger.info(
+  L 574:                     f"[TASK_SCHED] liveness-gate: owner={task_dict.get('owner_id', '')} "
+  L 575:                     f"DEAD → task EXPIRED (mid-generation interrupt)"
+  L 576:                 )
+  L 577:                 continue
+  L 578:             # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт при dequeue (после
+  L 579:             # death-check). In-flight-политика = death-прецедент ADR-O-387:
+  L 580:             # гейт стоит до executor.execute — начатая генерация не отзывается.
+  L 581:             if self._owner_intent_flees(campaign_id, task_dict.get("owner_id", "")):
+  L 582:                 self._record_task_outcome(task_dict.get("owner_id", ""), "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+  L 583:                 logger.info(
+  L 584:                     f"[TASK_SCHED] stale-intent-gate (dequeue): owner={task_dict.get('owner_id', '')} "
+  L 585:                     f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
+  L 586:                 )
+  L 587:                 continue
+  L 588:             # Запускаем в асинхронном пуле, чтобы не блокировать idle_tick.
+  L 589:             # Передаём _game_time явно, чтобы избежать гонки с мутирующим scene_state.
+  L 590:             self._executor_pool.submit(
+  L 591:                 self._process_tasks_async, scene_state, [task_dict], campaign_id, _task_type, _game_time,
+  L 592:                 scene_state.get("tick", 0)
+  L 593:             )
+  L 594:             _processed_count += 1
+  L 595: 
+
+==============================================================================
+STEP 3: Read drain_task_worker_outbox (where NPC_SPOKE is published)
+==============================================================================
+  drain_task_worker_outbox() at L247..L284 (showing L247..L284):
+  L 247:     def drain_task_worker_outbox(self, scene_state: dict) -> None:
+  L 248:         """ADR-O-399: deterministic commit артефактов воркера (main thread).
+  L 249: 
+  L 250:         Batch = артефакты, готовые к данной drain boundary (completion-время
+  L 251:         в канон не входит). Порядок записей — сортировка по стабильному ключу
+  L 252:         (submit_tick, task_id). Порядок эффектов per-record зеркалит прежнюю
+  L 253:         последовательность воркера: events → economy → dialogue → speech_reset.
+  L 254:         Две точки вызова: вход execute_pending + idle_tick до unlock_tick
+  L 255:         (симметрия S203.4/F23); третья точка запрещена. Обе — безусловные:
+  L 256:         pending_tasks == 0 не блокирует дренаж готовых артефактов.
+  L 257:         """
+  L 258:         if not self._task_outbox:
+  L 259:             return
+  L 260:         with self._task_outbox_lock:
+  L 261:             batch = self._task_outbox
+  L 262:             self._task_outbox = []
+  L 263:         batch.sort(key=lambda _r: (_r.submit_tick, _r.task_id))
+  L 264:         _bus = get_event_bus()
+  L 265:         for _rec in batch:
+  L 266:             for _ev in _rec.events:
+  L 267:                 # ADR-O-399 Iter1: штамп событийного времени — submit_tick
+  L 268:                 # (main thread). Единственный легальный источник event-time
+  L 269:                 # для L1-датировки; arrival воркера в канон не входит.
+  L 270:                 _payload = getattr(_ev, "payload", None)
+  L 271:                 if isinstance(_payload, dict):
+  L 272:                     _payload.setdefault("event_tick", _rec.submit_tick)
+  L 273:                 _bus.publish(_ev)
+  L 274:             for _npc, _tick in _rec.economy_talks:
+  L 275:                 if self._economy_tracker:
+  L 276:                     self._economy_tracker.record_talk(_npc, _tick)
+  L 277:             if _rec.dialogue_entry is not None:
+  L 278:                 with self._dialogue_lock:
+  L 279:                     self._recent_dialogues.append(_rec.dialogue_entry)
+  L 280:                 # ADR-O-313: зеркалирование в scene_state — только здесь, main thread
+  L 281:                 scene_state.setdefault("recent_dialogues", []).append(_rec.dialogue_entry)
+  L 282:             if _rec.speech_reset is not None and hasattr(self, '_speech_scheduler'):
+  L 283:                 self._speech_scheduler.reset_context(_rec.speech_reset)
+  L 284: 
+
+==============================================================================
+STEP 4: Read DialogueExecutor.execute fully
+==============================================================================
+  execute() at L111..L284 (showing L111..L284):
+  L 111:     def execute(self, task: QueuedTask) -> Iterable[Artifact]:
+  L 112:         if not isinstance(task.payload, DialogueRequest):
+  L 113:             logger.error(f"[DIALOGUE_EXEC] Invalid payload type: {type(task.payload)}")
+  L 114:             yield Artifact(
+  L 115:                 task_id=task.task_id,
+  L 116:                 success=False,
+  L 117:                 result_type="error",
+  L 118:                 data={},
+  L 119:                 error_message="Invalid payload for DialogueExecutor",
+  L 120:             )
+  L 121:             return
+  L 122: 
+  L 123:         req = task.payload
+  L 124:         # A1 (RE-D2, вердикт Мастера): provenance текста — по ПРОИСХОЖДЕНИЮ,
+  L 125:         # не эвристикой по содержимому. "llm" ставится только в LLM-ветке;
+  L 126:         # детерминированная материализация (stub / requires_llm=False) содержит
+  L 127:         # machine-id латиницей BY DESIGN — LANG_LEAK (замок S292) к ней не
+  L 128:         # применяется: ложный ретрай звал LLM с потока петли → RE-D2.
+  L 129:         _text_source = "deterministic"
+  L 130:         logger.debug(
+  L 131:             f"[DIALOGUE_EXEC] Executing task for {task.owner_id} -> {req.target_id} on topic '{req.topic}'"
+  L 132:         )
+  L 133: 
+  L 134:         # S197: Извлекаем Proposition на верхнем уровне, чтобы он был доступен во всех ветках
+  L 135:         _proposition = getattr(req, "proposition", None)  # noqa: ENIGMA002
+  L 136: 
+  L 137:         # P7-A: вердикт disclosure выносится ДО вербализации, РОВНО ОДИН
+  L 138:         # раз на реплику (инвариант Мастера). LLM вербализует, не решает.
+  L 139:         _verdict = self._resolve_disclosure_verdict(task, req)
+  L 140: 
+  L 141:         # Если роутер не задан (sandbox/test), возвращаем заглушку
+  L 142:         if self._router is None:
+  L 143:             logger.warning("[DIALOGUE_EXEC] ModelRouter is None! Fallback to stub.")
+  L 144:             text = f"[Заглушка] {task.owner_id} обращается к {req.target_id} по теме: '{req.topic}'"
+  L 145:         elif not requires_llm_materialization(req.intent_type) and not (
+  L 146:             req.intent_type == "spread_rumor" and _proposition is not None
+  L 147:         ):
+  L 148:             # S199.2: Детерминированная материализация для claim-producing интентов без LLM
+  L 149:             text = f"[{req.intent_type}] {task.owner_id} -> {req.target_id}: {req.topic}"
+  L 150:         else:
+  L 151:             # ENIGMA-ARCH-022: LLM Execution Timeout.
+  L 152:             # Использует существующий cancellation boundary (router._abort_generation).
+  L 153:             # В будущем LLM_TIMEOUT_SEC будет вынесен в CalibrationProfile.
+  L 154:             import threading
+  L 155:             _timer = threading.Timer(_L_TIMEOUT_SEC, self._router._abort_generation)
+  L 156: 
+  L 157:             try:
+  L 158:                 _timer.start()
+  L 159:                 _text_source = "llm"
+  L 160:                 text = self._generate_with_router(task, req, _verdict)
+  L 161:             except DialogueContractViolation as e:
+  L 162:                 logger.warning(f"[DIALOGUE_EXEC] Contract violated: {e}")
+  L 163:                 # BUGFIX: Возвращаем error artifact, а не success, т.к. текст не сгенерирован
+  L 164:                 yield Artifact(
+  L 165:                     task_id=task.task_id,
+  L 166:                     success=False,
+  L 167:                     result_type="error",
+  L 168:                     data={},
+  L 169:                     error_message=str(e)
+  L 170:                 )
+  L 171:                 return
+  L 172:             except Exception as e:
+  L 173:                 logger.error(f"[DIALOGUE_EXEC] LLM call failed (timeout or error) for {task.owner_id}: {e}")
+  L 174:                 # Stage B Observability (вердикт Мастера Q4): llm_materialization_failed.
+  L 175:                 try:
+  L 176:                     from app.services.logging_tools import jsonl_log
+  L 177:                     jsonl_log({
+  L 178:                         "level": "ERROR",
+  L 179:                         "agent": "template_fallback",
+  L 180:                         "fallback_reason": "llm_materialization_failed",
+  L 181:                         "npc_id": task.owner_id,
+  L 182:                         "intent_type": req.intent_type,
+  L 183:                         "target_id": req.target_id,
+  L 184:                         "error": str(e),
+  L 185:                     })
+  L 186:                 except Exception:
+  L 187:                     logger.debug("[OBS] llm_materialization_failed observability skipped (non-critical)")
+  L 188:                 yield Artifact(
+  L 189:                     task_id=task.task_id,
+  L 190:                     success=False,
+  L 191:                     result_type="error",
+  L 192:                     data={},
+  L 193:                     error_message=f"LLM execution failed: {e}"
+  L 194:                 )
+  L 195:                 return
+  L 196:             finally:
+  L 197:                 _timer.cancel()
+  L 198: 
+  L 199:         if not text:
+  L 200:             yield Artifact(
+  L 201:                 task_id=task.task_id,
+  L 202:                 success=False,
+  L 203:                 result_type="error",
+  L 204:                 data={},
+  L 205:                 error_message="LLM failed or returned empty text (stub avoided)."
+  L 206:             )
+  L 207:             return
+  L 208: 
+  L 209:         # №3 (S292): language-leak gate. Русскоязычный мир — латинные вставки
+  L 210:         # LLM («Give me a name») ломают нарратив. Честная деградация (ADR-113):
+  L 211:         # измерить → один ретрай с усиленной директивой → при повторе лог+паблиш
+  L 212:         # как есть (не маскируем, не режем слова).
+  L 213:         import re as _re
+  L 214: 
+  L 215:         def _latin_share(s: str) -> float:
+  L 216:             _words = [w for w in _re.split(r"\s+", s.strip()) if w]
+  L 217:             if not _words:
+  L 218:                 return 0.0
+  L 219:             _latin = sum(1 for w in _words if _re.search(r"[A-Za-z]", w))
+  L 220:             return _latin / len(_words)
+  L 221: 
+  L 222:         # A1: LANG_LEAK гейтит ТОЛЬКО текст LLM-происхождения. Детерминированный
+  L 223:         # текст публикуется как есть (machine-id ≠ language leak).
+  L 224:         if _text_source == "llm" and _latin_share(text) >= 0.25:
+  L 225:             logger.warning(
+  L 226:                 f"[LANG_LEAK] {task.owner_id}: latin_share={_latin_share(text):.2f} "
+  L 227:                 f"text={text[:80]!r} — retry with reinforced directive"
+  L 228:             )
+  L 229:             _retry_timer = None  # пред-связывание: finally ссылается всегда
+  L 230:             try:
+  L 231:                 import threading as _th
+  L 232:                 _retry_timer = _th.Timer(_L_TIMEOUT_SEC, self._router._abort_generation)
+  L 233:                 _retry_timer.start()
+  L 234:                 _reinforced = (  # noqa: ENIGMA001
+  L 235:                     f"{req.prepared_prompt}\n\n[СТРОГО: ответ ТОЛЬКО кириллицей. "
+  L 236:                     f"Ни одного латинского слова. Предыдущая попытка отклонена.]"
+  L 237:                 ) if req.prepared_prompt else None
+  L 238:                 _retry_req = (
+  L 239:                     type(req)(**{**req.__dict__, "prepared_prompt": _reinforced})
+  L 240:                     if hasattr(req, "__dict__")
+  L 241:                     else req
+  L 242:                 )
+  L 243:                 text = self._generate_with_router(task, _retry_req, _verdict)
+  L 244:             except Exception as _retry_err:
+  L 245:                 logger.error(f"[LANG_LEAK] retry failed for {task.owner_id}: {_retry_err}")
+  L 246:             finally:
+  L 247:                 if _retry_timer is not None:
+  L 248:                     try:
+  L 249:                         _retry_timer.cancel()
+  L 250:                     except Exception as _cancel_err:
+  L 251:                         # L4 (S292): cancel-сбой логируется; ретрай уже завершён —
+  L 252:                         # исходная генерация не деградирует от этого отказа.
+  L 253:                         logger.debug(f"[LANG_LEAK] retry timer cancel skipped: {_cancel_err}")
+  L 254:         # A1: LANG_LEAK гейтит ТОЛЬКО текст LLM-происхождения. Детерминированный
+  L 255:         # текст публикуется как есть (machine-id ≠ language leak).
+  L 256:         if _text_source == "llm" and _latin_share(text) >= 0.25:
+  L 257:             logger.error(
+  L 258:                 f"[LANG_LEAK] {task.owner_id}: retry still leaked "
+  L 259:                 f"(share={_latin_share(text):.2f}) — publishing as-is (honest degradation)"
+  L 260:             )
+  L 261: 
+  L 262:         # P6/E1 (S255): эмит — ТОЧКА УСПЕШНОЙ ДОСТАВКИ (DISCOVERY IS
+  L 263:         # DELIVERY: решение P5 материально только при доставленной
+  L 264:         # реплике; error-ветки выше не эмитят). Заменил вызов парсера
+  L 265:         # (V8-MVP-12): текст НЕ источник discovery — PROVENANCE, NOT
+  L 266:         # STRINGS. Писатель :109 — отдельным шагом ПОСЛЕ T8/T3.
+  L 267:         self._emit_dialogue_outcome(task, req, _verdict)
+  L 268: 
+  L 269:         yield Artifact(
+  L 270:             task_id=task.task_id,
+  L 271:             success=True,
+  L 272:             result_type="dialogue_line",
+  L 273:             data={
+  L 274:                 "speaker_id": task.owner_id,
+  L 275:                 "target_id": req.target_id,
+  L 276:                 "text": text,
+  L 277:                 "exposure": req.exposure.semantic,
+  L 278:                 "topic": req.topic,
+  L 279:                 "emotional_state": req.emotional_state,
+  L 280:                 "proposition": _proposition, # S198 FIX: Сохраняем эпистемическое утверждение для COMMUNICATION_CLAIM
+  L 281:                 "intent_type": req.intent_type, # S201 FIX: Пробрасываем intent_type для ClaimEventSubscriber fallback
+  L 282:             },
+  L 283:         )
+  L 284: 
+
+  --- _generate_with_router ---
+  _generate_with_router() at L454..L671 (showing L454..L671):
+  L 454:     def _generate_with_router(self, task: QueuedTask, req: DialogueRequest, verdict: Any = None) -> str:
+  L 455:         """Генерация через ModelRouter. Не блокирует симуляцию (Правило 2 ТЗ)."""
+  L 456:         ctx = self._get_context(task.campaign_id, task.owner_id)
+  L 457: 
+  L 458:         # L-05 FIX: Резолвим target_id в имя для LLM, чтобы избежать утечки ID в реплики
+  L 459:         _target_ctx = self._get_context(task.campaign_id, req.target_id) if req.target_id else {}
+  L 460:         _target_name = _target_ctx.get("name", req.target_id)
+  L 461: 
+  L 462:         # L-04: Жёсткий system prompt с языковыми правилами
+  L 463:         system_prompt = (
+  L 464:             "Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реплику (1-2 предложения). "
+  L 465:             "Говори ТОЛЬКО на русском языке. Не используй китайские иероглифы, английский текст или системные теги. "
+  L 466:             "Не описывай свои действия (например, 'идёт к двери'). Только прямая речь. "
+  L 467:             "Не упоминай игрока, симуляцию, интерфейс или механики игры. "
+  L 468:             "Оставайся в образе своего персонажа. "
+  L 469:             f"Тема разговора: {req.topic}. Намерение: {req.intent_type}."
+  L 470:         )
+  L 471: 
+  L 472:         # T-02: Добавляем crystallized beliefs в промпт, чтобы LLM знала отношение NPC
+  L 473:         _beliefs_text = ""
+  L 474:         if self._belief_store:
+  L 475:             _all_beliefs = self._belief_store.get_beliefs(task.owner_id)
+  L 476:             _target_beliefs = [b for b in _all_beliefs if b.source_id == req.target_id]
+  L 477: 
+  L 478:             _TRAIT_TO_TEXT = {
+  L 479:                 "fear": "Ты боишься",
+  L 480:                 "trust": "Ты доверяешь",
+  L 481:                 "loyalty": "Ты предан",
+  L 482:                 "anger": "Ты злишься на",
+  L 483:             }
+  L 484:             for b in _target_beliefs:
+  L 485:                 _phrase = _TRAIT_TO_TEXT.get(b.trait, f"Ты относишься к {_target_name} как к {b.trait}")
+  L 486:                 _beliefs_text += f"{_phrase} {_target_name} (уверенность: {b.weight:.2f}). "
+  L 487: 
+  L 488:         # T-04: Извлекаем npc_npc_context (историю взаимодействий с целью) из DialogueRequest
+  L 489:         _history_text = ""
+  L 490:         if getattr(req, "npc_npc_context", ""):  # noqa: ENIGMA002
+  L 491:             _history_text = f"Твои воспоминания об этой встрече: {req.npc_npc_context} "
+  L 492: 
+  L 493:         # BUG-DL-02 FIX: Инъекция STM-блока (контекст текущего разговора)
+  L 494:         _stm_text = ""
+  L 495:         if self._memory_manager is not None and task.campaign_id:
+  L 496:             _stm_text = self._memory_manager.get_stm_prompt_block_pair(
+  L 497:                 task.campaign_id, task.owner_id, req.target_id
+  L 498:             )
+  L 499: 
+  L 500:         # Hard Contract (Принцип 2): Нет STM -> нельзя говорить canonical dialogue
+  L 501:         # Разрешаем только первый ход (intent_type="greeting"), чтобы установить контакт
+  L 502:         # Исключение: claim-producing интенты (warn, intimidate) не требуют контекста диалога.
+  L 503:         if not _stm_text and req.intent_type not in ("greeting", "approach") and requires_dialogue_context(req.intent_type) and not getattr(req, "proposition", None):
+  L 504:             logger.warning(f"[DIALOGUE_EXEC] No STM for {task.owner_id} -> {req.target_id}, "
+  L 505:                            f"intent '{req.intent_type}' demoted to 'approach' (auto-recover).")
+  L 506:             from dataclasses import replace as _dc_replace
+  L 507:             req = _dc_replace(req, intent_type="approach")
+  L 508: 
+  L 509:         if _stm_text:
+  L 510:             _history_text += f"\n[Контекст текущего разговора]\n{_stm_text}\n"
+  L 511: 
+  L 512:         # V8-DLG-10 FIX: Используем prepared_prompt (из VerbalizationContext) или fallback на ручную сборку
+  L 513:         if req.prepared_prompt:
+  L 514:             user_prompt = req.prepared_prompt
+  L 515:         else:
+  L 516:             # L-03 FIX: Добавляем voice_profile, backstory, author_notes для уникального голоса
+  L 517:             user_prompt = (
+  L 518:                 f"Твоё имя: {ctx.get('name', task.owner_id)}. "
+  L 519:                 f"Краткое описание твоей натуры: {ctx.get('description', 'неизвестно')}. "
+  L 520:             )
+  L 521:             if ctx.get("voice_profile"):
+  L 522:                 user_prompt += f"Твоя манера речи: {ctx['voice_profile']}. "
+  L 523:             if ctx.get("backstory"):
+  L 524:                 user_prompt += f"Твоё прошлое: {ctx['backstory']}. "
+  L 525:             if ctx.get("author_notes"):
+  L 526:                 user_prompt += f"Важные ограничения: {ctx['author_notes']}. "
+  L 527: 
+  L 528:         # COGNITIVE-CONTINUITY-01: claim verbalization — факт, которым ты делишься.
+  L 529:         # LLM получает клейм и сама решает, как его передать своими словами.
+  L 530:         _proposition = getattr(req, "proposition", None)  # extract from DialogueRequest
+  L 531:         _claim_block = ""
+  L 532:         if _proposition is not None:
+  L 533:             _pred_map = {"insulted": "оскорбил", "stole": "украл у", "attacked": "напал на", "helped": "помог"}
+  L 534:             if isinstance(_proposition, dict):
+  L 535:                 _subj_id = _proposition.get("subject_id", "")
+  L 536:                 _pv = _proposition.get("predicate", "")
+  L 537:                 _obj_id = _proposition.get("object_id", "")
+  L 538:             else:
+  L 539:                 _subj_id = _proposition.subject_id
+  L 540:                 _pv = getattr(_proposition.predicate, "value", str(_proposition.predicate))
+  L 541:                 _obj_id = _proposition.object_id
+  L 542:             # COGNITIVE-CONTINUITY-01: resolve IDs to game names via _get_context
+  L 543:             # (same mechanism as CognitionContextResolver — не второй resolver)
+  L 544:             _subj_name = self._get_context(task.campaign_id, _subj_id).get("name", _subj_id) if _subj_id else _subj_id
+  L 545:             _obj_name = self._get_context(task.campaign_id, _obj_id).get("name", _obj_id) if _obj_id else _obj_id
+  L 546:             _pred_text = _pred_map.get(_pv, str(_pv))
+  L 547:             _claim_block = f"[Факт, которым ты делишься]: {_subj_name} {_pred_text} {_obj_name}. Передай это собеседнику своими словами.\n"
+  L 548: 
+  L 549:         # Динамическая часть (добавляется всегда, так как STM и beliefs могли измениться)
+  L 550:         user_prompt += (
+  L 551:             f"Ты обращаешься к: {_target_name}. "
+  L 552:             f"{_beliefs_text}"
+  L 553:             f"{_history_text}"
+  L 554:             f"{_claim_block}"
+  L 555:         )
+  L 556: 
+  L 557:         # COGNITIVE-CONTINUITY-01: cognition block — what NPC knows (beliefs + provenance)
+  L 558:         # Same CognitionContextResolver that feeds DMFrame — one mechanism, all consumers.
+  L 559:         if self._epistemic_store is not None and self._memory_manager is not None:
+  L 560:             try:
+  L 561:                 from app.services.npc.cognition_context import CognitionContextResolver
+  L 562:                 _cog = CognitionContextResolver(
+  L 563:                     self._memory_manager,
+  L 564:                     epistemic_store=self._epistemic_store,
+  L 565:                     context_provider=lambda npc_id: self._get_context(task.campaign_id, npc_id),
+  L 566:                 )
+  L 567:                 _cog_block = _cog.resolve_block(task.owner_id, req.target_id or "player")
+  L 568:                 if _cog_block:
+  L 569:                     user_prompt += "\n" + _cog_block + "\n"
+  L 570:             except Exception as _cog_e:
+  L 571:                 logger.warning(f"[DIALOGUE_EXEC] cognition block failed: {_cog_e}")
+  L 572: 
+  L 573:         # CC-09: causal context — WHY state changed (causal_ledger -> LLM prompt).
+  L 574:         # Не новый SSOT — читает существующий NPCState.causal_ledger (ADR-CAUSAL-SPINE).
+  L 575:         # NPC может объяснить изменение доверия/страха конкретным событием.
+  L 576:         if self._npc_states_provider is not None:
+  L 577:             try:
+  L 578:                 _states = self._npc_states_provider(task.campaign_id)
+  L 579:                 _npc_dict = next(
+  L 580:                     (s for s in (_states or [])
+  L 581:                      if s.get("npc_id") == task.owner_id or s.get("id") == task.owner_id),
+  L 582:                     None,
+  L 583:                 )
+  L 584:                 if _npc_dict:
+  L 585:                     _ledger = _npc_dict.get("causal_ledger", [])
+  L 586:                     if _ledger:
+  L 587:                         _causal_text = self._format_causal_context(_ledger)
+  L 588:                         if _causal_text:
+  L 589:                             user_prompt += "\n" + _causal_text + "\n"
+  L 590:             except Exception as _ce:
+  L 591:                 logger.warning(f"[DIALOGUE_EXEC] causal context failed: {_ce}")
+  L 592: 
+  L 593:         # Priority 4 Part A: contradictions — polarity=False records visible to NPC.
+  L 594:         # NPC видит противоречивые сведения (опровержения) — не разрешает, а учитывает.
+  L 595:         # Не новый SSOT — читает существующий EpistemicStore (ADR-O-354).
+  L 596:         if self._epistemic_store is not None:
+  L 597:             try:
+  L 598:                 _contr_text = self._format_contradictions(task.owner_id, task.campaign_id)
+  L 599:                 if _contr_text:
+  L 600:                     user_prompt += "\n" + _contr_text + "\n"
+  L 601:             except Exception as _ce2:
+  L 602:                 logger.warning(f"[DIALOGUE_EXEC] contradictions failed: {_ce2}")
+  L 603: 
+  L 604:         user_prompt += "Скажи свою реплику:"
+  L 605: 
+  L 606:         # P7-A: директива вердикта в промпт — LLM вербализует, не решает
+  L 607:         _directive = self._verdict_directive(verdict)
+  L 608:         if _directive:
+  L 609:             user_prompt += f" {_directive}"
+  L 610: 
+  L 611:         # B4-R6: Full prompt capture (observability only — no game logic change)
+  L 612:         try:
+  L 613:             import time
+  L 614:             from app.services.logging_tools import log_full_prompt
+  L 615:             log_full_prompt({
+  L 616:                 "event": "llm_request",
+  L 617:                 "request_id": task.task_id,
+  L 618:                 "speaker_id": task.owner_id,
+  L 619:                 "agent_name": "npc",
+  L 620:                 "tick": getattr(task, "tick", None),
+  L 621:                 "campaign_id": task.campaign_id,
+  L 622:                 "intent_type": req.intent_type,
+  L 623:                 "topic": req.topic,
+  L 624:                 "target_id": req.target_id,
+  L 625:                 "proposition": getattr(req, "proposition", None),
+  L 626:                 "system_prompt": system_prompt,
+  L 627:                 "user_prompt": user_prompt,
+  L 628:                 "max_tokens": 100,
+  L 629:                 "timestamp": time.time(),
+  L 630:                 "system_prompt_chars": len(system_prompt),
+  L 631:                 "user_prompt_chars": len(user_prompt),
+  L 632:                 "token_count": "unavailable — use llama-server /tokenize for exact counts",
+  L 633:             })
+  L 634:         except Exception:
+  L 635:             logger.debug("[OBS] full prompt capture skipped (request)")
+  L 636: 
+  L 637:         try:
+  L 638:             from app.services.llm.router import GenerationParams
+  L 639:             raw = self._router.request_for_agent(
+  L 640:                 agent_name="npc",
+  L 641:                 prompt=user_prompt,
+  L 642:                 system_prompt=system_prompt,
+  L 643:                 params=GenerationParams(max_tokens=100)
+  L 644:             )
+  L 645: 
+  L 646:             # L-02: Валидация ответа LLM (отсечение китайского, английского, 4-й стены)
+  L 647:             validation = self._validator.validate(raw)
+  L 648:             if validation.is_fallback:
+  L 649:                 # IPT-CLEANUP: WARNING → INFO. IPT использует fallback/stub LLM, который может возвращать не-русский текст.
+  L 650:                 # В production это останется WARNING, но для IPT-лога это ожидаемый шум.
+  L 651:                 logger.info(f"[DIALOGUE_EXEC] LLM response rejected ({validation.violation}). Using fallback.")
+  L 652: 
+  L 653:             # B4-R6: Response capture
+  L 654:             try:
+  L 655:                 from app.services.logging_tools import log_full_prompt
+  L 656:                 log_full_prompt({
+  L 657:                     "event": "llm_response",
+  L 658:                     "request_id": task.task_id,
+  L 659:                     "speaker_id": task.owner_id,
+  L 660:                     "raw_response": raw,
+  L 661:                     "validated_text": validation.text,
+  L 662:                     "validation_fallback": validation.is_fallback,
+  L 663:                     "validation_violation": getattr(validation, "violation", None),
+  L 664:                 })
+  L 665:             except Exception:
+  L 666:                 logger.debug("[OBS] response capture skipped")
+  L 667:             return validation.text
+  L 668:         except Exception as e:
+  L 669:             logger.error(f"[DIALOGUE_EXEC] LLM call failed: {e}. Raising exception to prevent silent failure.")
+  L 670:             raise
+  L 671: 
+
+==============================================================================
+STEP 5: Read DialogueMaterializer.materialize
+==============================================================================
+  materialize() at L61..L131 (showing L61..L131):
+  L  61:     def materialize(self, artifact: Artifact) -> Iterable[Any]:
+  L  62:         if artifact.result_type != "dialogue_line" or not artifact.success:
+  L  63:             return []
+  L  64: 
+  L  65:         data = artifact.data
+  L  66: 
+  L  67:         from app.domain.events import EventDTO
+  L  68: 
+  L  69:         exposure_semantic = data.get("exposure", "normal")
+  L  70:         visibility = "public"
+  L  71:         if exposure_semantic in ["secret", "whisper"]:
+  L  72:             visibility = "whisper"
+  L  73:         elif exposure_semantic == "private":
+  L  74:             visibility = "private"
+  L  75: 
+  L  76:         from app.domain.communication import SELF_TALK_SENTINEL, exposure_radius
+  L  77: 
+  L  78:         _speech_radius = exposure_radius(exposure_semantic)
+  L  79:         if data.get("target_id") == SELF_TALK_SENTINEL:
+  L  80:             visibility = "whisper"
+  L  81:             _speech_radius = exposure_radius("whisper")
+  L  82: 
+  L  83:         from app.services.verbalization.tone_mapper import ToneMapper
+  L  84: 
+  L  85:         _tone = ToneMapper.map(data.get("emotional_state"))
+  L  86: 
+  L  87:         events: list[Any] = []
+  L  88: 
+  L  89:         # NPC_SPOKE публикуется ВСЕГДА — речь состоялась (LLM сгенерировал
+  L  90:         # текст). Proposition здесь НЕТ — это чистое speech-событие.
+  L  91:         events.append(EventDTO.create(
+  L  92:             event_type=EventType.NPC_SPOKE.value,
+  L  93:             source=data["speaker_id"],
+  L  94:             payload={
+  L  95:                 "target_id": data.get("target_id"),
+  L  96:                 "text": data["text"],
+  L  97:                 "topic": data.get("topic"),
+  L  98:                 "exposure": exposure_semantic,
+  L  99:                 "tone": _tone,
+  L 100:                 "intent_type": data.get("intent_type", "talk"),
+  L 101:             },
+  L 102:             visibility=visibility,  # type: ignore[arg-type]
+  L 103:             radius=_speech_radius,
+  L 104:             persistence_level="session",
+  L 105:         ))
+  L 106: 
+  L 107:         # S197 + P5-B: candidate Proposition верифицируется семантически
+  L 108:         # против финального LLM-текста. Только подтверждённый proposition
+  L 109:         # публикуется как COMMUNICATION_CLAIM.
+  L 110:         _prop_data = data.get("proposition")
+  L 111:         if _prop_data:
+  L 112:             _text = data.get("text", "")
+  L 113:             _confirmed = self._verify_proposition(_prop_data, _text, data)
+  L 114:             if _confirmed:
+  L 115:                 events.append(EventDTO.create(
+  L 116:                     event_type=EventType.COMMUNICATION_CLAIM.value,
+  L 117:                     source=data["speaker_id"],
+  L 118:                     payload={
+  L 119:                         "target_id": data.get("target_id"),
+  L 120:                         "proposition": _prop_data,
+  L 121:                         "speech_act": "assert",
+  L 122:                         "tick": 0,
+  L 123:                         "verified_by": "proposition_verifier",
+  L 124:                     },
+  L 125:                     visibility=visibility,  # type: ignore[arg-type]
+  L 126:                     radius=_speech_radius,
+  L 127:                     persistence_level="session",
+  L 128:                 ))
+  L 129: 
+  L 130:         return events
+  L 131: 
+
+==============================================================================
+STEP 6: Read _record_task_outcome + _TaskArtifactRecord
+==============================================================================
+  --- _task_outbox usage in task_scheduler.py ---
+  L125:         self._task_outbox: list = []
+  L126:         self._task_outbox_lock = threading.Lock()
+  L258:         if not self._task_outbox:
+  L260:         with self._task_outbox_lock:
+  L261:             batch = self._task_outbox
+  L262:             self._task_outbox = []
+  L288:         with self._task_outbox_lock:
+  L289:             self._task_outbox.append(_TaskArtifactRecord(
+
+  --- _record_task_outcome definition ---
+  _record_task_outcome() at L205..L215 (showing L205..L215):
+  L 205:     def _record_task_outcome(
+  L 206:         self, npc_id: str, outcome: str, fail_reason: str = "", interrupt_reason: str = ""
+  L 207:     ) -> None:
+  L 208:         """Воркер/синхронный путь → thread-safe outbox. Реестр НЕ пишется здесь.
+  L 209:         [GC-I01-E2] interrupt_reason — четвёртая позиция кортежа (D-6:
+  L 210:         причина прерывания ≠ причина провала; закон №16 — единый реестр)."""
+  L 211:         with self._commitment_outbox_lock:
+  L 212:             self._commitment_outbox.append(  # [GC-I01-E2] 4-позиция: interrupt_reason
+  L 213:                 (npc_id, outcome, fail_reason or None, interrupt_reason or None)
+  L 214:             )
+  L 215: 
+
+==============================================================================
+STEP 7: Build loop, find executor, run controlled experiments
+==============================================================================
+  loaded 6 NPCs
+  EventBus spy installed
+  DialogueExecutor found: <app.services.execution.dialogue_executor.DialogueExecutor object at 0x000001E5349282F0>
+  router: <app.services.llm.router.ModelRouter object at 0x000001E534253380>
+  router is None: False
+  Class spies installed
+  Router spies installed
+
+  === Experiment A: router=None, no proposition ===
+[FATAL: QueuedTask.__init__() missing 1 required positional argument: 'counter']

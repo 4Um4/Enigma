@@ -568,23 +568,24 @@ R5.1 не должен заново проектировать Identity, Communi
 
 R5.1 считается завершённым, если:
 
-- [ ] Avatar способен формировать намерения без Player command.
-- [ ] Формирование намерений не ограничено речью.
-- [ ] Механизм поддерживает разные личности Avatar без программирования реакций под каждую.
-- [ ] Желание, намерение, предложение и исполнение семантически разделены.
-- [ ] Player и Avatar имеют независимые источники намерений.
-- [ ] Существует общий арбитраж физического исполнения.
-- [ ] Совместимые намерения могут быть обработаны корректно.
-- [ ] Несовместимые намерения не приводят к двойному исполнению.
-- [ ] WillpowerGate сохраняет свою отдельную ответственность.
-- [ ] INV-PLAYER-AUTHORSHIP не нарушен.
-- [ ] Определены правила прерывания и невозможности исполнения.
-- [ ] Определена судьба отклонённых и отложенных намерений.
-- [ ] Body не становится источником авторства намерения.
-- [ ] WORLD TRUTH остаётся единым.
-- [ ] Все интеграционные сценарии непротиворечивы.
-- [ ] Установлены интерфейсы с Identity, Communication, Ceremony и Memory.
-- [ ] Предложен безопасный порядок реализации.
+- [x] Avatar способен формировать намерения без Player command. (Step 2: AvatarIntentFormation в idle tick Phase 0)
+- [x] Формирование намерений не ограничено речью. (Step 2: AvatarIntentRecord поддерживает APPROACH, IDLE, TALK)
+- [ ] Механизм поддерживает разные личности Avatar без программирования реакций под каждую. (Pending: hardcoded _DESIRE_SUBJECT_TO_INTENT mapping)
+- [x] Желание, намерение, предложение и исполнение семантически разделены. (Desire → AvatarIntentRecord → intent_lifecycle → [Pending: BodyArbiter → Execution])
+- [x] Player и Avatar имеют независимые источники намерений. (Step 3.1: Player Intent Formation, Step 2: Avatar Intent Formation)
+- [ ] Существует общий арбитраж физического исполнения. (Pending: Step 3.2 BodyArbiter contract)
+- [ ] Совместимые намерения могут быть обработаны корректно. (Pending: Step 3.2 BodyArbiter contract)
+- [ ] Несовместимые намерения не приводят к двойному исполнению. (Pending: Step 3.2 BodyArbiter contract)
+- [ ] WillpowerGate сохраняет свою отдельную ответственность. (Pending: WillpowerGate не вызывается на Player path — Step 0 finding)
+- [x] INV-PLAYER-AUTHORSHIP не нарушен. (Step 3.1-Identity Fix: UUID-P, UUID-A, UUID-B раздельны)
+- [ ] Определены правила прерывания и невозможности исполнения. (Pending: Step 3.2 BodyArbiter contract)
+- [ ] Определена судьба отклонённых и отложенных намерений. (Pending: Step 3.2 BodyArbiter contract)
+- [x] Body не становится источником авторства намерения. (Step 3.1-Identity Fix: body_id=UUID-B, owner=UUID-P/UUID-A)
+- [ ] WORLD TRUTH остаётся единым. (Pending: Step 3.2 BodyArbiter execution gating)
+- [ ] Все интеграционные сценарии непротиворечивы. (Pending: Step 3.2 BodyArbiter integration tests)
+- [x] Установлены интерфейсы с Identity. (Step 3.1-Identity Fix: IdentityUUIDs persistence + intent_lifecycle integration)
+- [ ] Установлены интерфейсы с Communication, Ceremony и Memory. (Pending: Step 3.2+)
+- [x] Предложен безопасный порядок реализации. (Step 1 → Step 2 → Step 2.1 → Step 2.1.1 → Step 3.0 → Step 3.1 → Step 3.1-Identity Fix → [Next: Step 3.2])
 
 Если фундаментальный контракт не доказан или остаётся противоречие — не объявлять R5.1 закрытым.
 

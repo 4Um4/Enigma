@@ -24,6 +24,7 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional, cast
 
+from app.domain.identity_uuids import IdentityUUIDs
 from app.models.behavior_mask import BehaviorMaskState
 from app.models.character import CharacterProfile
 from app.models.npc_state import (
@@ -91,6 +92,9 @@ class PlayerAvatarService:
         #                   "name": str, "source": "heard|intro|player_link"}
         # FACE-ось (recognition) живёт отдельно в scene_state — не смешиваем.
         self._name_knowledge: Dict[str, Dict[str, dict]] = {}
+        # Step 3.1-Identity Fix: RAM-кэш устойчивых UUID сознаний и тела.
+        # Предотвращает повторную генерацию в течение сессии.
+        self._identity_uuids_cache: Dict[str, "IdentityUUIDs"] = {}
 
     def clear_journal(self, campaign_id: str) -> None:
         """B1.3-FIX: Очистка RAM-кэша журнала при new_game (устранение утечки старых данных)."""
@@ -248,11 +252,90 @@ class PlayerAvatarService:
             # B1.3-FIX: Персистентность журнала (если кэш инициализирован)
             "dialog_journal": self._dialog_journals.get(campaign_id, []),
         }
+        # Step 3.1-Identity Fix: persist identity UUIDs if initialized.
+        # Backward compat: old saves without this key are unaffected.
+        if campaign_id in self._identity_uuids_cache:
+            data["identity_uuids"] = self._identity_uuids_cache[campaign_id].to_dict()
         path.write_text(
             json.dumps(data, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
         logger.debug(f"[AVATAR] сохранён: {state.npc_id} stress={state.stress:.1f}")
+
+    # ── Step 3.1-Identity Fix: устойчивые UUID сознаний и тела ──
+    # Три UUID (UUID-P, UUID-A, UUID-B) генерируются один раз при первом
+    # запуске, персистятся в player_avatar.json, восстанавливаются без
+    # регенерации. RAM-кэш по campaign_id предотвращает повторную генерацию
+    # в течение сессии.
+    _KEY_IDENTITY_UUIDS = "identity_uuids"
+
+
+    def ensure_identity_uuids(
+        self, campaign_id: str, player_name: str
+    ) -> "IdentityUUIDs":
+        """Возвращает устойчивые UUID-P, UUID-A, UUID-B для кампании.
+
+        1. RAM-кэш (если уже загружены в этой сессии)
+        2. player_avatar.json (если уже сохранены)
+        3. generate_new() + persist (первый запуск)
+
+        Не генерирует новые UUID при каждой загрузке — только при первом
+        запуске (когда ключ отсутствует в player_avatar.json).
+        """
+        # 1. RAM cache
+        if campaign_id in self._identity_uuids_cache:
+            return self._identity_uuids_cache[campaign_id]
+
+        # 2. Load from player_avatar.json (direct read, bypasses load_avatar
+        # state validation — UUIDs могут существовать до того, как state
+        # инициализирован или player_name совпадает с state.npc_id).
+        import json as _json
+
+        from app.domain.identity_uuids import IdentityUUIDs
+        path = self._avatar_path(campaign_id)
+        if path.exists():
+            try:
+                raw_data = _json.loads(path.read_text(encoding="utf-8-sig"))
+                existing = IdentityUUIDs.from_dict(
+                    raw_data.get(self._KEY_IDENTITY_UUIDS)
+                )
+                if existing is not None:
+                    self._identity_uuids_cache[campaign_id] = existing
+                    return existing
+            except Exception:
+                pass  # Fall through to generate_new
+
+        # 3. Generate new + persist
+        new_uuids = IdentityUUIDs.generate_new()
+        self._identity_uuids_cache[campaign_id] = new_uuids
+        self._persist_identity_uuids(campaign_id, player_name, new_uuids)
+        logger.info(
+            f"[IDENTITY_UUIDS] Generated for campaign={campaign_id}: "
+            f"player={new_uuids.player_consciousness[:8]}... "
+            f"avatar={new_uuids.avatar_consciousness[:8]}... "
+            f"body={new_uuids.body[:8]}..."
+        )
+        return new_uuids
+
+    def _persist_identity_uuids(
+        self,
+        campaign_id: str,
+        player_name: str,
+        uuids: "IdentityUUIDs",
+    ) -> None:
+        """Merge identity_uuids into existing player_avatar.json (atomic)."""
+
+        self._ensure_campaign_dir(campaign_id)
+        path = self._avatar_path(campaign_id)
+        try:
+            data = json.loads(path.read_text(encoding="utf-8-sig"))
+        except Exception:
+            data = {}
+        data[self._KEY_IDENTITY_UUIDS] = uuids.to_dict()
+        path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
 
     def save_state(self, campaign_id: str, state: NPCState) -> None:
         """Сохраняет только живое состояние (частое обновление между тиками)."""
@@ -406,9 +489,6 @@ class PlayerAvatarService:
             }
             if state.perceptual_kernel
             else {},
-            # ADR-GENDER: Персистенция пола аватара. Без этого поле теряется при save/load.
-            "gender": state.gender,
-            # B1.3-FIX: Журнал обрабатывается в save_avatar/save_state, здесь ему не место.
         }
 
     def _state_from_dict(self, data: dict) -> NPCState:

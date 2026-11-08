@@ -1,0 +1,615 @@
+==============================================================================
+R2-B5-D2 — Trace SPREAD_RUMOR execution on guard_borko
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d2_spread_rumor_execution.txt
+==============================================================================
+
+GOAL: Determine if SPREAD_RUMOR selected by DecisionHub (B5-E2)
+      actually reaches tavern_keeper_tornin as a belief.
+
+STRATEGY:
+  1. Read production source for execution path (no LLM required for spread_rumor)
+  2. Publish PLAYER_INSULTS
+  3. Run idle_tick multiple times (10) to allow movement progression
+  4. After each tick: snapshot state + check EventBus + check Tornin store
+  5. Final: did the chain complete?
+
+
+==============================================================================
+STEP 1: read production source for execution path
+==============================================================================
+
+==============================================================================
+PROD SOURCE: _build_communication in decision_hub.py
+==============================================================================
+  _build_communication at L309..L427:
+  L 309:     def _build_communication(
+  L 310:         self,
+  L 311:         npc_id: str,
+  L 312:         intent_value: str,
+  L 313:         intent_target: Optional[str],
+  L 314:         topic: Optional[str],
+  L 315:         emotion_value: str,
+  L 316:         scores: Optional[Dict[str, float]] = None,
+  L 317:         epistemic_context: Optional[Any] = None, # S197: Для извлечения trigger_proposition
+  L 318:     ) -> Optional[CommunicationIntent]:
+  L 319:         """Создаёт CommunicationIntent для вербального intent (Устав 2.2).
+  L 320: 
+  L 321:         Возвращает None для невербальных intent (FLEE, ATTACK, IDLE...).
+  L 322:         """
+  L 323:         # INV-PLAYER-AUTHORSHIP (мини-ADR F1): автономный decision pipeline
+  L 324:         # не порождает авторский акт аватара. Player легален как target /
+  L 325:         # observer / источник события / объект убеждений — запрещено ТОЛЬКО
+  L 326:         # авторство. Ось контроля — ControlSource, не строковый гард.
+  L 327:         from app.domain.control_source import ControlSource, resolve_control_source
+  L 328:         if resolve_control_source(npc_id) is not ControlSource.NPC_DECISION:
+  L 329:             logger.info(
+  L 330:                 f"[INV-PLAYER-AUTHORSHIP] speaker={npc_id!r}: авторский "
+  L 331:                 f"CommunicationIntent запрещён (control_source="
+  L 332:                 f"{resolve_control_source(npc_id).value}), intent={intent_value!r} отклонён"
+  L 333:             )
+  L 334:             return None
+  L 335:         if intent_value not in self._VERBAL_INTENTS:
+  L 336:             return None
+  L 337:         # Тема: из фазы 4 или фоллбэк по intent
+  L 338:         _topic = topic or intent_value
+  L 339:         # Трассировка скоринга: показываем топ-3 интента и их финальный вес
+  L 340:         _top_intents = (
+  L 341:             sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
+  L 342:             if scores is not None
+  L 343:             else []
+  L 344:         )
+  L 345:         logger.info(
+  L 346:             f"[TRACE][DECISION_SCORE] npc={npc_id} winner={intent_value} "
+  L 347:             f"top3={[(i, round(s, 2)) for i, s in _top_intents]}"
+  L 348:         )
+  L 349: 
+  L 350:         # S197: Извлекаем Proposition из EpistemicContext для Causal Provenance
+  L 351:         _proposition = None
+  L 352:         if epistemic_context and hasattr(epistemic_context, 'trigger_proposition'):
+  L 353:             _proposition = epistemic_context.trigger_proposition
+  L 354:         # COGNITIVE-CONTINUITY-01: report-пропозиция — фолбэк, trigger (угроза) приоритетен.
+  L 355:         if _proposition is None and epistemic_context is not None:
+  L 356:             _proposition = getattr(epistemic_context, "report_proposition", None)
+  L 357:         # Stage B: narrow fallback from claims_about_self (priority 3).
+  L 358:         # Вердикт Мастера Q1: только spread_rumor + INSULTED predicate.
+  L 359:         # Proposition передаётся as-is (без мутации polarity/confidence/source/provenance).
+  L 360:         # claims_about_self отсортирован по confidence (desc) в Resolver (Change 1).
+  L 361:         if _proposition is None and epistemic_context is not None and intent_value == "spread_rumor":
+  L 362:             _claims = getattr(epistemic_context, "claims_about_self", ())
+  L 363:             for _cl in _claims:
+  L 364:                 if _cl.predicate == Predicate.INSULTED:
+  L 365:                     _proposition = _cl
+  L 366:                     break
+  L 367: 
+  L 368:         # Stage B Observability (вердикт Мастера Q4): log proposition selection.
+  L 369:         # Расширение существующего jsonl_log mechanism (logging_tools.py:14).
+  L 370:         try:
+  L 371:             from app.services.logging_tools import jsonl_log
+  L 372:             _trig_prop = getattr(epistemic_context, "trigger_proposition", None) if epistemic_context else None
+  L 373:             _rep_prop = getattr(epistemic_context, "report_proposition", None) if epistemic_context else None
+  L 374:             _trig = _trig_prop is not None
+  L 375:             _rep = _rep_prop is not None
+  L 376:             _claims = getattr(epistemic_context, "claims_about_self", ()) if epistemic_context else ()
+  L 377:             _claims_n = len(_claims)
+  L 378:             if _proposition is not None:
+  L 379:                 if _trig and _proposition == _trig_prop:
+  L 380:                     _src = "trigger"
+  L 381:                 elif _rep and _proposition == _rep_prop:
+  L 382:                     _src = "report"
+  L 383:                 else:
+  L 384:                     _src = "claims_about_self"
+  L 385:                 _reason = None
+  L 386:                 _pkey = {
+  L 387:                     "subject": _proposition.subject_id,
+  L 388:                     "predicate": _proposition.predicate.value,
+  L 389:                     "object": _proposition.object_id,
+  L 390:                     "polarity": _proposition.polarity,
+  L 391:                 }
+  L 392:             else:
+  L 393:                 _src = "none"
+  L 394:                 _pkey = None
+  L 395:                 if intent_value != "spread_rumor":
+  L 396:                     _reason = "llm_not_required"
+  L 397:                 elif _trig or _rep or _claims_n > 0:
+  L 398:                     _reason = "no_compatible_proposition"
+  L 399:                 else:
+  L 400:                     _reason = "no_proposition"
+  L 401:             jsonl_log({
+  L 402:                 "level": "INFO",
+  L 403:                 "agent": "proposition_selection",
+  L 404:                 "npc_id": npc_id,
+  L 405:                 "intent_type": intent_value,
+  L 406:                 "target_id": intent_target,
+  L 407:                 "trigger_available": _trig,
+  L 408:                 "report_available": _rep,
+  L 409:                 "claims_about_self_count": _claims_n,
+  L 410:                 "selected_source": _src,
+  L 411:                 "fallback_reason": _reason,
+  L 412:                 "proposition_key": _pkey,
+  L 413:             })
+  L 414:         except Exception:
+  L 415:             logger.debug("[OBS] proposition_selection observability skipped (non-critical)")
+  L 416: 
+  L 417:         return CommunicationIntent(
+  L 418:             speaker=npc_id,
+  L 419:             audience=intent_target or "all",
+  L 420:             topic=_topic,
+  L 421:             intent_type=intent_value,
+  L 422:             emotional_state=emotion_value,
+  L 423:             exposure_level=ExposureLevel.from_semantic("normal"),
+  L 424:             target_id=intent_target, # V8-MEM-2 FIX: Проброс target_id для Attack Windup
+  L 425:             proposition=_proposition, # S197
+  L 426:         )
+  L 427: 
+
+==============================================================================
+PROD SOURCE: dialogue_executor.py spread_rumor handling
+==============================================================================
+
+  >>> L146:             req.intent_type == "spread_rumor" and _proposition is not None
+      L 141:         # Если роутер не задан (sandbox/test), возвращаем заглушку
+      L 142:         if self._router is None:
+      L 143:             logger.warning("[DIALOGUE_EXEC] ModelRouter is None! Fallback to stub.")
+      L 144:             text = f"[Заглушка] {task.owner_id} обращается к {req.target_id} по теме: '{req.topic}'"
+      L 145:         elif not requires_llm_materialization(req.intent_type) and not (
+  >>> L 146:             req.intent_type == "spread_rumor" and _proposition is not None
+      L 147:         ):
+      L 148:             # S199.2: Детерминированная материализация для claim-producing интентов без LLM
+      L 149:             text = f"[{req.intent_type}] {task.owner_id} -> {req.target_id}: {req.topic}"
+      L 150:         else:
+      L 151:             # ENIGMA-ARCH-022: LLM Execution Timeout.
+      L 152:             # Использует существующий cancellation boundary (router._abort_generation).
+      L 153:             # В будущем LLM_TIMEOUT_SEC будет вынесен в CalibrationProfile.
+      L 154:             import threading
+      L 155:             _timer = threading.Timer(_L_TIMEOUT_SEC, self._router._abort_generation)
+
+==============================================================================
+PROD SOURCE: task_scheduler.py fast-path for spread_rumor
+==============================================================================
+
+  >>> L402:                 # S216 FIX (027.1): Fast-path для задач, не требующих LLM (warn, spread_rumor, steal).
+      L 399:                 _intent_type = _payload.get("intent_type", "")
+      L 400:                 _has_prop = bool(_payload.get("proposition"))
+      L 401: 
+  >>> L 402:                 # S216 FIX (027.1): Fast-path для задач, не требующих LLM (warn, spread_rumor, steal).
+      L 403:                 # Они исполняются синхронно, минуя DialogueQueue, чтобы не создавать backlog.
+      L 404:                 if not requires_llm_materialization(_intent_type):
+      L 405:                     # FIX [4]: fast-path исполняется СИНХРОННО на вызывающем потоке
+      L 406:                     # (не через _executor_pool). warn/spread_rumor/steal не используют
+      L 407:                     # LLM (stub-режим или детерминированный текст) → мгновенно. Пул с
+      L 408:                     # max_workers=1 (ADR-O-343) более не блокирует доставку: warn-задача
+      L 409:                     # публикует NPC_SPOKE и обновляет EpistemicStore ДО возврата из
+      L 410:                     # execute_pending → поллинг видит conf в том же тике.
+      L 411:                     # LLM-задачи (talk и др.) остаются на пуле — ADR-O-343 не нарушен.
+      L 412:                     # B (пункт 10): liveness-гейт fast-path — тот же ADR-O-365
+      L 413:                     # terminal-mapping, main-thread sync-ветка (как DEDUP).
+      L 414:                     if self._owner_is_dead(campaign_id, speaker_id):
+      L 415:                         self._record_task_outcome(speaker_id, "EXPIRED")
+      L 416:                         logger.info(
+
+  >>> L405:                     # FIX [4]: fast-path исполняется СИНХРОННО на вызывающем потоке
+      L 402:                 # S216 FIX (027.1): Fast-path для задач, не требующих LLM (warn, spread_rumor, steal).
+      L 403:                 # Они исполняются синхронно, минуя DialogueQueue, чтобы не создавать backlog.
+      L 404:                 if not requires_llm_materialization(_intent_type):
+  >>> L 405:                     # FIX [4]: fast-path исполняется СИНХРОННО на вызывающем потоке
+      L 406:                     # (не через _executor_pool). warn/spread_rumor/steal не используют
+      L 407:                     # LLM (stub-режим или детерминированный текст) → мгновенно. Пул с
+      L 408:                     # max_workers=1 (ADR-O-343) более не блокирует доставку: warn-задача
+      L 409:                     # публикует NPC_SPOKE и обновляет EpistemicStore ДО возврата из
+      L 410:                     # execute_pending → поллинг видит conf в том же тике.
+      L 411:                     # LLM-задачи (talk и др.) остаются на пуле — ADR-O-343 не нарушен.
+      L 412:                     # B (пункт 10): liveness-гейт fast-path — тот же ADR-O-365
+      L 413:                     # terminal-mapping, main-thread sync-ветка (как DEDUP).
+      L 414:                     if self._owner_is_dead(campaign_id, speaker_id):
+      L 415:                         self._record_task_outcome(speaker_id, "EXPIRED")
+      L 416:                         logger.info(
+      L 417:                             f"[TASK_SCHED] liveness-gate (fast-path): owner={speaker_id} "
+      L 418:                             f"DEAD → task EXPIRED (mid-generation interrupt)"
+      L 419:                         )
+
+  >>> L406:                     # (не через _executor_pool). warn/spread_rumor/steal не используют
+      L 403:                 # Они исполняются синхронно, минуя DialogueQueue, чтобы не создавать backlog.
+      L 404:                 if not requires_llm_materialization(_intent_type):
+      L 405:                     # FIX [4]: fast-path исполняется СИНХРОННО на вызывающем потоке
+  >>> L 406:                     # (не через _executor_pool). warn/spread_rumor/steal не используют
+      L 407:                     # LLM (stub-режим или детерминированный текст) → мгновенно. Пул с
+      L 408:                     # max_workers=1 (ADR-O-343) более не блокирует доставку: warn-задача
+      L 409:                     # публикует NPC_SPOKE и обновляет EpistemicStore ДО возврата из
+      L 410:                     # execute_pending → поллинг видит conf в том же тике.
+      L 411:                     # LLM-задачи (talk и др.) остаются на пуле — ADR-O-343 не нарушен.
+      L 412:                     # B (пункт 10): liveness-гейт fast-path — тот же ADR-O-365
+      L 413:                     # terminal-mapping, main-thread sync-ветка (как DEDUP).
+      L 414:                     if self._owner_is_dead(campaign_id, speaker_id):
+      L 415:                         self._record_task_outcome(speaker_id, "EXPIRED")
+      L 416:                         logger.info(
+      L 417:                             f"[TASK_SCHED] liveness-gate (fast-path): owner={speaker_id} "
+      L 418:                             f"DEAD → task EXPIRED (mid-generation interrupt)"
+      L 419:                         )
+      L 420:                         continue
+
+  >>> L412:                     # B (пункт 10): liveness-гейт fast-path — тот же ADR-O-365
+      L 409:                     # публикует NPC_SPOKE и обновляет EpistemicStore ДО возврата из
+      L 410:                     # execute_pending → поллинг видит conf в том же тике.
+      L 411:                     # LLM-задачи (talk и др.) остаются на пуле — ADR-O-343 не нарушен.
+  >>> L 412:                     # B (пункт 10): liveness-гейт fast-path — тот же ADR-O-365
+      L 413:                     # terminal-mapping, main-thread sync-ветка (как DEDUP).
+      L 414:                     if self._owner_is_dead(campaign_id, speaker_id):
+      L 415:                         self._record_task_outcome(speaker_id, "EXPIRED")
+      L 416:                         logger.info(
+      L 417:                             f"[TASK_SCHED] liveness-gate (fast-path): owner={speaker_id} "
+      L 418:                             f"DEAD → task EXPIRED (mid-generation interrupt)"
+      L 419:                         )
+      L 420:                         continue
+      L 421:                     # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт fast-path (после
+      L 422:                     # death-check): warn/spread_rumor убегающего тоже не
+      L 423:                     # материализуются — воля владельца сильнее типа задачи.
+      L 424:                     if self._owner_intent_flees(campaign_id, speaker_id):
+      L 425:                         self._record_task_outcome(speaker_id, "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+      L 426:                         logger.info(
+
+  >>> L417:                             f"[TASK_SCHED] liveness-gate (fast-path): owner={speaker_id} "
+      L 414:                     if self._owner_is_dead(campaign_id, speaker_id):
+      L 415:                         self._record_task_outcome(speaker_id, "EXPIRED")
+      L 416:                         logger.info(
+  >>> L 417:                             f"[TASK_SCHED] liveness-gate (fast-path): owner={speaker_id} "
+      L 418:                             f"DEAD → task EXPIRED (mid-generation interrupt)"
+      L 419:                         )
+      L 420:                         continue
+      L 421:                     # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт fast-path (после
+      L 422:                     # death-check): warn/spread_rumor убегающего тоже не
+      L 423:                     # материализуются — воля владельца сильнее типа задачи.
+      L 424:                     if self._owner_intent_flees(campaign_id, speaker_id):
+      L 425:                         self._record_task_outcome(speaker_id, "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+      L 426:                         logger.info(
+      L 427:                             f"[TASK_SCHED] stale-intent-gate (fast-path): owner={speaker_id} "
+      L 428:                             f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
+      L 429:                         )
+      L 430:                         continue
+      L 431:                     # FIX (S271, предгейт P1): fast-path omitил submit_tick →
+
+  >>> L421:                     # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт fast-path (после
+      L 418:                             f"DEAD → task EXPIRED (mid-generation interrupt)"
+      L 419:                         )
+      L 420:                         continue
+  >>> L 421:                     # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт fast-path (после
+      L 422:                     # death-check): warn/spread_rumor убегающего тоже не
+      L 423:                     # материализуются — воля владельца сильнее типа задачи.
+      L 424:                     if self._owner_intent_flees(campaign_id, speaker_id):
+      L 425:                         self._record_task_outcome(speaker_id, "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+      L 426:                         logger.info(
+      L 427:                             f"[TASK_SCHED] stale-intent-gate (fast-path): owner={speaker_id} "
+      L 428:                             f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
+      L 429:                         )
+      L 430:                         continue
+      L 431:                     # FIX (S271, предгейт P1): fast-path omitил submit_tick →
+      L 432:                     # дефолт 0 → _TaskArtifactRecord.submit_tick=0 → event_tick=0
+      L 433:                     # в drain. Симметрично process_tasks:333 и dequeue-пути :556 —
+      L 434:                     # восстановление существующего контракта, не новая семантика.
+      L 435:                     self._process_tasks_async(scene_state, [task_dict], campaign_id, "canonical", _game_time, scene_state.get("tick", 0))
+
+  >>> L422:                     # death-check): warn/spread_rumor убегающего тоже не
+      L 419:                         )
+      L 420:                         continue
+      L 421:                     # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт fast-path (после
+  >>> L 422:                     # death-check): warn/spread_rumor убегающего тоже не
+      L 423:                     # материализуются — воля владельца сильнее типа задачи.
+      L 424:                     if self._owner_intent_flees(campaign_id, speaker_id):
+      L 425:                         self._record_task_outcome(speaker_id, "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+      L 426:                         logger.info(
+      L 427:                             f"[TASK_SCHED] stale-intent-gate (fast-path): owner={speaker_id} "
+      L 428:                             f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
+      L 429:                         )
+      L 430:                         continue
+      L 431:                     # FIX (S271, предгейт P1): fast-path omitил submit_tick →
+      L 432:                     # дефолт 0 → _TaskArtifactRecord.submit_tick=0 → event_tick=0
+      L 433:                     # в drain. Симметрично process_tasks:333 и dequeue-пути :556 —
+      L 434:                     # восстановление существующего контракта, не новая семантика.
+      L 435:                     self._process_tasks_async(scene_state, [task_dict], campaign_id, "canonical", _game_time, scene_state.get("tick", 0))
+      L 436:                     continue
+
+  >>> L427:                             f"[TASK_SCHED] stale-intent-gate (fast-path): owner={speaker_id} "
+      L 424:                     if self._owner_intent_flees(campaign_id, speaker_id):
+      L 425:                         self._record_task_outcome(speaker_id, "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+      L 426:                         logger.info(
+  >>> L 427:                             f"[TASK_SCHED] stale-intent-gate (fast-path): owner={speaker_id} "
+      L 428:                             f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
+      L 429:                         )
+      L 430:                         continue
+      L 431:                     # FIX (S271, предгейт P1): fast-path omitил submit_tick →
+      L 432:                     # дефолт 0 → _TaskArtifactRecord.submit_tick=0 → event_tick=0
+      L 433:                     # в drain. Симметрично process_tasks:333 и dequeue-пути :556 —
+      L 434:                     # восстановление существующего контракта, не новая семантика.
+      L 435:                     self._process_tasks_async(scene_state, [task_dict], campaign_id, "canonical", _game_time, scene_state.get("tick", 0))
+      L 436:                     continue
+      L 437: 
+      L 438:                 # S216 FIX (027.1): Классификация canonical/ambient через intent_profiles.
+      L 439:                 # Если интент produces_claim=True ИЛИ payload содержит proposition -> canonical.
+      L 440:                 # Иначе -> ambient. Это предотвращает переполнение canonical-очереди
+      L 441:                 # экономическими и социальными интентами без proposition.
+
+  >>> L431:                     # FIX (S271, предгейт P1): fast-path omitил submit_tick →
+      L 428:                             f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
+      L 429:                         )
+      L 430:                         continue
+  >>> L 431:                     # FIX (S271, предгейт P1): fast-path omitил submit_tick →
+      L 432:                     # дефолт 0 → _TaskArtifactRecord.submit_tick=0 → event_tick=0
+      L 433:                     # в drain. Симметрично process_tasks:333 и dequeue-пути :556 —
+      L 434:                     # восстановление существующего контракта, не новая семантика.
+      L 435:                     self._process_tasks_async(scene_state, [task_dict], campaign_id, "canonical", _game_time, scene_state.get("tick", 0))
+      L 436:                     continue
+      L 437: 
+      L 438:                 # S216 FIX (027.1): Классификация canonical/ambient через intent_profiles.
+      L 439:                 # Если интент produces_claim=True ИЛИ payload содержит proposition -> canonical.
+      L 440:                 # Иначе -> ambient. Это предотвращает переполнение canonical-очереди
+      L 441:                 # экономическими и социальными интентами без proposition.
+      L 442:                 if _has_prop or produces_claim(_intent_type):
+      L 443:                     _task_type = "canonical"
+      L 444:                     _priority = 1  # Высокий приоритет (heapq min-heap)
+      L 445:                 else:
+
+  >>> L851:             _is_canonical = _has_prop or _intent_type in ("warn", "talk", "intimidate", "threaten", "report", "spread_rumor", "call_for_help", "offer_job", "request_service", "trade")
+      L 848:         if kind == TaskKind.DIALOGUE:
+      L 849:             _intent_type = payload_dict.get("intent_type", "")
+      L 850:             _has_prop = bool(payload_dict.get("proposition"))
+  >>> L 851:             _is_canonical = _has_prop or _intent_type in ("warn", "talk", "intimidate", "threaten", "report", "spread_rumor", "call_for_help", "offer_job", "request_service", "trade")
+      L 852: 
+      L 853:             try:
+      L 854:                 semantic = payload_dict.get("exposure_semantic", "normal")
+      L 855:                 _emotional_state = payload_dict.get("emotional_state", "нейтрально")
+      L 856: 
+      L 857:                 req = DialogueRequest(
+      L 858:                     topic=payload_dict.get("topic", ""),
+      L 859:                     target_id=payload_dict.get("target_id", ""),
+      L 860:                     exposure=ExposureLevel(semantic=semantic),
+      L 861:                     intent_type=_intent_type,
+      L 862:                     emotional_state=_emotional_state,
+      L 863:                     npc_npc_context=payload_dict.get("npc_npc_context", ""),
+      L 864:                     thread_id=payload_dict.get("thread_id", ""),
+      L 865:                     prepared_prompt=payload_dict.get("prepared_prompt", ""),
+
+==============================================================================
+PROD SOURCE: game_loop.py fast-path NPC_SPOKE publish
+==============================================================================
+  Found 1 matching lines
+
+  >>> L1852:                 # Fast-path (warn/spread_rumor/steal) публикует NPC_SPOKE синхронно —
+      L1847:                 if self.scene_manager:
+      L1848:                     _loc_key = _turn_scene.get("location_id", "default")
+      L1849:                     _auth_scene = self.scene_manager._tick_scenes.get(_loc_key)  # noqa: ENIGMA001
+      L1850:                 if _auth_scene is None:
+      L1851:                     _auth_scene = _turn_scene
+  >>> L1852:                 # Fast-path (warn/spread_rumor/steal) публикует NPC_SPOKE синхронно —
+      L1853:                 # реплики видны в recent_dialogues этого же хода; LLM-задачи уходят
+      L1854:                 # на executor-пул, REST не блокируется (ADR-O-343/O-364).
+      L1855:                 if _auth_scene.get("pending_tasks"):
+      L1856:                     self._get_task_scheduler().execute_pending(_auth_scene, req.campaign_id)
+      L1857:                 # S203.4 (ADR-O-365, D-2): безусловный дренаж outbox до unlock (F24),
+      L1858:                 # терминалы прошлого цикла применяются даже при пустой очереди.
+      L1859:                 self._get_task_scheduler().drain_commitment_outbox(_auth_scene)
+      L1860:             # M17 этап 2: tentative-распознавания адресатов подслушанных обращений
+      L1861:             if getattr(self, "_npc_dialogue_subscriber", None) and _auth_scene is not None:  # noqa: ENIGMA002
+      L1862:                 self._npc_dialogue_subscriber.drain_pending_recognition(_auth_scene)
+      L1863: 
+      L1864:             # BUG-FB-030 FIX: Используем world_snapshot, собранный ядром в Phase 9, вместо Force Merge
+      L1865:             _ws_dict = None
+      L1866:             _npc_pos_dict = None
+
+==============================================================================
+PROD SOURCE: intent_event_adapter.py
+==============================================================================
+  L   1: # backend/app/services/events/intent_event_adapter.py
+  L   2: # Назначение: Единственная точка превращения решения NPC в событие (Устав §3.3).
+  L   3: # Зависимости: domain.communication.CommunicationIntent, domain.events.EventDTO
+  L   4: # Основные сущности: IntentEventAdapter
+  L   5: 
+  L   6: from app.domain.communication import CommunicationIntent
+  L   7: from app.domain.events import EventDTO
+  L   8: from app.services.events.event_types import EventType
+  L   9: 
+  L  10: 
+  L  11: class IntentEventAdapter:
+  L  12:     """Конвертирует CommunicationIntent → EventDTO для публикации в EventBus.
+  L  13: 
+  L  14:     Единственная легальная точка такого преобразования.
+  L  15:     Нарушение: создание EventDTO из CommunicationIntent в другом месте = баг (Устав §3.3).
+  L  16:     """
+  L  17: 
+  L  18:     # S4 FIX: Детерминированный мост Intent → EventType.
+  L  19:     # Non-event интенты (IDLE, OBSERVE, FLEE, APPROACH, BLOCK_PATH, AMBUSH, SEEK_ALLY)
+  L  20:     # не должны попадать в IntentEventAdapter, так как они обрабатываются как MovementIntent.
+  L  21:     _INTENT_EVENT_MAP = {
+  L  22:         "talk": EventType.NPC_SPOKE,
+  L  23:         "warn": EventType.WARN,
+  L  24:         "intimidate": EventType.INTIMIDATION,
+  L  25:         "attack": EventType.ACTOR_ATTACKS,
+  L  26:         "help": EventType.HELP,
+  L  27:         "report": EventType.REPORT,
+  L  28:         "trade": EventType.TRADE,
+  L  29:         "explain": EventType.NPC_SPOKE,
+  L  30:         "offer_job": EventType.OFFER_JOB,
+  L  31:         "request_service": EventType.REQUEST_SERVICE,
+  L  32:         "spread_rumor": EventType.SPREAD_RUMOR,
+  L  33:         "call_for_help": EventType.CALL_FOR_HELP,
+  L  34:         "change_role": EventType.CHANGE_ROLE,
+  L  35:         "steal": EventType.THEFT,  # S209: материализация кражи NPC (источник = вор)
+  L  36:     }
+  L  37: 
+  L  38:     @staticmethod
+  L  39:     def to_event(intent: CommunicationIntent) -> EventDTO:
+  L  40:         """Конвертирует CommunicationIntent в EventDTO.
+  L  41: 
+  L  42:         ExposureLevel.semantic определяет visibility:
+  L  43:           secret/private → "private"
+  L  44:           whisper → "whisper"
+  L  45:           normal → "public"
+  L  46:           shout → "public" (с увеличенным radius)
+  L  47:         """
+  L  48:         _visibility_map = {
+  L  49:             # Р-В (SpeechExposure, D3): secret — "whisper" (адресат слышит вплотную),
+  L  50:             # НЕ "private" — иначе адресат не слышит собственный секрет.
+  L  51:             # loud (D2) → "public": громкая речь слышима, радиус — из лестницы.
+  L  52:             "secret": "whisper",
+  L  53:             "private": "private",
+  L  54:             "whisper": "whisper",
+  L  55:             "normal": "public",
+  L  56:             "loud": "public",
+  L  57:             "shout": "public",
+  L  58:         }
+  L  59: 
+  L  60:         _intent_val = getattr(intent, "intent_type", "")  # noqa: ENIGMA002
+  L  61:         # S4 FIX: Явный маппинг. Если интент неизвестен, падаем в npc_spoke,
+  L  62:         # но логируем warning для последующего аудита.
+  L  63:         _event_type = IntentEventAdapter._INTENT_EVENT_MAP.get(_intent_val, EventType.NPC_SPOKE).value
+  L  64:         if _intent_val and _intent_val not in IntentEventAdapter._INTENT_EVENT_MAP:
+  L  65:             import logging
+  L  66:             logging.getLogger(__name__).warning(
+  L  67:                 f"[INTENT_EVENT_ADAPTER] Unmapped intent_type '{_intent_val}' defaulted to npc_spoke."
+  L  68:             )
+  L  69: 
+  L  70:         return EventDTO.create(
+  L  71:             event_type=_event_type,
+  L  72:             source=intent.speaker,
+  L  73:             payload={
+  L  74:                 "npc_id": intent.speaker,
+  L  75:                 "audience": intent.audience,
+  L  76:                 "topic": intent.topic,
+  L  77:                 "intent_type": intent.intent_type,
+  L  78:                 "emotional_state": intent.emotional_state,
+  L  79:                 "exposure_semantic": intent.exposure_level.semantic,
+  L  80:                 # GAP8 FIX: Сохраняем семантику директив, иначе DirectiveInterpretationSubscriber глух
+
+==============================================================================
+PROD SOURCE: state_applicator._apply_intent
+==============================================================================
+  _apply_intent at L662..L682:
+  L 662:     def _apply_intent(
+  L 663:         self,
+  L 664:         state: NPCState,
+  L 665:         result: DecisionResult,
+  L 666:         current_tick: int,
+  L 667:     ) -> None:
+  L 668:         """Обновляет intent с учётом инерции и счётчика duration."""
+  L 669:         new_intent = result.intent
+  L 670: 
+  L 671:         if state.intent == new_intent:
+  L 672:             # Intent не изменился — увеличиваем duration
+  L 673:             state.intent_duration += 1
+  L 674:         else:
+  L 675:             # Intent сменился — мягкий сброс: сохраняем 30% прогресса для цепочек
+  L 676:             state.intent = new_intent
+  L 677:             state.intent_target = result.intent_target
+  L 678:             state.intent_formed_at = current_tick
+  L 679:             state.intent_duration = 0
+  L 680:             state.intent_progress_ticks = int(state.intent_progress_ticks * 0.3)
+  L 681:             state.last_intent_change = current_tick
+  L 682: 
+
+==============================================================================
+STEP 2: build loop, load NPCs, install EventBus spy
+==============================================================================
+  loaded 6 NPCs
+  sub: <app.services.events.claim_event_subscriber.ClaimEventSubscriber object at 0x000001514F1C4440>
+  store: <app.services.npc.epistemic_store.EpistemicStore object at 0x000001514F103E00>
+  EventBus spy installed
+
+==============================================================================
+STEP 3: publish PLAYER_INSULTS
+==============================================================================
+  published
+  maid_lusya belief: confidence=0.5 source_id=player
+  guard_borko belief: confidence=0.5 source_id=player
+  tavern_keeper_tornin belief (pre-tick): EpistemicRecord(agent_id='tavern_keeper_tornin', proposition=Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, object_id='tavern_keeper_tornin', polarity=True), confidence=0.5, source_id='player', source_claim_id='player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94', first_observed_tick=1, last_updated_tick=1, source_type='testimony', original_source_id='player')
+
+==============================================================================
+STEP 4: run multiple idle_ticks, snapshot after each
+==============================================================================
+  guard_borko pre-tick:
+    intent: None
+    intent_target: None
+    position: None
+    local_position: None
+
+  === TICK 1 ===
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+    idle_tick returned: status=ok, events_count=0
+    borko_intent: None
+    borko_intent_target: None
+    borko_position: None
+    tornin_belief: EpistemicRecord(agent_id='tavern_keeper_tornin', proposition=Proposition(subject_id='player', predicate=<Predicate.INSUL
+    tornin_total_records: 1
+    events: 5 types=['tick_completed', 'npc_moved']
+    npc_spoke_count: 0
+    spread_rumor_event_count: 0
+    proactive_logs: 34
+      [DEBUG] app.services.npc.npc_tick_pipeline: [PROACTIVE_MOVE] npc=guard_borko intent=spread_rumor target_node=tavern:behind_bar
+      [DEBUG] app.services.npc.npc_tick_pipeline: [PROACTIVE_MOVE] npc=guard_borko intent=spread_rumor target_node=tavern:behind_bar
+      [DEBUG] app.services.npc.npc_tick_pipeline: [PROACTIVE_MOVE] npc=guard_borko intent=spread_rumor target_node=tavern:behind_bar
+      [DEBUG] app.services.npc.npc_tick_pipeline: [PROACTIVE_MOVE] npc=merchant_goran intent=change_role target_node=tavern:fireplace
+      [DEBUG] app.services.npc.npc_tick_pipeline: [PROACTIVE_MOVE] npc=merchant_goran intent=change_role target_node=tavern:fireplace
+    dh_borko_logs:
+      [INFO] app.services.npc.decision_hub: [DECISION_HUB] guard_borko: intent=Intent.SPREAD_RUMOR score=0.988 event=EventType.WORLD_TICK
+      [INFO] app.services.npc.decision_hub: [DECISION_HUB] guard_borko: intent=Intent.SPREAD_RUMOR score=0.988 event=EventType.WORLD_TICK
+      [INFO] app.services.npc.decision_hub: [DECISION_HUB] guard_borko: intent=Intent.SPREAD_RUMOR score=0.988 event=EventType.WORLD_TICK
+      [INFO] app.services.npc.decision_hub: [DECISION_HUB_RETURN] npc=guard_borko intent=Intent.SPREAD_RUMOR comm_built=True epistemic_context=YES
+      [INFO] app.services.npc.decision_hub: [DECISION_HUB_RETURN] npc=guard_borko intent=Intent.SPREAD_RUMOR comm_built=True epistemic_context=YES
+    comm_logs:
+      [DEBUG] app.services.state.sqlite_persistence_adapter: [SQLITE_PERSISTENCE] Atomic commit ALL OK: Open_road (1 scenes)
+      [DEBUG] app.services.state.sqlite_persistence_adapter: [SQLITE_PERSISTENCE] Atomic commit ALL OK: Open_road (1 scenes)
+      [DEBUG] app.services.state.sqlite_persistence_adapter: [SQLITE_PERSISTENCE] Atomic commit ALL OK: Open_road (1 scenes)
+      [DEBUG] app.services.state.sqlite_persistence_adapter: [SQLITE_PERSISTENCE] Atomic commit ALL OK: Open_road (1 scenes)
+      [DEBUG] app.services.action.commitment_registry: [COMMITMENT] COMMIT npc=merchant_goran action=MOVE cause=semantic_relocation:schedule:eating ordinal=1 parent=None
+    exec_logs:
+      [DEBUG] app.services.execution.dialogue_executor: [DIALOGUE_EXEC] Executing task for guard_borko -> tavern_keeper_tornin on topic 'власть'
+      [DEBUG] app.services.execution.dialogue_executor: [DIALOGUE_EXEC] Executing task for guard_borko -> tavern_keeper_tornin on topic 'власть'
+      [DEBUG] app.services.execution.dialogue_executor: [DIALOGUE_EXEC] Executing task for guard_borko -> tavern_keeper_tornin on topic 'власть'
+
+    >>> TORNIN GOT BELIEF at tick 1!
+
+==============================================================================
+STEP 5: comprehensive final report
+==============================================================================
+
+  === A. CommunicationIntent creation ===
+  Total proactive logs across all ticks: 5
+    [DEBUG] app.services.npc.npc_tick_pipeline: [PROACTIVE_MOVE] npc=guard_borko intent=spread_rumor target_node=tavern:behind_bar
+    [DEBUG] app.services.npc.npc_tick_pipeline: [PROACTIVE_MOVE] npc=guard_borko intent=spread_rumor target_node=tavern:behind_bar
+    [DEBUG] app.services.npc.npc_tick_pipeline: [PROACTIVE_MOVE] npc=guard_borko intent=spread_rumor target_node=tavern:behind_bar
+    [DEBUG] app.services.npc.npc_tick_pipeline: [PROACTIVE_MOVE] npc=merchant_goran intent=change_role target_node=tavern:fireplace
+    [DEBUG] app.services.npc.npc_tick_pipeline: [PROACTIVE_MOVE] npc=merchant_goran intent=change_role target_node=tavern:fireplace
+
+  === B. Execution ===
+  Total execution-related logs across all ticks: 3
+    [DEBUG] app.services.execution.dialogue_executor: [DIALOGUE_EXEC] Executing task for guard_borko -> tavern_keeper_tornin on topic 'власть'
+    [DEBUG] app.services.execution.dialogue_executor: [DIALOGUE_EXEC] Executing task for guard_borko -> tavern_keeper_tornin on topic 'власть'
+    [DEBUG] app.services.execution.dialogue_executor: [DIALOGUE_EXEC] Executing task for guard_borko -> tavern_keeper_tornin on topic 'власть'
+
+  === C. NPC_SPOKE publication ===
+  Total NPC_SPOKE events across all ticks: 0
+  Total SPREAD_RUMOR events across all ticks: 0
+
+  NPC_SPOKE details per tick:
+
+  === D. Tornin belief reception ===
+    tick 1: Tornin belief! confidence=0.5 source_id=player original=player
+
+==============================================================================
+STEP 6: VERDICT — B5-D2 chain completion
+==============================================================================
+  Chain stage completion:
+    A_intent_selected: ✗
+    B_proactive_move: ✓
+    C_npc_spoke_published: ✗
+    D_tornin_belief_created: ✓
+
+  >>> VERDICT: B5-D2 NOT A DEFECT — chain completed at tick 1
+  >>> guard_borko's SPREAD_RUMOR reached tavern_keeper_tornin
+  >>> Tornin's belief:
+      confidence: 0.5
+      source_id: player
+      original_source_id: player
+  >>> Provenance chain preserved: False

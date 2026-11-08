@@ -171,28 +171,68 @@ class DialogueExecutor:
                 return
             except Exception as e:
                 logger.error(f"[DIALOGUE_EXEC] LLM call failed (timeout or error) for {task.owner_id}: {e}")
-                # Stage B Observability (вердикт Мастера Q4): llm_materialization_failed.
-                try:
-                    from app.services.logging_tools import jsonl_log
-                    jsonl_log({
-                        "level": "ERROR",
-                        "agent": "template_fallback",
-                        "fallback_reason": "llm_materialization_failed",
-                        "npc_id": task.owner_id,
-                        "intent_type": req.intent_type,
-                        "target_id": req.target_id,
-                        "error": str(e),
-                    })
-                except Exception:
-                    logger.debug("[OBS] llm_materialization_failed observability skipped (non-critical)")
-                yield Artifact(
-                    task_id=task.task_id,
-                    success=False,
-                    result_type="error",
-                    data={},
-                    error_message=f"LLM execution failed: {e}"
-                )
-                return
+                # B5-D2 FIX: spread_rumor + proposition — fallback to deterministic stub
+                # when LLM fails. Social event (NPC_SPOKE + COMMUNICATION_CLAIM) must
+                # complete regardless of LLM availability. Proposition is preserved
+                # in artifact.data["proposition"] for materializer.
+                if req.intent_type == "spread_rumor" and _proposition is not None:
+                    # Stage B Observability: preserve llm_materialization_failed
+                    try:
+                        from app.services.logging_tools import jsonl_log
+                        jsonl_log({
+                            "level": "ERROR",
+                            "agent": "template_fallback",
+                            "fallback_reason": "llm_materialization_failed",
+                            "npc_id": task.owner_id,
+                            "intent_type": req.intent_type,
+                            "target_id": req.target_id,
+                            "error": str(e),
+                        })
+                    except Exception:
+                        logger.debug("[OBS] llm_materialization_failed observability skipped (non-critical)")
+                    # B5-D2 FIX: log that fallback was used
+                    try:
+                        from app.services.logging_tools import jsonl_log
+                        jsonl_log({
+                            "level": "WARNING",
+                            "agent": "spread_rumor_fallback",
+                            "fallback_reason": "spread_rumor_fallback_used",
+                            "npc_id": task.owner_id,
+                            "intent_type": req.intent_type,
+                            "target_id": req.target_id,
+                            "error": str(e),
+                        })
+                    except Exception:
+                        logger.debug("[OBS] spread_rumor_fallback_used observability skipped (non-critical)")
+                    logger.warning(
+                        f"[DIALOGUE_EXEC] LLM failed for spread_rumor, "
+                        f"falling back to deterministic stub: {e}"
+                    )
+                    text = f"[spread_rumor] {task.owner_id} -> {req.target_id}: {req.topic}"
+                    # Don't return — continue to yield SUCCESS Artifact (L269-283)
+                else:
+                    # Original error handling for other intents
+                    try:
+                        from app.services.logging_tools import jsonl_log
+                        jsonl_log({
+                            "level": "ERROR",
+                            "agent": "template_fallback",
+                            "fallback_reason": "llm_materialization_failed",
+                            "npc_id": task.owner_id,
+                            "intent_type": req.intent_type,
+                            "target_id": req.target_id,
+                            "error": str(e),
+                        })
+                    except Exception:
+                        logger.debug("[OBS] llm_materialization_failed observability skipped (non-critical)")
+                    yield Artifact(
+                        task_id=task.task_id,
+                        success=False,
+                        result_type="error",
+                        data={},
+                        error_message=f"LLM execution failed: {e}"
+                    )
+                    return
             finally:
                 _timer.cancel()
 
@@ -608,6 +648,32 @@ class DialogueExecutor:
         if _directive:
             user_prompt += f" {_directive}"
 
+        # B4-R6: Full prompt capture (observability only — no game logic change)
+        try:
+            import time
+            from app.services.logging_tools import log_full_prompt
+            log_full_prompt({
+                "event": "llm_request",
+                "request_id": task.task_id,
+                "speaker_id": task.owner_id,
+                "agent_name": "npc",
+                "tick": getattr(task, "tick", None),
+                "campaign_id": task.campaign_id,
+                "intent_type": req.intent_type,
+                "topic": req.topic,
+                "target_id": req.target_id,
+                "proposition": getattr(req, "proposition", None),
+                "system_prompt": system_prompt,
+                "user_prompt": user_prompt,
+                "max_tokens": 100,
+                "timestamp": time.time(),
+                "system_prompt_chars": len(system_prompt),
+                "user_prompt_chars": len(user_prompt),
+                "token_count": "unavailable — use llama-server /tokenize for exact counts",
+            })
+        except Exception:
+            logger.debug("[OBS] full prompt capture skipped (request)")
+
         try:
             from app.services.llm.router import GenerationParams
             raw = self._router.request_for_agent(
@@ -624,6 +690,20 @@ class DialogueExecutor:
                 # В production это останется WARNING, но для IPT-лога это ожидаемый шум.
                 logger.info(f"[DIALOGUE_EXEC] LLM response rejected ({validation.violation}). Using fallback.")
 
+            # B4-R6: Response capture
+            try:
+                from app.services.logging_tools import log_full_prompt
+                log_full_prompt({
+                    "event": "llm_response",
+                    "request_id": task.task_id,
+                    "speaker_id": task.owner_id,
+                    "raw_response": raw,
+                    "validated_text": validation.text,
+                    "validation_fallback": validation.is_fallback,
+                    "validation_violation": getattr(validation, "violation", None),
+                })
+            except Exception:
+                logger.debug("[OBS] response capture skipped")
             return validation.text
         except Exception as e:
             logger.error(f"[DIALOGUE_EXEC] LLM call failed: {e}. Raising exception to prevent silent failure.")

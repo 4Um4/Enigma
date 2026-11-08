@@ -1,0 +1,2332 @@
+==============================================================================
+R2-B5-D2 — ModelRouter investigation (read-only)
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d2_router_investigation.txt
+==============================================================================
+
+Master's 5 questions:
+  1. Does ModelRouter have a method to check model availability?
+  2. If yes — does it actually check endpoint, not just object presence?
+  3. Can the check run without blocking HTTP request?
+  4. What happens when LLM server is unavailable?
+  5. Can spread_rumor+proposition safely switch to stub, preserving LLM?
+
+Additional: Does LLM failure/timesout fall back to stub?
+
+
+==============================================================================
+STEP 1: Find ModelRouter source file
+==============================================================================
+  expected: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\llm\router.py
+  file exists, 1192 lines
+
+==============================================================================
+STEP 2: Read full ModelRouter class
+==============================================================================
+  file: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\llm\router.py
+  total lines: 1192
+  L   1: from __future__ import annotations
+  L   2: 
+  L   3: # backend\app\services\llm\router.py
+  L   4: """
+  L   5: Model Router - Capability-based LLM Routing with Lazy Loading
+  L   6: 
+  L   7: This is the core component that automatically routes agent requests
+  L   8: to appropriate models based on capability requirements.
+  L   9: 
+  L  10: Architecture:
+  L  11:     Agents → ModelRouter → ModelPool (lazy loading) → LlmProvider
+  L  12: 
+  L  13: Features:
+  L  14: - Lazy loading: only one model in VRAM at a time
+  L  15: - Capability-based routing
+  L  16: - Automatic model switching
+  L  17: - Metrics collection
+  L  18: """
+  L  19: 
+  L  20: 
+  L  21: import asyncio
+  L  22: import logging
+  L  23: import threading
+  L  24: import time
+  L  25: from dataclasses import dataclass, field
+  L  26: from typing import TYPE_CHECKING, Any, Optional, cast
+  L  27: 
+  L  28: from app.services.logging_tools import jsonl_log
+  L  29: 
+  L  30: logger = logging.getLogger(__name__)
+  L  31: # Корневой логгер для критической телеметрии, чтобы обойти фильтрацию уровней дочерних логгеров
+  L  32: _root_logger = logging.getLogger()
+  L  33: 
+  L  34: from app.core.config import settings
+  L  35: from app.services.llm.provider import (
+  L  36:     CAPABILITY_MODEL_PREFERENCES,
+  L  37:     Capability,
+  L  38:     GenerationParams,
+  L  39:     LlmProvider,
+  L  40:     ProviderType,
+  L  41: )
+  L  42: 
+  L  43: if TYPE_CHECKING:
+  L  44:     # Циклический импорт: provider_manager импортирует router — только для типов.
+  L  45:     from app.services.llm.provider_manager import ModelPool, ProviderManager
+  L  46: 
+  L  47: 
+  L  48: @dataclass
+  L  49: class ModelConfig:
+  L  50:     """Конфигурация модели для маршрутизации."""
+  L  51: 
+  L  52:     key: str  # Уникальный ключ модели
+  L  53:     name: str  # Человеческое название
+  L  54:     provider_type: ProviderType  # Тип провайдера
+  L  55:     path: str  # Путь к файлу модели
+  L  56: 
+  L  57:     # Capabilities
+  L  58:     capabilities: list[Capability] = field(default_factory=list)
+  L  59: 
+  L  60:     # Parameters
+  L  61:     context_size: int = 4096
+  L  62:     temperature: float = 0.7
+  L  63:     top_p: float = 0.9
+  L  64:     repeat_penalty: float = 1.1
+  L  65:     n_keep: int = 512
+  L  66: 
+  L  67:     # Resource
+  L  68:     vram_mb: int = 4000
+  L  69: 
+  L  70:     # Endpoint (for API providers)
+  L  71:     endpoint: Optional[str] = None
+  L  72:     api_key: Optional[str] = None
+  L  73: 
+  L  74: 
+  L  75: # Registry всех доступных моделей - инициализируется из конфигурации
+  L  76: MODEL_REGISTRY: dict[str, ModelConfig] = {}
+  L  77: 
+  L  78: 
+  L  79: def _init_registry() -> dict[str, ModelConfig]:
+  L  80:     """Единственная модель проекта."""
+  L  81:     # Читаем provider_type из settings — позволяет переключить на mock без правки кода
+  L  82:     _qwen_cfg = settings.available_models.get("qwen_7b")
+  L  83:     _qwen_pt = (
+  L  84:         ProviderType(getattr(_qwen_cfg, "provider_type", "llama_cpp"))
+  L  85:         if _qwen_cfg
+  L  86:         else ProviderType.LLAMA_CPP
+  L  87:     )
+  L  88:     _saiga_cfg = settings.available_models.get("saiga_llama3_8b")
+  L  89:     _saiga_pt = (
+  L  90:         ProviderType(getattr(_saiga_cfg, "provider_type", "llama_cpp"))
+  L  91:         if _saiga_cfg
+  L  92:         else ProviderType.LLAMA_CPP
+  L  93:     )
+  L  94:     return {
+  L  95:         "qwen_7b": ModelConfig(
+  L  96:             key="qwen_7b",
+  L  97:             name="qwen_7b",
+  L  98:             provider_type=_qwen_pt,
+  L  99:             path=settings.model_qwen_7b_path,
+  L 100:             capabilities=[
+  L 101:                 Capability.NARRATIVE,
+  L 102:                 Capability.DIALOGUE,
+  L 103:                 Capability.DIALOGUE_GENERATION,
+  L 104:                 Capability.RULES_REASONING,
+  L 105:                 Capability.WORLD_SIMULATION,
+  L 106:                 Capability.MEMORY_SUMMARIZATION,
+  L 107:                 Capability.FACT_EXTRACTION,
+  L 108:                 Capability.STRATEGY,
+  L 109:                 Capability.GENERAL,
+  L 110:                 Capability.FAST,
+  L 111:             ],
+  L 112:             vram_mb=5000,
+  L 113:             context_size=8192,
+  L 114:             temperature=0.9,
+  L 115:             repeat_penalty=1.12,
+  L 116:         ),
+  L 117:         "saiga_llama3_8b": ModelConfig(
+  L 118:             key="saiga_llama3_8b",
+  L 119:             name="saiga_llama3_8b",
+  L 120:             provider_type=_saiga_pt,
+  L 121:             path=settings.model_saiga_llama3_8b_path,
+  L 122:             capabilities=[
+  L 123:                 Capability.NARRATIVE,
+  L 124:                 Capability.DIALOGUE,
+  L 125:                 Capability.DIALOGUE_GENERATION,
+  L 126:                 Capability.RULES_REASONING,
+  L 127:                 Capability.WORLD_SIMULATION,
+  L 128:                 Capability.MEMORY_SUMMARIZATION,
+  L 129:                 Capability.FACT_EXTRACTION,
+  L 130:                 Capability.STRATEGY,
+  L 131:                 Capability.GENERAL,
+  L 132:                 Capability.FAST,
+  L 133:             ],
+  L 134:             vram_mb=6600,
+  L 135:             context_size=8192,
+  L 136:             temperature=0.9,
+  L 137:             repeat_penalty=1.12,
+  L 138:         ),
+  L 139:     }
+  L 140: 
+  L 141: 
+  L 142: # Инициализируем при импорте
+  L 143: MODEL_REGISTRY = _init_registry()
+  L 144: 
+  L 145: 
+  L 146: # Default mapping: agent → capability
+  L 147: DEFAULT_AGENT_CAPABILITY_MAP: dict[str, Capability] = {
+  L 148:     "dm": Capability.NARRATIVE,
+  L 149:     "world": Capability.WORLD_SIMULATION,
+  L 150:     "npc": Capability.DIALOGUE,
+  L 151:     "rules": Capability.RULES_REASONING,
+  L 152:     "memory": Capability.MEMORY_SUMMARIZATION,
+  L 153:     "dialogue_extractor": Capability.MEMORY_SUMMARIZATION, # BUG-DLG-011 FIX
+  L 154:     "verifier": Capability.DIALOGUE,  # P5-B: PropositionVerifier uses same model as NPC dialogue
+  L 155:     "general": Capability.GENERAL,
+  L 156: }
+  L 157: 
+  L 158: 
+  L 159: # ── COV-2/D62: приоритетная очередь worker-ветки (LLM_RESILIENCE_V1) ──────
+  L 160: # Вердикты Мастера: canonical default; ambient назначается явно (только
+  L 161: # D8P-экстракция); FIFO среди canonical; ambient cap=8 + дедлайн 300с
+  L 162: # (контролируемый DROP с причиной); canonical-бюджет 90с (громкий отказ,
+  L 163: # никогда пустой успех); выполняющийся запрос не прерывается прибытием.
+  L 164: # Wall-time — ДВА НЕСМЕШИВАЕМЫХ свойства: (1) best-effort реальная отмена
+  L 165: # (/abort); (2) гарантированное владение слотом + защита от позднего
+  L 166: # результата (epoch). CALIBRATION-константы (не env): перевод в env — только
+  L 167: # вместе с записью flags.yaml (иначе C1-линтер RED).
+  L 168: 
+  L 169: _CANONICAL_QUEUE_TIMEOUT_SEC: float = 90.0   # бюджет ОЖИДАНИЯ слота (НЕ загрузка модели — та: model_load_timeout_sec)
+  L 170: _AMBIENT_QUEUE_DEADLINE_SEC: float = 300.0   # дедлайн фоновой задачи, действует ВО ВРЕМЯ ожидания
+  L 171: _AMBIENT_QUEUE_CAP: int = 8                  # максимум одновременно ожидающих ambient (сверх — DROP)
+  L 172: _WORKER_WALL_TIME_CEILING_SEC: float = 120.0 # потолок ВЫПОЛНЯЮЩЕГОСЯ вызова (3x30с retry + 1+2с sleeps + запас)
+  L 173: _ABORT_GRACE_SEC: float = 2.0                # ожидание эффекта /abort до форфейта (прецедент: sleep 1-2с старого пути)
+  L 174: 
+  L 175: 
+  L 176: def _llm_resilience_v1_enabled() -> bool:
+  L 177:     """Env-флаг LLM_RESILIENCE_V1 (default OFF = прежняя abort-механика).
+  L 178: 
+  L 179:     Call-time чтение. Устанавливать ДО первого запроса процесса: смена при
+  L 180:     живых вызовах смешивает пути владения слотом (старый _request_in_progress
+  L 181:     и новый epoch не видят друг друга)."""
+  L 182:     import os
+  L 183: 
+  L 184:     return os.environ.get("LLM_RESILIENCE_V1", "").strip().lower() in (
+  L 185:         "1", "true", "yes", "on",
+  L 186:     )
+  L 187: 
+  L 188: 
+  L 189: class LlmQueueOverflowError(RuntimeError):
+  L 190:     """D62: ambient-задача отброшена — очередь ожидающих ambient переполнена."""
+  L 191: 
+  L 192: 
+  L 193: class LlmQueueDeadlineError(RuntimeError):
+  L 194:     """D62: бюджет ожидания слота истёк (ambient-дедлайн или canonical-таймаут)."""
+  L 195: 
+  L 196: 
+  L 197: class _QueueWaiter:
+  L 198:     """Ожидающий слот: собственный Event — дедлайн действует во время ожидания
+  L 199:     (wait(remaining) + самоудаление dead-маркером); granted_epoch — защита от
+  L 200:     позднего результата (форфейт продвигает epoch владельца слота)."""
+  L 201: 
+  L 202:     __slots__ = ("rank", "seq", "event", "dead", "granted_epoch")
+  L 203: 
+  L 204:     def __init__(self, rank: int, seq: int) -> None:
+  L 205:         self.rank = rank  # 0 = canonical, 1 = ambient
+  L 206:         self.seq = seq
+  L 207:         self.event = threading.Event()
+  L 208:         self.dead = False
+  L 209:         self.granted_epoch = -1
+  L 210: 
+  L 211:     def __lt__(self, other: "_QueueWaiter") -> bool:
+  L 212:         return (self.rank, self.seq) < (other.rank, other.seq)
+  L 213: 
+  L 214: 
+  L 215: class ModelRouter:
+  L 216:     """
+  L 217:     Маршрутизатор LLM запросов на основе возможностей.
+  L 218: 
+  L 219:     Key features:
+  L 220:     - Automatic model selection by capability
+  L 221:     - Uses ModelPool for lazy loading (8GB VRAM constraint)
+  L 222:     - Fallback routing when preferred model unavailable
+  L 223:     - Agent-agnostic (agents request capability, not model)
+  L 224:     - Metrics collection for performance tracking
+  L 225:     """
+  L 226: 
+  L 227:     _instance: Optional["ModelRouter"] = None
+  L 228:     _initialized: bool
+  L 229: 
+  L 230:     def __new__(cls) -> "ModelRouter":
+  L 231:         """Singleton pattern for global router access."""
+  L 232:         if cls._instance is None:
+  L 233:             cls._instance = super().__new__(cls)
+  L 234:             cls._instance._initialized = False
+  L 235:         return cls._instance
+  L 236: 
+  L 237:     def __init__(self) -> None:
+  L 238:         if self._initialized:
+  L 239:             return
+  L 240: 
+  L 241:         # Инициализация реестра и зависимостей
+  L 242:         self._registry: dict[str, ModelConfig] = _init_registry()
+  L 243:         self._pool: dict[str, ModelConfig] = _init_registry()
+  L 244:         self._providers: dict[str, Any] = {}
+  L 245:         self._provider_manager: Optional["ProviderManager"] = None
+  L 246:         self._model_pool: Optional["ModelPool"] = None  # Lazy initialization для ModelPool
+  L 247:         self._current_model_key = None  # Текущая активная модель (для legacy-методов)
+  L 248:         self._capability_map = DEFAULT_AGENT_CAPABILITY_MAP.copy()
+  L 249:         self._lazy_loading = True
+  L 250: 
+  L 251:         # Защита VRAM. Только 1 запрос обрабатывается одновременно.
+  L 252:         # Критично для локальных 7B-13B моделей на 16GB VRAM.
+  L 253:         # Ленивая инициализация — Semaphore привязан к event loop,
+  L 254:         # а __init__ может вызываться в другом контексте (стартап vs запрос).
+  L 255:         self._vram_semaphore: asyncio.Semaphore | None = None
+  L 256: 
+  L 257:         # Threading lock для worker threads — исключает конкурентные LLM вызовы
+  L 258:         # (TELEGRAPH thread + player action thread → один из них skip)
+  L 259:         self._worker_lock = threading.Lock()
+  L 260:         # Флаг активного запроса — для abort при зависании
+  L 261:         self._request_in_progress = False
+  L 262:         self._initialized = True
+  L 263: 
+  L 264:     def _get_model_pool(self) -> "ModelPool":
+  L 265:         """Lazy initialization of ModelPool."""
+  L 266:         if self._model_pool is None:
+  L 267:             from app.services.llm.provider_manager import get_model_pool
+  L 268: 
+  L 269:             self._model_pool = get_model_pool()
+  L 270:         return self._model_pool
+  L 271: 
+  L 272:     def _get_provider_manager(self) -> "ProviderManager":
+  L 273:         """Lazy initialization of ProviderManager (legacy)."""
+  L 274:         if self._provider_manager is None:
+  L 275:             from app.services.llm.provider_manager import get_provider_manager
+  L 276: 
+  L 277:             self._provider_manager = get_provider_manager()
+  L 278:         return self._provider_manager
+  L 279: 
+  L 280:     @property
+  L 281:     def model_pool(self) -> "ModelPool":
+  L 282:         """Get the model pool."""
+  L 283:         return self._get_model_pool()
+  L 284: 
+  L 285:     @property
+  L 286:     def provider_manager(self) -> "ProviderManager":
+  L 287:         """Get the provider manager (legacy)."""
+  L 288:         return self._get_provider_manager()
+  L 289: 
+  L 290:     def set_lazy_loading(self, enabled: bool) -> None:
+  L 291:         """Включить/выключить ленивую загрузку."""
+  L 292:         self._use_lazy_loading = enabled
+  L 293: 
+  L 294:     def set_replay_context(self, store: Any, session_id: str) -> None:
+  L 295:         """
+  L 296:         Подсистема 2: Инъекция ReplayStore для кэширования LLM-вызовов (Этап 2.3).
+  L 297:         Вызывается из GameLoop при старте сессии, если replay_mode != "off".
+  L 298:         """
+  L 299:         self._replay_store = store
+  L 300:         self._current_session_id = session_id
+  L 301:         self._current_tick_id = getattr(self, "_current_tick_id", 0)
+  L 302:         logger.info(f"[LLM_CACHE] Replay context bound. Session: {session_id}")
+  L 303: 
+  L 304:     # === Main Request Methods ===
+  L 305: 
+  L 306:     async def request(
+  L 307:         self,
+  L 308:         capability: Capability | str,
+  L 309:         prompt: str,
+  L 310:         params: GenerationParams | None = None,
+  L 311:         system_prompt: str | None = None,
+  L 312:     ) -> str:
+  L 313:         """
+  L 314:         Основной асинхронный запрос к LLM с жёсткой защитой VRAM.
+  L 315: 
+  L 316:         Семaphore(1) гарантирует, что в любой момент времени только ОДИН запрос
+  L 317:         обрабатывается моделью — критично для 7B–13B на 16 ГБ и меньше.
+  L 318:         """
+  L 319:         capability_obj = self._normalize_capability(capability)
+  L 320:         preferred_keys = self.get_capability_preferences(capability_obj)
+  L 321: 
+  L 322:         # === ЗАЩИТА VRAM ===
+  L 323:         # Ленивое создание Semaphore в текущем event loop
+  L 324:         if self._vram_semaphore is None:
+  L 325:             self._vram_semaphore = asyncio.Semaphore(1)
+  L 326:         async with self._vram_semaphore:
+  L 327:             # Логируем вход в критическую секцию
+  L 328:             logger.info(
+  L 329:                 f"ModelRouter: Acquired VRAM semaphore for capability={capability_obj}"
+  L 330:             )
+  L 331: 
+  L 332:             try:
+  L 333:                 if self._lazy_loading:
+  L 334:                     return self._request_via_pool(
+  L 335:                         capability=capability_obj,
+  L 336:                         preferred_keys=preferred_keys,
+  L 337:                         prompt=prompt,
+  L 338:                         params=params,
+  L 339:                         system_prompt=system_prompt,
+  L 340:                     )
+  L 341:                 else:
+  L 342:                     return self._request_sync(
+  L 343:                         capability=capability_obj,
+  L 344:                         prompt=prompt,
+  L 345:                         params=params,
+  L 346:                         system_prompt=system_prompt,
+  L 347:                     )
+  L 348:             finally:
+  L 349:                 logger.debug(
+  L 350:                     f"ModelRouter: Released VRAM semaphore for {capability_obj}"
+  L 351:                 )
+  L 352: 
+  L 353:     def _abort_generation(self) -> None:
+  L 354:         """Прервать зависшую генерацию на llama-server (H-10 FIX: безопасный вызов)."""
+  L 355:         try:
+  L 356:             pool = self._get_model_pool()
+  L 357:             _active_model = pool.active_model
+  L 358:             if _active_model and hasattr(_active_model.provider, "abort_generation"):
+  L 359:                 _active_model.provider.abort_generation()
+  L 360:                 logger.debug(f"[R4A_ABORT] sent /abort to {pool.active_model_key}")
+  L 361:         except Exception as e:
+  L 362:             logger.debug(f"[R4A_ABORT] failed: {e}")
+  L 363: 
+  L 364:     def _grant_next_locked(self) -> None:
+  L 365:         """COV-2/D62: выдать освободившийся слот лучшему живому ожидающему.
+  L 366: 
+  L 367:         Порядок: canonical раньше ambient; внутри класса — FIFO по прибытию
+  L 368:         (seq). Требует удержания _worker_lock. dead-ожидающие пропускаются:
+  L 369:         их дедлайн сработал во время ожидания, задача уже отброшена."""
+  L 370:         import heapq
+  L 371: 
+  L 372:         while self._waiters:
+  L 373:             _w = heapq.heappop(self._waiters)
+  L 374:             if _w.dead:
+  L 375:                 continue
+  L 376:             self._slot_busy = True
+  L 377:             self._slot_epoch += 1
+  L 378:             _w.granted_epoch = self._slot_epoch
+  L 379:             _w.event.set()
+  L 380:             return
+  L 381: 
+  L 382:     def _wall_time_watchdog(self, my_epoch: int) -> None:
+  L 383:         """COV-2/D62: потолок выполняющегося вызова (Timer-поток; прецедент
+  L 384:         ADR-O-364 per-task-timeout).
+  L 385: 
+  L 386:         Слой 1 — best-effort реальная отмена: /abort llama-server (HTTP вне
+  L 387:         локов — цикл lock/abort замкнуться не может, lock всегда листовой).
+  L 388:         Слой 2 — гарантия владения: если отмена не подействовала за грейс,
+  L 389:         слот форфейтится лучшему ожидающему, epoch продвигается — поздний
+  L 390:         результат старого вызова будет сконвертирован в исключение, кэш не
+  L 391:         пишется, состояние нового владельца не затрагивается."""
+  L 392:         with self._worker_lock:
+  L 393:             if not self._slot_busy or self._slot_epoch != my_epoch:
+  L 394:                 return  # вызов успел завершиться штатно (или уже осиротевший)
+  L 395:         _root_logger.warning(
+  L 396:             f"[R4A_WALLTIME] вызов epoch={my_epoch} превысил потолок — /abort"
+  L 397:         )
+  L 398:         self._abort_generation()
+  L 399:         time.sleep(_ABORT_GRACE_SEC)
+  L 400:         with self._worker_lock:
+  ... (792 more lines)
+
+==============================================================================
+STEP 3: List all ModelRouter methods
+==============================================================================
+  ModelRouter class: <class 'app.services.llm.router.ModelRouter'>
+  module: app.services.llm.router
+  file: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\llm\router.py
+
+  Methods (including inherited):
+    _abort_generation(self) -> 'None'
+    _get_fallback_model(self) -> 'str'
+    _get_model_pool(self) -> "'ModelPool'"
+    _get_or_create_provider(self, model_key: 'str', model_config: 'ModelConfig') -> 'Any'
+    _get_provider_manager(self) -> "'ProviderManager'"
+    _grant_next_locked(self) -> 'None'
+    [attr] _instance = None
+    _normalize_capability(self, capability: 'Capability | str') -> 'Capability'
+    _request_sync(self, capability: 'Capability', prompt: 'str', params: 'GenerationParams | None', system_prompt: 'str | None') -> 'str'
+    _request_via_pool(self, capability: 'Capability', preferred_keys: 'list[str]', prompt: 'str', params: 'GenerationParams | None', system_prompt: 'str | None') -> 'str'
+    _wall_time_watchdog(self, my_epoch: 'int') -> 'None'
+    _worker_request_queued(self, agent_name: 'str', prompt: 'str', params: "'GenerationParams | None'", system_prompt: "'str | None'", priority: 'str', prompt_hash: 'str', worker_start: 'float') -> 'str'
+    describe(self) -> 'str'
+    get_capability_preferences(self, capability: 'Capability') -> 'list[str]'
+    get_model_for_agent(self, agent_name: 'str') -> 'str'
+    get_model_info(self, model_key: 'str') -> 'ModelConfig | None'
+    get_provider(self, capability: 'Capability | str') -> 'LlmProvider | None'
+    list_capabilities(self) -> 'dict[str, Capability]'
+    list_models(self) -> 'dict[str, ModelConfig]'
+    [attr] model_pool = <property object at 0x00000240E6CF8EF0>
+    notify_stream_end(self, ctx: 'dict', chars_produced: 'int', full_text: 'str | None' = None) -> 'None'
+    notify_stream_start(self, agent_name: 'str', capability: 'str | Capability', prompt: 'str | None' = None, system_prompt: 'str | None' = None, params: 'GenerationParams | None' = None) -> 'dict'
+    playback_stream_lookup(self, agent_name: 'str', prompt: 'str', system_prompt: 'str | None' = None, params: 'GenerationParams | None' = None) -> 'str | None'
+    [attr] provider_manager = <property object at 0x00000240E6CF9030>
+    request(self, capability: 'Capability | str', prompt: 'str', params: 'GenerationParams | None' = None, system_prompt: 'str | None' = None) -> 'str'
+    request_for_agent(self, agent_name: 'str', prompt: 'str', params: 'GenerationParams | None' = None, system_prompt: 'str | None' = None, priority: 'str' = 'canonical') -> 'str'
+    select_model(self, capability: 'Capability') -> 'str'
+    set_capability_for_agent(self, agent_name: 'str', capability: 'Capability | str') -> 'None'
+    set_lazy_loading(self, enabled: 'bool') -> 'None'
+    set_replay_context(self, store: 'Any', session_id: 'str') -> 'None'
+    switch(self, selection: 'Any') -> 'None'
+
+==============================================================================
+STEP 4: Search for availability-related methods
+==============================================================================
+
+  --- search for 'available' ---
+  Found 11 matches for 'available' in router.py:
+
+  >>> L82:     _qwen_cfg = settings.available_models.get("qwen_7b")
+      L  79: def _init_registry() -> dict[str, ModelConfig]:
+      L  80:     """Единственная модель проекта."""
+      L  81:     # Читаем provider_type из settings — позволяет переключить на mock без правки кода
+  >>> L  82:     _qwen_cfg = settings.available_models.get("qwen_7b")
+      L  83:     _qwen_pt = (
+      L  84:         ProviderType(getattr(_qwen_cfg, "provider_type", "llama_cpp"))
+      L  85:         if _qwen_cfg
+
+  >>> L222:     - Fallback routing when preferred model unavailable
+      L 219:     Key features:
+      L 220:     - Automatic model selection by capability
+      L 221:     - Uses ModelPool for lazy loading (8GB VRAM constraint)
+  >>> L 222:     - Fallback routing when preferred model unavailable
+      L 223:     - Agent-agnostic (agents request capability, not model)
+      L 224:     - Metrics collection for performance tracking
+      L 225:     """
+
+  >>> L579:             if pool.is_model_available(model_key):
+      L 576: 
+      L 577:         # Try preferred keys in order
+      L 578:         for model_key in preferred_keys:
+  >>> L 579:             if pool.is_model_available(model_key):
+      L 580:                 # Get model (will load if not loaded)
+      L 581:                 start_time = time.time()
+      L 582:                 model_provider = pool.get_model(model_key)
+
+  >>> L618:         # Fallback: try any available model from pool
+      L 615:                         logger.error(f"[ROUTER_TRACEBACK]\n{traceback.format_exc()}")
+      L 616:                         continue
+      L 617: 
+  >>> L 618:         # Fallback: try any available model from pool
+      L 619:         pool_configs = pool.list_model_configs()
+      L 620:         for model_key in pool_configs.keys():
+      L 621:             # Не повторяем запрос к той же модели, которая только что упала.
+
+  --- search for 'is_available' ---
+  Found 2 matches for 'is_available' in router.py:
+
+  >>> L637:                 # S129 FIX: Безопасное логирование без вложенных вызовов is_available()
+      L 634:                     # H-12 FIX: Прерываем цикл, чтобы не thrash VRAM, выгружая и загружая модели подряд.
+      L 635:                     break
+      L 636:             else:
+  >>> L 637:                 # S129 FIX: Безопасное логирование без вложенных вызовов is_available()
+      L 638:                 _status = model_provider.status if model_provider else "None"
+      L 639:                 logger.error(f"ModelRouter: Fallback Model {model_key} not available. Status: {_status}")
+      L 640:                 # H-12 FIX: Если модель не загрузилась, нет смысла пытаться загрузить следующую.
+
+  >>> L1120:                 if model_provider and model_provider.is_available():
+      L1117:         for model_key in preferred_keys:
+      L1118:             if pool.is_model_available(model_key):
+      L1119:                 model_provider = pool.get_model(model_key)
+  >>> L1120:                 if model_provider and model_provider.is_available():
+      L1121:                     return model_provider.provider
+      L1122: 
+      L1123:         return None
+
+  --- search for 'is_llm_available' ---
+  no matches for 'is_llm_available' in router.py
+
+  --- search for 'is_ready' ---
+  no matches for 'is_ready' in router.py
+
+  --- search for 'is_alive' ---
+  no matches for 'is_alive' in router.py
+
+  --- search for 'health' ---
+  no matches for 'health' in router.py
+
+  --- search for 'ping' ---
+  Found 2 matches for 'ping' in router.py:
+
+  >>> L26: from typing import TYPE_CHECKING, Any, Optional, cast
+      L  23: import threading
+      L  24: import time
+      L  25: from dataclasses import dataclass, field
+  >>> L  26: from typing import TYPE_CHECKING, Any, Optional, cast
+      L  27: 
+      L  28: from app.services.logging_tools import jsonl_log
+      L  29: 
+
+  >>> L146: # Default mapping: agent → capability
+      L 143: MODEL_REGISTRY = _init_registry()
+      L 144: 
+      L 145: 
+  >>> L 146: # Default mapping: agent → capability
+      L 147: DEFAULT_AGENT_CAPABILITY_MAP: dict[str, Capability] = {
+      L 148:     "dm": Capability.NARRATIVE,
+      L 149:     "world": Capability.WORLD_SIMULATION,
+
+  --- search for 'check' ---
+  Found 3 matches for 'check' in router.py:
+
+  >>> L26: from typing import TYPE_CHECKING, Any, Optional, cast
+      L  23: import threading
+      L  24: import time
+      L  25: from dataclasses import dataclass, field
+  >>> L  26: from typing import TYPE_CHECKING, Any, Optional, cast
+      L  27: 
+      L  28: from app.services.logging_tools import jsonl_log
+      L  29: 
+
+  >>> L43: if TYPE_CHECKING:
+      L  40:     ProviderType,
+      L  41: )
+      L  42: 
+  >>> L  43: if TYPE_CHECKING:
+      L  44:     # Циклический импорт: provider_manager импортирует router — только для типов.
+      L  45:     from app.services.llm.provider_manager import ModelPool, ProviderManager
+      L  46: 
+
+  >>> L706:         # Check preferences first
+      L 703:         Returns:
+      L 704:             Ключ модели из реестра
+      L 705:         """
+  >>> L 706:         # Check preferences first
+      L 707:         preferred_keys = CAPABILITY_MODEL_PREFERENCES.get(capability, [])
+      L 708: 
+      L 709:         for key in preferred_keys:
+
+  --- search for 'test_connection' ---
+  no matches for 'test_connection' in router.py
+
+  --- search for 'can_connect' ---
+  no matches for 'can_connect' in router.py
+
+==============================================================================
+STEP 5: Read request_for_agent + _abort_generation
+==============================================================================
+  request_for_agent() at L744..L987 (showing L744..L943):
+  L 744:     def request_for_agent(
+  L 745:         self,
+  L 746:         agent_name: str,
+  L 747:         prompt: str,
+  L 748:         params: GenerationParams | None = None,
+  L 749:         system_prompt: str | None = None,
+  L 750:         priority: str = "canonical",
+  L 751:     ) -> str:
+  L 752:         """
+  L 753:         Отправить запрос от имени агента.
+  L 754: 
+  L 755:         Автоматически определяет capability по имени агента.
+  L 756: 
+  L 757:         Args:
+  L 758:             agent_name: dm, npc, rules, world, memory
+  L 759:             prompt: Пользовательский промпт
+  L 760:             params: Параметры генерации
+  L 761:             system_prompt: Системный промпт
+  L 762: 
+  L 763:         Returns:
+  L 764:             Ответ от LLM
+  L 765:         """
+  L 766:         # COV-2/D62: класс запроса для приоритетной очереди (используется
+  L 767:         # только при LLM_RESILIENCE_V1=ON; валидация всегда — опечатка не
+  L 768:         # имеет права молча превратиться в canonical).
+  L 769:         if priority not in ("canonical", "ambient"):
+  L 770:             raise ValueError(
+  L 771:                 f"priority must be 'canonical'|'ambient', got {priority!r}"
+  L 772:             )
+  L 773:         capability = self._capability_map.get(agent_name, Capability.GENERAL)
+  L 774: 
+  L 775:         # Подсистема 2: LLM Cache для Replay (Этап 2.3)
+  L 776:         from app.core.config import settings
+  L 777:         from app.services.replay.llm_cache import compute_prompt_hash
+  L 778:         _prompt_hash = compute_prompt_hash(prompt, system_prompt, params)
+  L 779: 
+  L 780:         # === ЛОГИРОВАНИЕ ПРОМПТА ДЛЯ ОТЛАДКИ (M-08 FIX) ===
+  L 781:         _prompt_preview = (prompt[:500] + "...") if len(prompt) > 500 else prompt
+  L 782:         _sys_preview = (
+  L 783:             (system_prompt[:200] + "...")
+  L 784:             if system_prompt and len(system_prompt) > 200
+  L 785:             else system_prompt
+  L 786:         )
+  L 787:         jsonl_log(
+  L 788:             {
+  L 789:                 "level": "INFO",
+  L 790:                 "agent": "llm_input",
+  L 791:                 "capability": str(capability),
+  L 792:                 "prompt_preview": _prompt_preview,
+  L 793:                 "system_prompt": _sys_preview or "",
+  L 794:                 "tick_id": getattr(self, "_current_tick_id", 0),
+  L 795:                 "npc_id": agent_name,
+  L 796:                 "prompt_hash": _prompt_hash,
+  L 797:                 "response_hash": None, # Логируется в llm_output
+  L 798:                 "model": self.get_model_for_agent(agent_name),
+  L 799:                 "latency": 0.0, # Логируется в llm_output
+  L 800:                 "cache_hit": False, # Логируется в llm_output
+  L 801:                 "intent_before": None,
+  L 802:                 "intent_after": None,
+  L 803:             }
+  L 804:         )
+  L 805: 
+  L 806:         if settings.replay_playback:
+  L 807:             # Режим воспроизведения: читаем только из кэша
+  L 808:             _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
+  L 809:             if _store:
+  L 810:                 _current_session = getattr(self, "_current_session_id", "unknown")
+  L 811:                 _cached = _store.get_llm_call(_current_session, agent_name, _prompt_hash)
+  L 812:                 # COV-2/D67b (находка T2): различать «нет записи» (None → miss,
+  L 813:                 # громкий RuntimeError) и «запись с пустым ответом» (валидный
+  L 814:                 # кэш — пустой ответ ЛОКАЛЕН и честен). Прежний truthiness-гейт
+  L 815:                 # `_cached.get("response")` объявлял законную пустую запись
+  L 816:                 # отсутствующей и проваливал её в miss-ветку.
+  L 817:                 if _cached is not None and "response" in _cached:
+  L 818:                     logger.debug(f"[LLM_CACHE] HIT: agent={agent_name} hash={_prompt_hash[:8]}")
+  L 819:                     return str(_cached["response"])
+  L 820:                 # Cache miss в playback mode — критическая ошибка
+  L 821:                 logger.error(f"[LLM_CACHE] MISS in playback mode! agent={agent_name} hash={_prompt_hash[:8]}")
+  L 822:                 raise RuntimeError("Replay determinism broken: LLM cache miss in playback")
+  L 823:         elif settings.replay_record:
+  L 824:             # Режим записи: пытаемся читать из кэша (hot-path), при miss идём к LLM
+  L 825:             _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
+  L 826:             if _store:
+  L 827:                 _current_session = getattr(self, "_current_session_id", "unknown")
+  L 828:                 _cached = _store.get_llm_call(_current_session, agent_name, _prompt_hash)
+  L 829:                 # COV-2/D67b: симметричное различение miss/empty (см. ветку выше).
+  L 830:                 if _cached is not None and "response" in _cached:
+  L 831:                     logger.debug(f"[LLM_CACHE] HIT: agent={agent_name} hash={_prompt_hash[:8]}")
+  L 832:                     return str(_cached["response"])
+  L 833: 
+  L 834:         # Worker thread (to_thread): прямой синхронный вызов без semaphore
+  L 835:         # Semaphore привязан к main loop — в новом loop он мёртв
+  L 836:         if threading.current_thread() is not threading.main_thread():
+  L 837:             # COV-2/D64-ядро: фактическая латентность worker-пути (раньше
+  L 838:             # кэш/телеметрия писали константный ноль).
+  L 839:             _worker_start = time.perf_counter()
+  L 840:             # COV-2/D62: приоритетная очередь за флагом. OFF = код ниже не
+  L 841:             # тронут ни на строку (механика abort при in_progress сохранена).
+  L 842:             if _llm_resilience_v1_enabled():
+  L 843:                 return self._worker_request_queued(
+  L 844:                     agent_name=agent_name,
+  L 845:                     prompt=prompt,
+  L 846:                     params=params,
+  L 847:                     system_prompt=system_prompt,
+  L 848:                     priority=priority,
+  L 849:                     prompt_hash=_prompt_hash,
+  L 850:                     worker_start=_worker_start,
+  L 851:                 )
+  L 852:             with self._worker_lock: # H-11 FIX: Потокобезопасная проверка и установка флага
+  L 853:                 capability_obj = self._capability_map.get(agent_name, Capability.GENERAL)
+  L 854:                 preferred_keys = self.get_capability_preferences(capability_obj)
+  L 855:                 # Если предыдущий запрос завис — abort перед новым и ждём освобождения
+  L 856:                 if self._request_in_progress:
+  L 857:                     _root_logger.warning("[R4A_WORKER] aborting stuck request...")
+  L 858:                     self._abort_generation()
+  L 859:                     # Ждём пока llama-server обработает abort (1с) + закрыет HTTP
+  L 860:                     time.sleep(1.0)
+  L 861:                     # Если всё ещё завис — повторяем abort
+  L 862:                     if self._request_in_progress:
+  L 863:                         self._abort_generation()
+  L 864:                         time.sleep(1.0)
+  L 865:                 self._request_in_progress = True
+  L 866:             try:
+  L 867:                 _root_logger.info(
+  L 868:                     f"[R4A_WORKER] direct sync call, capability={capability_obj}"
+  L 869:                 )
+  L 870:                 _result = self._request_via_pool(
+  L 871:                     capability_obj,
+  L 872:                     preferred_keys=preferred_keys,
+  L 873:                     prompt=prompt,
+  L 874:                     params=params,
+  L 875:                     system_prompt=system_prompt,
+  L 876:                 )
+  L 877:                 _root_logger.info(
+  L 878:                     f"[R4A_WORKER] returned {len(_result) if _result else 0} chars"
+  L 879:                 )
+  L 880:                 # C-11 FIX: Worker-thread path не писал в кэш. Пишем до возврата.
+  L 881:                 # H-07 FIX: Не пишем пустые ответы в кэш, чтобы не нарушать детерминизм.
+  L 882:                 # H-08 FIX: Передаём system_prompt и params для корректного вычисления хэша.
+  L 883:                 if settings.replay_record and _result:
+  L 884:                     _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
+  L 885:                     if _store:
+  L 886:                         _tick_id = getattr(self, "_current_tick_id", 0)
+  L 887:                         _store.record_llm_call(
+  L 888:                             session_id=getattr(self, "_current_session_id", "unknown"),
+  L 889:                             tick_id=_tick_id,
+  L 890:                             agent_name=agent_name,
+  L 891:                             prompt=prompt,
+  L 892:                             response=_result,
+  L 893:                             model_name=self.get_model_for_agent(agent_name),
+  L 894:                             latency_ms=int((time.perf_counter() - _worker_start) * 1000),
+  L 895:                             system_prompt=system_prompt,
+  L 896:                             params=params
+  L 897:                         )
+  L 898: 
+  L 899:                 # M-09/M-10 FIX: Логируем ответ LLM с метриками
+  L 900:                 from app.services.replay.llm_cache import compute_prompt_hash
+  L 901:                 jsonl_log({
+  L 902:                     "level": "INFO",
+  L 903:                     "agent": "llm_output",
+  L 904:                     "tick_id": getattr(self, "_current_tick_id", 0),
+  L 905:                     "npc_id": agent_name,
+  L 906:                     "prompt_hash": _prompt_hash,
+  L 907:                     "response_hash": compute_prompt_hash(_result) if _result else None,  # noqa: ENIGMA001
+  L 908:                     "model": self.get_model_for_agent(agent_name),
+  L 909:                     # COV-2/D64-ядро: фактическая latency worker-пути (perf_counter)
+  L 910:                     "latency": round((time.perf_counter() - _worker_start) * 1000, 1),
+  L 911:                     "cache_hit": False
+  L 912:                 })
+  L 913:                 return _result
+  L 914:             except Exception as e:
+  L 915:                 _root_logger.error(f"[R4A_WORKER] exception: {e}")
+  L 916:                 # NEW-DLG-004 FIX: Пробрасываем исключение, чтобы вызывающий код знал о падении LLM, а не получал пустую строку.
+  L 917:                 raise
+  L 918:             finally:
+  L 919:                 self._request_in_progress = False
+  L 920: 
+  L 921:         _result = ""
+  L 922:         if settings.replay_playback:
+  L 923:             # COV-2/D67 (вердикт Мастера): cache miss в playback — нарушение
+  L 924:             # детерминизма записанной сессии, а НЕ «пустой ответ». Тихая пустышка
+  L 925:             # маскировала разрыв реплея как ложный успех потребителя. Симметрия
+  L 926:             # с main-loop-веткой (miss там уже RuntimeError) + стандарт
+  L 927:             # NEW-DLG-004: исключение вместо пустой строки.
+  L 928:             raise RuntimeError(
+  L 929:                 "Replay determinism broken: LLM cache miss in playback "
+  L 930:                 f"(agent={agent_name}, prompt_hash={_prompt_hash[:8]})"
+  L 931:             )
+  L 932:         else:
+  L 933:             coro = self.request(capability, prompt, params, system_prompt)
+  L 934:             try:
+  L 935:                 # RE-D2: значение не нужно — вызов работает как детектор
+  L 936:                 # контекста: успех = текущий поток ЕСТЬ поток петли (else-ветка
+  L 937:                 # ниже поднимает громкий отказ). F841-гигиена.
+  L 938:                 asyncio.get_running_loop()
+  L 939:             except RuntimeError as e:
+  L 940:                 logger.debug(f"No running loop, starting new one: {e}")
+  L 941:                 _result = asyncio.run(coro)
+  L 942:             else:
+  L 943:                 # RE-D2 FIX: в эту ветку попадаем ТОЛЬКО с потока самой
+  ... (44 more lines)
+
+  --- _abort_generation ---
+  _abort_generation() at L353..L363 (showing L353..L363):
+  L 353:     def _abort_generation(self) -> None:
+  L 354:         """Прервать зависшую генерацию на llama-server (H-10 FIX: безопасный вызов)."""
+  L 355:         try:
+  L 356:             pool = self._get_model_pool()
+  L 357:             _active_model = pool.active_model
+  L 358:             if _active_model and hasattr(_active_model.provider, "abort_generation"):
+  L 359:                 _active_model.provider.abort_generation()
+  L 360:                 logger.debug(f"[R4A_ABORT] sent /abort to {pool.active_model_key}")
+  L 361:         except Exception as e:
+  L 362:             logger.debug(f"[R4A_ABORT] failed: {e}")
+  L 363: 
+
+==============================================================================
+STEP 6: Read ModelRouter.__init__
+==============================================================================
+  __init__() at L204..L210 (showing L204..L210):
+  L 204:     def __init__(self, rank: int, seq: int) -> None:
+  L 205:         self.rank = rank  # 0 = canonical, 1 = ambient
+  L 206:         self.seq = seq
+  L 207:         self.event = threading.Event()
+  L 208:         self.dead = False
+  L 209:         self.granted_epoch = -1
+  L 210: 
+
+==============================================================================
+STEP 7: Search for timeout, retry, fallback mechanisms
+==============================================================================
+
+  --- search for 'timeout' ---
+  Found 6 matches for 'timeout' in router.py:
+
+  >>> L169: _CANONICAL_QUEUE_TIMEOUT_SEC: float = 90.0   # бюджет ОЖИДАНИЯ слота (НЕ загрузка модели — та: model_load_timeout_sec)
+      L 166: # результата (epoch). CALIBRATION-константы (не env): перевод в env — только
+      L 167: # вместе с записью flags.yaml (иначе C1-линтер RED).
+      L 168: 
+  >>> L 169: _CANONICAL_QUEUE_TIMEOUT_SEC: float = 90.0   # бюджет ОЖИДАНИЯ слота (НЕ загрузка модели — та: model_load_timeout_sec)
+      L 170: _AMBIENT_QUEUE_DEADLINE_SEC: float = 300.0   # дедлайн фоновой задачи, действует ВО ВРЕМЯ ожидания
+      L 171: _AMBIENT_QUEUE_CAP: int = 8                  # максимум одновременно ожидающих ambient (сверх — DROP)
+      L 172: _WORKER_WALL_TIME_CEILING_SEC: float = 120.0 # потолок ВЫПОЛНЯЮЩЕГОСЯ вызова (3x30с retry + 1+2с sleeps + запас)
+
+  >>> L384:         ADR-O-364 per-task-timeout).
+      L 381: 
+      L 382:     def _wall_time_watchdog(self, my_epoch: int) -> None:
+      L 383:         """COV-2/D62: потолок выполняющегося вызова (Timer-поток; прецедент
+  >>> L 384:         ADR-O-364 per-task-timeout).
+      L 385: 
+      L 386:         Слой 1 — best-effort реальная отмена: /abort llama-server (HTTP вне
+      L 387:         локов — цикл lock/abort замкнуться не может, lock всегда листовой).
+
+  >>> L466:                 else _CANONICAL_QUEUE_TIMEOUT_SEC
+      L 463:         if waiter is not None:
+      L 464:             _deadline = time.monotonic() + (
+      L 465:                 _AMBIENT_QUEUE_DEADLINE_SEC if rank == 1
+  >>> L 466:                 else _CANONICAL_QUEUE_TIMEOUT_SEC
+      L 467:             )
+      L 468:             _granted = waiter.event.wait(timeout=max(0.0, _deadline - time.monotonic()))
+      L 469:             if not _granted:
+
+  >>> L482:                     f"canonical queue timeout exceeded: {agent_name}"
+      L 479:                         f"ambient queue deadline exceeded: {agent_name}"
+      L 480:                     )
+      L 481:                 raise LlmQueueDeadlineError(
+  >>> L 482:                     f"canonical queue timeout exceeded: {agent_name}"
+      L 483:                 )
+      L 484:             _my_epoch = waiter.granted_epoch
+      L 485: 
+
+  --- search for 'retry' ---
+  Found 2 matches for 'retry' in router.py:
+
+  >>> L172: _WORKER_WALL_TIME_CEILING_SEC: float = 120.0 # потолок ВЫПОЛНЯЮЩЕГОСЯ вызова (3x30с retry + 1+2с sleeps + запас)
+      L 169: _CANONICAL_QUEUE_TIMEOUT_SEC: float = 90.0   # бюджет ОЖИДАНИЯ слота (НЕ загрузка модели — та: model_load_timeout_sec)
+      L 170: _AMBIENT_QUEUE_DEADLINE_SEC: float = 300.0   # дедлайн фоновой задачи, действует ВО ВРЕМЯ ожидания
+      L 171: _AMBIENT_QUEUE_CAP: int = 8                  # максимум одновременно ожидающих ambient (сверх — DROP)
+  >>> L 172: _WORKER_WALL_TIME_CEILING_SEC: float = 120.0 # потолок ВЫПОЛНЯЮЩЕГОСЯ вызова (3x30с retry + 1+2с sleeps + запас)
+      L 173: _ABORT_GRACE_SEC: float = 2.0                # ожидание эффекта /abort до форфейта (прецедент: sleep 1-2с старого пути)
+      L 174: 
+      L 175: 
+
+  >>> L622:             # Retry должен быть реализован явно как retry-политика, а не скрыт в fallback.
+      L 619:         pool_configs = pool.list_model_configs()
+      L 620:         for model_key in pool_configs.keys():
+      L 621:             # Не повторяем запрос к той же модели, которая только что упала.
+  >>> L 622:             # Retry должен быть реализован явно как retry-политика, а не скрыт в fallback.
+      L 623:             if pool.active_model_key == model_key:
+      L 624:                 continue
+      L 625: 
+
+  --- search for 'fallback' ---
+  Found 10 matches for 'fallback' in router.py:
+
+  >>> L222:     - Fallback routing when preferred model unavailable
+      L 219:     Key features:
+      L 220:     - Automatic model selection by capability
+      L 221:     - Uses ModelPool for lazy loading (8GB VRAM constraint)
+  >>> L 222:     - Fallback routing when preferred model unavailable
+      L 223:     - Agent-agnostic (agents request capability, not model)
+      L 224:     - Metrics collection for performance tracking
+      L 225:     """
+
+  >>> L618:         # Fallback: try any available model from pool
+      L 615:                         logger.error(f"[ROUTER_TRACEBACK]\n{traceback.format_exc()}")
+      L 616:                         continue
+      L 617: 
+  >>> L 618:         # Fallback: try any available model from pool
+      L 619:         pool_configs = pool.list_model_configs()
+      L 620:         for model_key in pool_configs.keys():
+      L 621:             # Не повторяем запрос к той же модели, которая только что упала.
+
+  >>> L633:                     logger.warning(f"Fallback {model_key} failed: {e}")
+      L 630:                         prompt, params, system_prompt
+      L 631:                     )
+      L 632:                 except Exception as e:
+  >>> L 633:                     logger.warning(f"Fallback {model_key} failed: {e}")
+      L 634:                     # H-12 FIX: Прерываем цикл, чтобы не thrash VRAM, выгружая и загружая модели подряд.
+      L 635:                     break
+      L 636:             else:
+
+  --- search for 'except' ---
+  Found 10 matches for 'except' in router.py:
+
+  >>> L361:         except Exception as e:
+      L 358:             if _active_model and hasattr(_active_model.provider, "abort_generation"):
+      L 359:                 _active_model.provider.abort_generation()
+      L 360:                 logger.debug(f"[R4A_ABORT] sent /abort to {pool.active_model_key}")
+  >>> L 361:         except Exception as e:
+      L 362:             logger.debug(f"[R4A_ABORT] failed: {e}")
+      L 363: 
+      L 364:     def _grant_next_locked(self) -> None:
+
+  >>> L607:                     except Exception as e:
+      L 604:                             )
+      L 605: 
+      L 606:                         return result
+  >>> L 607:                     except Exception as e:
+      L 608:                         import traceback
+      L 609: 
+      L 610:                         latency_ms = (time.time() - start_time) * 1000
+
+  >>> L632:                 except Exception as e:
+      L 629:                     return model_provider.provider.complete(
+      L 630:                         prompt, params, system_prompt
+      L 631:                     )
+  >>> L 632:                 except Exception as e:
+      L 633:                     logger.warning(f"Fallback {model_key} failed: {e}")
+      L 634:                     # H-12 FIX: Прерываем цикл, чтобы не thrash VRAM, выгружая и загружая модели подряд.
+      L 635:                     break
+
+  >>> L652:             except ValueError as e:
+      L 649:         if isinstance(capability, str):
+      L 650:             try:
+      L 651:                 return Capability(capability)
+  >>> L 652:             except ValueError as e:
+      L 653:                 logger.debug(f"Invalid Capability, returning GENERAL: {e}")
+      L 654:                 return Capability.GENERAL
+      L 655:         return capability  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
+
+  >>> L692:         except Exception as e:
+      L 689:                 provider_type=model_config.provider_type,
+      L 690:                 model_path=model_config.path,
+      L 691:             )
+  >>> L 692:         except Exception as e:
+      L 693:             logger.debug(f"Failed to create provider for {model_key}: {e}")
+      L 694:             return None
+      L 695: 
+
+  --- search for 'ConnectionError' ---
+  no matches for 'ConnectionError' in router.py
+
+  --- search for 'requests.exceptions' ---
+  no matches for 'requests.exceptions' in router.py
+
+  --- search for 'httpx' ---
+  no matches for 'httpx' in router.py
+
+  --- search for 'aiohttp' ---
+  no matches for 'aiohttp' in router.py
+
+  --- search for 'openai' ---
+  no matches for 'openai' in router.py
+
+==============================================================================
+STEP 8: Check DialogueExecutor existing LLM failure handling
+==============================================================================
+  --- dialogue_executor.py L150-207 (LLM branch + exception handling) ---
+  L 150:         else:
+  L 151:             # ENIGMA-ARCH-022: LLM Execution Timeout.
+  L 152:             # Использует существующий cancellation boundary (router._abort_generation).
+  L 153:             # В будущем LLM_TIMEOUT_SEC будет вынесен в CalibrationProfile.
+  L 154:             import threading
+  L 155:             _timer = threading.Timer(_L_TIMEOUT_SEC, self._router._abort_generation)
+  L 156: 
+  L 157:             try:
+  L 158:                 _timer.start()
+  L 159:                 _text_source = "llm"
+  L 160:                 text = self._generate_with_router(task, req, _verdict)
+  L 161:             except DialogueContractViolation as e:
+  L 162:                 logger.warning(f"[DIALOGUE_EXEC] Contract violated: {e}")
+  L 163:                 # BUGFIX: Возвращаем error artifact, а не success, т.к. текст не сгенерирован
+  L 164:                 yield Artifact(
+  L 165:                     task_id=task.task_id,
+  L 166:                     success=False,
+  L 167:                     result_type="error",
+  L 168:                     data={},
+  L 169:                     error_message=str(e)
+  L 170:                 )
+  L 171:                 return
+  L 172:             except Exception as e:
+  L 173:                 logger.error(f"[DIALOGUE_EXEC] LLM call failed (timeout or error) for {task.owner_id}: {e}")
+  L 174:                 # Stage B Observability (вердикт Мастера Q4): llm_materialization_failed.
+  L 175:                 try:
+  L 176:                     from app.services.logging_tools import jsonl_log
+  L 177:                     jsonl_log({
+  L 178:                         "level": "ERROR",
+  L 179:                         "agent": "template_fallback",
+  L 180:                         "fallback_reason": "llm_materialization_failed",
+  L 181:                         "npc_id": task.owner_id,
+  L 182:                         "intent_type": req.intent_type,
+  L 183:                         "target_id": req.target_id,
+  L 184:                         "error": str(e),
+  L 185:                     })
+  L 186:                 except Exception:
+  L 187:                     logger.debug("[OBS] llm_materialization_failed observability skipped (non-critical)")
+  L 188:                 yield Artifact(
+  L 189:                     task_id=task.task_id,
+  L 190:                     success=False,
+  L 191:                     result_type="error",
+  L 192:                     data={},
+  L 193:                     error_message=f"LLM execution failed: {e}"
+  L 194:                 )
+  L 195:                 return
+  L 196:             finally:
+  L 197:                 _timer.cancel()
+  L 198: 
+  L 199:         if not text:
+  L 200:             yield Artifact(
+  L 201:                 task_id=task.task_id,
+  L 202:                 success=False,
+  L 203:                 result_type="error",
+  L 204:                 data={},
+  L 205:                 error_message="LLM failed or returned empty text (stub avoided)."
+  L 206:             )
+  L 207:             return
+
+==============================================================================
+STEP 9: Search for LLM client/provider classes
+==============================================================================
+  LLM directory: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\llm
+  file: app\services\llm\downloader.py
+  file: app\services\llm\factory.py
+  file: app\services\llm\health.py
+  file: app\services\llm\llama_cpp_provider.py
+  file: app\services\llm\mock_provider.py
+  file: app\services\llm\openai_compatible_provider.py
+  file: app\services\llm\provider.py
+  file: app\services\llm\provider_manager.py
+  file: app\services\llm\router.py
+  file: app\services\llm\runtime\_proc.py
+  file: app\services\llm\runtime\client.py
+  file: app\services\llm\runtime\host.py
+  file: app\services\llm\server_lifecycle.py
+
+==============================================================================
+STEP 10: Read LLM client files
+==============================================================================
+
+  --- app\services\llm\downloader.py (contains HTTP/LLM client code) ---
+  L   1: """
+  L   2: Менеджер скачивания LLM-моделей.
+  L   3: Позволяет проверять наличие моделей, инициировать загрузку и трекать прогресс.
+  L   4: """
+  L   5: import json
+  L   6: import logging
+  L   7: import urllib.request
+  L   8: from pathlib import Path
+  L   9: from typing import Any, Dict
+  L  10: 
+  L  11: from app.core.config import BASE_DIR
+  L  12: 
+  L  13: logger = logging.getLogger(__name__)
+  L  14: 
+  L  15: LLM_SOURCES_FILE = BASE_DIR / "config" / "llm_sources.json"
+  L  16: 
+  L  17: # Глобальное хранилище прогресса скачивания (key -> percentage)
+  L  18: _DOWNLOAD_STATUS: Dict[str, float] = {}
+  L  19: _DOWNLOAD_ERRORS: Dict[str, str] = {}
+  L  20: _DOWNLOAD_CANCEL: Dict[str, bool] = {}
+  L  21: _REMOTE_SIZE_CACHE: Dict[str, int] = {}
+  L  22: _REMOTE_SIZE_CACHE_TIME: Dict[str, float] = {}
+  L  23: 
+  L  24: _VRAM_CACHE: int = 0
+  L  25: 
+  L  26: def _init_vram_cache() -> None:
+  L  27:     """Фоновая инициализация кэша VRAM, чтобы не блокировать первый запрос."""
+  L  28:     global _VRAM_CACHE
+  L  29:     _VRAM_CACHE = _get_vram_mb()
+  L  30: 
+  L  31: def _get_vram_mb() -> int:
+  L  32:     """Получает объём видеопамяти в МБ (кэшируется при первом вызове)."""
+  L  33:     global _VRAM_CACHE
+  L  34:     if _VRAM_CACHE > 0:
+  L  35:         return _VRAM_CACHE
+  L  36: 
+  L  37:     import subprocess
+  L  38:     try:
+  L  39:         result = subprocess.run(
+  L  40:             ["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
+  L  41:             capture_output=True, text=True, timeout=2
+  L  42:         )
+  L  43:         if result.returncode == 0:
+  L  44:             _VRAM_CACHE = int(result.stdout.strip().split("\n")[0])
+  L  45:             return _VRAM_CACHE
+  L  46:     except Exception as e:
+  L  47:         # nvidia-smi отсутствует/недоступен — легальная деградация до VRAM=0,
+  L  48:         # но отказ обязан быть наблюдаемым (L4 / ADR-O-308, INV-SILENT-FAILURE)
+  L  49:         logger.debug(f"[LLM-VRAM] nvidia-smi недоступен, VRAM=0: {e}")
+  L  50:     return 0
+  L  51: 
+  L  52: def _get_remote_size(url: str, key: str) -> int:
+  L  53:     """Определяет размер файла через HF Tree API (JSON, без CDN-редиректов).
+  L  54:     Кэширует результат на 5 минут. PowerShell-HEAD работал, а urllib-HEAD — нет:
+  L  55:     CDN HuggingFace по-разному отвечает им; Tree API даёт размеры надёжно."""
+  L  56:     import json as _json
+  L  57:     import time
+  L  58:     _now = time.time()
+  L  59:     if key in _REMOTE_SIZE_CACHE and _now - _REMOTE_SIZE_CACHE_TIME.get(key, 0) < 300:
+  L  60:         return _REMOTE_SIZE_CACHE[key]
+  L  61:     try:
+  L  62:         # URL вида https://huggingface.co/{repo}/resolve/{rev}/{filename}
+  L  63:         _parts = url.split("/")
+  L  64:         _idx = _parts.index("resolve")
+  L  65:         _repo = "/".join(_parts[_idx - 2:_idx])
+  L  66:         _fname = "/".join(_parts[_idx + 2:])
+  L  67:         _api_url = f"https://huggingface.co/api/models/{_repo}/tree/main"
+  L  68:         _headers = {"User-Agent": "Bloodloom/0.5.3"}
+  L  69:         # Gated-репозитории (PygmalionAI, IlyaGusev) отдают 401 без токена.
+  L  70:         # Токен берём из окружения — тот же, что и для скачивания.
+  L  71:         import os as _os
+  L  72:         _hf_token = _os.environ.get("HF_TOKEN", "")
+  L  73:         if _hf_token:
+  L  74:             _headers["Authorization"] = f"Bearer {_hf_token}"
+  L  75:         _req = urllib.request.Request(_api_url, headers=_headers)
+  L  76:         with urllib.request.urlopen(_req, timeout=10) as _resp:
+  L  77:             _files = _json.loads(_resp.read().decode("utf-8"))
+  L  78:         # Сплит-файлы (Qwen2.5-14B): HF режет большие GGUF на части
+  L  79:         # {base}-0000N-of-0000M.gguf. Размер модели = сумма всех частей.
+  L  80:         if "-of-" in _fname:
+  L  81:             _base_prefix = _fname[: -len(".gguf")].rsplit("-", 3)[0] + "-"
+  L  82:             _total = 0
+  L  83:             _found = 0
+  L  84:             for _f in _files:
+  L  85:                 _p = _f.get("path", "")
+  L  86:                 if _p.startswith(_base_prefix) and "-of-" in _p and _p.endswith(".gguf"):
+  L  87:                     _total += int(_f.get("size", 0) or 0)
+  L  88:                     _found += 1
+  L  89:             if _found > 0 and _total > 0:
+  L  90:                 _REMOTE_SIZE_CACHE[key] = _total
+  L  91:                 _REMOTE_SIZE_CACHE_TIME[key] = _now
+  L  92:                 return _total
+  L  93:             logger.debug(f"[REMOTE_SIZE] split parts not in tree: key={key} fname={_fname}")
+  L  94:             return 0
+  L  95:         for _f in _files:
+  L  96:             if _f.get("path") == _fname:
+  L  97:                 _size = int(_f.get("size", 0) or 0)
+  L  98:                 if _size > 0:
+  L  99:                     _REMOTE_SIZE_CACHE[key] = _size
+  L 100:                     _REMOTE_SIZE_CACHE_TIME[key] = _now
+  ... (342 more lines)
+
+  --- app\services\llm\factory.py (contains HTTP/LLM client code) ---
+  L   1: """
+  L   2: LLM Provider Factory
+  L   3: 
+  L   4: Создаёт LLM провайдеров по типу. Не содержит реализаций — только маппинг.
+  L   5: Реализации живут в отдельных модулях:
+  L   6: - llama_cpp_provider.py
+  L   7: - openai_provider.py
+  L   8: - anthropic_provider.py
+  L   9: - ollama_provider.py
+  L  10: - vllm_provider.py
+  L  11: - mock_provider.py
+  L  12: """
+  L  13: from __future__ import annotations
+  L  14: 
+  L  15: from app.core.config import settings
+  L  16: from app.services.llm.llama_cpp_provider import create_llama_cpp_provider
+  L  17: 
+  L  18: # C5-FIX: Удалены импорты мёртвых провайдеров
+  L  19: from app.services.llm.mock_provider import create_mock_provider
+  L  20: from app.services.llm.provider import LlmProvider, ProviderType
+  L  21: 
+  L  22: 
+  L  23: class ProviderFactory:
+  L  24:     """
+  L  25:     Фабрика для создания LLM провайдеров.
+  L  26: 
+  L  27:     Каждый провайдер — отдельный replaceable модуль.
+  L  28:     Добавить новый провайдер = создать файл + добавить case в create().
+  L  29:     """
+  L  30: 
+  L  31:     @staticmethod
+  L  32:     def create(
+  L  33:         provider_type: ProviderType,
+  L  34:         model_path: str | None = None,
+  L  35:         endpoint: str | None = None,
+  L  36:         api_key: str | None = None,
+  L  37:     ) -> LlmProvider:
+  L  38:         """
+  L  39:         Создать провайдер указанного типа.
+  L  40: 
+  L  41:         Args:
+  L  42:             provider_type: Тип провайдера
+  L  43:             model_path: Путь/имя модели
+  L  44:             endpoint: URL endpoint (для API)
+  L  45:             api_key: API ключ (для API)
+  L  46: 
+  L  47:         Returns:
+  L  48:             Настроенный провайдер
+  L  49:         """
+  L  50:         match provider_type:
+  L  51:             case ProviderType.LLAMA_CPP:
+  L  52:                 # server_url=None → create_llama_cpp_provider берёт из settings.llama_cpp_server_url
+  L  53:                 # Пустая строка там = CLI режим, URL = серверный режим
+  L  54:                 return create_llama_cpp_provider(
+  L  55:                     model_path=model_path,
+  L  56:                     model_name="default",
+  L  57:                     server_url=endpoint,
+  L  58:                 )
+  L  59: 
+  L  60:             case ProviderType.OPENAI:
+  L  61:                 from app.services.llm.openai_compatible_provider import OpenAICompatibleProvider
+  L  62:                 # endpoint: https://api.openai.com/v1 или https://api.bigmodel.cn/api/paas/v4
+  L  63:                 # api_key: берётся из config.py (settings.openai_api_key)
+  L  64:                 return OpenAICompatibleProvider(
+  L  65:                     model_name=model_path or "gpt-4o-mini",
+  L  66:                     api_key=api_key or "",
+  L  67:                     endpoint=endpoint or "https://api.openai.com/v1",
+  L  68:                 )
+  L  69: 
+  L  70:             case ProviderType.MOCK:
+  L  71:                 # B4-FIX: MockProvider excluded from production (No fallback reality).
+  L  72:                 from app.core.config import settings
+  L  73: 
+  L  74:                 if settings.environment == "production":
+  L  75:                     raise RuntimeError(
+  L  76:                         "[LLM_FACTORY] CRITICAL: MockProvider in production. "
+  L  77:                         "Mock is simulation of simulation — no place in runtime reality. "
+  L  78:                         "Set settings.environment='development' to allow."
+  L  79:                     )
+  L  80:                 return create_mock_provider()
+  L  81: 
+  L  82:             case _:
+  L  83:                 raise ValueError(f"Unknown provider type: {provider_type}")
+  L  84: 
+  L  85:     @staticmethod
+  L  86:     def check_health_all() -> dict[str, bool]:
+  L  87:         """
+  L  88:         Проверить доступность всех LLM серверов для агентов.
+  L  89: 
+  L  90:         Returns:
+  L  91:             Словарь {agent_name: is_available}
+  L  92:         """
+  L  93:         return settings.check_llm_servers_health()
+  L  94: 
+  L  95: 
+  L  96: def get_provider(provider_type: ProviderType = ProviderType.LLAMA_CPP) -> LlmProvider:
+  L  97:     """Получить провайдер по типу."""
+  L  98:     return ProviderFactory.create(provider_type)
+  L  99: 
+
+  --- app\services\llm\health.py (contains HTTP/LLM client code) ---
+  L   1: from __future__ import annotations
+  L   2: 
+  L   3: # backend/app/services/llm/health.py
+  L   4: """
+  L   5: Инфраструктурный слой: Проверка доступности LLM бэкенда.
+  L   6: Отвечает только за ping сервера (жив/мертв), не за генерацию.
+  L   7: """
+  L   8: 
+  L   9: 
+  L  10: import time
+  L  11: from typing import Dict
+  L  12: 
+  L  13: import httpx
+  L  14: from app.core.config import settings
+  L  15: 
+  L  16: # Простой in-memory кэш для избежания спама запросами при рефреше UI
+  L  17: _cache: Dict = {}
+  L  18: _cache_time: float = 0.0
+  L  19: _CACHE_TTL_SEC: float = 5.0
+  L  20: 
+  L  21: 
+  L  22: def check_llm_health(use_cache: bool = True) -> Dict:
+  L  23:     """
+  L  24:     Проверяет доступность llama.cpp/vLLM сервера.
+  L  25:     Возвращает словарь со статусом, именем модели и URL.
+  L  26:     """
+  L  27:     global _cache, _cache_time
+  L  28: 
+  L  29:     if use_cache and (time.time() - _cache_time < _CACHE_TTL_SEC) and _cache:
+  L  30:         return _cache
+  L  31: 
+  L  32:     url = settings.llama_cpp_server_url
+  L  33: 
+  L  34:     try:
+  L  35:         # S97 FIX: trust_env=False отключает чтение прокси из ОС (Throne рвёт localhost)
+  L  36:         with httpx.Client(timeout=settings.llama_cpp_timeout_sec, trust_env=False) as client:
+  L  37:             response = client.get(f"{url}/v1/models")
+  L  38: 
+  L  39:             if response.status_code == 200:
+  L  40:                 data = response.json()
+  L  41:                 models = data.get("data", [])
+  L  42:                 model_name = models[0].get("id", "unknown") if models else "unknown"
+  L  43: 
+  L  44:                 _cache = {"status": "online", "model": model_name, "url": url}
+  L  45:             else:
+  L  46:                 _cache = {
+  L  47:                     "status": "error",
+  L  48:                     "code": response.status_code,
+  L  49:                     "details": f"HTTP {response.status_code}",
+  L  50:                 }
+  L  51:     except httpx.ConnectError:
+  L  52:         _cache = {"status": "offline", "details": "Connection refused"}
+  L  53:     except Exception as e:
+  L  54:         # Защита от краша при любых других сетевых ошибках
+  L  55:         _cache = {"status": "error", "details": str(e)}
+  L  56: 
+  L  57:     _cache_time = time.time()
+  L  58:     return _cache
+  L  59: 
+
+  --- app\services\llm\llama_cpp_provider.py (contains HTTP/LLM client code) ---
+  L   1: # -*- coding: utf-8 -*-
+  L   2: """
+  L   3: Llama.cpp Provider Implementation
+  L   4: Local LLM inference using llama.cpp server or CLI
+  L   5: 
+  L   6: Решение проблемы thinking у Qwen3:
+  L   7:   Добавляем пустой <think></think> в prefill ассистента.
+  L   8:   Модель видит "думать уже закончил" и сразу даёт ответ на русском.
+  L   9:   Это официальный способ отключения thinking в Qwen3 через llama.cpp.
+  L  10: """
+  L  11: from __future__ import annotations
+  L  12: 
+  L  13: import json
+  L  14: import logging
+  L  15: import os
+  L  16: import re
+  L  17: import subprocess
+  L  18: import threading
+  L  19: import time
+  L  20: import urllib.error
+  L  21: import urllib.request
+  L  22: from dataclasses import dataclass
+  L  23: from pathlib import Path
+  L  24: from typing import Callable, Generator, Optional, cast
+  L  25: 
+  L  26: from app.core.config import settings
+  L  27: from app.services.llm.provider import (
+  L  28:     GenerationParams,
+  L  29:     ProviderInfo,
+  L  30:     ProviderType,
+  L  31:     StreamingLlmProvider,
+  L  32: )
+  L  33: from app.services.npc.kernel_rng import KernelRNG
+  L  34: 
+  L  35: logger = logging.getLogger(__name__)
+  L  36: 
+  L  37: # Regex для вырезания thinking блоков (страховка)
+  L  38: _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+  L  39: # Regex для незакрытых thinking блоков (<think> без </think>)
+  L  40: _THINK_OPEN_RE = re.compile(r"<think>.*$", re.DOTALL)
+  L  41: 
+  L  42: 
+  L  43: def _strip_thinking(text: str) -> str:
+  L  44:     """Убирает <think>...</think> и незакрытые <think>... из ответа."""
+  L  45:     text = _THINK_RE.sub("", text)
+  L  46:     text = _THINK_OPEN_RE.sub("", text)
+  L  47:     return text.strip()
+  L  48: 
+  L  49: 
+  L  50: # Только ASCII стоп-токены
+  L  51: DEFAULT_STOP_TOKENS = [
+  L  52:     "</s>",
+  L  53:     "</user>",
+  L  54:     "<user>",
+  L  55:     "<assistant>",
+  L  56:     "<|im_end|>",
+  L  57:     "<|end_of_text|>",
+  L  58: ]
+  L  59: 
+  L  60: 
+  L  61: @dataclass
+  L  62: class LlamaCppModelConfig:
+  L  63:     path: str
+  L  64:     name: str
+  L  65:     context_size: int = 8192
+  L  66:     temperature: float = 0.9
+  L  67:     top_p: float = 0.9
+  L  68:     min_p: float = 0.1
+  L  69:     repeat_penalty: float = 1.12
+  L  70:     n_keep: int = 800
+  L  71:     vram_mb: int = 5000
+  L  72: 
+  L  73: 
+  L  74: class LlamaCppProvider(StreamingLlmProvider):
+  L  75:     def __init__(
+  L  76:         self,
+  L  77:         model_config: LlamaCppModelConfig | None = None,
+  L  78:         server_url: str | None = None,
+  L  79:         executable: str | None = None,
+  L  80:     ) -> None:
+  L  81:         self.model_config = model_config or LlamaCppModelConfig(
+  L  82:             path=settings.llama_cpp_model_path,
+  L  83:             name="default",
+  L  84:         )
+  L  85:         # server_url берётся из конфига, не из runtime_ports (чтобы управлять режимом)
+  L  86:         self.server_url = server_url or settings.llama_cpp_server_url
+  L  87:         self.executable = executable or settings.llama_cpp_executable
+  L  88:         self._use_server = bool(self.server_url)
+  L  89:         # CLI-режим: отслеживание процесса и блокировка параллельных вызовов
+  L  90:         self._cli_process: subprocess.Popen | None = None
+  L  91:         self._cli_lock = threading.Lock()
+  L  92: 
+  L  93:     @property
+  L  94:     def use_server(self) -> bool:
+  L  95:         return self._use_server
+  L  96: 
+  L  97:     # ──────────────────────────────────────────────────────────────────────────
+  L  98:     # Основной метод генерации
+  L  99:     # ──────────────────────────────────────────────────────────────────────────
+  L 100: 
+  ... (639 more lines)
+
+  --- app\services\llm\openai_compatible_provider.py (contains HTTP/LLM client code) ---
+  L   1: # backend/app/services/llm/openai_compatible_provider.py
+  L   2: """
+  L   3: Назначение: LLM провайдер для OpenAI-совместимого API (OpenAI, ZhipuAI, LocalAI).
+  L   4: Зависимости: urllib, json, logging
+  L   5: Основные сущности: OpenAICompatibleProvider
+  L   6: """
+  L   7: import json
+  L   8: import logging
+  L   9: import urllib.request
+  L  10: from typing import Optional
+  L  11: 
+  L  12: from app.services.llm.provider import (
+  L  13:     GenerationParams,
+  L  14:     LlmProvider,
+  L  15:     ProviderInfo,
+  L  16:     ProviderType,
+  L  17: )
+  L  18: 
+  L  19: logger = logging.getLogger(__name__)
+  L  20: 
+  L  21: class OpenAICompatibleProvider(LlmProvider):
+  L  22:     """Провайдер для OpenAI-совместимого API (Cloud Fallback)."""
+  L  23: 
+  L  24:     def __init__(
+  L  25:         self,
+  L  26:         model_name: str,
+  L  27:         api_key: str,
+  L  28:         endpoint: str = "https://api.openai.com/v1",
+  L  29:         temperature: float = 0.7,
+  L  30:         max_tokens: int = 1024,
+  L  31:     ) -> None:
+  L  32:         self._model_name = model_name
+  L  33:         self._api_key = api_key
+  L  34:         self._endpoint = endpoint.rstrip("/")
+  L  35:         self._temperature = temperature
+  L  36:         self._max_tokens = max_tokens
+  L  37:         self._available = bool(api_key)  # Доступен только если есть ключ
+  L  38: 
+  L  39:     def is_available(self) -> bool:
+  L  40:         return self._available
+  L  41: 
+  L  42:     def get_info(self) -> ProviderInfo:
+  L  43:         """Метаданные провайдера (реализация абстракции LlmProvider)."""
+  L  44:         return ProviderInfo(
+  L  45:             name="openai_compatible",
+  L  46:             provider_type=ProviderType.OPENAI,
+  L  47:             endpoint=self._endpoint,
+  L  48:             model_name=self._model_name,
+  L  49:             is_available=self.is_available(),
+  L  50:         )
+  L  51: 
+  L  52:     def get_provider_type(self) -> ProviderType:
+  L  53:         """Тип провайдера (реализация абстракции LlmProvider)."""
+  L  54:         return ProviderType.OPENAI
+  L  55: 
+  L  56:     def complete(
+  L  57:         self, prompt: str, params: Optional[GenerationParams] = None, system_prompt: Optional[str] = None
+  L  58:     ) -> str:
+  L  59:         if not self._available:
+  L  60:             raise RuntimeError("OpenAICompatibleProvider: API key is missing.")
+  L  61: 
+  L  62:         headers = {
+  L  63:             "Content-Type": "application/json",
+  L  64:             "Authorization": f"Bearer {self._api_key}",
+  L  65:         }
+  L  66: 
+  L  67:         messages = []
+  L  68:         if system_prompt:
+  L  69:             messages.append({"role": "system", "content": system_prompt})
+  L  70:         messages.append({"role": "user", "content": prompt})
+  L  71: 
+  L  72:         _temp = params.temperature if params else self._temperature
+  L  73:         _max_tok = params.max_tokens if params else self._max_tokens
+  L  74:         payload = {
+  L  75:             "model": self._model_name,
+  L  76:             "messages": messages,
+  L  77:             "temperature": _temp,
+  L  78:             "max_tokens": _max_tok,
+  L  79:         }
+  L  80:         # H-14 FIX: Передаём остальные параметры генерации, если они заданы
+  L  81:         if params:
+  L  82:             _top_p = getattr(params, "top_p", None)  # noqa: ENIGMA002
+  L  83:             if _top_p is not None: payload["top_p"] = _top_p
+  L  84:             _presence = getattr(params, "presence_penalty", None)  # noqa: ENIGMA002
+  L  85:             if _presence is not None: payload["presence_penalty"] = _presence
+  L  86:             _frequency = getattr(params, "frequency_penalty", None)  # noqa: ENIGMA002
+  L  87:             if _frequency is not None: payload["frequency_penalty"] = _frequency
+  L  88:             _stop = getattr(params, "stop", None)  # noqa: ENIGMA002
+  L  89:             if _stop: payload["stop"] = _stop
+  L  90:             _resp_fmt = getattr(params, "response_format", None)  # noqa: ENIGMA002
+  L  91:             if _resp_fmt: payload["response_format"] = _resp_fmt
+  L  92: 
+  L  93:         data = json.dumps(payload).encode("utf-8")
+  L  94:         req = urllib.request.Request(
+  L  95:             f"{self._endpoint}/chat/completions",
+  L  96:             data=data,
+  L  97:             headers=headers,
+  L  98:             method="POST",
+  L  99:         )
+  L 100: 
+  ... (26 more lines)
+
+  --- app\services\llm\provider.py (contains HTTP/LLM client code) ---
+  L   1: """
+  L   2: LLM Provider Interface
+  L   3: Abstract base class for all LLM providers.
+  L   4: """
+  L   5: from __future__ import annotations
+  L   6: 
+  L   7: from abc import ABC, abstractmethod
+  L   8: from dataclasses import dataclass, field
+  L   9: from enum import Enum
+  L  10: from typing import Callable, Optional
+  L  11: 
+  L  12: 
+  L  13: class ProviderType(str, Enum):
+  L  14:     """Типы LLM провайдеров."""
+  L  15: 
+  L  16:     LLAMA_CPP = "llama_cpp"
+  L  17:     OPENAI = "openai"
+  L  18:     ANTHROPIC = "anthropic"
+  L  19:     OLLAMA = "ollama"
+  L  20:     LM_STUDIO = "lm_studio"
+  L  21:     KOBOLD_CPP = "koboldcpp"
+  L  22:     VLLM = "vllm"
+  L  23:     MOCK = "mock"
+  L  24: 
+  L  25: 
+  L  26: @dataclass
+  L  27: class GenerationParams:
+  L  28:     """Параметры генерации для LLM."""
+  L  29: 
+  L  30:     max_tokens: int = 1024
+  L  31:     temperature: float = 0.9
+  L  32:     top_p: float = 0.9
+  L  33:     top_k: int = 40
+  L  34:     repeat_penalty: float = 1.12
+  L  35:     n_keep: int = 800  # System prompt tokens to keep
+  L  36:     min_p: float = 0.1  # Min-P sampling — отсекает мусор при высокой температуре
+  L  37:     stop: list[str] = field(default_factory=list)
+  L  38: 
+  L  39:     # Дополнительные параметры для API провайдеров
+  L  40:     presence_penalty: Optional[float] = None
+  L  41:     frequency_penalty: Optional[float] = None
+  L  42:     response_format: Optional[dict] = None
+  L  43:     # S371.3-GBNF: GBNF grammar для /completion endpoint (llama_cpp_provider).
+  L  44:     # None → существующий путь /v1/chat/completions. Не None → /completion + grammar.
+  L  45:     # Только llama_cpp_provider использует это поле; остальные провайдеры игнорируют.
+  L  46:     grammar: Optional[str] = None
+  L  47: 
+  L  48: 
+  L  49: @dataclass
+  L  50: class ProviderInfo:
+  L  51:     """Информация о провайдере."""
+  L  52: 
+  L  53:     name: str
+  L  54:     provider_type: ProviderType
+  L  55:     endpoint: Optional[str] = None
+  L  56:     model_name: Optional[str] = None
+  L  57:     is_available: bool = True
+  L  58:     context_size: int = 4096
+  L  59:     vram_mb: int = 0
+  L  60: 
+  L  61: 
+  L  62: class LlmProvider(ABC):
+  L  63:     """
+  L  64:     Abstract base class for LLM providers.
+  L  65: 
+  L  66:     All providers must implement:
+  L  67:     - complete(): Generate text from prompt
+  L  68:     - is_available(): Check if provider is ready
+  L  69:     - get_info(): Return provider information
+  L  70:     """
+  L  71: 
+  L  72:     @abstractmethod
+  L  73:     def complete(
+  L  74:         self,
+  L  75:         prompt: str,
+  L  76:         params: GenerationParams | None = None,
+  L  77:         system_prompt: str | None = None,
+  L  78:     ) -> str:
+  L  79:         """
+  L  80:         Генерирует текст на основе промпта.
+  L  81: 
+  L  82:         Args:
+  L  83:             prompt: Пользовательский промпт
+  L  84:             params: Параметры генерации
+  L  85:             system_prompt: Системный промпт (опционально)
+  L  86: 
+  L  87:         Returns:
+  L  88:             Сгенерированный текст
+  L  89:         """
+  L  90:         pass
+  L  91: 
+  L  92:     @abstractmethod
+  L  93:     def is_available(self) -> bool:
+  L  94:         """
+  L  95:         Проверяет доступность провайдера.
+  L  96: 
+  L  97:         Returns:
+  L  98:             True если провайдер готов к работе
+  L  99:         """
+  L 100:         pass
+  ... (100 more lines)
+
+  --- app\services\llm\provider_manager.py (contains HTTP/LLM client code) ---
+  L   1: """
+  L   2: Provider Manager — Multi-Provider + Lazy Loading (RTX 3070 Ti, 8 GB VRAM)
+  L   3: 
+  L   4: ИСПРАВЛЕНИЯ vs оригинал:
+  L   5: 1. Класс ModelPool был СТРУКТУРНО СЛОМАН:
+  L   6:    блок `if __name__ == "__main__"` разрывал тело класса — все атрибуты
+  L   7:    (_max_loaded, _active_model, _pool_lock, list_models, etc.) оказывались
+  L   8:    ВНЕ класса. ModelPool работал как пустышка без полей.
+  L   9:    → Переписан с нуля, правильная структура.
+  L  10: 
+  L  11: 2. asyncio.sleep(2) в measure_load() убран.
+  L  12:    3 агента × 2 сек = +6 сек лишнего ожидания на каждый turn.
+  L  13: 
+  L  14: 3. unload_all() вызывал asyncio.create_task() из sync-контекста → RuntimeError.
+  L  15:    Заменено на синхронный _unload_active_model().
+  L  16: 
+  L  17: # 4. context_size по умолчанию: 8192 (с flash-attn влезает в 8 GB VRAM).
+  L  18: """
+  L  19: from __future__ import annotations
+  L  20: 
+  L  21: import asyncio
+  L  22: import json
+  L  23: import logging
+  L  24: import threading
+  L  25: import time
+  L  26: from dataclasses import dataclass, field
+  L  27: from datetime import datetime
+  L  28: from enum import Enum
+  L  29: from pathlib import Path
+  L  30: from typing import Any, Dict, List, Optional
+  L  31: 
+  L  32: from app.core.config import settings
+  L  33: from app.services.error_interpreter import get_error_interpreter
+  L  34: from app.services.vram_monitor import get_vram_monitor
+  L  35: 
+  L  36: logger = logging.getLogger(__name__)
+  L  37: 
+  L  38: from app.services.llm.provider import CAPABILITY_MODEL_PREFERENCES, Capability, LlmProvider, ProviderInfo, ProviderType
+  L  39: 
+  L  40: 
+  L  41: class ProviderStatus(str, Enum):
+  L  42:     UNINITIALIZED = "uninitialized"
+  L  43:     INITIALIZING = "initializing"
+  L  44:     LOADING = "loading"
+  L  45:     READY = "ready"
+  L  46:     ERROR = "error"
+  L  47:     DISABLED = "disabled"
+  L  48: 
+  L  49: 
+  L  50: @dataclass
+  L  51: class ModelMetrics:
+  L  52:     name: str
+  L  53:     vram_usage: int
+  L  54:     last_used: float
+  L  55: 
+  L  56:     def reset_errors(self) -> None:
+  L  57:         """COV-2/D61: контракт pool_reset_backoff — метрики не хранят
+  L  58:         error-состояние (error_count/last_error живут в ModelProvider),
+  L  59:         сброс = no-op без AttributeError на реальных ModelMetrics."""
+  L  60:         pass
+  L  61: 
+  L  62: 
+  L  63: @dataclass
+  L  64: class ModelConfig:
+  L  65:     key: str
+  L  66:     name: str
+  L  67:     provider_type: ProviderType
+  L  68:     path: str
+  L  69:     context_size: int = 8192
+  L  70:     temperature: float = 0.7
+  L  71:     vram_mb: int = 4000
+  L  72:     metrics: ModelMetrics = field(
+  L  73:         default_factory=lambda: ModelMetrics(name="", vram_usage=0, last_used=0.0)
+  L  74:     )
+  L  75: 
+  L  76: 
+  L  77: @dataclass
+  L  78: class ModelProvider:
+  L  79:     key: str
+  L  80:     name: str
+  L  81:     provider: LlmProvider
+  L  82:     provider_type: ProviderType
+  L  83:     path: str
+  L  84:     endpoint: Optional[str] = None
+  L  85:     context_size: int = 2048
+  L  86:     vram_mb: int = 4000
+  L  87:     temperature: float = 0.7
+  L  88:     status: ProviderStatus = ProviderStatus.UNINITIALIZED
+  L  89:     last_used: float = 0
+  L  90:     error_count: int = 0
+  L  91:     last_error: Optional[str] = None
+  L  92: 
+  L  93:     def is_available(self) -> bool:
+  L  94:         return (
+  L  95:             self.status == ProviderStatus.READY
+  L  96:             and self.provider is not None
+  L  97:             and self.provider.is_available()
+  L  98:         )
+  L  99: 
+  L 100:     def get_info(self) -> ProviderInfo:
+  ... (551 more lines)
+
+  --- app\services\llm\router.py (contains HTTP/LLM client code) ---
+  L   1: from __future__ import annotations
+  L   2: 
+  L   3: # backend\app\services\llm\router.py
+  L   4: """
+  L   5: Model Router - Capability-based LLM Routing with Lazy Loading
+  L   6: 
+  L   7: This is the core component that automatically routes agent requests
+  L   8: to appropriate models based on capability requirements.
+  L   9: 
+  L  10: Architecture:
+  L  11:     Agents → ModelRouter → ModelPool (lazy loading) → LlmProvider
+  L  12: 
+  L  13: Features:
+  L  14: - Lazy loading: only one model in VRAM at a time
+  L  15: - Capability-based routing
+  L  16: - Automatic model switching
+  L  17: - Metrics collection
+  L  18: """
+  L  19: 
+  L  20: 
+  L  21: import asyncio
+  L  22: import logging
+  L  23: import threading
+  L  24: import time
+  L  25: from dataclasses import dataclass, field
+  L  26: from typing import TYPE_CHECKING, Any, Optional, cast
+  L  27: 
+  L  28: from app.services.logging_tools import jsonl_log
+  L  29: 
+  L  30: logger = logging.getLogger(__name__)
+  L  31: # Корневой логгер для критической телеметрии, чтобы обойти фильтрацию уровней дочерних логгеров
+  L  32: _root_logger = logging.getLogger()
+  L  33: 
+  L  34: from app.core.config import settings
+  L  35: from app.services.llm.provider import (
+  L  36:     CAPABILITY_MODEL_PREFERENCES,
+  L  37:     Capability,
+  L  38:     GenerationParams,
+  L  39:     LlmProvider,
+  L  40:     ProviderType,
+  L  41: )
+  L  42: 
+  L  43: if TYPE_CHECKING:
+  L  44:     # Циклический импорт: provider_manager импортирует router — только для типов.
+  L  45:     from app.services.llm.provider_manager import ModelPool, ProviderManager
+  L  46: 
+  L  47: 
+  L  48: @dataclass
+  L  49: class ModelConfig:
+  L  50:     """Конфигурация модели для маршрутизации."""
+  L  51: 
+  L  52:     key: str  # Уникальный ключ модели
+  L  53:     name: str  # Человеческое название
+  L  54:     provider_type: ProviderType  # Тип провайдера
+  L  55:     path: str  # Путь к файлу модели
+  L  56: 
+  L  57:     # Capabilities
+  L  58:     capabilities: list[Capability] = field(default_factory=list)
+  L  59: 
+  L  60:     # Parameters
+  L  61:     context_size: int = 4096
+  L  62:     temperature: float = 0.7
+  L  63:     top_p: float = 0.9
+  L  64:     repeat_penalty: float = 1.1
+  L  65:     n_keep: int = 512
+  L  66: 
+  L  67:     # Resource
+  L  68:     vram_mb: int = 4000
+  L  69: 
+  L  70:     # Endpoint (for API providers)
+  L  71:     endpoint: Optional[str] = None
+  L  72:     api_key: Optional[str] = None
+  L  73: 
+  L  74: 
+  L  75: # Registry всех доступных моделей - инициализируется из конфигурации
+  L  76: MODEL_REGISTRY: dict[str, ModelConfig] = {}
+  L  77: 
+  L  78: 
+  L  79: def _init_registry() -> dict[str, ModelConfig]:
+  L  80:     """Единственная модель проекта."""
+  L  81:     # Читаем provider_type из settings — позволяет переключить на mock без правки кода
+  L  82:     _qwen_cfg = settings.available_models.get("qwen_7b")
+  L  83:     _qwen_pt = (
+  L  84:         ProviderType(getattr(_qwen_cfg, "provider_type", "llama_cpp"))
+  L  85:         if _qwen_cfg
+  L  86:         else ProviderType.LLAMA_CPP
+  L  87:     )
+  L  88:     _saiga_cfg = settings.available_models.get("saiga_llama3_8b")
+  L  89:     _saiga_pt = (
+  L  90:         ProviderType(getattr(_saiga_cfg, "provider_type", "llama_cpp"))
+  L  91:         if _saiga_cfg
+  L  92:         else ProviderType.LLAMA_CPP
+  L  93:     )
+  L  94:     return {
+  L  95:         "qwen_7b": ModelConfig(
+  L  96:             key="qwen_7b",
+  L  97:             name="qwen_7b",
+  L  98:             provider_type=_qwen_pt,
+  L  99:             path=settings.model_qwen_7b_path,
+  L 100:             capabilities=[
+  ... (1092 more lines)
+
+  --- app\services\llm\runtime\client.py (contains HTTP/LLM client code) ---
+  L   1: """
+  L   2: path: backend/app/services/llm/runtime/client.py
+  L   3: Назначение: LLM Host Client SDK — единый интерфейс для подключения
+  L   4:     игры, pytest, IPT и экспериментов к LLM Host broker (:8182).
+  L   5:     Клиенты не управляют процессами — получают URL через lease.
+  L   6:     ENIGMA_LLM_HOST=off → legacy llm_server_manager (осознанный переход).
+  L   7: Зависимости: os, threading, time, urllib, psutil, app.core.config,
+  L   8:     scripts.llm_server_manager (legacy fallback only)
+  L   9: """
+  L  10: import atexit
+  L  11: import json
+  L  12: import os
+  L  13: import subprocess
+  L  14: import sys
+  L  15: import threading
+  L  16: import time
+  L  17: import urllib.error
+  L  18: import urllib.request
+  L  19: from pathlib import Path
+  L  20: from typing import Optional
+  L  21: 
+  L  22: from app.core.config import settings
+  L  23: from app.services.llm.runtime._proc import silent_subprocess_kwargs
+  L  24: 
+  L  25: _PROTOCOL_VERSION = "llm-host-v1"
+  L  26: _HOST_STARTUP_TIMEOUT = 30
+  L  27: _HEALTH_TIMEOUT = 2
+  L  28: _HEARTBEAT_INTERVAL = 15
+  L  29: _BACKEND_DIR = str(Path(__file__).resolve().parents[4])
+  L  30: 
+  L  31: _lease_id: Optional[str] = None
+  L  32: _lease_url: Optional[str] = None
+  L  33: _heartbeat_thread: Optional[threading.Thread] = None
+  L  34: _heartbeat_stop = threading.Event()
+  L  35: _legacy_mode = False
+  L  36: 
+  L  37: 
+  L  38: def _host_url() -> str:
+  L  39:     return f"http://127.0.0.1:{settings.llm_host_port}"
+  L  40: 
+  L  41: 
+  L  42: def _check_host_health() -> Optional[dict]:
+  L  43:     """GET /health → проверка protocol_version. None = Host чужой или отсутствует."""
+  L  44:     try:
+  L  45:         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+  L  46:         with opener.open(f"{_host_url()}/health", timeout=_HEALTH_TIMEOUT) as resp:
+  L  47:             data = json.loads(resp.read().decode("utf-8"))
+  L  48:             return data if data.get("protocol_version") == _PROTOCOL_VERSION else None
+  L  49:     except Exception as e:
+  L  50:         print(f"[LLM_SDK] Host health check failed: {e}")
+  L  51:         return None
+  L  52: 
+  L  53: 
+  L  54: def _start_host() -> bool:
+  L  55:     """Запуск Host как detached process (переживает родителя)."""
+  L  56:     try:
+  L  57:         cmd = [
+  L  58:             sys.executable, "-m", "uvicorn",
+  L  59:             "app.services.llm.runtime.host:app",
+  L  60:             "--host", "127.0.0.1",
+  L  61:             "--port", str(settings.llm_host_port),
+  L  62:             "--log-level", "warning",
+  L  63:         ]
+  L  64:         kwargs = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL, "cwd": _BACKEND_DIR}
+  L  65:         if sys.platform == "win32":
+  L  66:             # Merge CREATE_NEW_PROCESS_GROUP (so we can Ctrl-Break the Host later)
+  L  67:             # with silent_subprocess_kwargs(): CREATE_NO_WINDOW | DETACHED_PROCESS
+  L  68:             # + STARTUPINFO(SW_HIDE) → no console window flash, no taskbar entry.
+  L  69:             _silent = silent_subprocess_kwargs()
+  L  70:             kwargs["creationflags"] = _silent.get("creationflags", 0) | subprocess.CREATE_NEW_PROCESS_GROUP
+  L  71:             if "startupinfo" in _silent:
+  L  72:                 kwargs["startupinfo"] = _silent["startupinfo"]
+  L  73:         else:
+  L  74:             kwargs["start_new_session"] = True
+  L  75:         subprocess.Popen(cmd, **kwargs)
+  L  76:         return True
+  L  77:     except Exception as e:
+  L  78:         print(f"[LLM_SDK] Failed to start Host: {e}")
+  L  79:         return False
+  L  80: 
+  L  81: 
+  L  82: def _wait_host_ready(timeout: int = _HOST_STARTUP_TIMEOUT) -> bool:
+  L  83:     deadline = time.monotonic() + timeout
+  L  84:     while time.monotonic() < deadline:
+  L  85:         if _check_host_health() is not None:
+  L  86:             return True
+  L  87:         time.sleep(1)
+  L  88:     return False
+  L  89: 
+  L  90: 
+  L  91: def _discover_or_start_host() -> None:
+  L  92:     """Обнаружение Host или запуск нового. RuntimeError если невозможно."""
+  L  93:     if _check_host_health() is not None:
+  L  94:         return
+  L  95:     if not _start_host():
+  L  96:         raise RuntimeError(
+  L  97:             f"Cannot start LLM Host on port {settings.llm_host_port}. "
+  L  98:             f"Port may be occupied by a foreign service."
+  L  99:         )
+  L 100:     if not _wait_host_ready():
+  ... (116 more lines)
+
+  --- app\services\llm\runtime\host.py (contains HTTP/LLM client code) ---
+  L   1: """
+  L   2: path: backend/app/services/llm/runtime/host.py
+  L   3: Назначение: LLM Host broker — единственный распорядитель жизненным циклом
+  L   4:     llama-server. Control-plane only (data идёт напрямую client→llama-server:8181).
+  L   5:     Management port: settings.llm_host_port (8182).
+  L   6:     Этап 3 (LLM Runtime Unification MVP).
+  L   7: 
+  L   8: Контракт (вердикт Мастера):
+  L   9:     - Lease-based (UUID, не PID). Один SDK-клиент — один lease.
+  L  10:     - Health-check обязателен до выдачи lease (поправка B).
+  L  11:     - Adopted сервер (spawned_by_us=False) — NEVER killed.
+  L  12:     - Host shutdown — server NOT killed.
+  L  13:     - Kill by name/PID — ЗАПРЕЩЁН.
+  L  14:     - Fallback при аварии Host — ЗАПРЕЩЁН (только ENIGMA_LLM_HOST=off → legacy).
+  L  15: Зависимости: FastAPI, server_lifecycle (_spawn_llama_server, _await_llama_ready,
+  L  16:     acquire_llama_server_lock), app.core.config
+  L  17: """
+  L  18: import asyncio
+  L  19: import time
+  L  20: import uuid
+  L  21: import urllib.request
+  L  22: from contextlib import asynccontextmanager
+  L  23: from typing import Any
+  L  24: 
+  L  25: from fastapi import FastAPI, HTTPException
+  L  26: from pydantic import BaseModel
+  L  27: 
+  L  28: from app.core.config import settings
+  L  29: from app.services.llm.server_lifecycle import (
+  L  30:     _spawn_llama_server,
+  L  31:     _await_llama_ready,
+  L  32:     acquire_llama_server_lock,
+  L  33: )
+  L  34: 
+  L  35: PROTOCOL_VERSION = "llm-host-v1"
+  L  36: LEASE_TTL = 60
+  L  37: LEASE_TTL_PINNED = 300
+  L  38: STALE_CLEANUP_INTERVAL = 10
+  L  39: HEALTH_WAIT_TIMEOUT = 120
+  L  40: HEALTH_POLL_INTERVAL = 2
+  L  41: 
+  L  42: _broker_state: dict[str, Any] = {
+  L  43:     "llama_url": None,
+  L  44:     "llama_proc": None,
+  L  45:     "spawned_by_us": False,
+  L  46:     "llama_ready": False,
+  L  47:     "leases": {},
+  L  48:     "started_at": time.time(),
+  L  49: }
+  L  50: 
+  L  51: 
+  L  52: class EnsureRequest(BaseModel):
+  L  53:     pid: int
+  L  54:     process_create_time: float
+  L  55:     label: str = ""
+  L  56:     pinned: bool = False
+  L  57: 
+  L  58: 
+  L  59: class EnsureResponse(BaseModel):
+  L  60:     lease_id: str
+  L  61:     url: str
+  L  62:     status: str
+  L  63:     reason: str
+  L  64: 
+  L  65: 
+  L  66: class HeartbeatRequest(BaseModel):
+  L  67:     lease_id: str
+  L  68: 
+  L  69: 
+  L  70: class HeartbeatResponse(BaseModel):
+  L  71:     ok: bool
+  L  72:     expires_at: float
+  L  73: 
+  L  74: 
+  L  75: class ReleaseRequest(BaseModel):
+  L  76:     lease_id: str
+  L  77: 
+  L  78: 
+  L  79: class ReleaseResponse(BaseModel):
+  L  80:     released: bool
+  L  81: 
+  L  82: 
+  L  83: def _check_llama_health() -> bool:
+  L  84:     """HTTP /health → 200 = сервер готов."""
+  L  85:     try:
+  L  86:         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+  L  87:         opener.open(f"{settings.llama_cpp_server_url}/health", timeout=2)
+  L  88:         return True
+  L  89:     except Exception as e:
+  L  90:         print(f"[LLM_HOST] llama health check failed: {e}")
+  L  91:         return False
+  L  92: 
+  L  93: 
+  L  94: async def _wait_llama_health(timeout: int = HEALTH_WAIT_TIMEOUT) -> bool:
+  L  95:     """Поллинг /health до готовности или timeout (поправка B: port occupied ≠ ready)."""
+  L  96:     deadline = time.monotonic() + timeout
+  L  97:     while time.monotonic() < deadline:
+  L  98:         if _check_llama_health():
+  L  99:             return True
+  L 100:         await asyncio.sleep(HEALTH_POLL_INTERVAL)
+  ... (138 more lines)
+
+  --- app\services\llm\server_lifecycle.py (contains HTTP/LLM client code) ---
+  L   1: """
+  L   2: path: backend/app/services/llm/server_lifecycle.py
+  L   3: Назначение: Управление жизненным циклом llama-server (start/stop/restart).
+  L   4:     COV-2/D61 (вердикт Мастера): единственный backend-владелец запуска и
+  L   5:     остановки; сериализация рестартов (asyncio.Lock); kill только
+  L   6:     ПРОВЕРЕННОГО llama-server (имя процесса по PID — произвольный процесс на
+  L   7:     занятом порту не завершается); готовность = HTTP /health 200 (модель
+  L   8:     загружена, не «процесс жив»); успех рестарта => сброс backoff пула.
+  L   9:     Классификация причин — перенос _LLM_REASONS-словаря game_launcher без
+  L  10:     изменения самого лаунчера.
+  L  11: Зависимости: app.core.config.settings; psutil (лениво, netstat-fallback).
+  L  12: Основные сущности: start_llama_server, restart_llama_server, kill_llama_server,
+  L  13:     acquire_llama_server_lock, _port_owner_pid, _stop_llama_server,
+  L  14:     _spawn_llama_server, _await_llama_ready, _llama_server_reasons.
+  L  15: """
+  L  16: import asyncio
+  L  17: import atexit
+  L  18: import logging
+  L  19: import time
+  L  20: import urllib.request
+  L  21: from pathlib import Path
+  L  22: from typing import Any
+  L  23: 
+  L  24: from app.core.config import settings
+  L  25: 
+  L  26: logger = logging.getLogger(__name__)
+  L  27: 
+  L  28: # Глобальное состояние процесса (dict для передачи по ссылке)
+  L  29: _llama_state: dict[str, Any] = {
+  L  30:     "proc": None,
+  L  31:     "started_by_us": False,
+  L  32:     "restart_count": 0,
+  L  33:     "last_restart_time": 0.0,
+  L  34: }
+  L  35: 
+  L  36: # COV-2/D61: сериализация рестартов — одна попытка в момент времени.
+  L  37: # Модульный уровень: Python 3.10+ не привязывает Lock к loop при создании.
+  L  38: _restart_lock: asyncio.Lock | None = None
+  L  39: 
+  L  40: 
+  L  41: def _get_restart_lock() -> asyncio.Lock:
+  L  42:     global _restart_lock
+  L  43:     if _restart_lock is None:
+  L  44:         _restart_lock = asyncio.Lock()
+  L  45:     return _restart_lock
+  L  46: 
+  L  47: 
+  L  48: def _llama_server_reasons() -> dict:
+  L  49:     """Классификация причин для UI (ключи стабильны как API-контракт).
+  L  50: 
+  L  51:     Перенос словаря game_launcher._LLM_REASONS-стиля без изменения
+  L  52:     game_launcher (вердикт Мастера)."""
+  L  53:     return {
+  L  54:         "not_needed": "Сервер уже запущен и готов.",
+  L  55:         "exe_missing": "Не найден llama-server.exe — движок AI отсутствует.",
+  L  56:         "model_missing": "Файл модели не найден или повреждён.",
+  L  57:         "spawn_crashed": "llama-server упал сразу после запуска.",
+  L  58:         "load_timeout": "Модель не загрузилась за отведённое время.",
+  L  59:         "port_busy_unknown_owner": (
+  L  60:             "Порт занят процессом, не являющимся llama-server."
+  L  61:         ),
+  L  62:         "error": "Неожиданная ошибка перезапуска.",
+  L  63:     }
+  L  64: 
+  L  65: 
+  L  66: def _port_owner_pid(port: int) -> str:
+  L  67:     """PID владельца listening-порта (Windows): psutil → netstat → unknown.
+  L  68: 
+  L  69:     Перенос из scripts/llm_server_manager.py; 'unknown' — честный ответ, не
+  L  70:     выдуманный ноль. Прод-код app/: тихий pass запрещён (INV-SILENT-FAILURE)."""
+  L  71:     import subprocess as _sp
+  L  72: 
+  L  73:     try:
+  L  74:         import psutil
+  L  75: 
+  L  76:         for _c in psutil.net_connections(kind="tcp"):
+  L  77:             if (
+  L  78:                 _c.laddr
+  L  79:                 and _c.laddr.port == port
+  L  80:                 and _c.status == psutil.CONN_LISTEN
+  L  81:                 and _c.pid
+  L  82:             ):
+  L  83:                 return str(_c.pid)
+  L  84:     except Exception as e:
+  L  85:         logger.debug(f"[LLM_PORT] psutil недоступен: {e}")
+  L  86:     try:
+  L  87:         _out = _sp.run(
+  L  88:             ["netstat", "-aon"], capture_output=True, text=True, timeout=5
+  L  89:         ).stdout
+  L  90:         for _line in _out.splitlines():
+  L  91:             if f":{port}" in _line and "LISTENING" in _line.upper():
+  L  92:                 _parts = _line.split()
+  L  93:                 if _parts:
+  L  94:                     return _parts[-1]
+  L  95:     except Exception as e:
+  L  96:         logger.warning(f"[LLM_PORT] netstat не удался: {e}")
+  L  97:     return "unknown"
+  L  98: 
+  L  99: 
+  L 100: def kill_llama_server() -> None:
+  ... (282 more lines)
+
+==============================================================================
+STEP 11: Build loop, inspect runtime ModelRouter instance
+==============================================================================
+  DialogueExecutor: <app.services.execution.dialogue_executor.DialogueExecutor object at 0x00000240E9C978C0>
+  router: <app.services.llm.router.ModelRouter object at 0x00000240E966AA50>
+  router is None: False
+  router type: ModelRouter
+  router module: app.services.llm.router
+  router file: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\llm\router.py
+
+  --- router instance attributes ---
+    _initialized: True
+    _registry: {'qwen_7b': ModelConfig(key='qwen_7b', name='qwen_7b', provider_type=<ProviderType.LLAMA_CPP: 'llama_cpp'>, path='C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\Models LLM\\Hermes-3-Llama-3.1-8B.Q4_K_M.gguf', ca
+    _pool: {'qwen_7b': ModelConfig(key='qwen_7b', name='qwen_7b', provider_type=<ProviderType.LLAMA_CPP: 'llama_cpp'>, path='C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\Models LLM\\Hermes-3-Llama-3.1-8B.Q4_K_M.gguf', ca
+    _providers: {}
+    _provider_manager: None
+    _model_pool: None
+    _current_model_key: None
+    _capability_map: {'dm': <Capability.NARRATIVE: 'narrative'>, 'world': <Capability.WORLD_SIMULATION: 'world_simulation'>, 'npc': <Capability.DIALOGUE: 'dialogue'>, 'rules': <Capability.RULES_REASONING: 'rules_reasoning
+    _lazy_loading: True
+    _vram_semaphore: None
+    _worker_lock: <unlocked _thread.lock object at 0x00000240E6AEE990>
+    _request_in_progress: False
+    _replay_store: <app.services.replay.replay_store.ReplayStore object at 0x00000240E9D25010>
+    _current_session_id: 'dbf7384f-fa24-41c2-a5c8-c4757df23da7'
+    _current_tick_id: 0
+
+  --- router methods (callable) ---
+    _abort_generation() -> 'None'
+    _get_fallback_model() -> 'str'
+    _get_model_pool() -> "'ModelPool'"
+    _get_or_create_provider(model_key: 'str', model_config: 'ModelConfig') -> 'Any'
+    _get_provider_manager() -> "'ProviderManager'"
+    _grant_next_locked() -> 'None'
+    _normalize_capability(capability: 'Capability | str') -> 'Capability'
+    _request_sync(capability: 'Capability', prompt: 'str', params: 'GenerationParams | None', system_prompt: 'str | None') -> 'str'
+    _request_via_pool(capability: 'Capability', preferred_keys: 'list[str]', prompt: 'str', params: 'GenerationParams | None', system_prompt: 'str | None') -> 'str'
+    _wall_time_watchdog(my_epoch: 'int') -> 'None'
+    _worker_request_queued(agent_name: 'str', prompt: 'str', params: "'GenerationParams | None'", system_prompt: "'str | None'", priority: 'str', prompt_hash: 'str', worker_start: 'float') -> 'str'
+    describe() -> 'str'
+    get_capability_preferences(capability: 'Capability') -> 'list[str]'
+    get_model_for_agent(agent_name: 'str') -> 'str'
+    get_model_info(model_key: 'str') -> 'ModelConfig | None'
+    get_provider(capability: 'Capability | str') -> 'LlmProvider | None'
+    list_capabilities() -> 'dict[str, Capability]'
+    list_models() -> 'dict[str, ModelConfig]'
+    notify_stream_end(ctx: 'dict', chars_produced: 'int', full_text: 'str | None' = None) -> 'None'
+    notify_stream_start(agent_name: 'str', capability: 'str | Capability', prompt: 'str | None' = None, system_prompt: 'str | None' = None, params: 'GenerationParams | None' = None) -> 'dict'
+    playback_stream_lookup(agent_name: 'str', prompt: 'str', system_prompt: 'str | None' = None, params: 'GenerationParams | None' = None) -> 'str | None'
+    request(capability: 'Capability | str', prompt: 'str', params: 'GenerationParams | None' = None, system_prompt: 'str | None' = None) -> 'str'
+    request_for_agent(agent_name: 'str', prompt: 'str', params: 'GenerationParams | None' = None, system_prompt: 'str | None' = None, priority: 'str' = 'canonical') -> 'str'
+    select_model(capability: 'Capability') -> 'str'
+    set_capability_for_agent(agent_name: 'str', capability: 'Capability | str') -> 'None'
+    set_lazy_loading(enabled: 'bool') -> 'None'
+    set_replay_context(store: 'Any', session_id: 'str') -> 'None'
+    switch(selection: 'Any') -> 'None'
+
+==============================================================================
+STEP 12: Try availability-related methods on router instance
+==============================================================================
+  is_available: NOT found on router
+  is_llm_available: NOT found on router
+  is_ready: NOT found on router
+  is_alive: NOT found on router
+  health_check: NOT found on router
+  ping: NOT found on router
+  check_connection: NOT found on router
+  can_connect: NOT found on router
+  is_connected: NOT found on router
+
+==============================================================================
+STEP 13: Inspect router internals — HTTP client
+==============================================================================
+
+==============================================================================
+STEP 14: Analysis — answer Master's 5 questions
+==============================================================================
+
+  Q1: Does ModelRouter already have a method to check model availability?
+  >>>
+  >>> See Steps 3, 4, 12 — search for availability methods.
+  >>> If is_available/is_llm_available/health_check/ping exist → YES
+  >>> If not → NO (need to add or use Option 2)
+
+  Q2: If yes — does it actually check endpoint, not just object presence?
+  >>>
+  >>> See Step 5 — read the method body.
+  >>> If it makes HTTP request → real check
+  >>> If it returns self._client is not None → object presence only
+
+  Q3: Can the check run without blocking HTTP request?
+  >>>
+  >>> If method does HTTP GET /health → BLOCKING
+  >>> If method reads cached status → NON-BLOCKING
+  >>> If no method → N/A
+
+  Q4: What happens when LLM server is unavailable?
+  >>>
+  >>> See Steps 5, 7, 8:
+  >>> - request_for_agent likely raises ConnectionError/TimeoutError
+  >>> - DialogueExecutor L172-195 catches Exception, yields error Artifact
+  >>> - BUT: error Artifact does NOT create NPC_SPOKE (materializer checks success)
+  >>> - So: LLM unavailable → error Artifact → NO NPC_SPOKE → no social event
+
+  Q5: Can spread_rumor+proposition safely switch to stub, preserving LLM?
+  >>>
+  >>> If router has reliable is_available() → YES, use Option 1
+  >>> If not → need to add is_available() (minimal extension) OR use Option 2
+  >>>
+  >>> CRITICAL: even with is_available() check, race condition exists:
+  >>>   - is_available() returns True at check time
+  >>>   - request_for_agent fails at call time (server went down)
+  >>>   - Exception caught, error Artifact yielded, NO NPC_SPOKE
+  >>>   - Need: catch exception → fallback to stub text → yield success Artifact
+  >>>   - This is the "fallback on failure" Master requires
+
+  Additional: Does LLM failure fall back to stub?
+  >>>
+  >>> CURRENTLY: NO
+  >>> - L172-195: catches Exception, yields error Artifact (success=False)
+  >>> - materializer L62: `if not artifact.success: return []`
+  >>> - No NPC_SPOKE created
+  >>> - Need: in except block, fall back to deterministic stub text
+  >>> - Then yield SUCCESS Artifact with stub text + proposition
+
+
+==============================================================================
+STEP 15: Recommended diff options (based on findings)
+==============================================================================
+
+  Based on investigation, three options:
+
+  Option A (if is_available() exists and is reliable):
+    Add condition to L145-149:
+      elif not requires_llm_materialization(req.intent_type) and not (
+          req.intent_type == "spread_rumor" and _proposition is not None
+          and self._router is not None and self._router.is_available()
+      ):
+          text = f"[{req.intent_type}] {task.owner_id} -> {req.target_id}: {req.topic}"
+
+    Plus: in L172-195 except block, add fallback:
+      except Exception as e:
+          if req.intent_type == "spread_rumor" and _proposition is not None:
+              # B5-D2 FIX: LLM failure fallback to stub
+              text = f"[spread_rumor] {task.owner_id} -> {req.target_id}: {req.topic}"
+              # Continue to yield success Artifact (don't return)
+          else:
+              # Original error handling
+              yield Artifact(...)
+              return
+
+  Option B (if is_available() doesn't exist — minimal extension):
+    Add is_available() to ModelRouter (returns bool, non-blocking):
+      def is_available(self) -> bool:
+          # Check cached connection status, or return True if endpoint configured
+          return self._endpoint is not None
+
+    Then use Option A condition.
+
+  Option C (Option 2 from previous investigation — always stub):
+    Remove special case entirely:
+      elif not requires_llm_materialization(req.intent_type):
+          text = f"[{req.intent_type}] {task.owner_id} -> {req.target_id}: {req.topic}"
+
+    Loses LLM text for spread_rumor, but simplest diff (1 line).
+
+  Recommendation depends on what Steps 3-13 found.
+

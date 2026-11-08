@@ -38,11 +38,6 @@ ARBITER_ENFORCEMENT: bool = os.environ.get("ARBITER_ENFORCEMENT", "").strip().lo
     "true",
     "yes",
 )
-
-ARBITER_ENFORCEMENT: bool = (
-    os.environ.get("ARBITER_ENFORCEMENT", "").strip().lower()
-    in ("1", "true", "yes")
-)
 # P5-G Phase 1: S203.4 priority-based interrupt arbitration.
 # Был undefined в production (только в тестах через monkeypatching).
 # Default ON — priority comparison всегда выполняется.

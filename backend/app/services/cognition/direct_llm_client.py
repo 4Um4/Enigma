@@ -67,7 +67,7 @@ class DirectLLMClient:
                     "DirectLLMClient.complete: prompt_head=%r → %r",
                     prompt[:80], content,
                 )
-                return content
+                return str(content)
         except urllib.error.URLError as exc:
             logger.warning("DirectLLMClient: URLError — %s", exc)
             raise

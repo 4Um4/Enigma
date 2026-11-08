@@ -17,7 +17,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, cast
 
 from app.core.config import settings
 from app.services.llm.runtime._proc import silent_subprocess_kwargs
@@ -61,18 +61,27 @@ def _start_host() -> bool:
             "--port", str(settings.llm_host_port),
             "--log-level", "warning",
         ]
-        kwargs = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL, "cwd": _BACKEND_DIR}
         if sys.platform == "win32":
             # Merge CREATE_NEW_PROCESS_GROUP (so we can Ctrl-Break the Host later)
             # with silent_subprocess_kwargs(): CREATE_NO_WINDOW | DETACHED_PROCESS
             # + STARTUPINFO(SW_HIDE) → no console window flash, no taskbar entry.
             _silent = silent_subprocess_kwargs()
-            kwargs["creationflags"] = _silent.get("creationflags", 0) | subprocess.CREATE_NEW_PROCESS_GROUP
-            if "startupinfo" in _silent:
-                kwargs["startupinfo"] = _silent["startupinfo"]
+            subprocess.Popen(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                cwd=_BACKEND_DIR,
+                creationflags=_silent.get("creationflags", 0) | subprocess.CREATE_NEW_PROCESS_GROUP,
+                startupinfo=_silent.get("startupinfo"),
+            )
         else:
-            kwargs["start_new_session"] = True
-        subprocess.Popen(cmd, **kwargs)
+            subprocess.Popen(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                cwd=_BACKEND_DIR,
+                start_new_session=True,
+            )
         return True
     except Exception as e:
         print(f"[LLM_SDK] Failed to start Host: {e}")
@@ -108,7 +117,7 @@ def _discover_or_start_host() -> None:
 def _get_create_time() -> float:
     try:
         import psutil
-        return psutil.Process(os.getpid()).create_time()
+        return float(psutil.Process(os.getpid()).create_time())
     except Exception as e:
         print(f"[LLM_SDK] psutil create_time unavailable: {e}")
         return 0.0
@@ -120,13 +129,13 @@ def _post_json(url: str, data: dict) -> dict:
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     try:
         with opener.open(req, timeout=10) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+            return cast(dict[str, Any], json.loads(resp.read().decode("utf-8")))
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"Host returned {e.code}: {detail}") from e
 
 
-def _heartbeat_loop():
+def _heartbeat_loop() -> None:
     while not _heartbeat_stop.wait(_HEARTBEAT_INTERVAL):
         if _lease_id is None:
             return
@@ -136,7 +145,7 @@ def _heartbeat_loop():
             print(f"[LLM_SDK] heartbeat failed (non-fatal, TTL will clean up): {e}")
 
 
-def _start_heartbeat():
+def _start_heartbeat() -> None:
     global _heartbeat_thread
     _heartbeat_stop.clear()
     if _heartbeat_thread is not None and _heartbeat_thread.is_alive():
@@ -145,7 +154,7 @@ def _start_heartbeat():
     _heartbeat_thread.start()
 
 
-def _stop_heartbeat():
+def _stop_heartbeat() -> None:
     _heartbeat_stop.set()
 
 

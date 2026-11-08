@@ -20,6 +20,8 @@ import time
 import uuid
 import urllib.request
 from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
+
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
@@ -148,7 +150,7 @@ async def _ensure_llama_server() -> tuple[bool, str]:
     return False, f"unexpected lock verdict: {verdict}"
 
 
-def _cleanup_stale_leases():
+def _cleanup_stale_leases() -> None:
     """Удаление истёкших lease (background task). TTL — реальный механизм, atexit — дополнение."""
     now = time.time()
     expired = [lid for lid, l in _broker_state["leases"].items() if now > l["expires_at"]]
@@ -157,14 +159,14 @@ def _cleanup_stale_leases():
         print(f"[LLM_HOST] lease expired: {lid} (label={l.get('label', '')})")
 
 
-async def _cleanup_loop():
+async def _cleanup_loop() -> None:
     while True:
         _cleanup_stale_leases()
         await asyncio.sleep(STALE_CLEANUP_INTERVAL)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     task = asyncio.create_task(_cleanup_loop())
     yield
     task.cancel()
@@ -175,7 +177,7 @@ app = FastAPI(title="ENIGMA LLM Host", version=PROTOCOL_VERSION, lifespan=lifesp
 
 
 @app.get("/health")
-async def health():
+async def health() -> dict[str, Any]:
     return {
         "status": "ok",
         "protocol_version": PROTOCOL_VERSION,
@@ -185,7 +187,7 @@ async def health():
 
 
 @app.post("/ensure", response_model=EnsureResponse)
-async def ensure(req: EnsureRequest):
+async def ensure(req: EnsureRequest) -> EnsureResponse:
     success, reason = await _ensure_llama_server()
     if not success:
         raise HTTPException(status_code=503, detail=f"LLM server not available: {reason}")
@@ -204,7 +206,7 @@ async def ensure(req: EnsureRequest):
 
 
 @app.post("/heartbeat", response_model=HeartbeatResponse)
-async def heartbeat(req: HeartbeatRequest):
+async def heartbeat(req: HeartbeatRequest) -> HeartbeatResponse:
     lease = _broker_state["leases"].get(req.lease_id)
     if lease is None:
         raise HTTPException(status_code=404, detail="lease not found")
@@ -215,7 +217,7 @@ async def heartbeat(req: HeartbeatRequest):
 
 
 @app.post("/release", response_model=ReleaseResponse)
-async def release(req: ReleaseRequest):
+async def release(req: ReleaseRequest) -> ReleaseResponse:
     if req.lease_id in _broker_state["leases"]:
         l = _broker_state["leases"].pop(req.lease_id)
         print(f"[LLM_HOST] lease released: {req.lease_id} (label={l.get('label', '')})")
@@ -224,7 +226,7 @@ async def release(req: ReleaseRequest):
 
 
 @app.get("/status")
-async def status():
+async def status() -> dict[str, Any]:
     return {
         "llama_url": _broker_state["llama_url"],
         "spawned_by_us": _broker_state["spawned_by_us"],

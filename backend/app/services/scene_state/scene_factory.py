@@ -252,9 +252,21 @@ def build_initial_scene(
         # next_event_identity (services/events/event_identity.py). Загруженные
         # сейвы без ключа самовосстанавливаются setdefault'ом в писателе
         # (прецедент commitment_ordinals, Foundation Freeze: без whitelist).
+        # (прецедент commitment_ordinals, Foundation Freeze: scene_state round-trip без whitelist).
         "event_ordinals": {},
+        # ── Intent Identity (Stage 2.1): dict[owner_id, int] — монотонный ──
+        # счётчик намерений. Единственный писатель — next_intent_identity
+        # (services/events/event_identity.py). Ключ — стабильный owner ID
+        # (character_id, "player", npc_id), НЕ player_name. Загруженные
+        # сейвы без ключа самовосстанавливаются setdefault'ом в писателе
+        # (прецедент event_ordinals, Foundation Freeze: без whitelist).
+        "intent_ordinals": {},
+        # ── Intent Lifecycle (Stage 2.1): канонический контейнер записей ──
+        # намерений. Ключ — intent_id_str (детерминированный). ПУСТОЙ в
+        # Commit 1 — никто не пишет/читает. Загруженные сейвы без ключа
+        # самовосстанавливаются setdefault'ом (Foundation Freeze).
+        "intent_lifecycle": {},
         # ── ADR-O-370 (RE M1a): субстрат потребностей — ПУСТОЙ корень ──
-        # Заполнение только через RelationshipStateStore (ленивые записи);
         # загруженные сейвы самовосстанавливаются: ключ отсутствует →
         # read-дефолты стора (Foundation Freeze, без whitelist).
         "relationship_state": {},

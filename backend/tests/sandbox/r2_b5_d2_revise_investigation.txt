@@ -1,0 +1,396 @@
+==============================================================================
+R2-B5-D2 — BeliefRevisionEngine.revise() provenance investigation
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d2_revise_investigation.txt
+==============================================================================
+
+
+==============================================================================
+STEP 1: Read BeliefRevisionEngine.revise()
+==============================================================================
+  file: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\belief_revision_engine.py
+  revise() at L35..L115 (showing L35..L115):
+  L  35:     def revise(
+  L  36:         self,
+  L  37:         listener_id: str,
+  L  38:         claim: ClaimEvent,
+  L  39:         existing_record: Optional[EpistemicRecord],
+  L  40:         reliability_context: Optional[dict] = None
+  L  41:     ) -> EpistemicRecord:
+  L  42:         """
+  L  43:         Обрабатывает ClaimEvent и возвращает новую/обновлённую EpistemicRecord.
+  L  44: 
+  L  45:         ADR-O-360: reliability_context позволяет источнику события указать
+  L  46:         тип канала (testimony / direct_observation). Провайдер — единственный
+  L  47:         владелец формулы reliability; движок только пробрасывает контекст.
+  L  48:         """
+  L  49:         # 1. Оценка надёжности источника (делегируется провайдеру)
+  L  50:         _context = {"claim": claim}
+  L  51:         if reliability_context:
+  L  52:             _context.update(reliability_context)
+  L  53:         reliability = self._reliability_provider.get_reliability(
+  L  54:             observer=listener_id,
+  L  55:             source=claim.speaker_id,
+  L  56:             context=_context
+  L  57:         )
+  L  58: 
+  L  59:         # Базовый вес утверждения (в будущем может зависеть от speech_act)
+  L  60:         incoming_confidence = reliability * _CLAIM_WEIGHT
+  L  61: 
+  L  62:         current_tick = claim.tick
+  L  63: 
+  L  64:         if existing_record is None:
+  L  65:             # S199.6 FIX: Восстановлено first-order убеждение (claim.proposition) вместо преждевременного Second-Order ToM (ASSERTS).
+  L  66:             # Second-Order ToM будет реализован позже, как отдельный слой (EPISTEMIC-005), после прохождения EPISTEMIC CORE GATE.
+  L  67:             # COGNITIVE-CONTINUITY-01: provenance chain. source_type из
+  L  68:             # reliability_context (по умолчанию "testimony" — канал речи).
+  L  69:             # original_source_id = первичный источник (speaker первой записи).
+  L  70:             _src_type = (reliability_context or {}).get("source_type", "testimony")
+  L  71:             # COGNITIVE-CONTINUITY-01: original_source_id from reliability_context (multi-hop chain)
+  L  72:             _orig_src = (reliability_context or {}).get("original_source_id", claim.speaker_id)
+  L  73:             new_record = EpistemicRecord(
+  L  74:                 agent_id=listener_id,
+  L  75:                 proposition=claim.proposition,  # First-order belief: P (e.g. "B stole X")
+  L  76:                 # S199 (Фаза 8.3): max(0.0, ...) — защита от ухода в минус при отрицательной reliability (враги).
+  L  77:                 confidence=max(0.0, incoming_confidence),
+  L  78:                 source_id=claim.speaker_id,
+  L  79:                 source_claim_id=claim.claim_id,
+  L  80:                 first_observed_tick=current_tick,
+  L  81:                 last_updated_tick=current_tick,
+  L  82:                 source_type=_src_type,
+  L  83:                 original_source_id=_orig_src
+  L  84:             )
+  L  85:             logger.info(f"[BELIEF_REVISE] New belief: {listener_id} believes {claim.proposition.subject_id} {claim.proposition.predicate.value} {claim.proposition.object_id} (conf={new_record.confidence:.2f})")
+  L  86:         else:
+  L  87:             # Обновление существующего убеждения
+  L  88:             if existing_record.source_id == claim.speaker_id:
+  L  89:                 # Подтверждение от того же источника (небольшой буст)
+  L  90:                 # S199 (Фаза 8.2): max(0.0, ...) — защита от ухода в минус при отрицательной reliability (враги).
+  L  91:                 updated_conf = max(0.0, min(1.0, existing_record.confidence + (incoming_confidence * _SAME_SOURCE_BOOST)))
+  L  92:             else:
+  L  93:                 # Независимое подтверждение (больший буст)
+  L  94:                 updated_conf = max(0.0, min(1.0, existing_record.confidence + incoming_confidence))
+  L  95: 
+  L  96:             # COGNITIVE-CONTINUITY-01: original_source_id сохраняется от
+  L  97:             # прежней записи (не перезаписывается свежим спикером — G10 fix).
+  L  98:             # source_type сохраняется от прежней записи, если не пуст.
+  L  99:             _orig_src = existing_record.original_source_id or claim.speaker_id
+  L 100:             _src_type = existing_record.source_type or (reliability_context or {}).get("source_type", "testimony")
+  L 101:             new_record = EpistemicRecord(
+  L 102:                 agent_id=listener_id,
+  L 103:                 proposition=claim.proposition,
+  L 104:                 confidence=updated_conf,
+  L 105:                 source_id=claim.speaker_id, # Обновляем источник на самый свежий
+  L 106:                 source_claim_id=claim.claim_id,
+  L 107:                 first_observed_tick=existing_record.first_observed_tick,
+  L 108:                 last_updated_tick=current_tick,
+  L 109:                 source_type=_src_type,
+  L 110:                 original_source_id=_orig_src
+  L 111:             )
+  L 112:             logger.info(f"[BELIEF_REVISE] Updated belief: {listener_id} belief updated to conf={new_record.confidence:.2f}")
+  L 113: 
+  L 114:         return new_record
+  L 115: 
+
+==============================================================================
+STEP 2: Read full BeliefRevisionEngine class
+==============================================================================
+  total lines: 115
+  L   1: # backend/app/services/npc/belief_revision_engine.py
+  L   2: """
+  L   3: path: /project/backend/app/services/npc/belief_revision_engine.py
+  L   4: Назначение: Детерминированный движок ревизии убеждений.
+  L   5: Зависимости: app.domain.epistemology
+  L   6: """
+  L   7: 
+  L   8: import logging
+  L   9: from typing import Optional, Protocol
+  L  10: 
+  L  11: from app.domain.epistemology import ClaimEvent, EpistemicRecord
+  L  12: 
+  L  13: logger = logging.getLogger(__name__)
+  L  14: 
+  L  15: # 021 Calibration candidates (behavior-identical extraction)
+  L  16: _CLAIM_WEIGHT: float = 1.0
+  L  17: _SAME_SOURCE_BOOST: float = 0.2
+  L  18: 
+  L  19: class SourceReliabilityProvider(Protocol):
+  L  20:     """
+  L  21:     Интерфейс для получения надёжности источника.
+  L  22:     Изолирует движок убеждений от социальных систем (RelationshipStore).
+  L  23:     """
+  L  24:     def get_reliability(self, observer: str, source: str, context: Optional[dict] = None) -> float:
+  L  25:         ...
+  L  26: 
+  L  27: class BeliefRevisionEngine:
+  L  28:     """
+  L  29:     DeterministicBeliefRevisionPolicy v0.1.
+  L  30:     Не использует LLM. Не мутирует RelationshipStore.
+  L  31:     """
+  L  32:     def __init__(self, reliability_provider: SourceReliabilityProvider):
+  L  33:         self._reliability_provider = reliability_provider
+  L  34: 
+  L  35:     def revise(
+  L  36:         self,
+  L  37:         listener_id: str,
+  L  38:         claim: ClaimEvent,
+  L  39:         existing_record: Optional[EpistemicRecord],
+  L  40:         reliability_context: Optional[dict] = None
+  L  41:     ) -> EpistemicRecord:
+  L  42:         """
+  L  43:         Обрабатывает ClaimEvent и возвращает новую/обновлённую EpistemicRecord.
+  L  44: 
+  L  45:         ADR-O-360: reliability_context позволяет источнику события указать
+  L  46:         тип канала (testimony / direct_observation). Провайдер — единственный
+  L  47:         владелец формулы reliability; движок только пробрасывает контекст.
+  L  48:         """
+  L  49:         # 1. Оценка надёжности источника (делегируется провайдеру)
+  L  50:         _context = {"claim": claim}
+  L  51:         if reliability_context:
+  L  52:             _context.update(reliability_context)
+  L  53:         reliability = self._reliability_provider.get_reliability(
+  L  54:             observer=listener_id,
+  L  55:             source=claim.speaker_id,
+  L  56:             context=_context
+  L  57:         )
+  L  58: 
+  L  59:         # Базовый вес утверждения (в будущем может зависеть от speech_act)
+  L  60:         incoming_confidence = reliability * _CLAIM_WEIGHT
+  L  61: 
+  L  62:         current_tick = claim.tick
+  L  63: 
+  L  64:         if existing_record is None:
+  L  65:             # S199.6 FIX: Восстановлено first-order убеждение (claim.proposition) вместо преждевременного Second-Order ToM (ASSERTS).
+  L  66:             # Second-Order ToM будет реализован позже, как отдельный слой (EPISTEMIC-005), после прохождения EPISTEMIC CORE GATE.
+  L  67:             # COGNITIVE-CONTINUITY-01: provenance chain. source_type из
+  L  68:             # reliability_context (по умолчанию "testimony" — канал речи).
+  L  69:             # original_source_id = первичный источник (speaker первой записи).
+  L  70:             _src_type = (reliability_context or {}).get("source_type", "testimony")
+  L  71:             # COGNITIVE-CONTINUITY-01: original_source_id from reliability_context (multi-hop chain)
+  L  72:             _orig_src = (reliability_context or {}).get("original_source_id", claim.speaker_id)
+  L  73:             new_record = EpistemicRecord(
+  L  74:                 agent_id=listener_id,
+  L  75:                 proposition=claim.proposition,  # First-order belief: P (e.g. "B stole X")
+  L  76:                 # S199 (Фаза 8.3): max(0.0, ...) — защита от ухода в минус при отрицательной reliability (враги).
+  L  77:                 confidence=max(0.0, incoming_confidence),
+  L  78:                 source_id=claim.speaker_id,
+  L  79:                 source_claim_id=claim.claim_id,
+  L  80:                 first_observed_tick=current_tick,
+  L  81:                 last_updated_tick=current_tick,
+  L  82:                 source_type=_src_type,
+  L  83:                 original_source_id=_orig_src
+  L  84:             )
+  L  85:             logger.info(f"[BELIEF_REVISE] New belief: {listener_id} believes {claim.proposition.subject_id} {claim.proposition.predicate.value} {claim.proposition.object_id} (conf={new_record.confidence:.2f})")
+  L  86:         else:
+  L  87:             # Обновление существующего убеждения
+  L  88:             if existing_record.source_id == claim.speaker_id:
+  L  89:                 # Подтверждение от того же источника (небольшой буст)
+  L  90:                 # S199 (Фаза 8.2): max(0.0, ...) — защита от ухода в минус при отрицательной reliability (враги).
+  L  91:                 updated_conf = max(0.0, min(1.0, existing_record.confidence + (incoming_confidence * _SAME_SOURCE_BOOST)))
+  L  92:             else:
+  L  93:                 # Независимое подтверждение (больший буст)
+  L  94:                 updated_conf = max(0.0, min(1.0, existing_record.confidence + incoming_confidence))
+  L  95: 
+  L  96:             # COGNITIVE-CONTINUITY-01: original_source_id сохраняется от
+  L  97:             # прежней записи (не перезаписывается свежим спикером — G10 fix).
+  L  98:             # source_type сохраняется от прежней записи, если не пуст.
+  L  99:             _orig_src = existing_record.original_source_id or claim.speaker_id
+  L 100:             _src_type = existing_record.source_type or (reliability_context or {}).get("source_type", "testimony")
+  L 101:             new_record = EpistemicRecord(
+  L 102:                 agent_id=listener_id,
+  L 103:                 proposition=claim.proposition,
+  L 104:                 confidence=updated_conf,
+  L 105:                 source_id=claim.speaker_id, # Обновляем источник на самый свежий
+  L 106:                 source_claim_id=claim.claim_id,
+  L 107:                 first_observed_tick=existing_record.first_observed_tick,
+  L 108:                 last_updated_tick=current_tick,
+  L 109:                 source_type=_src_type,
+  L 110:                 original_source_id=_orig_src
+  L 111:             )
+  L 112:             logger.info(f"[BELIEF_REVISE] Updated belief: {listener_id} belief updated to conf={new_record.confidence:.2f}")
+  L 113: 
+  L 114:         return new_record
+  L 115: 
+
+==============================================================================
+STEP 3: Read EpistemicStore.upsert()
+==============================================================================
+  upsert() at L39..L61 (showing L39..L61):
+  L  39:     def upsert(self, record: EpistemicRecord) -> None:
+  L  40:         """S296-приёмка (баг №2): upsert — точка записи без акторного фильтра.
+  L  41:         S292-мембрана удалена как мёртвый код: can_address(_subj, _subj) для
+  L  42:         любого непустого не-player subject возвращал True (resolve_control_source
+  L  43:         не различает NPC и узел графа) — фильтр не отклонял ничего, блоклист
+  L  44:         startswith был недостижим. Защита от не-акторных WARN-целей —
+  L  45:         predicate-фильтр trigger_proposition в EpistemicContextResolver
+  L  46:         (GATE-TRIGGER-01, этот же коммит); реестр акторов — будущее ADR."""
+  L  47:         # GATE-TRIGGER-01: S292 акторный фильтр удалён — мёртвый код.
+  L  48:         # Доказательство недостижимости (статическое, раунды 2-4):
+  L  49:         # can_address(_subj, _subj) для любого непустого не-player subject
+  L  50:         # возвращает True (resolve_control_source не различает NPC и узел
+  L  51:         # графа) → «not can_address» = False → short-circuit гасит ветку
+  L  52:         # ДО startswith-блоклиста. Фильтр не отклонял НИЧЕГО с момента
+  L  53:         # внесения; побочных эффектов нет (внутри только логирование).
+  L  54:         # EXITS_TO-гео-записи легитимны (персональный граф маршрутов NPC,
+  L  55:         # tick_orchestrator:874/:1156). Защита от не-акторных WARN-целей —
+  L  56:         # predicate-фильтр trigger_proposition в EpistemicContextResolver;
+  L  57:         # реестр живых акторов для can_address — отдельное будущее ADR
+  L  58:         # (Two-Domain Rule: ждём второго домена-подтверждения).
+  L  59:         self._records[(record.agent_id, record.proposition)] = record
+  L  60:         logger.debug(f"[EPISTEMIC_STORE] Upserted belief for {record.agent_id}: {record.proposition} conf={record.confidence:.2f}")
+  L  61: 
+
+==============================================================================
+STEP 4: Read EpistemicStore.get()
+==============================================================================
+  get() at L24..L35 (showing L24..L35):
+  L  24:     def get(self, agent_id: str, proposition: Optional[Proposition] = None) -> Optional[EpistemicRecord]:
+  L  25:         """S197: Возвращает запись об убеждении агента. Если proposition не указан, возвращает топ-1."""
+  L  26:         records = [r for r in self._records.values() if r.agent_id == agent_id]
+  L  27:         if not records:
+  L  28:             return None
+  L  29:         if proposition:
+  L  30:             for r in records:
+  L  31:                 if r.proposition == proposition:
+  L  32:                     return r
+  L  33:             return None
+  L  34:         return max(records, key=lambda r: r.confidence, default=None)
+  L  35: 
+
+==============================================================================
+STEP 5: Read EpistemicStore.get_all_for_agent()
+==============================================================================
+  get_all_for_agent() at L36..L38 (showing L36..L38):
+  L  36:     def get_all_for_agent(self, agent_id: str) -> List[EpistemicRecord]:
+  L  37:         return [r for r in self._records.values() if r.agent_id == agent_id]
+  L  38: 
+
+==============================================================================
+STEP 6: Analysis — provenance handling in revise()
+==============================================================================
+
+  SCENARIO: Tornin has existing record (source_id=player, conf=0.5).
+            Borko tells Tornin (new claim, speaker_id=guard_borko).
+
+  ClaimEventSubscriber L300-309:
+    existing = self._store.get(tavern_keeper_tornin, prop)  → Tornin's existing record
+    _speaker_record = self._store.get(guard_borko, prop)    → Borko's record
+    _speaker_orig = _speaker_record.original_source_id      → "player"
+    updated_record = self._engine.revise(
+        tavern_keeper_tornin, claim, existing,
+        reliability_context={"source_type": "testimony", "original_source_id": "player"}
+    )
+    self._store.upsert(updated_record)
+
+  QUESTIONS:
+  1. Does revise() create a NEW record with source_id=guard_borko?
+  2. Or does it UPDATE the existing record, changing source_id from player to guard_borko?
+  3. Or does it UPDATE the existing record, KEEPING source_id=player (because original_source_id matches)?
+  4. What happens to confidence — does it increase (multiple sources)?
+
+  From belief_revision_engine.py (read in Step 1-2):
+  - _CLAIM_WEIGHT = 1.0
+  - incoming_confidence = reliability × _CLAIM_WEIGHT
+  - If existing record exists:
+    - If same source_id: updated_conf = existing + incoming × _SAME_SOURCE_BOOST (0.2)
+    - If different source_id: updated_conf = ??? (need to check)
+  - source_id of updated_record: ???
+
+  KEY: Does revise() change source_id of existing record, or preserve it?
+
+  If revise() PRESERVES source_id=player (because that was the original source),
+  then Tornin's record stays as source_id=player even after Borko tells him.
+  The confidence would increase (multiple testimonies), but source_id doesn't change.
+
+  This would explain:
+  - Tornin has 1 record (not 2) — upsert updated existing, didn't create new
+  - source_id=player (preserved from original)
+  - original_source_id=player (same)
+  - Confidence might have increased from 0.5 to higher
+
+  If this is the case, the provenance check needs to be revised:
+  - Instead of checking source_id=guard_borko, check:
+    a. Confidence increased (0.5 → higher, reflecting multiple testimonies)
+    b. source_claim_id changed (new claim ID)
+    c. last_updated_tick > 1 (updated after tick 1)
+
+
+==============================================================================
+STEP 7: Runtime test — check confidence and last_updated_tick
+==============================================================================
+  Tornin BEFORE ticks:
+    source_id: player
+    original_source_id: player
+    confidence: 0.5
+    source_claim_id: player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94
+    last_updated_tick: 1
+    first_observed_tick: 1
+
+  Running 3 idle_ticks...
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['maid_lusya']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['guard_borko', 'merchant_goran', 'maid_lusya']
+[DIAG-MV] engine_changes=4 targets=['guard_borko', 'guard_borko', 'maid_lusya', 'maid_lusya']
+
+  Tornin AFTER 3 ticks:
+    source_id: guard_borko
+    original_source_id: player
+    confidence: 0.649376
+    source_claim_id: 127cd541-7e9b-2cae-4ab1-392f2095ea50
+    last_updated_tick: 3
+    first_observed_tick: 1
+
+  Tornin ALL records: 1
+    [0] source_id=guard_borko orig=player conf=0.649376 tick=3 claim_id=127cd541-7e9b-2cae-4ab1-392f2095ea50
+
+  === Comparison ===
+    confidence: 0.5 → 0.649376 (changed: True)
+    last_updated_tick: 1 → 3 (changed: True)
+    source_id: player → guard_borko (changed: True)
+    >>> Confidence CHANGED — Borko's testimony was integrated
+    >>> Even if source_id stayed as 'player', the confidence update
+    >>> proves Tornin received information from Borko
+
+==============================================================================
+STEP 8: VERDICT
+==============================================================================
+
+  Based on Steps 1-7, the verdict depends on what revise() does:
+
+  CASE A: revise() PRESERVES source_id (keeps original source)
+    - Tornin's record stays source_id=player
+    - But confidence should INCREASE (multiple testimonies)
+    - last_updated_tick should change
+    - This is NOT a bug — it's a design choice: "who originally said it"
+      is more important than "who relayed it last"
+    - Provenance check should verify CONFIDENCE CHANGE, not source_id change
+
+  CASE B: revise() CHANGES source_id to new speaker
+    - Tornin's record should become source_id=guard_borko
+    - If it didn't, there's a bug in revise() or upsert()
+    - Provenance check is correct as-is
+
+  CASE C: revise() creates a SEPARATE record (one per source)
+    - Tornin should have 2 records: one from player, one from guard_borko
+    - If only 1 exists, the second wasn't created
+    - This could mean NPC_SPOKE/COMMUNICATION_CLAIM wasn't published
+
+  The runtime test in Step 7 will show which case applies:
+    - If confidence changed but source_id didn't → CASE A
+    - If source_id changed → CASE B
+    - If 2 records exist → CASE C
+    - If nothing changed → NPC_SPOKE wasn't published (CASE C with 0 new records)
+

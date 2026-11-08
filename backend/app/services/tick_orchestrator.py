@@ -1853,7 +1853,58 @@ class TickOrchestrator:
         """
         from app.services.npc.desire_generator import update_all
 
+        # Step 3.1-Identity Fix: ensure identity UUIDs in scene_state
+        # (one-time per session via PlayerAvatarService.ensure_identity_uuids,
+        # cached in RAM). Avatar formation reads UUID-A as owner, UUID-B as body.
+        if "identity_uuids" not in ctx.scene_state:
+            try:
+                _avatar_svc = getattr(self, "avatar_service", None) or getattr(
+                    getattr(self, "game_loop", None), "avatar_service", None
+                )
+                if _avatar_svc is not None:
+                    _player_name = (
+                        getattr(ctx.shared_context, "player_name", None) or "player"
+                    )
+                    _uuids = _avatar_svc.ensure_identity_uuids(
+                        ctx.campaign_id, _player_name
+                    )
+                    ctx.scene_state["identity_uuids"] = _uuids.to_dict()
+            except Exception as _err:
+                logger.warning(f"[IDENTITY_UUIDS] load fault: {_err}")
+
         update_all(ctx.all_npcs_raw, ctx.tick_number)
+
+        # Avatar agency Step 2: formation of Intent from Desire.
+        # Avatar формирует собственное намерение из desires (Step 1
+        # adapter _ensure_avatar_needs → Desire). Formation only —
+        # НЕ запускает исполнение (нет CommunicationIntent, нет
+        # MovementIntent). BodyArbiter (следующий шаг) решает.
+        #
+        # Step 2.1 hardening: хранится В intent_lifecycle (Commit 1
+        # canonical container), НЕ отдельным avatar_pending_intent
+        # ключом — устранено двойное хранение. На exception —
+        # VOIDED активного avatar intent (stale cleanup).
+        try:
+            from app.services.avatar.avatar_intent_formation import (
+                form_avatar_intent,
+                store_avatar_intent,
+                voided_avatar_intents,
+            )
+
+            _avatar = next(
+                (n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"),
+                None,
+            )
+            if _avatar:
+                _record = form_avatar_intent(_avatar, ctx.tick_number)
+                store_avatar_intent(ctx.scene_state, _record, ctx.tick_number)
+            else:
+                # Avatar нет в scene — очищаем любой stale ACTIVE
+                voided_avatar_intents(ctx.scene_state, ctx.tick_number)
+        except Exception as _err:
+            logger.warning(f"[AVATAR_INTENT] formation fault: {_err}")
+            # Stale cleanup: старое намерение не остаётся актуальным
+            voided_avatar_intents(ctx.scene_state, ctx.tick_number)
 
     def _phase_0_6_sleep_lifecycle(self, ctx: _TickContext) -> None:
         """Фаза 0.6: Sleep lifecycle — обновление sleep depth, recovery, wake checks.

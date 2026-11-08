@@ -1,0 +1,130 @@
+==============================================================================
+R2-B5-D2 v5 — Fix spy wrapping (plain function, descriptor protocol)
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d2_executor_lifecycle_v5.txt
+==============================================================================
+
+v5 FIX from v4:
+  - Use PLAIN MODULE-LEVEL FUNCTION as spy (not class method)
+  - Python descriptor protocol will pass instance as 'self'
+  - This fixes the TypeError that crashed the spy in v4
+
+v4 KEY FINDINGS (preserved):
+  - Only ONE DialogueExecutor instance (router=<ModelRouter>)
+  - Logs [DIALOGUE_EXEC] in v3 were STALE (from previous run)
+  - Real idle_tick calls execute() ONCE
+
+  loaded 6 NPCs
+
+==============================================================================
+STEP 1: find ALL DialogueExecutor instances (before spy)
+==============================================================================
+  Found 1 DialogueExecutor instance(s):
+    id=1276045755792, router=<app.services.llm.router.ModelRouter object at 0x0000012917D33620>, router_type=ModelRouter
+
+==============================================================================
+STEP 2: install CLASS-LEVEL spies (PLAIN FUNCTIONS)
+==============================================================================
+  EventBus spy installed
+  Class spies installed (plain functions)
+
+  Verify spy installation:
+    DialogueExecutor.execute is _spy_execute: True
+    DialogueExecutor._generate_with_router is _spy_generate_with_router: True
+    DialogueMaterializer.materialize is _spy_materialize: True
+    IntentEventAdapter.to_event is _spy_to_event: <function _spy_to_event at 0x00000129172DFCE0>
+
+==============================================================================
+STEP 3: PRE-EXISTING Tornin beliefs
+==============================================================================
+  Tornin pre-existing records: 0
+
+==============================================================================
+STEP 4: publish PLAYER_INSULTS
+==============================================================================
+
+==============================================================================
+STEP 5: clear spies + run idle_tick
+==============================================================================
+  Re-verify spies after reset:
+    DialogueExecutor.execute is _spy_execute: True
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+  idle_tick returned: dict
+  status: ok
+
+==============================================================================
+STEP 6: spy results
+==============================================================================
+
+  === All executor spy calls (execute + _generate_with_router) ===
+  Total: 0
+
+  === DialogueMaterializer.materialize() calls ===
+  Total: 0
+
+  === IntentEventAdapter.to_event() calls ===
+  Total: 0
+
+  === EventBus.publish() calls ===
+  Total events: 5
+    npc_moved: 4
+    tick_completed: 1
+
+  --- ALL events with details ---
+    [0] type=npc_moved source=maid_lusya target=? intent=?
+    [1] type=npc_moved source=blacksmith_orm target=? intent=?
+    [2] type=npc_moved source=tavern_keeper_tornin target=? intent=?
+    [3] type=npc_moved source=merchant_goran target=? intent=?
+    [4] type=tick_completed source=tick_orchestrator target=? intent=?
+
+  === ALL DialogueExecutor logs ===
+  Total: 3
+    [DEBUG] app.services.execution.dialogue_executor: [DIALOGUE_EXEC] Executing task for guard_borko -> tavern_keeper_tornin on topic 'власть'
+    [DEBUG] app.services.execution.dialogue_executor: [DIALOGUE_EXEC] Executing task for guard_borko -> tavern_keeper_tornin on topic 'власть'
+    [DEBUG] app.services.execution.dialogue_executor: [DIALOGUE_EXEC] Executing task for guard_borko -> tavern_keeper_tornin on topic 'власть'
+
+  === ALL task_scheduler logs (no filter) ===
+  Total: 0
+
+  === DialogueMaterializer logs ===
+  Total: 0
+
+  === ALL ERROR level logs ===
+  Total: 0
+
+  === ALL WARN level logs ===
+  Total: 9
+    [WARNING] app.services.npc.npc_tick_pipeline: [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+    [WARNING] app.services.npc.npc_tick_pipeline: [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+    [WARNING] app.services.npc.npc_tick_pipeline: [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+    [WARNING] app.services.events.reaction_subscriber: [REACTION_SUB] handle() called with 1 events types=[<EventType.PLAYER_INSULTS: 'player_insults'>]
+    [WARNING] app.services.events.reaction_subscriber: [REACTION_SUB] handle() called with 1 events types=[<EventType.PLAYER_INSULTS: 'player_insults'>]
+    [WARNING] app.services.events.reaction_subscriber: [REACTION_SUB] perceiving_ids count=6 ids=['merchant_goran', 'thief_shadow', 'tavern_keeper_tornin', 'maid_lusya', 'blacksmith_orm']
+    [WARNING] app.services.events.reaction_subscriber: [REACTION_SUB] perceiving_ids count=6 ids=['merchant_goran', 'thief_shadow', 'tavern_keeper_tornin', 'maid_lusya', 'blacksmith_orm']
+    [WARNING] app.services.events.reaction_subscriber: [REACTION_SUB] 1 events, 6 perceivers, 12 deltas, emotion_deltas=6, tags=[None, None, None, None, None, None]
+    [WARNING] app.services.events.reaction_subscriber: [REACTION_SUB] 1 events, 6 perceivers, 12 deltas, emotion_deltas=6, tags=[None, None, None, None, None, None]
+
+==============================================================================
+STEP 7: Tornin belief AFTER idle_tick
+==============================================================================
+  Tornin total records: 1
+    prop=Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, obj
+      conf=0.5 source_id=player orig=player
+
+  NEW Tornin belief with source_id='guard_borko' (orig='player'): False
+
+==============================================================================
+STEP 8: VERDICT
+==============================================================================
+  execute() calls: 0
+  _generate_with_router calls: 0
+  materialize() calls: 0
+  to_event() calls: 0
+  NPC_SPOKE/SPREAD_RUMOR published: 0
+
+  >>> VERDICT: BREAK — execute() NOT called
+  >>> Spy works, but executor was never invoked by task_scheduler

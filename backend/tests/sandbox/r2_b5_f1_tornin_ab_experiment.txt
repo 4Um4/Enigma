@@ -1,0 +1,241 @@
+==============================================================================
+R2-B5-F1 — Tornin behavioral response to NPC corroboration (A/B)
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_f1_tornin_ab_experiment.txt
+==============================================================================
+
+Control A: PLAYER_INSULTS + BLOCK Borko's COMMUNICATION_CLAIM
+Experiment B: PLAYER_INSULTS + ALLOW Borko's COMMUNICATION_CLAIM
+
+
+==============================================================================
+EXPERIMENT A (Control) — BLOCK Borko transmission
+==============================================================================
+  loaded 6 NPCs
+  Tornin initial belief: source_id=None conf=None orig=None
+  Tornin EpistemicContext (pre-tick):
+    max_confidence: 0.0
+    report_proposition: None
+    claims_about_self: 0
+    trigger_proposition: None
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+
+  Tick 1: status=ok
+    Tornin DH: winner=seek_ally score=0.272
+    Borko DH: winner=Intent.spread_rumor
+    NPC_SPOKE: 0, COMM_CLAIM: 0, Blocked: 0
+    Tornin belief: source=None conf=None tick=None
+    Tornin ctx: max_conf=0.0 report_prop=None claims_self=0
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=0 actors=[]
+[DIAG-MV] engine_changes=0 targets=[]
+
+  Tick 2: status=ok
+    Tornin DH: winner=seek_ally score=0.219
+    Borko DH: winner=Intent.seek_ally
+    NPC_SPOKE: 1, COMM_CLAIM: 0, Blocked: 0
+    Tornin belief: source=None conf=None tick=None
+    Tornin ctx: max_conf=0.0 report_prop=None claims_self=0
+      NPC_SPOKE: guard_borko→tavern_keeper_tornin intent=talk text=Мне нужно отдохнуть.
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['guard_borko', 'merchant_goran']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+
+  Tick 3: status=ok
+    Tornin DH: winner=seek_ally score=0.301
+    Borko DH: winner=Intent.spread_rumor
+    NPC_SPOKE: 1, COMM_CLAIM: 0, Blocked: 0
+    Tornin belief: source=None conf=None tick=None
+    Tornin ctx: max_conf=0.0 report_prop=None claims_self=0
+      NPC_SPOKE: merchant_goran→blacksmith_orm intent=talk text=Мать говорит, что пора жениться. Я говорю, что у меня нет денег. Она говорит: 'Т
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=4 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] engine_changes=2 targets=['blacksmith_orm', 'blacksmith_orm']
+
+  Tick 4: status=ok
+    Tornin DH: winner=seek_ally score=0.232
+    Borko DH: winner=Intent.seek_ally
+    NPC_SPOKE: 1, COMM_CLAIM: 0, Blocked: 0
+    Tornin belief: source=None conf=None tick=None
+    Tornin ctx: max_conf=0.0 report_prop=None claims_self=0
+      NPC_SPOKE: blacksmith_orm→tavern_keeper_tornin intent=talk text=Гильдия ремесленников требует запретить чужеземных торговцев.
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=5 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['maid_lusya', 'maid_lusya', 'tavern_keeper_tornin', 'tavern_keeper_tornin']
+
+  Tick 5: status=ok
+    Tornin DH: winner=spread_rumor score=0.498
+    Tornin top3: [('spread_rumor', 0.5), ('call_for_help', 0.31), ('seek_ally', 0.27)]
+    Borko DH: winner=Intent.seek_ally
+    NPC_SPOKE: 0, COMM_CLAIM: 0, Blocked: 0
+    Tornin belief: source=None conf=None tick=None
+    Tornin ctx: max_conf=0.0 report_prop=None claims_self=0
+
+==============================================================================
+EXPERIMENT B (Experiment) — ALLOW Borko transmission
+==============================================================================
+  loaded 6 NPCs
+  Tornin initial belief: source_id=None conf=None orig=None
+  Tornin EpistemicContext (pre-tick):
+    max_confidence: 0.0
+    report_proposition: None
+    claims_about_self: 0
+    trigger_proposition: None
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+
+  Tick 1: status=ok
+    Tornin DH: winner=seek_ally score=0.272
+    Borko DH: winner=Intent.spread_rumor
+    NPC_SPOKE: 1, COMM_CLAIM: 0, Blocked: 0
+    Tornin belief: source=None conf=None tick=None
+    Tornin ctx: max_conf=0.0 report_prop=None claims_self=0
+      NPC_SPOKE: guard_borko→tavern_keeper_tornin intent=talk text=Мне нужно отдохнуть.
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=0 actors=[]
+[DIAG-MV] engine_changes=0 targets=[]
+
+  Tick 2: status=ok
+    Tornin DH: winner=seek_ally score=0.219
+    Borko DH: winner=Intent.seek_ally
+    NPC_SPOKE: 0, COMM_CLAIM: 0, Blocked: 0
+    Tornin belief: source=None conf=None tick=None
+    Tornin ctx: max_conf=0.0 report_prop=None claims_self=0
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['guard_borko', 'merchant_goran']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+
+  Tick 3: status=ok
+    Tornin DH: winner=seek_ally score=0.301
+    Borko DH: winner=Intent.spread_rumor
+    NPC_SPOKE: 1, COMM_CLAIM: 0, Blocked: 0
+    Tornin belief: source=None conf=None tick=None
+    Tornin ctx: max_conf=0.0 report_prop=None claims_self=0
+      NPC_SPOKE: merchant_goran→blacksmith_orm intent=talk text=Мать говорит, что пора жениться. Я говорю, что у меня нет денег. Она говорит: 'Т
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=4 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] engine_changes=2 targets=['blacksmith_orm', 'blacksmith_orm']
+
+  Tick 4: status=ok
+    Tornin DH: winner=seek_ally score=0.232
+    Borko DH: winner=Intent.seek_ally
+    NPC_SPOKE: 1, COMM_CLAIM: 0, Blocked: 0
+    Tornin belief: source=None conf=None tick=None
+    Tornin ctx: max_conf=0.0 report_prop=None claims_self=0
+      NPC_SPOKE: blacksmith_orm→tavern_keeper_tornin intent=talk text=Гильдия ремесленников требует запретить чужеземных торговцев.
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=5 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=2 actors=['maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['maid_lusya', 'maid_lusya', 'tavern_keeper_tornin', 'tavern_keeper_tornin']
+
+  Tick 5: status=ok
+    Tornin DH: winner=spread_rumor score=0.498
+    Tornin top3: [('spread_rumor', 0.5), ('call_for_help', 0.31), ('seek_ally', 0.27)]
+    Borko DH: winner=Intent.seek_ally
+    NPC_SPOKE: 0, COMM_CLAIM: 0, Blocked: 0
+    Tornin belief: source=None conf=None tick=None
+    Tornin ctx: max_conf=0.0 report_prop=None claims_self=0
+
+==============================================================================
+A vs B COMPARISON
+==============================================================================
+
+  === Epistemic state ===
+  Field                          Control A                 Experiment B              Changed   
+  tornin_pre source_id           None                      None                      no        
+  tornin_pre confidence          None                      None                      no        
+  tornin_final source_id         None                      None                      no        
+  tornin_final orig_source       None                      None                      no        
+  tornin_final confidence        None                      None                      no        
+  tornin_final last_tick         None                      None                      no        
+  ctx_pre max_confidence         0.0                       0.0                       no        
+  ctx_final max_confidence       0.0                       0.0                       no        
+
+  === DecisionHub per tick — Tornin ===
+  Tick   A winner             A score    B winner             B score    Changed   
+  1      seek_ally            0.272      seek_ally            0.272      no        
+  2      seek_ally            0.219      seek_ally            0.219      no        
+  3      seek_ally            0.301      seek_ally            0.301      no        
+  4      seek_ally            0.232      seek_ally            0.232      no        
+  5      spread_rumor         0.498      spread_rumor         0.498      no        
+
+  === NPC_SPOKE events per tick ===
+  Tick   A count    B count    A details                                B details                               
+  1      0          1                                                   guard_borko→tavern_keeper_tornin:talk   
+  2      1          0          guard_borko→tavern_keeper_tornin:talk                                            
+  3      1          1          merchant_goran→blacksmith_orm:talk       merchant_goran→blacksmith_orm:talk      
+  4      1          1          blacksmith_orm→tavern_keeper_tornin:talk blacksmith_orm→tavern_keeper_tornin:talk
+  5      0          0                                                                                           
+
+  === Borko SPREAD_RUMOR selection per tick ===
+  Tick 1: A=Intent.spread_rumor, B=Intent.spread_rumor
+  Tick 2: A=Intent.seek_ally, B=Intent.seek_ally
+  Tick 3: A=Intent.spread_rumor, B=Intent.spread_rumor
+  Tick 4: A=Intent.seek_ally, B=Intent.seek_ally
+  Tick 5: A=Intent.seek_ally, B=Intent.seek_ally
+
+  === Blocked events in Control A ===
+  Total blocked: 0
+
+==============================================================================
+CAUSAL ANALYSIS
+==============================================================================
+
+  1. Did epistemic state change?
+     Control A: source_id=None, confidence=None
+     Experiment B: source_id=None, confidence=None
+     >>> NO — epistemic state is the same (Borko may not have transmitted)
+
+  2. Did DecisionHub winner change?
+     A winners: ['seek_ally', 'seek_ally', 'seek_ally', 'seek_ally', 'spread_rumor']
+     B winners: ['seek_ally', 'seek_ally', 'seek_ally', 'seek_ally', 'spread_rumor']
+     >>> NO — Tornin chose the same intent in all ticks
+
+  3. Did scores change?
+     A scores: [0.272, 0.219, 0.301, 0.232, 0.498]
+     B scores: [0.272, 0.219, 0.301, 0.232, 0.498]
+     >>> NO — scores are the same
+
+  4. Did Tornin's speech change?
+     A: 0 NPC_SPOKE from Tornin
+     B: 0 NPC_SPOKE from Tornin
+
+==============================================================================
+VERDICT
+==============================================================================
+  >>> Epistemic state same in A and B
+  >>> Borko chose SPREAD_RUMOR in B: False
+  >>> COMMUNICATION_CLAIM events in B: 0
+  >>> VERDICT: INCONCLUSIVE — Borko didn't transmit in this run
+  >>> (game state variability — Borko may not have reached Tornin)

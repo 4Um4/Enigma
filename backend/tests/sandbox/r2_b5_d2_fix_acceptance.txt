@@ -1,0 +1,100 @@
+==============================================================================
+R2-B5-D2 FIX ACCEPTANCE TEST — Option D verification
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d2_fix_acceptance.txt
+==============================================================================
+
+3 scenarios + full B5-D2 chain test
+
+  loaded 6 NPCs
+  EventBus spy installed
+
+==============================================================================
+SCENARIO: Full B5-D2 chain
+==============================================================================
+  PLAYER_INSULTS published
+  Tornin pre-tick records: 1
+    source_id=player orig=player
+
+  Running idle_tick...
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+  idle_tick returned: dict, status=ok
+
+==============================================================================
+CHECK 1: NPC_SPOKE published
+==============================================================================
+  NPC_SPOKE events: 0
+
+  CHECK 1: FAIL — NO NPC_SPOKE
+
+==============================================================================
+CHECK 2: COMMUNICATION_CLAIM published
+==============================================================================
+  COMMUNICATION_CLAIM events: 0
+
+  CHECK 2: FAIL — NO COMMUNICATION_CLAIM
+
+==============================================================================
+CHECK 3: Tornin belief with source_id=guard_borko
+==============================================================================
+  Tornin total records: 1
+    prop=Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, obj
+      conf=0.5 source_id=player orig=player
+
+  Tornin has belief with source_id='guard_borko': False
+  CHECK 3: FAIL
+
+==============================================================================
+CHECK 4: original_source_id=player
+==============================================================================
+  Tornin has belief with source_id='guard_borko' AND original_source_id='player': False
+  CHECK 4: FAIL
+
+==============================================================================
+CHECK 5: No duplicate task execution on second idle_tick
+==============================================================================
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['maid_lusya']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+  Second idle_tick returned: status=ok
+  NPC_SPOKE events in second tick: 0
+  Duplicate spread_rumor NPC_SPOKE (guard_borko→tavern_keeper_tornin): False
+  CHECK 5: PASS — no duplicate
+
+==============================================================================
+CHECK 6: Fallback observability
+==============================================================================
+  Logs with 'fallback' or 'spread_rumor': 12
+    [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=guard_borko desired_change=behavior:thief_shadow methods={'intimidate': 0.168, 'warn': 0.075, 'spread_rumor': 0.49, 'call_for_he
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=guard_borko fear_drive=0.20 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe',
+    [DEBUG] app.services.npc.decision_hub: [WHY][DECISION] npc=guard_borko | winner=seek_ally (0.280) | threat=0.0 | comps={'drive': 0.27, 'emotion': 0.0, 'relationship': -0.003, 'risk_penalty': -0.001, '
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=merchant_goran fear_drive=0.15 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observ
+    [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=maid_lusya desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.166, 'warn': 0.0445, 'spread_rumor': 0.4841, 'c
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=maid_lusya fear_drive=0.45 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe', 
+    [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=blacksmith_orm desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.1662, 'warn': 0.1484, 'spread_rumor': 0.484
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=blacksmith_orm fear_drive=0.05 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observ
+    [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=thief_shadow desired_change=behavior:guard_borko methods={'intimidate': 0.1675, 'warn': 0.015, 'spread_rumor': 0.4885, 'call_for
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=thief_shadow fear_drive=0.10 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe'
+  DialogueExecutor fallback logs: 0
+  CHECK 6: PASS — fallback observability found
+
+==============================================================================
+FINAL SUMMARY
+==============================================================================
+  ❌ FAIL  CHECK 1: NPC_SPOKE published
+  ❌ FAIL  CHECK 2: COMMUNICATION_CLAIM published
+  ❌ FAIL  CHECK 3: Tornin belief source_id=guard_borko
+  ❌ FAIL  CHECK 4: original_source_id=player
+  ✅ PASS  CHECK 5: No duplicate task execution
+  ✅ PASS  CHECK 6: Fallback observability
+
+  2/6 checks passed
+
+  >>> B5-D2 FIX NEEDS ATTENTION — some checks failed

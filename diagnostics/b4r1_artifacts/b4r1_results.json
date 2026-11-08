@@ -1,10 +1,10 @@
 {
-  "timestamp": "2026-11-08T01:32:09.453541",
-  "git_sha": "fcc4aa16",
+  "timestamp": "2026-11-08T14:29:25.700500",
+  "git_sha": "82eb0495",
   "player": "player",
   "victim": "tavern_keeper_tornin",
   "ticks": 20,
-  "elapsed": 253.9,
+  "elapsed": 219.2,
   "epistemic_store": [
     {
       "agent_id": "tavern_keeper_tornin",
@@ -14,11 +14,11 @@
         "object_id": "tavern_keeper_tornin",
         "polarity": true
       },
-      "confidence": 0.39681599999999995,
-      "source_id": "guard_borko",
-      "source_claim_id": "564e2875-a210-380d-b9c0-f03a5ebda5d4",
+      "confidence": 0.6212214285714286,
+      "source_id": "blacksmith_orm",
+      "source_claim_id": "ad96ccd3-c3cd-7e80-8920-4253dc5527e8",
       "first_observed_tick": 0,
-      "last_updated_tick": 20,
+      "last_updated_tick": 22,
       "source_type": "testimony",
       "original_source_id": "player"
     }
@@ -1058,93 +1058,2555 @@
       "selected_source": "none",
       "fallback_reason": "llm_not_required",
       "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "talk",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "none",
+      "fallback_reason": "llm_not_required",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "claims_about_self",
+      "fallback_reason": null,
+      "proposition_key": {
+        "subject": "player",
+        "predicate": "insulted",
+        "object": "tavern_keeper_tornin",
+        "polarity": true
+      }
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "claims_about_self",
+      "fallback_reason": null,
+      "proposition_key": {
+        "subject": "player",
+        "predicate": "insulted",
+        "object": "tavern_keeper_tornin",
+        "polarity": true
+      }
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "claims_about_self",
+      "fallback_reason": null,
+      "proposition_key": {
+        "subject": "player",
+        "predicate": "insulted",
+        "object": "tavern_keeper_tornin",
+        "polarity": true
+      }
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "claims_about_self",
+      "fallback_reason": null,
+      "proposition_key": {
+        "subject": "player",
+        "predicate": "insulted",
+        "object": "tavern_keeper_tornin",
+        "polarity": true
+      }
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "claims_about_self",
+      "fallback_reason": null,
+      "proposition_key": {
+        "subject": "player",
+        "predicate": "insulted",
+        "object": "tavern_keeper_tornin",
+        "polarity": true
+      }
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "claims_about_self",
+      "fallback_reason": null,
+      "proposition_key": {
+        "subject": "player",
+        "predicate": "insulted",
+        "object": "tavern_keeper_tornin",
+        "polarity": true
+      }
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "claims_about_self",
+      "fallback_reason": null,
+      "proposition_key": {
+        "subject": "player",
+        "predicate": "insulted",
+        "object": "tavern_keeper_tornin",
+        "polarity": true
+      }
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "claims_about_self",
+      "fallback_reason": null,
+      "proposition_key": {
+        "subject": "player",
+        "predicate": "insulted",
+        "object": "tavern_keeper_tornin",
+        "polarity": true
+      }
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "talk",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "none",
+      "fallback_reason": "llm_not_required",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "talk",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "none",
+      "fallback_reason": "llm_not_required",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "talk",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "none",
+      "fallback_reason": "llm_not_required",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "talk",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "none",
+      "fallback_reason": "llm_not_required",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "talk",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "none",
+      "fallback_reason": "llm_not_required",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "thief_shadow",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 0,
+      "selected_source": "none",
+      "fallback_reason": "no_proposition",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "talk",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "none",
+      "fallback_reason": "llm_not_required",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "talk",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "none",
+      "fallback_reason": "llm_not_required",
+      "proposition_key": null
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "claims_about_self",
+      "fallback_reason": null,
+      "proposition_key": {
+        "subject": "player",
+        "predicate": "insulted",
+        "object": "tavern_keeper_tornin",
+        "polarity": true
+      }
+    },
+    {
+      "level": "INFO",
+      "agent": "proposition_selection",
+      "npc_id": "tavern_keeper_tornin",
+      "intent_type": "spread_rumor",
+      "target_id": "maid_lusya",
+      "trigger_available": false,
+      "report_available": false,
+      "claims_about_self_count": 1,
+      "selected_source": "claims_about_self",
+      "fallback_reason": null,
+      "proposition_key": {
+        "subject": "player",
+        "predicate": "insulted",
+        "object": "tavern_keeper_tornin",
+        "polarity": true
+      }
     }
   ],
   "npc_spoke": [
     {
-      "_global_order": 8,
+      "_global_order": 9,
       "source": "tavern_keeper_tornin",
       "target_id": "maid_lusya",
-      "text": "Ай-яй-яй, кто тебя посылал сюда? Хоть капельки уважения, да. Лучше иди к своему месту, а не лезь в чужие дела. У меня тут свои правила, понял?",
-      "intent_type": "spread_rumor",
+      "text": "По ночам слышны крики со стороны старой башни.",
+      "intent_type": "talk",
       "payload": {
         "target_id": "maid_lusya",
-        "text": "Ай-яй-яй, кто тебя посылал сюда? Хоть капельки уважения, да. Лучше иди к своему месту, а не лезь в чужие дела. У меня тут свои правила, понял?",
+        "text": "По ночам слышны крики со стороны старой башни.",
         "topic": "встреча",
         "exposure": "normal",
         "tone": "ANGRY",
-        "intent_type": "spread_rumor",
+        "intent_type": "talk",
         "event_tick": 5
       }
     },
     {
-      "_global_order": 11,
+      "_global_order": 20,
       "source": "tavern_keeper_tornin",
       "target_id": "maid_lusya",
-      "text": "Торнин Серебряная Луна: Слушай, девка, не лезь мне в глаза с своими осужденьями. Мне здесь главное, и тебе надо быть благодарной за то, что у меня есть работа для тебя.",
+      "text": "Ты лучше не копай в моих делах, Люся. Мне не до болтовни с грабителями. Если этот Tester что-то хочет от меня, он должен это сказать напрямую, а не распространять слухи. Я сам позабочусь о своей безопасности и таверны.",
       "intent_type": "spread_rumor",
       "payload": {
         "target_id": "maid_lusya",
-        "text": "Торнин Серебряная Луна: Слушай, девка, не лезь мне в глаза с своими осужденьями. Мне здесь главное, и тебе надо быть благодарной за то, что у меня есть работа для тебя.",
-        "topic": "наблюдение",
+        "text": "Ты лучше не копай в моих делах, Люся. Мне не до болтовни с грабителями. Если этот Tester что-то хочет от меня, он должен это сказать напрямую, а не распространять слухи. Я сам позабочусь о своей безопасности и таверны.",
+        "topic": "власть",
         "exposure": "normal",
         "tone": "ANGRY",
         "intent_type": "spread_rumor",
-        "event_tick": 7
+        "event_tick": 11
       }
     },
     {
-      "_global_order": 16,
+      "_global_order": 26,
       "source": "tavern_keeper_tornin",
       "target_id": "maid_lusya",
-      "text": "Торнин Серебряная Луна: Хорошо, девка, я сам знаю, что мне надо здесь делать. Не вникаей в мои дела, а лучше следуй своим. В ином случае у нас обоих могут возникнуть проблемы. Живем так, как живём.",
+      "text": "Зачем мне это надо? Ты что, шпион или что? Уберись здесь и держи рот на месте, пока не разберешься с собственной жизнью.",
       "intent_type": "spread_rumor",
       "payload": {
         "target_id": "maid_lusya",
-        "text": "Торнин Серебряная Луна: Хорошо, девка, я сам знаю, что мне надо здесь делать. Не вникаей в мои дела, а лучше следуй своим. В ином случае у нас обоих могут возникнуть проблемы. Живем так, как живём.",
-        "topic": "встреча",
-        "exposure": "normal",
-        "tone": "ANGRY",
-        "intent_type": "spread_rumor",
-        "event_tick": 9
-      }
-    },
-    {
-      "_global_order": 24,
-      "source": "tavern_keeper_tornin",
-      "target_id": "maid_lusya",
-      "text": "Торнин Серебряная Луна: Хватит already с этим. Я не твой папа, чтобы врать мне. Моя жизнь - это их игрушка, и я должен держать рот на замок. Но если бы ты был умнее, могли бы помочь друг другу. А теперь иди к своей работе.",
-      "intent_type": "spread_rumor",
-      "payload": {
-        "target_id": "maid_lusya",
-        "text": "Торнин Серебряная Луна: Хватит already с этим. Я не твой папа, чтобы врать мне. Моя жизнь - это их игрушка, и я должен держать рот на замок. Но если бы ты был умнее, могли бы помочь друг другу. А теперь иди к своей работе.",
+        "text": "Зачем мне это надо? Ты что, шпион или что? Уберись здесь и держи рот на месте, пока не разберешься с собственной жизнью.",
         "topic": "наблюдение",
         "exposure": "normal",
         "tone": "ANGRY",
         "intent_type": "spread_rumor",
         "event_tick": 13
       }
-    },
-    {
-      "_global_order": 33,
-      "source": "tavern_keeper_tornin",
-      "target_id": "maid_lusya",
-      "text": "Наш капитан стражи хвастается, что спал с тремя женщинами за ночь. Мы подозреваем, что он имел в виду свои собаки.",
-      "intent_type": "talk",
-      "payload": {
-        "target_id": "maid_lusya",
-        "text": "Наш капитан стражи хвастается, что спал с тремя женщинами за ночь. Мы подозреваем, что он имел в виду свои собаки.",
-        "topic": "власть",
-        "exposure": "normal",
-        "tone": "ANGRY",
-        "intent_type": "talk",
-        "event_tick": 17
-      }
     }
   ],
   "verifier": [
     {
-      "status": "NO",
+      "status": "YES",
       "proposition": {
         "subject_id": "player",
         "predicate": "insulted",
@@ -1153,7 +3615,7 @@
       },
       "proposition_parse_ok": true,
       "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Эй, ты что, не видел как я тут стою. Хоть капельки уважения, да.' raw='NO'"
+      "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, ну и что, Серебряная Луна. Всё время нахер тут потратил.'"
     },
     {
       "status": "NO",
@@ -1165,7 +3627,7 @@
       },
       "proposition_parse_ok": true,
       "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, чужеземцы разрушают наш ремесло. Вам это известно? Жди, что гильдия сделает.' raw='NO'"
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я Купец Горан, рад вас видеть. Меня тут все знают как честного и надежного торговца.' raw='NO'"
     },
     {
       "status": "NO",
@@ -1177,7 +3639,91 @@
       },
       "proposition_parse_ok": true,
       "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, ну какое тебе дело до моего отдыха? Взять можно или нет? Хоть капельки конкретики, да.' raw='NO'"
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Нет, Орм не отвечает. Он продолжает работать, молча.' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, ну и что, Серебряная Луна. Всё время нахер тут потратил. Можешь хоть как-то компенсировать. А то я уже не знаю, как будем жить без твоих денег.' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, я слышала что-то о том, что этот Tester... он сказал вам что-то не в порядке. Я это знаю из того, что мне рассказал Стражник Борко. Может быть ' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой друг, я понимаю, что мир торговли не всегда линейный, но в нашем разговоре я бы предпочел избегать темы криминала. Ведь честность - это то, чему я верю ' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Жди.' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, ну и оскорблений тут раздаётся. Хоть немного денег за молчу же, да? Но ты ведь знаешь, где искать компенсацию, Серебряная Луна. Жди меня.' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Прошу прощения, дорогой друг, но я не могу поддержать разговор о таких темах. Моя торговля основана на честности и надежности.' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Нет, Орм не отвечает. Он продолжает работать, молча. Жди.' raw='NO'"
     },
     {
       "status": "YES",
@@ -1189,7 +3735,7 @@
       },
       "proposition_parse_ok": true,
       "level": "INFO",
-      "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, слышала, как этот Tester оскорбил вас. Ничего хорошего не будет от его слов.'"
+      "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Я слышала от Стражника Борко, что этот Tester оскорбил господина Торнина. Может, стоит проверить, чего он хочет? Ведь если его слова не в порядке, это может быт'"
     },
     {
       "status": "NO",
@@ -1201,7 +3747,7 @@
       },
       "proposition_parse_ok": true,
       "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Ай-яй-яй, кто тебя посылал сюда? Хоть капельки уважения, да. Лучше иди к своему месту, а не лезь в чужие дела. У меня тут свои правила, понял?' raw='NO'"
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой друг, я слышал о некоторых неудобствах в вашем окружении. Надеюсь, это не повлияло на нашу беседу о честности и торговле.' raw='NO'"
     },
     {
       "status": "NO",
@@ -1213,7 +3759,7 @@
       },
       "proposition_parse_ok": true,
       "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой гость, я рад приветствовать вас в моём заведении. Однако, должен заметить, что атмосфера здесь всегда была дружелюбной и открытой для всех.' raw='NO'"
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, так оно и есть. Орм не говорит ни слова, продолжая ковать сталь. Но знай, что гномье язык - это тайна, которую я берегу как зеницу ока. Жди своего, чужеземе' raw='NO'"
     },
     {
       "status": "NO",
@@ -1225,7 +3771,7 @@
       },
       "proposition_parse_ok": true,
       "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Друг знает. Ждать, что гильдия сделает. Чужеземцы разрушают наш ремесло. Это правда.' raw='NO'"
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, ну и оскорбления ты тут раздавал, Серебряная Луна. Хорошо тебе так себя вести, когда мне не на что жить. Можешь хоть как-то компенсировать. А то я уже не зн' raw='NO'"
     },
     {
       "status": "NO",
@@ -1237,7 +3783,7 @@
       },
       "proposition_parse_ok": true,
       "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Торнин Серебряная Луна: Слушай, девка, не лезь мне в глаза с своими осужденьями. Мне здесь главное, и тебе надо быть благодарной за то, что у меня есть работа д' raw='NO'"
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Ты лучше не копай в моих делах, Люся. Мне не до болтовни с грабителями. Если этот Tester что-то хочет от меня, он должен это сказать напрямую, а не распространя' raw='NO'"
     },
     {
       "status": "NO",
@@ -1249,91 +3795,7 @@
       },
       "proposition_parse_ok": true,
       "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, ну что тебе надо? Слушать мои проблемы или что? Хоть капельки конкретики, да. А то так и сидеть молча - нечестно.' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой друг, я рад вас видеть в нашем заведении. Надеюсь, вам здесь будет комфортно и уютно. Ведь мы стремимся к тому, чтобы все наши гости чувствовали себя ка' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, я всего лишь стараюсь следовать вашим правилам. Но если вы замечаете что-то не так, скажите мне прямо, и я исправлюся. Я хочу работать здесь и ' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Друг знает. Ждать, что гильдия сделает. Чужеземцы разрушают наш ремесло. Это правда. Жди, что гильдия предпримет меры против разрушающего влияния чужеземных тор' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Торнин Серебряная Луна: Хорошо, девка, я сам знаю, что мне надо здесь делать. Не вникаей в мои дела, а лучше следуй своим. В ином случае у нас обоих могут возни' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, ну что тебе надо, человек. Готов поднять цену за пиво, но не стоит надеяться на больше.' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой друг, я рад вас видеть в нашем заведении. Надеюсь, вам здесь будет комфортно и уютно. Ведь мы стремимся к тому, чтобы все наши гости чувствовали себя ка' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Друг знает. Ждать, что гильдия сделает. Чужеземцы разрушают наш ремесло. Это правда. Жди, что гильдия сделает.' raw='NO'"
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Прошу прощения, дорогой друг, но я не могу поддержать разговор о таких темах. Моя торговля основана на честности и надежности.' raw='NO'"
     },
     {
       "status": "YES",
@@ -1345,163 +3807,7 @@
       },
       "proposition_parse_ok": true,
       "level": "INFO",
-      "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, ну ты как тут возник? Хоть капельки уважения, да. Взять можно или нет? Хоть капельки конкретики, да. Зеваю...'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, чужеземцы разрушают наш ремесло. Гильдия ремесленников попытается их остановить. Жди, что они предпримут меры.' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой друг, я заметил, что в нашей беседе присутствуют некоторые темы, которые могут быть непросто для обсуждения. Однако я хотел бы предложить вам расслабить' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Торнин Серебряная Луна: Хватит already с этим. Я не твой папа, чтобы врать мне. Моя жизнь - это их игрушка, и я должен держать рот на замок. Но если бы ты был у' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, ну ты здесь же не заметишь, разведка-то? Хоть капельки собранности, да. Взять можно или нет, скажешь точно? Уж за такую услугу, хорошо заплачу.' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, чужеземцы разрушают наш ремесло. Гильдия ждёт, что предпримет меры. Жди, они сделают. Это правда.' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой мастер Орм, прошу прощения за эту неожиданную тему. Но я подумал, что между людьми всегда есть что поделиться. Ведь мы все здесь ради своего благополучи' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой Торнин Серебряная Луна, я заметил, что наш общий друг вызвал у вас негодование. Хотя бы потому что он был неосторожен в своих высказываниях.' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Друг знает. Ждать, что гильдия сделает. Чужеземцы разрушают наш ремесло. Это правда.' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин, я просто хотела вам помочь. Но если это не угодно вашему господину Торнину, то я умоляем прошу прощения и буду следовать вашим указаниям. Никто здесь ' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин, я просто хотела вам помочь. Я понимаю, что мне нужно следовать вашим правилам.' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, ну скажешь прямо, а не вокруг да около. Знаешь, что мне надо? Хоть капельки честности, да. А то я еще думал, что мы здесь вежливо общаемся.' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой Торнин Серебряная Луна, рад вас видеть в моём заведении. Надеюсь, нашего знакомства принесёт вам только удовольствия и приятных воспоминаний.' raw='NO'"
-    },
-    {
-      "status": "NO",
-      "proposition": {
-        "subject_id": "player",
-        "predicate": "insulted",
-        "object_id": "tavern_keeper_tornin",
-        "polarity": true
-      },
-      "proposition_parse_ok": true,
-      "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, ну что тебе надо с моими делами? Хоть капельки вежливости, да. Ну или хоть взятка, если очень нужно. Но без лишних вопросов, понимаешь?' raw='NO'"
+      "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, я слышал. Этот Tester оскорбил Торнина. Но и тебе надо быть осторожнее, говоря лишнее. Жди.'"
     },
     {
       "status": "YES",
@@ -1513,7 +3819,7 @@
       },
       "proposition_parse_ok": true,
       "level": "INFO",
-      "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, ну что тебе надо от меня? Не видно, что я тут стою и жду уважения. Хоть капельки конкретики, да. Зачем ты мне пришел, если не готов платить за молчание?'"
+      "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, ну и что, Серебряная Луна? Ну и подарок ты мне привёз-то. Теперь всем скажу, что ты меня оскорбил. А за это, конечно, денег не беру. Зачем я такой добрый?'"
     },
     {
       "status": "NO",
@@ -1525,7 +3831,7 @@
       },
       "proposition_parse_ok": true,
       "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой Торнин Серебряная Луна, я заметил, что наш общий друг вызвал у вас негодование. Хотя бы потому что он был неосторожен в своих высказываниях.' raw='NO'"
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Зачем мне это надо? Ты что, шпион или что? Уберись здесь и держи рот на месте, пока не разберешься с собственной жизнью.' raw='NO'"
     },
     {
       "status": "NO",
@@ -1537,7 +3843,7 @@
       },
       "proposition_parse_ok": true,
       "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Эй, не оглядывайся так, а? Хоть капельки внимания, можно было бы уделять стражнику. Ну что, собираешься платить или нет? Говори прямо, я жду.' raw='NO'"
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой друг, я слышал, что наш мир торговли может быть сложным и иногда связан с вещами, которые лучше оставить незамеченными. Но как честный торговец, я стара' raw='NO'"
     },
     {
       "status": "NO",
@@ -1549,7 +3855,19 @@
       },
       "proposition_parse_ok": true,
       "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин Торнин, я просто хотела предупредить вас о словах этого тестера. Он сказал что-то не в вашу честь. Я всегда буду поддерживать вас и следовать вашим пра' raw='NO'"
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, гильдия требует. Но я работаю для себя и своих клиентов. Жди, пока работа закончится.' raw='NO'"
+    },
+    {
+      "status": "YES",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой друг, я не могу забыть оскорблении, нанесённом моему приятелю Торнину. Его честь была унижена, и это не должно случиться снова. Уверяю вас, я буду наблю'"
     },
     {
       "status": "NO",
@@ -1561,7 +3879,31 @@
       },
       "proposition_parse_ok": true,
       "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Эй, ты что, не видел как я тут стою? Хоть капельки уважения, да. Аа, ну какое тебе дело до моего отдыха? Взять можно или нет? Хоть капельки конкретики, да.' raw='NO'"
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, ну и оскорбления тебе не хватает, Серебряная Луна. Ведь ты тут целый месяц как ни шельму, ни зверя.' raw='NO'"
+    },
+    {
+      "status": "YES",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, Орм знает. ЭтотTester оскорбил Торнин Серебряная Луна в моём присутствии. Жди.'"
+    },
+    {
+      "status": "YES",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, оскорбил? Ну и новость, Серебряная Луна. В общем, так хоть компенсируй, а то тут никто не отдает даром. Зачем он к нам пришёл, если не готов заплатить?'"
     },
     {
       "status": "NO",
@@ -1573,7 +3915,67 @@
       },
       "proposition_parse_ok": true,
       "level": "INFO",
-      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, чужеземцы разрушают наш ремесло. Гильдия ждёт, что сделает. Жди тоже.' raw='NO'"
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Нет, Орм не отвечает. Он продолжает работать, молча. Жди.' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Аа, ну и что, Серебряная Луна. Всё время нахер тут потратил. Можешь хоть как-то компенсировать. А то я уже не знаю, как будем жить без твоих денег.' raw='NO'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Жди.' raw='NO'"
+    },
+    {
+      "status": "YES",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Господин, я слышала от Стражника Борко, что этот Tester оскорбил вас. Может, стоит проверить, чего он хочет? Ведь если его слова не в порядке, это может быть оп'"
+    },
+    {
+      "status": "NO",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → NO (rejected). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Дорогой друг, я слышу, что было некое оскорбление. Но позвольте мне предложить, что лучше всего забыть об этих злых словах и сосредоточиться на том, чтобы найти' raw='NO'"
+    },
+    {
+      "status": "YES",
+      "proposition": {
+        "subject_id": "player",
+        "predicate": "insulted",
+        "object_id": "tavern_keeper_tornin",
+        "polarity": true
+      },
+      "proposition_parse_ok": true,
+      "level": "INFO",
+      "message": "verify → YES (confirmed). prop={'subject_id': 'player', 'predicate': 'insulted', 'object_id': 'tavern_keeper_tornin', 'polarity': True} text_head='Да, гном говорит правду. Тестер оскорбил меня. Жди, пока не пришло время отомстить.'"
     }
   ],
   "claims": [],
@@ -1613,13 +4015,13 @@
     }
   ],
   "counters": {
-    "npc_spoke": 40,
+    "npc_spoke": 35,
     "events": {
-      "npc_moved": 20,
-      "npc_proximity_close": 26,
-      "npc_spoke": 40,
-      "npc_proximity_leave": 30,
-      "communication_claim": 3
+      "npc_moved": 26,
+      "npc_proximity_close": 34,
+      "npc_spoke": 35,
+      "npc_proximity_leave": 38,
+      "communication_claim": 9
     }
   }
 }

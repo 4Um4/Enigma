@@ -1,0 +1,969 @@
+==============================================================================
+R2-B5-D2 v2 — Trace ONE task lifecycle: DialogueExecutor → NPC_SPOKE
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d2_executor_lifecycle.txt
+==============================================================================
+
+STRATEGY (per Master):
+  STEP 1: Read DialogueExecutor.execute() full path
+  STEP 2: Read task_scheduler._process_tasks_async
+  STEP 3: Compare idle_tick vs run_turn execution paths
+  STEP 4: Run probe with spies on DialogueExecutor + IntentEventAdapter + EventBus
+  STEP 5: Verify success criteria (NEW belief, source_id=guard_borko)
+
+
+==============================================================================
+STEP 1: DialogueExecutor.execute() full path
+==============================================================================
+  file: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\execution\dialogue_executor.py
+  execute() at L111..L284 (showing L111..L284):
+  L 111:     def execute(self, task: QueuedTask) -> Iterable[Artifact]:
+  L 112:         if not isinstance(task.payload, DialogueRequest):
+  L 113:             logger.error(f"[DIALOGUE_EXEC] Invalid payload type: {type(task.payload)}")
+  L 114:             yield Artifact(
+  L 115:                 task_id=task.task_id,
+  L 116:                 success=False,
+  L 117:                 result_type="error",
+  L 118:                 data={},
+  L 119:                 error_message="Invalid payload for DialogueExecutor",
+  L 120:             )
+  L 121:             return
+  L 122: 
+  L 123:         req = task.payload
+  L 124:         # A1 (RE-D2, вердикт Мастера): provenance текста — по ПРОИСХОЖДЕНИЮ,
+  L 125:         # не эвристикой по содержимому. "llm" ставится только в LLM-ветке;
+  L 126:         # детерминированная материализация (stub / requires_llm=False) содержит
+  L 127:         # machine-id латиницей BY DESIGN — LANG_LEAK (замок S292) к ней не
+  L 128:         # применяется: ложный ретрай звал LLM с потока петли → RE-D2.
+  L 129:         _text_source = "deterministic"
+  L 130:         logger.debug(
+  L 131:             f"[DIALOGUE_EXEC] Executing task for {task.owner_id} -> {req.target_id} on topic '{req.topic}'"
+  L 132:         )
+  L 133: 
+  L 134:         # S197: Извлекаем Proposition на верхнем уровне, чтобы он был доступен во всех ветках
+  L 135:         _proposition = getattr(req, "proposition", None)  # noqa: ENIGMA002
+  L 136: 
+  L 137:         # P7-A: вердикт disclosure выносится ДО вербализации, РОВНО ОДИН
+  L 138:         # раз на реплику (инвариант Мастера). LLM вербализует, не решает.
+  L 139:         _verdict = self._resolve_disclosure_verdict(task, req)
+  L 140: 
+  L 141:         # Если роутер не задан (sandbox/test), возвращаем заглушку
+  L 142:         if self._router is None:
+  L 143:             logger.warning("[DIALOGUE_EXEC] ModelRouter is None! Fallback to stub.")
+  L 144:             text = f"[Заглушка] {task.owner_id} обращается к {req.target_id} по теме: '{req.topic}'"
+  L 145:         elif not requires_llm_materialization(req.intent_type) and not (
+  L 146:             req.intent_type == "spread_rumor" and _proposition is not None
+  L 147:         ):
+  L 148:             # S199.2: Детерминированная материализация для claim-producing интентов без LLM
+  L 149:             text = f"[{req.intent_type}] {task.owner_id} -> {req.target_id}: {req.topic}"
+  L 150:         else:
+  L 151:             # ENIGMA-ARCH-022: LLM Execution Timeout.
+  L 152:             # Использует существующий cancellation boundary (router._abort_generation).
+  L 153:             # В будущем LLM_TIMEOUT_SEC будет вынесен в CalibrationProfile.
+  L 154:             import threading
+  L 155:             _timer = threading.Timer(_L_TIMEOUT_SEC, self._router._abort_generation)
+  L 156: 
+  L 157:             try:
+  L 158:                 _timer.start()
+  L 159:                 _text_source = "llm"
+  L 160:                 text = self._generate_with_router(task, req, _verdict)
+  L 161:             except DialogueContractViolation as e:
+  L 162:                 logger.warning(f"[DIALOGUE_EXEC] Contract violated: {e}")
+  L 163:                 # BUGFIX: Возвращаем error artifact, а не success, т.к. текст не сгенерирован
+  L 164:                 yield Artifact(
+  L 165:                     task_id=task.task_id,
+  L 166:                     success=False,
+  L 167:                     result_type="error",
+  L 168:                     data={},
+  L 169:                     error_message=str(e)
+  L 170:                 )
+  L 171:                 return
+  L 172:             except Exception as e:
+  L 173:                 logger.error(f"[DIALOGUE_EXEC] LLM call failed (timeout or error) for {task.owner_id}: {e}")
+  L 174:                 # Stage B Observability (вердикт Мастера Q4): llm_materialization_failed.
+  L 175:                 try:
+  L 176:                     from app.services.logging_tools import jsonl_log
+  L 177:                     jsonl_log({
+  L 178:                         "level": "ERROR",
+  L 179:                         "agent": "template_fallback",
+  L 180:                         "fallback_reason": "llm_materialization_failed",
+  L 181:                         "npc_id": task.owner_id,
+  L 182:                         "intent_type": req.intent_type,
+  L 183:                         "target_id": req.target_id,
+  L 184:                         "error": str(e),
+  L 185:                     })
+  L 186:                 except Exception:
+  L 187:                     logger.debug("[OBS] llm_materialization_failed observability skipped (non-critical)")
+  L 188:                 yield Artifact(
+  L 189:                     task_id=task.task_id,
+  L 190:                     success=False,
+  L 191:                     result_type="error",
+  L 192:                     data={},
+  L 193:                     error_message=f"LLM execution failed: {e}"
+  L 194:                 )
+  L 195:                 return
+  L 196:             finally:
+  L 197:                 _timer.cancel()
+  L 198: 
+  L 199:         if not text:
+  L 200:             yield Artifact(
+  L 201:                 task_id=task.task_id,
+  L 202:                 success=False,
+  L 203:                 result_type="error",
+  L 204:                 data={},
+  L 205:                 error_message="LLM failed or returned empty text (stub avoided)."
+  L 206:             )
+  L 207:             return
+  L 208: 
+  L 209:         # №3 (S292): language-leak gate. Русскоязычный мир — латинные вставки
+  L 210:         # LLM («Give me a name») ломают нарратив. Честная деградация (ADR-113):
+  L 211:         # измерить → один ретрай с усиленной директивой → при повторе лог+паблиш
+  L 212:         # как есть (не маскируем, не режем слова).
+  L 213:         import re as _re
+  L 214: 
+  L 215:         def _latin_share(s: str) -> float:
+  L 216:             _words = [w for w in _re.split(r"\s+", s.strip()) if w]
+  L 217:             if not _words:
+  L 218:                 return 0.0
+  L 219:             _latin = sum(1 for w in _words if _re.search(r"[A-Za-z]", w))
+  L 220:             return _latin / len(_words)
+  L 221: 
+  L 222:         # A1: LANG_LEAK гейтит ТОЛЬКО текст LLM-происхождения. Детерминированный
+  L 223:         # текст публикуется как есть (machine-id ≠ language leak).
+  L 224:         if _text_source == "llm" and _latin_share(text) >= 0.25:
+  L 225:             logger.warning(
+  L 226:                 f"[LANG_LEAK] {task.owner_id}: latin_share={_latin_share(text):.2f} "
+  L 227:                 f"text={text[:80]!r} — retry with reinforced directive"
+  L 228:             )
+  L 229:             _retry_timer = None  # пред-связывание: finally ссылается всегда
+  L 230:             try:
+  L 231:                 import threading as _th
+  L 232:                 _retry_timer = _th.Timer(_L_TIMEOUT_SEC, self._router._abort_generation)
+  L 233:                 _retry_timer.start()
+  L 234:                 _reinforced = (  # noqa: ENIGMA001
+  L 235:                     f"{req.prepared_prompt}\n\n[СТРОГО: ответ ТОЛЬКО кириллицей. "
+  L 236:                     f"Ни одного латинского слова. Предыдущая попытка отклонена.]"
+  L 237:                 ) if req.prepared_prompt else None
+  L 238:                 _retry_req = (
+  L 239:                     type(req)(**{**req.__dict__, "prepared_prompt": _reinforced})
+  L 240:                     if hasattr(req, "__dict__")
+  L 241:                     else req
+  L 242:                 )
+  L 243:                 text = self._generate_with_router(task, _retry_req, _verdict)
+  L 244:             except Exception as _retry_err:
+  L 245:                 logger.error(f"[LANG_LEAK] retry failed for {task.owner_id}: {_retry_err}")
+  L 246:             finally:
+  L 247:                 if _retry_timer is not None:
+  L 248:                     try:
+  L 249:                         _retry_timer.cancel()
+  L 250:                     except Exception as _cancel_err:
+  L 251:                         # L4 (S292): cancel-сбой логируется; ретрай уже завершён —
+  L 252:                         # исходная генерация не деградирует от этого отказа.
+  L 253:                         logger.debug(f"[LANG_LEAK] retry timer cancel skipped: {_cancel_err}")
+  L 254:         # A1: LANG_LEAK гейтит ТОЛЬКО текст LLM-происхождения. Детерминированный
+  L 255:         # текст публикуется как есть (machine-id ≠ language leak).
+  L 256:         if _text_source == "llm" and _latin_share(text) >= 0.25:
+  L 257:             logger.error(
+  L 258:                 f"[LANG_LEAK] {task.owner_id}: retry still leaked "
+  L 259:                 f"(share={_latin_share(text):.2f}) — publishing as-is (honest degradation)"
+  L 260:             )
+  L 261: 
+  L 262:         # P6/E1 (S255): эмит — ТОЧКА УСПЕШНОЙ ДОСТАВКИ (DISCOVERY IS
+  L 263:         # DELIVERY: решение P5 материально только при доставленной
+  L 264:         # реплике; error-ветки выше не эмитят). Заменил вызов парсера
+  L 265:         # (V8-MVP-12): текст НЕ источник discovery — PROVENANCE, NOT
+  L 266:         # STRINGS. Писатель :109 — отдельным шагом ПОСЛЕ T8/T3.
+  L 267:         self._emit_dialogue_outcome(task, req, _verdict)
+  L 268: 
+  L 269:         yield Artifact(
+  L 270:             task_id=task.task_id,
+  L 271:             success=True,
+  L 272:             result_type="dialogue_line",
+  L 273:             data={
+  L 274:                 "speaker_id": task.owner_id,
+  L 275:                 "target_id": req.target_id,
+  L 276:                 "text": text,
+  L 277:                 "exposure": req.exposure.semantic,
+  L 278:                 "topic": req.topic,
+  L 279:                 "emotional_state": req.emotional_state,
+  L 280:                 "proposition": _proposition, # S198 FIX: Сохраняем эпистемическое утверждение для COMMUNICATION_CLAIM
+  L 281:                 "intent_type": req.intent_type, # S201 FIX: Пробрасываем intent_type для ClaimEventSubscriber fallback
+  L 282:             },
+  L 283:         )
+  L 284: 
+
+  --- search for NPC_SPOKE / publish / to_event / IntentEventAdapter ---
+  no matches for 'NPC_SPOKE'
+  Found 1 matches for 'publish':
+
+  >>> L259:                 f"(share={_latin_share(text):.2f}) — publishing as-is (honest degradation)"
+      L 256:         if _text_source == "llm" and _latin_share(text) >= 0.25:
+      L 257:             logger.error(
+      L 258:                 f"[LANG_LEAK] {task.owner_id}: retry still leaked "
+  >>> L 259:                 f"(share={_latin_share(text):.2f}) — publishing as-is (honest degradation)"
+      L 260:             )
+      L 261: 
+      L 262:         # P6/E1 (S255): эмит — ТОЧКА УСПЕШНОЙ ДОСТАВКИ (DISCOVERY IS
+  no matches for 'to_event'
+  no matches for 'IntentEventAdapter'
+
+==============================================================================
+STEP 2: task_scheduler._process_tasks_async
+==============================================================================
+  file: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\task_scheduler.py
+  _process_tasks_async() at L596..L811 (showing L596..L795):
+  L 596:     def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = "", _task_type: str = "canonical", _game_time: float = 0.0, submit_tick: int = 0) -> None:
+  L 597:         """Фоновая обработка задач LLM (ADR-O-399: только compute, observable-эффекты — в drain)."""
+  L 598:         import os as _os
+  L 599:         import time
+  L 600:         # ADR-O-399 / §15.2-паттерн DRIFT_*: test-only латентность воркера.
+  L 601:         # Моделирует время ГОТОВНОСТИ артефакта, не меняет его содержание —
+  L 602:         # гейт controlled-latency детерминизма. Production default = 0.
+  L 603:         _latency_ms = int(_os.environ.get("DRIFT_WORKER_LATENCY_MS", "0"))
+  L 604:         if _latency_ms > 0:
+  L 605:             time.sleep(_latency_ms / 1000.0)
+  L 606: 
+  L 607:         # S203.4: константы fail_reason для терминальных хуков (закон №16).
+  L 608:         # [GC-I01-E2] + INTERRUPT_TASK_STALE_INTENT (flee-гейт ниже).
+  L 609:         from app.domain.action_commitment import (
+  L 610:             FAIL_TASK_CRASH,
+  L 611:             FAIL_TASK_ERROR,
+  L 612:             INTERRUPT_TASK_STALE_INTENT,
+  L 613:         )
+  L 614:         # ADR-O-399: bus воркеру больше не нужен — publish только в drain
+  L 615:         # (main thread). Если это последнее использование get_event_bus в
+  L 616:         # функции — импорт ниже не встречается (проверяет structural probe).
+  L 617:         if not campaign_id:
+  L 618:             campaign_id = scene_state.get("campaign_id", "")
+  L 619: 
+  L 620:         for task_dict in tasks:
+  L 621:             # ADR-O-399: per-task коллекторы артефакта (сброс на каждой задаче)
+  L 622:             _events_collected: list = []
+  L 623:             _talks_collected: list = []
+  L 624:             _dlg_entry = None
+  L 625:             _speech_reset = None
+  L 626:             # B8 (пункт 10, №149/№151-ретракция): worker-гейт — последняя
+  L 627:             # точка прерывания mid-generation. Dispatch-гейты не покрывают
+  L 628:             # in-flight: задача сабмичена ДО смерти (владелец жил — гейты
+  L 629:             # честно прошли), воркер исполняет ПОСЛЕ. Проверка перед
+  L 630:             # executor.execute переспрашивает живость на каждом хопе
+  L 631:             # (enqueue→dequeue→submit→execute) — любые будущие dispatch-точки
+  L 632:             # закрыты by construction. EXPIRED — канонический ADR-O-365
+  L 633:             # terminal-mapping; outbox-дренаж воркера — прецедент D-2.
+  L 634:             if self._owner_is_dead(campaign_id, task_dict.get("owner_id", "")):
+  L 635:                 self._record_task_outcome(task_dict.get("owner_id", ""), "EXPIRED")
+  L 636:                 logger.info(
+  L 637:                     f"[TASK_SCHED] liveness-gate (worker): owner={task_dict.get('owner_id', '')} "
+  L 638:                     f"DEAD → task EXPIRED (mid-generation interrupt)"
+  L 639:                 )
+  L 640:                 continue
+  L 641:             # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт worker — последний рубеж
+  L 642:             # до executor.execute (прецедент B8: задача, сабмиченная до
+  L 643:             # изменения воли, не исполняется; начатая генерация не отзывается).
+  L 644:             if self._owner_intent_flees(campaign_id, task_dict.get("owner_id", "")):
+  L 645:                 self._record_task_outcome(task_dict.get("owner_id", ""), "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+  L 646:                 logger.info(
+  L 647:                     f"[TASK_SCHED] stale-intent-gate (worker): owner={task_dict.get('owner_id', '')} "
+  L 648:                     f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
+  L 649:                 )
+  L 650:                 continue
+  L 651:             self.total_processed_tasks += 1
+  L 652:             task = self._reconstruct_task(task_dict)
+  L 653:             if task is None:
+  L 654:                 # ENIGMA-ARCH-038: Реконструкция провалена. Задача уже отброшена с ERROR-логом.
+  L 655:                 continue
+  L 656: 
+  L 657:             # Блокер 5: Маршрутизация ambient -> NpcConversation, canonical -> DialogueExecutor
+  L 658:             executor: Any  # S313: два несводимых типа исполнителей в одной переменной
+  L 659:             if _task_type == "ambient":
+  L 660:                 executor = self._ambient_executor
+  L 661:             else:
+  L 662:                 executor = self._executors.get(task.kind)
+  L 663: 
+  L 664:             if not executor:
+  L 665:                 logger.warning(f"[SCHEDULER] No executor for kind {task.kind}")
+  L 666:                 if _task_type == "canonical":
+  L 667:                     self._record_task_outcome(task_dict.get("owner_id", ""), "CANCELLED")
+  L 668:                 continue
+  L 669: 
+  L 670:             task.state = TaskState.PROCESSING
+  L 671:             task.campaign_id = campaign_id
+  L 672:             # S203.4: COMMITTED→EXECUTING (только canonical — ambient вне владения, D-8).
+  L 673:             if _task_type == "canonical":
+  L 674:                 self._record_task_outcome(task.owner_id, "EXECUTING")
+  L 675: 
+  L 676:             # ADR-O-313: SocialTargetResolver — если цель не задана, выбираем ближнего NPC
+  L 677:             if isinstance(task.payload, DialogueRequest) and not task.payload.target_id:
+  L 678:                 from dataclasses import replace as dc_replace
+  L 679: 
+  L 680:                 from app.domain.communication import (
+  L 681:                     SELF_TALK_SENTINEL,  # Р-А: доменный сентинел вместо магической строки
+  L 682:                 )
+  L 683: 
+  L 684:                 _resolved_target = SELF_TALK_SENTINEL
+  L 685:                 # C11 FIX: DialogueRequest уже импортирован на уровне модуля
+  L 686: 
+  L 687:                 # P2 FIX: Использование SpatialQueryService для фильтрации по радиусу
+  L 688:                 from app.services.spatial.spatial_query_service import (
+  L 689:                     SpatialQueryService,
+  L 690:                 )
+  L 691: 
+  L 692:                 _sqs = SpatialQueryService(
+  L 693:                     npc_positions=scene_state.get("npc_positions", {}),
+  L 694:                     scene_state=scene_state,
+  L 695:                 )
+  L 696: 
+  L 697:                 _candidates = []
+  L 698:                 _all_npcs = [
+  L 699:                     nid
+  L 700:                     for nid in scene_state.get("npc_positions", {}).keys()
+  L 701:                     if nid != "player" and nid != task.owner_id
+  L 702:                 ]
+  L 703:                 for nid in _all_npcs:
+  L 704:                     _dist = _sqs.distance(task.owner_id, nid)
+  L 705:                     if _dist <= 5.0:
+  L 706:                         _candidates.append(nid)
+  L 707: 
+  L 708:                 if _candidates:
+  L 709:                     # BUG-CORE-011 FIX: Используем KernelRNG вместо глобального random (ADR-O-301).
+  L 710:                     from app.services.npc.kernel_rng import KernelRNG
+  L 711:                     _tick = scene_state.get("tick", 0)
+  L 712:                     _rng = KernelRNG(tick=_tick, npc_id=task.owner_id, salt="task_target_resolve")
+  L 713:                     _resolved_target = _rng.choice(_candidates)
+  L 714: 
+  L 715:                 task.payload = dc_replace(task.payload, target_id=_resolved_target)
+  L 716:                 logger.debug(
+  L 717:                     f"[SCHEDULER] Resolved missing target_id to '{_resolved_target}' for {task.owner_id}"
+  L 718:                 )
+  L 719: 
+  L 720:                 # ADR-O-342: Hard Contract. Если STM пуст для резолвнутой цели, меняем intent на approach
+  L 721:                 if self._memory_manager and task.payload.intent_type not in ("greeting", "approach") and requires_dialogue_context(task.payload.intent_type):
+  L 722:                     _stm_check = self._memory_manager.get_stm_prompt_block_pair(
+  L 723:                         campaign_id, task.owner_id, _resolved_target
+  L 724:                     )
+  L 725:                     if not _stm_check:
+  L 726:                         logger.debug(f"[SCHEDULER] Intercept {task.owner_id} -> {_resolved_target}: No STM, changing intent '{task.payload.intent_type}' to 'approach'")
+  L 727:                         task.payload = dc_replace(task.payload, intent_type="approach")
+  L 728: 
+  L 729:             artifacts = executor.execute(task)
+  L 730: 
+  L 731:             try:
+  L 732:                 for artifact in artifacts:
+  L 733:                     if artifact.success:
+  L 734:                         task.state = TaskState.FINISHED
+  L 735:                         if _task_type == "canonical":
+  L 736:                             self._record_task_outcome(task.owner_id, "COMPLETED")
+  L 737:                         logger.info(f"[TASK_SCHED] dialogue executed: speaker={task.owner_id} target={task.payload.target_id if hasattr(task.payload, 'target_id') else 'unknown'}")
+  L 738: 
+  L 739:                         materializer = self._materializers.get(artifact.result_type)
+  L 740:                         if materializer:
+  L 741:                             try:
+  L 742:                                 events = materializer.materialize(artifact)
+  L 743:                                 # ADR-O-399: publish из воркера запрещён — события
+  L 744:                                 # уходят в артефакт, применяются в drain (main thread)
+  L 745:                                 for ev in events:
+  L 746:                                     _events_collected.append(ev)
+  L 747:                             except Exception as mat_exc:
+  L 748:                                 logger.error(f"[SCHEDULER] Materializer failed for task {task.task_id}: {mat_exc}", exc_info=True)
+  L 749:                                 events = []
+  L 750:                         else:
+  L 751:                             logger.warning(f"[SCHEDULER] No materializer for result_type={artifact.result_type}")
+  L 752:                             events = []
+  L 753: 
+  L 754:                         # ADR-O-313: Кэшируем реплику для Speech Bubbles
+  L 755:                         if artifact.result_type == "dialogue_line" and events:
+  L 756:                             # BUG-N8 FIX: Регистрируем разговор в EconomyTracker
+  L 757:                             if self._economy_tracker:
+  L 758:                                 # ADR-O-399: observable economy — в drain
+  L 759:                                 _talks_collected.append((ev.source, scene_state.get("tick", 0)))
+  L 760:                             import time
+  L 761:                             _dlg_entry = {
+  L 762:                                 "speaker_id": ev.source,
+  L 763:                                 "target_id": ev.payload.get("target_id", ""),
+  L 764:                                 "text": ev.payload.get("text", ""),
+  L 765:                                 # Проброс exposure: материален в ev.payload (DialogueMaterializer),
+  L 766:                                 # потребитель — NarrativeProjector (delivery_type для портретов).
+  L 767:                                 # Чинит потерю provenance в ручной сборке entry.
+  L 768:                                 "exposure": ev.payload.get("exposure", "normal"),
+  L 769:                                 # IRON RIVER D-1/P0-1 (F1a): timestamp — каузальная
+  L 770:                                 # ось game_time (значение уже в точке записи, :564),
+  L 771:                                 # детерминирован и входит в канон-хеш; real_ts —
+  L 772:                                 # UI-staleness (§15.2-исключение), из хеша исключён.
+  L 773:                                 "timestamp": _game_time,
+  L 774:                                 "real_ts": time.time(),
+  L 775:                                 # ADR-O-343 FIX: Используем зафиксированное время тика, чтобы избежать гонки с scene_state.
+  L 776:                                 "game_time": _game_time,
+  L 777:                             }
+  L 778:                             # ADR-O-399: append в RAM-кэш перенесён в drain (main thread);
+  L 779:                             # _dlg_entry уходит в артефакт как есть
+  L 780:                             # ADR-O-313 FIX: Зеркалим в scene_state, иначе CDS видит 0 реплик (INV-DIALOGUE-PIPELINE)
+  L 781:                             # ADR-O-399: зеркалирование в scene_state — только в drain
+  L 782:                     else:
+  L 783:                         logger.error(
+  L 784:                             f"[SCHEDULER] Task {task.task_id} failed: {artifact.error_message}"
+  L 785:                         )
+  L 786:                         task.state = TaskState.FINISHED  # Пока без сложного ретрая
+  L 787:                         if _task_type == "canonical":
+  L 788:                             self._record_task_outcome(task.owner_id, "FAILED", FAIL_TASK_ERROR)
+  L 789:                         self.failed_tasks += 1
+  L 790:                         # ADR-O-343: Сбрасываем DEDUP в SpeechScheduler, чтобы NPC мог повторить попытку
+  L 791:                         if hasattr(self, '_speech_scheduler'):
+  L 792:                             # ADR-O-399: мутация admission-состояния — в drain
+  L 793:                             _speech_reset = task_dict
+  L 794:             except Exception as task_exc:
+  L 795:                 logger.error(f"[SCHEDULER] Crashed during task execution {task.task_id}: {task_exc}", exc_info=True)
+  ... (16 more lines)
+
+  --- _execute_pending or execute_pending ---
+  execute_pending() at L370..L595 (showing L370..L519):
+  L 370:     def execute_pending(self, scene_state: dict, campaign_id: str) -> None:
+  L 371:         """Берёт задачи из очереди с учётом rate limit и запускает в фоне."""
+  L 372:         # S203.4 (D-2): дренаж ДО разбора — терминалы прошлого цикла применяются
+  L 373:         # ADR-O-399 (точка (а)): артефакты воркера коммитятся ДО dequeue новых задач
+  L 374:         self.drain_task_worker_outbox(scene_state)
+  L 375:         # даже при пустой очереди этого вызова.
+  L 376:         self.drain_commitment_outbox(scene_state)
+  L 377:         pending = scene_state.get("pending_tasks", [])
+  L 378:         if not pending:
+  L 379:             return
+  L 380: 
+  L 381:         # BUG-DLG-006 FIX: Используем game_time_seconds из scene_state вместо wall-clock.
+  L 382:         _game_time = scene_state.get("game_time_seconds", 0.0)
+  L 383: 
+  L 384:         # ADR-O-343: SpeechScheduler Arbitration инициализируется здесь
+  L 385:         if not hasattr(self, '_speech_scheduler'):
+  L 386:             from app.services.game_loop.speech_scheduler import SpeechScheduler
+  L 387:             self._speech_scheduler = SpeechScheduler(self._memory_manager)
+  L 388: 
+  L 389:         # [GC-I01-E2] GC-INTERRUPT-01: причина прерывания (закон №16, локальный
+  L 390:         # импорт — прецедент файла; шрам-закон №1: поверхность перед использованием).
+  L 391:         from app.domain.action_commitment import INTERRUPT_TASK_STALE_INTENT
+  L 392:         from app.domain.intent_profiles import requires_llm_materialization
+  L 393: 
+  L 394:         for task_dict in pending:
+  L 395:             if task_dict.get("kind") == "dialogue":
+  L 396:                 speaker_id = task_dict.get("owner_id", "")
+  L 397:                 _payload = task_dict.get("payload", {})
+  L 398:                 _tone = _payload.get("emotional_state", "neutral").upper()
+  L 399:                 _intent_type = _payload.get("intent_type", "")
+  L 400:                 _has_prop = bool(_payload.get("proposition"))
+  L 401: 
+  L 402:                 # S216 FIX (027.1): Fast-path для задач, не требующих LLM (warn, spread_rumor, steal).
+  L 403:                 # Они исполняются синхронно, минуя DialogueQueue, чтобы не создавать backlog.
+  L 404:                 if not requires_llm_materialization(_intent_type):
+  L 405:                     # FIX [4]: fast-path исполняется СИНХРОННО на вызывающем потоке
+  L 406:                     # (не через _executor_pool). warn/spread_rumor/steal не используют
+  L 407:                     # LLM (stub-режим или детерминированный текст) → мгновенно. Пул с
+  L 408:                     # max_workers=1 (ADR-O-343) более не блокирует доставку: warn-задача
+  L 409:                     # публикует NPC_SPOKE и обновляет EpistemicStore ДО возврата из
+  L 410:                     # execute_pending → поллинг видит conf в том же тике.
+  L 411:                     # LLM-задачи (talk и др.) остаются на пуле — ADR-O-343 не нарушен.
+  L 412:                     # B (пункт 10): liveness-гейт fast-path — тот же ADR-O-365
+  L 413:                     # terminal-mapping, main-thread sync-ветка (как DEDUP).
+  L 414:                     if self._owner_is_dead(campaign_id, speaker_id):
+  L 415:                         self._record_task_outcome(speaker_id, "EXPIRED")
+  L 416:                         logger.info(
+  L 417:                             f"[TASK_SCHED] liveness-gate (fast-path): owner={speaker_id} "
+  L 418:                             f"DEAD → task EXPIRED (mid-generation interrupt)"
+  L 419:                         )
+  L 420:                         continue
+  L 421:                     # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт fast-path (после
+  L 422:                     # death-check): warn/spread_rumor убегающего тоже не
+  L 423:                     # материализуются — воля владельца сильнее типа задачи.
+  L 424:                     if self._owner_intent_flees(campaign_id, speaker_id):
+  L 425:                         self._record_task_outcome(speaker_id, "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+  L 426:                         logger.info(
+  L 427:                             f"[TASK_SCHED] stale-intent-gate (fast-path): owner={speaker_id} "
+  L 428:                             f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
+  L 429:                         )
+  L 430:                         continue
+  L 431:                     # FIX (S271, предгейт P1): fast-path omitил submit_tick →
+  L 432:                     # дефолт 0 → _TaskArtifactRecord.submit_tick=0 → event_tick=0
+  L 433:                     # в drain. Симметрично process_tasks:333 и dequeue-пути :556 —
+  L 434:                     # восстановление существующего контракта, не новая семантика.
+  L 435:                     self._process_tasks_async(scene_state, [task_dict], campaign_id, "canonical", _game_time, scene_state.get("tick", 0))
+  L 436:                     continue
+  L 437: 
+  L 438:                 # S216 FIX (027.1): Классификация canonical/ambient через intent_profiles.
+  L 439:                 # Если интент produces_claim=True ИЛИ payload содержит proposition -> canonical.
+  L 440:                 # Иначе -> ambient. Это предотвращает переполнение canonical-очереди
+  L 441:                 # экономическими и социальными интентами без proposition.
+  L 442:                 if _has_prop or produces_claim(_intent_type):
+  L 443:                     _task_type = "canonical"
+  L 444:                     _priority = 1  # Высокий приоритет (heapq min-heap)
+  L 445:                 else:
+  L 446:                     _task_type = "ambient"
+  L 447:                     _priority = 5  # Низкий приоритет
+  L 448: 
+  L 449:                 # S262 (очередной затор): enqueue-дедуп спикер+интент —
+  L 450:                 # постоянные интенты (TRADE/CALL_FOR_HELP/OFFER_JOB каждый
+  L 451:                 # тик от одного NPC) забивали очередь до капа 20, TALK
+  L 452:                 # конкурировал со спамом в общем heap, ambient-потери
+  L 453:                 # каждый тик (замер: 2-3 OVERFLOW/тик). Дедуп при enqueue
+  L 454:                 # (а не dequeue): в очереди — не более одной задачи на
+  L 455:                 # (speaker, intent); дубли skip с наблюдаемостью.
+  L 456:                 # SpeechScheduler-pacing остаётся тормозом темпа; этот
+  L 457:                 # гейт — тормозом заполнения. Множество живёт на
+  L 458:                 # scheduler'е, очищается при dequeue/mark_completed.
+  L 459:                 _enq_key = (speaker_id, _intent_type)
+  L 460:                 if _enq_key in self._enqueued_keys:
+  L 461:                     # S262-багфикс (молчаливое исчезновение): дедуп-skip
+  L 462:                     # ОБЯЗАН завершать задачу честно — иначе интент висит
+  L 463:                     # в NPC-стейте без исполнителя → from_legacy-валидатор
+  L 464:                     # «intent without target» → TICK_CRASH (поймано тик-1
+  L 465:                     # superbox_social_deterministic). Протокол DEDUP-ветки:
+  L 466:                     # canonical → CANCELLED в реестре обязательств.
+  L 467:                     if _task_type == "canonical":
+  L 468:                         self._record_task_outcome(speaker_id, "CANCELLED")
+  L 469:                     logger.info(
+  L 470:                         "[DLG_ENQ_DEDUP] skip дубликата: speaker=%s intent=%s",
+  L 471:                         speaker_id, _intent_type,
+  L 472:                     )
+  L 473:                     continue
+  L 474:                 # S262: overflow-наблюдаемость (L4; закрывает молчаливую
+  L 475:                 # потерю Н-56): при enqueue на полной очереди — WARNING.
+  L 476:                 _queue_full = (
+  L 477:                     self._dialogue_queue.pending_count() >= 20
+  L 478:                     if hasattr(self._dialogue_queue, "pending_count")
+  L 479:                     else False
+  L 480:                 )
+  L 481:                 if _queue_full:
+  L 482:                     logger.warning(
+  L 483:                         "[DLG_QUEUE_OVERFLOW] enqueue при полной очереди "
+  L 484:                         f"(pending>=20, speaker={speaker_id}, "
+  L 485:                         f"intent={task_dict.get('payload', {}).get('intent_type', '?')})"
+  L 486:                     )
+  L 487:                 self._enqueued_keys.add(_enq_key)
+  L 488:                 self._dialogue_queue.enqueue(
+  L 489:                     task_type=_task_type,
+  L 490:                     payload={
+  L 491:                         "speaker_id": speaker_id,
+  L 492:                         "task_dict": task_dict,
+  L 493:                     },
+  L 494:                     priority=_priority,
+  L 495:                     game_time_seconds=_game_time
+  L 496:                 )
+  L 497: 
+  L 498:         # BUG-CORE-010 / BUG-DLG-005 FIX: Диалоговые задачи перенесены в DialogueQueue.
+  L 499:         # Удаляем их из pending_tasks, чтобы предотвратить бесконечный ре-enqueue и спам кучи.
+  L 500:         # Non-dialogue задачи (если появятся в будущем) остаются в pending.
+  L 501:         scene_state["pending_tasks"] = [
+  L 502:             t for t in pending if t.get("kind") != "dialogue"
+  L 503:         ]
+  L 504: 
+  L 505:         # ADR-O-343: Жёсткий лимит 1 задача на тик для размеренного пейсинга (Human Pacing).
+  L 506:         # В сочетании с SpeechScheduler (2 сек) это даёт плавную последовательность реплик.
+  L 507:         # _MAX_TASKS_PER_TICK moved to module level (021)
+  L 508:         # S262 (DLG-стабилизация, приказ Мастера): адаптивный дренаж —
+  L 509:         # при переполнении очереди (>10) лимит 3/тик, иначе базовый 1.
+  L 510:         # Честный pacing остаётся за SpeechScheduler (2 тика/спикер);
+  L 511:         # дренаж лишь перестаёт душить очередь: enqueue (интент/NPC/тик)
+  L 512:         # стабильно превышал дренаж 1/тик → очередь на капе 20 →
+  L 513:         # молчаливая потеря задач (DLG_QUEUE OVERFLOW, Н-56) → реплики-
+  L 514:         # лотерея (25/3/0/0 в замерах S262).
+  L 515:         _pending_now = (
+  L 516:             self._dialogue_queue.pending_count()
+  L 517:             if hasattr(self._dialogue_queue, "pending_count")
+  L 518:             else 0
+  L 519:         )
+  ... (76 more lines)
+
+  --- drain_commitment_outbox ---
+  drain_commitment_outbox() at L216..L246 (showing L216..L246):
+  L 216:     def drain_commitment_outbox(self, scene_state: dict) -> None:
+  L 217:         """Единственная точка применения терминалов task → реестр.
+  L 218: 
+  L 219:         Вызывается: (а) на входе execute_pending (покрывает calibration/тесты),
+  L 220:         (б) безусловно из idle_tick между execute_pending и unlock_tick
+  L 221:         (F23: тихие тики не создают backlog). terminal_tick = тик дренажа —
+  L 222:         честный момент наблюдения. Executor-mismatch (гонка/ambient) →
+  L 223:         mirror_task_terminal сам откажется без мутации.
+  L 224:         """
+  L 225:         if not self._commitment_outbox:
+  L 226:             return
+  L 227:         from app.services.action.commitment_registry import CommitmentRegistry
+  L 228: 
+  L 229:         _tick = scene_state.get("tick", 0)
+  L 230:         with self._commitment_outbox_lock:
+  L 231:             _batch = self._commitment_outbox
+  L 232:             self._commitment_outbox = []
+  L 233:         for _entry in _batch:  # [GC-I01-E2] 4-кортежи; legacy 3-кортежи живы
+  L 234:             _npc_id = _entry[0]
+  L 235:             _outcome = _entry[1]
+  L 236:             _fail = _entry[2] if len(_entry) > 2 else None
+  L 237:             _interrupt = _entry[3] if len(_entry) > 3 else None
+  L 238:             CommitmentRegistry.mirror_task_terminal(
+  L 239:                 scene_state,
+  L 240:                 _npc_id,
+  L 241:                 _tick,
+  L 242:                 _outcome,
+  L 243:                 fail_reason=_fail,
+  L 244:                 interrupt_reason=_interrupt,
+  L 245:             )
+  L 246: 
+
+==============================================================================
+STEP 3: idle_tick vs run_turn
+==============================================================================
+  file: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py
+
+  --- idle_tick ---
+  idle_tick() at L1157..L2204 (showing L1157..L1356):
+  L1157:     def idle_tick(self, campaign_id: str, location_id: Optional[str] = None, interventions: Optional[List["InterventionEvent"]] = None) -> dict:
+  L1158:         """Idle tick — делегирует TickOrchestrator (10 фаз, Устав §3).
+  L1159: 
+  L1160:         Вызывается когда игрок бездействует (таймер pygame).
+  L1161:         Единая точка входа: GameLoopBridge и routes.py делегируют сюда.
+  L1162:         TickOrchestrator.execute(dm_ctx=None) — полный idle-цикл с
+  L1163:         WorldSnapshotBuilder на фазе 9.
+  L1164: 
+  L1165:         Конвертация DTO→dict происходит ЗДЕСЬ, не в мосту (Устав §1.1).
+  L1166:         Frontend не должен знать про backend-классы.
+  L1167:         """
+  L1168:         # S83.1: idle_tick = tick boundary compliant path.
+  L1169:         # Одна точка входа в мир. Не второй мир — та же причинная система.
+  L1170: 
+  L1171:         # Шаг 1: Подготовка — гарантируем что сцена существует (стены, NPC, время)
+  L1172:         from app.core.constants import DEFAULT_LOCATION_ID
+  L1173:         from app.services.game_loop.scene_init import ensure_scene_initialized
+  L1174: 
+  L1175:         _prepped_scene = ensure_scene_initialized(self, campaign_id)
+  L1176: 
+  L1177:         # ADR-O-407: player-turn time-gate. Пока ход in-flight, idle_tick
+  L1178:         # НЕ вызывает execute() — мировое время не растёт (корень П.4:
+  L1179:         # «мир съедает полдня за реплику»). Возвращает честный статус;
+  L1180:         # фронтенд-поллер видит его и не рисует «мир движется». NPC-NPC
+  L1181:         # диалоги продолжают материализоваться через TaskScheduler в
+  L1182:         # run_turn (ADR-O-313) — НЕ паузится. Anti-Race: ядро не тронуто.
+  L1183:         if campaign_id in self._player_turn_in_flight:
+  L1184:             logger.debug(
+  L1185:                 f"[IDLE_TICK] ADR-O-407: skip — player turn in-flight "
+  L1186:                 f"(campaign={campaign_id})"
+  L1187:             )
+  L1188:             return {
+  L1189:                 "status": "player_turn_in_flight",
+  L1190:                 "npc_positions": {},
+  L1191:                 "npc_addressing": [],
+  L1192:             }
+  L1193: 
+  L1194:         # S-146 FIX: Поддержка принудительного тика для конкретной локации (для тестов)
+  L1195:         _active_loc = location_id or (_prepped_scene.get("location_id", "") if _prepped_scene else DEFAULT_LOCATION_ID)
+  L1196:         if not _active_loc:
+  L1197:             _active_loc = DEFAULT_LOCATION_ID
+  L1198: 
+  L1199:         # FIX-WALLS: авторитет локации игрока для idle-пути. Без этого активная
+  L1200:         # локация угадывается через load_scene() («первую попавшуюся», sqlite:206)
+  L1201:         # → при живых мульти-локациях активная скачет между сценами → фронтенд
+  L1202:         # получает снапшот ЧУЖОЙ локации → NPC рисуются в чужой системе
+  L1203:         # координат («гуляют сквозь стену»). metadata.current_location пишется
+  L1204:         # игрок-ходами (routes:927). Явный location_id (replay) не перекрывается.
+  L1205:         if location_id is None:
+  L1206:             try:
+  L1207:                 from app.services.campaign_state_service import get_campaign_state_service
+  L1208: 
+  L1209:                 _cs: Any = get_campaign_state_service().get_campaign_state(campaign_id)  # S313: Optional по контракту сервиса; :1227 тот же запрос в другом контуре
+  L1210:                 _player_loc = _cs.metadata.get("current_location") if _cs else None  # noqa: ENIGMA001
+  L1211:                 if _player_loc and _player_loc != _active_loc:
+  L1212:                     logger.info(
+  L1213:                         f"[IDLE_TICK] Player location authority: {_active_loc} → {_player_loc}"
+  L1214:                     )
+  L1215:                     _active_loc = _player_loc
+  L1216:             except Exception as _loc_err:
+  L1217:                 logger.warning(f"[IDLE_TICK] player location lookup failed: {_loc_err}")
+  L1218: 
+  L1219:         # S186 FIX: Если запрошенная локация не была инициализирована в БД,
+  L1220:         # инициализируем её принудительно, чтобы TickOrchestrator смог её тикнуть.
+  L1221:         _active_scene = self.scene_manager.get_scene_state(campaign_id, _active_loc)
+  L1222:         if _active_scene is None:
+  L1223:             from app.services.game_loop.scene_init import _ensure_player_topology
+  L1224:             _active_scene = _ensure_player_topology(
+  L1225:                 loop=self,
+  L1226:                 campaign_id=campaign_id,
+  L1227:                 scene_state=self.scene_manager.initialize_scene(campaign_id, _active_loc, "02:00"),
+  L1228:             )
+  L1229:             logger.info(f"[IDLE_TICK] Принудительная инициализация локации: {_active_loc}")
+  L1230: 
+  L1231:         # Дополнение Б: Получаем список всех локаций для глобального тика
+  L1232:         _location_ids = [_active_loc]
+  L1233:         try:
+  L1234:             from app.services.spatial.spatial_registry import SpatialRegistry
+  L1235:             _registry = SpatialRegistry.get_or_load(campaign_id)
+  L1236:             if _registry:
+  L1237:                 _all_locs = _registry.get_all_location_ids()
+  L1238:                 if _all_locs:
+  L1239:                     # S186 FIX: Гарантируем, что запрошенная локация всегда тикает,
+  L1240:                     # даже если SpatialRegistry не вернул её в списке всех локаций.
+  L1241:                     _location_ids = list(set(_all_locs + [_active_loc]))
+  L1242:         except Exception as e:
+  L1243:             logger.warning(f"[IDLE_TICK] Failed to get all locations: {e}")
+  L1244: 
+  L1245:         # FIX-RC1 (P0): цель cross-location переноса обязана тикать, иначе
+  L1246:         # _pending_transfers не дренируется (S186) и NPC зависает в лимбо.
+  L1247:         # 1) Реестр мог не вернуть полный список — дополняем всеми
+  L1248:         #    СУЩЕСТВУЮЩИМИ сценами кампании.
+  L1249:         # 2) Сцена-цель может не существовать — создаём ДО lock, наследуя
+  L1250:         #    tick/game_time активной сцены (паттерн _load_or_create_scene,
+  L1251:         #    не сырой initialize_scene с tick=0).
+  L1252:         try:
+  L1253:             _sm_persistence = getattr(self.scene_manager, "_persistence", None)  # noqa: ENIGMA002
+  L1254:             if _sm_persistence is not None:
+  L1255:                 for _loc_key in _sm_persistence.load_all_scenes(campaign_id):
+  L1256:                     if _loc_key not in _location_ids:
+  L1257:                         _location_ids.append(_loc_key)
+  L1258:             for _ploc in list(getattr(self._tick_orch, "_pending_transfers", {}).keys()):  # noqa: ENIGMA002
+  L1259:                 if not _ploc:
+  L1260:                     continue
+  L1261:                 if self.scene_manager.get_scene_state(campaign_id, _ploc) is None:
+  L1262:                     from app.services.game_loop.scene_init import _ensure_player_topology
+  L1263:                     _target_scene = _ensure_player_topology(
+  L1264:                         loop=self,
+  L1265:                         campaign_id=campaign_id,
+  L1266:                         scene_state=self.scene_manager.initialize_scene(campaign_id, _ploc, "12:00"),
+  L1267:                     )
+  L1268:                     if _active_scene:
+  L1269:                         _target_scene["tick"] = _active_scene.get("tick", 0)
+  L1270:                         _target_scene["game_time_seconds"] = _active_scene.get("game_time_seconds", 43200.0)
+  L1271:                     self.scene_manager.save_scene_state(campaign_id, _target_scene)
+  L1272:                     logger.info(f"[IDLE_TICK] S186: создана сцена цели переноса {_ploc}")
+  L1273:                 if _ploc not in _location_ids:
+  L1274:                     _location_ids.append(_ploc)
+  L1275:         except Exception as e:
+  L1276:             logger.warning(f"[IDLE_TICK] S186 target-scene ensure failed: {e}")
+  L1277: 
+  L1278:         # Шаг 2: LOCK всех локаций (Дополнение Б, п. Б.6.1)
+  L1279:         self.scene_manager.lock_all_for_tick(campaign_id, _location_ids)
+  L1280:         try:
+  L1281: 
+  L1282:             # F3 (S292): heal топологии ВНУТРИ lock-фазы. Снаружи lock
+  L1283:             # save_scene_state пишет на диск, но тик читает _tick_scenes-кэш,
+  L1284:             # куда lock положил pre-heal копию — heal до lock не доезжал до
+  L1285:             # снапшота (INV-SNAPSHOT-TOPOLOGY красный при зелёном диске).
+  L1286:             # Здесь: tick-кэш — единственная истина тика; heal мутит её
+  L1287:             # напрямую; персист — штатный unlock_tick.
+  L1288:             from app.services.game_loop.scene_init import _ensure_player_topology
+  L1289:             _scene = self.scene_manager.get_scene_state(campaign_id, _active_loc)
+  L1290:             if _scene is None:
+  L1291:                 return {"status": "no_scene", "npc_positions": {}, "npc_addressing": []}
+  L1292:             if not _scene.get("player_body_topology"):
+  L1293:                 _ensure_player_topology(loop=self, campaign_id=campaign_id, scene_state=_scene)
+  L1294:                 logger.info("[IDLE_TICK] player_body_topology healed in-tick (F3)")
+  L1295: 
+  L1296:             # Spatial Oracle корректирует локацию только для активной сцены
+  L1297:             try:
+  L1298:                 from app.services.campaign_state_service import get_campaign_state_service
+  L1299:                 _campaign_svc = get_campaign_state_service()
+  L1300:                 _cs = _campaign_svc.get_campaign_state(campaign_id) if _campaign_svc else None  # noqa: ENIGMA001
+  L1301:                 if _cs:
+  L1302:                     _saved_wx = _cs.metadata.get("player_world_x")
+  L1303:                     _saved_wy = _cs.metadata.get("player_world_y")
+  L1304:                     if _saved_wx is not None and _saved_wy is not None:
+  L1305:                         from app.services.spatial.spatial_registry import SpatialRegistry
+  L1306:                         _registry = SpatialRegistry.get_or_load(campaign_id)
+  L1307:                         if _registry is not None:
+  L1308:                             _actual_chunks = _registry.find_chunks(_saved_wx, _saved_wy)
+  L1309:                             if _actual_chunks:
+  L1310:                                 _oracle_loc = _actual_chunks[0].location_id
+  L1311:                                 if _oracle_loc != _active_loc:
+  L1312:                                     logger.info(f"[SPATIAL_ORACLE_IDLE] location_id corrected: {_active_loc} → {_oracle_loc}")
+  L1313:                                     _active_loc = _oracle_loc
+  L1314:                                     _scene["location_id"] = _oracle_loc
+  L1315:             except Exception as e:
+  L1316:                 logger.warning(f"[SPATIAL_ORACLE_IDLE] Oracle lookup failed: {e}")
+  L1317: 
+  L1318:             # ADR-048: GameLoop собирает SpatialService для активной локации
+  L1319:             _spatial_svc = None
+  L1320:             if _active_loc:
+  L1321:                 from app.services.spatial.spatial_factory import SpatialFactory
+  L1322:                 try:
+  L1323:                     _spatial_svc = SpatialFactory.build_for_campaign(campaign_id=campaign_id, location_id=_active_loc, scene_state=_scene)
+  L1324:                     from app.services.spatial.spatial_query_service import SpatialQueryService
+  L1325:                     self._current_spatial_query = SpatialQueryService(npc_positions=_scene.get("npc_positions", {}), scene_state=_scene)
+  L1326:                 except Exception as e:
+  L1327:                     logger.warning(f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}")
+  L1328:                     self._current_spatial_query = None
+  L1329: 
+  L1330:             _player_eco_profile = self._svc.get_or_create_economic_profiles(campaign_id).get("player")
+  L1331: 
+  L1332:             # S259 (redesign v1, вердикт Мастера): fresh per-tick idle-контекст.
+  L1333:             # γ-3 REVERTED/CAUSAL — персистентный объект протекал через границу
+  L1334:             # тика; взамен СВЕЖИЙ SimpleNamespace каждый idle-тик, долгоживут
+  L1335:             # только SSOT-ссылки. Поля = спек варианта №1: scene_state = текущая
+  L1336:             # сцена (семантика tick_utils-фоллбэка), spatial_query = текущий тик
+  L1337:             # (R4/R5), relationship_store = SSOT-ссылка (R1), campaign_id (гейт
+  L1338:             # подписчика: даже легаси-строка shared_context.campaign_id валидна).
+  L1339:             # Конец тика → объект умирает. Никакого накопления атрибутов.
+  L1340:             from types import SimpleNamespace as _SNS
+  L1341: 
+  L1342:             _idle_ctx = _SNS(
+  L1343:                 scene_state=_scene,
+  L1344:                 spatial_query=getattr(self, "_current_spatial_query", None),  # noqa: ENIGMA002
+  L1345:                 relationship_store=getattr(self, "_rel_store", None),  # noqa: ENIGMA002
+  L1346:                 campaign_id=campaign_id,
+  L1347:             )
+  L1348: 
+  L1349:             # AUDIT-003 §3.3: контекст NPC для idle-тика — тот же паттерн сборки, что и путь игрока
+  L1350:             from app.services.events.event_bus import get_event_bus
+  L1351:             from app.services.npc.npc_tick_contracts import NpcTickServices
+  L1352: 
+  L1353:             _npc_svc = NpcTickServices(
+  L1354:                 memory_manager=self.memory_manager,
+  L1355:                 relationship_store=self.memory_manager._relationships,
+  L1356:                 social_engine=self._svc.get_social_engine(campaign_id),
+  ... (848 more lines)
+
+  --- run_turn ---
+  [run_turn not found]
+  L98: def __init__(
+  L331: def _event_identity_provider(event_type: str, source: str) -> tuple:
+  L419: def _get_spatial_query_for_subscriber(self) -> Any:
+  L453: def _on_npc_spoke_economy_tracker(self, event: Any) -> None:
+  L465: def _register_npc_dialogue_subscriber(self, memory_manager: Any, rel_store: Any) -> None:
+  L586: def _register_epistemic_core(self, rel_store: Any) -> None:
+  L706: def _get_skip_lock(self, campaign_id: str) -> threading.Lock:
+  L711: def saves_dir(self) -> Path:
+  L715: def get_current_tick(self, campaign_id: str) -> int:
+  L725: def new_game(
+  L741: def reset_session_flag(self, campaign_id: str) -> None:
+  L747: def _get_life_engine(self) -> Any:
+  L751: def _resolve_npcs_snapshot(self, campaign_id: str) -> list:
+  L760: def _resolve_npcs_light_snapshot(self, campaign_id: str) -> list:
+  L769: def _build_dm_phase_deps(self) -> Any:
+  L784: def _build_npc_orch_deps(self) -> Any:
+  L805: def _spawn_world_tick_task(self, world_id: str) -> dict:
+  L820: def _on_task_done(t: asyncio.Task) -> None:
+  L828: def _set_current_tick(self, value: int) -> None:
+  L832: def _e1_relationship_reader(
+  L846: def _project_perception(
+  L859: def _load_npcs_with_runtime(self, campaign_id: str) -> list:
+  L963: def skip_time(self, campaign_id: str, ticks: int) -> dict:
+  L1097: def apply_changes(self, campaign_id: str, changes: list, scene_state: dict) -> None:
+  L1101: def get_scene_state(self, campaign_id: str, location_id: str) -> dict | None:
+  L1109: def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
+  L1142: def find_starting_location(self, campaign_id: str) -> str:
+  L1146: def list_characters(self, campaign_id: str) -> list:
+  L1150: def ack_addressing(self, campaign_id: str, event_id: str) -> bool:
+  L1157: def idle_tick(self, campaign_id: str, location_id: Optional[str] = None, interventions: Optional[List["InterventionEvent"]] = None) -> dict:
+  L1658: def _dm_unavailable_response() -> ChatTurnResponse:
+  L2205: def _get_task_scheduler(self) -> Any:
+  L2224: def _get_character_dict(self, campaign_id: str, player_name: str) -> dict:
+  L2235: def _build_traces(
+  L2245: def assert_requirements(self) -> dict:
+  L2254: def load_campaign(self, campaign_id: str, world_id: str) -> CampaignLoadResponse:
+  L2258: def session_state(self, campaign_id: str) -> Any:
+  L2302: def _resolve_world_id(self, campaign_id: str) -> str:
+  L2306: def dispose(self) -> None:
+
+==============================================================================
+STEP 4: Run probe with spies
+==============================================================================
+  loaded 6 NPCs
+  EventBus spy installed
+  IntentEventAdapter spy installed
+  [DialogueExecutor not found in runtime — trying class-level]
+
+==============================================================================
+STEP 4b: capture PRE-EXISTING Tornin beliefs (baseline)
+==============================================================================
+  Tornin pre-existing records: 0
+
+==============================================================================
+STEP 4c: publish PLAYER_INSULTS
+==============================================================================
+  Tornin belief after publish: confidence=0.5 source_id=player original_source_id=player
+
+==============================================================================
+STEP 4d: run idle_tick with spies
+==============================================================================
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+  idle_tick returned: dict
+  status: ok
+  events count: 0
+
+==============================================================================
+STEP 5: spy results
+==============================================================================
+
+  === DialogueExecutor.execute() calls ===
+  Total calls: 0
+
+  === IntentEventAdapter.to_event() calls ===
+  Total calls: 0
+
+  === EventBus.publish() calls ===
+  Total events published: 5
+    npc_moved: 4
+    tick_completed: 1
+
+  NPC_SPOKE events: 0
+  SPREAD_RUMOR events: 0
+
+  === DecisionHub logs for guard_borko ===
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB] guard_borko: intent=Intent.SPREAD_RUMOR score=0.988 event=EventType.WORLD_TICK
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB] guard_borko: intent=Intent.SPREAD_RUMOR score=0.988 event=EventType.WORLD_TICK
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB] guard_borko: intent=Intent.SPREAD_RUMOR score=0.988 event=EventType.WORLD_TICK
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB_RETURN] npc=guard_borko intent=Intent.SPREAD_RUMOR comm_built=True epistemic_context=YES
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB_RETURN] npc=guard_borko intent=Intent.SPREAD_RUMOR comm_built=True epistemic_context=YES
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB_RETURN] npc=guard_borko intent=Intent.SPREAD_RUMOR comm_built=True epistemic_context=YES
+    [INFO] app.services.npc.npc_tick_pipeline: [DECISION_HUB] guard_borko: intent=Intent.spread_rumor score=0.988 event=unknown
+    [INFO] app.services.npc.npc_tick_pipeline: [DECISION_HUB] guard_borko: intent=Intent.spread_rumor score=0.988 event=unknown
+    [INFO] app.services.npc.npc_tick_pipeline: [DECISION_HUB] guard_borko: intent=Intent.spread_rumor score=0.988 event=unknown
+  total borko DH logs: 9
+
+  === DialogueExecutor logs ===
+    [DEBUG] app.services.execution.dialogue_executor: [DIALOGUE_EXEC] Executing task for guard_borko -> tavern_keeper_tornin on topic 'власть'
+    [DEBUG] app.services.execution.dialogue_executor: [DIALOGUE_EXEC] Executing task for guard_borko -> tavern_keeper_tornin on topic 'власть'
+    [DEBUG] app.services.execution.dialogue_executor: [DIALOGUE_EXEC] Executing task for guard_borko -> tavern_keeper_tornin on topic 'власть'
+  total DE logs: 3
+
+  === IntentEventAdapter logs ===
+  total adapter logs: 0
+
+  === Task scheduler logs (borko-related) ===
+  total TS borko logs: 0
+
+  === NPC_SPOKE / spread_rumor logs ===
+    [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=guard_borko desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.168, 'warn': 0.075, 'spread_rumor': 0.49, 'cal
+    [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=guard_borko desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.168, 'warn': 0.075, 'spread_rumor': 0.49, 'cal
+    [INFO] app.services.npc.npc_tick_pipeline: [CAUSAL_SLICE_GRIEVANCE] npc=guard_borko desired_change=behavior:tavern_keeper_tornin methods={'intimidate': 0.168, 'warn': 0.075, 'spread_rumor': 0.49, 'cal
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=guard_borko fear_drive=0.20 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe',
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=guard_borko fear_drive=0.20 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe',
+    [DEBUG] app.services.npc.decision_hub: [DIAG_SCORE_ALL] npc=guard_borko fear_drive=0.20 skip_aggro=False possible=['talk', 'warn', 'intimidate', 'flee', 'attack', 'help', 'report', 'trade', 'observe',
+    [DEBUG] app.services.npc.decision_hub: [WHY][DECISION] npc=guard_borko | winner=spread_rumor (0.988) | threat=0.0 | comps={'drive': 0.27, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.0, 'tr
+    [DEBUG] app.services.npc.decision_hub: [WHY][DECISION] npc=guard_borko | winner=spread_rumor (0.988) | threat=0.0 | comps={'drive': 0.27, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.0, 'tr
+    [DEBUG] app.services.npc.decision_hub: [WHY][DECISION] npc=guard_borko | winner=spread_rumor (0.988) | threat=0.0 | comps={'drive': 0.27, 'emotion': 0.0, 'relationship': 0.0, 'risk_penalty': -0.0, 'tr
+    [INFO] app.services.npc.decision_hub: [EPISTEMIC_REPORT_TARGET] npc=guard_borko intent=Intent.SPREAD_RUMOR target=tavern_keeper_tornin predicate=insulted
+    [INFO] app.services.npc.decision_hub: [EPISTEMIC_REPORT_TARGET] npc=guard_borko intent=Intent.SPREAD_RUMOR target=tavern_keeper_tornin predicate=insulted
+    [INFO] app.services.npc.decision_hub: [EPISTEMIC_REPORT_TARGET] npc=guard_borko intent=Intent.SPREAD_RUMOR target=tavern_keeper_tornin predicate=insulted
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB] guard_borko: intent=Intent.SPREAD_RUMOR score=0.988 event=EventType.WORLD_TICK
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB] guard_borko: intent=Intent.SPREAD_RUMOR score=0.988 event=EventType.WORLD_TICK
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB] guard_borko: intent=Intent.SPREAD_RUMOR score=0.988 event=EventType.WORLD_TICK
+    [INFO] app.services.npc.decision_hub: [TRACE][DECISION_SCORE] npc=guard_borko winner=Intent.SPREAD_RUMOR top3=[('spread_rumor', 0.99), ('block_path', 0.53), ('talk', 0.46)]
+    [INFO] app.services.npc.decision_hub: [TRACE][DECISION_SCORE] npc=guard_borko winner=Intent.SPREAD_RUMOR top3=[('spread_rumor', 0.99), ('block_path', 0.53), ('talk', 0.46)]
+    [INFO] app.services.npc.decision_hub: [TRACE][DECISION_SCORE] npc=guard_borko winner=Intent.SPREAD_RUMOR top3=[('spread_rumor', 0.99), ('block_path', 0.53), ('talk', 0.46)]
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB_RETURN] npc=guard_borko intent=Intent.SPREAD_RUMOR comm_built=True epistemic_context=YES
+    [INFO] app.services.npc.decision_hub: [DECISION_HUB_RETURN] npc=guard_borko intent=Intent.SPREAD_RUMOR comm_built=True epistemic_context=YES
+  total: 64
+
+==============================================================================
+STEP 6: Tornin belief AFTER idle_tick (corrected success criteria)
+==============================================================================
+  Tornin total records: 1
+    proposition=Proposition(subject_id='player', predicate=<Predicate.INSULTED: 'insulted'>, obj
+      confidence=0.5 source_id=player original_source_id=player
+
+  Tornin beliefs with source_id='guard_borko': 0
+
+==============================================================================
+STEP 7: VERDICT
+==============================================================================
+  Executor called: False
+  Adapter called: False
+  NPC_SPOKE/SPREAD_RUMOR events published: 0
+  NEW Tornin belief with source_id='guard_borko' (orig='player'): False
+
+  >>> VERDICT: BREAK — DialogueExecutor.execute() NOT called
+  >>> Task scheduler didn't dispatch task

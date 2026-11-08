@@ -1,0 +1,176 @@
+==============================================================================
+R2-B5-D2 PROVENANCE PROBE — verify full provenance chain
+OUT_FILE: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\r2_b5_d2_provenance_probe.txt
+==============================================================================
+
+Strategy: publish PLAYER_INSULTS → 3 idle_ticks → dump Tornin + Borko records
+
+  loaded 6 NPCs
+
+==============================================================================
+STEP 1: Baseline records (before PLAYER_INSULTS)
+==============================================================================
+  guard_borko: 0 records
+  tavern_keeper_tornin: 0 records
+
+==============================================================================
+STEP 2: Publish PLAYER_INSULTS
+==============================================================================
+  published
+
+==============================================================================
+STEP 3: Records after publish, before tick
+==============================================================================
+
+  guard_borko: 1 records
+    {
+  "proposition_subject_id": "player",
+  "proposition_predicate": "Predicate.INSULTED",
+  "proposition_object_id": "tavern_keeper_tornin",
+  "proposition_polarity": true,
+  "confidence": 0.5,
+  "source_id": "player",
+  "original_source_id": "player",
+  "source_type": "testimony",
+  "source_claim_id": "player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94",
+  "first_observed_tick": 1,
+  "last_updated_tick": 1,
+  "agent_id": "guard_borko",
+  "polarity": null
+}
+
+  tavern_keeper_tornin: 1 records
+    {
+  "proposition_subject_id": "player",
+  "proposition_predicate": "Predicate.INSULTED",
+  "proposition_object_id": "tavern_keeper_tornin",
+  "proposition_polarity": true,
+  "confidence": 0.5,
+  "source_id": "player",
+  "original_source_id": "player",
+  "source_type": "testimony",
+  "source_claim_id": "player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94",
+  "first_observed_tick": 1,
+  "last_updated_tick": 1,
+  "agent_id": "tavern_keeper_tornin",
+  "polarity": null
+}
+
+==============================================================================
+STEP 4: Run 3 idle_ticks
+==============================================================================
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['guard_borko']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+  Tick 1: status=ok
+    DH spread_rumor: 3, EPISTEMIC_REPORT: 1
+      [INFO] app.services.npc.decision_hub: [DECISION_HUB] guard_borko: intent=Intent.SPREAD_RUMOR score=0.988 event=EventType.WORLD_TICK
+      [INFO] app.services.npc.decision_hub: [DECISION_HUB_RETURN] npc=guard_borko intent=Intent.SPREAD_RUMOR comm_built=True epistemic_context=YES
+      [INFO] app.services.npc.decision_hub: [EPISTEMIC_REPORT_TARGET] npc=guard_borko intent=Intent.SPREAD_RUMOR target=tavern_keeper_tornin predicate=insulted
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=1 actors=['maid_lusya']
+[DIAG-MV] engine_changes=2 targets=['maid_lusya', 'maid_lusya']
+  Tick 2: status=ok
+    DH spread_rumor: 0, EPISTEMIC_REPORT: 0
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['guard_borko', 'merchant_goran', 'maid_lusya']
+[DIAG-MV] engine_changes=4 targets=['guard_borko', 'guard_borko', 'maid_lusya', 'maid_lusya']
+  Tick 3: status=ok
+    DH spread_rumor: 3, EPISTEMIC_REPORT: 1
+      [INFO] app.services.npc.decision_hub: [DECISION_HUB] guard_borko: intent=Intent.SPREAD_RUMOR score=0.965 event=EventType.WORLD_TICK
+      [INFO] app.services.npc.decision_hub: [DECISION_HUB_RETURN] npc=guard_borko intent=Intent.SPREAD_RUMOR comm_built=True epistemic_context=YES
+      [INFO] app.services.npc.decision_hub: [EPISTEMIC_REPORT_TARGET] npc=guard_borko intent=Intent.SPREAD_RUMOR target=tavern_keeper_tornin predicate=insulted
+
+==============================================================================
+STEP 5: ALL Tornin records (full provenance dump)
+==============================================================================
+  Tornin total records: 1
+
+  Record [0]:
+  {
+  "proposition_subject_id": "player",
+  "proposition_predicate": "Predicate.INSULTED",
+  "proposition_object_id": "tavern_keeper_tornin",
+  "proposition_polarity": true,
+  "confidence": 0.5,
+  "source_id": "player",
+  "original_source_id": "player",
+  "source_type": "testimony",
+  "source_claim_id": "player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94",
+  "first_observed_tick": 1,
+  "last_updated_tick": 1,
+  "agent_id": "tavern_keeper_tornin",
+  "polarity": null
+}
+
+==============================================================================
+STEP 6: ALL Borko records (full provenance dump)
+==============================================================================
+  Borko total records: 1
+
+  Record [0]:
+  {
+  "proposition_subject_id": "player",
+  "proposition_predicate": "Predicate.INSULTED",
+  "proposition_object_id": "tavern_keeper_tornin",
+  "proposition_polarity": true,
+  "confidence": 0.5,
+  "source_id": "player",
+  "original_source_id": "player",
+  "source_type": "testimony",
+  "source_claim_id": "player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94",
+  "first_observed_tick": 1,
+  "last_updated_tick": 1,
+  "agent_id": "guard_borko",
+  "polarity": null
+}
+
+==============================================================================
+STEP 7: Provenance verification
+==============================================================================
+
+  === Tornin's record from guard_borko ===
+  NOT FOUND — Tornin has no record with source_id=guard_borko
+
+  === Borko's record for player INSULTED tavern_keeper_tornin ===
+  {
+  "proposition_subject_id": "player",
+  "proposition_predicate": "Predicate.INSULTED",
+  "proposition_object_id": "tavern_keeper_tornin",
+  "proposition_polarity": true,
+  "confidence": 0.5,
+  "source_id": "player",
+  "original_source_id": "player",
+  "source_type": "testimony",
+  "source_claim_id": "player-claim-01ee3cd5-8457-51bf-e3e2-0e6ca0798b94",
+  "first_observed_tick": 1,
+  "last_updated_tick": 1,
+  "agent_id": "guard_borko",
+  "polarity": null
+}
+
+==============================================================================
+STEP 8: Provenance check (4 fields)
+==============================================================================
+  Tornin source_id: None → ❌
+  Tornin original_source_id: None → ❌
+  Borko original_source_id: player → ✅
+  Tornin source_type: None → ❌
+
+  1/4 provenance checks passed
+
+  >>> PROVENANCE NEEDS ATTENTION — some fields mismatch
+  >>> Tornin's original_source_id = None (expected 'player')
+  >>> This means Tornin's belief came from someone other than player directly
+  >>> Borko's original_source_id = player
+  >>> Borko's belief traces to player, but Tornin's doesn't trace to player through Borko
+  >>> Possible: ClaimEventSubscriber didn't use _speaker_record.original_source_id correctly

@@ -350,6 +350,14 @@ class GameLoop:
             logger.info("[GAME_LOOP] SPATIAL-KNOWLEDGE: ранний проброс store — ленивая регистрация не успевала")
             self._register_epistemic_core(_rel_store)
 
+        # B4-R8: Late wiring of epistemic_store to DialogueExecutor.
+        # set_epistemic_wiring (line 224) ran before _register_epistemic_core (line 345)
+        # set _epistemic_store on _tick_orch. Re-call with epistemic_store now available.
+        if hasattr(self, '_task_scheduler'):
+            self._task_scheduler.set_epistemic_wiring(
+                epistemic_store=getattr(self._tick_orch, "_epistemic_store", None),
+            )
+
         self._tick_orch.add_idle_handler(SocialDecayHandler())
 
         # InjuryProcessor — мост Injury → Physiology (кровотечение из ран)

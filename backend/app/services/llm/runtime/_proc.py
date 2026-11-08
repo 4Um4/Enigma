@@ -22,8 +22,8 @@ Usage:
 
 from __future__ import annotations
 
-import os
 import subprocess
+import sys
 from typing import Any
 
 
@@ -37,14 +37,14 @@ def silent_subprocess_kwargs() -> dict[str, Any]:
             startupinfo   = STARTUPINFO(dwFlags=STARTF_USESHOWWINDOW, wShowWindow=SW_HIDE)
     """
     kwargs: dict[str, Any] = {}
-    if os.name != "nt":
+    if sys.platform != "win32":
         return kwargs
 
     CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
     kwargs["creationflags"] = CREATE_NO_WINDOW
 
-    si = subprocess.STARTUPINFO()  # type: ignore[attr-defined]
-    si.dwFlags |= subprocess.STARTF_USESHOWWINDOW  # type: ignore[attr-defined]
+    si = subprocess.STARTUPINFO()
+    si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     si.wShowWindow = 0  # SW_HIDE
     kwargs["startupinfo"] = si
 
