@@ -21,13 +21,17 @@ This GitHub repository contains the source code, full documentation, and reprodu
 
 ## What is this?
 
-ENIGMA is a research project exploring whether a deterministic game simulation can generate meaningful emergent behavior when agents act based on their own incomplete and potentially erroneous models of the world — `WORLD TRUTH ≠ NPC MEMORY ≠ NPC BELIEF`.
+ENIGMA is an RPG engine where replayability approaches infinity.
 
-**Not a game.** A scientific software artifact in active development.
+Traditional RPGs offer branching paths — finite states, finite outcomes. ENIGMA's NPCs have genuine causal subjectivity: they remember what they perceived, form beliefs from experience, and decide based on their own lived history — not scripts. Every playthrough is unique because every NPC's internal state evolves causally from the player's specific actions.
 
-**Not a tutorial.** Architectural documentation for researchers and engineers working on agent systems, epistemic logic, deterministic simulation, or LLM-assisted engineering.
+**Why does replayability approach infinity?** Because the game state is not a tree of branches — it's a causal graph. Every NPC has memory that decays, beliefs that crystallize from experience, relationships that shift from real events, and a will that can be masked by social pressure. When you meet an NPC for the second time, they remember the first. When you betray them, they fear you. When someone tells them about your betrayal, they believe based on their trust in the teller — or they don't, if they don't trust the source. No two playthroughs share the same causal history — therefore no two playthroughs produce the same NPC behavior.
 
-**Not a product.** Solo-maintained research project, no support SLAs, no roadmap commitments to external stakeholders.
+The foundation is a deterministic causal simulation: `WORLD TRUTH ≠ NPC MEMORY ≠ NPC BELIEF`. Agents act on incomplete, potentially erroneous models of the world. The 12-layer canonical construction ensures that memory, belief, relationship, and decision are causally traced — never conflated, never faked.
+
+**A game engine, not yet a game.** The simulation infrastructure is in active development — 12 canonical layers, 18 enforced architectural laws, 400+ session iterations. The RPG experience — quests, world, player agency, emotional arcs — will be built on top of this foundation.
+
+**Solo-maintained.** No support SLAs, no roadmap commitments to external stakeholders. Architectural documentation for researchers and engineers working on agent systems, epistemic logic, deterministic simulation, or LLM-assisted engineering.
 
 What it is: a 12-layer canonical construction enforced by 18 architectural laws that raise `ArchitecturalViolationError` at runtime when violated.
 
