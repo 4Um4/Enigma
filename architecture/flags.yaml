@@ -81,6 +81,14 @@ flags:
     owner: master
     note: "LLM runtime selection: env не установлен = Host broker :8182 (прод-путь по умолчанию, effective on). ENIGMA_LLM_HOST=off — осознанный opt-out в legacy scripts.llm_server_manager (переходный период, будет удалён после полной миграции всех потребителей). Авария Host → RuntimeError, автоматического fallback к legacy НЕ происходит. §19 LAW OF SINGULAR LLM RUNTIME AUTHORITY."
 
+  ENIGMA_LOG_FULL_PROMPTS:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: KEEP-LOG
+    owner: master
+    note: "Diagnostic flag: full prompt logging (logging_tools.py:43). Default OFF (empty). Set ENIGMA_LOG_FULL_PROMPTS=1 to enable. Не игровой контур — диагностический флаг логирования."
+
   # ── ROLLOUT-PENDING (готовые контуры — кандидаты цикла «включили -> погоняли») ──
   ARBITER_ENFORCEMENT:
     type: env
@@ -91,14 +99,14 @@ flags:
     owner: master
     note: "S378 rollout: 155/155 ON+OFF + IPT 54/0/0; cascade with S203_4_ARBITER_INTERRUPT"
   S203_4_ARBITER_INTERRUPT:
-    type: env
+    type: module-const
     read_mode: import
-    default: ""
+    default: "true"
     verdict: ROLLOUT-ON
     adr: ADR-O-365
     owner: master
     aliases: ["S203.4_ARBITER_INTERRUPT"]
-    note: "S378 rollout: cascade with ARBITER_ENFORCEMENT (arbiter:134)"
+    note: "S378 rollout: cascade with ARBITER_ENFORCEMENT (arbiter:134). Born-True module-const (commitment_arbiter.py:50)."
   S203_4_OWNERSHIP_MIRRORS:
     type: env
     read_mode: import
@@ -108,6 +116,14 @@ flags:
     owner: master
     aliases: ["S203.4_OWNERSHIP_MIRRORS"]
     note: "S378 rollout: independent gate (registry:334,406,462,484,530); 155/155 ON+OFF"
+  ARBITER_ENFORCEMENT_MOVEMENT:
+    type: module-const
+    read_mode: import
+    default: "true"
+    verdict: ROLLOUT-ON
+    adr: ADR-O-365
+    owner: master
+    note: "P5-G Phase 1: per-callsite enforcement для movement path (commitment_arbiter.py:54). Включает REJECT→block только для movement_bridge callsite, не затрагивая task_scheduler. Born-True (S378 эпоха)."
   TRAVERSAL_OWNERSHIP_ENFORCEMENT:
     type: env
     read_mode: import

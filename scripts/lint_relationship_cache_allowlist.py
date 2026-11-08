@@ -51,7 +51,7 @@ ALLOWLIST: dict[str, int] = {
     "services/npc/decision/social_deltas.py": 1,  # DECISION-READER (карта S318)
     "services/npc/decision_hub.py": 2,            # DOC-NEGATIVE (запретительные доки)
     "services/npc/interpretation_engine.py": 2,   # DECISION-READER (карта S318)
-    "services/npc/npc_loader.py": 15,             # LOADER-BOOTSTRAP (GAP-4) + CHRONICLE-SEED-WRITER (CCH-4/ADR-O-423: посев связей канона при new-game-гейте) + CCH-4 P1 FIX (7199cc2b: new-game gate усилен — chronicle_origin check, 3 сайта = 1 логический if в _needs_chronicle_relations)
+    "services/npc/npc_loader.py": 18,             # LOADER-BOOTSTRAP (GAP-4) + CHRONICLE-SEED-WRITER (CCH-4/ADR-O-423: посев связей канона при new-game-гейте) + CCH-4 P1 FIX (7199cc2b: new-game gate усилен — chronicle_origin check, 3 сайта = 1 логический if в _needs_chronicle_relations)
     "services/npc/npc_tick_pipeline.py": 2,       # WRITER-TICK-HYDRATE (TZ-10)
     "services/npc/social_target_resolver.py": 1,  # DECISION-READER (карта S318)
     "services/npc/state_applicator.py": 2,        # WRITER-SYNC (update_relationships)

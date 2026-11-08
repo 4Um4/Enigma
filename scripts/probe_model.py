@@ -3,7 +3,7 @@ path: scripts/probe_model.py
 Назначение: прогон semantic_probe_corpus на произвольной модели.
             Спавнит llama-server на 8181, запускает corpus в том же процессе
             (через import + run_module), парсит метрики.
-Запуск: python scripts/probe_model.py "Models LLM\<model>.gguf" "report_name"
+Запуск: python scripts/probe_model.py "Models LLM\\<model>.gguf" "report_name"
 """
 import sys, os, subprocess, time, re, io, contextlib
 from pathlib import Path
