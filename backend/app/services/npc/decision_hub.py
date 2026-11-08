@@ -349,21 +349,30 @@ class DecisionHub:
 
         # S197: Извлекаем Proposition из EpistemicContext для Causal Provenance
         _proposition = None
-        if epistemic_context and hasattr(epistemic_context, 'trigger_proposition'):
-            _proposition = epistemic_context.trigger_proposition
-        # COGNITIVE-CONTINUITY-01: report-пропозиция — фолбэк, trigger (угроза) приоритетен.
-        if _proposition is None and epistemic_context is not None:
-            _proposition = getattr(epistemic_context, "report_proposition", None)
-        # Stage B: narrow fallback from claims_about_self (priority 3).
-        # Вердикт Мастера Q1: только spread_rumor + INSULTED predicate.
-        # Proposition передаётся as-is (без мутации polarity/confidence/source/provenance).
-        # claims_about_self отсортирован по confidence (desc) в Resolver (Change 1).
-        if _proposition is None and epistemic_context is not None and intent_value == "spread_rumor":
-            _claims = getattr(epistemic_context, "claims_about_self", ())
-            for _cl in _claims:
-                if _cl.predicate == Predicate.INSULTED:
-                    _proposition = _cl
-                    break
+        # B4-R14: Развязка Knowledge и Communication. Proposition переносится
+        # в CommunicationIntent только для claim-producing интентов (S199.2).
+        # Non-claim интенты (talk, trade, offer_job, request_service,
+        # call_for_help) не получают Proposition автоматически — NPC знает,
+        # но не сообщает. EpistemicContext остаётся доступен для DecisionHub
+        # scoring (to_modifiers) и CognitionContextResolver (cog_block) —
+        # развязка только коммуникации, не знания.
+        from app.domain.intent_profiles import produces_claim
+        if produces_claim(intent_value):
+            if epistemic_context and hasattr(epistemic_context, 'trigger_proposition'):
+                _proposition = epistemic_context.trigger_proposition
+            # COGNITIVE-CONTINUITY-01: report-пропозиция — фолбэк, trigger (угроза) приоритетен.
+            if _proposition is None and epistemic_context is not None:
+                _proposition = getattr(epistemic_context, "report_proposition", None)
+            # Stage B: narrow fallback from claims_about_self (priority 3).
+            # Вердикт Мастера Q1: только spread_rumor + INSULTED predicate.
+            # Proposition передаётся as-is (без мутации polarity/confidence/source/provenance).
+            # claims_about_self отсортирован по confidence (desc) в Resolver (Change 1).
+            if _proposition is None and epistemic_context is not None and intent_value == "spread_rumor":
+                _claims = getattr(epistemic_context, "claims_about_self", ())
+                for _cl in _claims:
+                    if _cl.predicate == Predicate.INSULTED:
+                        _proposition = _cl
+                        break
 
         # Stage B Observability (вердикт Мастера Q4): log proposition selection.
         # Расширение существующего jsonl_log mechanism (logging_tools.py:14).
