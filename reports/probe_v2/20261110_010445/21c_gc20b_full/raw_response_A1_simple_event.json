@@ -1,0 +1,18 @@
+{
+  "fragment_id": "A1_simple_event",
+  "fragment_category": "A",
+  "fragment_text": "В 8 лет Люся осталась сиротой, её приютил Торнин.",
+  "latency_secs": 47.43,
+  "llm_error": null,
+  "raw_response": "\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"осталась сиротой в 8 лет\",\n        \"",
+  "raw_length_chars": 126,
+  "json_valid": false,
+  "json_error": "Unterminated string starting at: line 7 column 9 (char 124)",
+  "valid_items": 0,
+  "errors": 1,
+  "schema_conformance": 0.0,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0,
+  "censorship_refusal": false
+}

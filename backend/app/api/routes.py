@@ -1025,15 +1025,24 @@ async def game_action(request: dict, game_loop: Any = Depends(get_game_loop)) ->
 
                 _registry = SpatialRegistry.get_or_load(campaign_id)
                 if _registry is not None:
-                    _actual_chunks = _registry.find_chunks(world_x, world_y)
-                    if _actual_chunks:
-                        _actual_chunk_id = _actual_chunks[0].location_id
-                        if _actual_chunk_id != location:
-                            logger.info(
-                                f"[SPATIAL_ORACLE] location updated: "
-                                f"{location} → {_actual_chunk_id} "
-                                f"(world=({world_x:.1f}, {world_y:.1f}))"
-                            )
+                    # P2-01 (D.2): детерминированный владелец границы вместо [0].
+                    _primary_chunk = _registry.resolve_primary(world_x, world_y)
+                    # P2-02: структурный лог оракула (candidates/winner/rule).
+                    _candidates_count = len(_registry.find_chunks(world_x, world_y))
+                    if _primary_chunk is not None:
+                        _actual_chunk_id = _primary_chunk.location_id
+                        # P2-02: структурный лог (без поведенческих изменений).
+                        from app.services.spatial.oracle_log import log_oracle_decision
+                        log_oracle_decision(
+                            tag="HTTP",
+                            world_x=world_x,
+                            world_y=world_y,
+                            candidates_count=_candidates_count,
+                            winner_id=_actual_chunk_id,
+                            prev_location=location,
+                            new_location=_actual_chunk_id,
+                            source="routes.py:1029",
+                        )
                         location = _actual_chunk_id
                         confirmed_location_id = _actual_chunk_id
                         # Обновляем metadata для следующего запроса

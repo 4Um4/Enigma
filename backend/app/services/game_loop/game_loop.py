@@ -1313,11 +1313,25 @@ class GameLoop:
                         from app.services.spatial.spatial_registry import SpatialRegistry
                         _registry = SpatialRegistry.get_or_load(campaign_id)
                         if _registry is not None:
-                            _actual_chunks = _registry.find_chunks(_saved_wx, _saved_wy)
-                            if _actual_chunks:
-                                _oracle_loc = _actual_chunks[0].location_id
+                            # P2-01 (D.2): детерминированный владелец границы вместо [0].
+                            _primary_chunk = _registry.resolve_primary(_saved_wx, _saved_wy)
+                            # P2-02: структурный лог оракула (candidates/winner/rule).
+                            _candidates_count = len(_registry.find_chunks(_saved_wx, _saved_wy))
+                            if _primary_chunk is not None:
+                                _oracle_loc = _primary_chunk.location_id
+                                # P2-02: структурный лог (без поведенческих изменений).
+                                from app.services.spatial.oracle_log import log_oracle_decision
+                                log_oracle_decision(
+                                    tag="IDLE",
+                                    world_x=_saved_wx,
+                                    world_y=_saved_wy,
+                                    candidates_count=_candidates_count,
+                                    winner_id=_oracle_loc,
+                                    prev_location=_active_loc,
+                                    new_location=_oracle_loc,
+                                    source="game_loop.py:1317",
+                                )
                                 if _oracle_loc != _active_loc:
-                                    logger.info(f"[SPATIAL_ORACLE_IDLE] location_id corrected: {_active_loc} → {_oracle_loc}")
                                     _active_loc = _oracle_loc
                                     _scene["location_id"] = _oracle_loc
             except Exception as e:

@@ -1,0 +1,18 @@
+{
+  "fragment_id": "A2_simple_location",
+  "fragment_category": "A",
+  "fragment_text": "Торнин держит таверну 'Серебряный Волк' уже двадцать лет.",
+  "latency_secs": 4.41,
+  "llm_error": null,
+  "raw_response": "\n{\"items\": [\n  {\"kind\": \"LOCATION\", \"draft_payload\": {\"summary\": \"таверна 'Серебряный Волк'\", \"name_hint\": \"Сер",
+  "raw_length_chars": 111,
+  "json_valid": false,
+  "json_error": "Unterminated string starting at: line 2 column 95 (char 106)",
+  "valid_items": 0,
+  "errors": 1,
+  "schema_conformance": 0.0,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0,
+  "censorship_refusal": false
+}

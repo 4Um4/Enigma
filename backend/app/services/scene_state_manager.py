@@ -543,6 +543,11 @@ class SceneStateManager:
             return None
         # FIX-RC2-v2: оболочки не попадают в RAM при загрузке
         self._strip_husk_npcs(scene)
+        # P1-04 (W5 ADR-O-439): одноразовая миграция local_position в мировой
+        # фрейм. Идемпотентна по coord_frame_version == "W". Не трогает position
+        # (node-id) — только локальные координаты сущностей. Node_17 (B-15)
+        # обрабатывается существующей fallback-цепочкой _enrich_local_positions.
+        self._migrate_coord_frame_W5(campaign_id, scene)
         # Гарантируем актуальные local_position при каждой загрузке
         self._enrich_local_positions(campaign_id, scene)
         # Обогащаем spatial_walls/obstacles из editor JSON, если их нет
@@ -1404,6 +1409,125 @@ class SceneStateManager:
             logger.info(f"[R2.1] prune_dynamic_objects: удалено {removed} объектов")
 
         return removed
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # _migrate_coord_frame_W5 — одноразовая миграция сейвов под контракт W
+    # (ADR-O-439, ROADMAP §P1-04/W5). Сейвы хранят local_position в фрейме файла
+    # на момент сохранения; после перехода tavern.json на мировой фрейм (P1-03)
+    # легаси-сейвы нужно сдвинуть на origin их location_id. Идемпотентна по
+    # coord_frame_version == "W". Не удаляет сейвы, не переписывает position
+    # (node-id) — только local_position. Бэкап сейва делается внешним скриптом
+    # ДО первой загрузки (P1-03 precedent, §19 Устава).
+    # ─────────────────────────────────────────────────────────────────────────
+
+    _COORD_FRAME_VERSION_W = "W"
+
+    def _migrate_coord_frame_W5(self, campaign_id: str, scene_state: dict) -> None:
+        """Одноразовая миграция local_position NPC в мировой фрейм (W5).
+
+        Контракт:
+        - coord_frame_version == "W" → no-op (идемпотентность).
+        - global_coords == False → файл локальный, самосогласован; ставим
+          версию "W" без сдвига (миграция не нужна).
+        - global_coords == True → сдвиг local_position на (origin_x, origin_y)
+          их location_id из editor JSON.
+
+        НЕ трогает: position (node-id), objects, walls, metadata.
+        НЕ удаляет: сейвы (только persist версии после миграции).
+        Persist: через atomic_commit_all (минуя tick-lock — миграция это
+        загрузка, не mid-tick); tick-scene cache обновляется in-place.
+        """
+        # Идемпотентность: версия уже стоит → миграция не нужна.
+        if scene_state.get("coord_frame_version") == self._COORD_FRAME_VERSION_W:
+            return
+
+        location_id = scene_state.get("location_id", "")
+        npc_positions = scene_state.get("npc_positions", {})
+        if not location_id or not npc_positions:
+            # Нет локации или нет NPC — ставим версию и выходим.
+            scene_state["coord_frame_version"] = self._COORD_FRAME_VERSION_W
+            return
+
+        # Origin и global_coords — из editor JSON (источник истины фрейма файла).
+        editor_data = self._find_editor_location(campaign_id, location_id)
+        if not editor_data:
+            # Editor JSON недоступен — НЕ ставим версию (повторим на след. загрузке).
+            logger.warning(
+                f"[P1-04] editor JSON не найден для location_id={location_id!r}, "
+                f"campaign={campaign_id!r} — миграция отложена (coord_frame_version не установлен)."
+            )
+            return
+
+        is_world_frame = bool(editor_data.get("global_coords", True))
+        if is_world_frame:
+            origin_x = float(editor_data.get("origin", {}).get("x", 0.0) or 0.0)
+            origin_y = float(editor_data.get("origin", {}).get("y", 0.0) or 0.0)
+            migrated = 0
+            skipped = 0
+            for npc_id, entry in npc_positions.items():
+                if not isinstance(entry, dict):
+                    skipped += 1
+                    continue
+                lp = entry.get("local_position")
+                if not isinstance(lp, dict):
+                    skipped += 1
+                    continue
+                x = lp.get("x")
+                y = lp.get("y")
+                # Сдвигаем только валидные числовые координаты.
+                # (0,0) трактуется как битая координата (ADR-121) — пропускаем,
+                # _enrich_local_positions восстановит из fallback-цепочки.
+                if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
+                    skipped += 1
+                    continue
+                if x == 0.0 and y == 0.0:
+                    skipped += 1
+                    continue
+                entry["local_position"] = {
+                    "x": float(x) + origin_x,
+                    "y": float(y) + origin_y,
+                }
+                migrated += 1
+            logger.info(
+                f"[P1-04] W5 миграция scene_state location_id={location_id!r}: "
+                f"сдвинуто {migrated} NPC на origin=({origin_x}, {origin_y}), "
+                f"пропущено {skipped}."
+            )
+        else:
+            # Файл локальный — самосогласован, сдвиг не нужен.
+            logger.info(
+                f"[P1-04] W5 миграция location_id={location_id!r}: "
+                f"global_coords=False, сдвиг не требуется (файл локальный)."
+            )
+
+        # Persist версии (миграция завершена). Обходим tick-lock: миграция — это
+        # загрузка, не mid-tick (L5 в save_scene_state это mid-tick persist).
+        scene_state["coord_frame_version"] = self._COORD_FRAME_VERSION_W
+        if self._persistence:
+            try:
+                self._persistence.atomic_commit_all(
+                    campaign_id=campaign_id,
+                    all_scenes={location_id: scene_state},
+                )
+                logger.info(
+                    f"[P1-04] coord_frame_version='W' сохранён для "
+                    f"campaign={campaign_id!r} location_id={location_id!r}."
+                )
+            except Exception as e:
+                # Persist версии отказал — НЕ падаем (миграция в RAM применена,
+                # повторится при следующей загрузке). Логируем громко.
+                logger.error(
+                    f"[P1-04] ОШИБКА persist coord_frame_version для "
+                    f"campaign={campaign_id!r}: {e}. Миграция в RAM применена, "
+                    f"повторится при следующей загрузке."
+                )
+        else:
+            # PersistencePort отсутствует — версия в RAM; при следующем save
+            # запишется через _write_campaign_json fallback-путём.
+            logger.warning(
+                f"[P1-04] PersistencePort отсутствует — coord_frame_version='W' "
+                f"установлен только в RAM для campaign={campaign_id!r}."
+            )
 
     # ─────────────────────────────────────────────────────────────────────────
     # _enrich_local_positions — гарантия актуальных координат

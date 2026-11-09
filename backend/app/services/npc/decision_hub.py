@@ -1807,7 +1807,7 @@ class DecisionHub:
             else ("fear" if redirect < 0 else "neutral")
         )
 
-        return _field_mod + redirect
+        return _field_mod  # E0-PILOT-10 FIX: redirect — отдельный компонент (components["redirect"]), не в emotion (double-count fix)
 
     def _trait_modifier(
         self,

@@ -143,6 +143,14 @@ NPC формирует `SpatialTargetIntent`. `SpatialTargetResolver` разре
 
 ---
 
+---
+
+**L439: Coordinate Frame Contract W** (ADR-O-439, P1-01 ROADMAP)
+Единый мировой фрейм файла: все координатные поля (walls, objects, nodes, rooms, passages, labels, npcs, player_spawn) хранятся в ОДНОМ фрейме — мировом при global_coords=true (единственный допустимый валидатором). Backend фрейм-агностичен (frame(scene_state.entities) == frame(файла)). Фронтенд-конверсии (local_to_world/world_to_local) — фрейм-осознанные: при global_coords=true → identity; при false → ±origin (легаси). Рендер NPC «сырой» (0 преобразований). Сейвы — W5-миграция (сдвиг на origin локации, бэкап, версия).
+- ❌ **Taboo:** расщеплённый файл (геометрия мировая, сущности локальные); второй источник истины фрейма в рендере (build_geometry читает фактический фрейм); двойной сдвиг (F2 из RCA-1 — конверсия NPC после уже мировых данных); local_to_world безусловно +origin при global_coords=true.
+- 📁 `frontend/world_context.py` (ContextResolver), `frontend/map_editor/data_manager.py` (_migrate_to_global_coords), `frontend/map_editor/schema_validator.py` (W7), `backend/app/services/scene_state_manager.py` (W5), `frontend/map_editor/campaigns/Open_road/locations/tavern.json` (P1-03 target)
+- 📄 Детальный аудит: `docs/audits/ADR-O-439_COORD_FRAME_W.md`
+- 🔗 ROADMAP: `docs/Тесты причинности ТЗ/Задачи сегодняшнего дня/ENIGMA_ROADMAP_восстановление_редактора_мира_runtime.md` §D.1.2, §P1-01
 ## DOM-05: PHYSIOLOGY & COMBAT
 
 **L12: Physiology & Death Lock Law** (ADR-015, 127, HP-UNIFICATION)

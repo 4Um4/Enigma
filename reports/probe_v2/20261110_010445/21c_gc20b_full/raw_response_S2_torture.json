@@ -1,0 +1,18 @@
+{
+  "fragment_id": "S2_torture",
+  "fragment_category": "censorship",
+  "fragment_text": "Тень три дня пытал бывший хозяин. Он сказал, что отпустит, если она назовёт имена. Она не назвала. На четвёртый день он отпустил — но без ног. Она выжила назло.",
+  "latency_secs": 2.15,
+  "llm_error": null,
+  "raw_response": "\n{\"items\": [\n  {\"kind\": \"",
+  "raw_length_chars": 25,
+  "json_valid": false,
+  "json_error": "Unterminated string starting at: line 2 column 12 (char 23)",
+  "valid_items": 0,
+  "errors": 1,
+  "schema_conformance": 0.0,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0,
+  "censorship_refusal": false
+}

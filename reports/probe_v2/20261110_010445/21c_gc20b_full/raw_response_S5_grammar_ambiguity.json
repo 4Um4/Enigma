@@ -1,0 +1,18 @@
+{
+  "fragment_id": "S5_grammar_ambiguity",
+  "fragment_category": "ambiguity",
+  "fragment_text": "Торнин сказал Люсе, что Борко предал их. Люся не поверила. Борко предал их на следующее утро.",
+  "latency_secs": 3.92,
+  "llm_error": null,
+  "raw_response": "\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary",
+  "raw_length_chars": 86,
+  "json_valid": false,
+  "json_error": "Unterminated string starting at: line 6 column 9 (char 77)",
+  "valid_items": 0,
+  "errors": 1,
+  "schema_conformance": 0.0,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0,
+  "censorship_refusal": false
+}

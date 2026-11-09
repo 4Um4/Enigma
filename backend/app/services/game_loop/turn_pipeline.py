@@ -382,52 +382,6 @@ class TurnPipeline:
                 dialogue_session=_dialogue_session
             )
 
-            # Step 3.2 Stage C2b: SOCIAL_ACTION публикуется только при
-            # BodyArbiter AUTHORIZED и WV не отклонил. Fail-closed.
-            # Перемещено после BodyArbiter (tp:465) и WV (tp:466).
-            # Раньше публиковалось до арбитража — projections (ACTOR_ATTACKS,
-            # COMMUNICATION_CLAIM) создавали факты для неавторизованного действия.
-            _sem_action_val = _semantic_field.action.value if _semantic_field else "UNCERTAIN"
-            _arb_authorized = True  # Fallback: BodyArbiter не запущен — публикуем (см. tp:884)
-            _wv_rejected = False
-            if (
-                _sem_action_val in ("ATTACK", "THREATEN", "DIALOGUE", "STEAL", "GIVE")
-                and _arb_authorized
-                and not _wv_rejected
-            ):
-                from app.domain.events import EventDTO
-                from app.services.events.event_bus import get_event_bus
-
-                _prop = None
-                if _semantic_field.proposition:
-                    _prop = {
-                        "subject_id": _semantic_field.proposition.subject_id,
-                        "predicate": _semantic_field.proposition.predicate.value,
-                        "object_id": _semantic_field.proposition.object_id,
-                        "polarity": _semantic_field.proposition.polarity
-                    }
-
-                _payload = {
-                    "action": _sem_action_val,
-                    "actor": _semantic_field.actor or "player",
-                    "target": _semantic_field.target or shared_context.player_target_id or "",
-                    "speech_act": _semantic_field.speech_act.value if _semantic_field.speech_act else "assert",
-                    "proposition": _prop,
-                    "physical_force": _semantic_field.physical_force,
-                    "emotional_charge": _semantic_field.emotional_charge,
-                    "social_pressure": _semantic_field.social_pressure,
-                    "tick": shared_context.current_tick
-                }
-
-                _event = EventDTO.create_social_action(
-                    source=_semantic_field.actor or "player",
-                    payload=_payload,
-                    visibility="public",
-                    radius=10.0
-                )
-                _bus = get_event_bus()
-                _bus.publish(_event)
-
             _resolution = resolve_player_intent(
                 raw_action=_raw_action,
                 action_type=shared_context.action_type or "player_interacts",
@@ -483,8 +437,9 @@ class TurnPipeline:
                 from app.services.body_arbiter import BodyArbiter
 
                 _arbiter = BodyArbiter()
-                _arb_result = _arbiter.authorize(scene_state, shared_context.current_tick or 0)
-                shared_context.body_arbiter_result = _arb_result
+                shared_context.body_arbiter_result = _arbiter.authorize(
+                    scene_state, shared_context.current_tick or 0
+                )
             except Exception as _arb_err:
                 logger.warning(f"[BODY_ARBITER] fault: {_arb_err}")
                 shared_context.body_arbiter_result = None
@@ -539,24 +494,75 @@ class TurnPipeline:
                     shared_context.action_rejected = True
                     shared_context.rejection_reason = "; ".join(n["explanation"] for n in _wv_notes)
 
-            # ADR-O-330: Player MOVE action creates MacroMovementGoal for MovementEngine
-            # Если игрок пишет "подойти к [NPC]", мы должны найти узел NPC и двигаться к нему.
-            # Step 3.2 Stage C2a: Gate Player MOVE by BodyArbiter + WV.
-            # DEFERRED or WV rejected → movement blocked.
-            # Step 3.2 Stage C2a-R1: fail-closed — ошибка BodyArbiter блокирует
-            # исполнение, не разрешает его. Fallback на True небезопасен.
-            from app.services.body_arbiter import AuthorizationDecision, AuthorizationResult
+            # Step 3.2 Stage C2b-R1: Unified authorization gate.
+            # Вычисляется один раз после BodyArbiter и WV, до всех gated блоков:
+            # SOCIOAL_ACTION, MOVE, MvpController.
+            # Fail-closed: fault → blocked.
+            from app.services.body_arbiter import (
+                AuthorizationDecision,
+                AuthorizationResult,
+            )
 
-            _arb_result_raw: AuthorizationResult | None = getattr(
+            _arb_result: Optional[AuthorizationResult] = getattr(
                 shared_context, "body_arbiter_result", None
             )
             _arb_authorized = False  # Default: blocked (fail-closed)
-            if _arb_result_raw is not None:
+            if _arb_result is not None:
                 _arb_authorized = (
-                    _arb_result_raw.player_decision == AuthorizationDecision.AUTHORIZED
+                    _arb_result.player_decision == AuthorizationDecision.AUTHORIZED
                 )
             _wv_rejected = getattr(shared_context, "action_rejected", False)
 
+            # Step 3.2 Stage C2b: SOCIOAL_ACTION публикуется только при
+            # BodyArbiter AUTHORIZED и WV не отклонил. Fail-closed.
+            # Перемещено после BodyArbiter и WV.
+            # Раньше публиковалось до арбитража — projections (ACTOR_ATTACKS,
+            # COMMUNICATION_CLAIM) создавали факты для неавторизованного действия.
+            _sem_action_val = _semantic_field.action.value if _semantic_field else "UNCERTAIN"
+            if (
+                _sem_action_val in ("ATTACK", "THREATEN", "DIALOGUE", "STEAL", "GIVE")
+                and _arb_authorized
+                and not _wv_rejected
+            ):
+                from app.domain.events import EventDTO
+                from app.services.events.event_bus import get_event_bus
+
+                _prop = None
+                if _semantic_field.proposition:
+                    _prop = {
+                        "subject_id": _semantic_field.proposition.subject_id,
+                        "predicate": _semantic_field.proposition.predicate.value,
+                        "object_id": _semantic_field.proposition.object_id,
+                        "polarity": _semantic_field.proposition.polarity
+                    }
+
+                _payload = {
+                    "action": _sem_action_val,
+                    "actor": _semantic_field.actor or "player",
+                    "target": _semantic_field.target or shared_context.player_target_id or "",
+                    "speech_act": _semantic_field.speech_act.value if _semantic_field.speech_act else "assert",
+                    "proposition": _prop,
+                    "physical_force": _semantic_field.physical_force,
+                    "emotional_charge": _semantic_field.emotional_charge,
+                    "social_pressure": _semantic_field.social_pressure,
+                    "tick": shared_context.current_tick
+                }
+
+                _event = EventDTO.create_social_action(
+                    source=_semantic_field.actor or "player",
+                    payload=_payload,
+                    visibility="public",
+                    radius=10.0
+                )
+                _bus = get_event_bus()
+                _bus.publish(_event)
+
+            # ADR-O-330: Player MOVE action creates MacroMovementGoal for MovementEngine
+            # Если игрок пишет "подойти к [NPC]", мы должны найти узел NPC и двигаться к нему.
+            # ADR-O-330: Player MOVE action creates MacroMovementGoal for MovementEngine
+            # Step 3.2 Stage C2a: Gate Player MOVE by BodyArbiter + WV.
+            # DEFERRED or WV rejected → movement blocked.
+            # _arb_authorized and _wv_rejected computed above (unified gate).
             _sem_action_val = _semantic_field.action_type.value if _semantic_field else ""
             if (
                 _sem_action_val == "MOVE"
@@ -579,6 +585,7 @@ class TurnPipeline:
                     logger.warning(f"[PLAYER_MOVE] Injected MacroMovementGoal for player -> {_target_pos}")
 
             # Step 3.2 Stage C2a: Gate MvpController by BodyArbiter + WV.
+            # _arb_authorized and _wv_rejected computed above (unified gate).
             if self.mvp_controller and _arb_authorized and not _wv_rejected:
                 # S199: Уничтожен раздвоенный semantic authority.
                 # MvpTavernController теперь получает PlayerAction через bridge из расширенного IntentSemanticField.

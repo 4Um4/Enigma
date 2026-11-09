@@ -1027,6 +1027,29 @@ class NpcTickPipeline:
                     f"[NEED_MODIFIERS] failed to read NeedLevel for {npc_id}: {_need_err}"
                 )
                 _need_modifiers = None
+            # E0: Autonomous Social Impulse — LifeEngine needs["social_urge"] → need_modifiers["talk"]
+            # Источник: npc["needs"]["social_urge"] ∈ [0..1] (LifeEngine._tick_needs, production).
+            # Растёт на _NEED_DECAY_PER_TICK каждый тик, гасится "socializing" активностью.
+            # Мост: need_modifiers["talk"] → compute → apply_modifiers → scores["talk"].
+            # НЕ двойной учёт: movement (Phase 0) = opportunity (proximity);
+            # scoring (Phase 5) = decision (want to talk). Ортогональные фазы.
+            # Вес 0.3 = parity с intimacy * 0.3 (существующий паттерн bridge→modifier).
+            try:
+                _npc_raw_e0 = next(
+                    (n for n in state.all_npcs_raw if n.get("npc_id") == npc_id), None
+                )
+                if _npc_raw_e0 is not None:
+                    _su_e0 = _npc_raw_e0.get("needs", {}).get("social_urge", 0.0)
+                    _su_e0 = float(_su_e0) if _su_e0 else 0.0
+                    if _su_e0 > 0.0:
+                        if _need_modifiers is None:
+                            _need_modifiers = {}
+                        _need_modifiers["talk"] = (
+                            _need_modifiers.get("talk", 0.0) + _su_e0 * 0.3
+                        )
+                        print(f"[E0_BRIDGE] npc={npc_id} social_urge={_su_e0:.2f} talk_mod={_need_modifiers['talk']:.3f}")
+            except Exception as _e0_su:
+                logger.debug(f"[E0_SOCIAL_URGE] fallback for {npc_id}: {_e0_su}")
             # MEM-3 (F5): npc_memory_modifiers — оживление MEM-D28.
             # memory_manager.get_weights_for_decision возвращает recent_pressure
             # per target. Если NPC имеет травматический опыт с конкретным target

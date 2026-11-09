@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S6_empty_input",
+  "fragment_category": "edge_case",
+  "fragment_text": "Торнин.",
+  "latency_secs": 8.77,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"OBSERVATION\", \"draft_payload\": {\"summary\": \"Упомянут Торнин\", \"observed_hint\": \"Торнин\"}, \"confidence\": 0.5, \"needs_confirmation\": true, \"question\": {\"question_id\": \"target_identity\", \"target_span\": \"Торнин\", \"options\": [\"SELECT_EXISTING_NPC\", \"CREATE_NEW_NPC\", \"UNKNOWN_PERSON\", \"LEAVE_WHITE_SPOT\"]}}]}",
+  "raw_length_chars": 324,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 1,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

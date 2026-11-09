@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S5_grammar_ambiguity",
+  "fragment_category": "ambiguity",
+  "fragment_text": "Торнин сказал Люсе, что Борко предал их. Люся не поверила. Борко предал их на следующее утро.",
+  "latency_secs": 11.91,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Торнин сообщил Люсе о предательстве Борко\", \"day\": null, \"years_ago\": 1}, \"confidence\": 0.5}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Борко предал их на следующее утро\", \"day\": null, \"years_ago\": 1}, \"confidence\": 0.5}]}",
+  "raw_length_chars": 287,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 2,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

@@ -1,0 +1,19 @@
+{
+  "fragment_id": "B3_knowledge_link",
+  "fragment_category": "B",
+  "fragment_text": "В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.",
+  "latency_secs": 6.66,
+  "llm_error": null,
+  "raw_response": "{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"узнала, что родителей убили из деревни\",\n        \"day\": null,\n        \"age\": 12\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"KNOWLEDGE_LINK\",\n      \"draft_payload\": {\n        \"summary\": \"узнала от пьяного Торнина\",\n        \"about_hint\": \"истинная причина смерти родителей\",\n        \"learned_age\": 12\n      },\n      \"confidence\": 1.0\n    }\n  ]\n}",
+  "raw_length_chars": 449,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 1,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.2857142857142857,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

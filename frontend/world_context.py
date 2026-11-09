@@ -240,9 +240,9 @@ class ContextResolver:
 
         world_x, world_y — уже в мировых координатах.
         """
-        # 1. Найти primary chunk (где игрок)
-        primary_chunks = self._registry.find_chunks(world_x, world_y)
-        primary_descriptor = primary_chunks[0] if primary_chunks else None
+        # 1. Найти primary chunk (где игрок) — P2-01 (D.2): детерминированный
+        # владелец границы вместо [0] (минимальная площадь → лекс. меньший id).
+        primary_descriptor = self._registry.resolve_primary(world_x, world_y)
 
         # 2. Найти видимые чанки (perception layer)
         visible_descriptors = self._registry.find_nearby(world_x, world_y, view_radius)
@@ -356,6 +356,10 @@ class ContextResolver:
         chunk = self._registry.get_chunk(location_id)
         if chunk is None:
             return local_x, local_y
+        if getattr(chunk, "global_coords", True):
+            # P1-02 (ADR-O-439 W3): файл мировой — identity
+            return local_x, local_y
+        # Легаси: файл локальный — сдвиг на origin
         return local_x + chunk.origin_x, local_y + chunk.origin_y
 
     def world_to_local(
@@ -368,4 +372,8 @@ class ContextResolver:
         chunk = self._registry.get_chunk(location_id)
         if chunk is None:
             return world_x, world_y
+        if getattr(chunk, "global_coords", True):
+            # P1-02 (ADR-O-439 W3): файл мировой — identity
+            return world_x, world_y
+        # Легаси: файл локальный — сдвиг -origin
         return world_x - chunk.origin_x, world_y - chunk.origin_y

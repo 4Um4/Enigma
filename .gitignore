@@ -89,3 +89,6 @@ tmp_test_g4/
 g4_regression.txt
 g4_test_output.txt
 mypy_check_run.txt
+
+# P0-01: бэкапы вне git
+_backup/

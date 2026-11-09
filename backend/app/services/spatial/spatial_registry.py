@@ -32,6 +32,8 @@ class ChunkDescriptor:
     is_outdoor: bool
     label: str
     content_hash: str
+    # P1-02 (ADR-O-439 W3): фрейм файла. True=мировой (identity), False=локальный (легаси).
+    global_coords: bool = True
 
 
 @dataclass(frozen=True)
@@ -199,6 +201,47 @@ class SpatialRegistry:
             ):
                 result.append(chunk)
         return result
+
+    def resolve_primary(
+        self, world_x: float, world_y: float
+    ) -> Optional[ChunkDescriptor]:
+        """Детерминированный primary-чанк для точки (D.2, ROADMAP §P2-01).
+
+        Заменяет зависимость от порядка артефакта у [0]-потребителей.
+        Алгоритм:
+        - 0 чанков → None (точка вне всех footprint'ов).
+        - 1 чанк   → единственный.
+        - >1 чанка → минимальная площадь (width*height); при равенстве —
+          лексикографически меньший location_id.
+
+        float-epsilon НЕ нужен: find_chunks уже вычислил inclusive-пересечение
+        (P0-02 находка: float-gap делает общую границу невоспроизводимой на
+        текущих данных — но правило D.2 защитит будущее, если координаты
+        нормализуют и multi-chunk станет реальным).
+
+        Warning при >1 кандидатах — многозначность наблюдаема (D.2).
+        """
+        candidates = self.find_chunks(world_x, world_y)
+        if not candidates:
+            return None
+        if len(candidates) == 1:
+            return candidates[0]
+
+        # D.2: минимальная площадь → при равенстве лексикографически меньший location_id.
+        # Сортировка stable: сначала по площади, затем по location_id — первый элемент
+        # и есть победитель.
+        def _sort_key(chunk: ChunkDescriptor) -> tuple:
+            area = chunk.width * chunk.height
+            return (area, chunk.location_id)
+
+        winner = min(candidates, key=_sort_key)
+        logger.warning(
+            f"[P2-01] resolve_primary multi-chunk at ({world_x}, {world_y}): "
+            f"candidates={[c.location_id for c in candidates]}, "
+            f"winner={winner.location_id} (area={winner.width * winner.height:.2f}, "
+            f"D.2 rule: min area → lex-smaller location_id)."
+        )
+        return winner
 
     def find_nearby(
         self, world_x: float, world_y: float, radius: float

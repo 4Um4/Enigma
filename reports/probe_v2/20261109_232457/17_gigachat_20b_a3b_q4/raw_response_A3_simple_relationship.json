@@ -1,0 +1,18 @@
+{
+  "fragment_id": "A3_simple_relationship",
+  "fragment_category": "A",
+  "fragment_text": "Борко работает у Торнина вышибалой.",
+  "latency_secs": 4.56,
+  "llm_error": null,
+  "raw_response": "\nОн уже давно на этой должности, и за это время успел стать\nсвоего рода легендой среди местных. Говорят, что он может\nразобраться с любым, кто переступит порог тавер",
+  "raw_length_chars": 165,
+  "json_valid": false,
+  "json_error": "Expecting value: line 1 column 1 (char 0)",
+  "valid_items": 0,
+  "errors": 1,
+  "schema_conformance": 0.0,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0,
+  "censorship_refusal": false
+}

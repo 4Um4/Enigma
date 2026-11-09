@@ -1,4 +1,4 @@
-# ENIGMA Session State — 2026-11-08 17:01
+# ENIGMA Session State — 2026-11-09 00:12
 
 Кампания: `?` | Игрок: `?`
 
@@ -16,16 +16,16 @@
 
 ## DNA — МЕТРИКИ ЗДОРОВЬЯ СИСТЕМЫ
 
-_Сессия: 2.6 мин | Тиков: 0 | LLM-вызовов: 0_
+_Сессия: 6.1 мин | Тиков: 0 | LLM-вызовов: 0_
 
 | Метрика | Значение | Δ от прошлой | Интерпретация для LLM |
 |---------|----------|--------------|----------------------|
-| **SHI** (Simulation Health) | 0% | → +0.0% | ⛔ МЕРТВА: решений нет. Проверь DecisionHub.compute() |
-| **NPI** (NPC Pipeline) | 0% | → +0.0% | нет данных о NPC |
+| **SHI** (Simulation Health) | 0% | ↓ -100.0% | ⛔ МЕРТВА: решений нет. Проверь DecisionHub.compute() |
+| **NPI** (NPC Pipeline) | 0% | ↓ -100.0% | нет данных о NPC |
 | **OBI** (Obedience) | 0% | → +0.0% | нет директив в сессии — OBI не применим |
 | **SCF** (Spatial Coherence) | 1.0 | → +0.0 | ✅ пространство целостно: граф загружен корректно |
 | **ADR** (Debt Ratio) | 0.00 | → +0.0 | нет ADR-записей — невозможно оценить |
-| **CVS** (Causal Velocity) | 0.00/мин | → +0.0 | LLM не вызывалась: сессия без действий игрока |
+| **CVS** (Causal Velocity) | 0.00/мин | ↓ -1.0 | LLM не вызывалась: сессия без действий игрока |
 | **PFI** (Pre-Bus Failure) | 0% | → +0.0% | ✅ норма: пред-шинных отказов нет — CDS видит всё |
 | **Tracebacks** | 0 (AttrErr=0, TypeErr=0) | → | ✅ норма |
 | **BCI** (Belief Crystallization) | 0 (idx=0.00) | → | ⚠️ Память не кристаллизуется (BCI=0) |
@@ -34,7 +34,10 @@ _Сессия: 2.6 мин | Тиков: 0 | LLM-вызовов: 0_
 | **DRI** (Response Integrity) | 100% | → +0.0% | ✅ LLM отвечает на все запросы |
 | **DPI** (Dialogue Pipeline) | 100% | → +0.0% | ✅ Конвейер диалогов стабилен |
 
-_История: `reports/dna_history.jsonl` — 1330 записей_
+**Системные сигналы (требуют внимания):**
+- NPI упал на -100%: spatial pipeline деградировал между сессиями
+
+_История: `reports/dna_history.jsonl` — 1337 записей_
 
 ## 🟢 КРАСНЫЕ ИНВАРИАНТЫ — ТИХИЕ ДЕГРАДАЦИИ
 
@@ -54,11 +57,11 @@ _Не обнаружено — игра жива._
 _(баги не обнаружены в этой сессии)_
 
 ### Последние изменения (git log -5):
-  - 568cc5fe docs: удаление завершённых forensic-отчётов из docs\Тесты причинности ТЗ (7 файлов, ~193 КБ)
-  - 82eb0495 docs(readme): reframe — RPG engine, not 'not a game'; infinite replayability through causal NPCs
-  - c2616ee5 docs(zaveschanie): Письмо №16 — LLM Runtime Unification complete (S418-S420)
-  - b9164c68 docs(llm-runtime): delete PROPOSAL — implementation complete (Этапы 0-6)
-  - d1da57e1 docs(llm-runtime): S420 + ETA6_IMPACT + PROPOSAL - Stage 6 COMPLETE
+  - 89d50e72 Release V.0.5.4.6.0 (Аватар 1)
+  - 590a39b7 S422: A4-K.2 — cosmetic cleanup state_applicator.py (TYPE_CHECKING import, RE-01)
+  - 0e83d747 docs(b4-r14): update COGNITIVE-CONTINUITY-01 and BUTTERFLY-01_GUIDE with B4-R14 closure status
+  - bd46a645 S421: A4-K.1 — dual-init self._relationships устранён (ADR-O-438, RE-01)
+  - b16bb9a7 fix(b4-r14): produces_claim gate around Proposition extraction - Knowledge/Communication separation
 
 ### Последние записи MUTATIONS.md:
   - (MUTATIONS.md не найден)

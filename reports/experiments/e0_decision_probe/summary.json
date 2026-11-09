@@ -1,0 +1,162 @@
+{
+  "run_id": "e0_decision_probe",
+  "timestamp": "2026-11-09T20:51:51.225017",
+  "campaign": "Open_road",
+  "ticks_completed": 5,
+  "ticks_requested": 5,
+  "error": null,
+  "engine_found": true,
+  "npc_initial": {
+    "maid_lusya": {
+      "_error": "state is None"
+    },
+    "tavern_keeper_tornin": {
+      "_error": "state is None"
+    }
+  },
+  "npc_final": {
+    "maid_lusya": {
+      "_error": "state is None"
+    },
+    "tavern_keeper_tornin": {
+      "_error": "state is None"
+    }
+  },
+  "positions_per_tick": [
+    {
+      "tick": 0,
+      "positions": {
+        "maid_lusya": {
+          "node": "fireplace",
+          "location": "tavern",
+          "x": 7.915023148148147,
+          "y": 1.8505015432098766
+        },
+        "tavern_keeper_tornin": {
+          "node": "behind_bar",
+          "location": "tavern",
+          "x": 4.5,
+          "y": 2.5
+        }
+      },
+      "distance": 3.48
+    },
+    {
+      "tick": 1,
+      "positions": {
+        "maid_lusya": {
+          "node": "tavern:node_16",
+          "location": "tavern",
+          "x": 7.915023148148147,
+          "y": 1.8505015432098766
+        },
+        "tavern_keeper_tornin": {
+          "node": "tavern:fireplace",
+          "location": "tavern",
+          "x": 4.5,
+          "y": 2.5
+        }
+      },
+      "distance": 3.48,
+      "status": "ok",
+      "dh_calls_so_far": null
+    },
+    {
+      "tick": 2,
+      "positions": {
+        "maid_lusya": {
+          "node": "tavern:node_16",
+          "location": "tavern",
+          "x": 9.41326736111111,
+          "y": 2.171408564814815
+        },
+        "tavern_keeper_tornin": {
+          "node": "tavern:fireplace",
+          "location": "tavern",
+          "x": 6.0,
+          "y": 2.625
+        }
+      },
+      "distance": 3.44,
+      "status": "ok",
+      "dh_calls_so_far": null
+    },
+    {
+      "tick": 3,
+      "positions": {
+        "maid_lusya": {
+          "node": "tavern:node_16",
+          "location": "tavern",
+          "x": 10.911511574074073,
+          "y": 2.4923155864197533
+        },
+        "tavern_keeper_tornin": {
+          "node": "tavern:fireplace",
+          "location": "tavern",
+          "x": 7.5,
+          "y": 2.75
+        }
+      },
+      "distance": 3.42,
+      "status": "ok",
+      "dh_calls_so_far": null
+    },
+    {
+      "tick": 4,
+      "positions": {
+        "maid_lusya": {
+          "node": "tavern:node_16",
+          "location": "tavern",
+          "x": 12.409755787037035,
+          "y": 2.8132226080246916
+        },
+        "tavern_keeper_tornin": {
+          "node": "tavern:fireplace",
+          "location": "tavern",
+          "x": 9.0,
+          "y": 2.875
+        }
+      },
+      "distance": 3.41,
+      "status": "ok",
+      "dh_calls_so_far": null
+    },
+    {
+      "tick": 5,
+      "positions": {
+        "maid_lusya": {
+          "node": "tavern:fireplace",
+          "location": "tavern",
+          "x": 10.5,
+          "y": 3.0
+        },
+        "tavern_keeper_tornin": {
+          "node": "tavern:node_16",
+          "location": "tavern",
+          "x": 13.908,
+          "y": 3.13412962962963
+        }
+      },
+      "distance": 3.41,
+      "status": "ok",
+      "dh_calls_so_far": null
+    }
+  ],
+  "speak_radius": 5.0,
+  "lost_proximity": false,
+  "decision_hub": {
+    "found": false,
+    "location": "not found",
+    "wrapped": false,
+    "restored": false,
+    "call_count": 0,
+    "results": []
+  },
+  "log_decision_traces": [],
+  "talk_analysis": {
+    "talk_in_wrapper": false,
+    "talk_in_log": false,
+    "talk_scores": [],
+    "talk_status": "UNVERIFIED — no DecisionHub data (neither wrapper nor log traces)"
+  }
+}

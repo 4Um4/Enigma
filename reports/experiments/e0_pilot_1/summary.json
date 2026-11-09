@@ -1,0 +1,708 @@
+{
+  "run_id": "e0_pilot_1",
+  "timestamp": "2026-11-09T00:09:44.928099",
+  "campaign": "Open_road",
+  "n_ticks_completed": 30,
+  "n_ticks_failed": 0,
+  "pair": [
+    "maid_lusya",
+    "tavern_keeper_tornin"
+  ],
+  "llm_url": "http://localhost:8181",
+  "error": null,
+  "game_time": {
+    "start": null,
+    "end": null
+  },
+  "event_counts": {
+    "npc_spoke": 0,
+    "comm_claims": 0,
+    "all_events": 0
+  },
+  "semantic_coherence_counts": {
+    "linked": 0,
+    "weak": 0,
+    "no_link": 0,
+    "monologue": 0
+  },
+  "cognition_diagnostic": {
+    "resolver_found": false,
+    "note": "CognitionContextResolver not on game_loop"
+  },
+  "per_npc_epistemic_trajectory": {
+    "maid_lusya": [
+      {
+        "tick": 1,
+        "count": -1
+      },
+      {
+        "tick": 2,
+        "count": -1
+      },
+      {
+        "tick": 3,
+        "count": -1
+      },
+      {
+        "tick": 4,
+        "count": -1
+      },
+      {
+        "tick": 5,
+        "count": -1
+      },
+      {
+        "tick": 6,
+        "count": -1
+      },
+      {
+        "tick": 7,
+        "count": -1
+      },
+      {
+        "tick": 8,
+        "count": -1
+      },
+      {
+        "tick": 9,
+        "count": -1
+      },
+      {
+        "tick": 10,
+        "count": -1
+      },
+      {
+        "tick": 11,
+        "count": -1
+      },
+      {
+        "tick": 12,
+        "count": -1
+      },
+      {
+        "tick": 13,
+        "count": -1
+      },
+      {
+        "tick": 14,
+        "count": -1
+      },
+      {
+        "tick": 15,
+        "count": -1
+      },
+      {
+        "tick": 16,
+        "count": -1
+      },
+      {
+        "tick": 17,
+        "count": -1
+      },
+      {
+        "tick": 18,
+        "count": -1
+      },
+      {
+        "tick": 19,
+        "count": -1
+      },
+      {
+        "tick": 20,
+        "count": -1
+      },
+      {
+        "tick": 21,
+        "count": -1
+      },
+      {
+        "tick": 22,
+        "count": -1
+      },
+      {
+        "tick": 23,
+        "count": -1
+      },
+      {
+        "tick": 24,
+        "count": -1
+      },
+      {
+        "tick": 25,
+        "count": -1
+      },
+      {
+        "tick": 26,
+        "count": -1
+      },
+      {
+        "tick": 27,
+        "count": -1
+      },
+      {
+        "tick": 28,
+        "count": -1
+      },
+      {
+        "tick": 29,
+        "count": -1
+      },
+      {
+        "tick": 30,
+        "count": -1
+      }
+    ],
+    "tavern_keeper_tornin": [
+      {
+        "tick": 1,
+        "count": -1
+      },
+      {
+        "tick": 2,
+        "count": -1
+      },
+      {
+        "tick": 3,
+        "count": -1
+      },
+      {
+        "tick": 4,
+        "count": -1
+      },
+      {
+        "tick": 5,
+        "count": -1
+      },
+      {
+        "tick": 6,
+        "count": -1
+      },
+      {
+        "tick": 7,
+        "count": -1
+      },
+      {
+        "tick": 8,
+        "count": -1
+      },
+      {
+        "tick": 9,
+        "count": -1
+      },
+      {
+        "tick": 10,
+        "count": -1
+      },
+      {
+        "tick": 11,
+        "count": -1
+      },
+      {
+        "tick": 12,
+        "count": -1
+      },
+      {
+        "tick": 13,
+        "count": -1
+      },
+      {
+        "tick": 14,
+        "count": -1
+      },
+      {
+        "tick": 15,
+        "count": -1
+      },
+      {
+        "tick": 16,
+        "count": -1
+      },
+      {
+        "tick": 17,
+        "count": -1
+      },
+      {
+        "tick": 18,
+        "count": -1
+      },
+      {
+        "tick": 19,
+        "count": -1
+      },
+      {
+        "tick": 20,
+        "count": -1
+      },
+      {
+        "tick": 21,
+        "count": -1
+      },
+      {
+        "tick": 22,
+        "count": -1
+      },
+      {
+        "tick": 23,
+        "count": -1
+      },
+      {
+        "tick": 24,
+        "count": -1
+      },
+      {
+        "tick": 25,
+        "count": -1
+      },
+      {
+        "tick": 26,
+        "count": -1
+      },
+      {
+        "tick": 27,
+        "count": -1
+      },
+      {
+        "tick": 28,
+        "count": -1
+      },
+      {
+        "tick": 29,
+        "count": -1
+      },
+      {
+        "tick": 30,
+        "count": -1
+      }
+    ]
+  },
+  "per_npc_decision_winners": {
+    "maid_lusya": [],
+    "tavern_keeper_tornin": []
+  },
+  "npc_spoke_records": [],
+  "comm_claim_records": [],
+  "coherence_analysis": [],
+  "decision_traces_sample": [],
+  "ticks": [
+    {
+      "n": 1,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 2,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 3,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 4,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 5,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 6,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 7,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 8,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 9,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 10,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 11,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 12,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 13,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 14,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 15,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 16,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 17,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 18,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 19,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 20,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 21,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 22,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 23,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 24,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 25,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 26,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 27,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 28,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 29,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    },
+    {
+      "n": 30,
+      "status": "ok",
+      "scene_tick": null,
+      "game_time": null,
+      "npc_positions": {},
+      "pending_tasks": [],
+      "epistemic_counts": {
+        "maid_lusya": -1,
+        "tavern_keeper_tornin": -1
+      },
+      "spoke_this_tick": [],
+      "claims_this_tick": []
+    }
+  ]
+}

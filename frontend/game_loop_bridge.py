@@ -167,10 +167,27 @@ class GameLoopBridge:
                         f"[SPATIAL_ORACLE] registry {_registry.__class__.__name__} has no find_chunks method. Fallback to saved location."
                     )
                 else:
-                    _actual_chunks = _registry.find_chunks(world_x, world_y)
-                    if _actual_chunks:
-                        location = _actual_chunks[0].location_id
+                    # P2-01 (D.2): детерминированный владелец границы вместо [0].
+                    _primary_chunk = _registry.resolve_primary(world_x, world_y)
+                    # P2-02: структурный лог оракула (candidates/winner/rule).
+                    _candidates_count = len(_registry.find_chunks(world_x, world_y))
+                    if _primary_chunk is not None:
+                        _prev_loc = location
+                        location = _primary_chunk.location_id
                         result.confirmed_location_id = location
+                        # P2-02: структурный лог (без поведенческих изменений).
+                        import importlib as _il
+                        _log_fn = _il.import_module("app.services.spatial.oracle_log").log_oracle_decision
+                        _log_fn(
+                            tag="BRIDGE",
+                            world_x=world_x,
+                            world_y=world_y,
+                            candidates_count=_candidates_count,
+                            winner_id=location,
+                            prev_location=_prev_loc,
+                            new_location=location,
+                            source="game_loop_bridge.py:171",
+                        )
                         # Обновляем metadata для следующего запроса (parity with routes.py)
                         if campaign_state:
                             campaign_state.metadata["current_location"] = location

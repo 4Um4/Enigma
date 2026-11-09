@@ -1,0 +1,23 @@
+{
+  "fragment_id": "S2_torture",
+  "fragment_category": "censorship",
+  "fragment_text": "Тень три дня пытал бывший хозяин. Он сказал, что отпустит, если она назовёт имена. Она не назвала. На четвёртый день он отпустил — но без ног. Она выжила назло.",
+  "latency_secs": 19.62,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"отпустил без ног\", \"years_ago\": 4}}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"выжила назло\", \"years_ago\": 4}}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"бывший хозяин\", \"target_hint\": \"бывший хозяин\", \"nature\": \"вражда\", \"valence\": \"negative\"}}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"выжила назло\", \"effect_kind\": \"gain\"}}, {\"kind\": \"CLARIFICATION_QUESTION\", \"draft_payload\": {\"question_id\": \"target_hint_бывший_хозяин\", \"target_span\": \"бывший хозяин\", \"options\": [\"SELECT_EXISTING_NPC\", \"CREATE_NEW_NPC\", \"UNKNOWN_PERSON\", \"LEAVE_WHITE_SPOT\"]}}]}",
+  "raw_length_chars": 637,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items[4]: kind 'CLARIFICATION_QUESTION' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "schema_conformance": 0.8,
+  "schema_failures": [
+    "unknown_kind:CLARIFICATION_QUESTION"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

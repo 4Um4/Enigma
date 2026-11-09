@@ -190,3 +190,30 @@ class _MinimalFrontendRegistry:
             ):
                 result.append(chunk)
         return result
+
+    def resolve_primary(self, world_x: float, world_y: float) -> Optional[dict]:
+        """Детерминированный primary-чанк для frontend-контекста (D.2, P2-01).
+
+        Зеркало backend SpatialRegistry.resolve_primary — единая семантика
+        выбора владельца границы в обоих реестрах. Возвращает dict (не
+        ChunkDescriptor) — _MinimalFrontendRegistry работает с raw JSON.
+        """
+        candidates = self.find_chunks(world_x, world_y)
+        if not candidates:
+            return None
+        if len(candidates) == 1:
+            return candidates[0]
+
+        def _sort_key(chunk: dict) -> tuple:
+            area = float(chunk.get("width", 0)) * float(chunk.get("height", 0))
+            loc_id = str(chunk.get("location_id", ""))
+            return (area, loc_id)
+
+        winner = min(candidates, key=_sort_key)
+        logger.warning(
+            f"[P2-01] _MinimalFrontendRegistry.resolve_primary multi-chunk at "
+            f"({world_x}, {world_y}): candidates="
+            f"{[c.get('location_id') for c in candidates]}, "
+            f"winner={winner.get('location_id')} (D.2: min area → lex-smaller id)."
+        )
+        return winner

@@ -1,0 +1,18 @@
+{
+  "fragment_id": "A2_simple_location",
+  "fragment_category": "A",
+  "fragment_text": "Торнин держит таверну 'Серебряный Волк' уже двадцать лет.",
+  "latency_secs": 0.9,
+  "llm_error": null,
+  "raw_response": " ```\n{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"держит таверну 'Серебряный Волк'\", \"day\": null, \"duration_years\": 20}\n]}\n```",
+  "raw_length_chars": 143,
+  "json_valid": false,
+  "json_error": "Expecting ',' delimiter: line 3 column 1 (char 132)",
+  "valid_items": 0,
+  "errors": 1,
+  "schema_conformance": 0.0,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0,
+  "censorship_refusal": false
+}

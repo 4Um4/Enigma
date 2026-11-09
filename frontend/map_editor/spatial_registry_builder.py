@@ -40,6 +40,8 @@ class ChunkDescriptor:
     is_outdoor: bool
     label: str
     content_hash: str
+    # P1-02 (ADR-O-439 W3): фрейм файла.
+    global_coords: bool = True
 
 
 @dataclass(frozen=True)
@@ -226,6 +228,8 @@ class SpatialRegistryBuilder:
                 is_outdoor=bool(data.get("is_outdoor", False)),
                 label=data.get("label", loc_file.stem),
                 content_hash=self._hash_file(loc_file),
+                # P1-02 (ADR-O-439 W3): флаг фрейма из editor JSON.
+                global_coords=bool(data.get("global_coords", True)),
             )
 
             if chunk.width > 0 and chunk.height > 0:

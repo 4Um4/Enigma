@@ -1,0 +1,894 @@
+{
+  "run_id": "e0_pilot_5",
+  "timestamp": "2026-11-10T00:04:28.949188",
+  "campaign": "Open_road",
+  "ticks_completed": 10,
+  "error": null,
+  "selected_pair": [
+    "maid_lusya",
+    "blacksmith_orm"
+  ],
+  "pair_check": {
+    "pair": [
+      "maid_lusya",
+      "blacksmith_orm"
+    ],
+    "suitable": true,
+    "trust_a_to_b": 30.0,
+    "fear_a_to_b": 0.0,
+    "a_to_b_hostile": false,
+    "trust_b_to_a": 70.0,
+    "fear_b_to_a": 0.0,
+    "b_to_a_hostile": false,
+    "maid_lusya_node": "fireplace",
+    "maid_lusya_x": 32.94835648148147,
+    "maid_lusya_y": 6.8685015432098835,
+    "blacksmith_orm_node": "fireplace",
+    "blacksmith_orm_x": 35.53333333333332,
+    "blacksmith_orm_y": 9.018000000000008,
+    "distance": 3.36,
+    "in_range": true,
+    "any_hostile": false
+  },
+  "dh_total_calls": 59,
+  "dh_pair_calls": 20,
+  "pair_talk_present": 6,
+  "pair_talk_won": 0,
+  "all_talk_won": 0,
+  "pair_winners": {
+    "Intent.SEEK_ALLY": 10,
+    "Intent.CHANGE_ROLE": 10
+  },
+  "llm_calls_count": 0,
+  "llm_calls": [],
+  "jsonl_files_found": [],
+  "positions_per_tick": [
+    {
+      "tick": 1,
+      "distance": 3.36,
+      "status": "ok",
+      "positions": {
+        "maid_lusya": {
+          "node": "tavern:node_16",
+          "x": 32.94835648148147,
+          "y": 6.8685015432098835
+        },
+        "blacksmith_orm": {
+          "node": "tavern:main_hall",
+          "x": 35.53333333333332,
+          "y": 9.018000000000008
+        }
+      },
+      "dh_calls_so_far": 6
+    },
+    {
+      "tick": 2,
+      "distance": 2.34,
+      "status": "ok",
+      "positions": {
+        "maid_lusya": {
+          "node": "tavern:node_16",
+          "x": 34.44660069444443,
+          "y": 7.189408564814822
+        },
+        "blacksmith_orm": {
+          "node": "tavern:main_hall",
+          "x": 34.19999999999999,
+          "y": 9.518000000000008
+        }
+      },
+      "dh_calls_so_far": 12
+    },
+    {
+      "tick": 3,
+      "distance": 3.97,
+      "status": "ok",
+      "positions": {
+        "maid_lusya": {
+          "node": "tavern:node_16",
+          "x": 35.94484490740739,
+          "y": 7.510315586419761
+        },
+        "blacksmith_orm": {
+          "node": "tavern:main_hall",
+          "x": 32.86666666666665,
+          "y": 10.018000000000008
+        }
+      },
+      "dh_calls_so_far": 18
+    },
+    {
+      "tick": 4,
+      "distance": 1.92,
+      "status": "ok",
+      "positions": {
+        "maid_lusya": {
+          "node": "tavern:node_16",
+          "x": 37.44308912037035,
+          "y": 7.831222608024699
+        },
+        "blacksmith_orm": {
+          "node": "tavern:fireplace",
+          "x": 35.53333333333332,
+          "y": 8.018000000000008
+        }
+      },
+      "dh_calls_so_far": 24
+    },
+    {
+      "tick": 5,
+      "distance": 3.14,
+      "status": "ok",
+      "positions": {
+        "maid_lusya": {
+          "node": "tavern:fireplace",
+          "x": 35.53333333333332,
+          "y": 8.018000000000008
+        },
+        "blacksmith_orm": {
+          "node": "tavern:fireplace",
+          "x": 32.86666666666665,
+          "y": 9.684666666666674
+        }
+      },
+      "dh_calls_so_far": 30
+    },
+    {
+      "tick": 6,
+      "distance": 3.13,
+      "status": "ok",
+      "positions": {
+        "maid_lusya": {
+          "node": "tavern:fireplace",
+          "x": 37.23733333333332,
+          "y": 8.085064814814823
+        },
+        "blacksmith_orm": {
+          "node": "tavern:fireplace",
+          "x": 34.19999999999999,
+          "y": 8.851333333333342
+        }
+      },
+      "dh_calls_so_far": 36
+    },
+    {
+      "tick": 7,
+      "distance": 0.0,
+      "status": "ok",
+      "positions": {
+        "maid_lusya": {
+          "node": "tavern:node_16",
+          "x": 38.94133333333332,
+          "y": 8.152129629629638
+        },
+        "blacksmith_orm": {
+          "node": "tavern:node_16",
+          "x": 38.94133333333332,
+          "y": 8.152129629629638
+        }
+      },
+      "dh_calls_so_far": 41
+    },
+    {
+      "tick": 8,
+      "distance": 0.0,
+      "status": "ok",
+      "positions": {
+        "maid_lusya": {
+          "node": "tavern:node_16",
+          "x": 37.23733333333332,
+          "y": 8.085064814814823
+        },
+        "blacksmith_orm": {
+          "node": "tavern:node_16",
+          "x": 37.23733333333332,
+          "y": 8.085064814814823
+        }
+      },
+      "dh_calls_so_far": 47
+    },
+    {
+      "tick": 9,
+      "distance": 0.0,
+      "status": "ok",
+      "positions": {
+        "maid_lusya": {
+          "node": "tavern:fireplace",
+          "x": 35.53333333333332,
+          "y": 8.018000000000008
+        },
+        "blacksmith_orm": {
+          "node": "tavern:fireplace",
+          "x": 35.53333333333332,
+          "y": 8.018000000000008
+        }
+      },
+      "dh_calls_so_far": 53
+    },
+    {
+      "tick": 10,
+      "distance": 0.0,
+      "status": "ok",
+      "positions": {
+        "maid_lusya": {
+          "node": "tavern:fireplace",
+          "x": 37.23733333333332,
+          "y": 8.085064814814823
+        },
+        "blacksmith_orm": {
+          "node": "tavern:fireplace",
+          "x": 37.23733333333332,
+          "y": 8.085064814814823
+        }
+      },
+      "dh_calls_so_far": 59
+    }
+  ],
+  "dialogues_per_tick": [
+    {
+      "tick": 1,
+      "recent_dialogues_count": 0,
+      "recent_dialogues_source": "get_recent_dialogues returned empty or not found",
+      "recent_dialogues_sample": []
+    },
+    {
+      "tick": 2,
+      "recent_dialogues_count": 0,
+      "recent_dialogues_source": "error: TaskScheduler.get_recent_dialogues() missing 1 required positional argument: 'current_time'",
+      "recent_dialogues_sample": []
+    },
+    {
+      "tick": 3,
+      "recent_dialogues_count": 0,
+      "recent_dialogues_source": "error: TaskScheduler.get_recent_dialogues() missing 1 required positional argument: 'current_time'",
+      "recent_dialogues_sample": []
+    },
+    {
+      "tick": 4,
+      "recent_dialogues_count": 0,
+      "recent_dialogues_source": "error: TaskScheduler.get_recent_dialogues() missing 1 required positional argument: 'current_time'",
+      "recent_dialogues_sample": []
+    },
+    {
+      "tick": 5,
+      "recent_dialogues_count": 0,
+      "recent_dialogues_source": "error: TaskScheduler.get_recent_dialogues() missing 1 required positional argument: 'current_time'",
+      "recent_dialogues_sample": []
+    },
+    {
+      "tick": 6,
+      "recent_dialogues_count": 0,
+      "recent_dialogues_source": "error: TaskScheduler.get_recent_dialogues() missing 1 required positional argument: 'current_time'",
+      "recent_dialogues_sample": []
+    },
+    {
+      "tick": 7,
+      "recent_dialogues_count": 0,
+      "recent_dialogues_source": "error: TaskScheduler.get_recent_dialogues() missing 1 required positional argument: 'current_time'",
+      "recent_dialogues_sample": []
+    },
+    {
+      "tick": 8,
+      "recent_dialogues_count": 0,
+      "recent_dialogues_source": "error: TaskScheduler.get_recent_dialogues() missing 1 required positional argument: 'current_time'",
+      "recent_dialogues_sample": []
+    },
+    {
+      "tick": 9,
+      "recent_dialogues_count": 0,
+      "recent_dialogues_source": "error: TaskScheduler.get_recent_dialogues() missing 1 required positional argument: 'current_time'",
+      "recent_dialogues_sample": []
+    },
+    {
+      "tick": 10,
+      "recent_dialogues_count": 0,
+      "recent_dialogues_source": "error: TaskScheduler.get_recent_dialogues() missing 1 required positional argument: 'current_time'",
+      "recent_dialogues_sample": []
+    }
+  ],
+  "dh_pair_calls_detail": [
+    {
+      "call_num": 3,
+      "npc_id": "maid_lusya",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.SEEK_ALLY",
+      "score": 0.3483,
+      "scores_trace": {
+        "intimidate": -0.4413,
+        "flee": 0.1536,
+        "attack": -0.5173,
+        "help": -0.0043,
+        "report": -0.0366,
+        "trade": 0.0374,
+        "observe": 0.1621,
+        "seek_ally": 0.3483,
+        "change_role": 0.222,
+        "idle": 0.122
+      },
+      "talk_in_candidates": false,
+      "talk_score": null,
+      "drives_base": {
+        "control": 0.15,
+        "significance": 0.2,
+        "fear": 0.45,
+        "desire": 0.2
+      }
+    },
+    {
+      "call_num": 4,
+      "npc_id": "blacksmith_orm",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.CHANGE_ROLE",
+      "score": 0.3867,
+      "scores_trace": {
+        "intimidate": -0.3523,
+        "flee": -0.0314,
+        "attack": -0.5261,
+        "help": -0.0256,
+        "report": 0.0351,
+        "trade": 0.0462,
+        "observe": -0.0473,
+        "seek_ally": 0.2296,
+        "change_role": 0.3867,
+        "idle": 0.0459
+      },
+      "talk_in_candidates": false,
+      "talk_score": null,
+      "drives_base": {
+        "control": 0.35,
+        "significance": 0.15,
+        "fear": 0.05,
+        "desire": 0.45
+      }
+    },
+    {
+      "call_num": 9,
+      "npc_id": "maid_lusya",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.SEEK_ALLY",
+      "score": 0.2168,
+      "scores_trace": {
+        "intimidate": -0.5324,
+        "flee": 0.2464,
+        "attack": -0.6655,
+        "help": 0.0367,
+        "report": 0.0336,
+        "trade": 0.0533,
+        "observe": 0.074,
+        "seek_ally": 0.2168,
+        "change_role": 0.1925,
+        "idle": 0.0973
+      },
+      "talk_in_candidates": false,
+      "talk_score": null,
+      "drives_base": {
+        "control": 0.15,
+        "significance": 0.2,
+        "fear": 0.45,
+        "desire": 0.2
+      }
+    },
+    {
+      "call_num": 10,
+      "npc_id": "blacksmith_orm",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.CHANGE_ROLE",
+      "score": 0.406,
+      "scores_trace": {
+        "intimidate": -0.4679,
+        "flee": -0.1649,
+        "attack": -0.5218,
+        "help": 0.0001,
+        "report": -0.1,
+        "trade": 0.057,
+        "observe": -0.1008,
+        "seek_ally": 0.2442,
+        "change_role": 0.406,
+        "idle": -0.135
+      },
+      "talk_in_candidates": false,
+      "talk_score": null,
+      "drives_base": {
+        "control": 0.35,
+        "significance": 0.15,
+        "fear": 0.05,
+        "desire": 0.45
+      }
+    },
+    {
+      "call_num": 15,
+      "npc_id": "maid_lusya",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.SEEK_ALLY",
+      "score": 0.2253,
+      "scores_trace": {
+        "intimidate": -0.6279,
+        "flee": 0.1841,
+        "attack": -0.5342,
+        "help": -0.0694,
+        "report": -0.1119,
+        "trade": -0.0238,
+        "observe": 0.0724,
+        "seek_ally": 0.2253,
+        "change_role": 0.0738,
+        "idle": 0.1182
+      },
+      "talk_in_candidates": false,
+      "talk_score": null,
+      "drives_base": {
+        "control": 0.15,
+        "significance": 0.2,
+        "fear": 0.45,
+        "desire": 0.2
+      }
+    },
+    {
+      "call_num": 16,
+      "npc_id": "blacksmith_orm",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.CHANGE_ROLE",
+      "score": 0.3824,
+      "scores_trace": {
+        "intimidate": -0.5312,
+        "flee": -0.0669,
+        "attack": -0.6929,
+        "help": -0.1643,
+        "report": -0.0712,
+        "trade": 0.0262,
+        "observe": -0.1193,
+        "seek_ally": 0.053,
+        "change_role": 0.3824,
+        "idle": -0.1285
+      },
+      "talk_in_candidates": false,
+      "talk_score": null,
+      "drives_base": {
+        "control": 0.35,
+        "significance": 0.15,
+        "fear": 0.05,
+        "desire": 0.45
+      }
+    },
+    {
+      "call_num": 21,
+      "npc_id": "maid_lusya",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.SEEK_ALLY",
+      "score": 0.4195,
+      "scores_trace": {
+        "intimidate": -0.5026,
+        "flee": 0.1094,
+        "attack": -0.693,
+        "help": 0.0335,
+        "report": -0.0211,
+        "trade": 0.0561,
+        "observe": 0.0829,
+        "seek_ally": 0.4195,
+        "change_role": 0.0925,
+        "idle": 0.0542
+      },
+      "talk_in_candidates": false,
+      "talk_score": null,
+      "drives_base": {
+        "control": 0.15,
+        "significance": 0.2,
+        "fear": 0.45,
+        "desire": 0.2
+      }
+    },
+    {
+      "call_num": 22,
+      "npc_id": "blacksmith_orm",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.CHANGE_ROLE",
+      "score": 0.5403,
+      "scores_trace": {
+        "talk": 0.0789,
+        "warn": 0.0002,
+        "intimidate": -0.5739,
+        "flee": -0.1621,
+        "attack": -0.6164,
+        "help": -0.1111,
+        "report": -0.0725,
+        "trade": -0.1116,
+        "observe": -0.0636,
+        "approach": 0.0356,
+        "seek_ally": 0.2321,
+        "offer_job": 0.3926,
+        "request_service": 0.5777,
+        "spread_rumor": 0.3948,
+        "call_for_help": 0.0725,
+        "change_role": 0.5403,
+        "idle": -0.1236
+      },
+      "talk_in_candidates": true,
+      "talk_score": 0.0789,
+      "drives_base": {
+        "control": 0.35,
+        "significance": 0.15,
+        "fear": 0.05,
+        "desire": 0.45
+      }
+    },
+    {
+      "call_num": 27,
+      "npc_id": "maid_lusya",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.SEEK_ALLY",
+      "score": 0.2866,
+      "scores_trace": {
+        "talk": 0.1243,
+        "warn": -0.0232,
+        "intimidate": -0.6377,
+        "flee": 0.1752,
+        "attack": -0.6565,
+        "help": -0.0506,
+        "report": 0.0166,
+        "trade": -0.0184,
+        "observe": 0.0269,
+        "approach": -0.097,
+        "seek_ally": 0.2866,
+        "offer_job": 0.1857,
+        "request_service": 0.1447,
+        "spread_rumor": 0.3617,
+        "call_for_help": 0.1253,
+        "change_role": 0.021,
+        "idle": 0.1151
+      },
+      "talk_in_candidates": true,
+      "talk_score": 0.1243,
+      "drives_base": {
+        "control": 0.15,
+        "significance": 0.2,
+        "fear": 0.45,
+        "desire": 0.2
+      }
+    },
+    {
+      "call_num": 28,
+      "npc_id": "blacksmith_orm",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.CHANGE_ROLE",
+      "score": 0.5166,
+      "scores_trace": {
+        "intimidate": -0.525,
+        "flee": -0.1365,
+        "attack": -0.7479,
+        "help": -0.0039,
+        "report": -0.0476,
+        "trade": 0.0216,
+        "observe": -0.0201,
+        "seek_ally": 0.0472,
+        "change_role": 0.5166,
+        "idle": -0.11
+      },
+      "talk_in_candidates": false,
+      "talk_score": null,
+      "drives_base": {
+        "control": 0.35,
+        "significance": 0.15,
+        "fear": 0.05,
+        "desire": 0.45
+      }
+    },
+    {
+      "call_num": 33,
+      "npc_id": "maid_lusya",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.SEEK_ALLY",
+      "score": 0.3926,
+      "scores_trace": {
+        "intimidate": -0.5574,
+        "flee": 0.2397,
+        "attack": -0.5586,
+        "help": 0.0513,
+        "report": 0.0416,
+        "trade": 0.0443,
+        "observe": 0.1381,
+        "seek_ally": 0.3926,
+        "change_role": 0.1452,
+        "idle": 0.0554
+      },
+      "talk_in_candidates": false,
+      "talk_score": null,
+      "drives_base": {
+        "control": 0.15,
+        "significance": 0.2,
+        "fear": 0.45,
+        "desire": 0.2
+      }
+    },
+    {
+      "call_num": 34,
+      "npc_id": "blacksmith_orm",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.CHANGE_ROLE",
+      "score": 0.5832,
+      "scores_trace": {
+        "intimidate": -0.4731,
+        "flee": -0.2079,
+        "attack": -0.589,
+        "help": -0.1916,
+        "report": 0.0124,
+        "trade": -0.0054,
+        "observe": -0.14,
+        "seek_ally": 0.1145,
+        "change_role": 0.5832,
+        "idle": -0.0762
+      },
+      "talk_in_candidates": false,
+      "talk_score": null,
+      "drives_base": {
+        "control": 0.35,
+        "significance": 0.15,
+        "fear": 0.05,
+        "desire": 0.45
+      }
+    },
+    {
+      "call_num": 39,
+      "npc_id": "maid_lusya",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.SEEK_ALLY",
+      "score": 0.3234,
+      "scores_trace": {
+        "talk": 0.1598,
+        "warn": -0.1384,
+        "intimidate": -0.7008,
+        "flee": 0.1874,
+        "attack": -0.6295,
+        "help": -0.0787,
+        "report": -0.0575,
+        "trade": 0.1795,
+        "observe": 0.075,
+        "approach": -0.1718,
+        "seek_ally": 0.3234,
+        "offer_job": 0.0482,
+        "request_service": 0.0487,
+        "spread_rumor": 0.0049,
+        "call_for_help": 0.1722,
+        "change_role": 0.0586,
+        "idle": -0.0651
+      },
+      "talk_in_candidates": true,
+      "talk_score": 0.1598,
+      "drives_base": {
+        "control": 0.15,
+        "significance": 0.2,
+        "fear": 0.45,
+        "desire": 0.2
+      }
+    },
+    {
+      "call_num": 40,
+      "npc_id": "blacksmith_orm",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.CHANGE_ROLE",
+      "score": 0.5681,
+      "scores_trace": {
+        "talk": 0.0062,
+        "warn": 0.0055,
+        "intimidate": -0.5196,
+        "flee": -0.0636,
+        "attack": -0.7294,
+        "help": -0.1539,
+        "report": -0.0425,
+        "trade": -0.0019,
+        "observe": -0.1268,
+        "approach": -0.1123,
+        "seek_ally": 0.1642,
+        "offer_job": 0.3398,
+        "request_service": 0.6782,
+        "spread_rumor": 0.2153,
+        "call_for_help": 0.0092,
+        "change_role": 0.5681,
+        "idle": -0.1971
+      },
+      "talk_in_candidates": true,
+      "talk_score": 0.0062,
+      "drives_base": {
+        "control": 0.35,
+        "significance": 0.15,
+        "fear": 0.05,
+        "desire": 0.45
+      }
+    },
+    {
+      "call_num": 44,
+      "npc_id": "maid_lusya",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.SEEK_ALLY",
+      "score": 0.5085,
+      "scores_trace": {
+        "intimidate": -0.6588,
+        "flee": 0.189,
+        "attack": -0.7289,
+        "help": -0.1164,
+        "report": 0.0058,
+        "trade": -0.1337,
+        "observe": 0.099,
+        "seek_ally": 0.5085,
+        "change_role": 0.1138,
+        "idle": 0.0326
+      },
+      "talk_in_candidates": false,
+      "talk_score": null,
+      "drives_base": {
+        "control": 0.15,
+        "significance": 0.2,
+        "fear": 0.45,
+        "desire": 0.2
+      }
+    },
+    {
+      "call_num": 45,
+      "npc_id": "blacksmith_orm",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.CHANGE_ROLE",
+      "score": 0.6137,
+      "scores_trace": {
+        "intimidate": -0.627,
+        "flee": -0.1491,
+        "attack": -0.7029,
+        "help": -0.0945,
+        "report": -0.1685,
+        "trade": -0.1339,
+        "observe": -0.2266,
+        "seek_ally": 0.0588,
+        "change_role": 0.6137,
+        "idle": -0.17
+      },
+      "talk_in_candidates": false,
+      "talk_score": null,
+      "drives_base": {
+        "control": 0.35,
+        "significance": 0.15,
+        "fear": 0.05,
+        "desire": 0.45
+      }
+    },
+    {
+      "call_num": 50,
+      "npc_id": "maid_lusya",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.SEEK_ALLY",
+      "score": 0.3744,
+      "scores_trace": {
+        "talk": 0.0538,
+        "warn": 0.0311,
+        "intimidate": -0.492,
+        "flee": 0.1382,
+        "attack": -0.6101,
+        "help": -0.0807,
+        "report": -0.0696,
+        "trade": -0.1456,
+        "observe": 0.0885,
+        "approach": -0.2489,
+        "seek_ally": 0.3744,
+        "offer_job": 0.1332,
+        "request_service": 0.0418,
+        "spread_rumor": 0.2909,
+        "call_for_help": 0.077,
+        "change_role": 0.1696,
+        "idle": -0.0399
+      },
+      "talk_in_candidates": true,
+      "talk_score": 0.0538,
+      "drives_base": {
+        "control": 0.15,
+        "significance": 0.2,
+        "fear": 0.45,
+        "desire": 0.2
+      }
+    },
+    {
+      "call_num": 51,
+      "npc_id": "blacksmith_orm",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.CHANGE_ROLE",
+      "score": 0.5944,
+      "scores_trace": {
+        "talk": -0.0865,
+        "warn": 0.0008,
+        "intimidate": -0.5397,
+        "flee": -0.0744,
+        "attack": -0.6836,
+        "help": -0.1067,
+        "report": -0.1484,
+        "trade": -0.0546,
+        "observe": -0.1737,
+        "approach": -0.0133,
+        "seek_ally": 0.0466,
+        "offer_job": 0.3267,
+        "request_service": 0.5609,
+        "spread_rumor": 0.1651,
+        "call_for_help": -0.0095,
+        "change_role": 0.5944,
+        "idle": -0.2068
+      },
+      "talk_in_candidates": true,
+      "talk_score": -0.0865,
+      "drives_base": {
+        "control": 0.35,
+        "significance": 0.15,
+        "fear": 0.05,
+        "desire": 0.45
+      }
+    },
+    {
+      "call_num": 56,
+      "npc_id": "maid_lusya",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.SEEK_ALLY",
+      "score": 0.4337,
+      "scores_trace": {
+        "intimidate": -0.5808,
+        "flee": 0.0559,
+        "attack": -0.6743,
+        "help": -0.089,
+        "report": -0.1203,
+        "trade": -0.1512,
+        "observe": -0.047,
+        "seek_ally": 0.4337,
+        "change_role": 0.1021,
+        "idle": 0.0689
+      },
+      "talk_in_candidates": false,
+      "talk_score": null,
+      "drives_base": {
+        "control": 0.15,
+        "significance": 0.2,
+        "fear": 0.45,
+        "desire": 0.2
+      }
+    },
+    {
+      "call_num": 57,
+      "npc_id": "blacksmith_orm",
+      "event_type": "EventType.WORLD_TICK",
+      "reason": "",
+      "winner": "Intent.CHANGE_ROLE",
+      "score": 0.7212,
+      "scores_trace": {
+        "intimidate": -0.6794,
+        "flee": -0.0782,
+        "attack": -0.7923,
+        "help": -0.2192,
+        "report": -0.1171,
+        "trade": -0.1517,
+        "observe": -0.0772,
+        "seek_ally": 0.1555,
+        "change_role": 0.7212,
+        "idle": -0.2147
+      },
+      "talk_in_candidates": false,
+      "talk_score": null,
+      "drives_base": {
+        "control": 0.35,
+        "significance": 0.15,
+        "fear": 0.05,
+        "desire": 0.45
+      }
+    }
+  ],
+  "classification": "TALK_CANDIDATE_BUT_LOSES"
+}

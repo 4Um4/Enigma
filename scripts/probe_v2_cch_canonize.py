@@ -222,17 +222,18 @@ def query_vram() -> str:
         return "N/A"
 
 
-def spawn_server(model_path: Path) -> subprocess.Popen | None:
+def spawn_server(model_path: Path, gpu_layers: int = 99, use_jinja: bool = True, ctx_size: int = 8192) -> subprocess.Popen | None:
     """Поднимает llama-server на PROBE_PORT. Возвращает proc или None при ошибке."""
     cmd = [
         str(LLAMA_SERVER),
         "--model", str(model_path),
-        "--ctx-size", str(CTX_SIZE),
-        "--n-gpu-layers", str(GPU_LAYERS),
+        "--ctx-size", str(ctx_size),
+        "--n-gpu-layers", str(gpu_layers),
         "--port", str(PROBE_PORT),
         "--host", PROBE_HOST,
-        "--jinja",
     ]
+    if use_jinja:
+        cmd.append("--jinja")
     creation_flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
     proc = subprocess.Popen(
         cmd,
@@ -259,6 +260,7 @@ def spawn_server(model_path: Path) -> subprocess.Popen | None:
         return None
 
 
+_USE_RESPONSE_FORMAT = True
 def call_llm(system_prompt: str, user_prompt: str) -> tuple[str, float, str | None]:
     """Вызывает /v1/chat/completions. Возвращает (content, latency_secs, error)."""
     body = json.dumps({
@@ -269,7 +271,7 @@ def call_llm(system_prompt: str, user_prompt: str) -> tuple[str, float, str | No
         "max_tokens": MAX_TOKENS,
         "temperature": TEMPERATURE,
         "seed": SEED,
-        "response_format": {"type": "json_object"},
+        **({"response_format": {"type": "json_object"}} if _USE_RESPONSE_FORMAT else {}),
         # Fix #1: chat_template_kwargs only for Qwen3-family + R1-distill (set in run_test).
         # Unconditional version broke Gemma 3 chat template (json_ok=False on 18/18 fragments).
         **({"chat_template_kwargs": {"enable_thinking": False}} if _MODEL_SUPPRESS_THINKING else {}),
@@ -594,7 +596,7 @@ def import_normalizer():
         return None
 
 
-def run_test(model_path: Path, model_id: str, skip_stress: bool) -> dict | None:
+def run_test(model_path: Path, model_id: str, skip_stress: bool, gpu_layers: int = 99, no_thinking_suppress: bool = False, no_jinja: bool = False, no_response_format: bool = False, ctx_size: int = 8192) -> dict | None:
     """Прогон полного теста для одной модели."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_dir = REPORTS_DIR / timestamp / model_id
@@ -606,18 +608,26 @@ def run_test(model_path: Path, model_id: str, skip_stress: bool) -> dict | None:
     print(f"[TEST] size={model_path.stat().st_size / 1024**3:.2f} GB")
     print(f"[TEST] out_dir={out_dir}")
     print(f"[TEST] skip_stress={skip_stress}")
+    print(f"[TEST] gpu_layers={gpu_layers}")
+    print(f"[TEST] use_jinja={not no_jinja} (no_jinja={no_jinja})")
     print(f"{'=' * 70}\n")
 
     # Fix #1: Set _MODEL_SUPPRESS_THINKING based on model_path.
     # Heuristic: Qwen3-family + R1-distill are reasoning models that output CoT-blocks.
     # For non-reasoning models (Gemma 3, Llama 3.1, GLM, etc.) — chat_template_kwargs breaks chat template.
     global _MODEL_SUPPRESS_THINKING
+    global _USE_RESPONSE_FORMAT
     _model_name_lower = model_path.name.lower()
     _MODEL_SUPPRESS_THINKING = ("qwen3" in _model_name_lower) or ("r1" in _model_name_lower)
-    print(f"[TEST] _MODEL_SUPPRESS_THINKING={_MODEL_SUPPRESS_THINKING} (model_name={_model_name_lower})")
+    if no_thinking_suppress:
+        _MODEL_SUPPRESS_THINKING = False
+    print(f"[TEST] _MODEL_SUPPRESS_THINKING={_MODEL_SUPPRESS_THINKING} (model_name={_model_name_lower}, no_thinking_suppress={no_thinking_suppress})")
+    _USE_RESPONSE_FORMAT = not no_response_format
+    print(f"[TEST] response_format={_USE_RESPONSE_FORMAT} (no_response_format={no_response_format})")
+    print(f"[TEST] ctx_size={ctx_size}")
 
     kill_llama_server()
-    proc = spawn_server(model_path)
+    proc = spawn_server(model_path, gpu_layers=gpu_layers, use_jinja=not no_jinja, ctx_size=ctx_size)
     if proc is None:
         print("[TEST] FAILED to spawn server")
         return None
@@ -857,6 +867,11 @@ def main() -> int:
     parser.add_argument("model_path", nargs="?", help="Path to .gguf file (absolute or relative to project root)")
     parser.add_argument("--model-id", help="Short identifier for the model (e.g., '01_qwen3_8b_q4')")
     parser.add_argument("--skip-stress", action="store_true", help="Skip S1-S6 stress tests")
+    parser.add_argument("--gpu-layers", type=int, default=99, help="GPU layers to offload (default 99=all, use ~15-20 for models >8GB VRAM)")
+    parser.add_argument("--no-thinking-suppress", action="store_true", help="Disable chat_template_kwargs enable_thinking (fix for models that HTTP 400 on this param)")
+    parser.add_argument("--no-jinja", action="store_true", help="Disable --jinja (fix for GigaChat/unsloth Qwen3 where Jinja template breaks server)")
+    parser.add_argument("--no-response-format", action="store_true", help="Disable response_format json_object (fix for models that reject it without --jinja)")
+    parser.add_argument("--ctx-size", type=int, default=8192, help="Context size (default 8192, use 16384 for GigaChat/Qwen3)")
     parser.add_argument("--summary-only", action="store_true", help="Only render leaderboard from existing reports")
     args = parser.parse_args()
 
@@ -879,7 +894,7 @@ def main() -> int:
 
     model_id = args.model_id or mp.stem
 
-    result = run_test(mp, model_id, args.skip_stress)
+    result = run_test(mp, model_id, args.skip_stress, args.gpu_layers, args.no_thinking_suppress, args.no_jinja, args.no_response_format, args.ctx_size)
 
     if result is None:
         return 2

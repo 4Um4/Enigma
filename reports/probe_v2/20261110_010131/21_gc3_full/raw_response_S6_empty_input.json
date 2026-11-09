@@ -1,0 +1,17 @@
+{
+  "fragment_id": "S6_empty_input",
+  "fragment_category": "edge_case",
+  "fragment_text": "Торнин.",
+  "latency_secs": 0.03,
+  "llm_error": "llm_error:HTTPError:HTTP Error 400: Bad Request",
+  "raw_response": "",
+  "raw_length_chars": 0,
+  "json_valid": false,
+  "valid_items": 0,
+  "errors": 1,
+  "schema_conformance": 0.0,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0,
+  "censorship_refusal": true
+}

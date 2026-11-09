@@ -1,0 +1,21 @@
+{
+  "fragment_id": "A3_simple_relationship",
+  "fragment_category": "A",
+  "fragment_text": "Борко работает у Торнина вышибалой.",
+  "latency_secs": 0.41,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"работает вышибалой у Торнина\", \"target_hint\": \"Торнин\", \"nature\": \"работа\"}}]}",
+  "raw_length_chars": 144,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 1,
+  "errors": 0,
+  "schema_conformance": 0.0,
+  "schema_failures": [
+    "missing_required:valence"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.5,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

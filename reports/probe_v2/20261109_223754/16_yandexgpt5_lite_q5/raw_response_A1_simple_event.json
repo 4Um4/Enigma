@@ -1,0 +1,19 @@
+{
+  "fragment_id": "A1_simple_event",
+  "fragment_category": "A",
+  "fragment_text": "В 8 лет Люся осталась сиротой, её приютил Торнин.",
+  "latency_secs": 5.03,
+  "llm_error": null,
+  "raw_response": " ```\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся осталась сиротой\",\n        \"day\": null,\n        \"duration_years\": null,\n        \"years_ago\": 8,\n        \"is_recurring\": false\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся была приючена Торнином\",\n        \"day\": null,\n        \"duration_years\": null,\n        \"years_ago\": 8,\n        \"is_recurring\": false\n      },\n      \"confidence\": 1.0\n    }\n  ]\n}\n```",
+  "raw_length_chars": 524,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 2,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.4,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

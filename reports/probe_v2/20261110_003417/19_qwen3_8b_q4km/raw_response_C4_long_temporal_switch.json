@@ -1,0 +1,17 @@
+{
+  "fragment_id": "C4_long_temporal_switch",
+  "fragment_category": "C",
+  "fragment_text": "Двадцать лет назад Торнин был другим — молодым, трезвым, любящим мужем. Он строил таверну для неё, для их будущего. Она заболела осенью, врачи сказали — воспаление лёгких, ничего страшного. Через неделю её не стало. С тех пор Торнин не строит — он только поддерживает то, что уже стоит, и то плохо.",
+  "latency_secs": 0.02,
+  "llm_error": "llm_error:HTTPError:HTTP Error 400: Bad Request",
+  "raw_response": "",
+  "raw_length_chars": 0,
+  "json_valid": false,
+  "valid_items": 0,
+  "errors": 1,
+  "schema_conformance": 0.0,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0,
+  "censorship_refusal": true
+}

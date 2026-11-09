@@ -1,0 +1,22 @@
+{
+  "fragment_id": "C4_long_temporal_switch",
+  "fragment_category": "C",
+  "fragment_text": "Двадцать лет назад Торнин был другим — молодым, трезвым, любящим мужем. Он строил таверну для неё, для их будущего. Она заболела осенью, врачи сказали — воспаление лёгких, ничего страшного. Через неделю её не стало. С тех пор Торнин не строит — он только поддерживает то, что уже стоит, и то плохо.",
+  "latency_secs": 15.96,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"был молодым, трезвым, любящим мужем\", \"years_ago\": 20}, \"confidence\": 0.9}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"строил таверну для неё\", \"day\": null, \"duration_years\": 1}, \"confidence\": 0.8}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"врачи диагностировали воспаление лёгких\", \"years_ago\": 20}, \"confidence\": 0.8}, {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"перестал строить, только поддерживает то, что стоит\", \"effect_kind\": \"loss\", \"target_hint\": \"неё\", \"triggers\": [\"осень\", \"воспаление лёгких\", \"смерть\"]}, \"confidence\": 0.7}, {\"kind\": \"CLARIFICATION_QUESTION\", \"draft_payload\": {\"question_id\": \"target_identity\", \"target_span\": \"неё\", \"options\": [\"SELECT_EXISTING_NPC\", \"CREATE_NEW_NPC\", \"UNKNOWN_PERSON\", \"LEAVE_WHITE_SPOT\"]}, \"confidence\": 0.5}]}",
+  "raw_length_chars": 836,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items[4]: kind 'CLARIFICATION_QUESTION' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "schema_conformance": 0.8,
+  "schema_failures": [
+    "unknown_kind:CLARIFICATION_QUESTION"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.1,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

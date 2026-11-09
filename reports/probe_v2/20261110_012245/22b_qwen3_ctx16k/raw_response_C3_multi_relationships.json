@@ -1,0 +1,23 @@
+{
+  "fragment_id": "C3_multi_relationships",
+  "fragment_category": "C",
+  "fragment_text": "Люся боится Торнина, но любит его — он единственная семья, которую она помнит. Борко ненавидит Торнина за то, что тот бьёт Люсю, но молчит, потому что Торнин когда-то спас его от виселицы. А Люся, в свою очередь, боится Борко — он слишком большой, слишком молчаливый.",
+  "latency_secs": 12.5,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"боится Торнина\", \"target_hint\": \"Торнин\", \"nature\": \"страх\", \"valence\": \"negative\"}}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"любит Торнина\", \"target_hint\": \"Торнин\", \"nature\": \"идеализация\", \"valence\": \"positive\"}}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"ненавидит Торнина\", \"target_hint\": \"Торнин\", \"nature\": \"вражда\", \"valence\": \"negative\"}}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"молчит из-за спасения\", \"target_hint\": \"Торнин\", \"nature\": \"доверие\", \"valence\": \"neutral\"}}, {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"боится Борко\", \"target_hint\": \"Борко\", \"nature\": \"страх\", \"valence\": \"negative\"}}, {\"kind\": \"CLARIFICATION_QUESTION\", \"question\": {\"question_id\": \"NPC_IDENTIFICATION\", \"target_span\": \"Торнин\", \"options\": [\"SELECT_EXISTING_NPC\", \"CREATE_NEW_NPC\", \"UNKNOWN_PERSON\", \"LEAVE_WHITE_SPOT\"]}}, {\"kind\": \"CLARIFICATION_QUESTION\", \"question\": {\"question_id\": \"NPC_IDENTIFICATION\", \"target_span\": \"Борко\", \"options\": [\"SELECT_EXISTING_NPC\", \"CREATE_NEW_NPC\", \"UNKNOWN_PERSON\", \"LEAVE_WHITE_SPOT\"]}}]}",
+  "raw_length_chars": 1137,
+  "json_valid": true,
+  "raw_items_count": 7,
+  "valid_items": 0,
+  "errors": 1,
+  "decompose_error": "items[5]: kind 'CLARIFICATION_QUESTION' вне реестра ['BELIEF_SEED', 'DESIRE_SEED', 'EFFECT', 'EVENT', 'KNOWLEDGE_LINK', 'LOCATION', 'OBSERVATION', 'PORTRET', 'RELATIONSHIP', 'TRAIT_SEED']",
+  "schema_conformance": 0.7142857142857143,
+  "schema_failures": [
+    "unknown_kind:CLARIFICATION_QUESTION",
+    "unknown_kind:CLARIFICATION_QUESTION"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.75,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

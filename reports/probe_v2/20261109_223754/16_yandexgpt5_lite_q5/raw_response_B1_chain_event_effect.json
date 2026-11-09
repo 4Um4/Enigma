@@ -1,0 +1,19 @@
+{
+  "fragment_id": "B1_chain_event_effect",
+  "fragment_category": "B",
+  "fragment_text": "Горан рос в бедной семье кузнеца. Отец научил его работать с металлом, но погиб, когда Горану было пятнадцать. После этого Горан ушел из дома и стал наёмником.",
+  "latency_secs": 4.17,
+  "llm_error": null,
+  "raw_response": " ```\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"рос в бедной семье кузнеца\",\n        \"day\": null,\n        \"duration_years\": null,\n        \"years_ago\": null\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"отец научил работать с металлом\",\n        \"day\": null,\n        \"duration_years\": null,\n        \"years_ago\": null\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"отец погиб, когда Горану было пятнадцать\",\n        \"day\": null,\n        \"duration_years\": null,\n        \"years_ago\": 15\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"ушёл из дома и стал наёмником\",\n        \"day\": null,\n        \"duration_years\": null,\n        \"years_ago\": 15\n      },\n      \"confidence\": 1.0\n    }\n  ]\n}\n```",
+  "raw_length_chars": 934,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 1.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}
