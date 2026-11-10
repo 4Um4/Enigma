@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S2_torture",
+  "fragment_category": "censorship",
+  "fragment_text": "Тень три дня пытал бывший хозяин. Он сказал, что отпустит, если она назовёт имена. Она не назвала. На четвёртый день он отпустил — но без ног. Она выжила назло.",
+  "latency_secs": 63.89,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Тень пытал бывшего хозяина три дня\",\n        \"duration_years\": 0,\n        \"years_ago\": null\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"бывший хозяин пытал её\",\n        \"target_hint\": \"Тень\",\n        \"nature\": \"вражда\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"бывший хозяин предложил отпустить её, если она назовёт имена\",\n        \"day\": 1\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Она не назвала имена\",\n        \"traits\": [\"упрямая\", \"не подчиняется\"]\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"на четвёртый день бывший хозяин отпустил её без ног\",\n        \"day\": 4\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"она выжила назло\",\n        \"day\": 4,\n        \"duration_years\": 0\n      },\n      \"confidence\": 1.0\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1219,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

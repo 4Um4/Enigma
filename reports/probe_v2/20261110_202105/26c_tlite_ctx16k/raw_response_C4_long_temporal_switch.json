@@ -1,0 +1,19 @@
+{
+  "fragment_id": "C4_long_temporal_switch",
+  "fragment_category": "C",
+  "fragment_text": "Двадцать лет назад Торнин был другим — молодым, трезвым, любящим мужем. Он строил таверну для неё, для их будущего. Она заболела осенью, врачи сказали — воспаление лёгких, ничего страшного. Через неделю её не стало. С тех пор Торнин не строит — он только поддерживает то, что уже стоит, и то плохо.",
+  "latency_secs": 9.3,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин потерял жену\",\n        \"years_ago\": 20,\n        \"is_recurring\": false\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"EFFECT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин перестал строить\",\n        \"effect_kind\": \"loss\",\n        \"target_hint\": \"таверна\"\n      },\n      \"confidence\": 1.0\n    }\n  ]\n}\n```",
+  "raw_length_chars": 427,
+  "json_valid": true,
+  "raw_items_count": 2,
+  "valid_items": 2,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.2,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

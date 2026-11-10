@@ -1,0 +1,80 @@
+[
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 2,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": false,
+    "json_valid": false,
+    "response": "Торнин недовольно фыркает, не отрываясь от стойки. Люся смутивенно смотрит в сторону, стараясь не встречаться глазами с тобой.",
+    "latency": 1.11,
+    "scenario": "S1_threat",
+    "npc": "Торнин"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 6,
+    "sentence_ok": false,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": false,
+    "response": "Тень хмурит свои черные глаза и задумчиво отвечает:\n\"Мое прошлое - длинная история страданий и испытаний. Я была обычным вором, но однажды мне удалось проникнуть в дом могучего воина. В его сокровищах я нашла то, что меня сделало целью для многих. Беспощадные пытки истощили мою жизнь. С тех пор я стараюсь быть неизвестным и скрытным, чтобы никто не причинил мне боли снова.\"",
+    "latency": 1.37,
+    "scenario": "S2_secret",
+    "npc": "Тень"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 5,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": false,
+    "response": "Люся поднимает голову и смотрит на тебя с недоверием. На ее лице мелькнет недолго удивление, но скоро она скроет свое выражение, потирая стойку тряпкой. \"Мuchtel\", - шепчет она, не глядя на тебя. \"Я просто делаю свою работу, как и должна.\"",
+    "latency": 0.91,
+    "scenario": "S3_compliment",
+    "npc": "Люся"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 6,
+    "sentence_ok": false,
+    "has_question": true,
+    "has_speech": true,
+    "json_valid": false,
+    "response": "Борко фыркает и смеется, не обращая на тебя внимания. Он продолжает стоять неподвижно у двери, хмуря свои мощные брови. \"Ты что, смелый новичок?\" - шепчет Борко, не поворачиваясь к тебе. \"Учитесь бояться, пока не поздно.\"",
+    "latency": 0.94,
+    "scenario": "S4_attack",
+    "npc": "Борко"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 7,
+    "sentence_ok": false,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": false,
+    "response": "Торнин поднимает взгляд и смотрит прямо на тебя. Его глаза испещрены мелкими морганиями, словно он пытается определить твою sincerité. Вдруг он осознаёт, что ты задал вопрос о нем. Торнин задумчиво вздыхает, словно рефлексируя о своей жизни. \"Торнин - просто работник, хватает ему и на своих задачах. Важных мыслей у него нет, он живет день ото дня, пьяничит и не задумывается о будущем.\"",
+    "latency": 1.38,
+    "scenario": "S5_relationship",
+    "npc": "Горан"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 5,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Торнин аккуратно ставит кружку на стойку. В углу скрипит стул — кто-то встаёт. 'На что я сегодня гляжу!' - шепчет трактирщик.",
+    "latency": 0.62,
+    "scenario": "S6_minimal",
+    "npc": "Торнин"
+  }
+]

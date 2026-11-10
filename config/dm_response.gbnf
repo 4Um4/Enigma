@@ -1,0 +1,4 @@
+root ::= "{" ws "\"dm_response\"" ws ":" ws string ws "}"
+ws ::= [ \t\n]*
+string ::= "\"" char* "\""
+char ::= [^"\\] | "\\" ["\\/bfnrtu]

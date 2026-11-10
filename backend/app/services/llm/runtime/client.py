@@ -179,7 +179,7 @@ def ensure_llm(label: str = "", pinned: bool = False) -> str:
     # 2. ENIGMA_LLM_HOST=off → legacy fallback (conscious)
     if os.environ.get("ENIGMA_LLM_HOST", "").strip().lower() == "off":
         if not _legacy_mode:
-            from scripts.llm_server_manager import start_llama_server, kill_llama_server
+            from scripts.llm_server_manager import start_llama_server, kill_llama_server  # type: ignore[import]
             start_llama_server()
             atexit.register(kill_llama_server)
             _legacy_mode = True

@@ -1,0 +1,19 @@
+{
+  "fragment_id": "C1_ambiguous_entity",
+  "fragment_category": "C",
+  "fragment_text": "Однажды в таверну пришёл незнакомец в чёрном. Он говорил с Торнином шёпотом, и после этого Торнин побледнел. Наутро незнакомец исчез, а Торнин заперся в погребе на три дня.",
+  "latency_secs": 68.97,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"незнакомец в чёрном пришёл в таверну и говорил с Торнином\",\n        \"day\": null\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Торнин побледнел после разговора с незнакомцем\",\n        \"traits\": [\"тревожность\", \"склонность к панике\"]\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"незнакомец исчез наутро\",\n        \"day\": null\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин заперся в погребе на три дня\",\n        \"duration_years\": 0,\n        \"duration_days\": 3\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"BELIEF_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"незнакомцы в чёрном приносят беду\",\n        \"belief_type\": \"danger\"\n      },\n      \"confidence\": 0.8,\n      \"needs_confirmation\": true,\n      \"question\": {\n        \"question_id\": \"Q1\",\n        \"target_span\": \"незнакомцы в чёрном приносят беду\",\n        \"options\": [\n          \"это явное убеждение Торнина\",\n          \"это вывод из опыта\",\n          \"это стереотип, распространённый в городе\",\n          \"это просто предположение\"\n        ]\n      }\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1354,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 5,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.7142857142857143,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0
+}

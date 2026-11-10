@@ -1676,10 +1676,10 @@ class DecisionHub:
                 else:
                     _project = "survival" # Нейтральный проект при кризисе
                 _direction_intents = {
-                    "family_builder": ["seek_ally", "help", "call_for_help"],
+                    "family_builder": ["seek_ally", "help", "call_for_help", "talk"],
                     "wealth_creator": ["offer_job", "request_service", "trade"],
                     "warrior": ["ambush", "block_path", "call_for_help"],
-                    "knowledge_seeker": ["request_service", "seek_ally"],
+                    "knowledge_seeker": ["request_service", "seek_ally", "talk"],
                     "ruler": ["spread_rumor", "call_for_help", "change_role"],
                     # Кризисные направления (L2.7)
                     "isolation": ["flee", "block_path"],

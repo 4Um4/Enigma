@@ -1,0 +1,80 @@
+[
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 2,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Торнин хмурится, злобно глядя на тебя: 'Всё равно — не позволяй мне работать.'",
+    "latency": 0.98,
+    "scenario": "S1_threat",
+    "npc": "Торнин"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 5,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Тень хмурится, прислушиваясь к твоим словам. - 'Мысли свои, говоришь, - тихо произносит Люся. - Пытать меня никто не пытал. Я была жена, и я стала тем, кто я есть сейчас, потому что я выбрала это.'",
+    "latency": 0.89,
+    "scenario": "S2_secret",
+    "npc": "Тень"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 3,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Люся поднимает глаза, слегка смущённо улыбается: 'Спасибо... но не стоит.'",
+    "latency": 0.4,
+    "scenario": "S3_compliment",
+    "npc": "Люся"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 6,
+    "sentence_ok": false,
+    "has_question": true,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Торнин хмурится, глядя на тебя. 'Почему ты это делаешь? — спрашивает он. Люся отступает, смотрит на тебя с неодобрением и неумолчающим: 'Почему ты это делаешь? — повторяет она.'",
+    "latency": 0.83,
+    "scenario": "S4_attack",
+    "npc": "Борко"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 4,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Горан вздыхает и протягивает к тебе стакан. 'Торнин добросовестный наёмник, но не каждый день встречаешь такой профессионал. Он не причинит тебе вреда, если ты не будешь с ним драться.'",
+    "latency": 0.79,
+    "scenario": "S5_relationship",
+    "npc": "Горан"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 4,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Торнин аккуратно ставит кружку на стойку. В углу скрипит стул — кто-то встаёт. Ты видишь Люсию, которая протирает стойку и бормочет: 'Опять грязь.'",
+    "latency": 0.71,
+    "scenario": "S6_minimal",
+    "npc": "Торнин"
+  }
+]

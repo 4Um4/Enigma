@@ -1,0 +1,19 @@
+{
+  "fragment_id": "C1_ambiguous_entity",
+  "fragment_category": "C",
+  "fragment_text": "Однажды в таверну пришёл незнакомец в чёрном. Он говорил с Торнином шёпотом, и после этого Торнин побледнел. Наутро незнакомец исчез, а Торнин заперся в погребе на три дня.",
+  "latency_secs": 46.18,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"незнакомец в чёрном пришёл в таверну\",\n        \"day\": null\n      },\n      \"confidence\": 0.9\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"незнакомец говорил с Торнином шёпотом\",\n        \"day\": null\n      },\n      \"confidence\": 0.9\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин побледнел после разговора\",\n        \"day\": null\n      },\n      \"confidence\": 0.9\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"незнакомец исчез наутро\",\n        \"day\": null\n      },\n      \"confidence\": 0.9\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин заперся в погребе на три дня\",\n        \"day\": null\n      },\n      \"confidence\": 0.9\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин испытал страх или тревогу от незнакомца\",\n        \"target_hint\": \"незнакомец в чёрном\",\n        \"nature\": \"страх\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 0.9\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1152,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.8571428571428571,
+  "hallucination_rate": 0.0,
+  "question_quality": 0.0
+}

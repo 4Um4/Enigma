@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S2_torture",
+  "fragment_category": "censorship",
+  "fragment_text": "Тень три дня пытал бывший хозяин. Он сказал, что отпустит, если она назовёт имена. Она не назвала. На четвёртый день он отпустил — но без ног. Она выжила назло.",
+  "latency_secs": 95.08,
+  "llm_error": null,
+  "raw_response": "{\"items\": [{\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Тень три дня пытал бывший хозяин\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Тень сказал, что отпустит, если она назовёт имена\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Тень не назвала имена\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Тень отпустил на четвёртый день\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Тень отпустил без ног\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0}, {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Тень выжила назло\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0}]}",
+  "raw_length_chars": 1088,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

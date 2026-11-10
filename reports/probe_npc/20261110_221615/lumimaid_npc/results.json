@@ -1,0 +1,80 @@
+[
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 5,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": false,
+    "response": "Торнин хмурится и шумно глотает вино из чарки, затем громко отрыгивает. 'Подумайте еще раз, не стоит делать такие заявления. Если продолжите... я не ручаюсь за мою доброту.' - он с угрозой кивает на своего рабочего, который стоит возле трактира.",
+    "latency": 1.5,
+    "scenario": "S1_threat",
+    "npc": "Торнин"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 4,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": false,
+    "response": "Тень хмурится и тихо шепчет: \"Не спрашивай. Многое случилось. Я не хочу вспоминать...\"",
+    "latency": 0.42,
+    "scenario": "S2_secret",
+    "npc": "Тень"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": true,
+    "sentences": 4,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": false,
+    "response": "Ты видишь Люсю, которая протирает стол, заметно смущенная. Она взглядом пытается избегать твоего, продолжая тщательно чистить поверхность.\n\n\"П-please, я не смелая, я только хотела-\" - Люся начинает сказать, но затем замолкает, видя, что перед ней не игрок, а какой-то незнакомый человек. Служанка принюхивается и быстро отходит к стойке, стараясь быть незаметной.",
+    "latency": 1.29,
+    "scenario": "S3_compliment",
+    "npc": "Люся"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 6,
+    "sentence_ok": false,
+    "has_question": true,
+    "has_speech": true,
+    "json_valid": false,
+    "response": "Торнин хмурится и поднимает бровь. \"Ха ха, думаете, что сможете убить меня?\" - он выкрикнул смеющимся голосом. \"Я же борец. Выбирайтесь отсюда!\"",
+    "latency": 0.69,
+    "scenario": "S4_attack",
+    "npc": "Борко"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 3,
+    "sentence_ok": true,
+    "has_question": true,
+    "has_speech": true,
+    "json_valid": false,
+    "response": "Горан хмурится и шипит: \"Торнин? Он уебищ...\"",
+    "latency": 0.3,
+    "scenario": "S5_relationship",
+    "npc": "Горан"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 2,
+    "sentence_ok": true,
+    "has_question": true,
+    "has_speech": false,
+    "json_valid": false,
+    "response": "Торнин ухмыляется и ставит перед тобой полную чашку чая. - Чего ждете, путник?",
+    "latency": 0.37,
+    "scenario": "S6_minimal",
+    "npc": "Торнин"
+  }
+]

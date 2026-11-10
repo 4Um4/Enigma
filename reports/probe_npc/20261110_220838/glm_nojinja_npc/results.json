@@ -1,0 +1,32 @@
+[
+  {
+    "error": "HTTP Error 500: Internal Server Error",
+    "latency": 7.03,
+    "scenario": "S1_threat"
+  },
+  {
+    "error": "HTTP Error 500: Internal Server Error",
+    "latency": 3.93,
+    "scenario": "S2_secret"
+  },
+  {
+    "error": "HTTP Error 500: Internal Server Error",
+    "latency": 4.17,
+    "scenario": "S3_compliment"
+  },
+  {
+    "error": "HTTP Error 500: Internal Server Error",
+    "latency": 3.69,
+    "scenario": "S4_attack"
+  },
+  {
+    "error": "HTTP Error 500: Internal Server Error",
+    "latency": 3.67,
+    "scenario": "S5_relationship"
+  },
+  {
+    "error": "HTTP Error 500: Internal Server Error",
+    "latency": 3.65,
+    "scenario": "S6_minimal"
+  }
+]

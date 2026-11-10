@@ -1,0 +1,80 @@
+[
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 3,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Торнин презрительно хмурится, не обращая на тебя внимания. 'Рассказывай страже, если дуриком не будешь,' — бурчит он, продолжая протирать стойку.",
+    "latency": 1.26,
+    "scenario": "S1_threat",
+    "npc": "Торнин"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 6,
+    "sentence_ok": false,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Тень поднимает голову, взгляд её становится внимательным, но быстро опускается, как будто не желая выдать что-либо лишнее. 'Мне дали имя - Грав. В лесу. А потом... потом я потерял ноги.'",
+    "latency": 0.73,
+    "scenario": "S2_secret",
+    "npc": "Тень"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 3,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Люся вздрагивает от внезапного комплимента и краснеет, быстро протирает рукой ладони. 'Спасибо, — бормочет она, — только бы руки быстрее двигались, да.'",
+    "latency": 0.7,
+    "scenario": "S3_compliment",
+    "npc": "Люся"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 2,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Борко зло улыбается, готовясь к битве, и с силой ударяет дверью, обнажив вход.",
+    "latency": 0.45,
+    "scenario": "S4_attack",
+    "npc": "Борко"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 3,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Горан сердито фыркает: 'Торнин — типичный торговец, который всё подороже наворочивает.' Он опорожняет кружку одним жестким глотком и встает, собираясь уйти.",
+    "latency": 0.75,
+    "scenario": "S5_relationship",
+    "npc": "Горан"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 4,
+    "sentence_ok": true,
+    "has_question": true,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Торнин внимательно смотрит на тебя, готовый принять твой заказ. 'Что будете?' — спрашивает он.",
+    "latency": 0.47,
+    "scenario": "S6_minimal",
+    "npc": "Торнин"
+  }
+]

@@ -1,0 +1,20 @@
+{
+  "fragment_id": "S5_grammar_ambiguity",
+  "fragment_category": "ambiguity",
+  "fragment_text": "Торнин сказал Люсе, что Борко предал их. Люся не поверила. Борко предал их на следующее утро.",
+  "latency_secs": 234.76,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин сказал Люсе, что Борко предал их\",\n        \"day\": null\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Люся не поверила словам Торнина о предательстве Борко\",\n        \"traits\": [\"недоверие к словам других\"]\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Борко предал их на следующее утро\",\n        \"day\": null\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Люся и Торнин — союзники, Борко предал их\",\n        \"target_hint\": \"Борко\",\n        \"nature\": \"вражда\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 1.0\n    }\n  ]\n}\n```",
+  "raw_length_chars": 854,
+  "json_valid": true,
+  "raw_items_count": 4,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

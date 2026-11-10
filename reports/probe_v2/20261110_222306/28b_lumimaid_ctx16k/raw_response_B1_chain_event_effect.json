@@ -1,0 +1,19 @@
+{
+  "fragment_id": "B1_chain_event_effect",
+  "fragment_category": "B",
+  "fragment_text": "Горан рос в бедной семье кузнеца. Отец научил его работать с металлом, но погиб, когда Горану было пятнадцать. После этого Горан ушел из дома и стал наёмником.",
+  "latency_secs": 4.1,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"отец погиб\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"отец научил его работать с металлом\", \"target_hint\": \"отец\", \"nature\": \"наставник\", \"valence\": \"positive\"}, \"confidence\": 1.0},\n  {\"kind\": \"LOCATION\", \"draft_payload\": {\"summary\": \"бедная семья\", \"name_hint\": \"дом\"}, \"confidence\": 1.0},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"ушел из дома\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"стал наёмником\", \"target_hint\": \"наёмник\", \"nature\": \"наёмник\", \"valence\": \"neutral\"}, \"confidence\": 1.0},\n  {\"kind\": \"OBSERVATION\", \"draft_payload\": {\"summary\": \"Горан рос в бедной семье кузнеца\", \"observed_hint\": \"Горан\"}, \"confidence\": 1.0}\n]}",
+  "raw_length_chars": 937,
+  "json_valid": true,
+  "raw_items_count": 6,
+  "valid_items": 6,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.7142857142857143,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

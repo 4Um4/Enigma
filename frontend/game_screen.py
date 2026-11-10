@@ -1106,6 +1106,9 @@ class GameScreen:
                         scene_state,
                         focus,
                         walls,
+                        resolver=_resolver if "_resolver" in dir() else None,
+                        world_ctx=_world_ctx if "_world_ctx" in dir() else None,
+                        location_id=location_id if "location_id" in dir() else "unknown",
                     )
                     if clicked_npc:
                         move.target_npc_id = clicked_npc
@@ -2664,11 +2667,25 @@ class GameScreen:
         scene_state: dict,
         focus: PlayerFocus,
         walls: list,
+        resolver: Optional["ContextResolver"] = None,
+        world_ctx: Optional["WorldContext"] = None,
+        location_id: str = "unknown",
     ) -> Optional[str]:
-        """Обрабатывает клик. Возвращает npc_id если клик по NPC"""
+        """Обрабатывает клик. Возвращает npc_id если клик по NPC.
+
+        P2-03 (B-11): клик-камера в мировом фрейме — симметрично с рендер-камерой
+        (render L2254-2256). После P1-02 (фрейм-осознанные конверсии) для мирового
+        файла local_to_world = identity → 0 изменений поведения; для легаси-файла
+        клик-камера становится мировой → совпадает с рендер-камерой (B-11 устранён).
+        """
         px, py = _player_xy(scene_state)
-        cam_x = px * 40 - self.screen.get_width() // 2
-        cam_y = py * 40 - self.screen.get_height() // 2
+        # P2-03: конвертация в мировой фрейм — симметрично с render (L2254-2256).
+        # Без resolver/world_ctx (None) — fallback к локальному px,py (как было).
+        _world_px, _world_py = px, py
+        if resolver is not None and world_ctx is not None:
+            _world_px, _world_py = resolver.local_to_world(px, py, location_id)
+        cam_x = _world_px * 40 - self.screen.get_width() // 2
+        cam_y = _world_py * 40 - self.screen.get_height() // 2
 
         world_x = (pos[0] + cam_x) / 40
         world_y = (pos[1] + cam_y) / 40

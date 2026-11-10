@@ -83,7 +83,7 @@ CTX_SIZE = 8192
 GPU_LAYERS = 99
 
 # Таймауты
-SERVER_BOOT_SECS = 90
+SERVER_BOOT_SECS = 150
 PER_FRAGMENT_TIMEOUT = 240
 
 # =====================================================================

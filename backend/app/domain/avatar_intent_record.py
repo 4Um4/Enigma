@@ -12,7 +12,7 @@ path: /project/backend/app/domain/avatar_intent_record.py
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 
 from app.domain.intent_identity import IntentIdentity
 from app.models.npc_state import Intent
@@ -38,7 +38,7 @@ class AvatarIntentRecord:
     formed_tick: int                        # когда сформирован
     urgency: float                          # из Desire.urgency (0.0-1.0)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Serialization для scene_state round-trip."""
         return {
             "intent": self.intent.value,
@@ -55,7 +55,7 @@ class AvatarIntentRecord:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "AvatarIntentRecord":
+    def from_dict(cls, data: dict[str, Any]) -> "AvatarIntentRecord":
         """Deserialization из scene_state."""
         from app.domain.control_source import ControlSource
         return cls(

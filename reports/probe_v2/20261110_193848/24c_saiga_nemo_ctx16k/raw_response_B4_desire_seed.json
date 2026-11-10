@@ -1,0 +1,19 @@
+{
+  "fragment_id": "B4_desire_seed",
+  "fragment_category": "B",
+  "fragment_text": "Люся мечтает сбежать на юг, к морю, где никогда не видела снега. Она прячет медяки в щель под печью уже три года.",
+  "latency_secs": 27.93,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"DESIRE_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"мечтает сбежать на юг, к морю, где никогда не видела снега\",\n        \"about_hint\": \"жить на юге, у моря\"\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"начала копить деньги на побег\",\n        \"duration_years\": 3\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"OBSERVATION\",\n      \"draft_payload\": {\n        \"summary\": \"прячет медяки в щель под печью\",\n        \"observed_hint\": \"Люся\"\n      },\n      \"confidence\": 1.0\n    }\n  ]\n}\n```",
+  "raw_length_chars": 617,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.75,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

@@ -1,0 +1,80 @@
+[
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 6,
+    "sentence_ok": false,
+    "has_question": true,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Торнин хмурится и злобно улыбается. 'А кто ты такой, чтоб мне что-то рассказывать? Знаешь, что я сделаю? Обернусь и продолжу свое дело.' Он быстро обходит стойку и уходит в заднюю часть трактира.",
+    "latency": 1.4,
+    "scenario": "S1_threat",
+    "npc": "Торнин"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 5,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Тень недовольно моргает, не отводя взгляд от тебя. 'Своего прошлого мне не рассказывать, путник. Множество зол и печелей я видал. Лучше о себе не спрашивай.'",
+    "latency": 0.71,
+    "scenario": "S2_secret",
+    "npc": "Тень"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 4,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Люся вздрагивает и смотрит на тебя изо всех сил. Она продолжает протирать стойку, но ее руки тремят. 'Мне нужно закончить работу', - шепчет она.",
+    "latency": 0.67,
+    "scenario": "S3_compliment",
+    "npc": "Люся"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 4,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Борко грозно открывает рот, готовый к отпору, но ты замахиваешься уже слишком высоко. В последний момент он отступает, пытаясь уклониться от удара. Однако твое меч упирается ему прямо в живот, и Борко с силой падает на пол, отчаянно подавая голос о помощи.",
+    "latency": 1.04,
+    "scenario": "S4_attack",
+    "npc": "Борко"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 5,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Торнин допивает кружку и смотрит на тебя с подозрением. На его лице читается недовольство. 'Не люблю, когда на меня смотрят так.' - грубит он.",
+    "latency": 0.68,
+    "scenario": "S5_relationship",
+    "npc": "Горан"
+  },
+  {
+    "chinese": false,
+    "fourth_wall": false,
+    "sentences": 5,
+    "sentence_ok": true,
+    "has_question": false,
+    "has_speech": true,
+    "json_valid": true,
+    "response": "Торнин аккуратно ставит кружку на стойку. В углу скрипит стул — кто-то встаёт. 'На что я сегодня гляжу!' - шепчет трактирщик.",
+    "latency": 0.63,
+    "scenario": "S6_minimal",
+    "npc": "Торнин"
+  }
+]

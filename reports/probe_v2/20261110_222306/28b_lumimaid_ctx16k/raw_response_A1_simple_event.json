@@ -1,0 +1,19 @@
+{
+  "fragment_id": "A1_simple_event",
+  "fragment_category": "A",
+  "fragment_text": "В 8 лет Люся осталась сиротой, её приютил Торнин.",
+  "latency_secs": 4.07,
+  "llm_error": null,
+  "raw_response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"осталась сиротой\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0}\n]}",
+  "raw_length_chars": 182,
+  "json_valid": true,
+  "raw_items_count": 1,
+  "valid_items": 1,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

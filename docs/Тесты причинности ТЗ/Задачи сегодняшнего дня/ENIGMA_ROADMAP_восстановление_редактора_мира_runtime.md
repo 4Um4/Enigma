@@ -47,7 +47,7 @@
 |---|---|---|---|---|
 | Фаза 0 | Фиксация исходного состояния | 2 | 2 | COMPLETED |
 | Фаза 1 | Координатный контракт и данные | 4 | 4 | COMPLETED |
-| Фаза 2 | Восстановление стартовой сцены (P1) | 2 | 4 | IN PROGRESS |
+| Фаза 2 | Восстановление стартовой сцены (P1) | 3 | 4 | IN PROGRESS |
 | Фаза 3 | Честный CRUD и валидатор (P2, ядро) | 0 | 4 | NOT STARTED |
 | Фаза 4 | Безопасная синхронизация (P2, граница) | 0 | 3 | NOT STARTED |
 | Фаза 5 | Ресурсы: персонажи и портреты (P3) | 0 | 4 | NOT STARTED |
@@ -408,7 +408,76 @@ Post-delete pipeline обязателен: unlink → удаление из `dm.
 - **Откат:** восстановление `tavern.json` + compiled-реестра из `_backup/` (P0-01).
 - **Результат:** мировая таверна; визуально корректный старт.
 
-#### P2-02 — Наблюдаемость оракула локации
+#### P2-03 — Мировой фрейм клик-пикинга
+
+**Статус:** [x] COMPLETED
+**Дата:** 2026-11-10
+**Изменённые файлы:**
+- `frontend/game_screen.py` (L2664-2690: `_handle_click` signature += `resolver/world_ctx/location_id` параметры; body: `local_to_world` к `_player_xy` — симметрично с render L2254-2256; L1104-1112: call-site передаёт `_resolver/_world_ctx/location_id` из scope `run()`)
+- `backend/tests/test_p2_03_click_picking_world_frame.py` (новый, 6 unit-тестов)
+
+**Что сделано:**
+- Реализован контракт §P2-03 (B-11): устранено расхождение камер рендера и пикинга
+- После P1-02 (фрейм-осознанные конверсии) + P1-03 (tavern.json мировой фрейм) клик-камера и рендер-камера **совпадают автоматически** для мирового файла — P2-03 фиксирует контракт и проверяет легаси-режим
+- `_handle_click` получил 3 новых параметра (default None для обратной совместимости): `resolver: Optional[ContextResolver] = None`, `world_ctx: Optional[WorldContext] = None`, `location_id: str = "unknown"`
+- Body: `_world_px, _world_py = px, py; if resolver is not None and world_ctx is not None: _world_px, _world_py = resolver.local_to_world(px, py, location_id)` — **симметрично с render** (L2254-2256: `_render_px, _render_py = px, py; if _world_ctx is not None: _render_px, _render_py = _resolver.local_to_world(...)`)
+- Call-site (L1104-1112) передаёт `_resolver/_world_ctx/location_id` из scope `run()` (переменные создаются на L691-715, доступны в event-loop L1080+)
+- Guard `"_resolver" in dir()` — safe проверка существования локальной переменной (если инициализация упала в try/except)
+- **Эффект:**
+  - Мировой файл (tavern post-P1-03): `local_to_world` = identity → **0 изменений поведения** (контракт зафиксирован)
+  - Легаси-файл (`global_coords=false`): `local_to_world` = +origin → клик-камера становится мировой → **совпадает с рендер-камерой** (B-11 устранён)
+  - Без resolver (default None): fallback к локальному `px,py` → **обратная совместимость** (как до P2-03)
+- Поведенческая логика клика НЕ менялась — только фрейм камеры (§P2-03 ограничение)
+
+**Проверки:**
+- [x] py_compile — результат: PASS
+- [x] Verify `_handle_click` signature имеет resolver/world_ctx/location_id — PASS
+- [x] Verify `local_to_world` в body `_handle_click` — PASS (L2690)
+- [x] Verify call-site передаёт 3 новых параметра — PASS (balanced-paren extraction)
+- [x] P2-03 unit tests (6 тестов) — результат: **6/6 PASS за 0.32с**
+  - test_world_frame_click_camera_identity — мировой файл: local_to_world=identity → клик-камера == рендер-камера
+  - test_legacy_frame_click_camera_shifted — легаси: local_to_world=+origin → клик-камера мировая (B-11 устранён)
+  - test_no_resolver_fallback_to_local — без resolver: fallback к локальному px,py (обратная совместимость)
+  - test_handle_click_signature_has_resolver_params — signature содержит 3 новых параметра (source-инспекция)
+  - test_symmetry_with_render_camera — render pattern (L2254-2256) == click pattern (L2686-2690)
+  - test_call_site_passes_resolver_args — call-site передаёт resolver=/world_ctx=/location_id= (balanced-paren)
+- [x] Регрессии (27 тестов) — результат: **27/27 PASS за 0.41с**
+  - P0-02 baseline: 4/4 (T0-d float-gap)
+  - P2-01 resolve_primary: 9/9
+  - P2-02 oracle_log: 7/7
+  - P1-04 save migration W5: 7/7
+- [x] IPT baseline — результат: **52 passed / 2 CRITICAL предсуществующие** (INV-DOMAIN-PURITY, INV-SILENT-FAILURE — НЕ от P2-03); 0 новых красных; `[KILLER_SPIRIT] пощажено=1` (LLM SDK корректно не убил чужой llama-server pid=16420)
+- [ ] Ручная проверка клика по NPC — НЕ ВЫПОЛНЕНА (требует pygame; headless §3.12). Окончательная проверка — в P2-04 (интеграционная приёмка P1).
+
+**Критерии приёмки:**
+- [x] Клик по видимому спрайту выбирает этого NPC — подтверждение: для мирового файла identity → клик-камера == рендер-камера → клик попадает в видимый спрайт (контракт зафиксирован тестом test_world_frame_click_camera_identity)
+- [x] На легаси-файле поведение не хуже текущего — подтверждение: test_legacy_frame_click_camera_shifted (B-11 устранён — стало лучше, не хуже) + test_no_resolver_fallback_to_local (без resolver — как было)
+- [x] Симметрия с render-камерой — подтверждение: test_symmetry_with_render_camera (оба pattern используют local_to_world)
+- [ ] Ручной сценарий «клик по NPC таверны» — НЕ ВЫПОЛНЕН (требует pygame). Окончательная проверка — в P2-04.
+
+**Регрессии:**
+- P0-02 baseline: 4/4 PASS (T0-d float-gap сохранён)
+- P2-01 resolve_primary: 9/9 PASS
+- P2-02 oracle_log: 7/7 PASS
+- P1-04 save migration W5: 7/7 PASS
+- IPT: 52 passed / 2 CRITICAL (0 новых красных; INV-FLAG-REGISTRY исчез — чужой фикс ветви А Avatar, не от P2-03)
+
+**Ограничения / остаточные риски:**
+- Ручная проверка клика в игре НЕ выполнена (требует pygame). Косвенные признаки: 6 unit-тестов PASS (включая симметрию с render-камерой и source-инспекцию call-site). Окончательная проверка — в P2-04.
+- Guard `"_resolver" in dir()` — safe, но «грязный» (можно было инициализировать `_resolver=None` перед try-блоком L691). Выбран минимальный вариант — 1 правка вместо 2. Если в будущем появится чистая инициализация — guard можно убрать.
+- `local_to_world` вызывается 2 раза на кадр при клике: 1 в render (L2256), 1 в `_handle_click` (L2690). O(1), накладные расходы минимальны.
+- Чужие баги (не чинил, §11 Anti-Race): avatar_intent_record.py:18 (INV-DOMAIN-PURITY, ветвь А Avatar), player_avatar_service.py:305 (INV-SILENT-FAILURE, ветвь А Avatar), turn_pipeline.py (чужой WIP BodyArbiter/WV gate)
+- INV-FLAG-REGISTRY (test_me21_h2_resource_registration.py) — исчез из IPT между P2-02 и P2-03. Это чужой фикс (не от P2-03) — зафиксировано как наблюдение, не как моя заслуга.
+
+**Откат:**
+- Revert `frontend/game_screen.py` (убрать 3 параметра из signature + body + call-site)
+- Удалить `backend/tests/test_p2_03_click_picking_world_frame.py`
+- Revert ROADMAP A.3 (Фаза 2: 3/4 → 2/4) + I.4 (эта запись)
+
+**Следующий разрешённый пункт:**
+- P2-04 (Интеграционная проверка стартовой сцены — P1 acceptance) — предварительные условия P1-02/P1-03/P1-04/P2-01/P2-03 выполнены; цель: подтвердить устранение P1 end-to-end (новая игра → старт в tavern → интерьер вокруг игрока → NPC видны → клик по NPC → переход по двери → CONTINUE на мигрированном сейве). Ручной сценарий + T1-T4/T6 полный набор.
+
+### P2-02 — Наблюдаемость оракула локации
 
 **Статус:** [x] COMPLETED
 **Дата:** 2026-11-10

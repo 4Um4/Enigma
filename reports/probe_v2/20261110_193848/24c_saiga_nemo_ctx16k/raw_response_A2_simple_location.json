@@ -1,0 +1,19 @@
+{
+  "fragment_id": "A2_simple_location",
+  "fragment_category": "A",
+  "fragment_text": "Торнин держит таверну 'Серебряный Волк' уже двадцать лет.",
+  "latency_secs": 26.43,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"стал владельцем таверны 'Серебряный Волк'\",\n        \"duration_years\": 20\n      },\n      \"confidence\": 0.9\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин владеет таверной 'Серебряный Волк'\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"взаимовыгодный\",\n        \"valence\": \"positive\"\n      },\n      \"confidence\": 0.9\n    },\n    {\n      \"kind\": \"LOCATION\",\n      \"draft_payload\": {\n        \"summary\": \"таверна 'Серебряный Волк'\",\n        \"name_hint\": \"Серебряный Волк\"\n      },\n      \"confidence\": 0.9\n    }\n  ]\n}\n```",
+  "raw_length_chars": 666,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.75,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

@@ -1,0 +1,22 @@
+{
+  "fragment_id": "S5_grammar_ambiguity",
+  "fragment_category": "ambiguity",
+  "fragment_text": "Торнин сказал Люсе, что Борко предал их. Люся не поверила. Борко предал их на следующее утро.",
+  "latency_secs": 46.58,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Борко предал их\",\n        \"day\": null,\n        \"duration_years\": null,\n        \"years_ago\": null,\n        \"is_recurring\": false\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Люся не доверяет Борко после предательства\",\n        \"target_hint\": \"Борко\",\n        \"nature\": \"вражда\",\n        \"valence\": \"negative\"\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"RELATIONSHIP\",\n      \"draft_payload\": {\n        \"summary\": \"Торнин сообщил Люсе о предательстве Борко\",\n        \"target_hint\": \"Торнин\",\n        \"nature\": \"информатор\",\n        \"valence\": \"positive\"\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"EVENT\",\n      \"draft_payload\": {\n        \"summary\": \"Люся узнала о предательстве Борко\",\n        \"day\": null,\n        \"duration_years\": null,\n        \"years_ago\": null,\n        \"is_recurring\": false\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"KNOWLEDGE_LINK\",\n      \"draft_payload\": {\n        \"summary\": \"Люся узнала о предательстве Борко\",\n        \"about_hint\": \"предательство Борко\",\n        \"learned_age\": null\n      },\n      \"confidence\": 1.0\n    }\n  ]\n}\n```",
+  "raw_length_chars": 1281,
+  "json_valid": true,
+  "raw_items_count": 5,
+  "valid_items": 4,
+  "errors": 0,
+  "schema_conformance": 0.8,
+  "schema_failures": [
+    "empty_required:learned_age"
+  ],
+  "censorship_refusal": false,
+  "fact_recall": 0.0,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0,
+  "golden_missing": true
+}

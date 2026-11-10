@@ -1,0 +1,19 @@
+{
+  "fragment_id": "C2_portret_traits_beliefs",
+  "fragment_category": "C",
+  "fragment_text": "Горан злится. Злится часто, глухо, изнутри. Он считает, что мир делит людей на волек и овец, и он давно выбрал сторону. Но иногда, глядя на Люсю, он думает — а может, есть и третий путь.",
+  "latency_secs": 25.33,
+  "llm_error": null,
+  "raw_response": "```json\n{\n  \"items\": [\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Злится часто, глухо, изнутри.\",\n        \"traits\": [\"подавленная злость\"]\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"BELIEF_SEED\",\n      \"draft_payload\": {\n        \"statement\": \"Мир делит людей на волек и овец, и он выбрал сторону.\",\n        \"belief_type\": \"danger\"\n      },\n      \"confidence\": 1.0\n    },\n    {\n      \"kind\": \"PORTRET\",\n      \"draft_payload\": {\n        \"statement\": \"Иногда, глядя на Люсю, задумывается о третьем пути.\",\n        \"traits\": [\"сомнение в своих убеждениях\"]\n      },\n      \"confidence\": 1.0\n    }\n  ]\n}\n```",
+  "raw_length_chars": 654,
+  "json_valid": true,
+  "raw_items_count": 3,
+  "valid_items": 3,
+  "errors": 0,
+  "schema_conformance": 1.0,
+  "schema_failures": [],
+  "censorship_refusal": false,
+  "fact_recall": 0.16666666666666666,
+  "hallucination_rate": 0.0,
+  "question_quality": 1.0
+}

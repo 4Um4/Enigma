@@ -1047,7 +1047,6 @@ class NpcTickPipeline:
                         _need_modifiers["talk"] = (
                             _need_modifiers.get("talk", 0.0) + _su_e0 * 0.3
                         )
-                        print(f"[E0_BRIDGE] npc={npc_id} social_urge={_su_e0:.2f} talk_mod={_need_modifiers['talk']:.3f}")
             except Exception as _e0_su:
                 logger.debug(f"[E0_SOCIAL_URGE] fallback for {npc_id}: {_e0_su}")
             # MEM-3 (F5): npc_memory_modifiers — оживление MEM-D28.
