@@ -31,10 +31,9 @@ def test_rce_blocks_json_artifact():
     assert reactions == [], f"Fail 3: Должен быть пустой список, но получилось {reactions}"
 
 
-def test_rce_allows_normal_fallback():
+def test_rce_blocks_narrative_without_quotes():
     npcs = [{"npc_id": "tavern_keeper_tornin", "name": "Торнин"}]
-    # 4. Нормальный Fallback без кавычек (должен записать речь)
+    # 4. Нарратив без кавычек НЕ должен записываться как речь (защита от ложной памяти D-A01)
     dm_text_normal = "Торнин молча смотрит на тебя."
     reactions2 = extract_speech_events(dm_text=dm_text_normal, target_npc_id="tavern_keeper_tornin", all_npcs_raw=npcs)
-    assert len(reactions2) == 1, f"Fail 4: Должна быть 1 реакция, но получилось {reactions2}"
-    assert "Торнин:" in reactions2[0], f"Fail 4 text: {reactions2[0]}"
+    assert len(reactions2) == 0, f"Fail 4: Нарратив без кавычек не должен извлекаться как речь, но получилось {reactions2}"
