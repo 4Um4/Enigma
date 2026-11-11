@@ -13,6 +13,8 @@
 
 from __future__ import annotations
 
+from enum import Enum
+
 import logging
 import sys
 from typing import Any, Dict, List, Optional, Tuple
@@ -25,6 +27,20 @@ from app.domain.conclusions import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class ConclusionApplyResult(str, Enum):
+    """Результат операции ConclusionStore.apply.
+
+    CREATED — создан новый ConclusionRecord (первое формирование).
+    REINFORCED — существующий Conclusion дополнен evidence / обновлён confidence.
+
+    Используется ConclusionGate для решения о публикации CONCLUSION_FORMED:
+    событие публикуется только при CREATED (появление нового когнитивного вывода).
+    """
+
+    CREATED = "created"
+    REINFORCED = "reinforced"
 
 
 class ConclusionStore:
@@ -53,10 +69,13 @@ class ConclusionStore:
 
     # ── WRITE (единственный путь — через гейт) ─────────────────────────
 
-    def apply(self, proposal: ConclusionProposal, clamped_confidence: float) -> bool:
+    def apply(
+        self, proposal: ConclusionProposal, clamped_confidence: float
+    ) -> ConclusionApplyResult:
         """Диспатч-цель ConclusionGate (ConsumerDispatch-сигнатура).
 
-        Новая идентичность -> запись. Существующая -> reinforcement:
+        Новая идентичность -> запись -> CREATED.
+        Существующая -> reinforcement -> REINFORCED:
         evidence = union, confidence = max(cur, clamped), origin-поля
         (trace_id/causal_parent/formed_tick) НЕ переписываются — это
         происхождение первого формирования, не текущее состояние.
@@ -68,6 +87,10 @@ class ConclusionStore:
         formed_tick: BC-1-срез кладёт 0 — тик недоступен в мембране без
         расширения proposal (сигнатура диспатча зафиксирована F2б);
         retrofit-заполнение — решение владельца (см. V-FT досье).
+
+        Returns:
+            ConclusionApplyResult.CREATED — новый ConclusionRecord сформирован.
+            ConclusionApplyResult.REINFORCED — существующий Conclusion усилен.
         """
         _caller = sys._getframe(1).f_globals.get("__name__", "")
         if _caller not in self._APPLY_ALLOWED_WRITERS:
@@ -99,6 +122,7 @@ class ConclusionStore:
                 f"[CONCLUSION_STORE] formed {cid} conf={record.confidence:.2f} "
                 f"evidence={len(record.evidence)}"
             )
+            return ConclusionApplyResult.CREATED
         else:
             # Reinforcement: union evidence + max confidence; origin не трогаем.
             merged_evidence = tuple(
@@ -121,7 +145,7 @@ class ConclusionStore:
                 f"conf={bucket[cid].confidence:.2f} "
                 f"evidence={len(merged_evidence)}"
             )
-        return True
+            return ConclusionApplyResult.REINFORCED
 
     # ── READ (BC-2/сценарий; read-only) ────────────────────────────────
 

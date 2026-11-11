@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <style>
+    text { font-family: 'Segoe UI', 'DejaVu Sans', Arial, sans-serif; }
+    .hand { stroke-linecap: round; stroke-linejoin: round; }
+  </style>
+  <rect width="1280" height="720" fill="#fdfbf5"/>
+
+  <!-- ============ LAYER 1: WORLD TRUTH ============ -->
+  <g class="hand">
+    <path d="M 418 62 C 520 56, 760 58, 862 63 C 869 64, 872 68, 871 76
+             L 873 148 C 873 156, 868 160, 860 161 C 700 166, 560 165, 420 161
+             C 412 160, 408 156, 408 148 L 409 74 C 409 66, 412 63, 418 62 Z"
+          fill="#e8f5e9" stroke="#2e7d32" stroke-width="3.5"/>
+  </g>
+  <text x="640" y="105" text-anchor="middle" font-size="30" font-weight="bold" fill="#1b5e20">WORLD TRUTH</text>
+  <text x="640" y="138" text-anchor="middle" font-size="19" fill="#33691e">what actually happened — event log, causal spine</text>
+  <text x="905" y="118" font-size="19" fill="#2e7d32" font-style="italic">immutable ✍️</text>
+
+  <!-- Arrow 1 -->
+  <g class="hand">
+    <path d="M 640 168 C 638 190, 642 210, 639 232" fill="none" stroke="#455a64" stroke-width="4"/>
+    <path d="M 627 226 L 639 248 L 651 226" fill="none" stroke="#455a64" stroke-width="4"/>
+  </g>
+  <text x="668" y="212" font-size="17" fill="#546e7a" font-style="italic">perception filter (lossy)</text>
+
+  <!-- ============ LAYER 2: MEMORY ============ -->
+  <g class="hand">
+    <path d="M 418 256 C 530 250, 750 253, 862 257 C 869 258, 872 262, 871 270
+             L 873 342 C 873 350, 868 354, 860 355 C 700 360, 560 359, 420 355
+             C 412 354, 408 350, 408 342 L 409 268 C 409 260, 412 257, 418 256 Z"
+          fill="#e3f2fd" stroke="#1565c0" stroke-width="3.5"/>
+  </g>
+  <text x="640" y="299" text-anchor="middle" font-size="30" font-weight="bold" fill="#0d47a1">MEMORY</text>
+  <text x="640" y="332" text-anchor="middle" font-size="19" fill="#1565c0">what the NPC witnessed — derived, never writable by LLM</text>
+  <text x="905" y="312" font-size="19" fill="#1565c0" font-style="italic">writer-guard 🔒</text>
+
+  <!-- Arrow 2 -->
+  <g class="hand">
+    <path d="M 640 362 C 642 384, 638 404, 641 426" fill="none" stroke="#455a64" stroke-width="4"/>
+    <path d="M 629 420 L 641 442 L 653 420" fill="none" stroke="#455a64" stroke-width="4"/>
+  </g>
+  <text x="668" y="406" font-size="17" fill="#546e7a" font-style="italic">belief crystallization</text>
+
+  <!-- ============ LAYER 3: BELIEF ============ -->
+  <g class="hand">
+    <path d="M 418 450 C 520 444, 760 447, 862 451 C 869 452, 872 456, 871 464
+             L 873 536 C 873 544, 868 548, 860 549 C 700 554, 560 553, 420 549
+             C 412 548, 408 544, 408 536 L 409 462 C 409 454, 412 451, 418 450 Z"
+          fill="#fff3e0" stroke="#e65100" stroke-width="3.5"/>
+  </g>
+  <text x="640" y="493" text-anchor="middle" font-size="30" font-weight="bold" fill="#bf360c">BELIEF</text>
+  <text x="640" y="526" text-anchor="middle" font-size="19" fill="#e65100">what the NPC concluded — first-class object</text>
+
+  <!-- hand-drawn circle around "can be wrong on purpose" -->
+  <g class="hand">
+    <path d="M 640 596 C 500 588, 400 600, 398 622 C 396 646, 520 656, 660 652
+             C 790 648, 884 638, 882 616 C 880 596, 760 590, 640 596 Z"
+          fill="none" stroke="#e65100" stroke-width="3"/>
+  </g>
+  <text x="640" y="630" text-anchor="middle" font-size="26" font-weight="bold" fill="#e65100">only this layer can be wrong — on purpose</text>
+
+  <!-- small footer -->
+  <text x="640" y="695" text-anchor="middle" font-size="16" fill="#90a4ae">truth ≠ memory ≠ belief — enforce it with exceptions, not code review</text>
+</svg>

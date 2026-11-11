@@ -1,7 +1,7 @@
 # LLM_MODELS_2026_CCH_TEST — Итоговый отчёт (v3, 2026-11-10)
 
 > Total models tested: 39
-> Production: Hermes-3-Llama-3.1-8B Q4_K_M (SCORE 89.62)
+> Production: Lumimaid-v0.2-8B Q4_K_M (migrated from Hermes-3) (SCORE 89.62)
 > Recommendation: Scenario A — оставить Hermes
 
 ---

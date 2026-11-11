@@ -53,7 +53,7 @@ CRIT закрывается раньше очереди (§0.2 правило 3)
 
 | ID | Файл | Огрех | Следствие | Класс | Гейт закрытия |
 |---|---|---|---|---|---|
-| D-A01 | services/memory/rce.py | fallback: нет кавычек → весь DM-текст (≤1000) приписывается целевому NPC как речь | ложная память; описание рассказчика становится «сказанным» | CRIT | тест: описание без кавычек ≠ speech; STM пуст |
+- [x] **D-A01 (CRIT)** — RCE fallback ложной памяти удалён. `extract_speech_events` больше не приписывает нарратив без кавычек целевому NPC как речь. Тест `test_rce_blocks_narrative_without_quotes` добавлен. IPT 54/0. (Ветвь А)
 | D-A02 | services/npc/decision_hub.py | compute() пишет state.pressure_accumulator при контракте READ ONLY | скрытая мутация входа; ломает temporal isolation и replay | HIGH | вход не мутирован; давление уходит в DecisionResult/StateDeltas |
 | D-A03 | services/memory/memory_manager.py | object.__setattr__(npc_state, "narrative_cache", …) | обход frozen-контракта; второй писатель NPCState | MED | единый write-path + ADR о владельце |
 | D-A04 | services/memory/memory_manager.py | _mem_id = event.id:npc_id:md5(summary) | одинаковый текст в разных контекстах схлопывается | MED | две одинаковые реплики в разных тиках = две записи |

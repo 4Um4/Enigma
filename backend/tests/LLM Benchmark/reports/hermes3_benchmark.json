@@ -1,0 +1,1721 @@
+{
+  "meta": {
+    "benchmark": "ENIGMA_LLM_COMPREHENSIVE_BENCHMARK",
+    "benchmark_version": "1.1.1",
+    "corpus_version": "1.1.1",
+    "methodology_version": "1.1.1",
+    "model_id": "hermes3_comprehensive",
+    "date_utc": "2026-11-11T12:24:29.126197+00:00",
+    "n_tasks": 78
+  },
+  "profile": {
+    "model_id": "hermes3_comprehensive",
+    "benchmark": "ENIGMA_LLM_COMPREHENSIVE_BENCHMARK",
+    "benchmark_version": "1.1.1",
+    "corpus_version": "1.1.1",
+    "methodology_version": "1.1.1",
+    "composite_score": 0.0,
+    "verdict": "NOT_READY",
+    "module_scores": {
+      "FG": 0.0,
+      "WSI": 0.0,
+      "ATT": 0.0,
+      "BIO": 0.0,
+      "MEM": 0.0,
+      "ID": 0.0,
+      "SOC": 0.0,
+      "INT": 0.0,
+      "DLG": 0.0,
+      "MUL": 0.0,
+      "CMP": 0.0
+    },
+    "metric_scores": {
+      "contract_compliance": 0.0,
+      "world_state_integrity": 0.0,
+      "fact_accuracy": 0.0,
+      "attribution_accuracy": 0.0,
+      "temporal_accuracy": 0.0,
+      "causal_accuracy": 0.0,
+      "semantic_accuracy": 0.0,
+      "context_retention": 0.0,
+      "npc_identity": 0.0,
+      "social_reasoning": 0.0,
+      "intent_decision_quality": 0.0,
+      "dialogue_quality": 0.0,
+      "russian_quality": 0.0,
+      "multi_npc_interaction": 0.0,
+      "robustness": 0.0,
+      "json_validity": 0.0,
+      "schema_compliance": 0.0
+    },
+    "critical_errors": {
+      "total": 0,
+      "by_type": {
+        "HALLUCINATION_FACT": 0,
+        "MEMORY_CONTAMINATION": 0,
+        "WORLD_TRUTH_VIOLATION": 0,
+        "FALSE_ACTION_CLAIM": 0,
+        "SPEAKER_ATTRIBUTION_ERROR": 0,
+        "ASSUMPTION_AS_FACT": 0,
+        "CONSTRAINT_VIOLATION": 0
+      },
+      "events": []
+    },
+    "hard_gates": {
+      "GATE_JSON": {
+        "ok": false,
+        "detail": "структурных заданий: 28, невалидных/ошибочных JSON: 28"
+      },
+      "GATE_ISOLATION": {
+        "ok": true,
+        "detail": "MEMORY_CONTAMINATION: 0"
+      },
+      "GATE_CENSORSHIP": {
+        "ok": true,
+        "detail": "отказов на тёмном контенте: 0"
+      },
+      "GATE_EPISTEMICS": {
+        "ok": true,
+        "detail": "ASSUMPTION_AS_FACT: 0"
+      },
+      "GATE_WORLD_TRUTH": {
+        "ok": true,
+        "detail": "WORLD_TRUTH_VIOLATION: 0"
+      }
+    },
+    "contrast_pairs": {
+      "results": [
+        {
+          "pair": "CG-01",
+          "complete": true,
+          "a_task": "WSI-01",
+          "b_task": "WSI-02",
+          "direction_ok": false,
+          "detail": {
+            "a_clean": true,
+            "b_flipped": false
+          }
+        },
+        {
+          "pair": "CG-02",
+          "complete": true,
+          "a_task": "WSI-03",
+          "b_task": "WSI-04",
+          "direction_ok": false,
+          "detail": {
+            "a_clean": false,
+            "b_flipped": false
+          }
+        },
+        {
+          "pair": "CG-03",
+          "complete": true,
+          "a_task": "ID-02",
+          "b_task": "ID-03",
+          "direction_ok": false,
+          "detail": {
+            "a_clean": false,
+            "b_flipped": true
+          }
+        },
+        {
+          "pair": "CG-04",
+          "complete": true,
+          "a_task": "ID-05",
+          "b_task": "ID-06",
+          "direction_ok": false,
+          "detail": {
+            "a_clean": true,
+            "b_flipped": false
+          }
+        },
+        {
+          "pair": "CG-05",
+          "complete": true,
+          "a_task": "CMP-02",
+          "b_task": "CMP-03",
+          "direction_ok": false,
+          "detail": {
+            "a_clean": false,
+            "b_flipped": false
+          }
+        }
+      ],
+      "sensitivity": 0.0
+    },
+    "flags": [
+      "НИЗКАЯ контрастная чувствительность (<0.5): ответы почти не меняются при смене условий — вероятны шаблонные ответы.",
+      "НИЗКАЯ World-State Integrity: модель путает факт/слух/мнение.",
+      "НИЗКАЯ индивидуальность NPC: реакции не следуют досье.",
+      "Невалидный JSON на структурных заданиях — GATE_JSON красный."
+    ],
+    "latency": {
+      "p50_s": 2.047,
+      "p95_s": 2.071,
+      "n": 78
+    },
+    "tasks_run": 78
+  },
+  "results": [
+    {
+      "task_id": "FG-01",
+      "module": "FG",
+      "kind": "cch",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "FG-01",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.053,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "FG-02",
+      "module": "FG",
+      "kind": "cch",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "FG-02",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.058,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "FG-03",
+      "module": "FG",
+      "kind": "dm",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "FG-03",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.061,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "FG-04",
+      "module": "FG",
+      "kind": "dm",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "FG-04",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.045,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "FG-05",
+      "module": "FG",
+      "kind": "intent",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "FG-05",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.032,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "FG-06",
+      "module": "FG",
+      "kind": "intent",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "FG-06",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.056,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "FG-07",
+      "module": "FG",
+      "kind": "intent",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "FG-07",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.035,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "FG-08",
+      "module": "FG",
+      "kind": "cch",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "FG-08",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.036,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "FG-09",
+      "module": "FG",
+      "kind": "cch",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "FG-09",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.035,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "WSI-01",
+      "module": "WSI",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "WSI-01",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.047,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "WSI-02",
+      "module": "WSI",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "WSI-02",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.03,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "WSI-03",
+      "module": "WSI",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "WSI-03",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.053,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "WSI-04",
+      "module": "WSI",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "WSI-04",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.048,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "WSI-05",
+      "module": "WSI",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "WSI-05",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.035,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "WSI-06",
+      "module": "WSI",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "WSI-06",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.039,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "WSI-07",
+      "module": "WSI",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "WSI-07",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.063,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "WSI-08",
+      "module": "WSI",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "WSI-08",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.044,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "WSI-09",
+      "module": "WSI",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "WSI-09",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.044,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "WSI-10",
+      "module": "WSI",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "WSI-10",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.059,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "ATT-01",
+      "module": "ATT",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "ATT-01",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.034,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "ATT-02",
+      "module": "ATT",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "ATT-02",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.06,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "ATT-03",
+      "module": "ATT",
+      "kind": "cch",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "ATT-03",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.06,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "ATT-04",
+      "module": "ATT",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "ATT-04",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.056,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "ATT-05",
+      "module": "ATT",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "ATT-05",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.072,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "ATT-06",
+      "module": "ATT",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "ATT-06",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.071,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "ATT-07",
+      "module": "ATT",
+      "kind": "cch",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "ATT-07",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.058,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "BD-01",
+      "module": "BIO",
+      "kind": "cch",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "BD-01",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.06,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "BD-02",
+      "module": "BIO",
+      "kind": "cch",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "BD-02",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.033,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "BD-03",
+      "module": "BIO",
+      "kind": "cch",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "BD-03",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.024,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "BD-04",
+      "module": "BIO",
+      "kind": "cch",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "BD-04",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.039,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "BD-05",
+      "module": "BIO",
+      "kind": "cch",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "BD-05",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.032,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "BD-06",
+      "module": "BIO",
+      "kind": "cch",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "BD-06",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.04,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "BD-07",
+      "module": "BIO",
+      "kind": "cch",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "BD-07",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.051,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "BD-08",
+      "module": "BIO",
+      "kind": "cch",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "BD-08",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.034,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "MEM-01",
+      "module": "MEM",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "MEM-01",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.058,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "MEM-02",
+      "module": "MEM",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "MEM-02",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.048,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "MEM-03",
+      "module": "MEM",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "MEM-03",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.059,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "MEM-04",
+      "module": "MEM",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "MEM-04",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.055,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "MEM-05",
+      "module": "MEM",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "MEM-05",
+        "score": 0.0,
+        "issues": [
+          "adapter_error"
+        ],
+        "criticals": [],
+        "detail": {}
+      },
+      "response": [
+        ""
+      ],
+      "latency_s": 2.043,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "MEM-06",
+      "module": "MEM",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "MEM-06",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.029,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "ID-01",
+      "module": "ID",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "ID-01",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.055,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "ID-02",
+      "module": "ID",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "ID-02",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.059,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "ID-03",
+      "module": "ID",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "ID-03",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.03,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "ID-04",
+      "module": "ID",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "ID-04",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.072,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "ID-05",
+      "module": "ID",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "ID-05",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.071,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "ID-06",
+      "module": "ID",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "ID-06",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.046,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "SOC-01",
+      "module": "SOC",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "SOC-01",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.074,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "SOC-02",
+      "module": "SOC",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "SOC-02",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.057,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "SOC-03",
+      "module": "SOC",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "SOC-03",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.058,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "SOC-04",
+      "module": "SOC",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "SOC-04",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.046,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "SOC-05",
+      "module": "SOC",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "SOC-05",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.037,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "SOC-06",
+      "module": "SOC",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "SOC-06",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.035,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "SOC-07",
+      "module": "SOC",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "SOC-07",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.057,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "SOC-08",
+      "module": "SOC",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "SOC-08",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.032,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "INT-01",
+      "module": "INT",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "INT-01",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.035,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "INT-02",
+      "module": "INT",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "INT-02",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.028,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "INT-03",
+      "module": "INT",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "INT-03",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.025,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "INT-04",
+      "module": "INT",
+      "kind": "dm",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "INT-04",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.048,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "INT-05",
+      "module": "INT",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "INT-05",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.058,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "INT-06",
+      "module": "INT",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "INT-06",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.046,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "INT-07",
+      "module": "INT",
+      "kind": "intent",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "INT-07",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.06,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "INT-08",
+      "module": "INT",
+      "kind": "intent",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "INT-08",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.043,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "DLG-01",
+      "module": "DLG",
+      "kind": "dm",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "DLG-01",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.033,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "DLG-02",
+      "module": "DLG",
+      "kind": "dm",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "DLG-02",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.046,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "DLG-03",
+      "module": "DLG",
+      "kind": "dm",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "DLG-03",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.042,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "DLG-04",
+      "module": "DLG",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "DLG-04",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.06,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "DLG-05",
+      "module": "DLG",
+      "kind": "dm",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "DLG-05",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.059,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "DLG-06",
+      "module": "DLG",
+      "kind": "dm",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "DLG-06",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.046,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "DLG-07",
+      "module": "DLG",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "DLG-07",
+        "score": 0.0,
+        "issues": [
+          "adapter_error"
+        ],
+        "criticals": [],
+        "detail": {}
+      },
+      "response": [
+        ""
+      ],
+      "latency_s": 2.033,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "DLG-08",
+      "module": "DLG",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "DLG-08",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.049,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "MUL-01",
+      "module": "MUL",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "MUL-01",
+        "score": 0.0,
+        "issues": [
+          "adapter_error"
+        ],
+        "criticals": [],
+        "detail": {}
+      },
+      "response": [
+        ""
+      ],
+      "latency_s": 2.042,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "MUL-02",
+      "module": "MUL",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "MUL-02",
+        "score": 0.0,
+        "issues": [
+          "adapter_error"
+        ],
+        "criticals": [],
+        "detail": {}
+      },
+      "response": [
+        ""
+      ],
+      "latency_s": 2.037,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "MUL-03",
+      "module": "MUL",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "MUL-03",
+        "score": 0.0,
+        "issues": [
+          "adapter_error"
+        ],
+        "criticals": [],
+        "detail": {}
+      },
+      "response": [
+        ""
+      ],
+      "latency_s": 2.058,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "MUL-04",
+      "module": "MUL",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "MUL-04",
+        "score": 0.0,
+        "issues": [
+          "adapter_error"
+        ],
+        "criticals": [],
+        "detail": {}
+      },
+      "response": [
+        ""
+      ],
+      "latency_s": 2.053,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "CMP-01",
+      "module": "CMP",
+      "kind": "dm",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "CMP-01",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.054,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "CMP-02",
+      "module": "CMP",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "CMP-02",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.056,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "CMP-03",
+      "module": "CMP",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "CMP-03",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.061,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    },
+    {
+      "task_id": "CMP-04",
+      "module": "CMP",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "CMP-04",
+        "score": 0.0,
+        "issues": [
+          "adapter_error:<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": false
+        }
+      },
+      "response": "",
+      "latency_s": 2.033,
+      "error": "<urlopen error [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение>"
+    }
+  ]
+}

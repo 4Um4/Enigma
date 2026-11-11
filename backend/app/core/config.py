@@ -87,7 +87,7 @@ class Settings(BaseSettings):
     # Probe v2+v3 winner: SCORE 89.62 (v2) / 82.68 (v3), 0 errors, censorship 1.00
     # Non-breaking: model_id stays "qwen_7b" (17 refs), only file path swapped
     llama_cpp_model_path: str = str(
-        BASE_DIR / "Models LLM" / "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf"
+        BASE_DIR / "Models LLM" / "Lumimaid-v0.2-8B-Q4_K_M-imat.gguf"
     )
 
     # Единый источник истины для API и LLM портов
@@ -179,7 +179,7 @@ class Settings(BaseSettings):
     # ─────────────────────────────────────────────────────────────────
     # S380: qwen_7b = Hermes-3 (primary, default); key unchanged (17 refs non-breaking)
     model_qwen_7b_path: str = str(
-        BASE_DIR / "Models LLM" / "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf"
+        BASE_DIR / "Models LLM" / "Lumimaid-v0.2-8B-Q4_K_M-imat.gguf"
     )
     # S380: Qwen2.5-7B Q4_K_M (alternative)
     model_qwen_2_5_7b_path: str = str(
@@ -239,7 +239,7 @@ class Settings(BaseSettings):
             "qwen_7b": ModelConfig(
                 name="qwen_7b",
                 path=self.model_qwen_7b_path,
-                display_name="Hermes-3-Llama-3.1-8B Q4_K_M",
+                display_name="Lumimaid-v0.2-8B Q4_K_M",
                 vram_mb=4600,
                 context_size=8192,
                 temperature=0.9,

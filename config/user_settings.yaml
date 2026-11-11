@@ -1,6 +1,6 @@
 ai_model:
   model: qwen_7b
-  path: Models LLM\Hermes-3-Llama-3.1-8B.Q4_K_M.gguf
+  path: Models LLM\Lumimaid-v0.2-8B-Q4_K_M-imat.gguf
 content:
   individual:
     profanity_level: 2

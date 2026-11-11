@@ -22,6 +22,7 @@ from app.domain.conclusions import (
     ConclusionPredicate,
     ConclusionProposal,
 )
+from app.services.npc.conclusion_store import ConclusionApplyResult
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +47,8 @@ class ConclusionGate:
     # enum-члены; расширение = мини-ADR, класс ADR-O-349).
     _PREDICATES = {p.value for p in ConclusionPredicate}
 
-    # Диспатч: (proposal, clamped_confidence) -> bool (отклонение А).
-    ConsumerDispatch = Callable[[ConclusionProposal, float], bool]
+    # Диспатч: (proposal, clamped_confidence) -> ConclusionApplyResult | bool (отклонение А).
+    ConsumerDispatch = Callable[[ConclusionProposal, float], "ConclusionApplyResult | bool"]
 
     def __init__(self) -> None:
         # Идемпотентность (перенос AG1-INV-TRACE-ONCE):
@@ -115,7 +116,7 @@ class ConclusionGate:
         proposal: ConclusionProposal,
         consumer_dispatch: Optional[ConsumerDispatch] = None,
     ) -> bool:
-        """Валидация + диспатч потребителю + публикация трассы.
+        """Валидация + диспатч потребителю + публикация трассы (только при CREATED).
 
         Gate — аудит и трассировка, НЕ второй писатель (F2б): применение
         по ИМЕЮЩЕМУСЯ каналу потребителя — ConclusionStore.apply
@@ -127,56 +128,72 @@ class ConclusionGate:
 
         Публикация CONCLUSION_FORMED — observation-only (Закон XI):
         наблюдение не создаёт причинность и не роняет поток (XI.2);
-        отказ наблюдаем в логе. hasattr-guard — по образу DeltaGate :98:
-        член EventType появится в Шаге 4, гейт начнёт эмитить без
-        правок этого файла.
+        отказ наблюдаем в логе.
+
+        ВАЖНО: CONCLUSION_FORMED публикуется ТОЛЬКО при CREATED (новое формирование).
+        При REINFORCED (усиление существующего) событие НЕ публикуется, чтобы
+        избежать спама и ложных срабатываний downstream-слоёв (BC-2 мост и др.).
         """
+        from app.services.npc.conclusion_store import ConclusionApplyResult
+
         clamped = self.validate(proposal)
         if clamped is None:
             return False
 
+        apply_result = ConclusionApplyResult.CREATED  # default для dry-run
         if consumer_dispatch is not None:
-            ok = consumer_dispatch(proposal, clamped)
-            if not ok:
-                logger.warning(
-                    f"[CONCLUSION_GATE] потребитель отверг дельту "
-                    f"({proposal.trace_id}, {proposal.subject})"
-                )
-                return False
-
+            result = consumer_dispatch(proposal, clamped)
+            # consumer_dispatch возвращает ConclusionApplyResult или bool (legacy)
+            if isinstance(result, bool):
+                if not result:
+                    logger.warning(
+                        f"[CONCLUSION_GATE] потребитель отверг дельту "
+                        f"({proposal.trace_id}, {proposal.subject})"
+                    )
+                    return False
+            elif isinstance(result, ConclusionApplyResult):
+                apply_result = result
         key = (proposal.trace_id, proposal.subject, proposal.predicate.value)
         self._applied.add(key)
         logger.info(
             f"[CONCLUSION_GATE] применено: {key} = {clamped} "
-            f"(источник: {proposal.source}; parent: {proposal.causal_parent})"
+            f"(источник: {proposal.source}; parent: {proposal.causal_parent}; "
+            f"результат: {apply_result.value})"
         )
 
-        try:
-            from app.domain.events import EventDTO
-            from app.services.events.event_bus import get_event_bus
-            from app.services.events.event_types import EventType
+        # Публикация CONCLUSION_FORMED только при CREATED (новое формирование)
+        if apply_result == ConclusionApplyResult.CREATED:
+            try:
+                from app.domain.events import EventDTO
+                from app.services.events.event_bus import get_event_bus
+                from app.services.events.event_types import EventType
 
-            if hasattr(EventType, "CONCLUSION_FORMED"):
-                get_event_bus().publish(
-                    EventDTO.create(
-                        event_type=EventType.CONCLUSION_FORMED.value,
-                        source="conclusion_gate",
-                        payload={
-                            "owner_id": proposal.owner_id,
-                            "subject": proposal.subject,
-                            "predicate": proposal.predicate.value,
-                            "object": proposal.object,
-                            "confidence": clamped,
-                            "evidence": list(proposal.evidence),
-                            "trace_id": proposal.trace_id,
-                            "causal_parent": proposal.causal_parent,
-                            "source": proposal.source,
-                        },
-                        persistence_level="working",
+                if hasattr(EventType, "CONCLUSION_FORMED"):
+                    get_event_bus().publish(
+                        EventDTO.create(
+                            event_type=EventType.CONCLUSION_FORMED.value,
+                            source="conclusion_gate",
+                            payload={
+                                "owner_id": proposal.owner_id,
+                                "subject": proposal.subject,
+                                "predicate": proposal.predicate.value,
+                                "object": proposal.object,
+                                "confidence": clamped,
+                                "evidence": list(proposal.evidence),
+                                "trace_id": proposal.trace_id,
+                                "causal_parent": proposal.causal_parent,
+                                "source": proposal.source,
+                            },
+                            persistence_level="working",
+                        )
                     )
-                )
-        except Exception as _pub_err:  # noqa: ENIGMA001
-            # публикация трассы не роняет причинный поток (XI.2);
-            # отказ наблюдаем в логе (дословный прецедент DeltaGate :114-117)
-            logger.warning(f"[CONCLUSION_GATE] trace publish failed: {_pub_err}")
+            except Exception as _pub_err:  # noqa: ENIGMA001
+                # публикация трассы не роняет причинный поток (XI.2);
+                # отказ наблюдаем в логе (дословный прецедент DeltaGate :114-117)
+                logger.warning(f"[CONCLUSION_GATE] trace publish failed: {_pub_err}")
+        else:
+            logger.debug(
+                f"[CONCLUSION_GATE] reinforcement (без публикации): {key}"
+            )
+
         return True

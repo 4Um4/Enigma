@@ -1,66 +1,64 @@
-# ТЗ для следующей сессии — LLM verification
+# ТЗ для следующей сессии — Lumimaid production + improvements
 
-> Created: 2026-11-10
-> Previous: S-LLM-VERIFY-01 (Этапы 0-7 ТЗ_ЛЛМ_и_мозг_НПС.md)
+> Updated: 2026-11-10 v3
+> MIGRATED: Lumimaid-v0.2-8B = production LLM
 
 ## Что сделано
 
-- Этапы 0-3: археология, аудит контракта, golden corpus (4 документа)
-- Этапы 4-5: 35 моделей протестировано через probe v2
-- Этап 7: Scenario A — Hermes-3 остаётся production
-- probe_v2: 5 новых флагов (--gpu-layers, --no-jinja, --no-response-format, --ctx-size, --no-thinking-suppress)
-- GigaChat3.1 заработала: SCORE 49.08, latency 0.89s (fastest!)
-- GigaChat-20B НЕ viable на 8GB VRAM
+- 44 модели CCH + 6 моделей NPC + comprehensive benchmark (78 задач, 11 модулей)
+- Lumimaid выбрана: composite 29.26, WSI 0.80, GATE_JSON true, MUL 0.89
+- Migrated from Hermes-3 → Lumimaid (config.py, user_settings.yaml)
+- IPT: 52/2 (foreign WIP)
+- Production: Lumimaid на :8181, health OK
+- GBNF dm_response.gbnf создан (не в production pipeline)
+- Benchmark: backend/tests/LLM Benchmark/ENIGMA_LLM_COMPREHENSIVE_BENCHMARK.py
 
-## Текущее состояние
+## Production status
 
-Production: Hermes-3-Llama-3.1-8B Q4_K_M (SCORE 89.62)
-Production server: ОСТАНОВЛЕН (broker убит для VRAM)
-IPT: 51/3 (3 CRITICAL — foreign WIP)
+Model: Lumimaid-v0.2-8B-Q4_K_M-imat.gguf (4.58 GB)
+Server: localhost:8181 (health OK)
+ctx-size: 16384 (config.py:164)
+IPT: 52/2 (foreign WIP: avatar_intent_record.py, player_avatar_service.py)
 
-## Где документы
+## Приоритеты следующей сессии
+
+### 1. Few-shot Lumimaid для CCH BIO+CMP
+- BIO: 0.45 → цель 0.70 (few-shot примеры в chronicle_decompose_system)
+- CMP: 0.15 → цель 0.40 (complex scenarios)
+- Создать chronicle_decompose_system_fewshot.txt
+- Добавить --system-prompt-file в probe_v2
+- Прогнать CCH probe + comprehensive benchmark
+
+### 2. GBNF в production DM pipeline
+- config/dm_response.gbnf → server_lifecycle или router
+- Тест: production DM → всегда JSON {"dm_response":"..."}
+
+### 3. World-State Integrity в ResponseValidator
+- Проверять: модель не определяет результат действий игрока
+- Проверять: правильный NPC отвечает
+- Файл: backend/app/services/verbalization/response_validator.py
+
+### 4. Constraint violations (7 в benchmark)
+- Изучить какие constraints нарушаются
+- Возможно: system prompt усиление
+
+## Ключевые файлы
 
 | Что | Путь |
 |---|---|
+| Production model | Models LLM\Lumimaid-v0.2-8B-Q4_K_M-imat.gguf |
+| Config | backend/app/core/config.py (ctx_size=16384) |
+| Benchmark | backend/tests/LLM Benchmark/ENIGMA_LLM_COMPREHENSIVE_BENCHMARK.py |
+| Benchmark reports | backend/tests/LLM Benchmark/reports/ |
+| CCH probe | backend/tests/LLM Benchmark/probe_v2_cch_canonize.py |
+| NPC probe | backend/tests/LLM Benchmark/probe_npc_roleplay.py |
+| GBNF DM | config/dm_response.gbnf |
+| GBNF CCH | config/chronicle_decompose.gbnf |
+| CCH prompt | backend/prompts/chronicle_decompose_system.txt |
+| DM prompt | backend/prompts/dm_system.txt |
 | Финальный отчёт | docs/Почти Актуальные TZ/LLM_MODELS_2026_CCH_TEST.md |
-| Inventory | docs/research/LLM_PREVIOUS_TESTS_INVENTORY.md |
-| Contract matrix | docs/research/ENIGMA_LLM_CONTRACT_MATRIX.md |
-| Golden corpus | docs/research/ENIGMA_LLM_GOLDEN_CORPUS.md |
-| vLLM roadmap | docs/vllm_backend_roadmap.md |
-| Leaderboard (35) | reports/probe_v2/leaderboard.md |
-| probe_v2 (modified) | scripts/probe_v2_cch_canonize.py |
-| ТЗ (этот файл) | docs/Почти Актуальные TZ/ТЗ_NEXT_SESSION_LLM.md |
 
-## Приоритеты
+## Lumimaid profile (comprehensive benchmark)
 
-### 1. ПЕРЕЗАПУСТИТЬ production
-game_launcher → ensure_llm(label="backend") → Hermes-3 на :8181
-Проверить: localhost:8181/health + python backend/tests/IPT.py
-
-### 2. Few-shot Hermes (опционально)
-Создать chronicle_decompose_system_fewshot.txt (копия + примеры)
-Добавить --system-prompt-file в probe_v2
-Цель: SCORE 90+ (сейчас 89.62, gap 0.38)
-
-### 3. GigaChat3.1 улучшение (опционально)
-SCORE 49.08, weak: valid_items 0.83 (почти ничего не извлекает)
-Изучить raw_response в reports/probe_v2/ — почему?
-Оптимальные флаги: --no-jinja --ctx-size 16384
-
-### 4. vLLM backend (опционально, долгосрочно)
-Roadmap: docs/vllm_backend_roadmap.md
-Не критичен — llama-server работает с правильными флагами
-
-## Ключевые находки
-
-1. System prompt = 9170 tokens для GigaChat > 8192 context → --ctx-size 16384
-2. --jinja ломает GigaChat chat template → --no-jinja
-3. GigaChat3.1 fastest: 0.89s (1.8B MoE active vs Hermes 8B)
-4. Hermes tokenizer компактнее (system prompt fits 8192)
-5. response_format НЕ влияет на GigaChat3.1
-
-## Модели
-
-Production: Models LLM\Hermes-3-Llama-3.1-8B.Q4_K_M.gguf
-D:\LLM: 14 GGUF (87.66 GB) — см. inventory
-GigaChat3.1: D:\LLM\GigaChat3.1-10B-A1.8B-bf16.Q4_K_S.gguf (5.69 GB)
+composite: 29.26 | WSI: 0.80 | MEM: 0.82 | MUL: 0.89 | GATE_JSON: true
+Weak: BIO 0.45, CMP 0.15, CONSTRAINT_VIOLATION 7
