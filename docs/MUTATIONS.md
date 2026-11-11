@@ -571,3 +571,5 @@ Import RelationshipStore перемещён из runtime (line 62) в TYPE_CHECK
 
 ### Pending
 - A4-PoligonM: пресеты, INV-1, диф-тест О-2
+
+- **S5** (2026-11-11): Ветвь Б (Б1p). Опубликован канонический корпус $\ge биографий (blacksmith_orm, maid_lusya, guard_borko) в chronicles/ + utobiographies/. Разблокирован гейт CCH-6 для Ветви А.
