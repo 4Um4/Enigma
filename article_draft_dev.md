@@ -2,7 +2,7 @@
 title: "Your AI NPC Is Lying to You. It's Not the Model — It's Your Architecture"
 tags: ai, gamedev, python, architecture
 type: text_post
-cover_image: (сгенерировать/скриншот схемы слоёв — TRUTH / MEMORY / BELIEF)
+cover_image: article_cover.png (готов — в корне репо, 1280×720)
 ---
 
 Everyone blames the model when an AI character contradicts its own past.
