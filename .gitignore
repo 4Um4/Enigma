@@ -92,3 +92,18 @@ mypy_check_run.txt
 
 # P0-01: бэкапы вне git
 _backup/
+
+# Логи и артефакты прогонов (чистка S-cleanup: runtime-логи не являются кодом)
+*.log
+*.err
+logs/*.err
+reports/**/*.log
+docs/audits/*.log
+backend/reports/probes/*.log
+# Отладочные дампы и sandbox-выходы (генерируются npc_sandbox.py, не хранятся в git)
+backend/d_freeze.txt
+backend/mypy_backend_out.txt
+backend/sandbox_chart_*.png
+backend/sandbox_results.csv
+backend/character_debug_runtime.json
+backend/chronicle_audit_report*.json
