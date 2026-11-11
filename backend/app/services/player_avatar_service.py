@@ -302,8 +302,11 @@ class PlayerAvatarService:
                 if existing is not None:
                     self._identity_uuids_cache[campaign_id] = existing
                     return existing
-            except Exception:
-                pass  # Fall through to generate_new
+            except Exception as e:
+                logger.warning(
+                    f"[IDENTITY_UUIDS] Failed to load {path}: {e}. "
+                    f"Falling through to generate_new."
+                )
 
         # 3. Generate new + persist
         new_uuids = IdentityUUIDs.generate_new()

@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 from app.domain.intent_identity import IntentIdentity
-from app.models.npc_state import Intent
+from app.domain.npc_intent_enum import Intent
 
 
 @dataclass(frozen=True)

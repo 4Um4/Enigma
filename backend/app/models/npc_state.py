@@ -35,6 +35,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 from uuid import UUID
 
+from app.domain.npc_intent_enum import Intent  # enum перенесён в домен (INV-DOMAIN-PURITY)
 from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
 
 if TYPE_CHECKING:
@@ -102,32 +103,8 @@ BODY_STATE_HEALTHY = {
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-class Intent(str, Enum):
-    """Возможные намерения NPC. DecisionHub выбирает одно из них."""
-
-    IDLE = "idle"  # нет активного намерения
-    TALK = "talk"  # вступить в диалог
-    WARN = "warn"  # предупредить
-    INTIMIDATE = "intimidate"  # запугать
-    FLEE = "flee"  # уйти / сбежать
-    ATTACK = "attack"  # атаковать
-    HELP = "help"  # помочь
-    REPORT = "report"  # донести властям
-    TRADE = "trade"  # предложить сделку
-    OBSERVE = "observe"  # наблюдать, не действовать
-    EXPLAIN = "explain"  # ответить "почему" — для диалога
-    APPROACH = "approach"  # подойти к целевой сущности (игрок/NPC/объект)
-
-    # ── Проактивные интенты (Фаза 3.4: Agenda Loop) ─────────────────────
-    BLOCK_PATH = "block_path"  # преградить дорогу (шаг 9 из Мечты)
-    AMBUSH = "ambush"  # устроить засаду
-    SEEK_ALLY = "seek_ally"  # пойти за союзником
-    OFFER_JOB = "offer_job"  # предложить работу (Economic Engine)
-    REQUEST_SERVICE = "request_service"  # попросить об услуге
-    SPREAD_RUMOR = "spread_rumor"  # распространить слух (Social Graph)
-    CALL_FOR_HELP = "call_for_help"  # позвать на помощь
-    CHANGE_ROLE = "change_role"  # сменить роль (Role Transition)
-    STEAL = "steal"  # скрытое действие: кража (unlockable, OpportunityEngine, S209)
+# Intent enum перенесён в app/domain/npc_intent_enum.py (INV-DOMAIN-PURITY).
+# Реэкспортируется в начале файла для обратной совместимости.
 
 
 class WillState(str, Enum):
