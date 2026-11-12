@@ -690,6 +690,7 @@ def print_final_report(parsed: dict, verdict: str, reason: str) -> None:
 # ============================================================================
 
 def main() -> int:
+    global SCENARIO_TIMEOUT_SEC
     parser = argparse.ArgumentParser(description="P5-A A/B Experiment Runner")
     parser.add_argument("--skip-llm-check", action="store_true",
                         help="Skip LLM-server health check (use with caution).")
@@ -699,7 +700,6 @@ def main() -> int:
                         help=f"Per-scenario subprocess timeout (default: {SCENARIO_TIMEOUT_SEC}).")
     args = parser.parse_args()
 
-    global SCENARIO_TIMEOUT_SEC
     SCENARIO_TIMEOUT_SEC = args.timeout
 
     _section("P5-A A/B EXPERIMENT — SELF-CONTAINED AUTOMATION")
