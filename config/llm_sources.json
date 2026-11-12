@@ -1,4 +1,11 @@
-﻿{
+{
+    "lumimaid_8b_q4": {
+        "url": "https://huggingface.co/Reiterate3680/Lumimaid-v0.2-8B-GGUF/resolve/main/Lumimaid-v0.2-8B-Q4_K_M-imat.gguf",
+        "target_path": "Models LLM\\Lumimaid-v0.2-8B-Q4_K_M-imat.gguf",
+        "display_name": "Lumimaid-v0.2-8B Q4_K_M (рекомендуется)",
+        "required": true,
+        "recommended": true
+    },
     "pavelgpt_7b":  {
                         "url":  "https://huggingface.co/evilfreelancer/PavelGPT-7B-128K-v0.1-GGUF/resolve/main/ggml-model-Q4_K_M.gguf",
                         "target_path":  "Models LLM\\PavelGPT-7B-128K-v0.1.Q4_K_M.gguf",

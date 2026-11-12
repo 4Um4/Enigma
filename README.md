@@ -82,6 +82,22 @@ What it is: a 12-layer canonical construction enforced by 18 architectural laws 
 
 **Planned:** NL-12 (active deception) · EPI (information lifecycle) · WPS (world process simulation) · MAG (somatico-resonance magic, deferred)
 
+## Release build
+
+The release script builds one game entry-point, `Bloodloom.exe`. The loading
+screen is embedded in that executable and is started internally with `--splash`.
+The default command performs a local build and creates a portable ZIP without
+publishing or installing system drivers:
+
+```powershell
+.\publish_release.ps1 -CheckOnly
+```
+
+Use `-Publish` only when the build is ready to publish on GitHub. On first run,
+open Settings → LLM Models and download the recommended `Lumimaid-v0.2-8B
+Q4_K_M` model. At every launch the updater checks the latest GitHub release and
+shows a separate Yes/No confirmation before downloading it.
+
 ## Repository structure
 
 ```

@@ -245,7 +245,7 @@ def _ensure_llm_running() -> Optional[subprocess.Popen]:
     _model_path = getattr(
         _enigma_settings,
         "llama_cpp_model_path",
-        os.path.join(_ROOT, "Models LLM", "Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf"),
+        os.path.join(_ROOT, "Models LLM", "Lumimaid-v0.2-8B-Q4_K_M-imat.gguf"),
     )
     _file_exists = os.path.exists(_model_path)
     _file_size = os.path.getsize(_model_path) if _file_exists else 0

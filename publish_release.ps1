@@ -1,7 +1,13 @@
 
+param(
+    [switch]$Publish,
+    [switch]$CheckOnly
+)
+
 # publish_release.ps1
 # Скрипт автоматической сборки и публикации релиза Bloodloom
-# Порядок: версия (version.txt SSOT) → PyInstaller (Bloodloom.exe + Splash)
+# Порядок: версия (version.txt SSOT) → PyInstaller (один Bloodloom.exe;
+# splash запускается этим же EXE через параметр --splash)
 #          → чистый staging → установочник (Inno Setup, если установлен;
 #          иначе portable-ZIP) → публикация на GitHub Releases.
 
@@ -14,11 +20,20 @@ $SetupScriptPath = "enigma_setup.iss"
 # ПРОЦЕССА; они не совпадают, если скрипт запущен из другой папки).
 $RootDir = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
 $VersionFile = Join-Path $RootDir "version.txt"
-$StagingDir = "C:\DDD\Codex\VSC_Enigma\RELIZZ"
+$StagingDir = Join-Path (Split-Path -Parent $RootDir) "RELIZZ"
+$PythonExe = Join-Path $RootDir ".venv\Scripts\python.exe"
+if (-not (Test-Path $PythonExe)) {
+    $PythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
+}
 $GitHubLimit = 2147483648 # 2 ГБ — лимит одного ассета GitHub Releases
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 Write-Host "🚀 Начинаем сборку и публикацию релиза Bloodloom..." -ForegroundColor Cyan
+Set-Location -LiteralPath $RootDir
+if (-not $PythonExe -or -not (Test-Path $PythonExe)) {
+    Write-Host "❌ Не найден Python для сборки. Ожидался .venv\Scripts\python.exe или python в PATH." -ForegroundColor Red
+    exit 1
+}
 
 # --- Hygiene-гейт (P0-урок: NameError 'os' в незакоммиченном коде убил Фазу 5
 # на 357 тиках; релиз из грязной копии везёт непроверенный код). Спрашиваем
@@ -56,9 +71,9 @@ if ($parts.Length -lt 5 -or ($parts | Where-Object { $_ -notmatch '^\d+$' })) {
 $versionPrefix = "$($parts[0]).$($parts[1])"
 $counter = [int]$parts[2] * 100 + [int]$parts[3] * 10 + [int]$parts[4]
 $counter++
-$NewVersion = "$versionPrefix.$([math]::Floor($counter / 100)).$([math]::Floor(($counter % 100) / 10)).$($counter % 10)"
+$NewVersion = if ($CheckOnly) { $prev } else { "$versionPrefix.$([math]::Floor($counter / 100)).$([math]::Floor(($counter % 100) / 10)).$($counter % 10)" }
 
-Set-Content -Path $VersionFile -Value $NewVersion -NoNewline
+if (-not $CheckOnly) { Set-Content -Path $VersionFile -Value $NewVersion -NoNewline }
 
 # Синхронизация SSOT-файлов с новым значением version.txt.
 # ВАЖНО: файлы в UTF-8 БЕЗ BOM и содержат кириллицу — читаем/пишем через .NET
@@ -72,31 +87,44 @@ $constsBase = "$($Matches[1]).$($Matches[2]).$($Matches[3])"
 if ($constsBase -ne "$($parts[0]).$($parts[1]).$($parts[2])") {
     Write-Host "⚠️ База PROJECT_VERSION в $ConstsPath ($constsBase) расходится с $VersionFile ($versionPrefix.$($parts[2]).x) — синхронизирую по version.txt." -ForegroundColor Yellow
 }
-$consts = $consts -replace 'PROJECT_VERSION:\s*str\s*=\s*"[^"]*"', "PROJECT_VERSION: str = `"v$NewVersion`""
-[System.IO.File]::WriteAllText($ConstsPath, $consts, $Utf8NoBom)
+if (-not $CheckOnly) {
+    $consts = $consts -replace 'PROJECT_VERSION:\s*str\s*=\s*"[^"]*"', "PROJECT_VERSION: str = `"$NewVersion`""
+    [System.IO.File]::WriteAllText($ConstsPath, $consts, $Utf8NoBom)
+}
 
 $PyProjectPath = Join-Path $RootDir "backend\pyproject.toml"
 if (Test-Path $PyProjectPath) {
     $py = [System.IO.File]::ReadAllText($PyProjectPath, $Utf8NoBom)
-    $py = $py -replace '(?m)^(\s*version\s*=\s*)"[^"]*"', "`$1`"$NewVersion`""
-    [System.IO.File]::WriteAllText($PyProjectPath, $py, $Utf8NoBom)
+    if (-not $CheckOnly) {
+        $py = $py -replace '(?m)^(\s*version\s*=\s*)"[^"]*"', "`$1`"$NewVersion`""
+        [System.IO.File]::WriteAllText($PyProjectPath, $py, $Utf8NoBom)
+    }
+}
+$CitationPath = Join-Path $RootDir "CITATION.cff"
+if (-not $CheckOnly -and (Test-Path $CitationPath)) {
+    $citation = [System.IO.File]::ReadAllText($CitationPath, $Utf8NoBom)
+    $citation = $citation -replace '(?m)^version:\s*[^\r\n]+', "version: $NewVersion"
+    [System.IO.File]::WriteAllText($CitationPath, $citation, $Utf8NoBom)
+}
+$ReadmePath = Join-Path $RootDir "README.md"
+if (-not $CheckOnly -and (Test-Path $ReadmePath)) {
+    $readme = [System.IO.File]::ReadAllText($ReadmePath, $Utf8NoBom)
+    $readme = $readme -replace 'version-[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+-orange', "version-$NewVersion-orange"
+    $readme = $readme -replace 'version\s*=\s*\{[0-9.]+\}', "version      = {$NewVersion}"
+    $readme = $readme -replace '(?i)(Version\s+)[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+', "`${1}$NewVersion"
+    [System.IO.File]::WriteAllText($ReadmePath, $readme, $Utf8NoBom)
 }
 Write-Host "Версия обновлена: v$NewVersion (счётчик: $versionPrefix + $($parts[2]).$($parts[3]).$($parts[4]) -> $([math]::Floor($counter / 100)).$([math]::Floor(($counter % 100) / 10)).$($counter % 10))" -ForegroundColor Yellow
-# --- 2. Компиляция Bloodloom.exe и Splash Screen ---
-Write-Host "🔨 Компиляция Bloodloom.exe и Splash Screen..." -ForegroundColor Cyan
-python -m PyInstaller --onefile --noconsole --name Bloodloom_splash --icon=Bloodloom.ico splash.py
-if ($LASTEXITCODE -ne 0) { Write-Host "❌ Ошибка splash.py!" -ForegroundColor Red; exit }
-Move-Item -Path "dist\Bloodloom_splash.exe" -Destination "Bloodloom_splash.exe" -Force
-
-python -m PyInstaller --onefile --noconsole --name Bloodloom --icon=Bloodloom.ico updater.py
+# --- 2. Компиляция единственного Bloodloom.exe ---
+Write-Host "🔨 Компиляция единственного Bloodloom.exe..." -ForegroundColor Cyan
+& $PythonExe -m PyInstaller --onefile --noconsole --name Bloodloom --icon=Bloodloom.ico updater.py
 if ($LASTEXITCODE -ne 0) { Write-Host "❌ Ошибка updater.py!" -ForegroundColor Red; exit }
 Move-Item -Path "dist\Bloodloom.exe" -Destination "Bloodloom.exe" -Force
+Remove-Item -Path "Bloodloom_splash.exe" -Force -ErrorAction SilentlyContinue
 
-Remove-Item -Path "build\Bloodloom_splash" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "build\Bloodloom" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "Bloodloom.spec" -Force -ErrorAction SilentlyContinue
-Remove-Item -Path "Bloodloom_splash.spec" -Force -ErrorAction SilentlyContinue
-Write-Host "✅ Bloodloom.exe и Splash Screen собраны" -ForegroundColor Green
+Write-Host "✅ Единственный Bloodloom.exe собран; splash встроен и запускается через --splash" -ForegroundColor Green
 
 # --- 2.5 Подготовка чистой копии кода (Staging) ---
 Write-Host "📦 Подготовка кода (копирование исходников)..." -ForegroundColor Cyan
@@ -274,25 +302,14 @@ $nvidiaSmi = Get-Command nvidia-smi -ErrorAction SilentlyContinue
 if ($nvidiaSmi) {
     Write-Host "✅ CUDA обнаружен: $($nvidiaSmi.Source)" -ForegroundColor Green
 } else {
-    Write-Host "⚠️  CUDA не найден. Скачиваем и устанавливаем CUDA Runtime..." -ForegroundColor Yellow
-    $CudaUrl = "https://developer.download.nvidia.com/compute/cuda/12.6.1/local_installers/cuda_12.6.1_windows.exe"
-    $InstallerPath = Join-Path $Env:TEMP "cuda_12_6_1_windows.exe"
-    try {
-        Invoke-WebRequest -Uri $CudaUrl -OutFile $InstallerPath -UseBasicParsing
-        Write-Host "📥 Загружен CUDA installer" -ForegroundColor Cyan
-        Write-Host "🚀 Запуск установки CUDA в тихом режиме..." -ForegroundColor Cyan
-        $proc = Start-Process -FilePath $InstallerPath -ArgumentList "/silent,/install,/norestart" -Wait -PassThru
-        if ($proc.ExitCode -eq 0) {
-            Write-Host "✅ CUDA успешно установлен." -ForegroundColor Green
-        } else {
-            Write-Host "❌ Установка CUDA завершилась с кодом $($proc.ExitCode)." -ForegroundColor Red
-        }
-    } catch {
-        Write-Host "❌ Ошибка загрузки CUDA: $($_.Exception.Message)" -ForegroundColor Red
-    }
+    Write-Host "⚠️ CUDA не найден. Сборка продолжится; автоматическая установка драйвера запрещена." -ForegroundColor Yellow
 }
 
-# --- 5. Публикация на GitHub ---
+# --- 5. Публикация на GitHub (только с -Publish) ---
+if (-not $Publish) {
+    Write-Host "✅ Проверка сборки завершена. Публикация пропущена (для публикации используйте -Publish)." -ForegroundColor Green
+    exit 0
+}
 Write-Host "☁️ Публикация релиза на GitHub..." -ForegroundColor Cyan
 try {
     gh auth status 2>&1 | Out-Null

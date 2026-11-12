@@ -223,7 +223,9 @@ def get_model_status() -> Dict:
             "error_message": _DOWNLOAD_ERRORS.get(key, "Неизвестная ошибка") if is_error else "",
             "manual": False,
             "gated": info.get("gated", False),
-            "recommended": _vram_80_limit > 0 and _r_size_mb > 0 and _r_size_mb <= _vram_80_limit
+            "recommended": bool(info.get("recommended", False)) or (
+                _vram_80_limit > 0 and _r_size_mb > 0 and _r_size_mb <= _vram_80_limit
+            )
         }
 
     # Собираем пути файлов, которые уже есть в статусе, чтобы не дублировать

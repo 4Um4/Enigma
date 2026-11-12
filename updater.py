@@ -94,7 +94,10 @@ def main():
     os.chdir(app_dir)
 
     local_ver = get_local_version()
-    release = get_latest_release()
+    # Повторный запуск после отказа/неполного релиза не должен зациклить
+    # проверку обновления: дочерний процесс сразу запускает игру.
+    _skip_update = "--skip-update" in sys.argv
+    release = None if _skip_update else get_latest_release()
 
     if release:
         latest_ver = release.get('tag_name', '').lower().replace("v", "")
@@ -140,6 +143,9 @@ def main():
                         "Игра будет запущена на текущей версии.\n"
                         "Обновление можно скачать вручную со страницы релизов GitHub.")
                     _warn.destroy()
+                    _flags = 0x08000000 if sys.platform == 'win32' else 0
+                    subprocess.Popen([sys.executable, "--skip-update"], creationflags=_flags)
+                    os._exit(0)
 
                 main_path = os.path.join(temp_dir, "bloodloom_main_update.exe")
 
