@@ -10,6 +10,7 @@ __pycache__/
 backend/logs/
 backend/data/logs/
 *.log
+*.dump
 # Рантайм-состояние сессий — игрокские сейвы, не код (merge-конфликты)
 backend/data/sessions/
 # Тестовый мусор: mock-объект как campaign_id создал реальные директории
@@ -65,6 +66,10 @@ sleep_test.log
 mypy_report.txt
 docs/Научная обоснованность/_tex_src/
 backend/data/session_memory_*.jsonl
+
+# Generated trace streams; curated JSON reports and test fixtures remain tracked.
+artifacts/**/*.jsonl
+backend/audit_live/
 
 # Replay-сессии COV-1 (replay.db + .pre-migration.bak, ~915 МБ — GitHub-лимиты)
 reports/replay_sessions/
