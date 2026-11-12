@@ -1006,6 +1006,15 @@ class NPCState:
         npc_dict["intent_progress_ticks"] = state.intent_progress_ticks
         npc_dict["last_intent_change"] = state.last_intent_change
 
+        # [A2/D-A02 / WARA §12.2] pressure_accumulator round-trip.
+        # causality_manifest.py:141 — DEBT, organ=relationship, terminal=decision,
+        # authority=CG-D-B1: персистенция обязательна (иначе каждый тик начинается
+        # с accumulated=0.0 — гистерезис DecisionHub мёртв). Tuple-key → "from|to".
+        npc_dict["pressure_accumulator"] = {
+            f"{_pk[0]}|{_pk[1]}": float(_pv)
+            for _pk, _pv in (state.pressure_accumulator or {}).items()
+        }
+
         # ADR-139: drives_runtime → npc_dict["drives"] (serialization mirror).
         # Write authority = state.drives_runtime. npc_dict = projection only.
         # Без этого mutation engine теряет результаты между тиками.
@@ -1319,6 +1328,13 @@ class NPCStateAdapter:
                 npc_dict.get("intent_progress_ticks", 0) or 0
             ),
             last_intent_change=int(npc_dict.get("last_intent_change", 0) or 0),
+            # [A2/D-A02 / WARA §12.2] pressure_accumulator round-trip (см. writer
+            # в to_persistence_dict). Десериализация "from|to"-ключа обратно в tuple.
+            pressure_accumulator={
+                tuple(_k.split("|", 1)): float(_v)
+                for _k, _v in (npc_dict.get("pressure_accumulator") or {}).items()
+                if "|" in _k
+            },
             # Living Activity (R1-фикс, инвариант ROLE_AUTHORITATIVE):
             # рантайм-роль первая (RoleTransition пишет при смене),
             # status_profile.title — фолбэк рождения. Без этого гейт

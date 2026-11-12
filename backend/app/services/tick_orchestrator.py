@@ -163,13 +163,21 @@ class TickOrchestrator:
         self._conclusion_collector: list = []
         self._conclusion_store: Any = None
         self._conclusion_gate: Any = None
+        # BC-2/ADR-O-XXX (dormant): атрибуты Expectation-слоя (симметрично BC-1).
+        # Создаются лениво в ensure_expectation_layer при BC2_ENABLED=1;
+        # здесь — декларация для статического анализа (Pylance) + INV-BC2-NOOP.
+        self._expectation_store: Any = None
+        self._expectation_collector: list = []
+        self._expectation_collector_subscribed: bool = False
         # BC-1: инициализация при ON — В ИНИЦИЕ, не в первом тике: подписка
         # коллектора обязана существовать ДО первых событий тика (трасса
         # EXPERIENCE_DELTA_COMMITTED публикуется ранними фазами). OFF →
         # ensure молчит (INV-BC1-NOOP).
         from app.services.memory.conclusion_runtime import ensure_conclusion_layer
-
         ensure_conclusion_layer(self)
+        # BC-2: ожидания (симметрично BC-1, INV-BC2-NOOP при OFF)
+        from app.services.memory.expectation_runtime import ensure_expectation_layer
+        ensure_expectation_layer(self)
         from app.services.npc.homeostasis_projector import HomeostasisProjector
 
         self._homeostasis_sub: HomeostasisProjector = HomeostasisProjector()
@@ -828,6 +836,12 @@ class TickOrchestrator:
                 getattr(self, "_conclusion_store", None) is not None  # noqa: ENIGMA002
             ):
                 ctx.scene_state["conclusions"] = self._conclusion_store.to_dict()
+            # BC-2: pre-commit проекция expectations (S193-паттерн, сосед
+            # conclusions; hasattr-guard держит тишину при OFF — INV-BC2-NOOP).
+            if (
+                getattr(self, "_expectation_store", None) is not None  # noqa: ENIGMA002
+            ):
+                ctx.scene_state["expectations"] = self._expectation_store.to_dict()
 
             # PR-6b (S268): терминальная материализация overlay → dict.
             # Один акт (атомарность транспорта): после этой строки все
@@ -2702,6 +2716,11 @@ class TickOrchestrator:
         )
 
         run_conclusion_formation_guarded(ctx=ctx, orchestrator=self)
+        # BC-2: формирование ожиданий после BC-1 (drain в том же тике N).
+        from app.services.memory.expectation_runtime import (
+            run_expectation_formation_guarded,
+        )
+        run_expectation_formation_guarded(ctx=ctx, orchestrator=self)
 
         run_phase_9_integration(ctx, deps)
 

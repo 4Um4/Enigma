@@ -54,7 +54,7 @@ CRIT закрывается раньше очереди (§0.2 правило 3)
 | ID | Файл | Огрех | Следствие | Класс | Гейт закрытия |
 |---|---|---|---|---|---|
 - [x] **D-A01 (CRIT)** — RCE fallback ложной памяти удалён. `extract_speech_events` больше не приписывает нарратив без кавычек целевому NPC как речь. Тест `test_rce_blocks_narrative_without_quotes` добавлен. IPT 54/0. (Ветвь А)
-| D-A02 | services/npc/decision_hub.py | compute() пишет state.pressure_accumulator при контракте READ ONLY | скрытая мутация входа; ломает temporal isolation и replay | HIGH | вход не мутирован; давление уходит в DecisionResult/StateDeltas |
+| D-A02 [x] **CRIT** | services/npc/decision_hub.py | compute() READ ONLY + WARA §12.2 — **CLOSED** 2026-11-12: мутации `:880`/`:916` перенесены в `StateDeltas.pressure_accumulator_update` (спец-поле по образцу intent); WARA §12.2 восстановлен (`to_persistence_dict:1013` + `from_legacy:1333` — по `causality_manifest:141` DEBT/terminal=decision обязателен) | скрытая мутация входа ломала temporal isolation/replay; WARA-разрыв = гистерезис давления мёртв в проде (accumulated обнулялся каждым тиком) | **CRIT** (был HIGH) | ✅ D-A02 unit 6/6 (`test_d_a02_read_only_and_roundtrip.py`); IPT 54/54 · 0 CRITICAL; BC-1 6/6; регресс 40/40 (intent/contracts/decision) |
 | D-A03 | services/memory/memory_manager.py | object.__setattr__(npc_state, "narrative_cache", …) | обход frozen-контракта; второй писатель NPCState | MED | единый write-path + ADR о владельце |
 | D-A04 | services/memory/memory_manager.py | _mem_id = event.id:npc_id:md5(summary) | одинаковый текст в разных контекстах схлопывается | MED | две одинаковые реплики в разных тиках = две записи |
 | D-A05 | services/npc/npc_tick_pipeline.py | causal slices: except → warning → no-op; allies=0 захардкожен | документированная ≠ живая причинность; слой молча мёртв | HIGH | ablation: убери слой → поведение изменилось; fail-loud |
@@ -97,10 +97,10 @@ CRIT закрывается раньше очереди (§0.2 правило 3)
 
 | Шаг | Работа | Пререквизит | Гейт |
 |---|---|---|---|
-| А0 | вход §1 + живой IPT + археология §3.6 | — | 0 CRITICAL |
-| А1 | D-A01 RCE: убрать fallback «весь текст = речь» | — | CRIT закрыт |
-| А2 | D-A02 DecisionHub: чистота compute() | — | вход не мутирован; replay-паспорт совпал |
-| А3 | BC-2 Conclusion → Expectation → BC-3 | BC-1 закрыт | §9.10; full-cell GC-04 позже |
+| А0 [x] | вход §1 + живой IPT + археология §3.6 | — | 0 CRITICAL |
+| А1 [x] | D-A01 RCE: убрать fallback «весь текст = речь» | — | CRIT закрыт |
+| А2 [x] | D-A02 DecisionHub: чистота compute() — **CLOSED** 2026-11-12: READ ONLY восстановлен (мутация через `StateDeltas.pressure_accumulator_update`, спец-поле по образцу `intent`/`intent_tick`); WARA §12.2 восстановлен. severity HIGH → CRIT (см. §2.1) | — | ✅ вход не мутирован; replay-паспорт совпал (T6 determinism); D-A02 unit 6/6; IPT 54/54 |
+| А3 [~] | BC-2 Conclusion → Expectation → BC-3 | BC-1 закрыт | §9.10; full-cell GC-04 позже |
 | А4 | MEM-0 → MEM-1 → MEM-2 | S1 ✅ | §9.3e MEM-GC |
 | А5 | NL-0 → NL-1 (миграция event_memories поверх раннера S1) | S1 ✅ | §9.3b NL-GC |
 | А6 | D-A05 causal slices: оживить или похоронить + ablation | — | реестр D-X07 по своим слоям |
@@ -113,6 +113,38 @@ CRIT закрывается раньше очереди (§0.2 правило 3)
 | А13 | MOT (§18), досье Р18 «Адаптация», RE-01 K removal-test | — | §9.10 |
 | А14 | D-A09 совместный ADR о единственном писателе | Б | ADR + гейт |
 | А15 | ТЗ модели: Этапы 1, 2, 3 | — | docs/research/* → передача Б |
+
+**А3 `[~]` · BC-2 — infrastructure DONE, closeout PENDING (2026-11-12)**
+
+Сделано:
+- 4 новых файла: `domain/expectations.py`, `services/npc/expectation_store.py`,
+  `services/npc/expectation_bridge.py`, `services/memory/expectation_runtime.py`.
+- Wiring: `tick_orchestrator.py` (3 точки: `__init__`, pre-commit, Phase 9 wrapper)
+  + `game_loop.py` (1 точка: restore). Симметрично BC-1, всё под `if bc2_enabled()`.
+- `BC2_ENABLED` зарегистрирован в `architecture/flags.yaml` (ROLLOUT-PENDING, default OFF).
+- IPT 54/54 · 0 CRITICAL · BC-2 unit 14/14 · BC-1 regress 6/6 (A/B/C/D/E/OFF).
+
+PENDING:
+1. **SUPERBOX полного цикла** (HANDOFF BC2-2 §11) — не написан.
+2. **Прод-formation заблокирован signal-gap**: `MAY_CAUSE_PHYSICAL_HARM` требует
+   `physical_strength` в `NPCState`; `MAY_USE_FORCE_IN_CONFLICT` требует aggression
+   taxonomy в `L1Chronicle`. Bridge корректно возвращает `[]` (Master §4 HANDOFF:
+   «не подменять отсутствие информации выдуманным сценарием»).
+3. **BC-3 LOCKED by Master** — входит в формулировку А3, но заморожен.
+
+Relay для MUTATIONS при закрытии серии:
+- IPT recursion в `load_npcs_merged` — единичный флейк (нет прямых/обратных
+  импортов BC-2 → `npc_loader`). Не BC-2.
+- Незакоммиченная чужая WIP в `conclusion_gate.py` (-143/+73) и
+  `conclusion_store.py` (-87/+87) — не моя, не трогаю. Master разводит при merge.
+- Pre-existing `SC-4` spatial coherence (maid_lusya pos far from fireplace) —
+  известный дефект зоны Б, исключён Master из BC-2 scope.
+
+Вердикты Master, ожидаемые для продолжения:
+- **Вариант разблокировки сигналов**: A (NPCState.physical_strength) /
+  B (L1Chronicle aggression taxonomy) / A+B / C (BC-1 extension — нарушает §5
+  HANDOFF) / D (BC-2 CLOSED as dormant infra, formation → отдельный А3.1).
+- **Cross-branch** на 4 точки в zone Б (фактически применены, симметричны BC-1).
 
 ---
 

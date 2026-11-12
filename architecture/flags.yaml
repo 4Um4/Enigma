@@ -199,6 +199,14 @@ flags:
     adr: ADR-O-381
     owner: A
     note: "открывается вместе с BC-2 (CONCLUSION->EXPECTATION)"
+  BC2_ENABLED:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: ROLLOUT-PENDING
+    adr: "ADR-O-XXX (BC-2, pending)"
+    owner: A
+    note: "BC-2 CONTEXTUAL EXPECTATION: Conclusion->Expectation bridge; dormant default OFF"
   DESIRES_ENABLED:
     type: env
     read_mode: call

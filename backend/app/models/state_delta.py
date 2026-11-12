@@ -14,7 +14,7 @@ ProactiveDecision.deltas_dict → мигрировано в StateDeltas.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, Optional, Union
+from typing import Dict, Union, Optional, Tuple
 
 from app.models.delta_payloads import (
     EconomicPayload,
@@ -143,6 +143,12 @@ class StateDeltas:
     # Тик решения (для intent_formed_at/last_intent_change): apply_batch-
     # контракт тик не несёт — везём в дельте (штампует пайплайн).
     intent_tick: Optional[int] = None  # W2: None=отсутствует, 0=валидный тик 0, N=тик N
+
+    # [D-A02 / A2] pressure-accumulator-провод: DecisionHub.compute() READ ONLY —
+    # мутация инерции давления идёт через дельту (по образцу intent), применяется
+    # в StateApplicator._apply_deltas (state.pressure_accumulator.update(...)).
+    # None = не трогать (мерж-семантика intent).
+    pressure_accumulator_update: Optional[Dict[Tuple[str, str], float]] = None
 
     # --- v2: Domain-Tagged Typed Payloads ---
     domain: Optional[DeltaDomain] = None  # Домен мутации (v2)

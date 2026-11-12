@@ -844,7 +844,12 @@ class DecisionHub:
         force_switch = fear_value > REACTIVE_URGENCY_THRESHOLD
 
         # ── Pressure Accumulation: накопление давления по парам ──
+        # [D-A02 / A2] READ ONLY: state.pressure_accumulator НЕ мутируется.
+        # Изменения собираются локально и уходят в DecisionResult через
+        # StateDeltas (спец-поле по образцу intent). Применение —
+        # StateApplicator._apply_deltas.
         # Ключ ВСЕГДА (str, str) — best_candidate_str из scores
+        _pressure_updates: Dict[Tuple[str, str], float] = {}
         acc_key = (
             (current_intent_str, best_candidate_str) if current_intent_str else None  # noqa: ENIGMA001
         )
@@ -877,7 +882,7 @@ class DecisionHub:
                         # внимание угаснет (cog={}) — каноничное затухание
                         # вернёт инерцию (сценарий Д) без TTL.
                         accumulated = 1.0
-            state.pressure_accumulator[acc_key] = accumulated
+            _pressure_updates[acc_key] = accumulated
 
         # 7.4: WHY-лог. Чтение capture-based трассировки (чистая функция).
         _why_comps = components_trace.get(best_candidate_str, {})
@@ -913,7 +918,7 @@ class DecisionHub:
 
         # Reset accumulator при смене (защита от hysteresis lock)
         if switched and acc_key:
-            state.pressure_accumulator[acc_key] = 0.0
+            _pressure_updates[acc_key] = 0.0
 
         if best_score < MIN_INTENT_SCORE:
             best_intent = Intent.IDLE
@@ -958,6 +963,18 @@ class DecisionHub:
             )
             best_intent = Intent.OBSERVE
         deltas = self._compute_deltas(state, personality, event, best_intent)
+        # [D-A02 / A2] pressure-дельта (special field, по образцу intent):
+        # едет через TickMutation.npc_deltas → StateApplicator.apply_batch →
+        # _apply_deltas → state.pressure_accumulator.
+        if _pressure_updates:
+            from app.models.state_delta import StateDeltas
+            deltas = list(deltas or []) + [
+                StateDeltas(
+                    npc_id=state.npc_id,
+                    pressure_accumulator_update=_pressure_updates,
+                    source="decision_hub",
+                )
+            ]
         narrative = None  # факт создаётся через MemoryManager.apply(), не здесь
 
         # В scores_trace попадают ТОЛЬКО числа для калибровки R4.2.

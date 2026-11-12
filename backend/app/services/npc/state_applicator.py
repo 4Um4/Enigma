@@ -791,6 +791,12 @@ class StateApplicator:
                     state.intent_progress_ticks * 0.3
                 )
 
+        # [D-A02 / A2] pressure-провод: DecisionHub.compute() READ ONLY —
+        # мутация идёт через спец-поле дельты (см. DecisionHub._pressure_updates).
+        if deltas.pressure_accumulator_update:
+            for _pk, _pv in deltas.pressure_accumulator_update.items():
+                state.pressure_accumulator[_pk] = float(_pv)
+
         # DEEP-015 FIX: Мёртвый код ExpectationStore (Reward Prediction Error) удалён.
         # SANATION-M1a: v2-поля IdentityPayload (identity_integrity_delta /
         # pressure_resistance_delta / will_state_override) читаются только по

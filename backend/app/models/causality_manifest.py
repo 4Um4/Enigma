@@ -185,6 +185,11 @@ FIELD_CAUSALITY: Dict[str, FieldCausality] = {
     "state_delta.new_trauma": FieldCausality("DEBT", organ="experience", terminal=None, authority="ADR-O-414"),
     "state_delta.identity_integrity_delta": FieldCausality("DEBT", organ="experience", terminal="decision", authority="ADR-O-414"),
     "state_delta.pressure_resistance_delta": FieldCausality("DEBT", organ="experience", terminal="decision", authority="ADR-O-414"),
+    # [A2/D-A02] pressure-провод инерции DecisionHub: DecisionHub.compute() →
+    # StateDeltas.pressure_accumulator_update → StateApplicator._apply_deltas →
+    # NPCState.pressure_accumulator (см. npc_state.pressure_accumulator, :141).
+    # По образцу intent/intent_tick — спец-поле, не domain-payload.
+    "state_delta.pressure_accumulator_update": FieldCausality("DEBT", organ="relationship", terminal="decision", authority="CG-D-B1"),
     "state_delta.will_state_override": FieldCausality("DEBT", organ=None, terminal="decision", authority="ADR-O-414"),
 
     # ═══ payload: emotion ═══

@@ -699,6 +699,33 @@ class GameLoop:
                     f"[BC1] conclusions restore failed: {_bc1_restore_err}"
                 )
 
+            # BC-2/ADR-O-XXX: restore expectations из scene_state
+            # (симметрично BC-1, S193-паттерн). Dormant-дисциплина
+            # (INV-BC2-NOOP): при OFF ключ не читается, стор не создаётся.
+            try:
+                from app.services.memory.expectation_runtime import bc2_enabled
+                from app.services.npc.expectation_store import (
+                    ContextualExpectationStore,
+                )
+
+                _expectation_data = (
+                    _scene.get("expectations", [])
+                    if _scene and bc2_enabled()
+                    else []
+                )
+                if _expectation_data:
+                    self._tick_orch._expectation_store = (
+                        ContextualExpectationStore.from_dict(_expectation_data)
+                    )
+                    logger.info(
+                        "[BC2] Restore: %s expectation(s) из scene_state",
+                        len(_expectation_data),
+                    )
+            except Exception as _bc2_restore_err:  # noqa: ENIGMA001
+                logger.warning(
+                    f"[BC2] expectations restore failed: {_bc2_restore_err}"
+                )
+
             # S211 (§18): инъекция резолвера в ACCUSE-гейт компилятора
             # последствий (late binding: контроллер собирается раньше ядра).
             _mvp = getattr(self, "mvp_controller", None)  # noqa: ENIGMA002
