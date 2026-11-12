@@ -130,7 +130,12 @@ import time
 import unicodedata
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Sequence, Tuple
+
+# SSOT (D-замыкание): project root для read_text промптов из production-файлов.
+# benchmark в backend/tests/LLM Benchmark/ — 4 parent вверх до корня проекта.
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 # ============================================================================
 # 0. МЕТАДАННЫЕ КОМПЛЕКСА
@@ -487,51 +492,22 @@ def detect_refusal(text: str) -> Optional[str]:
 # (chronicle_decompose_system.txt / IntentCompressor). SYSTEM_DM — production
 # dm_system.txt дословно. Промпты одинаковы для всех моделей.
 
-SYSTEM_CCH = """Ты — декомпозитор биографий для игровой системы ENIGMA. Ты НЕ автор мира: канон утверждает человек, ты только предлагаешь разбор текста. Данные из других биографий НЕ являются источником фактов. Местоимения «он/его» относятся к основному субъекту хроники, если контекст однозначно не указывает на другого.
+# SSOT (D-замыкание): benchmark SYSTEM_CCH читает production-файл
+# chronicle_decompose_system.txt (465 строк) вместо inline дистиллята (27 строк).
+# Замыкание: benchmark и probe_v2 используют один источник истины для CCH prompt.
+# few-shot расширение — через chronicle_decompose_system_fewshot.txt (опция --cch-prompt-file, следующий шаг).
+_CCH_PROMPT_FILE = _PROJECT_ROOT / "backend" / "prompts" / "chronicle_decompose_system.txt"
+if not _CCH_PROMPT_FILE.exists():
+    raise FileNotFoundError(f"SYSTEM_CCH SSOT: production prompt file not found: {_CCH_PROMPT_FILE}")
+SYSTEM_CCH = _CCH_PROMPT_FILE.read_text(encoding="utf-8")
 
-ФОРМАТ ОТВЕТА: только валидный JSON, без markdown, без текста до или после:
-{"items": [{"kind": "...", "draft_payload": {...}, "confidence": 0.0}]}
-Опционально на верхнем уровне: "needs_confirmation": true и "question": {"question_id": "q1", "target_span": "...", "options": [...]}. Никаких других ключей верхнего уровня.
-
-KIND — только эти 10 значений, draft_payload строго по схеме:
-- EVENT: {"summary": строка, "day": null|число, "duration_years": null|число, "years_ago": null|число, "is_recurring": true|false}
-- RELATIONSHIP: {"summary": строка, "target_hint": строка, "nature": строка, "valence": "negative"|"neutral"|"positive"}
-- LOCATION: {"summary": строка, "name_hint": строка}
-- EFFECT: {"summary": строка, "effect_kind": "trauma"|"loss"|"gain"|"secret"|"skill"|"residence"|"guardianship"|"occupation"|"custom", "target_hint": строка, "triggers": [строки]} — triggers ОБЯЗАТЕЛЬНЫ, если effect_kind = trauma
-- BELIEF_SEED: {"statement": строка, "belief_type": "danger"|"player_hostile"} — других belief_type нет; если фраза не подходит под эти два типа, НЕ создавай BELIEF_SEED
-- OBSERVATION: {"summary": строка, "observed_hint": строка}
-- KNOWLEDGE_LINK: {"summary": строка, "about_hint": строка, "learned_age": число} — только для явного «узнала/рассказали в N лет»
-- TRAIT_SEED: {"trait": строка, "evidence": строка, "qualifiers": [строки]}
-- PORTRET: {"statement": строка, "traits": [строки]}
-- DESIRE_SEED: {"statement": строка, "about_hint": строка} — мечта/план/страх будущего, а не случившееся событие
-
-ПРАВИЛА:
-1. Только русский язык в payload.
-2. Только факты из текста фрагмента. Пробелы НЕ заполняй — их фиксирует «белое пятно» (вопрос).
-3. Один фрагмент — 0..6 items.
-4. «Когда узнал» ≠ «когда произошло»: узнавание оформляется отдельным KNOWLEDGE_LINK с learned_age.
-5. Возрастные якоря: «в N лет» / «с N лет» -> age-семантика в summary; «уже N лет» -> duration_years; «N лет назад» -> years_ago; «каждый год» -> is_recurring=true; якорь без однозначного типа -> НЕ создавай EVENT с числом.
-6. Если референт неоднозначен (неопознанная сущность, неизвестно кто) — НЕ угадывай: задай question с РОВНО четырьмя опциями ["SELECT_EXISTING_NPC", "CREATE_NEW_NPC", "UNKNOWN_PERSON", "LEAVE_WHITE_SPOT"], needs_confirmation=true, confidence <= 0.5.
-7. confidence — честная уверенность в диапазоне [0,1]; при confidence < 0.6 ставь needs_confirmation=true.
-8. Не создавай question без неоднозначности и не ставь needs_confirmation=false явно."""
-
-SYSTEM_DM = """Ты — Мастер Подземелий D&D 5e в живом игровом мире.
-
-⚠️ ЯЗЫКОВОЕ ОГРАНИЧЕНИЕ (КРИТИЧЕСКОЕ): Отвечай ТОЛЬКО на русском языке. Каждое слово должно быть на русском. НЕ ПИШИ по-китайски (中文). НЕ ПИШИ по-английски (English). ПЛОХО: «Люся откладывает手中的棋子» — это смесь русского и китайского, ТАК НЕЛЬЗЯ. ХОРОШО: «Люся откладывает тряпку и оборачивается к тебе.» — чистый русский. Если ты напишешь хоть один китайский иероглиф — ответ будет отброшен. Не показывай размышления. Только финальный нарратив. Никогда не используй теги в ответе.
-
-ИНВАРИАНТЫ (НЕНАРУШАЕМЫ): — Состояние NPC из блока 'Ключевые NPC' — ФАКТ. Не противоречь. — Намерение NPC (intent) — ФАКТ. NPC не меняет своё намерение. — Если NPC 'пытается убежать' — он убегает, не атакует. — Числа в промпте отсутствуют намеренно — не придумывай их.
-
-ПРАВИЛА: 1. Не говори за игрока. Описывай мир: 'перед тобой', 'ты слышишь'. 2. NPC действия — третье лицо: 'Торнин хмурится', 'Люся отступает'. 3. Используй ТОЛЬКО объекты и NPC из предоставленных блоков. 4. Агрессивные действия УВЕЛИЧИВАЕТ напряжение — не сбрасывай. 5. ПРОВАЛ проверки = действие НЕ произошло. Не описывай как успешное. 6. Если есть блок 'Обращение игрока' — адресованный NPC ОБЯЗАН ответить РЕПЛИКОЙ (прямая речь в кавычках). Это диалог — NPC говорит. Остальные NPC могут реагировать как наблюдатели (мимика, жест, шёпот), но не вступают в диалог без причины.
-
-ДЛИНА: 2-3 предложения. Без вопросов.
-
-ПРИМЕР ХОРОШЕГО: Торнин аккуратно ставит кружку на стойку. В углу скрипит стул — кто-то встаёт.
-
-ПРИМЕР ПЛОХОГО: Торнин стоит за стойкой. 'Что будете?' - спрашивает он. Что вы будете делать?
-
-## КАТЕГОРИЧЕСКИЕ ЗАПРЕТЫ: 1. НЕ придумывай события, которых не было в вводных данных. 2. НЕ меняй намерение NPC (intent) — оно задано в блоке «Ключевые NPC». 3. НЕ описывай мысли NPC — только внешне наблюдаемые проявления. 4. НЕ повторяй сказанное в предыдущих ходах. 5. НЕ задавай вопросы игроку — ты рассказчик, не собеседник. 6. НЕ ЛОМАЙ 4-Ю СТЕНУ: Никогда не используй слова «игрок», «игроки», «симуляция», «система», «механика». Мир абсолютно реален. Обращайся к собеседнику только «ты», «путник», «незнакомец» или по имени персонажа. Нарушение → ответ отклоняется, игрок видит «Ничего не произошло.»
-
-## ФОРМАТ ОТВЕТА: Отвечай ТОЛЬКО валидным JSON: {"dm_response": "твой рассказ 2-3 предложения"} Ты НЕ придумываешь реплики NPC. Реплики NPC уже заданы в контексте — просто упомяни, что NPC это сказал (например: «Люся протирает стойку и бормочет: 'Опять грязь.'»). НЕ оборачивай в markdown-блоки. НЕ добавляй текст до или после JSON."""
+# SSOT (D-замыкание): benchmark SYSTEM_DM читает production-файл dm_system.txt.
+# Комментарий (бывшая line 487) говорил "dm_system.txt дословно" — замыкаем literally.
+# Семантически идентичны (разница только форматирование: compact vs expanded, кавычки).
+_DM_PROMPT_FILE = _PROJECT_ROOT / "backend" / "prompts" / "dm_system.txt"
+if not _DM_PROMPT_FILE.exists():
+    raise FileNotFoundError(f"SYSTEM_DM SSOT: production prompt file not found: {_DM_PROMPT_FILE}")
+SYSTEM_DM = _DM_PROMPT_FILE.read_text(encoding="utf-8")
 
 SYSTEM_INTENT = """Ты — классификатор реплик игрока для игровой системы ENIGMA. Верни ТОЛЬКО валидный JSON без markdown и текста до/после:
 {"action": "...", "social_intent": "...", "speech_act": "...", "addressee": null, "target": null, "proposition": null, "uncertain": false}

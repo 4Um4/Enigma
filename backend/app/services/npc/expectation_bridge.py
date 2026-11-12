@@ -83,7 +83,8 @@ def conclusion_to_expectations(
         confidence = conclusion.confidence без демпфера. НЕ утверждённый
         игровой закон. Review trigger: BC-2 closeout, до BC-3 integration.
     """
-    if conclusion.predicate != ConclusionPredicate.IS_DANGEROUS:
+    predicate_value: str = conclusion.predicate.value
+    if predicate_value != ConclusionPredicate.IS_DANGEROUS.value:
         return []
 
     parent_id = conclusion.conclusion_id()

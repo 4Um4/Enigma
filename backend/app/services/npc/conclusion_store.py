@@ -3,21 +3,20 @@
 Назначение: BC-1/ADR-O-381 — per-agent RAM-SSOT выводов (ConclusionRecord):
     apply = единственный write-path (диспатч-цель ConclusionGate; caller-guard
     по цензусу), reinforcement при повторной идентичности (union evidence +
-    confidence = max), read-API get_for, round-trip to_dict/from_dict через
+    confidence = max), read-API get/get_for, round-trip to_dict/from_dict через
     scene_state["conclusions"] (S193-паттерн: EpistemicStore). Персистенция —
-    ВНЕ стора: проекцию в scene_state делает оркестратор (tick_orchestrator:691-
-    паттерн); собственная SQLite ЗАПРЕЩЕНА (анти-паттерн ExpectationStore).
-Зависимости: app.domain.conclusions; sys, logging, typing.
-Основные сущности: ConclusionStore.
+    ВНЕ стора: проекцию в scene_state делает оркестратор; собственная SQLite
+    ЗАПРЕЩЕНА (анти-паттерн ExpectationStore).
+Зависимости: app.domain.conclusions; sys, logging, typing, enum.
+Основные сущности: ConclusionApplyResult, ConclusionStore.
 """
 
 from __future__ import annotations
 
-from enum import Enum
-
 import logging
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 from app.domain.conclusions import (
     CONCLUSION_SOURCE_DIRECT,
@@ -48,16 +47,11 @@ class ConclusionStore:
 
     Структура: owner_id -> {conclusion_id -> ConclusionRecord}.
     Идентичность записи = conclusion_id() = (owner, subject, predicate,
-    object, source) — паттерн MemoryCrystal.crystal_id() (урок 9.6:
-    одинаковые триплеты из разных каналов не схлопываются).
+    object, source) — паттерн MemoryCrystal.crystal_id().
 
-    INV-CONCLUSION-GATE: apply() разрешён ТОЛЬКО ConclusionGate
-    (caller-цензус; прецеденты BeliefState-guard S243 / PK-guard).
+    INV-CONCLUSION-GATE: apply() разрешён ТОЛЬКО ConclusionGate.
     Загрузка персистенции (from_dict) заполняет словарь напрямую,
-    минуя apply, — прецедент npc_loader/BeliefState: легальный писатель
-    найден round-trip-замком.
-    ВАЖНО: bc1_conclusion_test в цензус НЕ вносить — D-группа
-    экзамена обязана получать ArchitecturalViolationError (замок).
+    минуя apply (легальный писатель найден round-trip-замком).
     """
 
     _APPLY_ALLOWED_WRITERS = {
@@ -72,25 +66,12 @@ class ConclusionStore:
     def apply(
         self, proposal: ConclusionProposal, clamped_confidence: float
     ) -> ConclusionApplyResult:
-        """Диспатч-цель ConclusionGate (ConsumerDispatch-сигнатура).
+        """Диспатч-цель ConclusionGate.
 
         Новая идентичность -> запись -> CREATED.
         Существующая -> reinforcement -> REINFORCED:
         evidence = union, confidence = max(cur, clamped), origin-поля
-        (trace_id/causal_parent/formed_tick) НЕ переписываются — это
-        происхождение первого формирования, не текущее состояние.
-
-        confidence = max (не аддитивный рост) — анти-инфляция уверенности;
-        пороговое подкрепление (повторяемость -> усиление) = BC-4,
-        вне BC-1-скоупа. DELETE запрещён (append-only).
-
-        formed_tick: BC-1-срез кладёт 0 — тик недоступен в мембране без
-        расширения proposal (сигнатура диспатча зафиксирована F2б);
-        retrofit-заполнение — решение владельца (см. V-FT досье).
-
-        Returns:
-            ConclusionApplyResult.CREATED — новый ConclusionRecord сформирован.
-            ConclusionApplyResult.REINFORCED — существующий Conclusion усилен.
+        (trace_id/causal_parent/formed_tick) НЕ переписываются.
         """
         _caller = sys._getframe(1).f_globals.get("__name__", "")
         if _caller not in self._APPLY_ALLOWED_WRITERS:
@@ -116,6 +97,7 @@ class ConclusionStore:
         cid = record.conclusion_id()
         bucket = self._conclusions.setdefault(record.owner_id, {})
         existing = bucket.get(cid)
+
         if existing is None:
             bucket[cid] = record
             logger.debug(
@@ -147,31 +129,42 @@ class ConclusionStore:
             )
             return ConclusionApplyResult.REINFORCED
 
-    # ── READ (BC-2/сценарий; read-only) ────────────────────────────────
-
-    def get_for(self, owner_id: str) -> Tuple[ConclusionRecord, ...]:
-        """Все выводы owner'а (frozen-записи, кортеж наружу)."""
-        return tuple(self._conclusions.get(owner_id, {}).values())
+    # ── READ ───────────────────────────────────────────────────────────
 
     def get(
-        self, owner_id: str, subject: str, predicate: ConclusionPredicate
+        self, owner_id: str, subject: str, predicate: Any
     ) -> Optional[ConclusionRecord]:
-        """Точечный read по (owner, subject, predicate) — параллель
-        EpistemicStore.get: agent+proposition. Возвращает запись или None."""
-        for record in self._conclusions.get(owner_id, {}).values():
-            if record.subject == subject and record.predicate == predicate:
+        """Возвращает ConclusionRecord по owner_id, subject и predicate (первый найденный).
+
+        Используется тестами и downstream-слоями для точечной проверки наличия вывода.
+        """
+        bucket = self._conclusions.get(owner_id)
+        if not bucket:
+            return None
+
+        # Нормализуем predicate для сравнения (может быть enum или строка)
+        target_pred = predicate.value if hasattr(predicate, "value") else str(predicate)
+
+        for record in bucket.values():
+            if record.subject == subject and record.predicate.value == target_pred:
                 return record
         return None
 
+    def get_for(self, owner_id: str) -> List[ConclusionRecord]:
+        """Возвращает все выводы для данного owner_id."""
+        bucket = self._conclusions.get(owner_id, {})
+        return list(bucket.values())
+
     def __len__(self) -> int:
-        return sum(len(b) for b in self._conclusions.values())
+        """Возвращает общее количество записей во всех бакетах."""
+        return sum(len(bucket) for bucket in self._conclusions.values())
 
     # ── ROUND-TRIP (S193-паттерн; проекция/восстановление персистенции) ─
 
-    def to_dict(self) -> List[Dict[str, object]]:
+    def to_dict(self) -> List[Dict[str, Any]]:
         """Сериализация для scene_state["conclusions"] (оркестраторная
         проекция, Фаза 10 atomic_commit_all)."""
-        records: List[Dict[str, object]] = []
+        records: List[Dict[str, Any]] = []
         for bucket in self._conclusions.values():
             for record in bucket.values():
                 records.append(
@@ -192,9 +185,7 @@ class ConclusionStore:
 
     @classmethod
     def from_dict(cls, data: Optional[List[Dict[str, Any]]]) -> "ConclusionStore":
-        """Восстановление из scene_state (прецедент EpistemicStore.from_dict:
-        невалидная запись -> warning + skip, сцена жива). Заполняет напрямую,
-        минуя apply (цензус apply — только гейт)."""
+        """Восстановление из scene_state. Заполняет напрямую, минуя apply."""
         store = cls()
         if not data:
             return store
@@ -223,8 +214,6 @@ class ConclusionStore:
                     record.conclusion_id()
                 ] = record
             except Exception as e:  # noqa: ENIGMA001
-                # прецедент epistemic_store.py:88-89 — skip + warning,
-                # загрузчик не убивает сцену (L4: отказ наблюдаем в логе)
                 logger.warning(
                     f"[CONCLUSION_STORE] Failed to deserialize record: {e}"
                 )

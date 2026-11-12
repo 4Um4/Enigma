@@ -596,7 +596,7 @@ def import_normalizer():
         return None
 
 
-def run_test(model_path: Path, model_id: str, skip_stress: bool, gpu_layers: int = 99, no_thinking_suppress: bool = False, no_jinja: bool = False, no_response_format: bool = False, ctx_size: int = 8192) -> dict | None:
+def run_test(model_path: Path, model_id: str, skip_stress: bool, gpu_layers: int = 99, no_thinking_suppress: bool = False, no_jinja: bool = False, no_response_format: bool = False, ctx_size: int = 8192, system_prompt_file: str | None = None) -> dict | None:
     """Прогон полного теста для одной модели."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_dir = REPORTS_DIR / timestamp / model_id
@@ -649,10 +649,17 @@ def run_test(model_path: Path, model_id: str, skip_stress: bool, gpu_layers: int
     except Exception:
         vram_used_mib, vram_free_mib = 0, 0
 
-    if not PROMPT_FILE.exists():
-        print(f"[TEST] FATAL: prompt file not found: {PROMPT_FILE}", file=sys.stderr)
+        # SSOT (D-замыкание): --system-prompt-file позволяет override PROMPT_FILE.
+    # По умолчанию — chronicle_decompose_system.txt (production CCH prompt).
+    # fewshot вариант — chronicle_decompose_system_fewshot.txt (BIO калибровка Lumimaid).
+    _prompt_path = Path(system_prompt_file) if system_prompt_file else PROMPT_FILE
+    if not _prompt_path.is_absolute():
+        _prompt_path = ROOT / _prompt_path
+    if not _prompt_path.exists():
+        print(f"[TEST] FATAL: prompt file not found: {_prompt_path}", file=sys.stderr)
         return None
-    system_prompt = PROMPT_FILE.read_text(encoding="utf-8")
+    system_prompt = _prompt_path.read_text(encoding="utf-8")
+    print(f"[TEST] System prompt: {_prompt_path.name} ({len(system_prompt)} chars)")
 
     normalizer_mod = import_normalizer()
 
@@ -873,6 +880,7 @@ def main() -> int:
     parser.add_argument("--no-response-format", action="store_true", help="Disable response_format json_object (fix for models that reject it without --jinja)")
     parser.add_argument("--ctx-size", type=int, default=8192, help="Context size (default 8192, use 16384 for GigaChat/Qwen3)")
     parser.add_argument("--summary-only", action="store_true", help="Only render leaderboard from existing reports")
+    parser.add_argument("--system-prompt-file", help="Override system prompt file (default: chronicle_decompose_system.txt; use chronicle_decompose_system_fewshot.txt for BIO few-shot calibration)")
     args = parser.parse_args()
 
     if args.summary_only:
@@ -894,7 +902,7 @@ def main() -> int:
 
     model_id = args.model_id or mp.stem
 
-    result = run_test(mp, model_id, args.skip_stress, args.gpu_layers, args.no_thinking_suppress, args.no_jinja, args.no_response_format, args.ctx_size)
+    result = run_test(mp, model_id, args.skip_stress, args.gpu_layers, args.no_thinking_suppress, args.no_jinja, args.no_response_format, args.ctx_size, args.system_prompt_file)
 
     if result is None:
         return 2
