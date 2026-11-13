@@ -672,6 +672,14 @@ Import RelationshipStore перемещён из runtime (line 62) в TYPE_CHECK
 - SOC/MUL non-determinism (server restart noise — SOC 0.825→0.4875 между запусками, не caused by my changes)
 - Latency: grammar overhead ~2x (p50 1.0s→2.4s, p95 4.5s→16.9s)
 
+### TZ priority 3 — ResponseValidator World-State Integrity (S424 continued)
+- question_to_player check: ACTIVE — dm_system.txt "Без вопросов", любой '?' → fallback
+- player_action_result check: ACTIVE — "ты попал"/"ты промахнулся"/"проверка пройдена" → fallback (модель не определяет результат действий игрока)
+- addressee check: AVAILABLE but NOT WIRED — validate(addressee=...) параметр добавлен, _addressee_present() метод реализован. Wiring deferred: context.get("player_target_id") возвращает NPC ID (не display name), передача ID → false positive. Нужна ID→name resolution через DMFrame/npc_result roster.
+- Smoke test: 5/5 passed (question_to_player, wrong_addressee, player_action_result, valid response, backward compat addressee=None)
+- IPT: 55/0/0 (baseline улучшился 54→55 — foreign INV-FLAG-REGISTRY BC2_ENABLED fixed parallel session)
+- Files: backend/app/services/verbalization/response_validator.py (4 changes: signature + body + helpers + fallback map)
+
 ## S425 — A3 INFRASTRUCTURE CLOSED / formation -> A3.1 (doc-only, ветвь А)
 
 ### Суть

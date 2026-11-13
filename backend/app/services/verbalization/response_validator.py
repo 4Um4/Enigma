@@ -54,6 +54,7 @@ class ResponseValidator:
         can_move: bool = True,
         recent_text: Optional[str] = None,
         allowed_moving_npcs: Optional[set] = None,
+        addressee: Optional[str] = None,
     ) -> ValidationResult:
         """Основной метод валидации."""
         text = raw_response.strip() if raw_response else ""
@@ -101,6 +102,19 @@ class ResponseValidator:
         violation = self._check_forbidden(text)
         if violation:
             return self._fallback(violation)
+
+        # 6.5 Question to player (TZ priority 3: DM-контракт "Без вопросов" dm_system.txt)
+        if self._contains_question_to_player(text):
+            return self._fallback("question_to_player")
+
+        # 6.6 Addressee present (TZ priority 3: правильный NPC отвечает)
+        if addressee and not self._addressee_present(text, addressee):
+            return self._fallback("wrong_addressee")
+
+        # 6.7 Player action result (TZ priority 3: модель не определяет результат действий игрока)
+        _player_result = self._check_player_action_result(text)
+        if _player_result:
+            return self._fallback(_player_result)
 
         # 7. Очистка системных маркеров (whisper, [internal], *thought*)
         # Frontend определяет DeliveryType по ним, но сами маркеры не должны попадать в текст реплики.
@@ -252,6 +266,43 @@ class ResponseValidator:
         """
         return text
 
+    # TZ priority 3: World-State Integrity checks (S424)
+    _PLAYER_RESULT_PATTERNS = (
+        "ты попал",
+        "ты промахнулся",
+        "ты ранил",
+        "ты убил",
+        "ты ударил",
+        "ты преодолел",
+        "ты не смог",
+        "тебе удалось",
+        "тебе не удалось",
+        "проверка пройдена",
+        "проверка провалена",
+        "проверка успешна",
+        "проверка не удалась",
+    )
+
+    def _contains_question_to_player(self, text: str) -> bool:
+        """TZ priority 3: DM-контракт требует 'Без вопросов' (dm_system.txt).
+        Любой '?' в DM-ответе — нарушение. DM описывает мир, не ведёт диалог."""
+        return "?" in text
+
+    def _addressee_present(self, text: str, addressee: str) -> bool:
+        """TZ priority 3: если игрок адресовал NPC, этот NPC должен присутствовать в ответе.
+        DLG-01: игрок адресовал Устина, ответил Торнин — violation."""
+        return addressee.lower() in text.lower()
+
+    def _check_player_action_result(self, text: str) -> Optional[str]:
+        """TZ priority 3: DM не определяет результат действий игрока.
+        Механики (hit/miss, success/failure) — прерогатива game system, не LLM.
+        LLM описывает реакции мира, не исходы действий."""
+        lower = text.lower()
+        for pattern in self._PLAYER_RESULT_PATTERNS:
+            if pattern in lower:
+                return f"player_action_result:{pattern}"
+        return None
+
     def _check_forbidden(self, text: str) -> Optional[str]:
         """Проверяет forbidden actions из контракта."""
         lower = text.lower()
@@ -281,5 +332,7 @@ class ResponseValidator:
             "cannot_speak": "Ничего не произошло.",
             "cannot_move": "Ничего не произошло.",
             "unauthorized_movement_only": "Ничего не произошло.",
+            "question_to_player": "Ничего не произошло.",
+            "wrong_addressee": "Ничего не произошло.",
         }
         return _FALLBACK_MAP.get(reason, "Ничего не произошло.")
