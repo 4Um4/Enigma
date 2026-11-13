@@ -1212,3 +1212,10 @@ ADR-O-440 [STANDARD] **DecisionHub READ ONLY + StateDeltas.pressure_accumulator_
 ---
 
 ---
+ADR-O-441 [STANDARD] **NPC Runtime Persistence Recovery — восстановление commit → unlock_tick → atomic_commit_all** (S424; IMPLEMENTED, коммит `67a13349`)
+Суть: `SSM.commit()` принимал `npc_dicts`, но складывал только в `_last_committed_npcs_src` — снапшот для WorldProjectionBuffer, отключённого AUDIT #10. `unlock_tick()` коммитил `all_scenes` без `npc_states`, поэтому ветка `_upsert(runtime:{campaign})` в адаптере никогда не срабатывала. NPC runtime не переживал завершение сессии: body_state (injuries, blood_loss, pain), psyche.stress, drives, pressure_accumulator, strain_memory, intent-блок, narrative_cache, causal_ledger, глобальный location_id. Эмпирически: живая saves/enigma_runtime.db (409 КБ + WAL 4 МБ) содержала только два ключа scene:, ключа runtime: не было. Виновник — S1-FIX (INV-COMMIT-CARDINALITY) перенёс запись из Phase 10 в unlock_tick, не перенеся NPC-пейлоад; докстринг SSM:1285 и комментарий life_engine:1012 остались фоссилами. Восстановлено R1–R6: tick-scoped аккумулятор, deepcopy-снимок (владение all_npcs_raw НЕ передаётся), передача npc_states, ERROR при False (контракт -> None сохранён), сброс в finally обеих веток, INV-NPC-RUNTIME-ROUNDTRIP [CRITICAL].
+❌ Taboo: поверхностная копия снимка (разделит body_state/drives/psyche с живым кэшем); переиспользование _last_committed_npcs_src под коммит (иная семантика state_t-1); молчаливое проглатывание False от atomic_commit_all; сброс снимка только в persist-ветке; изменение адаптеров/порта/сериализатора ради проводки; выдумывание утраченных injuries/blood_loss/stress; расширение патча на legacy-диагностику загрузчика.
+Status: IMPLEMENTED (S424, коммит `67a13349`; IPT 55/0/0 против 54/1/1 без патча; adapter-level round-trip 4 passed; регрессия сцен 16 passed)
+Files: `backend/app/services/scene_state_manager.py` (R1 init, R2 commit, R3+R4 unlock_tick, R5 finally), `backend/tests/IPT.py` (INV-NPC-RUNTIME-ROUNDTRIP), `backend/tests/micro/test_npc_runtime_persistence.py` (T1/T2/T3/T6)
+
+---
