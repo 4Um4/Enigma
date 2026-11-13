@@ -537,8 +537,9 @@
 
 ### ADR
 
-- ADR-O-439 — DecisionHub READ ONLY + StateDeltas.pressure_accumulator_update — ACTIVE
-- IMPACT: `docs/audits/ADR-O-439_IMPACT.md`
+- ADR-O-440 — DecisionHub READ ONLY + StateDeltas.pressure_accumulator_update — ACTIVE
+  (renumber с O-439: коллизия с P1-01 ADR-O-439 Coordinate Frame W, обнаружено 2026-11-13)
+- IMPACT: `docs/audits/ADR-O-440_IMPACT.md`
 
 ### Relay
 

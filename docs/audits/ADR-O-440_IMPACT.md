@@ -1,4 +1,4 @@
-# ADR-O-439 Impact Audit
+# ADR-O-440 Impact Audit
 
 > Детальный аудит ОДНОГО ADR. Атлас: `docs/ADR (Architecture Decision Records).md`.
 > Связанные: ADR-O-381 (BC-1, dormant), ADR-O-414 (INV-CONSUMER-GAP), ADR-O-208 (L3-P1).
