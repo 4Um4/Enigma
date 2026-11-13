@@ -100,7 +100,7 @@ CRIT закрывается раньше очереди (§0.2 правило 3)
 | А0 [x] | вход §1 + живой IPT + археология §3.6 | — | 0 CRITICAL |
 | А1 [x] | D-A01 RCE: убрать fallback «весь текст = речь» | — | CRIT закрыт |
 | А2 [x] | D-A02 DecisionHub: чистота compute() — **CLOSED** 2026-11-12: READ ONLY восстановлен (мутация через `StateDeltas.pressure_accumulator_update`, спец-поле по образцу `intent`/`intent_tick`); WARA §12.2 восстановлен. severity HIGH → CRIT (см. §2.1) | — | ✅ вход не мутирован; replay-паспорт совпал (T6 determinism); D-A02 unit 6/6; IPT 54/54 |
-| А3 [x] INFRA | BC-2 Conclusion → Expectation: инфраструктура (DTO/Store/Bridge/Runtime/wiring) — **INFRASTRUCTURE CLOSED** 2026-11-13; BC-2 функционально НЕ закрыт, formation → А3.1 | BC-1 закрыт | ✅ unit 14/14; IPT 54/54 (0 CRITICAL); `BC2_ENABLED` = ROLLOUT-PENDING/OFF |
+| А3 [x] INFRA | BC-2 Conclusion → Expectation: инфраструктура (DTO/Store/Bridge/Runtime/wiring) — **INFRASTRUCTURE CLOSED** 2026-11-13; BC-2 функционально НЕ закрыт, formation → А3.1 | BC-1 закрыт | ✅ unit 14/14; IPT 55/0/0 (0 CRITICAL) @ e9762397; `BC2_ENABLED` = ROLLOUT-PENDING/OFF |
 | А3.1 | BC-2 Formation: реальные контекстные сигналы (`MAY_CAUSE_PHYSICAL_HARM` ← `physical_strength` в `NPCState`; `MAY_USE_FORCE_IN_CONFLICT` ← aggression taxonomy в `L1Chronicle`); требует ADR-O-XXX (разрешить при closeout) | А3 INFRA; вердикт Master по сигналам | ADR + F5-сценарий; `BC2_ENABLED` ON — отдельный вердикт |
 | А4 | MEM-0 → MEM-1 → MEM-2 | S1 ✅ | §9.3e MEM-GC |
 | А5 | NL-0 → NL-1 (миграция event_memories поверх раннера S1) | S1 ✅ | §9.3b NL-GC |
@@ -123,7 +123,7 @@ CRIT закрывается раньше очереди (§0.2 правило 3)
 - Wiring: `tick_orchestrator.py` (3 точки: `__init__`, pre-commit, Phase 9 wrapper)
   + `game_loop.py` (1 точка: restore). Симметрично BC-1, всё под `if bc2_enabled()`.
 - `BC2_ENABLED` зарегистрирован в `architecture/flags.yaml` (ROLLOUT-PENDING, default OFF).
-- IPT 54/54 · 0 CRITICAL · BC-2 unit 14/14 · BC-1 regress 6/6 (A/B/C/D/E/OFF).
+- IPT 55/0/0 · 0 CRITICAL · BC-2 unit 14/14 · BC-1 regress 6/6 (A/B/C/D/E/OFF).
 
 PENDING:
 1. **SUPERBOX полного цикла** (HANDOFF BC2-2 §11) — не написан.
@@ -142,7 +142,7 @@ Relay для MUTATIONS при закрытии серии:
   известный дефект зоны Б, исключён Master из BC-2 scope.
 
 **Вердикт Master (2026-11-13): вариант D — APPROVED.**
-- A3 INFRASTRUCTURE CLOSED: DTO/Store/Bridge/Runtime/wiring. Подтверждено: unit 14/14; IPT 54/0/0 (0 CRITICAL); wiring под `if bc2_enabled()`.
+- A3 INFRASTRUCTURE CLOSED: DTO/Store/Bridge/Runtime/wiring. Подтверждено: unit 14/14; IPT 55/0/0 (0 CRITICAL, re-verified e9762397); wiring под `if bc2_enabled()`.
 - Formation (реальные контекстные сигналы) → **А3.1** (автономная задача; см. ROADMAP §0.2 Ступень 4, пункт BC-2.1).
 - `BC2_ENABLED` остаётся ROLLOUT-PENDING, default OFF. BC-2 функционально НЕ закрыт.
 - `ADR-O-XXX` для BC-2 — разрешить при closeout А3.1; произвольный номер не назначать.

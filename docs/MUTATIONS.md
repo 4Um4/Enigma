@@ -690,7 +690,7 @@ Import RelationshipStore перемещён из runtime (line 62) в TYPE_CHECK
 
 ### Доказательства
 - unit BC-2: 14/14 (`backend/tests/test_bc2_expectation_layer.py`)
-- IPT baseline: 54 passed / 0 failed / 0 CRITICAL, два прогона (HEAD 391805cd). Первый блок упал на PowerShell-ловушке `Stop`+`2>&1` на stderr `load_npcs_merged` (Завещание №16) — не код.
+- IPT baseline: **55 passed / 0 failed / 0 CRITICAL** ×2 на e9762397 (рост 54→55 = +66 строк IPT.py из 67a13349, persistence R1-R6); `a0de49ea` трогает только `verbalization/response_validator.py` (LLM-слой, не IPT-инвариант) — re-verify на A4 в окне тишины (§3.12). Первый блок упал на PowerShell-ловушке `Stop`+`2>&1` на stderr `load_npcs_merged` (Завещание №16) — не код.
 - Wiring: `tick_orchestrator.py` (3 точки) + `game_loop.py` (1 точка), под `if bc2_enabled()`
 
 ### Изменения (doc-only)
@@ -701,8 +701,11 @@ Import RelationshipStore перемещён из runtime (line 62) в TYPE_CHECK
 ### Не тронуто
 - production-код, `architecture/flags.yaml` (BC1_ENABLED/BC2_ENABLED без изменений), benchmark-отчёты — пользовательский WIP.
 
-### [ALARM] Пользовательский WIP исчез из git status
-Между разведкой (baseline) и пост-проверкой из working tree исчезли: `backend/tests/IPT.py` (~66 строк), `backend/app/services/scene_state_manager.py` (~25 строк), `backend/tests/LLM Benchmark/ENIGMA_LLM_COMPREHENSIVE_BENCHMARK.py`, `.pre_persist_bak`, `test_npc_runtime_persistence.py`, 3 × `reports/benchmark_lumimaid_*.json`. Мой скрипт их НЕ трогал (только три `.md`). `git diff --numstat` по ним пуст (совпадают с HEAD 391805cd). Вероятно — `git checkout --` параллельной сессией или вручную. HEAD не сдвинулся. Требует вердикта Master: восстановление из stash/reflog или подтверждение «так и надо».
+### Errata (2026-11-13, RESOLVED)
+
+Исходный `[ALARM]` был честным симптомом: между разведкой (baseline `391805cd`) и пост-проверкой три файла (`IPT.py` +66, `scene_state_manager.py` +25, `test_npc_runtime_persistence.py` +174) исчезли из `git diff --numstat`. Reflog-дознание показало: они **уже закоммичены** параллельной сессией как `67a13349 fix(persistence): restore NPC runtime commit path (R1-R6)` (264+/1−), плюс `ad706efb` (S424 Lumimaid, benchmark JSON ×3). Tag `pre-persist-recovery=391805cd` — точка «до», совпадает с baseline. Ничего не потеряно, скрипт S425 их не касался.
+
+`ADR-O-441` занят параллельной Б (S424-2, ResponseValidator WSI, `a0de49ea`). Для A3.1 closeout: next free = **O-442**.
 
 ### Pending / ADR
 - **ADR-O-XXX** для BC-2 не назначен. Разрешить при closeout А3.1 (не произвольным номером).
