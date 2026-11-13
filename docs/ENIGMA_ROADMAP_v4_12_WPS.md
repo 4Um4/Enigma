@@ -345,7 +345,8 @@
 - [ ] Досье контура; развилки Р1–Р7 — арбитру (GPT), не самостоятельно
 
 **Ступень 4 — AG1: эпистемический контур** (может идти параллельно Ступени 2)
-- [ ] **BC-2** Conclusion→Expectation: мини-ADR на открытие моста CONCLUSION→EXPECTATION (ADR-O-381 F3а) + BC1_ENABLED ON + потребитель ExpectationStore; DeltaGate-тропа, provenance, causal parent
+- [ ] **BC-2** Conclusion→Expectation: мини-ADR на открытие моста CONCLUSION→EXPECTATION (ADR-O-381 F3а) + BC1_ENABLED ON + потребитель ExpectationStore; DeltaGate-тропа, provenance, causal parent. **Infra DONE 2026-11-13 (S425):** `domain/expectations.py`, `services/npc/expectation_store.py`, `expectation_bridge.py`, `services/memory/expectation_runtime.py` + wiring (`tick_orchestrator.py` ×3, `game_loop.py` ×1) под `if bc2_enabled()`; unit 14/14; **BC-2 функционально НЕ закрыт** (`BC2_ENABLED` = ROLLOUT-PENDING/OFF) — formation → BC-2.1
+- [ ] **BC-2.1 (A3.1)** — BC-2 Formation: реальные контекстные сигналы (`MAY_CAUSE_PHYSICAL_HARM` ← `physical_strength` в `NPCState`; `MAY_USE_FORCE_IN_CONFLICT` ← aggression taxonomy в `L1Chronicle`). Автономная задача; пререквизит — ADR-O-XXX (разрешить при closeout, не произвольным номером); вердикт Master по сигналам (A/B/A+B); `BC2_ENABLED` ON — отдельный вердикт
 - [ ] BC-3 — Expectation → Decision (без action-флагов; full-cell GC-04)
 - [ ] BC-4 — Repeated evidence → Generalization
 - [ ] BC-5 — Personal experience → Social testimony

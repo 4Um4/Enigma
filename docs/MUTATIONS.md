@@ -671,3 +671,32 @@ Import RelationshipStore перемещён из runtime (line 62) в TYPE_CHECK
 - probe_v2 migrate to ensure_llm (письмо №16: probe_v2 still has own spawn_server port 8183)
 - SOC/MUL non-determinism (server restart noise — SOC 0.825→0.4875 между запусками, не caused by my changes)
 - Latency: grammar overhead ~2x (p50 1.0s→2.4s, p95 4.5s→16.9s)
+
+## S425 — A3 INFRASTRUCTURE CLOSED / formation -> A3.1 (doc-only, ветвь А)
+
+### Суть
+Вердикт Master 2026-11-13: вариант D. A3 разделён: инфраструктура BC-2 (DTO/Store/Bridge/Runtime/wiring) — CLOSED; formation из реальных контекстных сигналов — вынесена в А3.1. BC-2 функционально НЕ закрыт, `BC2_ENABLED` = ROLLOUT-PENDING/OFF.
+
+### Renumber S424 -> S425 (Anti-Race)
+Первая попытка (S424) отклонена гейтом: параллельная ветвь Б записала S424 (Lumimaid production, MUTATIONS:196127) между моим baseline-замером и записью. Прецедент S396/S380: номер — вывод при закрытии, max(live)+1. Живой max = S424 → S425. WORK_ORDER S424 не содержит, ROADMAP-ссылка `(S424)` поправлена на `(S425)`.
+
+### Доказательства
+- unit BC-2: 14/14 (`backend/tests/test_bc2_expectation_layer.py`)
+- IPT baseline: 54 passed / 0 failed / 0 CRITICAL, два прогона (HEAD 391805cd). Первый блок упал на PowerShell-ловушке `Stop`+`2>&1` на stderr `load_npcs_merged` (Завещание №16) — не код.
+- Wiring: `tick_orchestrator.py` (3 точки) + `game_loop.py` (1 точка), под `if bc2_enabled()`
+
+### Изменения (doc-only)
+- `docs/WORK_ORDER_TWO_BRANCHES.md`: §3 строка A3 → `A3 [x] INFRA` + новая `А3.1`; блок A3 — вердикт D; §11 п.8
+- `docs/MUTATIONS.md`: эта запись (S425)
+- `docs/ENIGMA_ROADMAP_v4_12_WPS.md` §0.2 Ступень 4: BC-2 — пометка infra DONE; BC-2.1 (A3.1) formation; ссылка `(S424)` → `(S425)`
+
+### Не тронуто
+- production-код, `architecture/flags.yaml` (BC1_ENABLED/BC2_ENABLED без изменений), benchmark-отчёты — пользовательский WIP.
+
+### [ALARM] Пользовательский WIP исчез из git status
+Между разведкой (baseline) и пост-проверкой из working tree исчезли: `backend/tests/IPT.py` (~66 строк), `backend/app/services/scene_state_manager.py` (~25 строк), `backend/tests/LLM Benchmark/ENIGMA_LLM_COMPREHENSIVE_BENCHMARK.py`, `.pre_persist_bak`, `test_npc_runtime_persistence.py`, 3 × `reports/benchmark_lumimaid_*.json`. Мой скрипт их НЕ трогал (только три `.md`). `git diff --numstat` по ним пуст (совпадают с HEAD 391805cd). Вероятно — `git checkout --` параллельной сессией или вручную. HEAD не сдвинулся. Требует вердикта Master: восстановление из stash/reflog или подтверждение «так и надо».
+
+### Pending / ADR
+- **ADR-O-XXX** для BC-2 не назначен. Разрешить при closeout А3.1 (не произвольным номером).
+- А3.1: ADR на `physical_strength` в `NPCState` и/или aggression taxonomy в `L1Chronicle` — отдельный вердикт Master.
+- Cross-branch на 4 точки в zone Б — в силе (симметрично BC-1).

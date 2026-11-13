@@ -100,7 +100,8 @@ CRIT закрывается раньше очереди (§0.2 правило 3)
 | А0 [x] | вход §1 + живой IPT + археология §3.6 | — | 0 CRITICAL |
 | А1 [x] | D-A01 RCE: убрать fallback «весь текст = речь» | — | CRIT закрыт |
 | А2 [x] | D-A02 DecisionHub: чистота compute() — **CLOSED** 2026-11-12: READ ONLY восстановлен (мутация через `StateDeltas.pressure_accumulator_update`, спец-поле по образцу `intent`/`intent_tick`); WARA §12.2 восстановлен. severity HIGH → CRIT (см. §2.1) | — | ✅ вход не мутирован; replay-паспорт совпал (T6 determinism); D-A02 unit 6/6; IPT 54/54 |
-| А3 [~] | BC-2 Conclusion → Expectation → BC-3 | BC-1 закрыт | §9.10; full-cell GC-04 позже |
+| А3 [x] INFRA | BC-2 Conclusion → Expectation: инфраструктура (DTO/Store/Bridge/Runtime/wiring) — **INFRASTRUCTURE CLOSED** 2026-11-13; BC-2 функционально НЕ закрыт, formation → А3.1 | BC-1 закрыт | ✅ unit 14/14; IPT 54/54 (0 CRITICAL); `BC2_ENABLED` = ROLLOUT-PENDING/OFF |
+| А3.1 | BC-2 Formation: реальные контекстные сигналы (`MAY_CAUSE_PHYSICAL_HARM` ← `physical_strength` в `NPCState`; `MAY_USE_FORCE_IN_CONFLICT` ← aggression taxonomy в `L1Chronicle`); требует ADR-O-XXX (разрешить при closeout) | А3 INFRA; вердикт Master по сигналам | ADR + F5-сценарий; `BC2_ENABLED` ON — отдельный вердикт |
 | А4 | MEM-0 → MEM-1 → MEM-2 | S1 ✅ | §9.3e MEM-GC |
 | А5 | NL-0 → NL-1 (миграция event_memories поверх раннера S1) | S1 ✅ | §9.3b NL-GC |
 | А6 | D-A05 causal slices: оживить или похоронить + ablation | — | реестр D-X07 по своим слоям |
@@ -114,7 +115,7 @@ CRIT закрывается раньше очереди (§0.2 правило 3)
 | А14 | D-A09 совместный ADR о единственном писателе | Б | ADR + гейт |
 | А15 | ТЗ модели: Этапы 1, 2, 3 | — | docs/research/* → передача Б |
 
-**А3 `[~]` · BC-2 — infrastructure DONE, closeout PENDING (2026-11-12)**
+**А3 `[x] INFRA` · BC-2 — INFRASTRUCTURE CLOSED / formation → А3.1 (2026-11-13, вердикт Master: вариант D)**
 
 Сделано:
 - 4 новых файла: `domain/expectations.py`, `services/npc/expectation_store.py`,
@@ -140,11 +141,12 @@ Relay для MUTATIONS при закрытии серии:
 - Pre-existing `SC-4` spatial coherence (maid_lusya pos far from fireplace) —
   известный дефект зоны Б, исключён Master из BC-2 scope.
 
-Вердикты Master, ожидаемые для продолжения:
-- **Вариант разблокировки сигналов**: A (NPCState.physical_strength) /
-  B (L1Chronicle aggression taxonomy) / A+B / C (BC-1 extension — нарушает §5
-  HANDOFF) / D (BC-2 CLOSED as dormant infra, formation → отдельный А3.1).
-- **Cross-branch** на 4 точки в zone Б (фактически применены, симметричны BC-1).
+**Вердикт Master (2026-11-13): вариант D — APPROVED.**
+- A3 INFRASTRUCTURE CLOSED: DTO/Store/Bridge/Runtime/wiring. Подтверждено: unit 14/14; IPT 54/0/0 (0 CRITICAL); wiring под `if bc2_enabled()`.
+- Formation (реальные контекстные сигналы) → **А3.1** (автономная задача; см. ROADMAP §0.2 Ступень 4, пункт BC-2.1).
+- `BC2_ENABLED` остаётся ROLLOUT-PENDING, default OFF. BC-2 функционально НЕ закрыт.
+- `ADR-O-XXX` для BC-2 — разрешить при closeout А3.1; произвольный номер не назначать.
+- Cross-branch на 4 точки в zone Б: остаётся в силе (симметрично BC-1).
 
 ---
 
@@ -301,6 +303,7 @@ Read-only для обеих до вердикта: §21 MAG, §22 WPS, §23 CGB,
 5. Публикация S2; ранний S5 (Б1p).
 6. P3-04 вариант A/B; P4-03 судьба зеркал.
 7. Окна тишины: расписание долгих прогонов.
+8. **A3/BC-2 (2026-11-13, вариант D — APPROVED):** инфраструктура BC-2 CLOSED; formation → А3.1 (автономная задача, ADR-O-XXX при closeout); `BC2_ENABLED` = ROLLOUT-PENDING/OFF; BC-2 функционально не закрыт.
 
 ---
 
