@@ -310,7 +310,10 @@ class SceneStateManager:
                             )
                         # M1b.4.2: маркер .migrated только ПОСЛЕ успешного коммита
                         # (ратифицировано: истина cutover — сохранённый v2, не маркер)
-                        self._confirm_v2_migration(campaign_id)
+                        # MARKER-GUARD (ADR-O-441): маркер только после успешного коммита.
+                        # Иначе rollback + .migrated навсегда скипают migrate_legacy:318.
+                        if _commit_ok:
+                            self._confirm_v2_migration(campaign_id)
                     # Диагностика: round-trip проверка — пережил ли traversal save→load?
                     if self._persistence and self._tick_scenes:
                         # Проверяем первую попавшуюся сцену из кэша
@@ -657,6 +660,11 @@ class SceneStateManager:
         Персист произойдёт в unlock_tick()."""
         scene_state.pop("snapshot_tick", None)
         self._strip_husk_npcs(scene_state)
+
+        # ADR-O-442: Spatial SSOT Adapter
+        from app.services.spatial.spatial_persistence_adapter import SpatialPersistenceAdapter
+        _loc_id = scene_state.get("location_id", "unknown")
+        SpatialPersistenceAdapter.prepare_scene_for_save(scene_state, _loc_id)
         # TICK-SCOPED IDENTITY: Внутри тика обновляем кэш, НЕ пишем на диск.
         # Запись на диск происходит один раз в unlock_tick().
         if self._tick_locked and self._tick_campaign_id == campaign_id:

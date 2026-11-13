@@ -35,7 +35,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 from uuid import UUID
 
-from app.domain.npc_intent_enum import Intent  # enum перенесён в домен (INV-DOMAIN-PURITY)
+from app.domain.npc_intent_enum import Intent as Intent  # enum перенесён в домен (INV-DOMAIN-PURITY)
 from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
 
 if TYPE_CHECKING:

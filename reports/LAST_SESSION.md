@@ -1,4 +1,4 @@
-# ENIGMA Session State — 2026-11-09 00:12
+# ENIGMA Session State — 2026-11-14 00:17
 
 Кампания: `?` | Игрок: `?`
 
@@ -16,28 +16,25 @@
 
 ## DNA — МЕТРИКИ ЗДОРОВЬЯ СИСТЕМЫ
 
-_Сессия: 6.1 мин | Тиков: 0 | LLM-вызовов: 0_
+_Сессия: 1.6 мин | Тиков: 48 | LLM-вызовов: 4_
 
 | Метрика | Значение | Δ от прошлой | Интерпретация для LLM |
 |---------|----------|--------------|----------------------|
-| **SHI** (Simulation Health) | 0% | ↓ -100.0% | ⛔ МЕРТВА: решений нет. Проверь DecisionHub.compute() |
-| **NPI** (NPC Pipeline) | 0% | ↓ -100.0% | нет данных о NPC |
+| **SHI** (Simulation Health) | 100% | → +0.0% | ✅ норма: NPC активно принимают решения |
+| **NPI** (NPC Pipeline) | 100% | → +0.0% | ✅ 6/6 NPC с реальными координатами |
 | **OBI** (Obedience) | 0% | → +0.0% | нет директив в сессии — OBI не применим |
 | **SCF** (Spatial Coherence) | 1.0 | → +0.0 | ✅ пространство целостно: граф загружен корректно |
 | **ADR** (Debt Ratio) | 0.00 | → +0.0 | нет ADR-записей — невозможно оценить |
-| **CVS** (Causal Velocity) | 0.00/мин | ↓ -1.0 | LLM не вызывалась: сессия без действий игрока |
-| **PFI** (Pre-Bus Failure) | 0% | → +0.0% | ✅ норма: пред-шинных отказов нет — CDS видит всё |
+| **CVS** (Causal Velocity) | 2.47/мин | ↑ +1.1 | ✅ 2.47/мин: активная сессия |
+| **PFI** (Pre-Bus Failure) | 2% | ↓ +0.9% | ⚠️ 1 пред-шинных отказов — CDS слеп к части крахов |
 | **Tracebacks** | 0 (AttrErr=0, TypeErr=0) | → | ✅ норма |
-| **BCI** (Belief Crystallization) | 0 (idx=0.00) | → | ⚠️ Память не кристаллизуется (BCI=0) |
-| **BPI** (Break Progress) | 0 (broken=0) | → | ⚠️ NPC не ломаются (BPI=0) |
+| **BCI** (Belief Crystallization) | 240 (idx=5.00) | → | ✅ Убеждения формируются |
+| **BPI** (Break Progress) | 333 (broken=0) | → | ✅ Давление доходит |
 | **NEI** (Need Urgency) | 0 (critical=0) | → | ⚠️ NPC слишком комфортны (NEI=0) |
 | **DRI** (Response Integrity) | 100% | → +0.0% | ✅ LLM отвечает на все запросы |
 | **DPI** (Dialogue Pipeline) | 100% | → +0.0% | ✅ Конвейер диалогов стабилен |
 
-**Системные сигналы (требуют внимания):**
-- NPI упал на -100%: spatial pipeline деградировал между сессиями
-
-_История: `reports/dna_history.jsonl` — 1337 записей_
+_История: `reports/dna_history.jsonl` — 1346 записей_
 
 ## 🟢 КРАСНЫЕ ИНВАРИАНТЫ — ТИХИЕ ДЕГРАДАЦИИ
 
@@ -57,11 +54,11 @@ _Не обнаружено — игра жива._
 _(баги не обнаружены в этой сессии)_
 
 ### Последние изменения (git log -5):
-  - 89d50e72 Release V.0.5.4.6.0 (Аватар 1)
-  - 590a39b7 S422: A4-K.2 — cosmetic cleanup state_applicator.py (TYPE_CHECKING import, RE-01)
-  - 0e83d747 docs(b4-r14): update COGNITIVE-CONTINUITY-01 and BUTTERFLY-01_GUIDE with B4-R14 closure status
-  - bd46a645 S421: A4-K.1 — dual-init self._relationships устранён (ADR-O-438, RE-01)
-  - b16bb9a7 fix(b4-r14): produces_claim gate around Proposition extraction - Knowledge/Communication separation
+  - 862aaeba S425-errata: [ALARM] RESOLVED (WIP=67a13349+ad706efb); IPT 55/0/0 @ e9762397; drop one-shot scripts
+  - 4f74171e docs(ADR-O-441): NPC Runtime Persistence Recovery — atlas entry + impact audit
+  - a0de49ea S424-2: ResponseValidator — TZ priority 3 World-State Integrity checks
+  - e9762397 S425: A3 INFRA CLOSED / formation -> A3.1 (doc-only, вариант D)
+  - ad706efb S424: Lumimaid SSOT prompts + GBNF grammar — BIO 0.7544, CMP 0.4875, composite 62.15
 
 ### Последние записи MUTATIONS.md:
   - (MUTATIONS.md не найден)
@@ -86,8 +83,13 @@ _(баги не обнаружены в этой сессии)_
 (не определено — обнови MUTATIONS.md)
 
 ### Состояние рендеринга (из последней сессии игры):
-- NPC с известными координатами (0):
-  - _(нет данных о координатах — SNAPSHOT-паттерн не сработал)_
+- NPC с известными координатами (6):
+  - `guard_borko`: x=36.6 y=9.4
+  - `merchant_goran`: x=46.4 y=15.3
+  - `maid_lusya`: x=35.4 y=9.2
+  - `blacksmith_orm`: x=46.4 y=15.3
+  - `thief_shadow`: x=67.0 y=11.0
+  - `tavern_keeper_tornin`: x=31.5 y=10.5
 - NPC без координат (lerp не работает, 0):
   - _(нет)_
 - Граф-fallback локаций: нет
@@ -109,17 +111,25 @@ _(см. секции #1 и #3 — файлы backend/app/services/)_
 ### Состояние симуляции (последняя сессия игры):
 
 **Tick Pipeline:**
-Тиков: 0 | Decisions > 0: 0/0 | LLM: 0 вызовов / 0 ответов | Симуляция: ✅ живёт
+Тиков: 48 | Decisions > 0: 2/48 | LLM: 4 вызовов / 0 ответов | Симуляция: ✅ живёт
 - LLM "Ничего не произошло": 0 раз
 - LLM CJK-галлюцинации: 0 строк
 - Стартап backend: ✅
 - LLM сервер: ❌ (не доступен при старте)
 
 **Предупреждения:**
-  - _(нет)_
+  - ⚠️ LLM вызывалась но ни разу не ответила — проверь llm_server
+  - ⚠️ КРИТИЧНО: 1 пред-шинных отказов (pipeline=0, causality=0, phase8=1, tick_orch=0) — CDS слеп к этим багам без Инварианта 3
 
 **Movement Pipeline (по NPC):**
-_Нет данных по NPC_
+| NPC | Intent | Score | Traversal | Координаты | Виден игроку |
+|-----|--------|-------|-----------|------------|--------------|
+| blacksmith_orm | help | 0.649 | ✅ | x=46.4 y=15.3 | ❌ |
+| guard_borko | flee | 0.768 | ✅ | x=36.6 y=9.4 | ❌ |
+| maid_lusya | flee | 1.337 | ✅ | x=35.4 y=9.2 | ❌ |
+| merchant_goran | idle | 0.000 | ✅ | x=46.4 y=15.3 | ❌ |
+| tavern_keeper_tornin | flee | 0.580 | ✅ | x=31.5 y=10.5 | ❌ |
+| thief_shadow | observe | 0.417 | ✅ | x=67.0 y=11.0 | ❌ |
 
 **NPC с разрывом в pipeline (intent есть, traversal нет):**
   - _(нет разрывов в movement pipeline)_

@@ -114,6 +114,11 @@ class MvpTavernController:
                 ) from e
 
     def init_campaign(self, campaign_id: str) -> None:
+        # Сброс при новой инициализации (фикс двойного вызова new_game)
+        self.belief_model = PlayerBeliefModel()
+        self.social_fabric = SocialFabricTracker()
+        self.fate_tracker = FateTracker()
+        self.faction_tracker = FactionAlignmentTracker()
         """Сброс состояния для новой кампании (канон уже загружен в __init__)."""
         self._campaign_id = campaign_id
 

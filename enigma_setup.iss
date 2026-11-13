@@ -1,7 +1,7 @@
 ; enigma_setup.iss — Скрипт установочника Bloodloom с лог-зоной (стиль Xatab)
 
 #ifndef AppVersion
-  #define AppVersion "0.5.4.6.4"
+  #define AppVersion "0.5.4.6.5"
 #endif
 
 [Dirs]

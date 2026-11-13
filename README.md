@@ -5,7 +5,7 @@
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22831764-blue)](https://doi.org/10.5281/zenodo.22831764)
 [![HuggingFace Space](https://img.shields.io/badge/%F0%9F%A4%97%20Space-ENIGMA-yellow)](https://huggingface.co/spaces/Um44/ENIGMA)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Version](https://img.shields.io/badge/version-0.5.4.6.4-orange)](https://github.com/4Um4/Enigma/releases)
+[![Version](https://img.shields.io/badge/version-0.5.4.6.5-orange)](https://github.com/4Um4/Enigma/releases)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 [![Commits](https://img.shields.io/github/commit-activity/y/4Um4/Enigma)](https://github.com/4Um4/Enigma/commits/main)
 
@@ -124,7 +124,7 @@ shows a separate Yes/No confirmation before downloading it.
 @software{gritsaenko_2026_enigma,
   author       = {Gritsaenko, M.},
   title        = {ENIGMA: Executable Epistemic Contracts in Deterministic Agent Simulation},
-  version      = {0.5.4.6.4},
+  version      = {0.5.4.6.5},
   year         = {2026},
   url          = {https://github.com/4Um4/Enigma},
   doi          = {10.5281/zenodo.22831764},
@@ -134,7 +134,7 @@ shows a separate Yes/No confirmation before downloading it.
 
 **APA:**
 
-> Gritsaenko, M. (2026). ENIGMA: Executable Epistemic Contracts in Deterministic Agent Simulation (Version 0.5.4.6.4) [Computer software]. https://doi.org/10.5281/zenodo.22831764
+> Gritsaenko, M. (2026). ENIGMA: Executable Epistemic Contracts in Deterministic Agent Simulation (Version 0.5.4.6.5) [Computer software]. https://doi.org/10.5281/zenodo.22831764
 
 ## Acknowledgments
 

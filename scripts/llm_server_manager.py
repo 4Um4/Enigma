@@ -21,13 +21,12 @@ import sys
 sys.path.insert(0, str(_BACKEND_DIR))
 
 from app.core.config import settings
-from app.services.llm.server_lifecycle import acquire_llama_server_lock
 from app.services.llm.runtime._proc import silent_subprocess_kwargs
-
+from app.services.llm.server_lifecycle import acquire_llama_server_lock
 
 logger = logging.getLogger(__name__)
 
-_llama_proc: Optional[subprocess.Popen] = None
+_llama_proc: Optional[subprocess.Popen[bytes]] = None
 
 
 def _port_owner_pid(port: int) -> str:
@@ -61,7 +60,7 @@ def _port_owner_pid(port: int) -> str:
 
 
 def _llama_env_fingerprint(
-    reuse: bool, spawn_pid: Optional[int] = None, spawn_cmd: Optional[list] = None
+    reuse: bool, spawn_pid: Optional[int] = None, spawn_cmd: Optional[list[str]] = None
 ) -> None:
     """[DET-ENV] отпечаток inference-окружения (вердикт Мастера,
     DEBT-INFERENCE-NONDET): без него det-замеры не имеют проверяемой

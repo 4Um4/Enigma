@@ -13,9 +13,12 @@ import logging
 import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import pygame
+
+if TYPE_CHECKING:
+    from world_context import ContextResolver, WorldViewContext
 
 logger = logging.getLogger(__name__)
 
@@ -546,6 +549,9 @@ class GameScreen:
         # MVP Mini-game: состояние финального экрана
         self.show_end_screen = False
         self.end_screen_data = None
+        self.exit_prompt_active = False
+        self._do_end_game = False
+        self.exit_prompt_cooldown = 0
         # FIX(cold start): читатель current_snapshot (вкладка «Мои убеждения»,
         # строка ~2135) не имел ни инициализации, ни писателя — AttributeError
         # на первом кадре с открытым журналом после свежей new_game.
@@ -857,6 +863,21 @@ class GameScreen:
                 if event.type == pygame.QUIT:
                     action_queue.stop()
                     return
+
+                # Обработка диалога подтверждения выхода
+                if getattr(self, "exit_prompt_active", False):
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_y:
+                            self.exit_prompt_active = False
+                            self._do_end_game = True
+                        elif event.key == pygame.K_n:
+                            self.exit_prompt_active = False
+                            # Защита от спама: даем 3 секунды, чтобы уйти от двери
+                            self.exit_prompt_cooldown = pygame.time.get_ticks() + 3000
+                            # Очищаем зажатые клавиши, чтобы игрок не продолжал бежать
+                            if 'held_keys' in locals():
+                                held_keys.clear()
+                    continue
                 # UI Workbench (F12): оверлей поверх сцены, мир на паузе.
                 # Активный Workbench ест ВСЕ события (окна + собственные
                 # хоткеи), игровые ветки недостижимы — это и есть пауза ввода.
@@ -1141,8 +1162,17 @@ class GameScreen:
                 npc_positions = scene_state.get("npc_positions", {})
                 px, py = _player_xy(scene_state)
                 
-                # MVP Mini-game: Триггер выхода из таверны (через южную дверь, Y >= 12.5)
-                if py >= 12.5 and not self.show_end_screen:
+                # MVP Mini-game: Триггер выхода СТРОГО из таверны
+                _now_ms = pygame.time.get_ticks()
+                _cur_loc = scene_state.get("current_location", "") or scene_state.get("location_id", "")
+                if _cur_loc == "tavern" and py >= 21.0 and not self.show_end_screen and not getattr(self, "exit_prompt_active", False) and not getattr(self, "_do_end_game", False) and _now_ms > getattr(self, "exit_prompt_cooldown", 0):
+                    self.exit_prompt_active = True
+                    # Принудительно останавливаем игрока при появлении окна
+                    if 'held_keys' in locals():
+                        held_keys.clear()
+
+                if getattr(self, "_do_end_game", False) and not self.show_end_screen:
+                    self._do_end_game = False
                     try:
                         # Сначала финализируем кампанию (сохраняем diff), потом читаем экран
                         if hasattr(_gateway, "finalize_campaign"):
@@ -2507,6 +2537,18 @@ class GameScreen:
                         return "END_SCREEN"
                 return "END_SCREEN_RUNNING"  # sentinel: кадр завершён, симуляция пропущена
 
+            if getattr(self, "exit_prompt_active", False):
+                overlay = pygame.Surface((self.screen.get_width(), self.screen.get_height()), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 180))
+                self.screen.blit(overlay, (0, 0))
+                font = pygame.font.SysFont("Arial", 32, bold=True)
+                text1 = font.render("Вы уверены, что ваше расследование завершено?", True, (255, 255, 255))
+                text2 = font.render("Y - Выйти, N - Продолжить", True, (200, 200, 200))
+                rect1 = text1.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2 - 20))
+                rect2 = text2.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2 + 20))
+                self.screen.blit(text1, rect1)
+                self.screen.blit(text2, rect2)
+
             pygame.display.flip()
             self.clock.tick(60)
 
@@ -2668,7 +2710,7 @@ class GameScreen:
         focus: PlayerFocus,
         walls: list,
         resolver: Optional["ContextResolver"] = None,
-        world_ctx: Optional["WorldContext"] = None,
+        world_ctx: Optional["WorldViewContext"] = None,
         location_id: str = "unknown",
     ) -> Optional[str]:
         """Обрабатывает клик. Возвращает npc_id если клик по NPC.
