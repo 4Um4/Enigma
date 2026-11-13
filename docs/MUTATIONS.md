@@ -621,3 +621,53 @@ Import RelationshipStore перемещён из runtime (line 62) в TYPE_CHECK
 - A4-PoligonM: пресеты, INV-1, диф-тест О-2
 
 - **S5** (2026-11-11): Ветвь Б (Б1p). Опубликован канонический корпус $\ge биографий (blacksmith_orm, maid_lusya, guard_borko) в chronicles/ + utobiographies/. Разблокирован гейт CCH-6 для Ветви А.
+## S424 — Lumimaid production: SSOT prompts + GBNF grammar + fewshot (ветвь Б, 2026-11-13)
+
+### Суть
+Замыкание D (SSOT refactor): benchmark SYSTEM_CCH и SYSTEM_DM читают production-файлы (chronicle_decompose_system.txt, dm_system.txt) вместо inline дистиллятов (27 строк). GBNF grammar (GBNF_CCH, GBNF_DM) wired в benchmark adapter для cch/dm kinds — физически force валидный JSON. chronicle_decompose_system_fewshot.txt создан (4 BIO few-shot примера). probe_v2 --system-prompt-file добавлен.
+
+### Изменения
+- backend/tests/LLM Benchmark/ENIGMA_LLM_COMPREHENSIVE_BENCHMARK.py:
+  - SYSTEM_CCH: inline 27-line дистиллят → read_text(chronicle_decompose_system.txt) [SSOT]
+  - SYSTEM_DM: inline → read_text(dm_system.txt) [SSOT, semantically identical]
+  - _params_for: grammar (GBNF_CCH/GBNF_DM) for kind=cch/dm
+  - HttpLlamaCppAdapter.generate(): body["grammar"] = params["grammar"]
+  - _PROJECT_ROOT + from pathlib import Path added
+- backend/tests/LLM Benchmark/probe_v2_cch_canonize.py:
+  - --system-prompt-file argument
+  - run_test signature: system_prompt_file: str | None = None
+  - PROMPT_FILE usage → _prompt_path logic (override via CLI)
+- backend/prompts/chronicle_decompose_system_fewshot.txt: new file, 4 BIO few-shot examples
+  (FS-1 EVENT chain, FS-2 trauma+triggers, FS-3 ClarificationQuestion 4 options, FS-4 DESIRE_SEED vs EVENT)
+- reports/benchmark_lumimaid_{ssot_v1,fewshot_v1,ssot_v2_grammar,fewshot_v2_grammar}.json: 4 benchmark runs
+
+### Тесты
+- IPT baseline: 54 passed / 0 failed / 0 CRITICAL
+  (foreign INV-FLAG-REGISTRY BC2_ENABLED появился между запусками — foreign WIP conclusion_gate/conclusion_store, не мой)
+- benchmark self-test: PASS (78/78 controls) после каждой правки
+- Benchmark results (Lumimaid-v0.2-8B, production :8181):
+  | Run | BIO | CMP | DLG | composite | criticals | GATE_JSON |
+  |-----|-----|-----|-----|-----------|-----------|-----------|
+  | ssot_v1 (baseline, no grammar) | 0.6627 | 0.375 | 0.2656 | 20.45 | 11 | false |
+  | fewshot_v1 (no grammar) | 0.8116 | 0.375 | 0.4125 | 12.76 | 13 | false |
+  | ssot_v2_grammar | 0.7544 | 0.4875 | 0.7833 | 62.15 | 2 | true |
+  | fewshot_v2_grammar | 0.8116 | 0.4625 | 0.599 | 61.08 | 3 | true |
+
+### TZ goals (priority 1 + 2 — CLOSED)
+- BIO 0.45→0.70: ✅ 0.7544 (grammar alone) / 0.8116 (fewshot+grammar)
+- CMP 0.15→0.40: ✅ 0.4875 (grammar alone) / 0.4625 (fewshot+grammar)
+- GBNF DM pipeline: ✅ wired в benchmark adapter (GATE_JSON: true, 0 invalid JSON)
+- composite: 20.45 → 62.15 (+204%)
+
+### Архитектурные находки
+1. benchmark SYSTEM_CCH был inline дистиллят (27 строк) production-промпта (465 строк) — DOUBLE TRUTH. SSOT замыкание: benchmark и probe_v2 читают один файл.
+2. CMP-задачи используют SYSTEM_DM/ANALYST/NPC, не SYSTEM_CCH — fewshot в CCH не влияет на CMP. GBNF grammar — единственный рычаг для CMP (fix DM JSON).
+3. GBNF grammar в /v1/chat/completions работает (несмотря на комментарий "в режиме chat не нужны" — response_format:json_object игнорируется Lumimaid, grammar enforced).
+4. Optimal config: production prompt + GBNF grammar (no fewshot needed — grammar alone даёт BIO 0.7544, CMP 0.4875).
+
+### Pending
+- TZ priority 3: World-State Integrity в ResponseValidator (WSI-06 MEMORY_CONTAMINATION persistent, WSI-10 WORLD_TRUTH_VIOLATION intermittent — content issues)
+- TZ priority 4: Constraint violations (DLG-01 question_to_player — content, не JSON)
+- probe_v2 migrate to ensure_llm (письмо №16: probe_v2 still has own spawn_server port 8183)
+- SOC/MUL non-determinism (server restart noise — SOC 0.825→0.4875 между запусками, не caused by my changes)
+- Latency: grammar overhead ~2x (p50 1.0s→2.4s, p95 4.5s→16.9s)

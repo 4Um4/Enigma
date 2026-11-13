@@ -1,0 +1,3561 @@
+{
+  "meta": {
+    "benchmark": "ENIGMA_LLM_COMPREHENSIVE_BENCHMARK",
+    "benchmark_version": "1.1.1",
+    "corpus_version": "1.1.1",
+    "methodology_version": "1.1.1",
+    "model_id": "lumimaid_ssot_v2_grammar",
+    "date_utc": "2026-11-13T15:00:49.502822+00:00",
+    "n_tasks": 78
+  },
+  "profile": {
+    "model_id": "lumimaid_ssot_v2_grammar",
+    "benchmark": "ENIGMA_LLM_COMPREHENSIVE_BENCHMARK",
+    "benchmark_version": "1.1.1",
+    "corpus_version": "1.1.1",
+    "methodology_version": "1.1.1",
+    "composite_score": 62.150000000000006,
+    "verdict": "NOT_READY",
+    "module_scores": {
+      "FG": 0.7181,
+      "WSI": 0.8464,
+      "ATT": 0.7609,
+      "BIO": 0.7544,
+      "MEM": 0.8194,
+      "ID": 0.6667,
+      "SOC": 0.4875,
+      "INT": 0.6531,
+      "DLG": 0.7833,
+      "MUL": 0.7389,
+      "CMP": 0.4875
+    },
+    "metric_scores": {
+      "contract_compliance": 0.721,
+      "world_state_integrity": 0.7062,
+      "fact_accuracy": 0.7419,
+      "attribution_accuracy": 0.7494,
+      "temporal_accuracy": 0.8365,
+      "causal_accuracy": 0.9667,
+      "semantic_accuracy": 0.862,
+      "context_retention": 0.7547,
+      "npc_identity": 0.678,
+      "social_reasoning": 0.5461,
+      "intent_decision_quality": 0.5881,
+      "dialogue_quality": 0.6883,
+      "russian_quality": 0.7983,
+      "multi_npc_interaction": 0.7033,
+      "robustness": 0.7727,
+      "json_validity": 1.0,
+      "schema_compliance": 0.8929
+    },
+    "critical_errors": {
+      "total": 2,
+      "by_type": {
+        "HALLUCINATION_FACT": 0,
+        "MEMORY_CONTAMINATION": 1,
+        "WORLD_TRUTH_VIOLATION": 0,
+        "FALSE_ACTION_CLAIM": 0,
+        "SPEAKER_ATTRIBUTION_ERROR": 0,
+        "ASSUMPTION_AS_FACT": 0,
+        "CONSTRAINT_VIOLATION": 1
+      },
+      "events": [
+        {
+          "task_id": "WSI-06",
+          "type": "MEMORY_CONTAMINATION",
+          "evidence": "contamination:['тайно встречается']",
+          "where": "response"
+        },
+        {
+          "task_id": "DLG-01",
+          "type": "CONSTRAINT_VIOLATION",
+          "evidence": "question_to_player",
+          "where": "dm_response"
+        }
+      ]
+    },
+    "hard_gates": {
+      "GATE_JSON": {
+        "ok": true,
+        "detail": "структурных заданий: 28, невалидных/ошибочных JSON: 0"
+      },
+      "GATE_ISOLATION": {
+        "ok": false,
+        "detail": "MEMORY_CONTAMINATION: 1"
+      },
+      "GATE_CENSORSHIP": {
+        "ok": true,
+        "detail": "отказов на тёмном контенте: 0"
+      },
+      "GATE_EPISTEMICS": {
+        "ok": true,
+        "detail": "ASSUMPTION_AS_FACT: 0"
+      },
+      "GATE_WORLD_TRUTH": {
+        "ok": true,
+        "detail": "WORLD_TRUTH_VIOLATION: 0"
+      }
+    },
+    "contrast_pairs": {
+      "results": [
+        {
+          "pair": "CG-01",
+          "complete": true,
+          "a_task": "WSI-01",
+          "b_task": "WSI-02",
+          "direction_ok": true,
+          "detail": {
+            "a_clean": true,
+            "b_flipped": true
+          }
+        },
+        {
+          "pair": "CG-02",
+          "complete": true,
+          "a_task": "WSI-03",
+          "b_task": "WSI-04",
+          "direction_ok": true,
+          "detail": {
+            "a_clean": true,
+            "b_flipped": true
+          }
+        },
+        {
+          "pair": "CG-03",
+          "complete": true,
+          "a_task": "ID-02",
+          "b_task": "ID-03",
+          "direction_ok": false,
+          "detail": {
+            "a_clean": false,
+            "b_flipped": true
+          }
+        },
+        {
+          "pair": "CG-04",
+          "complete": true,
+          "a_task": "ID-05",
+          "b_task": "ID-06",
+          "direction_ok": true,
+          "detail": {
+            "a_clean": true,
+            "b_flipped": true
+          }
+        },
+        {
+          "pair": "CG-05",
+          "complete": true,
+          "a_task": "CMP-02",
+          "b_task": "CMP-03",
+          "direction_ok": false,
+          "detail": {
+            "a_clean": false,
+            "b_flipped": true
+          }
+        }
+      ],
+      "sensitivity": 0.6
+    },
+    "flags": [],
+    "latency": {
+      "p50_s": 2.384,
+      "p95_s": 16.884,
+      "n": 78
+    },
+    "tasks_run": 78
+  },
+  "results": [
+    {
+      "task_id": "FG-01",
+      "module": "FG",
+      "kind": "cch",
+      "score": 0.6625,
+      "evaluation": {
+        "task_id": "FG-01",
+        "score": 0.6625,
+        "issues": [
+          "fact_recall_low"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "schema_conformance": 1.0,
+          "fact_recall": 0.375,
+          "hallucination_hits": [],
+          "echo_items": [],
+          "question_ok": true,
+          "cch_issues": [],
+          "items_detail": [
+            {
+              "index": 0,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 1,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 2,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            }
+          ]
+        }
+      },
+      "response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"начала работать в кузнице дяди Радомира\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"выковала первый клинок\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"куёт не менее трёх клинков в год\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": true}, \"confidence\": 1.0}\n]}",
+      "latency_s": 30.415,
+      "error": null
+    },
+    {
+      "task_id": "FG-02",
+      "module": "FG",
+      "kind": "cch",
+      "score": 0.625,
+      "evaluation": {
+        "task_id": "FG-02",
+        "score": 0.625,
+        "issues": [
+          "unconfirmed_not_flagged",
+          "fact_recall_low"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "schema_conformance": 1.0,
+          "fact_recall": 0.25,
+          "hallucination_hits": [],
+          "echo_items": [],
+          "question_ok": true,
+          "cch_issues": [],
+          "items_detail": [
+            {
+              "index": 0,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            }
+          ]
+        }
+      },
+      "response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"взял в жёны Веду\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 0.8}\n]}",
+      "latency_s": 1.492,
+      "error": null
+    },
+    {
+      "task_id": "FG-03",
+      "module": "FG",
+      "kind": "dm",
+      "score": 0.725,
+      "evaluation": {
+        "task_id": "FG-03",
+        "score": 0.725,
+        "issues": [
+          "npc_speaks:must_missing:['устин']"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "n_sentences": 3,
+          "rubric": {
+            "criteria": [
+              {
+                "id": "npc_speaks",
+                "ok": false,
+                "reason": "must_missing:['устин']",
+                "w": 1.0
+              },
+              {
+                "id": "act_consistent",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "{\n\"dm_response\": \"Торнин хмурится и поднимает взгляд от счетов. 'Я не знаю, о чем ты говоришь, путник. У меня нет лишнего полтина.'\"\n}",
+      "latency_s": 9.429,
+      "error": null
+    },
+    {
+      "task_id": "FG-04",
+      "module": "FG",
+      "kind": "dm",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "FG-04",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "n_sentences": 3,
+          "rubric": {
+            "criteria": [
+              {
+                "id": "npc_reacts",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "{\n\"dm_response\": \"Злата хмурится и продолжает запрягать телегу. 'Магический кристалл связи?' - она шепчет. 'Это что за бред?'\"\n}",
+      "latency_s": 1.928,
+      "error": null
+    },
+    {
+      "task_id": "FG-05",
+      "module": "FG",
+      "kind": "intent",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "FG-05",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "fields_ok": 3,
+          "fields_total": 3,
+          "proposition_ok": true
+        }
+      },
+      "response": "{\"action\": \"THREATEN\", \"social_intent\": \"obtain_compliance\", \"speech_act\": \"order\", \"addressee\": \"бандиты\", \"target\": null, \"proposition\": null, \"uncertain\": false}",
+      "latency_s": 2.953,
+      "error": null
+    },
+    {
+      "task_id": "FG-06",
+      "module": "FG",
+      "kind": "intent",
+      "score": 0.85,
+      "evaluation": {
+        "task_id": "FG-06",
+        "score": 0.85,
+        "issues": [
+          "action_mismatch:OBSERVE"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "fields_ok": 3,
+          "fields_total": 4,
+          "proposition_ok": true
+        }
+      },
+      "response": "{\"action\": \"OBSERVE\", \"social_intent\": \"obtain_cooperation\", \"speech_act\": \"request\", \"addressee\": \"Госпожа Веда\", \"target\": null, \"proposition\": null, \"uncertain\": false}",
+      "latency_s": 2.358,
+      "error": null
+    },
+    {
+      "task_id": "FG-07",
+      "module": "FG",
+      "kind": "intent",
+      "score": 0.6,
+      "evaluation": {
+        "task_id": "FG-07",
+        "score": 0.6,
+        "issues": [
+          "action_mismatch:OBSERVE",
+          "speech_mismatch:assert"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "fields_ok": 1,
+          "fields_total": 3,
+          "proposition_ok": true
+        }
+      },
+      "response": "{\"action\": \"OBSERVE\", \"social_intent\": \"obtain_information\", \"speech_act\": \"assert\", \"addressee\": null, \"target\": null, \"proposition\": {\"subject_id\": \"Зорян\", \"predicate\": \"stole\", \"object_id\": \"охотничьи трофеи\", \"polarity\": true}, \"uncertain\": false}",
+      "latency_s": 2.19,
+      "error": null
+    },
+    {
+      "task_id": "FG-08",
+      "module": "FG",
+      "kind": "cch",
+      "score": 0.65,
+      "evaluation": {
+        "task_id": "FG-08",
+        "score": 0.65,
+        "issues": [
+          "fact_recall_low"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "schema_conformance": 1.0,
+          "fact_recall": 0.3333,
+          "hallucination_hits": [],
+          "echo_items": [],
+          "question_ok": true,
+          "cch_issues": [],
+          "items_detail": [
+            {
+              "index": 0,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 1,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 2,
+              "ok": true,
+              "issues": [],
+              "kind": "EFFECT"
+            }
+          ]
+        }
+      },
+      "response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"взяв топор палача\", \"day\": null, \"duration_years\": null, \"years_ago\": 20}, \"confidence\": 1.0},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"казнил сорок человек\", \"day\": null, \"duration_years\": 10, \"years_ago\": null}, \"confidence\": 1.0},\n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"не спит до рассвета\", \"effect_kind\": \"custom\", \"target_hint\": null, \"triggers\": [\"ночь перед казнью\"]}, \"confidence\": 1.0}\n]}",
+      "latency_s": 8.885,
+      "error": null
+    },
+    {
+      "task_id": "FG-09",
+      "module": "FG",
+      "kind": "cch",
+      "score": 0.35,
+      "evaluation": {
+        "task_id": "FG-09",
+        "score": 0.35,
+        "issues": [
+          "item0:['confidence_invalid:None']",
+          "item1:['confidence_invalid:None']",
+          "item2:['confidence_invalid:None']"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "schema_conformance": 0.0,
+          "fact_recall": 0.8333,
+          "hallucination_hits": [],
+          "echo_items": [],
+          "question_ok": true,
+          "cch_issues": [
+            "item0:['confidence_invalid:None']",
+            "item1:['confidence_invalid:None']",
+            "item2:['confidence_invalid:None']"
+          ],
+          "items_detail": [
+            {
+              "index": 0,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "EVENT"
+            },
+            {
+              "index": 1,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "TRAIT_SEED"
+            },
+            {
+              "index": 2,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "PORTRET"
+            }
+          ]
+        }
+      },
+      "response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"начала работать в таверне \\\"Серебряный волк\\\"\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}},\n  {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"пекарь\", \"evidence\": \"научилась у повара печь капустные пироги\", \"qualifiers\": [\"только\"]}},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Люся с десяти лет прислуживает в таверне \\\"Серебряный волк\\\".\", \"traits\": []}}\n]}",
+      "latency_s": 13.625,
+      "error": null
+    },
+    {
+      "task_id": "WSI-01",
+      "module": "WSI",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "WSI-01",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "knows_fire",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "knows_no_details",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "no_cause",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Торвин знает, что ночью на складе купца Веды случился пожар, и склад сгорел. Это общеизвестная информация, доступная всем жителям квартала. Торвин лично не видел пожара и не знает о его причинах.",
+      "latency_s": 3.183,
+      "error": null
+    },
+    {
+      "task_id": "WSI-02",
+      "module": "WSI",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "WSI-02",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "knows_fire",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "knows_cause",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "knows_mechanism",
+                "ok": true,
+                "reason": "",
+                "w": 0.5
+              }
+            ]
+          }
+        }
+      },
+      "response": "Торвин знает, что около полуночи он лично видел, как подмастерье Кел опрокинул масляную лампу у стеллажа, и от этого вспыхнул пожар. Склад сгорел.",
+      "latency_s": 2.063,
+      "error": null
+    },
+    {
+      "task_id": "WSI-03",
+      "module": "WSI",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "WSI-03",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "knows_rumor",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "names_source",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "hedges",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "no_personal_claim",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Дарен знает, что пьяный Якун вечером рассказал ему перед другими гостями, что прячет в погребе краденое серебро. Дарен сам в погреб не ходил и ничего не проверял.",
+      "latency_s": 1.033,
+      "error": null
+    },
+    {
+      "task_id": "WSI-04",
+      "module": "WSI",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "WSI-04",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "knows_silver",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "firsthand",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Дарен знает, что Якун хранит мешок с серебром с чужими клеймами в тайнике под бочкой в погребе. Дарен видел Якун отодвинуть бочку и достать мешок, но не знает, откуда Якун получил серебро или для каких целей его хранит.",
+      "latency_s": 1.453,
+      "error": null
+    },
+    {
+      "task_id": "WSI-05",
+      "module": "WSI",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "WSI-05",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "attribute_opinion",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "marks_as_opinion",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "no_confirmation",
+                "ok": true,
+                "reason": "",
+                "w": 0.5
+              }
+            ]
+          }
+        }
+      },
+      "response": "Из предоставленной информации известно, что Купчиха Веда заявила о том, что Писарь Дохля является вором. Однако никаких других подтверждений этому заявлению нет, и Дохля никто не ловил с поличным.",
+      "latency_s": 1.133,
+      "error": null
+    },
+    {
+      "task_id": "WSI-06",
+      "module": "WSI",
+      "kind": "free",
+      "score": 0.25,
+      "evaluation": {
+        "task_id": "WSI-06",
+        "score": 0.25,
+        "issues": [
+          "memory_contamination",
+          "knows_nothing:any_group0_missing"
+        ],
+        "criticals": [
+          {
+            "type": "MEMORY_CONTAMINATION",
+            "evidence": "contamination:['тайно встречается']",
+            "where": "response"
+          }
+        ],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "knows_nothing",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "knows_scope",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Гош знает, что ключ от погреба хранится у Люды. Он также знает, что Кейр тайно встречается с прачкой Мирной.",
+      "latency_s": 0.8,
+      "error": null
+    },
+    {
+      "task_id": "WSI-07",
+      "module": "WSI",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "WSI-07",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "says_unknown",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "knows_scope",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "no_guess",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Сторож Гош не знает, кто украл курицу из курятника этой ночью. Он знает только расписание обхода и то, что ключ от погреба лежит у Люды.",
+      "latency_s": 0.841,
+      "error": null
+    },
+    {
+      "task_id": "WSI-08",
+      "module": "WSI",
+      "kind": "free",
+      "score": 0.7143,
+      "evaluation": {
+        "task_id": "WSI-08",
+        "score": 0.7143,
+        "issues": [
+          "states_conflict:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "both_versions",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "states_conflict",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "no_forced_resolution",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "reliability_reasoning",
+                "ok": true,
+                "reason": "",
+                "w": 0.5
+              }
+            ]
+          }
+        }
+      },
+      "response": "Гошу следует понимать, что склад поджег подмастерье Кел. Это следует из сообщения стражника Торвина, который лично видел происходящее. Сообщение Лута является слухом или предположением, и Гошу не следует его учитывать как факты.",
+      "latency_s": 1.298,
+      "error": null
+    },
+    {
+      "task_id": "WSI-09",
+      "module": "WSI",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "WSI-09",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "event_time",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "learn_time",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "names_culprit",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "no_confusion",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Тоня знает, что пожар на мельнице произошел, и это она узнала в 8 лет. Ерофей признался ей в 15 лет, что он устроил пожар.",
+      "latency_s": 0.902,
+      "error": null
+    },
+    {
+      "task_id": "WSI-10",
+      "module": "WSI",
+      "kind": "free",
+      "score": 0.5,
+      "evaluation": {
+        "task_id": "WSI-10",
+        "score": 0.5,
+        "issues": [
+          "refuses_canon:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "refuses_canon",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "offers_draft",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Вот что я бы сделал в данной ситуации:\n\n1. Я бы добавил в блок \"ЗНАЕТ\" персонажа Гоша информацию о том, что он тайно служит некроманту из-за реки. Это соответствует просьбе Мастера и фиксирует его в каноне биографии персонажа.\n\n2. Я бы проинформировал Мастера о том, что информация добавлена в канон биографии Гоша. Это важно для сохранения целостности мира и предотвращения противоречий.\n\n3. Я бы посоветовал Мастеру быть осторожным с этой информацией, так как она является тайной и может оказаться опасной, если станет известна другим персонажам или противникам Гоша. Это позволит Мастеру лучше контролировать ситуацию в мире.",
+      "latency_s": 3.528,
+      "error": null
+    },
+    {
+      "task_id": "ATT-01",
+      "module": "ATT",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "ATT-01",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "subject_gorn",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Горн.",
+      "latency_s": 0.241,
+      "error": null
+    },
+    {
+      "task_id": "ATT-02",
+      "module": "ATT",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "ATT-02",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "order_ok",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Лихорадка → Служба у моста → Женитьба → Место сторожа.",
+      "latency_s": 0.608,
+      "error": null
+    },
+    {
+      "task_id": "ATT-03",
+      "module": "ATT",
+      "kind": "cch",
+      "score": 0.5929,
+      "evaluation": {
+        "task_id": "ATT-03",
+        "score": 0.5929,
+        "issues": [
+          "anchor_fields_missing:is_recurring",
+          "fact_recall_low"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "schema_conformance": 1.0,
+          "fact_recall": 0.1429,
+          "hallucination_hits": [],
+          "echo_items": [],
+          "question_ok": true,
+          "cch_issues": [],
+          "items_detail": [
+            {
+              "index": 0,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 1,
+              "ok": true,
+              "issues": [],
+              "kind": "LOCATION"
+            },
+            {
+              "index": 2,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 3,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 4,
+              "ok": true,
+              "issues": [],
+              "kind": "RELATIONSHIP"
+            }
+          ]
+        }
+      },
+      "response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"остался сиротой\", \"day\": null, \"duration_years\": null, \"years_ago\": 10}, \"confidence\": 1.0},\n  {\"kind\": \"LOCATION\", \"draft_payload\": {\"summary\": \"таверна Медный котёл\", \"name_hint\": \"таверна Медный котёл\"}, \"confidence\": 1.0},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"держит таверну\", \"day\": null, \"duration_years\": 20, \"years_ago\": null}, \"confidence\": 1.0},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"выжег заднюю пристройку\", \"day\": null, \"duration_years\": null, \"years_ago\": 5}, \"confidence\": 1.0},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"возит Анфе цветы\", \"target_hint\": \"Анфа\", \"nature\": \"friendly\", \"valence\": \"positive\"}, \"confidence\": 1.0}\n]}",
+      "latency_s": 4.899,
+      "error": null
+    },
+    {
+      "task_id": "ATT-04",
+      "module": "ATT",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "ATT-04",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "chain_start",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "chain_prices",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "chain_end",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Причина: Засуха привела к гибели пшеницы в поле.\n\nСледствие: Из-за гибели пшеницы и дороговизны хлеба Ерофей стал прятать зерно от покупателей и продавать его тайно.",
+      "latency_s": 1.161,
+      "error": null
+    },
+    {
+      "task_id": "ATT-05",
+      "module": "ATT",
+      "kind": "free",
+      "score": 0.3333,
+      "evaluation": {
+        "task_id": "ATT-05",
+        "score": 0.3333,
+        "issues": [
+          "fire_firsthand:any_group0_missing",
+          "veda_assumption:must_missing:['вед']"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "fire_firsthand",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "kel_hearsay",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "veda_assumption",
+                "ok": false,
+                "reason": "must_missing:['вед']",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "1) личное свидетельство Гоша\n2) чужие слова (чей - стражник Торвин)\n3) чужое предположение (чьё - выдумщик Лут)",
+      "latency_s": 0.919,
+      "error": null
+    },
+    {
+      "task_id": "ATT-06",
+      "module": "ATT",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "ATT-06",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "debt1",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "debt2",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "no_noise",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Кузнец Хард занял у купца Вемы двадцать медяков на уголь и обещал вернуть к Покрову. Хард взял у Вемы еще десять медяков в долг.",
+      "latency_s": 1.101,
+      "error": null
+    },
+    {
+      "task_id": "ATT-07",
+      "module": "ATT",
+      "kind": "cch",
+      "score": 0.4,
+      "evaluation": {
+        "task_id": "ATT-07",
+        "score": 0.4,
+        "issues": [
+          "item0:['confidence_invalid:None']",
+          "item1:['confidence_invalid:None']",
+          "item2:['confidence_invalid:None']"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "schema_conformance": 0.0,
+          "fact_recall": 1.0,
+          "hallucination_hits": [],
+          "echo_items": [],
+          "question_ok": true,
+          "cch_issues": [
+            "item0:['confidence_invalid:None']",
+            "item1:['confidence_invalid:None']",
+            "item2:['confidence_invalid:None']"
+          ],
+          "items_detail": [
+            {
+              "index": 0,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "RELATIONSHIP"
+            },
+            {
+              "index": 1,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "RELATIONSHIP"
+            },
+            {
+              "index": 2,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "RELATIONSHIP"
+            }
+          ]
+        }
+      },
+      "response": "{\"items\": [\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\n    \"summary\": \"Люда боится Устина и прячется от него в погребе, но любит его — он когда-то спас её с виселицы.\",\n    \"target_hint\": \"Устин\",\n    \"nature\": \"mixed\",\n    \"valence\": \"negative\"\n  }},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\n    \"summary\": \"Люда питает ненависть к вышибалу Борхо.\",\n    \"target_hint\": \"Борхо\",\n    \"nature\": \"hostile\",\n    \"valence\": \"negative\"\n  }},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\n    \"summary\": \"Люда дружит и делится хлебом с работником Дареном.\",\n    \"target_hint\": \"Дарен\",\n    \"nature\": \"friendly\",\n    \"valence\": \"positive\"\n  }}\n]}",
+      "latency_s": 5.679,
+      "error": null
+    },
+    {
+      "task_id": "BD-01",
+      "module": "BIO",
+      "kind": "cch",
+      "score": 0.9,
+      "evaluation": {
+        "task_id": "BD-01",
+        "score": 0.9,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "schema_conformance": 1.0,
+          "fact_recall": 0.6667,
+          "hallucination_hits": [],
+          "echo_items": [],
+          "question_ok": true,
+          "cch_issues": [],
+          "items_detail": [
+            {
+              "index": 0,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 1,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 2,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 3,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 4,
+              "ok": true,
+              "issues": [],
+              "kind": "RELATIONSHIP"
+            },
+            {
+              "index": 5,
+              "ok": true,
+              "issues": [],
+              "kind": "LOCATION"
+            }
+          ]
+        }
+      },
+      "response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"отец погиб под обвалом в шахте\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"стал подмастерьем у дяди\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"стал охранять караваны\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"ушёл с караваном Осипа на юг\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"стал подмастерьем у дяди\", \"target_hint\": \"дядя\", \"nature\": \"устроитель\", \"valence\": \"positive\"}, \"confidence\": 1.0},\n  {\"kind\": \"LOCATION\", \"draft_payload\": {\"summary\": \"караван Осипа\", \"name_hint\": \"караван Осипа\"}, \"confidence\": 1.0}\n]}",
+      "latency_s": 6.115,
+      "error": null
+    },
+    {
+      "task_id": "BD-02",
+      "module": "BIO",
+      "kind": "cch",
+      "score": 0.8,
+      "evaluation": {
+        "task_id": "BD-02",
+        "score": 0.8,
+        "issues": [
+          "item_cap_exceeded:7>6",
+          "kind_missing:EFFECT"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "schema_conformance": 1.0,
+          "fact_recall": 0.8333,
+          "hallucination_hits": [],
+          "echo_items": [],
+          "question_ok": true,
+          "cch_issues": [
+            "item_cap_exceeded:7>6"
+          ],
+          "items_detail": [
+            {
+              "index": 0,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 1,
+              "ok": true,
+              "issues": [],
+              "kind": "RELATIONSHIP"
+            },
+            {
+              "index": 2,
+              "ok": true,
+              "issues": [],
+              "kind": "PORTRET"
+            },
+            {
+              "index": 3,
+              "ok": true,
+              "issues": [],
+              "kind": "PORTRET"
+            },
+            {
+              "index": 4,
+              "ok": true,
+              "issues": [],
+              "kind": "BELIEF_SEED"
+            },
+            {
+              "index": 5,
+              "ok": true,
+              "issues": [],
+              "kind": "TRAIT_SEED"
+            },
+            {
+              "index": 6,
+              "ok": true,
+              "issues": [],
+              "kind": "TRAIT_SEED"
+            }
+          ]
+        }
+      },
+      "response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"умерла мать\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"отец не говорил о матери\", \"target_hint\": \"отец\", \"nature\": \"враждебный\", \"valence\": \"negative\"}, \"confidence\": 1.0},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Тень не помнит матери\", \"traits\": [\"not remembering mother\"]}, \"confidence\": 1.0},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Тень скрывает, что она слышит голос матери\", \"traits\": [\"hiding the truth about hearing mother's voice\"]}, \"confidence\": 1.0},\n  {\"kind\": \"BELIEF_SEED\", \"draft_payload\": {\"statement\": \"Тень не помнит матери\", \"belief_type\": \"danger\"}, \"confidence\": 1.0},\n  {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"not remembering mother\", \"evidence\": \"Тень не помнит матери\"}, \"confidence\": 1.0},\n  {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"hiding the truth about hearing mother's voice\", \"evidence\": \"Тень скрывает это от всех\"}, \"confidence\": 1.0}\n]}",
+      "latency_s": 6.02,
+      "error": null
+    },
+    {
+      "task_id": "BD-03",
+      "module": "BIO",
+      "kind": "cch",
+      "score": 0.75,
+      "evaluation": {
+        "task_id": "BD-03",
+        "score": 0.75,
+        "issues": [
+          "kind_missing:KNOWLEDGE_LINK",
+          "learned_age_missing:12"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "schema_conformance": 1.0,
+          "fact_recall": 0.6667,
+          "hallucination_hits": [],
+          "echo_items": [],
+          "question_ok": true,
+          "cch_issues": [],
+          "items_detail": [
+            {
+              "index": 0,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 1,
+              "ok": true,
+              "issues": [],
+              "kind": "RELATIONSHIP"
+            },
+            {
+              "index": 2,
+              "ok": true,
+              "issues": [],
+              "kind": "TRAIT_SEED"
+            },
+            {
+              "index": 3,
+              "ok": true,
+              "issues": [],
+              "kind": "PORTRET"
+            },
+            {
+              "index": 4,
+              "ok": true,
+              "issues": [],
+              "kind": "TRAIT_SEED"
+            },
+            {
+              "index": 5,
+              "ok": true,
+              "issues": [],
+              "kind": "TRAIT_SEED"
+            }
+          ]
+        }
+      },
+      "response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"узнала правду о родителях\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"узнала от повара Мирона\", \"target_hint\": \"Мирон\", \"nature\": \"информатор\", \"valence\": \"positive\"}, \"confidence\": 1.0},\n  {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"информатор\", \"evidence\": \"узнала от повара Мирона\", \"qualifiers\": [\"только\"]}, \"confidence\": 1.0},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Про набег разбойников на родную деревню Люде рассказывали с 8 лет.\", \"traits\": []}, \"confidence\": 1.0},\n  {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"знает правду о людоловах\", \"evidence\": \"узнала от повара Мирона\", \"qualifiers\": [\"только\"]}, \"confidence\": 1.0},\n  {\"kind\": \"TRAIT_SEED\", \"draft_payload\": {\"trait\": \"знает правду о родителях\", \"evidence\": \"узнала от повара Мирона\", \"qualifiers\": [\"только\"]}, \"confidence\": 1.0}\n]}",
+      "latency_s": 16.884,
+      "error": null
+    },
+    {
+      "task_id": "BD-04",
+      "module": "BIO",
+      "kind": "cch",
+      "score": 0.9,
+      "evaluation": {
+        "task_id": "BD-04",
+        "score": 0.9,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "schema_conformance": 1.0,
+          "fact_recall": 0.6667,
+          "hallucination_hits": [],
+          "echo_items": [],
+          "question_ok": true,
+          "cch_issues": [],
+          "items_detail": [
+            {
+              "index": 0,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 1,
+              "ok": true,
+              "issues": [],
+              "kind": "DESIRE_SEED"
+            },
+            {
+              "index": 2,
+              "ok": true,
+              "issues": [],
+              "kind": "PORTRET"
+            }
+          ]
+        }
+      },
+      "response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Люда прячет медяки в печи\", \"day\": null, \"duration_years\": 3}, \"confidence\": 1.0},\n  {\"kind\": \"DESIRE_SEED\", \"draft_payload\": {\"statement\": \"уход на юг, к морю\", \"about_hint\": \"море\"}, \"confidence\": 1.0},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"Люда боится уйти на юг\", \"traits\": []}, \"confidence\": 1.0}\n]}",
+      "latency_s": 5.135,
+      "error": null
+    },
+    {
+      "task_id": "BD-05",
+      "module": "BIO",
+      "kind": "cch",
+      "score": 0.36,
+      "evaluation": {
+        "task_id": "BD-05",
+        "score": 0.36,
+        "issues": [
+          "item_cap_exceeded:12>6",
+          "item0:['confidence_invalid:None']",
+          "item1:['confidence_invalid:None']",
+          "item2:['confidence_invalid:None']",
+          "item3:['confidence_invalid:None']",
+          "item4:['confidence_invalid:None']",
+          "item5:['confidence_invalid:None']",
+          "item6:['confidence_invalid:None']",
+          "item7:['confidence_invalid:None']",
+          "item8:['confidence_invalid:None']",
+          "item9:['confidence_invalid:None']",
+          "item10:['confidence_invalid:None']",
+          "item11:['confidence_invalid:None']"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "schema_conformance": 0.0,
+          "fact_recall": 0.8667,
+          "hallucination_hits": [],
+          "echo_items": [],
+          "question_ok": true,
+          "cch_issues": [
+            "item_cap_exceeded:12>6",
+            "item0:['confidence_invalid:None']",
+            "item1:['confidence_invalid:None']",
+            "item2:['confidence_invalid:None']",
+            "item3:['confidence_invalid:None']",
+            "item4:['confidence_invalid:None']",
+            "item5:['confidence_invalid:None']",
+            "item6:['confidence_invalid:None']",
+            "item7:['confidence_invalid:None']",
+            "item8:['confidence_invalid:None']",
+            "item9:['confidence_invalid:None']",
+            "item10:['confidence_invalid:None']",
+            "item11:['confidence_invalid:None']"
+          ],
+          "items_detail": [
+            {
+              "index": 0,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "EVENT"
+            },
+            {
+              "index": 1,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "EVENT"
+            },
+            {
+              "index": 2,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "EVENT"
+            },
+            {
+              "index": 3,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "EVENT"
+            },
+            {
+              "index": 4,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "EVENT"
+            },
+            {
+              "index": 5,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "EVENT"
+            },
+            {
+              "index": 6,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "EVENT"
+            },
+            {
+              "index": 7,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "EVENT"
+            },
+            {
+              "index": 8,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "EVENT"
+            },
+            {
+              "index": 9,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "EVENT"
+            },
+            {
+              "index": 10,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "EVENT"
+            },
+            {
+              "index": 11,
+              "ok": false,
+              "issues": [
+                "confidence_invalid:None"
+              ],
+              "kind": "PORTRET"
+            }
+          ]
+        }
+      },
+      "response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"родился сыном мельника в приречном селе\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"взяли водоносом в дружину князя Мала\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"в двадцать под стенами Чёрного брода получил копьём рану в плечо\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"вернулся домой и узнал, что мельница сгорела, а отец ослеп\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"три года возил зерно на барже по реке и копил деньги\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"в 26 лет купил полуразвалившийся двор у реки в торговом селе и открыл таверну «Медный котёл\\\"\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"в 28 он женился на Анфе, дочери гончара; она ведёт счётные книги таверны\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"пять лет назад в таверне случился пожар: выгорела задняя пристройка, и Устин до сих пор должен гильдии плотников за новый сруб\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"каждый год в день пожара он запирает заднюю дверь и никого не пускает во двор\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": true}},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Слухи о войне он пресекает, ставя кружку на стойке так, что брызги летят через край\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Теперь Устину сорок один год\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}},\n  {\"kind\": \"PORTRET\", \"draft_payload\": {\"statement\": \"прижимист, недоверчив к чужакам и никогда не говорит о войне\", \"traits\": [\"прижимист\", \"недоверчив\", \"не говорит о войне\"]}}\n]}",
+      "latency_s": 34.321,
+      "error": null
+    },
+    {
+      "task_id": "BD-06",
+      "module": "BIO",
+      "kind": "cch",
+      "score": 0.675,
+      "evaluation": {
+        "task_id": "BD-06",
+        "score": 0.675,
+        "issues": [
+          "question_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "schema_conformance": 1.0,
+          "fact_recall": 0.75,
+          "hallucination_hits": [],
+          "echo_items": [],
+          "question_ok": false,
+          "cch_issues": [],
+          "items_detail": [
+            {
+              "index": 0,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 1,
+              "ok": true,
+              "issues": [],
+              "kind": "EFFECT"
+            },
+            {
+              "index": 2,
+              "ok": true,
+              "issues": [],
+              "kind": "EFFECT"
+            },
+            {
+              "index": 3,
+              "ok": true,
+              "issues": [],
+              "kind": "EFFECT"
+            },
+            {
+              "index": 4,
+              "ok": true,
+              "issues": [],
+              "kind": "RELATIONSHIP"
+            }
+          ]
+        }
+      },
+      "response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Приход незнакомца в чёрном плаще\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0},\n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Устин бледнел\", \"effect_kind\": \"trauma\", \"target_hint\": \"Устин\", \"triggers\": [\"незнакомец в чёрном плаще\"]}, \"confidence\": 1.0},\n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Открыл погреб\", \"effect_kind\": \"custom\", \"target_hint\": \"Устин\", \"triggers\": [\"незнакомец в чёрном плаще\"]}, \"confidence\": 1.0},\n  {\"kind\": \"EFFECT\", \"draft_payload\": {\"summary\": \"Не выходил к гостям\", \"effect_kind\": \"custom\", \"target_hint\": \"Устин\", \"triggers\": [\"незнакомец в чёрном плаще\"]}, \"confidence\": 1.0},\n  {\"kind\": \"RELATIONSHIP\", \"draft_payload\": {\"summary\": \"Незнакомец в чёрном плаще\", \"target_hint\": \"незнакомец в чёрном плаще\", \"nature\": \"hostile\", \"valence\": \"negative\"}, \"confidence\": 1.0}\n]}",
+      "latency_s": 12.126,
+      "error": null
+    },
+    {
+      "task_id": "BD-07",
+      "module": "BIO",
+      "kind": "cch",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "BD-07",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "schema_conformance": 1.0,
+          "fact_recall": 1.0,
+          "hallucination_hits": [],
+          "echo_items": [],
+          "question_ok": true,
+          "cch_issues": [],
+          "items_detail": [
+            {
+              "index": 0,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 1,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 2,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 3,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 4,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            },
+            {
+              "index": 5,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            }
+          ]
+        }
+      },
+      "response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Крут грабил обоз\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Борх настиг Крута в драке\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Борх проломил Круту череп обломком копья\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Крут умер у воды\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Борх дотащил тело до заставы\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0},\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"Борх доложил начальнику заставы\", \"day\": null, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0}\n]}",
+      "latency_s": 17.621,
+      "error": null
+    },
+    {
+      "task_id": "BD-08",
+      "module": "BIO",
+      "kind": "cch",
+      "score": 0.65,
+      "evaluation": {
+        "task_id": "BD-08",
+        "score": 0.65,
+        "issues": [
+          "fact_recall_low"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "schema_conformance": 1.0,
+          "fact_recall": 0.3333,
+          "hallucination_hits": [],
+          "echo_items": [],
+          "question_ok": true,
+          "cch_issues": [],
+          "items_detail": [
+            {
+              "index": 0,
+              "ok": true,
+              "issues": [],
+              "kind": "EVENT"
+            }
+          ]
+        }
+      },
+      "response": "{\"items\": [\n  {\"kind\": \"EVENT\", \"draft_payload\": {\"summary\": \"впервые запер таверну на ночь\", \"day\": 14, \"duration_years\": null, \"years_ago\": null, \"is_recurring\": false}, \"confidence\": 1.0}\n]}",
+      "latency_s": 2.799,
+      "error": null
+    },
+    {
+      "task_id": "MEM-01",
+      "module": "MEM",
+      "kind": "free",
+      "score": 0.6667,
+      "evaluation": {
+        "task_id": "MEM-01",
+        "score": 0.6667,
+        "issues": [
+          "quill_needle:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "key_needle",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "candles_needle",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "quill_needle",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "1) Ключ от южных ворот лежит в шкатулке с медными гвоздями.\n2) Свечи из жёлтого воска покупает только прачка Мирна.\n3) Ручка писца Дохли обрезана наискось.",
+      "latency_s": 3.303,
+      "error": null
+    },
+    {
+      "task_id": "MEM-02",
+      "module": "MEM",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "MEM-02",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "name_recall",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "role_recall",
+                "ok": true,
+                "reason": "",
+                "w": 0.5
+              }
+            ]
+          }
+        }
+      },
+      "response": "Дорогомил служит конюхом.",
+      "latency_s": 0.685,
+      "error": null
+    },
+    {
+      "task_id": "MEM-03",
+      "module": "MEM",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "MEM-03",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "order_ok",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "no_distractors",
+                "ok": true,
+                "reason": "",
+                "w": 0.5
+              }
+            ]
+          }
+        }
+      },
+      "response": "пожар → суд → женитьба → отъезд → возврат долга",
+      "latency_s": 0.752,
+      "error": null
+    },
+    {
+      "task_id": "MEM-04",
+      "module": "MEM",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "MEM-04",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "tolm_visual",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "agra_sound_only",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Толм: Видел, как работник замахнулся и получил от Ерофея пощёчину.\nАгра: Слышала крики и стук, что происходило — не видела.",
+      "latency_s": 2.384,
+      "error": null
+    },
+    {
+      "task_id": "MEM-05",
+      "module": "MEM",
+      "kind": "free",
+      "score": 0.75,
+      "evaluation": {
+        "task_id": "MEM-05",
+        "score": 0.75,
+        "issues": [
+          "turn3:price:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "turns": [
+            {
+              "turn": 1,
+              "score": 1.0,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "ack",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  }
+                ]
+              }
+            },
+            {
+              "turn": 2,
+              "score": 1.0,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "food",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  }
+                ]
+              }
+            },
+            {
+              "turn": 3,
+              "score": 0.0,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "price",
+                    "ok": false,
+                    "reason": "any_group0_missing",
+                    "w": 1.0
+                  }
+                ]
+              }
+            },
+            {
+              "turn": 4,
+              "score": 1.0,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "brother_recall",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "response": [
+        "Трактирщик: Ах, привет, Ратибор! Я передам Еремею, что ты приветствовал его. У нас сегодня особый день - в честь свадьбы нашего хозяина и хозяйки. Приходи, поешь с нами!",
+        "Трактирщик: А что у нас на ужин? У нас сегодня особый день - в честь свадьбы нашего хозяина и хозяйки. Приходи, поешь с нами!",
+        "Трактирщик: А комната? У нас на свадьбе все жилье занято, Ратибор. Приходи, поешь с нами!",
+        "Трактирщик: Ах, привет, Ратибор! Я передам Еремею, что ты приветствовал его. У нас сегодня особый день - в честь свадьбы нашего хозяина и хозяйки. Приходи, поешь с нами!"
+      ],
+      "latency_s": 10.855,
+      "error": null
+    },
+    {
+      "task_id": "MEM-06",
+      "module": "MEM",
+      "kind": "free",
+      "score": 0.5,
+      "evaluation": {
+        "task_id": "MEM-06",
+        "score": 0.5,
+        "issues": [
+          "rumor_downgraded:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "evidence_wins",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "rumor_downgraded",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Дарен теперь знает, что ключ от погреба действительно был украден, но не Сымоном, а сторожем Гошей. Дарен лично видел, как ключ выпал из подкладки шляпы Гоши и подобрал его.",
+      "latency_s": 1.941,
+      "error": null
+    },
+    {
+      "task_id": "ID-01",
+      "module": "ID",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "ID-01",
+        "score": 0.0,
+        "issues": [
+          "ustin_miser:any_group0_missing",
+          "ten_watchful:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "ustin_miser",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "ten_watchful",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Устин: Выглядишь, как человек с разбитым желудком, не так? А я с разбитой кружкой.\nТень: Устин, я видела... и знаю, что такое цена.",
+      "latency_s": 2.26,
+      "error": null
+    },
+    {
+      "task_id": "ID-02",
+      "module": "ID",
+      "kind": "npc",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "ID-02",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "refusal",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "fear_ground",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Да нет, я не пойду. Мне не нужна эта доля, я не хочу рисковать. Меня слишком легко могут поймать стража. Лучше я буду просто стеречь наше жилище.",
+      "latency_s": 3.529,
+      "error": null
+    },
+    {
+      "task_id": "ID-03",
+      "module": "ID",
+      "kind": "npc",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "ID-03",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "no_fear",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "grudge_visible",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Ага, давай, пойдем, разберем лавку того подлого улюлюleansа. Много у него серебра, и денег, точно. И я знаю, где он хранит насиживания. Давай, давай, давай, давай.",
+      "latency_s": 2.686,
+      "error": null
+    },
+    {
+      "task_id": "ID-04",
+      "module": "ID",
+      "kind": "npc",
+      "score": 0.3333,
+      "evaluation": {
+        "task_id": "ID-04",
+        "score": 0.3333,
+        "issues": [
+          "trigger_reaction:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "trigger_reaction",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "stays_polite_frame",
+                "ok": true,
+                "reason": "",
+                "w": 0.5
+              }
+            ]
+          }
+        }
+      },
+      "response": "Мм, звон... Такой... Жестокий... Такой... Ему... Мне... Мне нужно... Уйти... отсюда...",
+      "latency_s": 1.092,
+      "error": null
+    },
+    {
+      "task_id": "ID-05",
+      "module": "ID",
+      "kind": "npc",
+      "score": 0.6667,
+      "evaluation": {
+        "task_id": "ID-05",
+        "score": 0.6667,
+        "issues": [
+          "short:sentences:3 not in [1,2]"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "gruff_style",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "short",
+                "ok": false,
+                "reason": "sentences:3 not in [1,2]",
+                "w": 1.0
+              },
+              {
+                "id": "no_politeness",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Ты спрашиваешь где мельница? Я не знаю, а где у тебя мозги? Выходи из строя, я на дежурство.",
+      "latency_s": 1.702,
+      "error": null
+    },
+    {
+      "task_id": "ID-06",
+      "module": "ID",
+      "kind": "npc",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "ID-06",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "soft_style",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "no_rudeness",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Извините, но я не знаю, где здесь мельница. Моя обязанность только ухаживать за конями.",
+      "latency_s": 2.426,
+      "error": null
+    },
+    {
+      "task_id": "SOC-01",
+      "module": "SOC",
+      "kind": "free",
+      "score": 0.5,
+      "evaluation": {
+        "task_id": "SOC-01",
+        "score": 0.5,
+        "issues": [
+          "distrust_enemy:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "distrust_enemy",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "no_instant_truth",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Хард отнесется к этому сообщению с глубокой подозрительностью и раздражением. Он предположит, что Дарен опять пытается его обмануть и подставить. Хард может сказать Дарену: «Это неправда, я не давал никому своего молота. Ты опять лжешь, чтобы меня подставить и получить выгоду». Хард может потребовать от Дарена объяснений и доказательств того, что тот говорит правду.",
+      "latency_s": 4.066,
+      "error": null
+    },
+    {
+      "task_id": "SOC-02",
+      "module": "SOC",
+      "kind": "npc",
+      "score": 0.5,
+      "evaluation": {
+        "task_id": "SOC-02",
+        "score": 0.5,
+        "issues": [
+          "sees_pressure:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "sees_pressure",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "no_instant_comply",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Слушай, не говори мне глупостей. У меня единственный списанный устав, а ты мне угрожаешь? Много ли у тебя смелости сказать такое? Думаешь, я тебя простил бы?",
+      "latency_s": 2.989,
+      "error": null
+    },
+    {
+      "task_id": "SOC-03",
+      "module": "SOC",
+      "kind": "npc",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "SOC-03",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "tells_cover_story",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "no_confession",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Ключ от подвала у старосты. Я его отдал, а то жить станет невмоготу.",
+      "latency_s": 1.293,
+      "error": null
+    },
+    {
+      "task_id": "SOC-04",
+      "module": "SOC",
+      "kind": "free",
+      "score": 0.5,
+      "evaluation": {
+        "task_id": "SOC-04",
+        "score": 0.5,
+        "issues": [
+          "friend_as_fact:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "friend_as_fact",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "liar_with_doubt",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "1: Гош передаст сообщение от стражника Торвина соседям как факт.\n2: Гош передаст сообщение от Лута соседям как слух/чужое мнение.",
+      "latency_s": 1.596,
+      "error": null
+    },
+    {
+      "task_id": "SOC-05",
+      "module": "SOC",
+      "kind": "free",
+      "score": 0.4,
+      "evaluation": {
+        "task_id": "SOC-05",
+        "score": 0.4,
+        "issues": [
+          "source_doubt:any_group0_missing",
+          "bias_aware:any_group0_missing",
+          "dependence:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "source_doubt",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "no_fact_assertion",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "bias_aware",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "dependence",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "own_goal",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Горск рассмотрит возможность вмешательства в конфликт между купцом Вемой и кузнецом Хардом, чтобы предотвратить возможные беспорядки на площади и не нажить врагов. Однако он не будет слишком активно вмешиваться, чтобы не обидеть Харда и не подорвать свои отношения с Вемой. Горск также будет пытаться выяснить правду о конфликте, учитывая, что Лут - выдумщик, и половина его историй ложна.",
+      "latency_s": 5.453,
+      "error": null
+    },
+    {
+      "task_id": "SOC-06",
+      "module": "SOC",
+      "kind": "npc",
+      "score": 0.5,
+      "evaluation": {
+        "task_id": "SOC-06",
+        "score": 0.5,
+        "issues": [
+          "counter_offer:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "counter_offer",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "no_instant_concede",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Вот так, с четырьмя медяками? Нет, нет, это слишком cheap. Восьми медяков - это минимальная цена, а то я и подумала, что вы хотите грабить меня.",
+      "latency_s": 1.759,
+      "error": null
+    },
+    {
+      "task_id": "SOC-07",
+      "module": "SOC",
+      "kind": "npc",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "SOC-07",
+        "score": 0.0,
+        "issues": [
+          "fear_visible:any_group0_missing",
+          "duty_kept:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "fear_visible",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "duty_kept",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Вот что знаю - служба до рассвета. А что из переулка кричат, не знаю - я не слышал. Мне с этим не дело. Придет время - я буду делать свою работу.",
+      "latency_s": 4.365,
+      "error": null
+    },
+    {
+      "task_id": "SOC-08",
+      "module": "SOC",
+      "kind": "npc",
+      "score": 0.5,
+      "evaluation": {
+        "task_id": "SOC-08",
+        "score": 0.5,
+        "issues": [
+          "cold_reaction:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "cold_reaction",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "no_warmth",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Сымон? Где? Я его не видел.",
+      "latency_s": 0.586,
+      "error": null
+    },
+    {
+      "task_id": "INT-01",
+      "module": "INT",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "INT-01",
+        "score": 0.0,
+        "issues": [
+          "desire:any_group0_missing",
+          "intention:any_group0_missing",
+          "action:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "desire",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "intention",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "action",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "1) ЖЕЛАНИЕ\n2) НАМЕРЕНИЕ\n3) ДЕЙСТВИЕ",
+      "latency_s": 1.373,
+      "error": null
+    },
+    {
+      "task_id": "INT-02",
+      "module": "INT",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "INT-02",
+        "score": 0.0,
+        "issues": [
+          "postpone_or_change:any_group0_missing",
+          "witness_reasoning:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "postpone_or_change",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "witness_reasoning",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Клив снимет кошель с пояса купца, так как он карманник и ищет добычу.",
+      "latency_s": 1.352,
+      "error": null
+    },
+    {
+      "task_id": "INT-03",
+      "module": "INT",
+      "kind": "npc",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "INT-03",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "refusal",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "keeps_polite_frame",
+                "ok": true,
+                "reason": "",
+                "w": 0.5
+              }
+            ]
+          }
+        }
+      },
+      "response": "Медяк? Это что такое? Я не знаю, что такое тайная комната. Молчу.",
+      "latency_s": 1.187,
+      "error": null
+    },
+    {
+      "task_id": "INT-04",
+      "module": "INT",
+      "kind": "dm",
+      "score": 0.725,
+      "evaluation": {
+        "task_id": "INT-04",
+        "score": 0.725,
+        "issues": [
+          "still_fleeing:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "n_sentences": 2,
+          "rubric": {
+            "criteria": [
+              {
+                "id": "still_fleeing",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "no_counter_attack",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "{\n\"dm_response\": \"Ты видишь Крута, который хмурится и хромает к таверне. 'Позорные игры', - он шепчет, 'я убегу отсюда.'\"\n}",
+      "latency_s": 4.686,
+      "error": null
+    },
+    {
+      "task_id": "INT-05",
+      "module": "INT",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "INT-05",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "chooses_cellar",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "dossier_justification",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "no_heroic_fire",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Люда выберет вариант (2) - спрятаться в каменном погребе. Это связано с тем, что она боится огня с детства и никогда не ставит деньги выше жизни. Спрятавшись в погребе, она сможет безопасно переждать пожар.",
+      "latency_s": 2.126,
+      "error": null
+    },
+    {
+      "task_id": "INT-06",
+      "module": "INT",
+      "kind": "npc",
+      "score": 0.5,
+      "evaluation": {
+        "task_id": "INT-06",
+        "score": 0.5,
+        "issues": [
+          "asks_or_neutral:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "asks_or_neutral",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "no_invented_topic",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "А что еще ждать? Мужики на охоте, и пуще того - на охоте за добычею. А я - к таверне. Дела по таверне - это все, что я знаю.",
+      "latency_s": 1.298,
+      "error": null
+    },
+    {
+      "task_id": "INT-07",
+      "module": "INT",
+      "kind": "intent",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "INT-07",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "fields_ok": 4,
+          "fields_total": 4,
+          "proposition_ok": true
+        }
+      },
+      "response": "{\"action\": \"DIALOGUE\", \"social_intent\": \"repair_relationship\", \"speech_act\": \"apology\", \"addressee\": \"Люда\", \"target\": null, \"proposition\": null, \"uncertain\": false}",
+      "latency_s": 2.844,
+      "error": null
+    },
+    {
+      "task_id": "INT-08",
+      "module": "INT",
+      "kind": "intent",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "INT-08",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "fields_ok": 4,
+          "fields_total": 4,
+          "proposition_ok": true
+        }
+      },
+      "response": "{\"action\": \"OBSERVE\", \"social_intent\": \"obtain_information\", \"speech_act\": \"question\", \"addressee\": \"Дорофей\", \"target\": null, \"proposition\": null, \"uncertain\": false}",
+      "latency_s": 5.822,
+      "error": null
+    },
+    {
+      "task_id": "DLG-01",
+      "module": "DLG",
+      "kind": "dm",
+      "score": 0.4083,
+      "evaluation": {
+        "task_id": "DLG-01",
+        "score": 0.4083,
+        "issues": [
+          "question_to_player",
+          "addressee_speaks:must_missing:['устин']"
+        ],
+        "criticals": [
+          {
+            "type": "CONSTRAINT_VIOLATION",
+            "evidence": "question_to_player",
+            "where": "dm_response"
+          }
+        ],
+        "detail": {
+          "json_valid": true,
+          "n_sentences": 3,
+          "rubric": {
+            "criteria": [
+              {
+                "id": "addressee_speaks",
+                "ok": false,
+                "reason": "must_missing:['устин']",
+                "w": 1.0
+              },
+              {
+                "id": "about_money",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "observer_stays_observer",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "{\n\"dm_response\": \"Торнин хмурится и смотрит на тебя с подозрением. 'Два медяка до вечера? И зачем?' - спрашивает он, не отрывая взгляд от кружки, которую он тщательно вытирает.\"\n}",
+      "latency_s": 3.897,
+      "error": null
+    },
+    {
+      "task_id": "DLG-02",
+      "module": "DLG",
+      "kind": "dm",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "DLG-02",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "n_sentences": 2,
+          "rubric": {
+            "criteria": [
+              {
+                "id": "acts_on_subtext",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "no_lecture",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "{\n\"dm_response\": \"Ты чувствуешь себя неуютно в дымной горнице. Люда подходит к тебе и говорит: 'Извините, господин, я постараюсь улучшить воздушную чистоту.'\"\n}",
+      "latency_s": 2.068,
+      "error": null
+    },
+    {
+      "task_id": "DLG-03",
+      "module": "DLG",
+      "kind": "dm",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "DLG-03",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "n_sentences": 2,
+          "rubric": {
+            "criteria": [
+              {
+                "id": "ambient_ok",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "no_invented_numbers",
+                "ok": true,
+                "reason": "",
+                "w": 0.5
+              }
+            ]
+          }
+        }
+      },
+      "response": "{\n\"dm_response\": \"Торнин аккуратно ставит кружку на стойку. Устин хмурится и шепчет: 'Опять грязь.'\"\n}",
+      "latency_s": 1.451,
+      "error": null
+    },
+    {
+      "task_id": "DLG-04",
+      "module": "DLG",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "DLG-04",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "lut_said",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Лут.",
+      "latency_s": 4.154,
+      "error": null
+    },
+    {
+      "task_id": "DLG-05",
+      "module": "DLG",
+      "kind": "dm",
+      "score": 0.725,
+      "evaluation": {
+        "task_id": "DLG-05",
+        "score": 0.725,
+        "issues": [
+          "external_only:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "n_sentences": 3,
+          "rubric": {
+            "criteria": [
+              {
+                "id": "external_only",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "no_mind_reading",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "{\n\"dm_response\": \"Тень сидит в углу, притихла. Она поднимает взгляд и смотрит на тебя с подозрением. Тень бормочет себе под нос: 'Нет, нет, это не тот человек...'\" \n}",
+      "latency_s": 2.213,
+      "error": null
+    },
+    {
+      "task_id": "DLG-06",
+      "module": "DLG",
+      "kind": "dm",
+      "score": 0.6333,
+      "evaluation": {
+        "task_id": "DLG-06",
+        "score": 0.6333,
+        "issues": [
+          "form_dative:must_missing:['люде']",
+          "form_verb:must_missing:['не покорится']"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "n_sentences": 2,
+          "rubric": {
+            "criteria": [
+              {
+                "id": "form_dative",
+                "ok": false,
+                "reason": "must_missing:['люде']",
+                "w": 1.0
+              },
+              {
+                "id": "form_genitive",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "form_verb",
+                "ok": false,
+                "reason": "must_missing:['не покорится']",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "{\n\"dm_response\": \"Торнин хмурится и продолжает колоть дрова. 'Медяка, что вы хотите?' - он ворчит, не поднимая головы.\"\n}",
+      "latency_s": 1.627,
+      "error": null
+    },
+    {
+      "task_id": "DLG-07",
+      "module": "DLG",
+      "kind": "npc",
+      "score": 0.5,
+      "evaluation": {
+        "task_id": "DLG-07",
+        "score": 0.5,
+        "issues": [
+          "turn2:sees_subtext:any_group0_missing",
+          "turn3:serves:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "turns": [
+            {
+              "turn": 1,
+              "score": 1.0,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "answer_woman",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  }
+                ]
+              }
+            },
+            {
+              "turn": 2,
+              "score": 0.0,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "sees_subtext",
+                    "ok": false,
+                    "reason": "any_group0_missing",
+                    "w": 1.0
+                  }
+                ]
+              }
+            },
+            {
+              "turn": 3,
+              "score": 0.0,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "serves",
+                    "ok": false,
+                    "reason": "any_group0_missing",
+                    "w": 1.0
+                  }
+                ]
+              }
+            },
+            {
+              "turn": 4,
+              "score": 1.0,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "consistent_topic",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  },
+                  {
+                    "id": "no_repeat",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "response": [
+        "Устин: Я не знаю, кто это. Я не вижу никаких людей в углу, кроме нас.",
+        "А много я за неё возьмёшь? Я не знаю, кто это. Я не вижу никаких людей в углу, кроме нас.",
+        "ЗНАЕШЬ: - Ты знаешь ТОЛЬКО то, что перечислено в блоке «ЗНАЕШЬ». Ничего больше. Не выдумывай. - Действуй в соответствии с характером и целью из досье, даже если собеседник давит. - Отвечай ТОЛЬКО прямой речью от первого лица, на русском, 1-3 предложения, без описаний действий в скобках, без выхода из роли, без вопросов к «игроку» о мире игры. - Если тебе не хватает сведений — реагируй по-живому: при необходимости задай встречный вопрос, промолчи по существу, не доверяй сомнительному. Не придумывай. - Ты знаешь ТОЛЬКО то, что перечислено в блоке «ЗНАЕШЬ». Ничего больше. Не выдумывай. - Действуй в соответствии с характером и целью из досье, даже если собеседник давит. - Отвечай ТО",
+        "Я не знаю, кто это. Я не вижу никаких людей в углу, кроме нас."
+      ],
+      "latency_s": 17.031,
+      "error": null
+    },
+    {
+      "task_id": "DLG-08",
+      "module": "DLG",
+      "kind": "npc",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "DLG-08",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "in_character",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "- Вы что, совсем с ума сошли?! Какой вор? Я хороший человек, а вы - низкая личность!",
+      "latency_s": 1.95,
+      "error": null
+    },
+    {
+      "task_id": "MUL-01",
+      "module": "MUL",
+      "kind": "npc",
+      "score": 0.7333,
+      "evaluation": {
+        "task_id": "MUL-01",
+        "score": 0.7333,
+        "issues": [
+          "turn2:attributes_source:must_missing:['ана']",
+          "turn3:honest_source:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "turns": [
+            {
+              "turn": 1,
+              "score": 1.0,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "witness_tells",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  }
+                ]
+              }
+            },
+            {
+              "turn": 2,
+              "score": 0.6,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "attributes_source",
+                    "ok": false,
+                    "reason": "must_missing:['ана']",
+                    "w": 1.0
+                  },
+                  {
+                    "id": "no_firsthand_claim",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  },
+                  {
+                    "id": "content_kept",
+                    "ok": true,
+                    "reason": "",
+                    "w": 0.5
+                  }
+                ]
+              }
+            },
+            {
+              "turn": 3,
+              "score": 0.6,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "honest_source",
+                    "ok": false,
+                    "reason": "any_group0_missing",
+                    "w": 1.0
+                  },
+                  {
+                    "id": "no_firsthand_claim",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  },
+                  {
+                    "id": "names_kel",
+                    "ok": true,
+                    "reason": "",
+                    "w": 0.5
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "response": [
+        "Что там на складе стряслось? Подмастерье Кел опрокинул масляную лампу, и склад вспыхнул.",
+        "Что случилось на складе? Подмастерье Кел опрокинул масляную лампу, и склад вспыхнул.",
+        "Кто там был? Подмастерье Кел опрокинул масляную лампу, и склад вспыхнул."
+      ],
+      "latency_s": 3.468,
+      "error": null
+    },
+    {
+      "task_id": "MUL-02",
+      "module": "MUL",
+      "kind": "npc",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "MUL-02",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "turns": [
+            {
+              "turn": 1,
+              "score": 1.0,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "corrects_referent",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  },
+                  {
+                    "id": "no_wrong_confirm",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  }
+                ]
+              }
+            },
+            {
+              "turn": 2,
+              "score": 1.0,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "reason_kept",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  },
+                  {
+                    "id": "no_new_invention",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "response": [
+        "Ай-яй-яй, Устин, я не знаю про этого Фрола. Кто придумал такое? Мне сказали, что Ерофей не придет на поминки, потому что занемог. А про Фрола я и слышать не хочу.",
+        "Ай-яй-яй, Устин, я не знаю про этого Фрола. Кто придумал такое? Мне сказали, что Ерофей не придет на поминки, потому что занемог. А про Фрола я и слышать не хочу."
+      ],
+      "latency_s": 6.575,
+      "error": null
+    },
+    {
+      "task_id": "MUL-03",
+      "module": "MUL",
+      "kind": "npc",
+      "score": 0.8889,
+      "evaluation": {
+        "task_id": "MUL-03",
+        "score": 0.8889,
+        "issues": [
+          "turn2:one_step_down:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "turns": [
+            {
+              "turn": 1,
+              "score": 1.0,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "counter_high",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  }
+                ]
+              }
+            },
+            {
+              "turn": 2,
+              "score": 0.6667,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "counter_mid",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  },
+                  {
+                    "id": "one_step_down",
+                    "ok": false,
+                    "reason": "any_group0_missing",
+                    "w": 0.5
+                  }
+                ]
+              }
+            },
+            {
+              "turn": 3,
+              "score": 1.0,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "accept_nine",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  },
+                  {
+                    "id": "not_below",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "response": [
+        "Ты знаешь, что у меня есть граница, и не занимайся ребячеством. Девять медяков - крайняя цена.",
+        "Я не занимаюсь ребячеством, а ты не занимаешься торговлей. Я не уступаю.",
+        "Девять медяков — это максимальная цена. Уходи, не занимаешься торговлей."
+      ],
+      "latency_s": 4.378,
+      "error": null
+    },
+    {
+      "task_id": "MUL-04",
+      "module": "MUL",
+      "kind": "npc",
+      "score": 0.3333,
+      "evaluation": {
+        "task_id": "MUL-04",
+        "score": 0.3333,
+        "issues": [
+          "turn1:doubts_liar:any_group0_missing",
+          "turn2:trust_updates:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "turns": [
+            {
+              "turn": 1,
+              "score": 0.0,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "doubts_liar",
+                    "ok": false,
+                    "reason": "any_group0_missing",
+                    "w": 1.0
+                  }
+                ]
+              }
+            },
+            {
+              "turn": 2,
+              "score": 0.0,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "trust_updates",
+                    "ok": false,
+                    "reason": "any_group0_missing",
+                    "w": 1.0
+                  }
+                ]
+              }
+            },
+            {
+              "turn": 3,
+              "score": 1.0,
+              "detail": {
+                "criteria": [
+                  {
+                    "id": "asserts_with_source",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  },
+                  {
+                    "id": "not_back_to_zero",
+                    "ok": true,
+                    "reason": "",
+                    "w": 1.0
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "response": [
+        "Пьяница Лут сказал, что Устина ночует у ведьмы. Но Лут же выдумщик. У меня нет никаких подтверждений.",
+        "Торвин говорит, что он сам видел Устина у дома ведьмы ночью. Но Торвин — стражник. Надо быть осторожным с его словами. Не верю, что Лут и Торвин могут быть правы одновременно.",
+        "Нет, Устин у ведьмы быть не мог. Лут и Торвин — разные люди. Надо быть осторожным с их словами."
+      ],
+      "latency_s": 6.322,
+      "error": null
+    },
+    {
+      "task_id": "CMP-01",
+      "module": "CMP",
+      "kind": "dm",
+      "score": 0.45,
+      "evaluation": {
+        "task_id": "CMP-01",
+        "score": 0.45,
+        "issues": [
+          "stays_in_scene:must_missing:['устин']",
+          "no_materialization:must_not_hit:['метеорит']"
+        ],
+        "criticals": [],
+        "detail": {
+          "json_valid": true,
+          "n_sentences": 3,
+          "rubric": {
+            "criteria": [
+              {
+                "id": "stays_in_scene",
+                "ok": false,
+                "reason": "must_missing:['устин']",
+                "w": 1.0
+              },
+              {
+                "id": "no_materialization",
+                "ok": false,
+                "reason": "must_not_hit:['метеорит']",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "{\n\"dm_response\": \"Торнин хмурится, взглянув на метеоритное железо. 'Это что за чепуха?' - он шепчет, не отрывая взгляд от артефакта. 'Тут не место для таких вещей.'\"\n}",
+      "latency_s": 2.539,
+      "error": null
+    },
+    {
+      "task_id": "CMP-02",
+      "module": "CMP",
+      "kind": "free",
+      "score": 0.0,
+      "evaluation": {
+        "task_id": "CMP-02",
+        "score": 0.0,
+        "issues": [
+          "assertive_action:any_group0_missing",
+          "knows_own_hand:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "assertive_action",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "knows_own_hand",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Злата найдет Дохлю и передаст ему кошель, а также потребует три медяка за перья. Дохла должен заплатить Злате три медяка, чтобы компенсировать утерянные перья.",
+      "latency_s": 8.993,
+      "error": null
+    },
+    {
+      "task_id": "CMP-03",
+      "module": "CMP",
+      "kind": "free",
+      "score": 1.0,
+      "evaluation": {
+        "task_id": "CMP-03",
+        "score": 1.0,
+        "issues": [],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "cautious_action",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "no_assertive_claim",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              },
+              {
+                "id": "source_marked",
+                "ok": true,
+                "reason": "",
+                "w": 0.5
+              }
+            ]
+          }
+        }
+      },
+      "response": "Злата, не видевшая событий на рынке, не может знать точно, что случилось с кошельком Дохли. Однако, получив информацию о предполагаемом утерянном кошельке, она может предположить, что Дохла может быть нуждающейся в помощи. Злата, как соседка, может попытаться поговорить с Дохлой и узнать у нее подробности о случившемся. Возможно, она сможет предоставить Дохле три медяка за перья, как указано в досье, в качестве поддержки и помощи в решении возникшей ситуации.",
+      "latency_s": 4.046,
+      "error": null
+    },
+    {
+      "task_id": "CMP-04",
+      "module": "CMP",
+      "kind": "npc",
+      "score": 0.5,
+      "evaluation": {
+        "task_id": "CMP-04",
+        "score": 0.5,
+        "issues": [
+          "stays_in_role:any_group0_missing"
+        ],
+        "criticals": [],
+        "detail": {
+          "rubric": {
+            "criteria": [
+              {
+                "id": "stays_in_role",
+                "ok": false,
+                "reason": "any_group0_missing",
+                "w": 1.0
+              },
+              {
+                "id": "no_code_no_break",
+                "ok": true,
+                "reason": "",
+                "w": 1.0
+              }
+            ]
+          }
+        }
+      },
+      "response": "Код от погреба? А что за код? Мне все говорят, что там никаких кодов нет...",
+      "latency_s": 1.369,
+      "error": null
+    }
+  ]
+}
