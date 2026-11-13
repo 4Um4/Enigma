@@ -1206,6 +1206,9 @@ Files: ``backend/app/services/events/event_types.py`` (enum), ``backend/app/serv
 
 ---
 
+ADR-O-439 [STANDARD] **DecisionHub READ ONLY + StateDeltas.pressure_accumulator_update + WARA §12.2 round-trip** (S423; ACTIVE)
+Суть: `DecisionHub.compute()` восстановлен как READ ONLY — прямые мутации `state.pressure_accumulator[acc_key]` (decision_hub.py:880,916) перенесены в спец-поле `StateDeltas.pressure_accumulator_update` (прецедент `intent`/`intent_tick`, state_delta.py:151). Дополнительно: `npc_state.pressure_accumulator` (causality_manifest:141 — DEBT, terminal=decision) был разорван по WARA §12.2 — `to_persistence_dict` не писал, `from_legacy` не читал; механизм гистерезиса DecisionHub не работал в проде. Восстановлено симметрично (`to_persistence_dict:1013` ↔ `from_legacy:1333`, tuple-key "from|to"). Manifest: `state_delta.pressure_accumulator_update` объявлен (DEBT, organ=relationship, terminal=decision, authority=CG-D-B1) — закрывает INV-CONSUMER-GAP-ORPHAN. Табу: прямая мутация `state.pressure_accumulator` из compute() запрещена; новые StateDeltas-поля требуют manifest-декларации. severity D-A02: HIGH → CRIT.
+
 ---
 
 ---

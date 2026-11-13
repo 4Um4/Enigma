@@ -509,6 +509,51 @@
 **Дата:** 2026-11-02
 **Коммиты:** `fe50b3be` (additive) + `8caefebc` (production)
 
+---
+
+## S423 — Ветвь А: A2 CLOSED (D-A02 CRIT) + A3 [~] BC-2 infrastructure (2026-11-12)
+
+> Commit code: `28354436` (message содержит placeholder `S##` — precedent
+> S341/S358: коммит не правится, номер остаётся за реестр-строкой → S423).
+
+### Суть
+
+**A2 · D-A02 (severity HIGH → CRIT):**
+- READ ONLY восстановлен: `decision_hub.py:880,916` мутировали `state.pressure_accumulator` — мутация перенесена в спец-поле `StateDeltas.pressure_accumulator_update` (по образцу `intent`/`intent_tick`, `state_delta.py:151`).
+- WARA §12.2 разорван: `causality_manifest.py:141` (`npc_state.pressure_accumulator` = DEBT/terminal=decision) — но `to_persistence_dict:1013` не писал и `from_legacy:1333` не читал. Механизм гистерезиса DecisionHub (`accumulated ≥ threshold`, `:901`) не работал в проде. Восстановлен симметрично.
+- Manifest: `state_delta.pressure_accumulator_update` объявлен (`causality_manifest.py` — DEBT, organ=relationship, terminal=decision, authority=CG-D-B1). Закрывает INV-CONSUMER-GAP-ORPHAN.
+
+**A3 [~] · BC-2 infrastructure DONE, closeout PENDING:**
+- 4 файла: `domain/expectations.py`, `services/npc/expectation_store.py`, `services/npc/expectation_bridge.py`, `services/memory/expectation_runtime.py`.
+- Wiring: `tick_orchestrator.py` (3 точки), `game_loop.py` (1), `BC2_ENABLED` в `architecture/flags.yaml` (ROLLOUT-PENDING, default OFF, INV-BC2-NOOP).
+- **Closeout PENDING:** signal-gap для предикатов `MAY_CAUSE_PHYSICAL_HARM` / `MAY_USE_FORCE_IN_CONFLICT`. Ждёт вердикта Master (A/B/A+B/C/D). HANDOFF BC2-2 §11 — не CLOSED по unit-тестам.
+
+### Тесты
+
+- IPT: **54/54 passed · 0 CRITICAL**
+- BC-1: 6/6 (A/B/C/D/E/OFF=True) — не регрессировал
+- BC-2 unit: 14/14 · D-A02 unit: 6/6
+- Регресс (intent_roundtrip + intent_tick_guard + contracts_stage6 + decision_calibration + decision_hub_goal_boost): **40/40**
+
+### ADR
+
+- ADR-O-439 — DecisionHub READ ONLY + StateDeltas.pressure_accumulator_update — ACTIVE
+- IMPACT: `docs/audits/ADR-O-439_IMPACT.md`
+
+### Relay
+
+- `run_p5a_full.py:702` SyntaxError — **FIXED** в `255bdb18` (не моя работа, но закрыт в тот же день).
+- `conclusion_gate.py` / `conclusion_store.py` — незакоммиченная чужая WIP (упрощение BC-1-файлов). Не моя, не трогаю. Master разводит.
+- `INV-SC-1-8-SPATIAL-COHERENCE: SC-4 FAIL` — известный дефект зоны Б, вне BC-2 scope.
+
+### Pending
+
+- A3 closeout: вердикт Master по блокеру сигналов (A/B/A+B/C/D)
+- Cross-branch: 4 точки в zone Б фактически применены, симметричны BC-1
+
+
+---
+
 ### Артефакты
 
 | Файл | Тип | SHA |
