@@ -1718,6 +1718,71 @@ def inv_save_load_integrity(world: TestWorld) -> InvariantResult:
             "INV-SAVE-LOAD-INTEGRITY", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
         )
 
+def inv_npc_runtime_roundtrip(world: TestWorld) -> InvariantResult:
+    """INV-NPC-RUNTIME-ROUNDTRIP: NPC runtime переживает коммит через production-путь.
+
+    PERSIST-RECOVERY R6. INV-SAVE-LOAD-INTEGRITY проверяет только сцены;
+    этот инвариант закрывает пробел: unlock_tick обязан коммитить и NPC.
+    Строгий field-level round-trip — tests/micro/test_npc_runtime_persistence.py.
+    """
+    try:
+        for _ in range(3):
+            world.idle_tick()
+
+        _sm = world.game_loop.scene_manager
+        _persistence = getattr(_sm, "_persistence", None)
+        if not _persistence:
+            return InvariantResult(
+                "INV-NPC-RUNTIME-ROUNDTRIP", "CRITICAL", False,
+                "Persistence adapter not found.", [],
+            )
+
+        _loaded = _persistence.load_npc_runtime(world.campaign_id)
+        if not _loaded:
+            return InvariantResult(
+                "INV-NPC-RUNTIME-ROUNDTRIP", "CRITICAL", False,
+                "NPC runtime не персистится: load_npc_runtime пуст.",
+                ["backend/app/services/scene_state_manager.py"],
+            )
+
+        _by_id = {}
+        for _rec in _loaded:
+            if isinstance(_rec, dict):
+                _rid = _rec.get("id") or _rec.get("npc_id")
+                if _rid:
+                    _by_id[_rid] = _rec
+
+        _scene = world._get_scene()
+        _positions = _scene.get("npc_positions", {}) if isinstance(_scene, dict) else {}
+
+        _violations = []
+        for _nid in _positions:
+            if _nid == "player":
+                continue
+            if _nid not in _by_id:
+                _violations.append(f"{_nid}: есть в сцене, отсутствует в runtime")
+
+        for _nid, _rec in _by_id.items():
+            for _field in ("body_state", "psyche", "location_id"):
+                if _field not in _rec:
+                    _violations.append(f"{_nid}: поле {_field} не персистится")
+
+        if not _violations:
+            return InvariantResult(
+                "INV-NPC-RUNTIME-ROUNDTRIP", "CRITICAL", True,
+                f"NPC runtime round-trip verified ({len(_by_id)} записей).", [],
+            )
+        return InvariantResult(
+            "INV-NPC-RUNTIME-ROUNDTRIP", "CRITICAL", False,
+            f"NPC runtime violations: {_violations}",
+            ["backend/app/services/scene_state_manager.py"],
+        )
+    except Exception as e:
+        return InvariantResult(
+            "INV-NPC-RUNTIME-ROUNDTRIP", "CRITICAL", False,
+            f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"],
+        )
+
 def inv_intent_event_completeness(world: TestWorld) -> InvariantResult:
     """INV-INTENT-EVENT-COMPLETENESS: Каждый committed CommunicationIntent должен иметь явный event mapping.
     
@@ -2436,6 +2501,7 @@ INVARIANTS: List[Callable] = [
     inv_scene_entity_isolation,
     inv_replay_determinism,
     inv_save_load_integrity,
+    inv_npc_runtime_roundtrip,  # PERSIST-RECOVERY R6
     inv_intent_event_completeness,
     inv_semantic_unification,
     inv_dialogue_context_binding,

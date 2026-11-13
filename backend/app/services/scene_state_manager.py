@@ -167,6 +167,10 @@ class SceneStateManager:
         self._tick_campaign_id: str | None = None
         # Дополнение Б (п. Б.6.1): Словарь сцен вместо одиночного слота
         self._tick_scenes: dict[str, dict] = {}
+        # PERSIST-RECOVERY R1: tick-scoped снимок NPC runtime для unlock_tick().
+        # Без него commit() складывал npc_dicts только в _last_committed_npcs_src
+        # (снапшот для выключенного WorldProjectionBuffer) — NPC не персистились.
+        self._tick_npc_runtime: list[dict] | None = None
         # R4/GATE-9A D2: abort marker. See mark_tick_aborted / unlock_tick.
         # Reset at fresh acquire (lock_for_tick/lock_all_for_tick/adopt) and
         # at end of unlock_tick guard body (both branches, via finally).
@@ -290,10 +294,20 @@ class SceneStateManager:
                         # локациях кампании (отношения переживают смену локации) —
                         # синхронизация ДО транзакции, консистентность — транзакцией.
                         self._sync_relationship_directed(_valid_scenes)
-                        self._persistence.atomic_commit_all(
+                        # PERSIST-RECOVERY R3: NPC runtime возвращается в коммит.
+                        _commit_ok = self._persistence.atomic_commit_all(
                             campaign_id=campaign_id,
                             all_scenes=_valid_scenes,
+                            npc_states=self._tick_npc_runtime,
                         )
+                        # PERSIST-RECOVERY R4: False после rollback не должен
+                        # исчезать бесследно (контракт unlock_tick остаётся -> None).
+                        if not _commit_ok:
+                            logger.error(
+                                "[PERSIST] atomic_commit_all FAILED campaign=%s — "
+                                "NPC runtime и сцены НЕ сохранены (rollback выполнен)",
+                                campaign_id,
+                            )
                         # M1b.4.2: маркер .migrated только ПОСЛЕ успешного коммита
                         # (ратифицировано: истина cutover — сохранённый v2, не маркер)
                         self._confirm_v2_migration(campaign_id)
@@ -315,6 +329,9 @@ class SceneStateManager:
                 # жизненного цикла (обе ветки: persist и skip), даже при
                 # исключении в atomic_commit_all (блокер Мастера).
                 self._tick_aborted = False
+                # PERSIST-RECOVERY R5: снимок NPC не переживает границу тика
+                # (обе ветки: persist и abort) — иначе протечёт в следующий тик.
+                self._tick_npc_runtime = None
             # НЕ очищаем _tick_scenes! Bridge может читать их в SSE-потоке.
             # Кэш будет заменён при следующем lock_for_tick().
 
@@ -1347,6 +1364,12 @@ class SceneStateManager:
             # с живым потребителем.
             self._last_committed_npcs_src = npc_dicts or []
             self._last_committed_npcs = None
+            # PERSIST-RECOVERY R2: снимок для unlock_tick → atomic_commit_all.
+            # deepcopy обязателен: all_npcs_raw продолжает жить в оркестраторе и
+            # LifeEngine.update_cache (commit_phase:178-185) — владение НЕ передаётся.
+            # Поверхностная копия разделит body_state / drives / psyche с живым кэшем.
+            if npc_dicts:
+                self._tick_npc_runtime = copy.deepcopy(npc_dicts)
         return 2
 
     def get_last_committed_npcs(self) -> list[dict]:
