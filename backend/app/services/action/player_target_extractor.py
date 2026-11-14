@@ -583,16 +583,25 @@ class PlayerTargetExtractor:
         prev_target_name = (
             scene_state.get("player_target_npc_name") if scene_state else None  # noqa: ENIGMA001
         )
+        current_npc_ids = {ctx.get("npc_id") for ctx in npc_contexts}
 
         target_npc_id = target_npc_name = None
         target_object = None
         player_position = None
         player_distances: Dict[str, float] = {}
 
-        # Pronoun shortcut: игрок использует местоимение И есть предыдущая цель
-        # → пропускаем поиск по имени/роли, берём sticky target напрямую.
-        # Иначе роль-ключевое слово из контекста фразы перехватит цель ложно.
-        if has_only_pronoun and prev_target_id:
+        # R4-FIX (NPC Silence): Если у игрока есть предыдущая цель, но её нет в current_npc_ids
+        # (рассинхрон локации или баг загрузки), мы ВСЁ РАВНО возвращаем prev_target_id, 
+        # если только игрок явно не упоминает имя ДРУГОГО NPC из текущей сцены.
+        # Это позволяет DM-фазе обработать обращение (например, ответить "его здесь нет"), 
+        # вместо полного игнорирования ввода и молчания.
+        _other_npc_mentioned = any(
+            ctx.get("npc_name", "").lower() in lower 
+            for ctx in npc_contexts 
+            if ctx.get("npc_id") != prev_target_id and ctx.get("npc_name")
+        )
+        
+        if prev_target_id and not _other_npc_mentioned:
             target_npc_id = prev_target_id
             target_npc_name = prev_target_name
             for ctx in npc_contexts:
@@ -800,7 +809,7 @@ class PlayerTargetExtractor:
 
         if (
             target_npc_id is None
-            and prev_target_id
+            and prev_target_id in current_npc_ids
             and target_object is None
             and has_address_signal
         ):
