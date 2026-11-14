@@ -18,6 +18,7 @@
 | P1-03 нормализация tavern.json | COMPLETED | 2026-11-09 |
 | COV-0 / COV-1 / COV-2 | закрыты; S1 опубликован, S2 — публикация за Мастером | — |
 | RE-01 M2/D + G/H · AG1 BC-1 · CCH-0…5 · LC-IMPL-1…2 | закрыты | — |
+| NPC Conversation Lifecycle (А16) | COMPLETED (автономное целеполагание диалога, R4) | 2026-11-14 |
 
 Власть координат объявлена (W1–W7). Осталась персистентность сейвов и выбор локации.
 
@@ -114,6 +115,7 @@ CRIT закрывается раньше очереди (§0.2 правило 3)
 | А13 | MOT (§18), досье Р18 «Адаптация», RE-01 K removal-test | — | §9.10 |
 | А14 | D-A09 совместный ADR о единственном писателе | Б | ADR + гейт |
 | А15 | ТЗ модели: Этапы 1, 2, 3 | — | docs/research/* → передача Б |
+| А16 [x] | NPC Conversation Lifecycle: автономное целеполагание диалога (R4). EpistemicContext хранит source_id автора реплики, DecisionHub использует его для 	alk/warn/spread_rumor | Epistemic Store, D-A02 | ✅ unit 4/4; A→B→A цикл доказан; self-targeting заблокирован |
 
 **А3 `[x] INFRA` · BC-2 — INFRASTRUCTURE CLOSED / formation → А3.1 (2026-11-13, вердикт Master: вариант D)**
 
