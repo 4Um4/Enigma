@@ -680,6 +680,18 @@ Import RelationshipStore перемещён из runtime (line 62) в TYPE_CHECK
 - IPT: 55/0/0 (baseline улучшился 54→55 — foreign INV-FLAG-REGISTRY BC2_ENABLED fixed parallel session)
 - Files: backend/app/services/verbalization/response_validator.py (4 changes: signature + body + helpers + fallback map)
 
+### Non-determinism finding (S424 final, 2026-11-14)
+Controlled re-run: ssot_v1 vs ssot_v1_repeat — ОДИНАКОВАЯ конфигурация (no grammar, no fewshot, same benchmark, same server).
+- DLG: 0.2656 → 0.6562 (+0.39)
+- GATE_JSON: false (9 invalid) → true (0 invalid) — FLIP без grammar changes
+- criticals: 11 → 2 (-9)
+- composite: 20.45 → 57.46 (+37)
+Те же 9 DM-задач: 1st run plain text (json_invalid), 2nd run valid JSON — БЕЗ изменений.
+Lumimaid non-deterministic на уровне первого токена (temp=0.0, seed=42 — не помогает).
+Вывод: single-run benchmark замеры не воспроизводимы. Grammar — единственный детерминированный рычаг.
+Все "улучшения" в этой сессии — частично noise. Multi-run averaging нужен для надёжных сравнений.
+ТЗ-v4 создано для преемника: docs/Почти Актуальные TZ/ТЗ_NEXT_SESSION_LLM_v4.md
+
 ## S425 — A3 INFRASTRUCTURE CLOSED / formation -> A3.1 (doc-only, ветвь А)
 
 ### Суть
