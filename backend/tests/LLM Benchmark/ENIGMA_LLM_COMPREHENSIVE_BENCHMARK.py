@@ -4521,6 +4521,8 @@ class HttpLlamaCppAdapter:
             body["grammar"] = params["grammar"]
         if params.get("grammar"):
             body["grammar"] = params["grammar"]
+        if params.get("grammar"):
+            body["grammar"] = params["grammar"]
         req = urllib.request.Request(
             f"{self.base_url}/v1/chat/completions",
             data=json.dumps(body).encode("utf-8"),
@@ -4559,6 +4561,10 @@ def _params_for(task: Dict[str, Any], seed: int) -> Dict[str, Any]:
     params["seed"] = seed
     if kind in ("cch", "intent", "dm"):
         params.setdefault("response_format", "json_object")
+        if kind == "cch":
+            params.setdefault("grammar", GBNF_CCH)
+        elif kind == "dm":
+            params.setdefault("grammar", GBNF_DM)
         if kind == "cch":
             params.setdefault("grammar", GBNF_CCH)
         elif kind == "dm":

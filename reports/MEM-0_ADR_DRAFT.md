@@ -51,7 +51,9 @@ Causal ownership — карта существующей цепочки (зве�
 | Звено | Владелец | Писатели | Читатели | Ablation |
 |---|---|---|---|---|
 | WORLD TRUTH | TruthState / L1Chronicle | world-event продюсеры | perception | — (вне MEM) |
-| EVENT/EXPERIENCE | EventBus | EventDTO.create | perception / narrative | — |
+| EVENT SOURCE (authoritative) | **TBD (UNVERIFIED)** — кандидаты: TruthState / L1Chronicle / world-event-producer | ? | ? | ? — **без доказательства EventBus владельцем не объявлять** |
+| EVENT TRANSPORT | EventBus | `EventDTO.create` | perception | снять → нет доставки (но факт мира не исчезает) — транспорт, **не SSOT** |
+| EXPERIENCE (perception) | `perception_filter` / `PerceptualKernel` | `pipeline_runner` | encoding | снять → NPC «всё знает» |
 | PERCEPTION | perception_filter / PerceptualKernel | pipeline_runner | encoding | снять → NPC «всё знает» |
 | ENCODING | `MemoryManager.apply` (единственный законный writer, Закон 4.1.2) | pipeline_runner (Фаза 3) | narrative_cache | снять → записи нет |
 | EPISODIC TRACE | EventMemory / SQLite | MemoryManager.apply | recall / promotion | снять → нет прошлого |
@@ -70,7 +72,9 @@ Causal ownership — карта существующей цепочки (зве�
 
 | Состояние | Контракт |
 |---|---|
-| **destruction** | физически нет записи **ни в одном предусмотренном тире** (RAM + LTM + SQLite). Зависимые (belief/obligation/investigation) — либо tombstone, либо блокированы. Удаление только из RAM (FIFO WM, STM turnover) — это **retention transition** внутри `forgetting`, **не** destruction. LTM-строка при RAM-удалении жива; запрет воскресения — §16.10-P2 + MEM-D3/D8. Наличие tombstone/архивной записи = исторический факт **не уничтожен**. |
+| **operational deletion** | запись удалена из RAM/STM/WM (FIFO, turnover, сброс кэша). **LTM/SQLite не затронуты.** Восстановима из LTM. Не является destruction. |
+| **historical retention** | запись в LTM/SQLite жива. При удалении оперативного представления — сохраняется. Tombstone / сводка / ref-link — **свидетельство события**, не его исходная запись. |
+| **irreversible destruction** | записи **нет ни в одном предусмотренном тире** (RAM + LTM + SQLite + archive). Tombstone (если оставлен) — **маркер удаления**, не восстановленная запись. Зависимые (belief/obligation/investigation) — либо tombstone-ссылка, либо блокированы по §16.10-P1. |
 | **forgetting** | запись есть, но accessibility ниже порога; recall её не возвращает; cue может вернуть |
 | **uncertainty** | recall возвращает запись с маркером confidence/clarity низким; реконструкция hedges |
 | **reconstruction** | запись восстановлена из частей (compressed_from); помечена как reconstruction; не получает статус WORLD TRUTH |
@@ -83,7 +87,7 @@ Causal ownership — карта существующей цепочки (зве�
 
 **Решение Master (2026-11-14): вариант C — отложенная активация ExperienceTrace.** D10 — не отсутствие второго хранилища, а потеря перспективы при создании опыта; введение второго durable-носителя до определения его потребителя создаст обязанность синхронизации без устранения первопричины.
 
-**MEM-1 schema delta — только P0 (D1/D4):**
+**MEM-1 schema delta — P0 (D1/D4). Точный набор колонок = UNVERIFIED до археологии SQLite-схемы и MigrationRunner (см. §5).**
 
 | Поле | Сейчас | MEM-1 |
 |---|---|---|
@@ -97,16 +101,28 @@ Causal ownership — карта существующей цепочки (зве�
 
 Миграция: `MigrationRunner` (прецедент S351, ADR-O-426) — не плодить второй механизм. `.bak` побайтово (прецедент S354).
 
-### 3.4. WHAT stable / decays / distorts / uncertain + WHY
+### 3.4. WHAT stable / decays / distorts / uncertain + WHY — разделение по слоям
 
-По классам значимости (вход NL-INV-SALIENCE, прецедент ADR-O-307):
+Три **разных слоя** — не смешивать:
 
-| Класс | Что стабильно | Что распадается | Что искажается | Что остаётся uncertain | Why |
-|---|---|---|---|---|---|
-| **Травма (betrayal, death)** | ядро факта (кто/что) | детали обстановки | эмоциональная амплификация | детали свидетелей | salience-пол «шрама», ADR-O-307 |
-| **Бытовое (обычная реплика)** | кратко, быстро | почти всё | source-confusion | с высокой вероятностью | decay_rate 0.05; ниже — можно |
-| **Ритуал/повтор** | паттерн, не экземпляр | экземпляры | нет | «сколько раз» — uncertain | semanticization (NL-INV-CONSOLIDATION) |
-| **Секрет (canon)** | полностью | никогда (doctrine) | никогда | доступность по known_by | disclosure-лестница (P5) |
+#### 3.4.A. Онтологические принципы (универсальные, не калибруются)
+- `trait ≠ memory`, `summary ≠ autobiographical memory`, `LLM ≠ authoritative memory store` (§16.1.8/§16.1.9).
+- `belief без evidence` запрещён (§16.1.3).
+- `conflict версий ≠ авторезолюция` (§16.1.10).
+- `GC-механизм не создаёт фактов задним числом` (§16.10-I4).
+
+#### 3.4.B. Игровые гипотезы (проверяются через MEM-GC, не заявляются доказанными)
+- «Травма (betrayal/death) живёт дольше бытового» — гипотеза; проверяется MEM-GC-03/04.
+- «Травма амплифицируется при recall» — гипотеза; проверяется MEM-GC-04 + ADR-O-307.
+- «Секрет не искажается» — **гипотеза**, не универсальный закон; проверяется disclosure-сценарием (P5) + MEM-GC-09.
+- «Повтор оставляет паттерн, а не экземпляр» — гипотеза semanticization (NL-INV-CONSOLIDATION).
+
+#### 3.4.C. Калибруемые параметры (числа, требуют MATH-3 / MEM-10)
+- `decay_rate 0.05` (текущий дефолт `EventMemory`, `npc_state.py:205`) — **параметр, не закон**.
+- `importance ≥ 0.9` для травмы, `×6 refutation`, `τ=100` тиков — параметры L2.5, требуют калибровочного контура.
+- `DECAY_EVERY=10`, `TICKS_PER_DAY=24` — параметры темпа (MEM-D2 — 2.4× ускорение).
+
+Ни один пункт B/C не выдаётся за доказанный универсальный закон; A — контрактные инварианты.
 
 ### 3.5. Вердикт по 5 belief-носителям (MEM-D20)
 
@@ -134,9 +150,9 @@ Causal ownership — карта существующей цепочки (зве�
 **Запрет:** не мигрировать пять носителей до завершения ownership-таблицы и проверки downstream. Миграция — отдельный ADR.
 
 Правила конфликта версий (MEM-INV-CONTRADICTION):
-- Памяти сосуществуют; авторезолюция `latest wins` / `highest confidence wins` **запрещена**
-- Конфликт — материал сознания NPC (сомнение) и NL-6
-- `contradiction_resolver` — реанимировать в MEM-3
+- Противоречивые памяти **сосуществуют с provenance** (source, tick, evidence[]); авторезолюция `latest-wins` / `highest-confidence-wins` **запрещена**.
+- **`conflict ≠ doubt`.** Наличие конфликта версий не превращается автоматически в сомнение, колебание или пересмотр. Когнитивная обработка конфликта (если NPC сомневается, взвешивает, меняет решение) — **отдельная логика** (MEM-3 / NL-6 / Epistemic Arbiter), не следствие записи конфликта.
+- **`contradiction_resolver` — статус UNVERIFIED.** Утверждение §7.9 «0 вызывающих» этим докладом не доказано; отдельный grep `update_beliefs(` / `resolve_all(` обязателен до любого решения.
 
 ### 3.6. §16.10 — три запрета (к MEM-0 по явному требованию §16.10:3120)
 
@@ -155,7 +171,8 @@ Causal ownership — карта существующей цепочки (зве�
 | # | Инвариант | Источник |
 |---|---|---|
 | 1 | `INV-MEM-TRIPLE` — нет кода, сливающего WORLD/MEMORY/BELIEF | §16.1.1 |
-| 2 | `INV-MEM-PERSPECTIVE` — EventMemory имеет perspective_role и channel; оба не пустые при записи от NPC | §16.1.2 |
+| 2a | `INV-MEM-PERSPECTIVE-TRANSPORT` — при создании EventMemory от NPC: `npc_id` непустой и ≠ `"player"`; `event_type` валиден; `summary` непустой; `actor_id` либо известен, либо явно `""` с причиной. **Не требует** `perspective_role`/`channel` (их пока нет). | §16.1.2 (текущий контракт) |
+| 2b | `INV-MEM-PERSPECTIVE-ROLE-CHANNEL` — **MEM-3 GATED**. Вводится только после утверждённой MEM-3 модели ExperienceTrace; до этого — НЕ enforced, НЕ в IPT. | §16.1.2 (будущий MEM-3) |
 | 3 | `INV-MEM-EPISODIC-BASIS` — belief без `evidence[]` не создаётся | §16.1.3 |
 | 4 | `INV-MEM-FOUR-STATES` — четыре константы состояния различаются; нет коллапса | §16.1.4 |
 | 5 | `INV-MEM-RECONSOLIDATION` — retrieval-мутации детерминированы (KernelRNG salt) | §16.1.5 |
@@ -181,7 +198,7 @@ DecisionHub (npc_memory_modifiers) · BC-2…BC-7 · NL-1/NL-2/NL-3/NL-10 · CCH
 ## 5. Бюджет
 
 - **MEM-0 ADR:** 0 (docs-only)
-- **MEM-1** (следующий шаг, не в этом ADR): EventMemory v2 +4 колонки; оценка +~100 байт/запись × 10⁵ = ~10 MB RAM-пик; SQLite-миграция через MigrationRunner; tick-latency нейтрально. VRAM не затрагивается.
+- **MEM-1** (следующий шаг, не в этом ADR): точная schema delta **UNVERIFIED** до археологии SQLite-схемы и MigrationRunner. В §3.3 сейчас заявлены 2 P0-поля (`event_id`, `game_tick`); ранее упоминавшиеся «+4 колонки» — устаревшая оценка варианта C без `perspective_role`/`channel`. Реальный размер delta и RAM-бюджет — **после MEM-1 археологии**, до неё числа не фиксируются. VRAM не затрагивается.
 
 ## 6. Откат
 
@@ -192,8 +209,15 @@ DecisionHub (npc_memory_modifiers) · BC-2…BC-7 · NL-1/NL-2/NL-3/NL-10 · CCH
 ## 7. Регресс-тесты
 
 - **MEM-GC-01** (хронология различима — самый узкий гейт) — первый обязательный.
-- **15 IPT-инвариантов** — AST-линтеры, тестируются на старом и новом коде.
-- Stop-rule §0.2(5) дословно: закрытие MEM-0 — только когда ADR утверждён Master **и** 15 инвариантов живут в IPT.
+**Три независимых состояния (не путать и не сливать в один гейт):**
+
+| Состояние | Что означает | Кто фиксирует |
+|---|---|---|
+| **ADR APPROVED** | Master утвердил онтологию (три истины, four-states, causal ownership, §16.1 + §16.10 запреты). Документационное состояние; **не открывает код**. | Master |
+| **IPT CONTRACT ENFORCED** | Заявленные в §3.8 инварианты реализованы в `IPT.py` (AST/линтеры), IPT зелёный ×2. **Отдельная инженерная фаза**, не автоматическое следствие APPROVED. Часть инвариантов (2b, 6, 8-частично, 15) — **GATED** до MEM-3 / MEM-10. | Ветвь А (реализация) + Master (приёмка) |
+| **MEM-0 CLOSED** | ADR APPROVED + IPT CONTRACT ENFORCED (для ungated) + MEM-GC гейты, привязанные к §16.4-MEM-0 (сейчас — MEM-GC-01 «хронология различима»), зелёные. Не цикл: CLOSED **требует** APPROVED, но APPROVED **не требует** CLOSED. | Master |
+
+**Циклическая зависимость устранена:** ранее формулировка «закрытие MEM-0 — только когда ADR утверждён и 15 инвариантов живут в IPT» смешивала три состояния в одно. Здесь — три отдельных шага; закрытие MEM-0 — последний, не совпадает с APPROVED.
 
 ## 8. Решения Master и открытые технические вопросы
 
@@ -209,15 +233,20 @@ DecisionHub (npc_memory_modifiers) · BC-2…BC-7 · NL-1/NL-2/NL-3/NL-10 · CCH
 **Открытые технические вопросы (для MEM-1 / MEM-3, не блокируют MEM-0):**
 
 1. **Ownership-таблица (D20):** точный набор traits, authoritative owner per trait, writers, readers, projections, conflict policies. Составить до первой миграции.
-2. **`contradiction_resolver`:** отдельный grep `update_beliefs(` / `resolve_all(` по всем слоям — статус «мёртв / жив / dormanт» доказать кодом (не докладом).
+2. **`contradiction_resolver`:** отдельный grep `update_beliefs(` / `resolve_all(` по всем слоям — статус «мёртв / жив / dormant» доказать кодом (не докладом).
 3. **Migration существующих записей per trait** — backfill / delete / archive; миграция через `MigrationRunner` (прецедент S351).
 4. **MEM-3 возврат к ExperienceTrace** — точная точка в BeliefCrystallization evidence-цепи (MEM-D17) и контракт в ADR Epistemic Arbiter (MEM-D20).
 5. **Порядок MEM-1 / MEM-3:** MEM-1 (P0: D1/D4) запускается сейчас; MEM-3 — после BC-1 ON + Epistemic Arbiter + ownership-таблица.
 
-## 9. Что дальше (после вердикта)
+## 9. Что дальше (после вердикта) — три независимых шага
 
-- Если MEM-0 утверждён → ADR-запись в `docs/ADR (Architecture Decision Records).md` + IMPACT; 15 инвариантов в `IPT.py` (отдельный коммит); baseline IPT ×2 в окне тишины.
-- MEM-1 (EventMemory v2) — следующий пакет, требует `MigrationRunner` (прецедент S351) и `.bak` (прецедент S354).
+**Шаг 1. ADR APPROVED.** Master утверждает этот документ как канон MEM-0. Запись в `docs/ADR (Architecture Decision Records).md` + `docs/audits/ADR-O-XXX_MEM-0_IMPACT.md` — **отдельный коммит**, не сейчас. Номер `ADR-O-XXX` назначает Master (O-442 зарезервирован за A3.1).
+
+**Шаг 2. IPT CONTRACT ENFORCED.** Для ungated-инвариантов §3.8 — реализация в `IPT.py` (AST-линтеры), baseline ×2 в окне тишины (§3.12), отдельный коммит. Gated-инварианты (2b, 6, 8-частично, 15) — ждут MEM-3 / MEM-10.
+
+**Шаг 3. MEM-0 CLOSED.** После APPROVED + ENFORCED (ungated) + MEM-GC-01 зелёный. **Только тогда** MEM-0 закрыт; APPROVED сам по себе — не закрытие.
+
+**MEM-1** (EventMemory schema delta) — отдельный пакет, требует `MigrationRunner` (прецедент S351), `.bak` (прецедент S354) и **MEM-1 археологию SQLite-схемы** (сейчас UNVERIFIED). MEM-1 стартует параллельно шагу 2, но его гейт не входит в MEM-0 CLOSED.
 
 ---
 

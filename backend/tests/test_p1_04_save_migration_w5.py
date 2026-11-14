@@ -29,11 +29,13 @@ local_position NPC в ЛОКАЛЬНОМ фрейме (например maid_lus
 
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
+from app.services.scene_state.scene_factory import build_initial_scene
 from app.services.scene_state_manager import SceneStateManager
 
 
@@ -163,6 +165,62 @@ def test_w5_idempotent_on_repeated_load(
     assert lp["y"] == pytest.approx(_MAID_LUSYA_Y + _TAVERN_ORIGIN_Y)
     # persist НЕ вызван (no-op)
     manager._persistence.atomic_commit_all.assert_not_called()
+
+
+def test_w5_new_scene_global_positions_survive_repeated_restore(
+    manager: SceneStateManager, tavern_editor_world: dict
+) -> None:
+    """New authored world coordinates are not mistaken for legacy local saves."""
+    player_xy = {"x": 33.24, "y": 15.184}
+    npc_xy = {"x": 37.75, "y": 7.8}
+    editor_data = {
+        **tavern_editor_world,
+        "nodes": {"spawn": {"x": player_xy["x"], "y": player_xy["y"]}},
+        "player_spawn": player_xy,
+        "npcs": [{"ref_id": "maid_lusya", "position": npc_xy}],
+    }
+    scene = build_initial_scene(
+        campaign_id="Open_road",
+        location_id="tavern",
+        time_of_day="12:00",
+        template={},
+        editor_data=editor_data,
+        build_spatial_data=lambda _: ([], []),
+    )
+    manager._find_editor_location = lambda cid, lid: tavern_editor_world
+    manager._enrich_local_positions = lambda cid, state: None
+    manager._enrich_spatial_data = lambda cid, state: None
+
+    persisted_scenes: dict[str, dict] = {}
+
+    def persist_scenes(*, all_scenes: dict[str, dict], **kwargs: object) -> None:
+        persisted_scenes.update(
+            {location_id: deepcopy(state) for location_id, state in all_scenes.items()}
+        )
+
+    manager._persistence.atomic_commit_all.side_effect = persist_scenes
+    manager._persistence.load_scene_at.side_effect = (
+        lambda campaign_id, location_id: deepcopy(persisted_scenes.get(location_id))
+    )
+
+    assert scene["coord_frame_version"] == "W"
+    manager.save_scene_state("Open_road", scene)
+
+    # Ordinary restore runs W5; the frame marker makes it a no-op.
+    restored_scene = manager.get_scene_state("Open_road", "tavern")
+    assert restored_scene is not None
+    assert restored_scene["npc_positions"]["player"]["local_position"] == player_xy
+    assert restored_scene["npc_positions"]["maid_lusya"]["local_position"] == npc_xy
+
+    # Saving on Escape and restoring on Back must not shift either position.
+    manager.save_scene_state("Open_road", restored_scene)
+    restored_again = manager.get_scene_state("Open_road", "tavern")
+    assert restored_again is not None
+    assert restored_again["npc_positions"]["player"]["local_position"] == player_xy
+    assert restored_again["npc_positions"]["maid_lusya"]["local_position"] == npc_xy
+    assert manager._persistence.load_scene_at.call_count == 2
+    # Only the two explicit saves occurred; W5 did not commit a migration.
+    assert manager._persistence.atomic_commit_all.call_count == 2
 
 
 # ─────────────────────────────────────────────────────────────────────────────

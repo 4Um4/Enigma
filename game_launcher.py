@@ -16,6 +16,8 @@ import logging
 import os
 import subprocess
 import sys
+import time
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -52,7 +54,14 @@ WINDOW_HEIGHT = 900
 
 # Backend URL — загружается из конфига внутри main() и _ensure_backend_running()
 _BACKEND_URL = "http://localhost:8000"
-_BACKEND_STARTUP_TIMEOUT = 120  # секунд ожидания (LLM грузится долго)
+_BACKEND_STARTUP_TIMEOUT = 120  # seconds to wait for backend health
+_BACKEND_DIAG = {
+    "ready": False,
+    "reason": "",
+    "detail": "",
+    "exit_code": None,
+    "log_path": "",
+}
 
 # ─── LOG-GATE-UI: диагноз «почему AI не работает» ────────────────────────────
 # Причина заполняется в _ensure_llm_running (exe/модель не найдены) и в цикле
@@ -271,6 +280,47 @@ def _ensure_llm_running() -> Optional[subprocess.Popen]:
     return None
 
 
+def _record_backend_startup_failure(
+    reason: str, detail: str, exit_code: int | None, log_path: str
+) -> None:
+    _BACKEND_DIAG.update(
+        ready=False,
+        reason=reason,
+        detail=detail,
+        exit_code=exit_code,
+        log_path=log_path,
+    )
+    try:
+        with open(log_path, "a", encoding="utf-8") as log_file:
+            log_file.write(
+                f"\n[LAUNCHER] reason={reason}; exit_code={exit_code}; "
+                f"detail={detail}\n"
+            )
+    except OSError as error:
+        print(f"[LAUNCHER] Could not append startup diagnosis to log: {error}")
+    print(f"\n  ✗ {detail}. Лог: {log_path}")
+
+
+def _shutdown_owned_processes(*processes: Optional[subprocess.Popen]) -> None:
+    """Stop only child processes represented by Popen handles owned by this launcher."""
+    for process in processes:
+        if process is None or process.poll() is not None:
+            continue
+        try:
+            process.terminate()
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            try:
+                process.kill()
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                print(f"[CLEANUP] Owned process {process.pid} did not stop after kill")
+            except OSError as error:
+                print(f"[CLEANUP] Could not kill owned process {process.pid}: {error}")
+        except OSError as error:
+            print(f"[CLEANUP] Could not stop owned process {process.pid}: {error}")
+
+
 def _ensure_servers_running() -> tuple:
     """Запускает LLM и FastAPI, рисует экран загрузки и ждёт готовности обоих."""
     import urllib.request
@@ -321,8 +371,8 @@ def _ensure_servers_running() -> tuple:
                 _diag_y += 26
         pygame.display.flip()
 
-    # Этап 1/5: очистка зомби (netstat/taskkill ~1с) — была полностью невидима
-    _draw_progress("Очистка фоновых процессов...", 0.10)
+    # Этап 1/5: проверка занятых портов через netstat — без завершения процессов.
+    _draw_progress("Проверка фоновых процессов...", 0.10)
 
     # Этап 2/5: LLM health check (timeout=2) + Popen
     _draw_progress("Подготовка AI-модели...", 0.30)
@@ -335,19 +385,29 @@ def _ensure_servers_running() -> tuple:
 
     # 2. Проверяем — уже запущен ли Backend?
     backend_proc = None
-    # timeout=0.5 — та же логика: после _kill_zombies() backend мёртв,
-    # ждать 2с нечего (живой localhost отвечает за миллисекунды)
+    _backend_ok = False
+    _backend_log_path = ""
+    _BACKEND_DIAG.update(
+        ready=False, reason="", detail="", exit_code=None, log_path=""
+    )
+    # A backend is already available only when its health endpoint answers 200.
     try:
         with urllib.request.urlopen(f"{_BACKEND_URL}/api/health", timeout=0.5) as resp:
             if resp.status == 200:
                 print("  ✓ Backend уже запущен")
-                backend_proc = None
+                _backend_ok = True
+                _BACKEND_DIAG["ready"] = True
     except Exception:
-        # Backend не запущен — запускаем
-        _cds_log_for_subprocess = Path(_BACKEND_DIR) / "logs" / "cds_backend.log"
-        _cds_log_for_subprocess.parent.mkdir(parents=True, exist_ok=True)
-        _subprocess_log = open(str(_cds_log_for_subprocess), "a", encoding="utf-8")
+        pass
 
+    if not _backend_ok:
+        # A unique, exclusive file preserves every prior launch's output.
+        _backend_log_dir = Path(_BACKEND_DIR) / "logs"
+        _backend_log_dir.mkdir(parents=True, exist_ok=True)
+        _backend_log_path = str(
+            _backend_log_dir / f"cds_backend_launch_{uuid.uuid4().hex}.log"
+        )
+        _BACKEND_DIAG["log_path"] = _backend_log_path
         _creation_flags = 0
         if sys.platform == 'win32':
             _creation_flags = 0x08000000  # CREATE_NO_WINDOW
@@ -356,25 +416,29 @@ def _ensure_servers_running() -> tuple:
         _env["PYTHONIOENCODING"] = "utf-8"
         _env["PYTHONUTF8"] = "1"
 
-        backend_proc = subprocess.Popen(
-            [
-                sys.executable,
-                "-m",
-                "uvicorn",
-                "app.main:app",
-                "--host",
-                _api_host,
-                "--port",
-                str(_api_port),
-            ],
-            cwd=_BACKEND_DIR,
-            stdout=_subprocess_log,
-            stderr=_subprocess_log,
-            creationflags=_creation_flags,
-            env=_env,
-        )
+        with open(_backend_log_path, "x", encoding="utf-8") as _subprocess_log:
+            backend_proc = subprocess.Popen(
+                [
+                    sys.executable,
+                    "-m",
+                    "uvicorn",
+                    "app.main:app",
+                    "--host",
+                    _api_host,
+                    "--port",
+                    str(_api_port),
+                ],
+                cwd=_BACKEND_DIR,
+                stdout=_subprocess_log,
+                stderr=_subprocess_log,
+                creationflags=_creation_flags,
+                env=_env,
+            )
         print(f"  ○ Запуск backend ({_BACKEND_URL})...")
         _dt("backend Popen issued")
+        _backend_deadline = time.monotonic() + _BACKEND_STARTUP_TIMEOUT
+    else:
+        _backend_deadline = None
 
     # 3. Инициализируем экран загрузки
     screen = pygame.display.get_surface()
@@ -382,23 +446,17 @@ def _ensure_servers_running() -> tuple:
         screen = pygame.display.set_mode((800, 600))
         pygame.display.set_caption("Загрузка Bloodloom...")
 
-    _backend_ok = False
     _llm_ok = (llm_proc is None)  # Если LLM не запущен нами (уже шел или ошибка), не ждем его
+    _backend_failed = False
 
-    # Честная загрузка (fix «недогруженный старт»): цикл не имеет таймаута.
-    # Выход = оба сервиса готовы, ИЛИ процесс умер (poll-ветки ниже обработают
-    # и классифицируют причину). LLM при занятой VRAM (параллельная игра)
-    # грузится минуты — обрывать ожидание по счётчику = пускать игрока
-    # в семантически мёртвый мир (DRI 0%).
+    # LLM can take minutes when VRAM is busy, so it remains independently
+    # polled; backend startup has its own health deadline below.
     _attempt = 0
     while True:
         _attempt += 1
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                if backend_proc:
-                    backend_proc.terminate()
-                if llm_proc:
-                    llm_proc.terminate()
+                _shutdown_owned_processes(backend_proc, llm_proc)
                 pygame.quit()
                 sys.exit(0)
 
@@ -416,9 +474,43 @@ def _ensure_servers_running() -> tuple:
         _status_text = "Ожидание AI-модели..." if not _llm_ok else "Ожидание Backend..."
         _draw_progress(_status_text, _stage_fraction + _attempt_frac * (0.5 if _llm_ok or _backend_ok else 1.0))
 
-        if backend_proc is not None and backend_proc.poll() is not None:
-            print(f"\n  ✗ Backend процесс упал с кодом {backend_proc.returncode}.")
-            backend_proc = None
+        if not _backend_ok and backend_proc is not None:
+            _backend_exit_code = backend_proc.poll()
+            if _backend_exit_code is not None:
+                try:
+                    _backend_output = Path(_backend_log_path).read_text(
+                        encoding="utf-8", errors="replace"
+                    ).lower()
+                except OSError:
+                    _backend_output = ""
+                if any(
+                    _marker in _backend_output
+                    for _marker in (
+                        "address already in use",
+                        "error while binding",
+                        "failed to bind",
+                        "only one usage of each socket",
+                        "eaddrinuse",
+                        "10048",
+                    )
+                ):
+                    _failure_reason = "port_conflict"
+                    _failure_detail = (
+                        f"Backend port conflict; process exited with code "
+                        f"{_backend_exit_code}"
+                    )
+                else:
+                    _failure_reason = "process_exited"
+                    _failure_detail = (
+                        f"Backend process exited with code {_backend_exit_code}"
+                    )
+                _record_backend_startup_failure(
+                    _failure_reason,
+                    _failure_detail,
+                    _backend_exit_code,
+                    _backend_log_path,
+                )
+                _backend_failed = True
 
         if llm_proc is not None and llm_proc.poll() is not None:
             print(f"\n  ✗ LLM процесс упал с кодом {llm_proc.returncode}.")
@@ -431,6 +523,9 @@ def _ensure_servers_running() -> tuple:
             llm_proc = None
             _llm_ok = True
 
+        if _backend_failed:
+            break
+
         # Опрос выживших: timeout=0.3 — живой localhost отвечает <100мс;
         # закрытый порт даёт ConnectionRefused мгновенно (не таймаут).
         # Прежние timeout=2 на каждый чек удлиняли цикл: 2 невыполненных
@@ -440,12 +535,28 @@ def _ensure_servers_running() -> tuple:
                 with urllib.request.urlopen(f"{_BACKEND_URL}/api/health", timeout=0.3) as resp:
                     if resp.status == 200:
                         _backend_ok = True
+                        _BACKEND_DIAG["ready"] = True
                         print("\n  ✓ Backend готов к работе")
                         _dt("backend health OK")
             except Exception:
                 pass
-        elif backend_proc is None and not _backend_ok:
-            _backend_ok = True
+
+        if (
+            not _backend_ok
+            and _backend_deadline is not None
+            and time.monotonic() >= _backend_deadline
+        ):
+            _failure_detail = (
+                f"Backend health endpoint did not return 200 within "
+                f"{_BACKEND_STARTUP_TIMEOUT} seconds"
+            )
+            _record_backend_startup_failure(
+                "health_timeout",
+                _failure_detail,
+                None,
+                _backend_log_path,
+            )
+            _backend_failed = True
 
         if not _llm_ok and llm_proc is not None:
             try:
@@ -457,16 +568,20 @@ def _ensure_servers_running() -> tuple:
             except Exception:
                 pass
 
-        if _backend_ok and _llm_ok:
+        if _backend_failed or (_backend_ok and _llm_ok):
             break
 
-    # Сюда попадаем только при выходе из while — а он теперь только при
-    # готовности обоих или смерти процессов (обработано выше). Диагностика
-    # реального состояния вместо вводящего в заблуждение «таймаута»:
+    # Report incomplete startup without converting a missing process into readiness.
     if not (_backend_ok and _llm_ok):
         _parts = []
         if not _backend_ok:
-            _parts.append("Backend не отвечает (процесс " + ("упал" if backend_proc is None else "жив") + ")")
+            if backend_proc is None:
+                _backend_state = "не запущен"
+            elif backend_proc.poll() is not None:
+                _backend_state = "упал"
+            else:
+                _backend_state = "жив"
+            _parts.append(f"Backend не отвечает (процесс {_backend_state})")
         if not _llm_ok:
             _parts.append("LLM не отвечает (процесс " + ("упал" if llm_proc is None else "жив") + ")")
         print(f"\n  ⚠ Выход ожидания: {'; '.join(_parts)}")
@@ -610,6 +725,20 @@ def main() -> None:
     _dt("zombie-kill done")
 
     backend_proc, llm_proc = _ensure_servers_running()
+    if not _BACKEND_DIAG["ready"]:
+        _detail = _BACKEND_DIAG["detail"] or "Backend health check did not succeed"
+        print(f"\n[STARTUP_ABORT] {_detail}")
+        if _BACKEND_DIAG["log_path"]:
+            print(f"[STARTUP_ABORT] Backend log: {_BACKEND_DIAG['log_path']}")
+        _shutdown_owned_processes(backend_proc, llm_proc)
+        try:
+            from app.services.llm.runtime.client import release_lease
+
+            release_lease()
+        except Exception as _cleanup_error:
+            print(f"[STARTUP_ABORT] Could not release LLM lease: {_cleanup_error}")
+        pygame.quit()
+        raise SystemExit(1)
     _dt("servers ready")
 
     # Проверка наличия модели LLM перед стартом меню
@@ -831,46 +960,9 @@ def main() -> None:
 
     pygame.quit()
 
-    # Убиваем backend + llama-server при любом выходе
+    # Stop only child processes represented by launcher-owned Popen handles.
     print("\n[CLEANUP] Завершение процессов backend и LLM...")
-    if sys.platform == "win32":
-        from app.core.config import settings as _enigma_settings  # type: ignore
-
-        # 1. Убиваем деревья процессов uvicorn и LLM напрямую по их PID
-        for _proc in [backend_proc, llm_proc]:
-            if _proc is not None and _proc.poll() is None:
-                try:
-                    subprocess.run(["taskkill", "/T", "/F", "/PID", str(_proc.pid)], capture_output=True, timeout=5)
-                except Exception:
-                    pass
-
-        # 2. Убиваем всё, что слушает backend-порт (фоллбэк для зомби без Popen-ссылки)
-        # Этап 5: LLM port (8181) EXCLUDED — Host broker owns llama-server.
-        # Kill-by-port on 8181 would break broker's server for other clients (Устав §19).
-        for _port in [_enigma_settings.api_port]:
-            try:
-                _find = subprocess.run(
-                    ["netstat", "-ano"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5,
-                )
-                for _line in _find.stdout.splitlines():
-                    _parts = _line.split()
-                    if (
-                        len(_parts) >= 2
-                        and _parts[1].endswith(f":{_port}")
-                        and "LISTENING" in _line
-                    ):
-                        subprocess.run(
-                            ["taskkill", "/T", "/F", "/PID", _parts[-1]],
-                            capture_output=True,
-                            timeout=5,
-                        )
-            except Exception:
-                pass
-    elif backend_proc is not None and backend_proc.poll() is None:
-        backend_proc.terminate()
+    _shutdown_owned_processes(backend_proc, llm_proc)
 
     # Этап 5: release LLM lease before hard exit (os._exit bypasses atexit).
     try:

@@ -217,6 +217,9 @@ def build_initial_scene(
 
     scene_state = {
         "location_id": location_id,
+        # New scenes already use the editor file's coordinate frame; W5 must
+        # not treat authored global coordinates as legacy local save data.
+        "coord_frame_version": "W",
         "objects": objects,
         "npc_positions": npc_positions,
         "environment": environment,

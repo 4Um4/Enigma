@@ -862,6 +862,11 @@ class GameScreen:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     action_queue.stop()
+                    try:
+                        if '_gateway' in locals() and _gateway:
+                            _gateway.save_scene_state(campaign_folder, scene_state)
+                    except Exception as e:
+                        logger.warning(f"[QUIT] Failed to save scene state: {e}")
                     return
 
                 # Обработка диалога подтверждения выхода
@@ -928,6 +933,11 @@ class GameScreen:
                         text_input.focused = False
                     elif event.key == get_key(load_keybinds(), "pause"):
                         action_queue.stop()
+                        try:
+                            if '_gateway' in locals() and _gateway:
+                                _gateway.save_scene_state(campaign_folder, scene_state)
+                        except Exception as e:
+                            logger.warning(f"[PAUSE] Failed to save scene state: {e}")
                         running = False
                         return "PAUSE"
                     # Диалоговое окно ввода: Tab (дефолт) / настраивается в Управлении.
@@ -1684,6 +1694,11 @@ class GameScreen:
                 elif _d61_act == "exit":
                     _llm_ctrl.stop()
                     action_queue.stop()
+                    try:
+                        if '_gateway' in locals() and _gateway:
+                            _gateway.save_scene_state(campaign_folder, scene_state)
+                    except Exception as e:
+                        logger.warning(f"[D61] Failed to save scene state: {e}")
                     running = False
                     return "PAUSE"
                 pygame.display.flip()
