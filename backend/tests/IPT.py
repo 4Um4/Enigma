@@ -2578,6 +2578,49 @@ def inv_mem_anti_bond(world: TestWorld) -> InvariantResult:
     return InvariantResult("INV-MEM-ANTI-BOND", "CRITICAL", True, "", [])
 
 
+def inv_mem_contradiction(world: TestWorld) -> InvariantResult:
+    """INV-MEM-CONTRADICTION: запрет auto-resolution policy (§16.1.10, ADR-O-443)."""
+    import sys
+    from pathlib import Path
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+    try:
+        from lint_mem_contradiction import run_lint
+    except Exception as e:
+        return InvariantResult(
+            "INV-MEM-CONTRADICTION", "CRITICAL", False,
+            f"Ошибка импорта линтера: {e!r}",
+            ["scripts/lint_mem_contradiction.py"],
+        )
+    try:
+        raw = run_lint()
+    except Exception as e:
+        return InvariantResult(
+            "INV-MEM-CONTRADICTION", "CRITICAL", False,
+            f"Ошибка запуска линтера: {e!r}",
+            ["scripts/lint_mem_contradiction.py"],
+        )
+    crit = [v for v in raw if v.startswith("CRIT|")]
+    warn = [v for v in raw if v.startswith("WARN|")]
+    if crit:
+        return InvariantResult(
+            "INV-MEM-CONTRADICTION", "CRITICAL", False,
+            f"Нарушений CONTRADICTION (CRIT): {len(crit)}. Первые: {crit[:5]}"
+            + (f"; WARN={len(warn)}" if warn else ""),
+            ["backend/app/services/memory/", "backend/app/services/npc/",
+             "backend/app/services/phases/",
+             "scripts/lint_mem_contradiction.py"],
+        )
+    if warn:
+        return InvariantResult(
+            "INV-MEM-CONTRADICTION", "WARNING", True,
+            f"WARN={len(warn)}: {warn[:5]}",
+            [],
+        )
+    return InvariantResult("INV-MEM-CONTRADICTION", "CRITICAL", True, "", [])
+
+
 INVARIANTS: List[Callable] = [
     inv_re_cache_allowlist,  # ADR-O-415: freeze-поверхность relationship_cache (M1b.3.7)
     inv_flag_registry,  # COV-0: флаг-реестр (COV-D73 -> COV-GC-04)
@@ -2636,6 +2679,7 @@ INVARIANTS: List[Callable] = [
     inv_player_turn_time_gate,  # ADR-O-407: player_turn_in_flight time-gate
     inv_mem_anti_archive,  # ADR-O-443: запрет vector/embedding-DB как memory (§16.1.9)
     inv_mem_anti_bond,  # ADR-O-443: anti-bond (§16.1.12)
+    inv_mem_contradiction,  # ADR-O-443: contradiction (§16.1.10)
 ]
 
 
