@@ -1220,3 +1220,20 @@ Files: `backend/app/services/scene_state_manager.py` (R1 init, R2 commit, R3+R4 
 Дополнение: дефект маркера миграции закрыт фиксом в релизном коммите `01047197` (см. IMPACT, секция «Дефект маркера миграции (ЗАКРЫТ)»).
 
 ---
+
+---
+
+ADR-O-442 [STANDARD] **Global NPC Location Ownership — all_npcs_raw as authoritative global state** (S424; PROPOSED)
+Суть: `all_npcs_raw[npc_id].location_id` — авторитетное глобальное состояние NPC в работающем процессе. `_npc_runtime_locations` — производный оперативный индекс для быстрого определения локации, не конкурирует с `all_npcs_raw` за истину. `scene_state.npc_positions` — локальное представление NPC в конкретной сцене. `runtime:{campaign}` (SQLite) — долговременная фиксация авторитетного состояния. TRANSFER выполняется двумя существующими каналами (boundary dwell + ghost scan), оба атомарны в рамках Python-блока, но долговременная фиксация происходит только на успешном `unlock_tick()`. Падение процесса до коммита откатывает незавершённый TRANSFER к последнему сохранённому состоянию (старая локация) — это не ghost resurrection, а восстановление подтверждённого состояния мира.
+Контракт перехода между локациями:
+- **Инициатор** устанавливает `boundary_dwell` в сцене (decision_hub / action_windup)
+- **_resolve_cross_location_transfers** (1190) вызывается на старте каждого тика
+- **Dwell complete** (1287-1317) или **Ghost scan** (1324-1400) выполняет runtime-переход: `location_id` + pending transfer + удаление из старой сцены обновляются согласованно
+- **_pending_transfers** содержит NPC для инжекта в следующую сцену
+- **_run_core_phases** (915-925) инжектит NPC из pending в новую сцену
+- **unlock_tick** сохраняет `all_npcs_raw` в runtime (O-441)
+BUG-13 соблюдается: позиция префиксована старой локацией, target-локация восстанавливает при инжекте. SC-3 не меняется (сброс позиции при загрузке, не при TRANSFER).
+❌ Taboo: объявлять `_npc_runtime_locations` SSOT (не восстанавливается из persistence); утверждать, что падение до unlock_tick не может вызвать возврат NPC (путаница runtime-согласованности с долговременной фиксацией); удалять дублирование 1399-1400 без подтверждения call path; менять BUG-13 или SC-3.
+Status: PROPOSED (S424 — модель принята, требует IMPACT-аудита и теста двух сценариев восстановления)
+Files: `backend/app/services/tick_orchestrator.py` (TRANSFER-каналы: 1287-1317, 1324-1400; приоритет чтения: 430), `backend/app/services/npc/npc_loader.py` (восстановление all_npcs_raw из runtime), `backend/app/services/state/sqlite_persistence_adapter.py` (runtime:{campaign})
+
