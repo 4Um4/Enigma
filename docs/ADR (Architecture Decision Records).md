@@ -1237,3 +1237,11 @@ BUG-13 соблюдается: позиция префиксована стар�
 Status: PROPOSED (S424 — модель принята, требует IMPACT-аудита и теста двух сценариев восстановления)
 Files: `backend/app/services/tick_orchestrator.py` (TRANSFER-каналы: 1287-1317, 1324-1400; приоритет чтения: 430), `backend/app/services/npc/npc_loader.py` (восстановление all_npcs_raw из runtime), `backend/app/services/state/sqlite_persistence_adapter.py` (runtime:{campaign})
 
+---
+
+ADR-O-443 [ONTO] **Memory Architecture — Memory Ontology & Causal Ownership (MEM-0)** (2026-11-14; APPROVED)
+Суть: Три истины (`WORLD TRUTH ≠ NPC MEMORY ≠ NPC BELIEF`) с causal ownership каждого звена; четыре состояния памяти разведены (operational deletion / historical retention / irreversible destruction); EventBus — транспорт, не SSOT (Authoritative Event Source — TBD/UNVERIFIED); пять belief-носителей получают pre-flight ownership-таблицу (один trait — один writer, без нового store); §16.10 три запрета + GC-инвариант включены. Реализация — отдельные пакеты MEM-1…MEM-10.
+❌ Taboo: второй durable memory/belief store; `latest-wins` / `highest-confidence-wins` авторезолюция; молчаливое удаление, делающее зависимые belief/obligation/investigation необъяснимыми; GC, создающий факты задним числом; LLM как скрытый authoritative memory store; объявлять `perspective_role`/`channel` реализованными до MEM-3; калибровочные числа под маской универсальных законов.
+Status: APPROVED (2026-11-14, ветвь А). IPT CONTRACT ENFORCED — нет (отдельная фаза); MEM-0 CLOSED — нет (до фактического прохождения MEM-GC-01 и ungated IPT).
+📄 IMPACT: `docs/audits/ADR-O-443_MEM-0_IMPACT.md`
+
