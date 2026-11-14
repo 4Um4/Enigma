@@ -5064,6 +5064,143 @@ def _print_list() -> None:
         print(f"  {t['id']:<8} {t['title']}" + (f"  [{tags}]" if tags else "") + (f"  (пара {pair}/{t['contrast']['role']})" if pair else ""))
 
 
+def _run_multi(adapter: LLMAdapter, model_id: str, modules: Optional[Sequence[str]],
+               task_ids: Optional[Sequence[str]], runs: int) -> Dict[str, Any]:
+    """Multi-run averaging: N прогонов → усреднённый report + per_run breakdown.
+
+    ЗАЧЕМ: ТЗ-v4 P0 — Lumimaid non-deterministic на уровне первого токена (JSON vs plain
+    text = coin flip при temp=0.0, seed=42). Single-run замер = лотерея, не измерение.
+    Multi-run averaging — единственный способ получить signal сквозь noise.
+    Контракт: если stddev любого module_score > 0.05 — результат INVALID, нужен больше прогонов.
+    """
+    import math
+
+    per_run_reports: List[Dict[str, Any]] = []
+    for i in range(runs):
+        print(f"  [multi-run] прогон {i + 1}/{runs}...", flush=True)
+        r = run_benchmark(adapter, model_id, modules=modules, task_ids=task_ids)
+        per_run_reports.append(r)
+
+    first_profile = per_run_reports[0]["profile"]
+
+    # module_scores: mean ± sample stddev per module
+    module_keys = list(first_profile["module_scores"].keys())
+    mean_scores: Dict[str, float] = {}
+    stddev_scores: Dict[str, float] = {}
+    for mk in module_keys:
+        vals = [float(r["profile"]["module_scores"].get(mk, 0.0)) for r in per_run_reports]
+        m = sum(vals) / len(vals)
+        mean_scores[mk] = round(m, 4)
+        if len(vals) >= 2:
+            variance = sum((x - m) ** 2 for x in vals) / (len(vals) - 1)
+            stddev_scores[mk] = round(math.sqrt(variance), 4)
+        else:
+            stddev_scores[mk] = 0.0
+
+    # composite_score: mean across runs
+    composite_vals = [float(r["profile"]["composite_score"]) for r in per_run_reports]
+    composite_mean = round(sum(composite_vals) / len(composite_vals), 2)
+
+    # critical_errors: total mean; by_type — sum counts across runs; events — не агрегируем (per-task)
+    crit_vals = [int(r["profile"]["critical_errors"]["total"]) for r in per_run_reports]
+    crit_mean = round(sum(crit_vals) / len(crit_vals), 2)
+    by_type_agg: Dict[str, int] = {}
+    for r in per_run_reports:
+        for ctype, cnt in r["profile"]["critical_errors"].get("by_type", {}).items():
+            by_type_agg[ctype] = by_type_agg.get(ctype, 0) + int(cnt)
+
+    # contrast_pairs.sensitivity: mean (если есть)
+    sens_vals: List[float] = []
+    for r in per_run_reports:
+        s = r["profile"].get("contrast_pairs", {}).get("sensitivity")
+        if s is not None:
+            sens_vals.append(float(s))
+    sens_mean = round(sum(sens_vals) / len(sens_vals), 4) if sens_vals else None
+
+    # hard_gates: ok=True только если ALL runs ok; ok_fraction для transparency
+    gates_agg: Dict[str, Dict[str, Any]] = {}
+    for gk in first_profile.get("hard_gates", {}):
+        ok_count = sum(
+            1 for r in per_run_reports
+            if r["profile"]["hard_gates"].get(gk, {}).get("ok", False)
+        )
+        gates_agg[gk] = {
+            "ok": ok_count == len(per_run_reports),
+            "ok_fraction": round(ok_count / len(per_run_reports), 2),
+            "details": per_run_reports[0]["profile"]["hard_gates"].get(gk, {}),
+        }
+
+    # flags: union across runs + variance validation
+    flags_union: List[str] = []
+    for r in per_run_reports:
+        for fl in r["profile"].get("flags", []):
+            if fl not in flags_union:
+                flags_union.append(fl)
+
+    # ТЗ-v4 P0 КОНТРАКТ: stddev > 0.05 → INVALID_RUN_VARIANCE
+    VARIANCE_THRESHOLD = 0.05
+    variance_violations: List[str] = []
+    for mk, sd in stddev_scores.items():
+        if sd > VARIANCE_THRESHOLD:
+            variance_violations.append(
+                f"INVALID_RUN_VARIANCE: module={mk} stddev={sd} threshold={VARIANCE_THRESHOLD} "
+                f"(ТЗ-v4 P0: нужен больше прогонов; current runs={runs})"
+            )
+    valid = len(variance_violations) == 0
+
+    # verdict: из прогона с медианным composite; override если variance invalid
+    sorted_by_comp = sorted(per_run_reports, key=lambda r: r["profile"]["composite_score"])
+    median_run = sorted_by_comp[len(sorted_by_comp) // 2]
+    verdict = median_run["profile"]["verdict"]
+    if not valid:
+        verdict = "INVALID (variance exceeded — ТЗ-v4 P0 контракт stddev > 0.05)"
+
+    # per_run compact summary — без полных task results (manageable JSON size)
+    per_run_summary: List[Dict[str, Any]] = []
+    for i, r in enumerate(per_run_reports):
+        p = r["profile"]
+        per_run_summary.append({
+            "run": i + 1,
+            "composite_score": p["composite_score"],
+            "module_scores": p["module_scores"],
+            "critical_errors_total": p["critical_errors"]["total"],
+            "hard_gates_ok": {k: v.get("ok") for k, v in p.get("hard_gates", {}).items()},
+        })
+
+    averaged_profile: Dict[str, Any] = {
+        "composite_score": composite_mean,
+        "verdict": verdict,
+        "module_scores": mean_scores,
+        "module_stddev": stddev_scores,
+        "critical_errors": {
+            "total": crit_mean,
+            "by_type": by_type_agg,
+            "events": [],
+        },
+        "hard_gates": gates_agg,
+        "contrast_pairs": {
+            "sensitivity": sens_mean,
+            "results": [],
+        },
+        "flags": flags_union + variance_violations,
+        "runs": runs,
+        "valid": valid,
+        "variance_threshold": VARIANCE_THRESHOLD,
+    }
+
+    # meta из первого прогона + multi-run annotation
+    meta = dict(per_run_reports[0].get("meta", {}))
+    meta["multi_run"] = True
+    meta["runs"] = runs
+    meta["methodology"] = "ТЗ-v4 P0: multi-run averaging with stddev contract"
+
+    return {
+        "meta": meta,
+        "profile": averaged_profile,
+        "per_run": per_run_summary,
+    }
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description=f"{BENCHMARK_ID} v{BENCHMARK_VERSION}")
     ap.add_argument("--self-test", action="store_true", help="самопроверка комплекса без LLM")
@@ -5075,6 +5212,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--task-ids", default="", help="фильтр заданий, напр. WSI-01,BD-05")
     ap.add_argument("--out", default="", help="путь отчёта JSON")
     ap.add_argument("--timeout", type=float, default=180.0, help="таймаут HTTP-запроса, с")
+    ap.add_argument("--runs", type=int, default=1, help="число прогонов для multi-run averaging (ТЗ-v4 P0: N>=3 обязательно для валидного замера; default=1 = backward compat single-run)")
     args = ap.parse_args(argv)
 
     if args.self_test:
@@ -5086,7 +5224,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         modules = [m.strip() for m in args.modules.split(",") if m.strip()] or None
         tids = [x.strip() for x in args.task_ids.split(",") if x.strip()] or None
         adapter = HttpLlamaCppAdapter(args.url, timeout_s=args.timeout)
-        report = run_benchmark(adapter, args.model_id, modules=modules, task_ids=tids)
+        if args.runs > 1:
+            print(f"\n=== MULTI-RUN: {args.runs} прогонов (ТЗ-v4 P0) ===")
+            report = _run_multi(adapter, args.model_id, modules=modules, task_ids=tids, runs=args.runs)
+        else:
+            report = run_benchmark(adapter, args.model_id, modules=modules, task_ids=tids)
         if args.out:
             with open(args.out, "w", encoding="utf-8") as f:
                 json.dump(report, f, ensure_ascii=False, indent=2)
@@ -5094,6 +5236,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"\n=== ПРОФИЛЬ {args.model_id} ===")
         print(f"composite: {p['composite_score']}/100   verdict: {p['verdict']}")
         print(f"модули: {json.dumps(p['module_scores'], ensure_ascii=False)}")
+        if "module_stddev" in p:
+            print(f"stddev:   {json.dumps(p['module_stddev'], ensure_ascii=False)}")
+            print(f"runs: {p.get('runs')}   valid: {p.get('valid')}   threshold: {p.get('variance_threshold')}")
         print(f"критические ошибки: {p['critical_errors']['total']} {p['critical_errors']['by_type']}")
         print(f"контрастная чувствительность: {p['contrast_pairs'].get('sensitivity')}")
         print(f"гейты: {json.dumps({k: v['ok'] for k, v in p['hard_gates'].items()}, ensure_ascii=False)}")
@@ -5101,6 +5246,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             print("флаги:")
             for fl in p["flags"]:
                 print(f"  ! {fl}")
+        if "per_run" in report:
+            print(f"\n--- per-run breakdown ({len(report['per_run'])} прогонов) ---")
+            for pr in report["per_run"]:
+                print(f"  run {pr['run']}: composite={pr['composite_score']} modules={pr['module_scores']} crit={pr['critical_errors_total']}")
         return 0
     ap.print_help()
     return 0
