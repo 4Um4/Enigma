@@ -33,6 +33,7 @@ sys.path.insert(0, str(_ROOT))
 # shutdown управляющего процесса (release_lease отпускает lease, процессы НЕ kill).
 try:
     from app.services.llm.runtime.client import ensure_llm
+
     ensure_llm(label="IPT")
     _llm_ok = True
 except Exception as e:
@@ -262,12 +263,14 @@ def inv_npc_moves(world: TestWorld) -> InvariantResult:
     moved = [nid for nid in positions_before if positions_before[nid] != positions_after.get(nid)]
     if moved:
         return InvariantResult("INV-NPC-MOVE", "CRITICAL", True, f"Сдвинулись: {moved}", [])
-    
+
     # S179 FIX: Если никто не сдвинулся, проверяем active_traversals.
     # NPC могут быть в пути (MOVING), но координаты ещё не обновились в snapshot.
     _traversals = world.last_world_snapshot.get("active_traversals", {})
     if _traversals:
-        return InvariantResult("INV-NPC-MOVE", "CRITICAL", True, f"Активные перемещения: {list(_traversals.keys())}", [])
+        return InvariantResult(
+            "INV-NPC-MOVE", "CRITICAL", True, f"Активные перемещения: {list(_traversals.keys())}", []
+        )
 
     return InvariantResult(
         "INV-NPC-MOVE",
@@ -327,18 +330,21 @@ def inv_npc_has_name(world: TestWorld) -> InvariantResult:
         ],
     )
 
+
 def inv_dialogue_init(world: TestWorld) -> InvariantResult:
     """INV-DIALOGUE-INIT: Проверка инициации диалогов (NPC↔NPC и Игрок→NPC)."""
     # 1. Прогоняем 12 idle тиков, чтобы NPC успели сблизиться и сгенерировать интенты
     for _ in range(12):
         world.idle_tick()
-    
+
     scheduler = getattr(world.game_loop, "_task_scheduler", None) or getattr(world.game_loop, "task_scheduler", None)
     if not scheduler:
         return InvariantResult(
-            "INV-DIALOGUE-INIT", "CRITICAL", False,
+            "INV-DIALOGUE-INIT",
+            "CRITICAL",
+            False,
             "TaskScheduler не найден в GameLoop.",
-            ["backend/app/services/game_loop/__init__.py"]
+            ["backend/app/services/game_loop/__init__.py"],
         )
 
     # Стадия 3: Дренаж фоновых задач БЕЗ шатдауна пула (S292-фикс каскада).
@@ -354,13 +360,19 @@ def inv_dialogue_init(world: TestWorld) -> InvariantResult:
 
     _recent = scheduler.get_recent_dialogues(world.game_time_seconds)
     if _recent:
-        return InvariantResult("INV-DIALOGUE-INIT", "CRITICAL", True, "Диалоги успешно инициализируются и исполняются.", [])
+        return InvariantResult(
+            "INV-DIALOGUE-INIT", "CRITICAL", True, "Диалоги успешно инициализируются и исполняются.", []
+        )
 
     # Стадия 2: Если реплик нет, проверяем очередь (попали ли задачи в TaskScheduler)
-    _queue_size = scheduler._dialogue_queue.pending_count() if hasattr(scheduler, "_dialogue_queue") and hasattr(scheduler._dialogue_queue, "pending_count") else 0
+    _queue_size = (
+        scheduler._dialogue_queue.pending_count()
+        if hasattr(scheduler, "_dialogue_queue") and hasattr(scheduler._dialogue_queue, "pending_count")
+        else 0
+    )
     _failed_count = getattr(scheduler, "failed_tasks", 0)
     _processed_count = getattr(scheduler, "total_processed_tasks", 0)
-    
+
     # ADR-O-343: Если очередь пуста, но задачи уже обрабатывались (даже если LLM упала),
     # значит DecisionHub и post_decision работают корректно.
     if _queue_size == 0 and _processed_count == 0:
@@ -370,20 +382,17 @@ def inv_dialogue_init(world: TestWorld) -> InvariantResult:
             "CRITICAL",
             False,
             "NPC↔NPC: За 12 тиков TaskScheduler не получил ни одной диалоговой задачи (очередь пуста, обработано 0). DecisionHub не генерирует CommunicationIntent или post_decision не маршрутизирует их.",
-            [
-                "backend/app/services/npc/decision_hub.py",
-                "backend/app/services/phases/post_decision.py"
-            ]
+            ["backend/app/services/npc/decision_hub.py", "backend/app/services/phases/post_decision.py"],
         )
-        
+
     if _queue_size == 0 and _processed_count > 0:
         # Очередь пуста, но задачи обрабатывались — значит pipeline работает.
         return InvariantResult(
             "INV-DIALOGUE-INIT",
             "WARNING",
-            True, # Не блокируем IPT, если задача дошла до исполнителя
+            True,  # Не блокируем IPT, если задача дошла до исполнителя
             f"NPC↔NPC: Pipeline работает (обработано {_processed_count} задач, провалов {_failed_count}). Задачи доходят до TaskScheduler.",
-            []
+            [],
         )
 
     # ADR-O-343: Если очередь не пуста, проверяем total_processed_tasks.
@@ -395,7 +404,7 @@ def inv_dialogue_init(world: TestWorld) -> InvariantResult:
             "WARNING",
             True,
             f"NPC↔NPC: Pipeline работает (обработано {_processed_count} задач), но pacing задерживает видимые реплики.",
-            []
+            [],
         )
 
     return InvariantResult(
@@ -403,32 +412,26 @@ def inv_dialogue_init(world: TestWorld) -> InvariantResult:
         "CRITICAL",
         False,
         f"NPC↔NPC: В очереди {_queue_size} задач, обработано 0. TaskScheduler завис или не запускается.",
-        [
-            "backend/app/services/game_loop/task_scheduler.py",
-            "backend/app/services/execution/dialogue_executor.py"
-        ]
+        ["backend/app/services/game_loop/task_scheduler.py", "backend/app/services/execution/dialogue_executor.py"],
     )
 
     # 2. Проверка Игрок→NPC: Симулируем вмешательство игрока
     from app.models.schemas import PlayerAction
     from app.services.game_loop.phase_1_input import resolve_player_intent
-    
+
     # Находим первого живого NPC
     target_npc = None
     for nid in world.npc_ids:
         if nid != "player":
             target_npc = nid
             break
-            
+
     if target_npc:
         # Создаём действие игрока (обращение к NPC)
         action = PlayerAction(
-            action_type="talk",
-            target_id=target_npc,
-            text="Привет, как дела?",
-            position=world.npc_position("player")
+            action_type="talk", target_id=target_npc, text="Привет, как дела?", position=world.npc_position("player")
         )
-        
+
         # Пытаемся разрешить интент игрока (Игрок→NPC)
         try:
             # resolve_player_intent возвращает словарь с pressure и intent
@@ -439,7 +442,7 @@ def inv_dialogue_init(world: TestWorld) -> InvariantResult:
                     "CRITICAL",
                     False,
                     f"Игрок→NPC: resolve_player_intent вернул пустой результат для цели {target_npc}. Ввод игрока не обрабатывается.",
-                    ["backend/app/services/game_loop/phase_1_input.py"]
+                    ["backend/app/services/game_loop/phase_1_input.py"],
                 )
         except Exception as e:
             return InvariantResult(
@@ -447,20 +450,22 @@ def inv_dialogue_init(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"Игрок→NPC: resolve_player_intent упал с ошибкой: {e}",
-                ["backend/app/services/game_loop/phase_1_input.py"]
+                ["backend/app/services/game_loop/phase_1_input.py"],
             )
 
-    return InvariantResult("INV-DIALOGUE-INIT", "CRITICAL", True, "Диалоговые интенты создаются и попадают в очередь.", [])
+    return InvariantResult(
+        "INV-DIALOGUE-INIT", "CRITICAL", True, "Диалоговые интенты создаются и попадают в очередь.", []
+    )
 
 
 def inv_dialogue_stm(world: TestWorld) -> InvariantResult:
     """INV-DIALOGUE-STM: событие NPC_SPOKE публикуется в EventBus и доходит до STM (P1-7).
-    
+
     Проверяет полную каузальную цепь: EventBus -> NpcDialogueSubscriber -> MemoryManager.add_dialogue_turn.
     """
     from app.domain.events import EventDTO
     from app.services.events.event_types import EventType
-    
+
     mm = world.game_loop.memory_manager
     bus = world.game_loop._tick_orch._get_event_bus()
     campaign = world.campaign_id
@@ -476,10 +481,12 @@ def inv_dialogue_stm(world: TestWorld) -> InvariantResult:
     # которую реально читает мембрана — оба агента рядом в одном контейнере.
     # Мембрана НЕ отключается: can_observe считает реальную дистанцию (0.5).
     from app.services.spatial.spatial_query_service import SpatialQueryService as _SQS
+
     _both = {}
     for _k, _nid in enumerate((target_npc, speaker)):
         _both[_nid] = {
-            "npc_id": _nid, "id": _nid,
+            "npc_id": _nid,
+            "id": _nid,
             "name": "Торнин Серебряная Луна" if _nid == target_npc else "Люся",
             "location_id": "tavern",
             "position": f"tavern:main_hall{_k}",
@@ -490,9 +497,9 @@ def inv_dialogue_stm(world: TestWorld) -> InvariantResult:
     _to_stm = getattr(world.game_loop, "_tick_orch", None)
     _shared_ctx_stm = getattr(_to_stm, "_shared_context", None)
     if _shared_ctx_stm is not None and hasattr(_shared_ctx_stm, "spatial_query"):
-        _shared_ctx_stm.spatial_query = _sq_test   # приоритет провайдера :358-362
+        _shared_ctx_stm.spatial_query = _sq_test  # приоритет провайдера :358-362
     world.game_loop._current_spatial_query = _sq_test  # fallback :364-366
-    
+
     # Создаём и публикуем событие NPC_SPOKE
     event = EventDTO.create(
         event_type=EventType.NPC_SPOKE.value,
@@ -508,7 +515,7 @@ def inv_dialogue_stm(world: TestWorld) -> InvariantResult:
         radius=10.0,
         persistence_level="working",
     )
-    
+
     try:
         bus.publish(event)
         # Читаем STM блока целевого NPC
@@ -516,7 +523,7 @@ def inv_dialogue_stm(world: TestWorld) -> InvariantResult:
     finally:
         # Очищаем сессию, чтобы не портить другие тесты
         mm.clear_dialogue_session(campaign, target_npc, partner_id=speaker)
-    
+
     if test_text in (stm_block or ""):
         return InvariantResult("INV-DIALOGUE-STM", "CRITICAL", True, "Каузальная цепь NPC_SPOKE -> STM работает.", [])
     return InvariantResult(
@@ -527,7 +534,7 @@ def inv_dialogue_stm(world: TestWorld) -> InvariantResult:
         [
             "backend/app/services/events/npc_dialogue_subscriber.py",
             "backend/app/services/memory/memory_manager.py",
-            "backend/app/services/events/event_bus.py"
+            "backend/app/services/events/event_bus.py",
         ],
     )
 
@@ -538,7 +545,7 @@ def inv_death_lock(world: TestWorld) -> InvariantResult:
     npcs = engine.get_npc_states(world.campaign_id) if engine else []
     scene = world.game_loop.get_scene_state(world.campaign_id, "tavern") or {}
     travs = scene.get("active_traversals", {})
-    
+
     for npc in npcs:
         nid = npc.get("npc_id") or npc.get("id")
         life = npc.get("life_status", "").upper() or npc.get("body_state", {}).get("life_status", "").upper()
@@ -548,7 +555,7 @@ def inv_death_lock(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"Мёртвый NPC {nid} имеет active_traversal. Нарушение ADR-127.",
-                ["backend/app/services/npc/life_engine.py", "backend/app/services/scene_state_manager.py"]
+                ["backend/app/services/npc/life_engine.py", "backend/app/services/scene_state_manager.py"],
             )
     return InvariantResult("INV-DEATH-LOCK", "CRITICAL", True, "", [])
 
@@ -558,8 +565,12 @@ def inv_trav_zombie(world: TestWorld) -> InvariantResult:
     scene = world.game_loop.get_scene_state(world.campaign_id, "tavern") or {}
     travs = scene.get("active_traversals", {})
     _terminal = {"COMPLETED", "CANCELLED"}
-    _zombies = [f"{nid}={t.get('status')}" for nid, t in travs.items() if isinstance(t, dict) and t.get("status", "").upper() in _terminal]
-    
+    _zombies = [
+        f"{nid}={t.get('status')}"
+        for nid, t in travs.items()
+        if isinstance(t, dict) and t.get("status", "").upper() in _terminal
+    ]
+
     if _zombies:
         return InvariantResult(
             "INV-TRAV-ZOMBIE",
@@ -568,8 +579,8 @@ def inv_trav_zombie(world: TestWorld) -> InvariantResult:
             f"Обнаружены зомби-перемещения: {', '.join(_zombies)}. Нарушение ADR-TRAV-FSM (cleanup failed).",
             [
                 "backend/app/services/scene_state_manager.py",
-                "backend/app/services/tick_orchestrator.py (_process_traversals)"
-            ]
+                "backend/app/services/tick_orchestrator.py (_process_traversals)",
+            ],
         )
     return InvariantResult("INV-TRAV-ZOMBIE", "CRITICAL", True, "", [])
 
@@ -579,10 +590,10 @@ def inv_dialogue_scheduler_fail(world: TestWorld) -> InvariantResult:
     scheduler = getattr(world.game_loop, "_task_scheduler", None) or getattr(world.game_loop, "task_scheduler", None)
     if not scheduler:
         return InvariantResult("INV-DIALOGUE-SCHEDULER-FAIL", "CRITICAL", False, "TaskScheduler не найден.", [])
-        
+
     _failed = getattr(scheduler, "failed_tasks", 0)
     _processed = getattr(scheduler, "total_processed_tasks", 0)
-    
+
     # ADR-O-343: LLM может падать (возвращать success=False). Это не "тихий отказ" системы,
     # а честная обработка сбоя инфраструктуры. Тихим отказом считается только если задачи вообще не доходят до исполнителя.
     if _failed > 0 and _processed == 0:
@@ -594,10 +605,10 @@ def inv_dialogue_scheduler_fail(world: TestWorld) -> InvariantResult:
             [
                 "backend/app/services/game_loop/task_scheduler.py",
                 "backend/app/services/execution/dialogue_executor.py",
-                "backend/app/services/npc/decision_hub.py"
-            ]
+                "backend/app/services/npc/decision_hub.py",
+            ],
         )
-        
+
     return InvariantResult("INV-DIALOGUE-SCHEDULER-FAIL", "CRITICAL", True, "Тихих отказов нет.", [])
 
 
@@ -605,14 +616,16 @@ def inv_domain_purity(world: TestWorld) -> InvariantResult:
     """INV-DOMAIN-PURITY: Запрет импорта services/models в доменный слой (§1.2)."""
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
-        
+
     try:
         from lint_domain_purity import run_lint
+
         violations = run_lint()
-        
+
         if violations:
             _details = "; ".join(violations[:5])
             return InvariantResult(
@@ -620,16 +633,12 @@ def inv_domain_purity(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"Найдено {len(violations)} импортов верхних слоёв в domain. Нарушение §1.2. Первые: {_details}",
-                ["backend/app/domain/"]
+                ["backend/app/domain/"],
             )
         return InvariantResult("INV-DOMAIN-PURITY", "CRITICAL", True, "", [])
     except Exception as e:
         return InvariantResult(
-            "INV-DOMAIN-PURITY",
-            "CRITICAL",
-            False,
-            f"Ошибка запуска линтера: {e}",
-            ["scripts/lint_domain_purity.py"]
+            "INV-DOMAIN-PURITY", "CRITICAL", False, f"Ошибка запуска линтера: {e}", ["scripts/lint_domain_purity.py"]
         )
 
 
@@ -644,16 +653,16 @@ def inv_player_authorship(world: TestWorld) -> InvariantResult:
     4) фильтр decision population в tick_orchestrator.
     Runtime-слой закрыт raise'ом в reducer'е (громкое падение, ADR-INV-DEF)."""
     from pathlib import Path
+
     _backend = Path(__file__).parent.parent
     _anchors = [
-        ("app/domain/control_source.py",
-         [("class ControlSource", 1), ("def resolve_control_source", 1)]),
-        ("app/services/npc/decision_hub.py",
-         [("INV-PLAYER-AUTHORSHIP", 1)]),
-        ("app/services/npc/npc_tick_pipeline.py",
-         [("INV-PLAYER-AUTHORSHIP", 2), ('invariant_id="INV-PLAYER-AUTHORSHIP"', 1)]),
-        ("app/services/tick_orchestrator.py",
-         [("INV-PLAYER-AUTHORSHIP", 1)]),
+        ("app/domain/control_source.py", [("class ControlSource", 1), ("def resolve_control_source", 1)]),
+        ("app/services/npc/decision_hub.py", [("INV-PLAYER-AUTHORSHIP", 1)]),
+        (
+            "app/services/npc/npc_tick_pipeline.py",
+            [("INV-PLAYER-AUTHORSHIP", 2), ('invariant_id="INV-PLAYER-AUTHORSHIP"', 1)],
+        ),
+        ("app/services/tick_orchestrator.py", [("INV-PLAYER-AUTHORSHIP", 1)]),
     ]
     _missing = []
     for _rel, _markers in _anchors:
@@ -667,12 +676,16 @@ def inv_player_authorship(world: TestWorld) -> InvariantResult:
                 _missing.append(f"{_rel}: маркер {_marker!r} <{_min}")
     if _missing:
         return InvariantResult(
-            "INV-PLAYER-AUTHORSHIP", "CRITICAL", False,
+            "INV-PLAYER-AUTHORSHIP",
+            "CRITICAL",
+            False,
             "Сломана защита авторства аватара: " + "; ".join(_missing),
             ["backend/" + a[0] for a in _anchors],
         )
     return InvariantResult(
-        "INV-PLAYER-AUTHORSHIP", "CRITICAL", True,
+        "INV-PLAYER-AUTHORSHIP",
+        "CRITICAL",
+        True,
         "Ось контроля + гварды creation-time + детектор reducer + фильтр population на месте.",
         [],
     )
@@ -695,19 +708,30 @@ def inv_snapshot_topology(world: TestWorld) -> InvariantResult:
             _topo = getattr(_snap, "player_body_topology", None) if _snap else None
         if not _topo:
             return InvariantResult(
-                "INV-SNAPSHOT-TOPOLOGY", "CRITICAL", False,
+                "INV-SNAPSHOT-TOPOLOGY",
+                "CRITICAL",
+                False,
                 f"player_body_topology отсутствует в idle-снапшоте (type={type(_topo).__name__}). "
                 f"Инициализация при рождении сцены не сработала.",
-                ["backend/app/services/game_loop/campaign_lifecycle.py",
-                 "backend/app/services/scene_state/scene_factory.py"],
+                [
+                    "backend/app/services/game_loop/campaign_lifecycle.py",
+                    "backend/app/services/scene_state/scene_factory.py",
+                ],
             )
         return InvariantResult(
-            "INV-SNAPSHOT-TOPOLOGY", "CRITICAL", True,
-            "Топология тела присутствует в idle-снапшоте (до действия игрока).", [],
+            "INV-SNAPSHOT-TOPOLOGY",
+            "CRITICAL",
+            True,
+            "Топология тела присутствует в idle-снапшоте (до действия игрока).",
+            [],
         )
     except Exception as e:
         return InvariantResult(
-            "INV-SNAPSHOT-TOPOLOGY", "CRITICAL", False, f"Ошибка прогона: {e}", [],
+            "INV-SNAPSHOT-TOPOLOGY",
+            "CRITICAL",
+            False,
+            f"Ошибка прогона: {e}",
+            [],
         )
 
 
@@ -715,15 +739,17 @@ def inv_llm_exile(world: TestWorld) -> InvariantResult:
     """INV-LLM-EXILE: Запрет вызовов LLM в ядре симуляции (L7)."""
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
-        
+
     try:
         from lint_llm_exile import run_lint
+
         _backend_dir = str(Path(__file__).resolve().parents[1] / "app")
         violations = run_lint(_backend_dir)
-        
+
         if violations:
             _details = "; ".join(violations[:5])
             return InvariantResult(
@@ -731,16 +757,12 @@ def inv_llm_exile(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"Найдено {len(violations)} LLM-вызовов в ядре. Нарушение L7. Первые: {_details}",
-                ["backend/app/services/tick_orchestrator.py", "backend/app/services/npc/decision_hub.py"]
+                ["backend/app/services/tick_orchestrator.py", "backend/app/services/npc/decision_hub.py"],
             )
         return InvariantResult("INV-LLM-EXILE", "CRITICAL", True, "", [])
     except Exception as e:
         return InvariantResult(
-            "INV-LLM-EXILE",
-            "CRITICAL",
-            False,
-            f"Ошибка запуска линтера: {e}",
-            ["scripts/lint_llm_exile.py"]
+            "INV-LLM-EXILE", "CRITICAL", False, f"Ошибка запуска линтера: {e}", ["scripts/lint_llm_exile.py"]
         )
 
 
@@ -748,15 +770,17 @@ def inv_position_mutation(world: TestWorld) -> InvariantResult:
     """INV-POSITION-MUTATION: Запрет прямой мутации позиции вне SceneStateManager (§4.1)."""
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
-        
+
     try:
         from lint_position_mutation import run_lint
+
         _backend_dir = str(Path(__file__).resolve().parents[1] / "app")
         violations = run_lint(_backend_dir)
-        
+
         if violations:
             _details = "; ".join(violations[:5])
             return InvariantResult(
@@ -764,7 +788,7 @@ def inv_position_mutation(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"Найдено {len(violations)} прямых мутаций позиции. Нарушение §4.1. Первые: {_details}",
-                ["backend/app/services/"]
+                ["backend/app/services/"],
             )
         return InvariantResult("INV-POSITION-MUTATION", "CRITICAL", True, "", [])
     except Exception as e:
@@ -773,7 +797,7 @@ def inv_position_mutation(world: TestWorld) -> InvariantResult:
             "CRITICAL",
             False,
             f"Ошибка запуска линтера: {e}",
-            ["scripts/lint_position_mutation.py"]
+            ["scripts/lint_position_mutation.py"],
         )
 
 
@@ -782,7 +806,7 @@ def inv_semantic_unification(world: TestWorld) -> InvariantResult:
     import inspect
 
     from app.services.game_loop import GameLoop
-    
+
     src = inspect.getsource(GameLoop)
     if "ActionSemanticResolver" in src:
         return InvariantResult(
@@ -790,7 +814,7 @@ def inv_semantic_unification(world: TestWorld) -> InvariantResult:
             "CRITICAL",
             False,
             "ActionSemanticResolver всё ещё вызывается в GameLoop. Нарушение S199 (Semantic Unification).",
-            ["backend/app/services/game_loop/__init__.py"]
+            ["backend/app/services/game_loop/__init__.py"],
         )
     return InvariantResult("INV-SEMANTIC-UNIFICATION", "CRITICAL", True, "", [])
 
@@ -800,7 +824,7 @@ def inv_dialogue_context_binding(world: TestWorld) -> InvariantResult:
     import inspect
 
     from app.services.input.intent_compressor import IntentCompressor
-    
+
     src = inspect.getsource(IntentCompressor)
     if "dialogue_session" not in src:
         return InvariantResult(
@@ -808,7 +832,7 @@ def inv_dialogue_context_binding(world: TestWorld) -> InvariantResult:
             "CRITICAL",
             False,
             "IntentCompressor.compress() не принимает dialogue_session. Нарушение S200.",
-            ["backend/app/services/input/intent_compressor.py"]
+            ["backend/app/services/input/intent_compressor.py"],
         )
     return InvariantResult("INV-DIALOGUE-CONTEXT-BINDING", "CRITICAL", True, "", [])
 
@@ -817,32 +841,35 @@ def inv_time_freezer(world: TestWorld) -> InvariantResult:
     """INV-TIME-FREEZER: TimeFreezer подменяет wall-clock (Этап 2.4)."""
     import sys
     from pathlib import Path
+
     _backend_dir = str(Path(__file__).resolve().parents[1])
     if _backend_dir not in sys.path:
         sys.path.insert(0, _backend_dir)
-        
+
     try:
         import datetime
         import time
 
         from app.services.replay.time_freezer import frozen_time
-        
+
         _game_time = 12345.6
-        
+
         with frozen_time(_game_time):
             _t = time.time()
             _dt_obj = datetime.datetime.now()
             # Вызываем .timestamp() с UTC tzinfo, чтобы избежать Windows mktime бага для дат < 1970
             _dt = _dt_obj.replace(tzinfo=datetime.timezone.utc).timestamp()
-            
+
         if abs(_t - _game_time) > 0.1 or abs(_dt - _game_time) > 0.1:
             return InvariantResult("INV-TIME-FREEZER", "CRITICAL", False, "Wall-clock не подменён.", [])
-            
+
         # Проверяем, что после выхода из контекста оригинальное время восстановлено
         _real_time = time.time()
         if abs(_real_time - _game_time) < 100:
-            return InvariantResult("INV-TIME-FREEZER", "CRITICAL", False, "Оригинальный time.time() не восстановлен.", [])
-            
+            return InvariantResult(
+                "INV-TIME-FREEZER", "CRITICAL", False, "Оригинальный time.time() не восстановлен.", []
+            )
+
         return InvariantResult("INV-TIME-FREEZER", "CRITICAL", True, "TimeFreezer OK.", [])
     except Exception as e:
         return InvariantResult(
@@ -850,7 +877,7 @@ def inv_time_freezer(world: TestWorld) -> InvariantResult:
             "CRITICAL",
             False,
             f"Ошибка TimeFreezer: {e}",
-            ["backend/app/services/replay/time_freezer.py"]
+            ["backend/app/services/replay/time_freezer.py"],
         )
 
 
@@ -860,45 +887,46 @@ def inv_replay_store(world: TestWorld) -> InvariantResult:
     import sys
     import tempfile
     from pathlib import Path
+
     _backend_dir = str(Path(__file__).resolve().parents[1])
     if _backend_dir not in sys.path:
         sys.path.insert(0, _backend_dir)
-        
+
     try:
         from app.services.replay.replay_store import ReplayStore
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "test_replay.db")
             store = ReplayStore(db_path)
-            
+
             session_id = store.start_session("test_campaign", "test_hash")
             if not session_id:
                 return InvariantResult("INV-REPLAY-STORE", "CRITICAL", False, "start_session вернул пустой ID", [])
-                
+
             store.record_tick(
                 session_id=session_id,
                 tick_id=1,
                 game_time_seconds=60.0,
                 tick_state={"tick": 1, "npcs": [{"id": "test"}]},
                 tick_mutation={"decisions": []},
-                world_snapshot={"tick": 1, "snapshot": "test"}
+                world_snapshot={"tick": 1, "snapshot": "test"},
             )
             store.record_intervention(session_id, 1, "player", {"text": "test"})
             store.record_causal_probe(session_id, 1, "INV-TEST", "PASS", {"msg": "ok"})
             store.close()
-            
+
             # Проверяем чтение
             store2 = ReplayStore(db_path)
             row = store2.conn.execute("SELECT * FROM tick_snapshots WHERE tick_id = 1").fetchone()
             if not row:
                 return InvariantResult("INV-REPLAY-STORE", "CRITICAL", False, "Тик не записан в БД", [])
-                
+
             state = store2._from_json_bytes(row["tick_state_json"])
             if state.get("tick") != 1:
                 return InvariantResult("INV-REPLAY-STORE", "CRITICAL", False, "TickState не десериализован", [])
-                
+
             store2.close()
-            
+
         return InvariantResult("INV-REPLAY-STORE", "CRITICAL", True, "ReplayStore round-trip OK.", [])
     except Exception as e:
         return InvariantResult(
@@ -906,7 +934,7 @@ def inv_replay_store(world: TestWorld) -> InvariantResult:
             "CRITICAL",
             False,
             f"Ошибка ReplayStore: {e}",
-            ["backend/app/services/replay/replay_store.py"]
+            ["backend/app/services/replay/replay_store.py"],
         )
 
 
@@ -915,61 +943,67 @@ def inv_adr_net(world: TestWorld) -> InvariantResult:
     import os
     import sys
     from pathlib import Path
+
     _backend_dir = str(Path(__file__).resolve().parents[1])
     if _backend_dir not in sys.path:
         sys.path.insert(0, _backend_dir)
-        
+
     try:
         from app.services.adr_net.adr_conflict_detector import ADRConflictDetector
         from app.services.adr_net.adr_graph import ADRGraphBuilder
+
         _root_dir = str(Path(__file__).resolve().parents[2])
         _audits_dir = os.path.join(_root_dir, "docs", "audits")
         _master_idx = os.path.join(_root_dir, "docs", "ADR (Architecture Decision Records).md")
-        
+
         # H-21 FIX: Используем GraphBuilder для создания networkx графа
         builder = ADRGraphBuilder(audits_dir=_audits_dir, master_index=_master_idx)
         graph = builder.build()
-        
+
         # Подсчитываем узлы ADR (исключая FILE и LAW узлы)
         _adr_nodes = [n for n, d in graph.nodes(data=True) if d.get("node_type") == "ADR"]
-        _with_files = sum(1 for n in _adr_nodes if any(True for _, _, d in graph.out_edges(n, data=True) if d.get("edge_type") == "IMPLEMENTS"))
-        
+        _with_files = sum(
+            1
+            for n in _adr_nodes
+            if any(True for _, _, d in graph.out_edges(n, data=True) if d.get("edge_type") == "IMPLEMENTS")
+        )
+
         if len(_adr_nodes) < 20:
             return InvariantResult(
                 "INV-ADR-NET",
                 "CRITICAL",
                 False,
                 f"ADR-Net распарсил только {len(_adr_nodes)} ADR. Ожидается > 20. Граф сломан.",
-                ["docs/ADR (Architecture Decision Records).md", "docs/audits/"]
+                ["docs/ADR (Architecture Decision Records).md", "docs/audits/"],
             )
-            
+
         if _with_files < len(_adr_nodes) * 0.1:
             return InvariantResult(
                 "INV-ADR-NET",
                 "CRITICAL",
                 False,
                 f"Только {_with_files}/{len(_adr_nodes)} ADR имеют привязку к файлам. Граф неполный.",
-                ["docs/audits/"]
+                ["docs/audits/"],
             )
-            
+
         # H-21 FIX: Запускаем детектор конфликтов и циклов
         detector = ADRConflictDetector(graph)
         cycles = detector.detect_cycles()
         conflicts = detector.detect_file_ownership_conflicts()
-        
+
         if cycles:
             return InvariantResult(
                 "INV-ADR-NET",
                 "CRITICAL",
                 False,
                 f"ADR-Net обнаружил циклические зависимости! Cycles: {len(cycles)}",
-                ["backend/app/services/adr_net/adr_conflict_detector.py"]
+                ["backend/app/services/adr_net/adr_conflict_detector.py"],
             )
-            
+
         _msg = f"ADR-Net: {len(_adr_nodes)} nodes, {_with_files} with files."
         if conflicts:
             _msg += f" (WARNING: {len(conflicts)} file ownership conflicts detected, likely false positives)"
-            
+
         return InvariantResult("INV-ADR-NET", "CRITICAL", True, _msg, [])
     except Exception as e:
         return InvariantResult(
@@ -977,7 +1011,7 @@ def inv_adr_net(world: TestWorld) -> InvariantResult:
             "CRITICAL",
             False,
             f"Ошибка парсера ADR-Net: {e}",
-            ["backend/app/services/adr_net/adr_parser.py"]
+            ["backend/app/services/adr_net/adr_parser.py"],
         )
 
 
@@ -985,15 +1019,17 @@ def inv_no_retro_sim(world: TestWorld) -> InvariantResult:
     """INV-NO-RETRO-SIM: Запрет циклов с вызовами tick/execute (Rule 25)."""
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
-        
+
     try:
         from lint_retro_simulation import run_lint
+
         _backend_dir = str(Path(__file__).resolve().parents[1] / "app")
         violations = run_lint(_backend_dir)
-        
+
         if violations:
             _details = "; ".join(violations[:5])
             return InvariantResult(
@@ -1001,16 +1037,12 @@ def inv_no_retro_sim(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"Найдено {len(violations)} ретро-симуляций. Нарушение Rule 25. Первые: {_details}",
-                ["backend/app/services/"]
+                ["backend/app/services/"],
             )
         return InvariantResult("INV-NO-RETRO-SIM", "CRITICAL", True, "", [])
     except Exception as e:
         return InvariantResult(
-            "INV-NO-RETRO-SIM",
-            "CRITICAL",
-            False,
-            f"Ошибка запуска линтера: {e}",
-            ["scripts/lint_retro_simulation.py"]
+            "INV-NO-RETRO-SIM", "CRITICAL", False, f"Ошибка запуска линтера: {e}", ["scripts/lint_retro_simulation.py"]
         )
 
 
@@ -1018,15 +1050,17 @@ def inv_l1_append_only(world: TestWorld) -> InvariantResult:
     """INV-L1-APPEND-ONLY: Запрет удаления событий из L1Chronicle (Rule 28)."""
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
-        
+
     try:
         from lint_l1_append_only import run_lint
+
         _backend_dir = str(Path(__file__).resolve().parents[1] / "app")
         violations = run_lint(_backend_dir)
-        
+
         if violations:
             _details = "; ".join(violations[:5])
             return InvariantResult(
@@ -1034,16 +1068,12 @@ def inv_l1_append_only(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"Найдено {len(violations)} попыток удаления из L1. Нарушение Rule 28. Первые: {_details}",
-                ["backend/app/services/npc/l1_chronicle.py", "backend/app/services/npc/identity/"]
+                ["backend/app/services/npc/l1_chronicle.py", "backend/app/services/npc/identity/"],
             )
         return InvariantResult("INV-L1-APPEND-ONLY", "CRITICAL", True, "", [])
     except Exception as e:
         return InvariantResult(
-            "INV-L1-APPEND-ONLY",
-            "CRITICAL",
-            False,
-            f"Ошибка запуска линтера: {e}",
-            ["scripts/lint_l1_append_only.py"]
+            "INV-L1-APPEND-ONLY", "CRITICAL", False, f"Ошибка запуска линтера: {e}", ["scripts/lint_l1_append_only.py"]
         )
 
 
@@ -1052,9 +1082,9 @@ def inv_l3_ephemeral(world: TestWorld) -> InvariantResult:
     engine = getattr(world.game_loop, "_get_life_engine", lambda: None)()
     npcs = engine.get_npc_states(world.campaign_id) if engine else []
     scene = world.game_loop.get_scene_state(world.campaign_id, "tavern") or {}
-    
+
     _bad_keys = {"effective_drives", "l3_drives", "l3_projection"}
-    
+
     # 1. Проверяем scene_state
     for key in scene.keys():
         if key.lower() in _bad_keys:
@@ -1063,9 +1093,9 @@ def inv_l3_ephemeral(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"scene_state содержит персистентный L3 ключ: '{key}'. Нарушение L3-P1.",
-                ["backend/app/services/scene_state_manager.py", "backend/app/services/tick_orchestrator.py"]
+                ["backend/app/services/scene_state_manager.py", "backend/app/services/tick_orchestrator.py"],
             )
-            
+
     # 2. Проверяем npc_dicts
     for npc in npcs:
         for key in npc.keys():
@@ -1075,9 +1105,9 @@ def inv_l3_ephemeral(world: TestWorld) -> InvariantResult:
                     "CRITICAL",
                     False,
                     f"NPC '{npc.get('npc_id', '?')}' содержит персистентный L3 ключ: '{key}'. Нарушение L3-P1.",
-                    ["backend/app/models/npc_state.py", "backend/app/services/state_applicator.py"]
+                    ["backend/app/models/npc_state.py", "backend/app/services/state_applicator.py"],
                 )
-                
+
     return InvariantResult("INV-L3-EPHEMERAL", "CRITICAL", True, "", [])
 
 
@@ -1085,7 +1115,7 @@ def inv_sc1_zero_position(world: TestWorld) -> InvariantResult:
     """INV-SC-1: local_position не может быть (0.0, 0.0) (Spatial Coherence)."""
     scene = world.game_loop.get_scene_state(world.campaign_id, "tavern") or {}
     npc_pos = scene.get("npc_positions", {})
-    
+
     for npc_id, pos_data in npc_pos.items():
         if not isinstance(pos_data, dict):
             continue
@@ -1096,9 +1126,9 @@ def inv_sc1_zero_position(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"NPC '{npc_id}' имеет local_position (0.0, 0.0). Нарушение SC-1.",
-                ["backend/app/services/scene_state_manager.py", "backend/app/services/spatial/movement_engine.py"]
+                ["backend/app/services/scene_state_manager.py", "backend/app/services/spatial/movement_engine.py"],
             )
-            
+
     return InvariantResult("INV-SC-1", "CRITICAL", True, "", [])
 
 
@@ -1106,15 +1136,17 @@ def inv_spatial_ssot(world: TestWorld) -> InvariantResult:
     """INV-SPATIAL-SSOT: Запрет прямой сборки SpatialService вне фабрики (L9)."""
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
-        
+
     try:
         from lint_spatial_ssot import run_lint
+
         _backend_dir = str(Path(__file__).resolve().parents[1] / "app")
         violations = run_lint(_backend_dir)
-        
+
         if violations:
             _details = "; ".join(violations[:5])
             return InvariantResult(
@@ -1122,16 +1154,12 @@ def inv_spatial_ssot(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"Найдено {len(violations)} прямых сборок SpatialService. Нарушение L9. Первые: {_details}",
-                ["backend/app/services/"]
+                ["backend/app/services/"],
             )
         return InvariantResult("INV-SPATIAL-SSOT", "CRITICAL", True, "", [])
     except Exception as e:
         return InvariantResult(
-            "INV-SPATIAL-SSOT",
-            "CRITICAL",
-            False,
-            f"Ошибка запуска линтера: {e}",
-            ["scripts/lint_spatial_ssot.py"]
+            "INV-SPATIAL-SSOT", "CRITICAL", False, f"Ошибка запуска линтера: {e}", ["scripts/lint_spatial_ssot.py"]
         )
 
 
@@ -1139,14 +1167,16 @@ def inv_frontend_isolation(world: TestWorld) -> InvariantResult:
     """INV-FRONTEND-ISOLATION: Запрет импорта backend.app во фронтенде (§1.1)."""
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
-        
+
     try:
         from lint_frontend_isolation import run_lint
+
         violations = run_lint()
-        
+
         if violations:
             _details = "; ".join(violations[:5])
             return InvariantResult(
@@ -1154,7 +1184,7 @@ def inv_frontend_isolation(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"Найдено {len(violations)} прямых импортов backend во фронтенд. Нарушение §1.1. Первые: {_details}",
-                ["frontend/"]
+                ["frontend/"],
             )
         return InvariantResult("INV-FRONTEND-ISOLATION", "CRITICAL", True, "", [])
     except Exception as e:
@@ -1163,7 +1193,7 @@ def inv_frontend_isolation(world: TestWorld) -> InvariantResult:
             "CRITICAL",
             False,
             f"Ошибка запуска линтера: {e}",
-            ["scripts/lint_frontend_isolation.py"]
+            ["scripts/lint_frontend_isolation.py"],
         )
 
 
@@ -1171,14 +1201,16 @@ def inv_epistemic_boundary(world: TestWorld) -> InvariantResult:
     """INV-EPISTEMIC-BOUNDARY: Запрет чтения ментальных полей в DM/Verbalization (§17)."""
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
-        
+
     try:
         from lint_epistemic_boundary import run_lint
+
         violations = run_lint()
-        
+
         if violations:
             _details = "; ".join(violations[:5])
             return InvariantResult(
@@ -1186,7 +1218,7 @@ def inv_epistemic_boundary(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"Найдено {len(violations)} нарушений Эпистемической Границы. Нарушение §17. Первые: {_details}",
-                ["backend/app/agents/dm_agent.py", "backend/app/services/verbalization/"]
+                ["backend/app/agents/dm_agent.py", "backend/app/services/verbalization/"],
             )
         return InvariantResult("INV-EPISTEMIC-BOUNDARY", "CRITICAL", True, "", [])
     except Exception as e:
@@ -1195,7 +1227,7 @@ def inv_epistemic_boundary(world: TestWorld) -> InvariantResult:
             "CRITICAL",
             False,
             f"Ошибка запуска линтера: {e}",
-            ["scripts/lint_epistemic_boundary.py"]
+            ["scripts/lint_epistemic_boundary.py"],
         )
 
 
@@ -1203,14 +1235,16 @@ def inv_kernel_rng(world: TestWorld) -> InvariantResult:
     """INV-KERNEL-RNG: Запрет random.* в симуляционном слое (ADR-O-301)."""
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
-        
+
     try:
         from lint_kernel_rng import run_lint
+
         violations = run_lint()
-        
+
         if violations:
             _details = "; ".join(violations[:5])
             return InvariantResult(
@@ -1218,16 +1252,12 @@ def inv_kernel_rng(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"Найдено {len(violations)} нарушений изоляции случайности. Нарушение ADR-O-301. Первые: {_details}",
-                ["backend/app/services/"]
+                ["backend/app/services/"],
             )
         return InvariantResult("INV-KERNEL-RNG", "CRITICAL", True, "", [])
     except Exception as e:
         return InvariantResult(
-            "INV-KERNEL-RNG",
-            "CRITICAL",
-            False,
-            f"Ошибка запуска линтера: {e}",
-            ["scripts/lint_kernel_rng.py"]
+            "INV-KERNEL-RNG", "CRITICAL", False, f"Ошибка запуска линтера: {e}", ["scripts/lint_kernel_rng.py"]
         )
 
 
@@ -1235,14 +1265,16 @@ def inv_wall_clock(world: TestWorld) -> InvariantResult:
     """INV-WALL-CLOCK: Запрет wall-clock в симуляционном слое (§15.1)."""
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
-        
+
     try:
         from lint_wall_clock import run_lint
+
         violations = run_lint()
-        
+
         if violations:
             _details = "; ".join(violations[:5])
             return InvariantResult(
@@ -1250,16 +1282,12 @@ def inv_wall_clock(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"Найдено {len(violations)} нарушений изоляции реального времени. Нарушение §15.1. Первые: {_details}",
-                ["backend/app/services/"]
+                ["backend/app/services/"],
             )
         return InvariantResult("INV-WALL-CLOCK", "CRITICAL", True, "", [])
     except Exception as e:
         return InvariantResult(
-            "INV-WALL-CLOCK",
-            "CRITICAL",
-            False,
-            f"Ошибка запуска линтера: {e}",
-            ["scripts/lint_wall_clock.py"]
+            "INV-WALL-CLOCK", "CRITICAL", False, f"Ошибка запуска линтера: {e}", ["scripts/lint_wall_clock.py"]
         )
 
 
@@ -1267,12 +1295,14 @@ def inv_re_cache_allowlist(world: TestWorld) -> InvariantResult:
     """INV-RE-CACHE-ALLOWLIST: freeze-поверхность relationship_cache (ADR-O-415, M1b.3.7)."""
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
 
     try:
         from lint_relationship_cache_allowlist import run_lint
+
         violations = run_lint()
 
         if violations:
@@ -1282,7 +1312,7 @@ def inv_re_cache_allowlist(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"Найдено {len(violations)} нарушений заморозки relationship_cache. Нарушение ADR-O-415 (M1b.3.7). Первые: {_details}",
-                ["backend/app/models/", "backend/app/services/"]
+                ["backend/app/models/", "backend/app/services/"],
             )
         return InvariantResult("INV-RE-CACHE-ALLOWLIST", "CRITICAL", True, "", [])
     except Exception as e:
@@ -1291,7 +1321,7 @@ def inv_re_cache_allowlist(world: TestWorld) -> InvariantResult:
             "CRITICAL",
             False,
             f"Ошибка запуска линтера: {e}",
-            ["scripts/lint_relationship_cache_allowlist.py"]
+            ["scripts/lint_relationship_cache_allowlist.py"],
         )
 
 
@@ -1300,15 +1330,17 @@ def inv_silent_failure(world: TestWorld) -> InvariantResult:
     import os
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
-        
+
     try:
         from lint_silent_failures import run_lint
+
         _backend_dir = str(Path(__file__).resolve().parents[1] / "app")
         violations = run_lint(_backend_dir)
-        
+
         if violations:
             _details = "; ".join([f"{os.path.basename(f)}:{l}" for f, l, _ in violations[:5]])
             return InvariantResult(
@@ -1316,17 +1348,13 @@ def inv_silent_failure(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"Найдено {len(violations)} тихих отказов (except: pass). Нарушение L4. Первые: {_details}",
-                [f for f, _, _ in violations]
+                [f for f, _, _ in violations],
             )
-            
+
         return InvariantResult("INV-SILENT-FAILURE", "CRITICAL", True, "", [])
     except Exception as e:
         return InvariantResult(
-            "INV-SILENT-FAILURE",
-            "CRITICAL",
-            False,
-            f"Ошибка запуска линтера: {e}",
-            ["scripts/lint_silent_failures.py"]
+            "INV-SILENT-FAILURE", "CRITICAL", False, f"Ошибка запуска линтера: {e}", ["scripts/lint_silent_failures.py"]
         )
 
 
@@ -1335,16 +1363,18 @@ def inv_hp_ssot(world: TestWorld) -> InvariantResult:
     import os
     import sys
     from pathlib import Path
+
     # Добавляем scripts/ в path для импорта линтера
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
-        
+
     try:
         from lint_hp_ssot import run_lint
+
         _backend_dir = str(Path(__file__).resolve().parents[1] / "app")
         violations = run_lint(_backend_dir)
-        
+
         if violations:
             _details = "; ".join([f"{os.path.basename(f)}:{l}" for f, l, _ in violations[:5]])
             return InvariantResult(
@@ -1352,17 +1382,13 @@ def inv_hp_ssot(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"Найдено {len(violations)} прямых записей в state.hp. Нарушение ADR-HP-UNIFICATION. Первые: {_details}",
-                [f for f, _, _ in violations]
+                [f for f, _, _ in violations],
             )
-            
+
         return InvariantResult("INV-HP-SSOT", "CRITICAL", True, "", [])
     except Exception as e:
         return InvariantResult(
-            "INV-HP-SSOT",
-            "CRITICAL",
-            False,
-            f"Ошибка запуска линтера: {e}",
-            ["scripts/lint_hp_ssot.py"]
+            "INV-HP-SSOT", "CRITICAL", False, f"Ошибка запуска линтера: {e}", ["scripts/lint_hp_ssot.py"]
         )
 
 
@@ -1372,6 +1398,7 @@ def inv_pbt_roundtrip(world: TestWorld) -> InvariantResult:
         from tests.pbt.properties.test_npc_state_roundtrip import (
             test_npc_state_roundtrip_preserves_critical_fields,
         )
+
         # Запускаем hypothesis-тест программно
         test_npc_state_roundtrip_preserves_critical_fields()
         return InvariantResult(
@@ -1393,10 +1420,12 @@ def inv_pbt_roundtrip(world: TestWorld) -> InvariantResult:
             ],
         )
 
+
 def inv_pbt_spatial(world: TestWorld) -> InvariantResult:
     """Подсистема 1 (PBT): Property-based тест на Spatial Coherence (SC-1)."""
     try:
         from tests.pbt.properties.test_spatial_and_traversal import test_sc1_rejects_zero_position
+
         test_sc1_rejects_zero_position()
         return InvariantResult(
             "INV-PBT-SC1",
@@ -1416,10 +1445,12 @@ def inv_pbt_spatial(world: TestWorld) -> InvariantResult:
             ],
         )
 
+
 def inv_pbt_traversal(world: TestWorld) -> InvariantResult:
     """Подсистема 1 (PBT): Property-based тест на Traversal FSM (Zombie traversals)."""
     try:
         from tests.pbt.properties.test_spatial_and_traversal import test_trav_fsm_detects_zombies
+
         test_trav_fsm_detects_zombies()
         return InvariantResult(
             "INV-PBT-TRAV-FSM",
@@ -1453,7 +1484,7 @@ def inv_player_epistemic_closure(world: TestWorld) -> InvariantResult:
     _epistemic_store._records = {k: v for k, v in _epistemic_store._records.items() if k[0] != "player"}
 
     bus = world.game_loop._tick_orch._get_event_bus()
-    
+
     # Публикуем NPC_SPOKE с intent_type="accuse"
     event = EventDTO.create(
         event_type=EventType.NPC_SPOKE.value,
@@ -1464,43 +1495,47 @@ def inv_player_epistemic_closure(world: TestWorld) -> InvariantResult:
             "intent_type": "accuse",
             "exposure": "normal",
             "tone": "NEUTRAL",
-            "topic": "theft"
-        }
+            "topic": "theft",
+        },
     )
     bus.publish(event)
 
     # Даём время обработать (EventBus синхронный, но ClaimEventSubscriber может быть в потоке)
     import time
+
     time.sleep(0.1)
 
     _player_beliefs = _epistemic_store.get_all_for_agent("player")
-    
+
     if not _player_beliefs:
         return InvariantResult(
             "INV-PLAYER-EPISTEMIC-CLOSURE",
             "CRITICAL",
             False,
             "NPC_SPOKE (accuse) не породил убеждение в EpistemicStore[player]. Труба разорвана.",
-            [
-                "backend/app/services/events/claim_event_subscriber.py",
-                "backend/app/services/game_loop/__init__.py"
-            ]
+            ["backend/app/services/events/claim_event_subscriber.py", "backend/app/services/game_loop/__init__.py"],
         )
-    
-    return InvariantResult("INV-PLAYER-EPISTEMIC-CLOSURE", "CRITICAL", True, "NPC_SPOKE -> EpistemicStore[player] работает.", [])
+
+    return InvariantResult(
+        "INV-PLAYER-EPISTEMIC-CLOSURE", "CRITICAL", True, "NPC_SPOKE -> EpistemicStore[player] работает.", []
+    )
 
 
 def inv_epistemic_trust_monotonicity(world: TestWorld) -> InvariantResult:
     """INV-EPISTEMIC-TRUST-MONOTONICITY: Для одинакового claim, trust(A) > trust(B) => confidence(A) >= confidence(B)."""
     from app.services.npc.trust_based_reliability_provider import TrustBasedReliabilityProvider
-    
+
     _epistemic_store = getattr(world.game_loop._tick_orch, "_epistemic_store", None)
     if not _epistemic_store:
-        return InvariantResult("INV-EPISTEMIC-TRUST-MONOTONICITY", "CRITICAL", False, "EpistemicStore not initialized", [])
+        return InvariantResult(
+            "INV-EPISTEMIC-TRUST-MONOTONICITY", "CRITICAL", False, "EpistemicStore not initialized", []
+        )
 
     _rel_store = world.game_loop.memory_manager._relationships if world.game_loop.memory_manager else None
     if not _rel_store:
-        return InvariantResult("INV-EPISTEMIC-TRUST-MONOTONICITY", "WARNING", True, "RelationshipStore missing, skip.", [])
+        return InvariantResult(
+            "INV-EPISTEMIC-TRUST-MONOTONICITY", "WARNING", True, "RelationshipStore missing, skip.", []
+        )
 
     _campaign_id = world.campaign_id
     _provider = TrustBasedReliabilityProvider(_rel_store, _campaign_id)
@@ -1518,10 +1553,12 @@ def inv_epistemic_trust_monotonicity(world: TestWorld) -> InvariantResult:
             "CRITICAL",
             False,
             f"Reliability violated: friend({rel_friend:.2f}) <= enemy({rel_enemy:.2f}). Trust не монотонен.",
-            ["backend/app/services/events/claim_event_subscriber.py"]
+            ["backend/app/services/events/claim_event_subscriber.py"],
         )
-    
-    return InvariantResult("INV-EPISTEMIC-TRUST-MONOTONICITY", "CRITICAL", True, "Reliability монотонно зависит от trust.", [])
+
+    return InvariantResult(
+        "INV-EPISTEMIC-TRUST-MONOTONICITY", "CRITICAL", True, "Reliability монотонно зависит от trust.", []
+    )
 
 
 def inv_epistemic_truth_immutability(world: TestWorld) -> InvariantResult:
@@ -1538,7 +1575,7 @@ def inv_epistemic_truth_immutability(world: TestWorld) -> InvariantResult:
     _before = {k: _scene.get(k) for k in _truth_fields}
 
     bus = world.game_loop._tick_orch._get_event_bus()
-    
+
     # Публикуем событие с пропозицией
     event = EventDTO.create(
         event_type=EventType.COMMUNICATION_CLAIM.value,
@@ -1546,20 +1583,15 @@ def inv_epistemic_truth_immutability(world: TestWorld) -> InvariantResult:
         payload={
             "target_id": "thief_shadow",
             "claim_id": "test_claim_immutability",
-            "proposition": {
-                "subject_id": "thief_shadow",
-                "predicate": "stole",
-                "object_id": "gold",
-                "polarity": True
-            },
+            "proposition": {"subject_id": "thief_shadow", "predicate": "stole", "object_id": "gold", "polarity": True},
             "speech_act": "assert",
-            "tick": 1
-        }
+            "tick": 1,
+        },
     )
     bus.publish(event)
 
     _after = world._get_scene()
-    
+
     for field in _truth_fields:
         if _before.get(field) != _after.get(field):
             return InvariantResult(
@@ -1567,43 +1599,59 @@ def inv_epistemic_truth_immutability(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"ClaimEvent изменил поле World Truth: {field}",
-                ["backend/app/services/events/claim_event_subscriber.py"]
+                ["backend/app/services/events/claim_event_subscriber.py"],
             )
-            
-    return InvariantResult("INV-EPISTEMIC-TRUTH-IMMUTABILITY", "CRITICAL", True, "World Truth неизменна после ClaimEvent.", [])
+
+    return InvariantResult(
+        "INV-EPISTEMIC-TRUTH-IMMUTABILITY", "CRITICAL", True, "World Truth неизменна после ClaimEvent.", []
+    )
 
 
 def inv_scene_entity_isolation(world: TestWorld) -> InvariantResult:
     """INV-NPC-CARDINALITY: NPC не должны обрабатываться в чужой локации (P0-2).
-    
+
     Проверяет, что каждый NPC в npc_positions имеет location_id, совпадающий с локацией сцены.
     Это гарантирует, что NPC из tavern не будут обработаны повторно при тике city_gate.
     """
     try:
         from app.services.spatial.spatial_registry import SpatialRegistry
-        
+
         _reg = SpatialRegistry.get_or_load(world.campaign_id)
         if not _reg:
-            return InvariantResult("INV-NPC-CARDINALITY", "CRITICAL", True, "ПРОПУСК: SpatialRegistry не загружен — вход (реестр локаций) отсутствует.", [], skipped=True)
-        
+            return InvariantResult(
+                "INV-NPC-CARDINALITY",
+                "CRITICAL",
+                True,
+                "ПРОПУСК: SpatialRegistry не загружен — вход (реестр локаций) отсутствует.",
+                [],
+                skipped=True,
+            )
+
         _all_locs = _reg.get_all_location_ids() or []
         if len(_all_locs) < 2:
-            return InvariantResult("INV-NPC-CARDINALITY", "CRITICAL", True, "ПРОПУСК: в кампании <2 локаций — проверка изоляции NPC требует ≥2.", [], skipped=True)
-        
+            return InvariantResult(
+                "INV-NPC-CARDINALITY",
+                "CRITICAL",
+                True,
+                "ПРОПУСК: в кампании <2 локаций — проверка изоляции NPC требует ≥2.",
+                [],
+                skipped=True,
+            )
+
         # S1-FIX: Используем текущее состояние мира, а не вызываем idle_tick внутри инварианта.
         _violations = []
-        
+
         for _loc_id in _all_locs:
             _scene = world.game_loop.scene_manager.get_scene_state(world.campaign_id, _loc_id) or {}
             _npc_positions = _scene.get("npc_positions") or {}
-            
+
             for _npc_id, _npc_data in _npc_positions.items():
                 if _npc_id == "player":
                     continue
                 _npc_loc = _npc_data.get("location_id") or _npc_data.get("location", "")
                 if _npc_loc and _npc_loc != _loc_id:
                     _violations.append(f"{_npc_id} in {_loc_id} (belongs to {_npc_loc})")
-        
+
         if not _violations:
             return InvariantResult("INV-NPC-CARDINALITY", "CRITICAL", True, "NPC изолированы по локациям (P0-2).", [])
         return InvariantResult(
@@ -1611,19 +1659,17 @@ def inv_scene_entity_isolation(world: TestWorld) -> InvariantResult:
             "CRITICAL",
             False,
             f"Утечка NPC между локациями: {_violations[:5]}",
-            [
-                "backend/app/services/tick_orchestrator.py",
-                "backend/app/services/scene_state_manager.py"
-            ]
+            ["backend/app/services/tick_orchestrator.py", "backend/app/services/scene_state_manager.py"],
         )
     except Exception as e:
         return InvariantResult(
             "INV-NPC-CARDINALITY", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
         )
 
+
 def inv_replay_determinism(world: TestWorld) -> InvariantResult:
     """INV-REPLAY-DETERMINISM: Инфраструктура реплея готова к A/B тестированию.
-    
+
     Полный детерминированный прогон (T0->T3 == Replay(T3)) требует кэширования всех LLM-вызовов
     и полного восстановления TickState, что выходит за рамки 5-секундного IPT.
     Здесь проверяется готовность инфраструктуры: ReplayRecorder подключён, БД доступна.
@@ -1633,37 +1679,55 @@ def inv_replay_determinism(world: TestWorld) -> InvariantResult:
         _orch = getattr(world.game_loop, "_tick_orch", None)
         _recorder = getattr(_orch, "_replay_recorder", None) if _orch else None
         if not _recorder:
-            return InvariantResult("INV-REPLAY-DETERMINISM", "WARNING", True, "ПРОПУСК: ReplayRecorder не подключён к оркестратору — вход отсутствует.", [], skipped=True)
-        
+            return InvariantResult(
+                "INV-REPLAY-DETERMINISM",
+                "WARNING",
+                True,
+                "ПРОПУСК: ReplayRecorder не подключён к оркестратору — вход отсутствует.",
+                [],
+                skipped=True,
+            )
+
         # Прогоняем 1 тик для проверки записи
         world.idle_tick()
-        
+
         _store = _recorder.store
         _session_id = _recorder.session_id
-        
+
         # Проверяем, что тик записался в БД
         row = _store.conn.execute(
-            "SELECT tick_id FROM tick_snapshots WHERE session_id = ? AND tick_id = ?",
-            (_session_id, world.tick)
+            "SELECT tick_id FROM tick_snapshots WHERE session_id = ? AND tick_id = ?", (_session_id, world.tick)
         ).fetchone()
-        
+
         if row:
-            return InvariantResult("INV-REPLAY-DETERMINISM", "WARNING", True, "Replay infrastructure ready (tick recorded). Full A/B test requires DriftLaboratory.", [])
+            return InvariantResult(
+                "INV-REPLAY-DETERMINISM",
+                "WARNING",
+                True,
+                "Replay infrastructure ready (tick recorded). Full A/B test requires DriftLaboratory.",
+                [],
+            )
         return InvariantResult(
             "INV-REPLAY-DETERMINISM",
             "CRITICAL",
             False,
             "ReplayRecorder attached, but no ticks recorded to DB.",
-            ["backend/app/services/replay/replay_recorder.py"]
+            ["backend/app/services/replay/replay_recorder.py"],
         )
     except Exception as e:
         return InvariantResult(
-            "INV-REPLAY-DETERMINISM", "WARNING", True, f"ПРОПУСК: replay-инфраструктура недоступна: {e}", [], skipped=True
+            "INV-REPLAY-DETERMINISM",
+            "WARNING",
+            True,
+            f"ПРОПУСК: replay-инфраструктура недоступна: {e}",
+            [],
+            skipped=True,
         )
+
 
 def inv_save_load_integrity(world: TestWorld) -> InvariantResult:
     """INV-SAVE-LOAD-INTEGRITY: Save/Load цикл сохраняет критическое состояние.
-    
+
     Прогоняет 3 тика, сохраняет состояние, загружает его и проверяет,
     что tick, game_time и npc_positions совпадают.
     """
@@ -1671,39 +1735,41 @@ def inv_save_load_integrity(world: TestWorld) -> InvariantResult:
         # Прогоняем 3 тика
         for _ in range(3):
             world.idle_tick()
-        
+
         _scene_manager = world.game_loop.scene_manager
         _persistence = getattr(_scene_manager, "_persistence", None)
         if not _persistence:
             return InvariantResult("INV-SAVE-LOAD-INTEGRITY", "CRITICAL", False, "Persistence adapter not found.", [])
-        
+
         # Текущее состояние в памяти
         _in_memory_scene = world._get_scene()
         _in_memory_tick = _in_memory_scene.get("tick", 0)
         _in_memory_time = _in_memory_scene.get("game_time_seconds", 0.0)
         _in_memory_positions = _in_memory_scene.get("npc_positions", {})
-        
+
         # Загружаем состояние из персистентного хранилища (используем load_scene_at для конкретной локации)
         _loaded_scene = _persistence.load_scene_at(world.campaign_id, "tavern")
         if not _loaded_scene:
-            return InvariantResult("INV-SAVE-LOAD-INTEGRITY", "CRITICAL", False, "load_scene вернул пустой результат.", [])
-        
+            return InvariantResult(
+                "INV-SAVE-LOAD-INTEGRITY", "CRITICAL", False, "load_scene вернул пустой результат.", []
+            )
+
         _loaded_tick = _loaded_scene.get("tick", 0)
         _loaded_time = _loaded_scene.get("game_time_seconds", 0.0)
         _loaded_positions = _loaded_scene.get("npc_positions", {})
-        
+
         _violations = []
         if _loaded_tick != _in_memory_tick:
             _violations.append(f"tick mismatch: memory={_in_memory_tick}, loaded={_loaded_tick}")
         if _loaded_time != _in_memory_time:
             _violations.append(f"time mismatch: memory={_in_memory_time}, loaded={_loaded_time}")
-        
+
         # Проверяем позиции (сравниваем только ID NPC, так как координаты могли измениться в последнем тике)
         _memory_ids = set(_in_memory_positions.keys())
         _loaded_ids = set(_loaded_positions.keys())
         if _memory_ids != _loaded_ids:
             _violations.append(f"npc_positions ID mismatch: memory={_memory_ids}, loaded={_loaded_ids}")
-        
+
         if not _violations:
             return InvariantResult("INV-SAVE-LOAD-INTEGRITY", "CRITICAL", True, "Save/Load integrity verified.", [])
         return InvariantResult(
@@ -1711,12 +1777,13 @@ def inv_save_load_integrity(world: TestWorld) -> InvariantResult:
             "CRITICAL",
             False,
             f"Save/Load integrity violations: {_violations}",
-            ["backend/app/services/scene_state_manager.py", "backend/app/services/state/sqlite_persistence_adapter.py"]
+            ["backend/app/services/scene_state_manager.py", "backend/app/services/state/sqlite_persistence_adapter.py"],
         )
     except Exception as e:
         return InvariantResult(
             "INV-SAVE-LOAD-INTEGRITY", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
         )
+
 
 def inv_npc_runtime_roundtrip(world: TestWorld) -> InvariantResult:
     """INV-NPC-RUNTIME-ROUNDTRIP: NPC runtime переживает коммит через production-путь.
@@ -1733,14 +1800,19 @@ def inv_npc_runtime_roundtrip(world: TestWorld) -> InvariantResult:
         _persistence = getattr(_sm, "_persistence", None)
         if not _persistence:
             return InvariantResult(
-                "INV-NPC-RUNTIME-ROUNDTRIP", "CRITICAL", False,
-                "Persistence adapter not found.", [],
+                "INV-NPC-RUNTIME-ROUNDTRIP",
+                "CRITICAL",
+                False,
+                "Persistence adapter not found.",
+                [],
             )
 
         _loaded = _persistence.load_npc_runtime(world.campaign_id)
         if not _loaded:
             return InvariantResult(
-                "INV-NPC-RUNTIME-ROUNDTRIP", "CRITICAL", False,
+                "INV-NPC-RUNTIME-ROUNDTRIP",
+                "CRITICAL",
+                False,
                 "NPC runtime не персистится: load_npc_runtime пуст.",
                 ["backend/app/services/scene_state_manager.py"],
             )
@@ -1769,37 +1841,56 @@ def inv_npc_runtime_roundtrip(world: TestWorld) -> InvariantResult:
 
         if not _violations:
             return InvariantResult(
-                "INV-NPC-RUNTIME-ROUNDTRIP", "CRITICAL", True,
-                f"NPC runtime round-trip verified ({len(_by_id)} записей).", [],
+                "INV-NPC-RUNTIME-ROUNDTRIP",
+                "CRITICAL",
+                True,
+                f"NPC runtime round-trip verified ({len(_by_id)} записей).",
+                [],
             )
         return InvariantResult(
-            "INV-NPC-RUNTIME-ROUNDTRIP", "CRITICAL", False,
+            "INV-NPC-RUNTIME-ROUNDTRIP",
+            "CRITICAL",
+            False,
             f"NPC runtime violations: {_violations}",
             ["backend/app/services/scene_state_manager.py"],
         )
     except Exception as e:
         return InvariantResult(
-            "INV-NPC-RUNTIME-ROUNDTRIP", "CRITICAL", False,
-            f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"],
+            "INV-NPC-RUNTIME-ROUNDTRIP",
+            "CRITICAL",
+            False,
+            f"Ошибка выполнения теста: {e}",
+            ["backend/tests/IPT.py"],
         )
+
 
 def inv_intent_event_completeness(world: TestWorld) -> InvariantResult:
     """INV-INTENT-EVENT-COMPLETENESS: Каждый committed CommunicationIntent должен иметь явный event mapping.
-    
+
     Проверяет, что IntentEventAdapter не возвращает 'unknown' тип события.
     """
     try:
         from app.domain.communication import CommunicationIntent, ExposureLevel
         from app.services.events.intent_event_adapter import IntentEventAdapter
-        
+
         _violations = []
         # Проверяем все интенты, которые могут стать CommunicationIntent
         _communicative_intents = [
-            "talk", "warn", "intimidate", "attack", "help", "report",
-            "trade", "explain", "offer_job", "request_service",
-            "spread_rumor", "call_for_help", "change_role"
+            "talk",
+            "warn",
+            "intimidate",
+            "attack",
+            "help",
+            "report",
+            "trade",
+            "explain",
+            "offer_job",
+            "request_service",
+            "spread_rumor",
+            "call_for_help",
+            "change_role",
         ]
-        
+
         for _intent_val in _communicative_intents:
             _mock_intent = CommunicationIntent(
                 speaker="test_npc",
@@ -1807,29 +1898,36 @@ def inv_intent_event_completeness(world: TestWorld) -> InvariantResult:
                 topic="test",
                 intent_type=_intent_val,
                 emotional_state="neutral",
-                exposure_level=ExposureLevel(semantic="normal", physical_radius=10.0)
+                exposure_level=ExposureLevel(semantic="normal", physical_radius=10.0),
             )
             _event = IntentEventAdapter.to_event(_mock_intent)
             if _event.type == "unknown":
                 _violations.append(_intent_val)
-        
+
         if not _violations:
             return InvariantResult(
-                "INV-INTENT-EVENT-COMPLETENESS", "CRITICAL", True,
+                "INV-INTENT-EVENT-COMPLETENESS",
+                "CRITICAL",
+                True,
                 "All communicative intents have explicit event mapping.",
-                []
+                [],
             )
         return InvariantResult(
             "INV-INTENT-EVENT-COMPLETENESS",
             "CRITICAL",
             False,
             f"Intents with 'unknown' event type: {_violations}",
-            ["backend/app/services/events/intent_event_adapter.py"]
+            ["backend/app/services/events/intent_event_adapter.py"],
         )
     except Exception as e:
         return InvariantResult(
-            "INV-INTENT-EVENT-COMPLETENESS", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
+            "INV-INTENT-EVENT-COMPLETENESS",
+            "CRITICAL",
+            False,
+            f"Ошибка выполнения теста: {e}",
+            ["backend/tests/IPT.py"],
         )
+
 
 def inv_trav_terminality(world: TestWorld) -> InvariantResult:
     """INV-TRAV-TERMINALITY: Транзиты не должны зависать в PENDING или MOVING forever."""
@@ -1837,12 +1935,12 @@ def inv_trav_terminality(world: TestWorld) -> InvariantResult:
         # Прогоняем 5 тиков, чтобы выявить застрявшие транзиты
         for _ in range(5):
             world.idle_tick()
-        
+
         scene = world._get_scene()
         travs = scene.get("active_traversals", {})
         stuck = []
         current_tick = world.tick
-        
+
         for nid, t in travs.items():
             if not isinstance(t, dict):
                 continue
@@ -1855,7 +1953,7 @@ def inv_trav_terminality(world: TestWorld) -> InvariantResult:
                 # Grace period: 2 тика сверх длительности
                 if current_tick > started + duration + 2:
                     stuck.append(f"{nid}=MOVING (started={started}, duration={duration}, current={current_tick})")
-        
+
         if not stuck:
             return InvariantResult("INV-TRAV-TERMINALITY", "CRITICAL", True, "No stuck traversals.", [])
         return InvariantResult(
@@ -1863,12 +1961,16 @@ def inv_trav_terminality(world: TestWorld) -> InvariantResult:
             "CRITICAL",
             False,
             f"Stuck traversals: {stuck}",
-            ["backend/app/services/spatial/traversal_execution_system.py", "backend/app/services/scene_state_manager.py"]
+            [
+                "backend/app/services/spatial/traversal_execution_system.py",
+                "backend/app/services/scene_state_manager.py",
+            ],
         )
     except Exception as e:
         return InvariantResult(
             "INV-TRAV-TERMINALITY", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
         )
+
 
 def inv_dialogue_liveness(world: TestWorld) -> InvariantResult:
     """INV-DIALOGUE-LIVENESS: Очередь pending_tasks не должна переполняться."""
@@ -1876,10 +1978,10 @@ def inv_dialogue_liveness(world: TestWorld) -> InvariantResult:
         # Прогоняем 5 тиков
         for _ in range(5):
             world.idle_tick()
-        
+
         scene = world._get_scene()
         pending = scene.get("pending_tasks", [])
-        
+
         # Если в очереди больше 20 задач, значит TaskScheduler не справляется или завис
         if len(pending) > 20:
             return InvariantResult(
@@ -1887,13 +1989,16 @@ def inv_dialogue_liveness(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"pending_tasks flooded: {len(pending)} tasks. TaskScheduler not draining.",
-                ["backend/app/services/game_loop/task_scheduler.py"]
+                ["backend/app/services/game_loop/task_scheduler.py"],
             )
-        return InvariantResult("INV-DIALOGUE-LIVENESS", "CRITICAL", True, f"pending_tasks={len(pending)} (healthy).", [])
+        return InvariantResult(
+            "INV-DIALOGUE-LIVENESS", "CRITICAL", True, f"pending_tasks={len(pending)} (healthy).", []
+        )
     except Exception as e:
         return InvariantResult(
             "INV-DIALOGUE-LIVENESS", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
         )
+
 
 def inv_event_identity(world: TestWorld) -> InvariantResult:
     """INV-EVENT-IDENTITY: разные domain events не могут незаметно
@@ -1910,83 +2015,97 @@ def inv_event_identity(world: TestWorld) -> InvariantResult:
         bus.set_identity_provider(lambda t, s: next_event_identity(scene, t, s))
 
         def _pub(t: str) -> EventDTO:
-            bus.publish(EventDTO.create(
-                event_type="npc_spoke", source="inv_npc", payload={"text": t}
-            ))
+            bus.publish(EventDTO.create(event_type="npc_spoke", source="inv_npc", payload={"text": t}))
             return bus._event_log[-1]
 
         e1 = _pub("первая")
-        e2 = _pub("вторая")          # same (type, source, tick) → разные id
-        e3 = _pub("первая")          # identical text — тоже разные id
+        e2 = _pub("вторая")  # same (type, source, tick) → разные id
+        e3 = _pub("первая")  # identical text — тоже разные id
         if not (e1.id != e2.id != e3.id != e1.id):
             return InvariantResult(
-                "INV-EVENT-IDENTITY", "CRITICAL", False,
+                "INV-EVENT-IDENTITY",
+                "CRITICAL",
+                False,
                 "Коллизия identity: разные события схлопнулись в один event_id",
-                ["backend/app/services/events/event_bus.py",
-                 "backend/app/services/events/event_identity.py"],
+                ["backend/app/services/events/event_bus.py", "backend/app/services/events/event_identity.py"],
             )
         scene2 = {"tick": 777}
         bus2 = EventBus()
         bus2.set_identity_provider(lambda t, s: next_event_identity(scene2, t, s))
+
         def _pub2(t: str) -> EventDTO:
-            bus2.publish(EventDTO.create(
-                event_type="npc_spoke", source="inv_npc", payload={"text": t}
-            ))
+            bus2.publish(EventDTO.create(event_type="npc_spoke", source="inv_npc", payload={"text": t}))
             return bus2._event_log[-1]
+
         f1, f2, f3 = _pub2("первая"), _pub2("вторая"), _pub2("первая")
         if (e1.id, e2.id, e3.id) != (f1.id, f2.id, f3.id):
             return InvariantResult(
-                "INV-EVENT-IDENTITY", "CRITICAL", False,
+                "INV-EVENT-IDENTITY",
+                "CRITICAL",
+                False,
                 "Replay той же event-последовательности изменил identity",
                 ["backend/app/services/events/event_identity.py"],
             )
         return InvariantResult(
-            "INV-EVENT-IDENTITY", "CRITICAL", True,
-            "Identity уникальна и replay-детерминирована", []
+            "INV-EVENT-IDENTITY", "CRITICAL", True, "Identity уникальна и replay-детерминирована", []
         )
     except Exception as e:
         return InvariantResult(
-            "INV-EVENT-IDENTITY", "CRITICAL", False,
-            f"Ошибка выполнения: {e}", ["backend/tests/IPT.py"]
+            "INV-EVENT-IDENTITY", "CRITICAL", False, f"Ошибка выполнения: {e}", ["backend/tests/IPT.py"]
         )
+
 
 def inv_event_cardinality(world: TestWorld) -> InvariantResult:
     """INV-EVENT-CARDINALITY: События публикуются 1 раз, не N_locations раз (P1-6).
-    
+
     Гарантирует, что на 1 физическое перемещение генерируется ровно 1 событие,
     а не по 1 на каждую локацию в цикле.
     """
     try:
         from app.services.spatial.spatial_registry import SpatialRegistry
-        
+
         _reg = SpatialRegistry.get_or_load(world.campaign_id)
         if not _reg:
-            return InvariantResult("INV-EVENT-CARDINALITY", "CRITICAL", True, "ПРОПУСК: SpatialRegistry не загружен — вход (реестр локаций) отсутствует.", [], skipped=True)
-        
+            return InvariantResult(
+                "INV-EVENT-CARDINALITY",
+                "CRITICAL",
+                True,
+                "ПРОПУСК: SpatialRegistry не загружен — вход (реестр локаций) отсутствует.",
+                [],
+                skipped=True,
+            )
+
         _all_locs = _reg.get_all_location_ids() or []
         if len(_all_locs) < 2:
-            return InvariantResult("INV-EVENT-CARDINALITY", "CRITICAL", True, "ПРОПУСК: в кампании <2 локаций — проверка дублей событий требует ≥2.", [], skipped=True)
-        
+            return InvariantResult(
+                "INV-EVENT-CARDINALITY",
+                "CRITICAL",
+                True,
+                "ПРОПУСК: в кампании <2 локаций — проверка дублей событий требует ≥2.",
+                [],
+                skipped=True,
+            )
+
         # Подменяем EventBus для подсчёта публикаций
         _bus = world.game_loop._tick_orch._get_event_bus()
         _publish_counts = {}
         _orig_publish = _bus.publish
-        
+
         def _counting_publish(event):
             if isinstance(event, dict):
-                _evt_type = event.get('type', 'unknown')
+                _evt_type = event.get("type", "unknown")
             else:
-                _evt_type = getattr(event, 'type', 'unknown')
+                _evt_type = getattr(event, "type", "unknown")
             _publish_counts[_evt_type] = _publish_counts.get(_evt_type, 0) + 1
             return _orig_publish(event)
-        
+
         _bus.publish = _counting_publish
         try:
             # Прогоняем 1 тик, чтобы измерить базовое дублирование
             world.idle_tick()
         finally:
             _bus.publish = _orig_publish
-        
+
         # Читаем количество NPC напрямую из scene_state
         _scene = world.game_loop.scene_manager.get_scene_state(world.campaign_id, "tavern") or {}
         _total_npcs = len([nid for nid in _scene.get("npc_positions", {}).keys() if nid != "player"])
@@ -2002,37 +2121,38 @@ def inv_event_cardinality(world: TestWorld) -> InvariantResult:
                 f"Дублирование NPC_MOVED: {_moved_count} событий при {_total_npcs} NPC. Цикл по локациям публикует события повторно!",
                 [
                     "backend/app/services/tick_orchestrator.py (_phase_2_event_bus_primary)",
-                    "backend/app/services/spatial/spatial_event_detector.py"
-                ]
+                    "backend/app/services/spatial/spatial_event_detector.py",
+                ],
             )
-            
+
         # Проверяем проксимитет: за 1 тик количество взаимодействий не должно взлетать до небес
         _prox_count = _publish_counts.get("NPC_PROXIMITY_CLOSE", 0) + _publish_counts.get("NPC_PROXIMITY_LEAVE", 0)
         _max_prox = _total_npcs * _total_npcs  # Максимум парных взаимодействий
         if _prox_count > _max_prox:
-             return InvariantResult(
+            return InvariantResult(
                 "INV-EVENT-CARDINALITY",
                 "CRITICAL",
                 False,
                 f"Дублирование PROXIMITY: {_prox_count} событий при {_total_npcs} NPC.",
-                [
-                    "backend/app/services/spatial/spatial_event_detector.py"
-                ]
+                ["backend/app/services/spatial/spatial_event_detector.py"],
             )
 
         return InvariantResult(
-            "INV-EVENT-CARDINALITY", "CRITICAL", True,
+            "INV-EVENT-CARDINALITY",
+            "CRITICAL",
+            True,
             f"Нет дублирования: NPC_MOVED={_moved_count}, PROXIMITY={_prox_count} (NPCs={_total_npcs}).",
-            []
+            [],
         )
     except Exception as e:
         return InvariantResult(
             "INV-EVENT-CARDINALITY", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
         )
 
+
 def inv_commit_cardinality(world: TestWorld) -> InvariantResult:
     """INV-COMMIT-CARDINALITY: Ровно 1 коммит в БД за 1 тик (Устав 4.2.1).
-    
+
     Перехватывает save_scene, save_scene_at и atomic_commit, чтобы убедиться,
     что персистентный слой не делает N коммитов при тике N локаций.
     """
@@ -2041,30 +2161,30 @@ def inv_commit_cardinality(world: TestWorld) -> InvariantResult:
         _persist = getattr(_sm, "_persistence", None)
         if not _persist:
             return InvariantResult("INV-COMMIT-CARDINALITY", "CRITICAL", False, "Persistence adapter not found.", [])
-        
+
         original_commit = _persist.atomic_commit
         original_save = _persist.save_scene
         original_save_at = getattr(_persist, "save_scene_at", None)
-        
+
         calls = {"atomic_commit": 0, "save_scene": 0, "save_scene_at": 0}
-        
+
         def mock_commit(*args, **kwargs):
             calls["atomic_commit"] += 1
             return original_commit(*args, **kwargs)
-            
+
         def mock_save(*args, **kwargs):
             calls["save_scene"] += 1
             return original_save(*args, **kwargs)
-            
+
         def mock_save_at(*args, **kwargs):
             calls["save_scene_at"] += 1
             return original_save_at(*args, **kwargs)
-            
+
         _persist.atomic_commit = mock_commit
         _persist.save_scene = mock_save
         if original_save_at:
             _persist.save_scene_at = mock_save_at
-        
+
         try:
             world.idle_tick()
         finally:
@@ -2072,25 +2192,29 @@ def inv_commit_cardinality(world: TestWorld) -> InvariantResult:
             _persist.save_scene = original_save
             if original_save_at:
                 _persist.save_scene_at = original_save_at
-            
+
         # Устав 4.2.1: всё или ничего. Допускается 1 atomic_commit или 1 save_scene.
         # Если save_scene вызывается N раз (по числу локаций), атомарность нарушена.
         _total_commits = calls["atomic_commit"] + calls["save_scene"] + calls["save_scene_at"]
-        
+
         if _total_commits > 1:
             return InvariantResult(
                 "INV-COMMIT-CARDINALITY",
                 "CRITICAL",
                 False,
                 f"Нарушение Устава 4.2.1: {_total_commits} коммитов за 1 тик (atomic={calls['atomic_commit']}, save={calls['save_scene']}, save_at={calls['save_scene_at']}). Ожидался 1 атомарный коммит.",
-                ["backend/app/services/scene_state_manager.py", "backend/app/services/state/sqlite_persistence_adapter.py"]
+                [
+                    "backend/app/services/scene_state_manager.py",
+                    "backend/app/services/state/sqlite_persistence_adapter.py",
+                ],
             )
-        
+
         return InvariantResult("INV-COMMIT-CARDINALITY", "CRITICAL", True, "Ровно 1 коммит за тик.", [])
     except Exception as e:
         return InvariantResult(
             "INV-COMMIT-CARDINALITY", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
         )
+
 
 def inv_tick_cardinality(world: TestWorld) -> InvariantResult:
     """
@@ -2101,7 +2225,7 @@ def inv_tick_cardinality(world: TestWorld) -> InvariantResult:
     try:
         from app.core.constants import GAME_TICK_INTERVAL_SECONDS
         from app.services.spatial.spatial_registry import SpatialRegistry
-        
+
         # Получаем список всех локаций в кампании
         _reg = SpatialRegistry.get_or_load(world.campaign_id)
         if not _reg:
@@ -2114,18 +2238,22 @@ def inv_tick_cardinality(world: TestWorld) -> InvariantResult:
             # эта ветка — fail-safe для сред без скомпилированной карты:
             # честный пропуск вместо вечного красного.
             return InvariantResult(
-                "INV-TICK-CARDINALITY", "CRITICAL", True,
+                "INV-TICK-CARDINALITY",
+                "CRITICAL",
+                True,
                 "ПРОПУСК: SpatialRegistry не загружен — вход (реестр локаций) отсутствует.",
                 ["backend/app/services/spatial/spatial_registry.py"],
                 skipped=True,
             )
-        
+
         _all_locs = _reg.get_all_location_ids()
         _n_locs = len(_all_locs)
-        
+
         if _n_locs <= 1:
             return InvariantResult(
-                "INV-TICK-CARDINALITY", "CRITICAL", True,
+                "INV-TICK-CARDINALITY",
+                "CRITICAL",
+                True,
                 f"ПРОПУСК: в кампании <2 локаций (найдено {_n_locs}) — проверка §14.1 требует ≥2.",
                 [],
                 skipped=True,
@@ -2137,13 +2265,27 @@ def inv_tick_cardinality(world: TestWorld) -> InvariantResult:
         # drain_task_worker_outbox, get_recent_dialogues, execute_pending);
         # неполный стаб = ложный красный «нет метода» (пойман оживлением входа).
         class _NoOpScheduler:
-            def execute_pending(self, *args, **kwargs): pass
-            def execute_pending_tasks(self, *args, **kwargs): pass
-            def drain(self, *args, **kwargs): pass
-            def drain_commitment_outbox(self, *args, **kwargs): pass
-            def drain_task_worker_outbox(self, *args, **kwargs): pass
-            def schedule_task(self, *args, **kwargs): pass
-            def get_recent_dialogues(self, *args, **kwargs): return []
+            def execute_pending(self, *args, **kwargs):
+                pass
+
+            def execute_pending_tasks(self, *args, **kwargs):
+                pass
+
+            def drain(self, *args, **kwargs):
+                pass
+
+            def drain_commitment_outbox(self, *args, **kwargs):
+                pass
+
+            def drain_task_worker_outbox(self, *args, **kwargs):
+                pass
+
+            def schedule_task(self, *args, **kwargs):
+                pass
+
+            def get_recent_dialogues(self, *args, **kwargs):
+                return []
+
         _orig_scheduler = world.game_loop._task_scheduler
         world.game_loop._task_scheduler = _NoOpScheduler()
 
@@ -2164,13 +2306,15 @@ def inv_tick_cardinality(world: TestWorld) -> InvariantResult:
         # Вычисляем фактичес сдвиг
         actual_dt = time_after - time_before
         expected_dt = float(GAME_TICK_INTERVAL_SECONDS)
-        
+
         # Проверяем, что сдвиг равен ровно одному шагу, а не N * step
         if actual_dt == expected_dt:
             return InvariantResult(
-                "INV-TICK-CARDINALITY", "CRITICAL", True,
+                "INV-TICK-CARDINALITY",
+                "CRITICAL",
+                True,
                 f"Время сдвинуто на {actual_dt} сек (1 шаг), N_LOCATIONS={_n_locs}.",
-                []
+                [],
             )
         else:
             _msg = (
@@ -2179,20 +2323,22 @@ def inv_tick_cardinality(world: TestWorld) -> InvariantResult:
                 f"Время умножается на количество локаций (дрейф старой модели)."
             )
             return InvariantResult(
-                "INV-TICK-CARDINALITY", "CRITICAL", False, _msg,
+                "INV-TICK-CARDINALITY",
+                "CRITICAL",
+                False,
+                _msg,
                 [
                     "backend/app/services/tick_orchestrator.py",
                     "backend/app/services/phases/idle_services.py",
-                    "backend/app/services/game_loop/__init__.py"
-                ]
+                    "backend/app/services/game_loop/__init__.py",
+                ],
             )
-            
+
     except Exception as e:
         return InvariantResult(
-            "INV-TICK-CARDINALITY", "CRITICAL", False,
-            f"Ошибка выполнения теста: {e}",
-            ["backend/tests/IPT.py"]
+            "INV-TICK-CARDINALITY", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
         )
+
 
 def inv_world_object_topology(world: TestWorld) -> InvariantResult:
     """INV-WORLD-OBJECT-TOPOLOGY: Структурная онтология объектной топологии
@@ -2223,9 +2369,12 @@ def inv_world_object_topology(world: TestWorld) -> InvariantResult:
         if _subtree is not None:
             if not isinstance(_subtree, dict):
                 return InvariantResult(
-                    "INV-WORLD-OBJECT-TOPOLOGY", "CRITICAL", False,
+                    "INV-WORLD-OBJECT-TOPOLOGY",
+                    "CRITICAL",
+                    False,
                     "scene_state['world_objects'] повреждён (не dict)",
-                    ["backend/app/services/world/world_object_store.py"])
+                    ["backend/app/services/world/world_object_store.py"],
+                )
             for _oid, _raw in _subtree.items():
                 try:
                     _obj = WorldObject.from_dict(_raw)
@@ -2245,8 +2394,7 @@ def inv_world_object_topology(world: TestWorld) -> InvariantResult:
                     if _sup_raw is not None:
                         _sup = WorldObject.from_dict(_sup_raw)
                         if _sup.carrier_mode != CarrierMode.FREE:
-                            _violations.append(
-                                f"{_oid}: опора '{_obj.supported_by}' не FREE")
+                            _violations.append(f"{_oid}: опора '{_obj.supported_by}' не FREE")
                         if _sup.location_id != _obj.location_id:
                             _violations.append(f"{_oid}: опора в другой локации")
                 _live_checked += 1
@@ -2255,16 +2403,14 @@ def inv_world_object_topology(world: TestWorld) -> InvariantResult:
         _scratch: dict = {}
         WorldObjectStore.spawn(_scratch, "ipt_table_1", "table", "tavern", (5.0, 3.0))
         WorldObjectStore.spawn(_scratch, "ipt_bowl_1", "bowl", "tavern", (5.3, 3.0))
-        WorldObjectStore.establish_relation(
-            _scratch, "ipt_bowl_1", ObjectRelationKind.SUPPORTED_BY, "ipt_table_1")
+        WorldObjectStore.establish_relation(_scratch, "ipt_bowl_1", ObjectRelationKind.SUPPORTED_BY, "ipt_table_1")
         _bowl = WorldObjectStore.get(_scratch, "ipt_bowl_1")
         if _bowl is None or _bowl.supported_by != "ipt_table_1":
             _violations.append("smoke: establish SUPPORTED_BY не сработал")
         elif WorldObject.from_dict(_bowl.to_dict()) != _bowl:
             _violations.append("smoke: round-trip нестабилен")
         try:
-            WorldObjectStore.establish_relation(
-                _scratch, "ipt_bowl_1", ObjectRelationKind.HELD_BY, "npc_ipt")
+            WorldObjectStore.establish_relation(_scratch, "ipt_bowl_1", ObjectRelationKind.HELD_BY, "npc_ipt")
             _violations.append("smoke: carrier exclusivity не удержана")
         except OntologyViolationError:
             pass
@@ -2275,17 +2421,23 @@ def inv_world_object_topology(world: TestWorld) -> InvariantResult:
 
         if not _violations:
             return InvariantResult(
-                "INV-WORLD-OBJECT-TOPOLOGY", "CRITICAL", True,
-                f"Топология валидна (live={_live_checked}, smoke OK).", [])
+                "INV-WORLD-OBJECT-TOPOLOGY",
+                "CRITICAL",
+                True,
+                f"Топология валидна (live={_live_checked}, smoke OK).",
+                [],
+            )
         return InvariantResult(
-            "INV-WORLD-OBJECT-TOPOLOGY", "CRITICAL", False,
+            "INV-WORLD-OBJECT-TOPOLOGY",
+            "CRITICAL",
+            False,
             f"Нарушения онтологии объектов: {_violations[:5]}",
-            ["backend/app/domain/world_object.py",
-             "backend/app/services/world/world_object_store.py"])
+            ["backend/app/domain/world_object.py", "backend/app/services/world/world_object_store.py"],
+        )
     except Exception as _e:
         return InvariantResult(
-            "INV-WORLD-OBJECT-TOPOLOGY", "CRITICAL", False,
-            f"Ошибка выполнения: {_e}", ["backend/tests/IPT.py"])
+            "INV-WORLD-OBJECT-TOPOLOGY", "CRITICAL", False, f"Ошибка выполнения: {_e}", ["backend/tests/IPT.py"]
+        )
 
 
 def inv_n18_source(world: TestWorld) -> InvariantResult:
@@ -2331,12 +2483,16 @@ def inv_n18_source(world: TestWorld) -> InvariantResult:
 
     if ok:
         return InvariantResult(
-            "INV-N18-SOURCE", "CRITICAL", True,
+            "INV-N18-SOURCE",
+            "CRITICAL",
+            True,
             "Гейт① читает актуальный intent (npc_intents-канон поверх кэша; writer single-point)",
             [],
         )
     return InvariantResult(
-        "INV-N18-SOURCE", "CRITICAL", False,
+        "INV-N18-SOURCE",
+        "CRITICAL",
+        False,
         "П-1 источник Гейт① нарушен: " + "; ".join(suspects),
         suspects,
     )
@@ -2348,12 +2504,14 @@ def inv_consumer_gap_orphan(world: TestWorld) -> InvariantResult:
     debt-реестра consumer_gap_debts.py. Статика ≤ surface: proof — Слой 3."""
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
 
     try:
         from lint_consumer_gap import run_lint
+
         violations, _stats = run_lint()
 
         if violations:
@@ -2384,6 +2542,7 @@ def inv_flag_registry(*_ctx: object) -> InvariantResult:
     NAME_GATE-класс) больше невозможен. Цепочка Мастера: yaml -> lint -> IPT."""
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
@@ -2430,8 +2589,7 @@ def inv_sqlite_registry(_ctx=None):
                 "INV-SQLITE-REGISTRY",
                 "CRITICAL",
                 False,
-                f"SQLITE-REGISTRY: {len(_parts)} нарушений (ADR-O-426 §9 / COV-1). "
-                f"Первые: {_details}",
+                f"SQLITE-REGISTRY: {len(_parts)} нарушений (ADR-O-426 §9 / COV-1). " f"Первые: {_details}",
                 [
                     "scripts/lint_sqlite_registry.py",
                     "backend/app/services/state/migration_runner.py",
@@ -2498,6 +2656,7 @@ def inv_mem_anti_archive(world: TestWorld) -> InvariantResult:
     """INV-MEM-ANTI-ARCHIVE: запрет vector/embedding-DB как memory (§16.1.9, ADR-O-443)."""
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
@@ -2505,7 +2664,9 @@ def inv_mem_anti_archive(world: TestWorld) -> InvariantResult:
         from lint_mem_anti_archive import run_lint
     except Exception as e:
         return InvariantResult(
-            "INV-MEM-ANTI-ARCHIVE", "CRITICAL", False,
+            "INV-MEM-ANTI-ARCHIVE",
+            "CRITICAL",
+            False,
             f"Ошибка импорта линтера: {e!r}",
             ["scripts/lint_mem_anti_archive.py"],
         )
@@ -2513,7 +2674,9 @@ def inv_mem_anti_archive(world: TestWorld) -> InvariantResult:
         raw = run_lint()
     except Exception as e:
         return InvariantResult(
-            "INV-MEM-ANTI-ARCHIVE", "CRITICAL", False,
+            "INV-MEM-ANTI-ARCHIVE",
+            "CRITICAL",
+            False,
             f"Ошибка запуска линтера: {e!r}",
             ["scripts/lint_mem_anti_archive.py"],
         )
@@ -2521,15 +2684,17 @@ def inv_mem_anti_archive(world: TestWorld) -> InvariantResult:
     warn = [v for v in raw if v.startswith("WARN|")]
     if crit:
         return InvariantResult(
-            "INV-MEM-ANTI-ARCHIVE", "CRITICAL", False,
-            f"Нарушений ANTI-ARCHIVE (CRIT): {len(crit)}. Первые: {crit[:5]}"
-            + (f"; WARN={len(warn)}" if warn else ""),
-            ["backend/app/services/memory/", "backend/app/services/npc/",
-             "scripts/lint_mem_anti_archive.py"],
+            "INV-MEM-ANTI-ARCHIVE",
+            "CRITICAL",
+            False,
+            f"Нарушений ANTI-ARCHIVE (CRIT): {len(crit)}. Первые: {crit[:5]}" + (f"; WARN={len(warn)}" if warn else ""),
+            ["backend/app/services/memory/", "backend/app/services/npc/", "scripts/lint_mem_anti_archive.py"],
         )
     if warn:
         return InvariantResult(
-            "INV-MEM-ANTI-ARCHIVE", "WARNING", True,
+            "INV-MEM-ANTI-ARCHIVE",
+            "WARNING",
+            True,
             f"WARN={len(warn)}: {warn[:5]}",
             [],
         )
@@ -2540,6 +2705,7 @@ def inv_mem_anti_bond(world: TestWorld) -> InvariantResult:
     """INV-MEM-ANTI-BOND: запрет второго Store под memory-домен (§16.1.12, ADR-O-443)."""
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
@@ -2547,7 +2713,9 @@ def inv_mem_anti_bond(world: TestWorld) -> InvariantResult:
         from lint_mem_anti_bond import run_lint
     except Exception as e:
         return InvariantResult(
-            "INV-MEM-ANTI-BOND", "CRITICAL", False,
+            "INV-MEM-ANTI-BOND",
+            "CRITICAL",
+            False,
             f"Ошибка импорта линтера: {e!r}",
             ["scripts/lint_mem_anti_bond.py"],
         )
@@ -2555,7 +2723,9 @@ def inv_mem_anti_bond(world: TestWorld) -> InvariantResult:
         raw = run_lint()
     except Exception as e:
         return InvariantResult(
-            "INV-MEM-ANTI-BOND", "CRITICAL", False,
+            "INV-MEM-ANTI-BOND",
+            "CRITICAL",
+            False,
             f"Ошибка запуска линтера: {e!r}",
             ["scripts/lint_mem_anti_bond.py"],
         )
@@ -2563,15 +2733,17 @@ def inv_mem_anti_bond(world: TestWorld) -> InvariantResult:
     warn = [v for v in raw if v.startswith("WARN|")]
     if crit:
         return InvariantResult(
-            "INV-MEM-ANTI-BOND", "CRITICAL", False,
-            f"Нарушений ANTI-BOND (CRIT): {len(crit)}. Первые: {crit[:5]}"
-            + (f"; WARN={len(warn)}" if warn else ""),
-            ["backend/app/services/memory/", "backend/app/services/npc/",
-             "scripts/lint_mem_anti_bond.py"],
+            "INV-MEM-ANTI-BOND",
+            "CRITICAL",
+            False,
+            f"Нарушений ANTI-BOND (CRIT): {len(crit)}. Первые: {crit[:5]}" + (f"; WARN={len(warn)}" if warn else ""),
+            ["backend/app/services/memory/", "backend/app/services/npc/", "scripts/lint_mem_anti_bond.py"],
         )
     if warn:
         return InvariantResult(
-            "INV-MEM-ANTI-BOND", "WARNING", True,
+            "INV-MEM-ANTI-BOND",
+            "WARNING",
+            True,
             f"WARN={len(warn)}: {warn[:5]}",
             [],
         )
@@ -2582,6 +2754,7 @@ def inv_mem_contradiction(world: TestWorld) -> InvariantResult:
     """INV-MEM-CONTRADICTION: запрет auto-resolution policy (§16.1.10, ADR-O-443)."""
     import sys
     from pathlib import Path
+
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
     if _scripts_dir not in sys.path:
         sys.path.insert(0, _scripts_dir)
@@ -2589,7 +2762,9 @@ def inv_mem_contradiction(world: TestWorld) -> InvariantResult:
         from lint_mem_contradiction import run_lint
     except Exception as e:
         return InvariantResult(
-            "INV-MEM-CONTRADICTION", "CRITICAL", False,
+            "INV-MEM-CONTRADICTION",
+            "CRITICAL",
+            False,
             f"Ошибка импорта линтера: {e!r}",
             ["scripts/lint_mem_contradiction.py"],
         )
@@ -2597,7 +2772,9 @@ def inv_mem_contradiction(world: TestWorld) -> InvariantResult:
         raw = run_lint()
     except Exception as e:
         return InvariantResult(
-            "INV-MEM-CONTRADICTION", "CRITICAL", False,
+            "INV-MEM-CONTRADICTION",
+            "CRITICAL",
+            False,
             f"Ошибка запуска линтера: {e!r}",
             ["scripts/lint_mem_contradiction.py"],
         )
@@ -2605,20 +2782,81 @@ def inv_mem_contradiction(world: TestWorld) -> InvariantResult:
     warn = [v for v in raw if v.startswith("WARN|")]
     if crit:
         return InvariantResult(
-            "INV-MEM-CONTRADICTION", "CRITICAL", False,
+            "INV-MEM-CONTRADICTION",
+            "CRITICAL",
+            False,
             f"Нарушений CONTRADICTION (CRIT): {len(crit)}. Первые: {crit[:5]}"
             + (f"; WARN={len(warn)}" if warn else ""),
-            ["backend/app/services/memory/", "backend/app/services/npc/",
-             "backend/app/services/phases/",
-             "scripts/lint_mem_contradiction.py"],
+            [
+                "backend/app/services/memory/",
+                "backend/app/services/npc/",
+                "backend/app/services/phases/",
+                "scripts/lint_mem_contradiction.py",
+            ],
         )
     if warn:
         return InvariantResult(
-            "INV-MEM-CONTRADICTION", "WARNING", True,
+            "INV-MEM-CONTRADICTION",
+            "WARNING",
+            True,
             f"WARN={len(warn)}: {warn[:5]}",
             [],
         )
     return InvariantResult("INV-MEM-CONTRADICTION", "CRITICAL", True, "", [])
+
+
+def inv_mem_triple(world: TestWorld) -> InvariantResult:
+    """INV-MEM-TRIPLE: AST-зеркало runtime writer guards (§16.1.12, ADR-O-443).
+
+    MEM-TRIPLE-DEBT-01: baseline 10 CRIT in life_project_resolver (REAL DEBT,
+    not allowlisted). Per Master verdict D: invariant fails on production
+    until debt is fixed by separate task.
+    """
+    import sys
+    from pathlib import Path
+
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+    try:
+        from lint_mem_triple import run_lint
+    except Exception as e:
+        return InvariantResult(
+            "INV-MEM-TRIPLE",
+            "CRITICAL",
+            False,
+            f"Ошибка импорта линтера: {e!r}",
+            ["scripts/lint_mem_triple.py"],
+        )
+    try:
+        raw = run_lint()
+    except Exception as e:
+        return InvariantResult(
+            "INV-MEM-TRIPLE",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e!r}",
+            ["scripts/lint_mem_triple.py"],
+        )
+    crit = [v for v in raw if v.startswith("CRIT|")]
+    warn = [v for v in raw if v.startswith("WARN|")]
+    if crit:
+        return InvariantResult(
+            "INV-MEM-TRIPLE",
+            "CRITICAL",
+            False,
+            f"Нарушений TRIPLE (CRIT): {len(crit)}. Первые: {crit[:5]}" + (f"; WARN={len(warn)}" if warn else ""),
+            ["backend/app/services/npc/life_project_resolver.py", "scripts/lint_mem_triple.py"],
+        )
+    if warn:
+        return InvariantResult(
+            "INV-MEM-TRIPLE",
+            "WARNING",
+            True,
+            f"WARN={len(warn)}: {warn[:5]}",
+            [],
+        )
+    return InvariantResult("INV-MEM-TRIPLE", "CRITICAL", True, "", [])
 
 
 INVARIANTS: List[Callable] = [
@@ -2680,9 +2918,8 @@ INVARIANTS: List[Callable] = [
     inv_mem_anti_archive,  # ADR-O-443: запрет vector/embedding-DB как memory (§16.1.9)
     inv_mem_anti_bond,  # ADR-O-443: anti-bond (§16.1.12)
     inv_mem_contradiction,  # ADR-O-443: contradiction (§16.1.10)
+    inv_mem_triple,  # ADR-O-443: triple (§16.1.12, MEM-TRIPLE-DEBT-01)
 ]
-
-
 
 
 def run_invariants() -> int:

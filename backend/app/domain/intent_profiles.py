@@ -5,10 +5,14 @@
 - requires_llm_materialization: нужна ли LLM для генерации текста
 - produces_claim: порождает ли интент EpistemicClaim
 """
+
 from typing import Any, Dict
 
 INTENT_PROFILES: Dict[str, Dict[str, Any]] = {
     "talk": {"requires_dialogue_context": True, "requires_llm": True, "produces_claim": False},
+    # A direct response to a player utterance is self-contained and may be the
+    # first exchange with this NPC, so it does not require existing STM.
+    "player_reply": {"requires_dialogue_context": False, "requires_llm": True, "produces_claim": False},
     "warn": {"requires_dialogue_context": False, "requires_llm": False, "produces_claim": True},
     "intimidate": {"requires_dialogue_context": False, "requires_llm": False, "produces_claim": True},
     "threaten": {"requires_dialogue_context": False, "requires_llm": False, "produces_claim": True},
@@ -25,11 +29,14 @@ INTENT_PROFILES: Dict[str, Dict[str, Any]] = {
     "trade": {"requires_dialogue_context": False, "requires_llm": True, "produces_claim": False},
 }
 
+
 def requires_dialogue_context(intent_type: str) -> bool:
     return bool(INTENT_PROFILES.get(intent_type, {}).get("requires_dialogue_context", True))
 
+
 def requires_llm_materialization(intent_type: str) -> bool:
     return bool(INTENT_PROFILES.get(intent_type, {}).get("requires_llm", True))
+
 
 def produces_claim(intent_type: str) -> bool:
     """S216 (027.1): Возвращает True, если интент порождает EpistemicClaim (canonical)."""

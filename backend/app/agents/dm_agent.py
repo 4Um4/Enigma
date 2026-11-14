@@ -145,9 +145,7 @@ class DmAgent:
             _scene_block = ""
             _scene_state = context.get("scene_state", {}) if context else {}
             if _scene_state:
-                _scene_block = (
-                    SceneStateManager.get_scene_description(_scene_state) + "\n\n"
-                )
+                _scene_block = SceneStateManager.get_scene_description(_scene_state) + "\n\n"
             builder.add_custom_block(
                 "ВВОДНАЯ СЦЕНА",
                 f"{_scene_block}Текущая локация: {(context or {}).get('location_id', 'таверна')}\n\n"
@@ -189,8 +187,7 @@ class DmAgent:
                 "УЖЕ ДОНЕСЁНО ИГРОКУ (НЕ ПОВТОРЯЙ ВИЗУАЛЬНОЕ)",
                 "Игрок УЖЕ видит эти факты через визуал/аудио. "
                 "НЕ ПОВТОРЯЙ их, если только они не несут новый смысл. "
-                "Добавляй ТОЛЬКО подтекст, атмосферу, реакции.\n"
-                + "\n".join(_obs_facts),
+                "Добавляй ТОЛЬКО подтекст, атмосферу, реакции.\n" + "\n".join(_obs_facts),
             )
 
         if _dm_frame_block:
@@ -200,9 +197,7 @@ class DmAgent:
             npc_str = "\n".join(f"- {r}" for r in npc_reactions)
             builder.add_dm_frame(_r3_header + npc_str)
             if npc_actions:
-                builder.add_custom_block(
-                    "Физические действия NPC", "\n".join(f"- {a}" for a in npc_actions)
-                )
+                builder.add_custom_block("Физические действия NPC", "\n".join(f"- {a}" for a in npc_actions))
 
         # Блок 2.3b: Физические перемещения NPC (из PipelineContext)
         # Инвариант 2: Обязательная проекция намерения.
@@ -244,8 +239,7 @@ class DmAgent:
         if not _has_target and not _has_stm and not _is_intro:
             # BUG-DLG-002 FIX: Не крашим pipeline, если резолвер цели упал. Продолжаем с generic narrative.
             logger.warning(
-                "[DM_CONTRACT_WARN] NPC has no target and STM is empty. "
-                "Proceeding with generic narrative."
+                "[DM_CONTRACT_WARN] NPC has no target and STM is empty. " "Proceeding with generic narrative."
             )
 
         # Epistemic Boundary: Ментальные объекты NPC (L2 память, секреты, черты)
@@ -265,11 +259,7 @@ class DmAgent:
                 # 1. Попытка из DMFrame (NpcOutcome.name из runtime state)
                 if _dm_frame:
                     for _npc in _dm_frame.focus_npcs + _dm_frame.background_npcs:
-                        if (
-                            _npc.npc_id == _target_id
-                            and _npc.name
-                            and _npc.npc_id != _npc.name
-                        ):
+                        if _npc.npc_id == _target_id and _npc.name and _npc.npc_id != _npc.name:
                             _target_name = _npc.name
                             break
                 # 2. Если DMFrame не дал имени — используем канонический резолвер
@@ -279,6 +269,10 @@ class DmAgent:
                     _resolved = _npc_id_to_display(_target_id)
                     if _resolved != _target_id:
                         _target_name = _resolved
+                # ТЗ-v4 P3: save resolved display name для ResponseValidator.addressee wiring.
+                # Только resolved name (не ID fallback) — иначе false positive:
+                # ID ("tavern_keeper_ustin") не в text → wrong_addressee на каждый валидный ответ.
+                self._last_target_name = _target_name if _target_name != _target_id else None
                 builder.add_custom_block(
                     "Обращение игрока",
                     f"Игрок обращается напрямую к {_target_name}. {_target_name} ОБЯЗАН ответить — реплика в кавычках. Это диалог, NPC говорит. Остальные NPC — наблюдатели (могут отреагировать мимикой или жестом, но молчат).",
@@ -293,10 +287,7 @@ class DmAgent:
                 if not _is_light_dialog:
                     # Полная сцена (объекты, мебель, атмосфера)
                     try:
-                        scene_block = (
-                            SceneStateManager.get_scene_description(scene_state)
-                            + "\n\n"
-                        )
+                        scene_block = SceneStateManager.get_scene_description(scene_state) + "\n\n"
                     except Exception as e:
                         jsonl_log(
                             {
@@ -312,16 +303,8 @@ class DmAgent:
                     for _nid, _ndata in _npc_pos.items():
                         if _nid == "player":
                             continue
-                        _nname = (
-                            _ndata.get("name", _nid)
-                            if isinstance(_ndata, dict)
-                            else _nid
-                        )
-                        _activity = (
-                            _ndata.get("activity", "")
-                            if isinstance(_ndata, dict)
-                            else ""
-                        )
+                        _nname = _ndata.get("name", _nid) if isinstance(_ndata, dict) else _nid
+                        _activity = _ndata.get("activity", "") if isinstance(_ndata, dict) else ""
                         _act_str = f" ({_activity})" if _activity else ""
                         _present.append(f"{_nname}{_act_str}")
                     if _present:
@@ -340,35 +323,23 @@ class DmAgent:
                 _stress_val = pdata.get("affective_load", 0.0) * 100
                 if _stress_val > 1.0:
                     _stress_word = (
-                        "в напряжении"
-                        if _stress_val >= 60
-                        else ("нервничает" if _stress_val >= 30 else "спокоен")
+                        "в напряжении" if _stress_val >= 60 else ("нервничает" if _stress_val >= 30 else "спокоен")
                     )
                 else:
                     _stress_word = (
-                        "в напряжении"
-                        if _stress_val >= 0.6
-                        else ("нервничает" if _stress_val >= 0.3 else "спокоен")
+                        "в напряжении" if _stress_val >= 0.6 else ("нервничает" if _stress_val >= 0.3 else "спокоен")
                     )
-                _lines.append(
-                    f"- {pname}: {_stress_word}, эмоция: {pdata.get('emotion', 'neutral')}"
-                )
+                _lines.append(f"- {pname}: {_stress_word}, эмоция: {pdata.get('emotion', 'neutral')}")
                 # P3: DM видит смерть как факт из player_state, не вычисляет
                 if pdata.get("life_status") == "DEAD":
                     _lines.append("  МЁРТВ — смерть необратима")
                 wounds = pdata.get("wounds")
                 if wounds and wounds != "нет":
-                    wounds_str = (
-                        ", ".join(wounds) if isinstance(wounds, list) else str(wounds)
-                    )
+                    wounds_str = ", ".join(wounds) if isinstance(wounds, list) else str(wounds)
                     _lines.append(f"  травмы: {wounds_str}")
                 conditions = pdata.get("conditions")
                 if conditions and conditions != "нет":
-                    cond_str = (
-                        ", ".join(conditions)
-                        if isinstance(conditions, list)
-                        else str(conditions)
-                    )
+                    cond_str = ", ".join(conditions) if isinstance(conditions, list) else str(conditions)
                     _lines.append(f"  состояния: {cond_str}")
                 if pdata.get("posture") and pdata["posture"] != "standing":
                     _lines.append(f"  поза: {pdata['posture']}")
@@ -382,10 +353,7 @@ class DmAgent:
                 if _skip_player_state and len(_lines) <= 1 and "спокоен" in _lines[0]:
                     player_state_block = ""
                 else:
-                    player_state_block = (
-                        "Состояние игрока (факт — отражай в повествовании):\n"
-                        + "\n".join(_lines)
-                    )
+                    player_state_block = "Состояние игрока (факт — отражай в повествовании):\n" + "\n".join(_lines)
         builder.add_player_state(player_state_block)
 
         # P3: Death Scene — DM narrates смерть как проекция замороженного state
@@ -500,8 +468,7 @@ class DmAgent:
             )
             rules_str = (
                 "\n".join(
-                    f"- {c.get('player', 'Unknown')}: {c.get('result', c.get('instruction', ''))}"
-                    for c in checks
+                    f"- {c.get('player', 'Unknown')}: {c.get('result', c.get('instruction', ''))}" for c in checks
                 )
                 if _has_real_check
                 else ""
@@ -514,12 +481,9 @@ class DmAgent:
             world_changes = world_result.get("world_events", []) if world_result else []
             if _arrivals:
                 world_changes = list(world_changes) + [
-                    f"В локацию вошёл NPC: {npc_id} — опиши его появление"
-                    for npc_id in _arrivals
+                    f"В локацию вошёл NPC: {npc_id} — опиши его появление" for npc_id in _arrivals
                 ]
-            world_str = (
-                "\n".join(f"- {w}" for w in world_changes) if world_changes else ""
-            )
+            world_str = "\n".join(f"- {w}" for w in world_changes) if world_changes else ""
             if world_str:
                 builder.add_world_changes(world_str)
 
@@ -547,9 +511,7 @@ class DmAgent:
         if context and (not _is_light_dialog or context.get("physics_validation")):
             physics_warnings = ""
             if context.get("physics_validation"):
-                invalid = [
-                    v for v in context["physics_validation"] if not v.get("valid")
-                ]
+                invalid = [v for v in context["physics_validation"] if not v.get("valid")]
                 if invalid:
                     physics_warnings = "Физические/логические ограничения сцены (ОБЯЗАТЕЛЬНО учитывай):\n"
                     for v in invalid:
@@ -583,17 +545,11 @@ class DmAgent:
                             s = data["sandbox"]
                             success_str = "УСПЕХ" if s.get("success") else "ПРОВАЛ"
                             cons = s.get("consequences", {})
-                            cons_str = (
-                                ", ".join(f"{k}={v}" for k, v in cons.items())
-                                if cons
-                                else "нет последствий"
-                            )
+                            cons_str = ", ".join(f"{k}={v}" for k, v in cons.items()) if cons else "нет последствий"
                             _player_block += f"- {success_str}: {s.get('action_type', '?')}. {cons_str}.\n"
                         if _player_block:
                             _has_engine_data = True
-                            python_engines_block += (
-                                f"Игрок {player_name}:\n{_player_block}"
-                            )
+                            python_engines_block += f"Игрок {player_name}:\n{_player_block}"
             if _has_engine_data and not _is_light_dialog:
                 builder.add_custom_block("Результаты проверок", python_engines_block)
 
@@ -633,12 +589,12 @@ class DmAgent:
                 )
 
             scene_events_block = ""
-            _scene_state = getattr(context, "scene_state", None) if not isinstance(context, dict) else context.get("scene_state")  # noqa: ENIGMA002
+            _scene_state = (
+                getattr(context, "scene_state", None) if not isinstance(context, dict) else context.get("scene_state")
+            )  # noqa: ENIGMA002
             if _scene_state and isinstance(_scene_state, dict) and _scene_state.get("scene_events"):
                 try:
-                    scene_events_block = SceneStateManager.get_scene_events_block(
-                        _scene_state
-                    )
+                    scene_events_block = SceneStateManager.get_scene_events_block(_scene_state)
                 except Exception as e:
                     jsonl_log(
                         {
@@ -661,9 +617,7 @@ class DmAgent:
                             (r for r in reaction_order if r.get("npc_id") == forced),
                             None,
                         )
-                        forced_name = (
-                            forced_npc.get("npc_name", forced) if forced_npc else forced
-                        )
+                        forced_name = forced_npc.get("npc_name", forced) if forced_npc else forced
                         reaction_block += f"- {forced_name} РЕАГИРУЕТ ПЕРВЫМ — он не может промолчать.\n"
                     for r in reaction_order:
                         threshold = r.get("threshold", "")
@@ -679,9 +633,7 @@ class DmAgent:
                             + (f" (причина: {triggers})" if triggers else "")
                             + "\n"
                         )
-                    reaction_block += (
-                        f"{MSG_MAX_REPLIES} NPC за ход. Остальные NPC молчат.\n"
-                    )
+                    reaction_block += f"{MSG_MAX_REPLIES} NPC за ход. Остальные NPC молчат.\n"
             builder.add_custom_block("Очередность реакций", reaction_block)
 
         # Финальная директива — для 7B последний блок имеет наибольший вес.
@@ -689,9 +641,7 @@ class DmAgent:
         # здесь сырого текста быть не может, вторая точка закрыта той же строкой.
         _final_lines = [f"Действие игрока: {actions_str.strip()}"]
         if _target_id:
-            _final_lines.append(
-                f"Опиши реакцию {_target_name}. Не описывай перемещение — NPC уже рядом."
-            )
+            _final_lines.append(f"Опиши реакцию {_target_name}. Не описывай перемещение — NPC уже рядом.")
         builder.add_custom_block("РЕАКЦИЯ", "\n".join(_final_lines))
 
         # Строим контракт с внешним system_prompt
@@ -835,13 +785,9 @@ class DmAgent:
         _sys_words = len(contract.system_prompt.split())
         _usr_words = len(contract.user_prompt.split())
         if settings.dm_debug:
-            logger.debug(
-                f"[DM_CONTRACT] id={contract.contract_id} sys_tokens~{_sys_words} user_tokens~{_usr_words}"
-            )
+            logger.debug(f"[DM_CONTRACT] id={contract.contract_id} sys_tokens~{_sys_words} user_tokens~{_usr_words}")
         if settings.dm_debug:
-            logger.debug(
-                f"[DM_CONTRACT] user (last 800 chars):\n...{contract.user_prompt[-800:]}\n[/DM_CONTRACT]"
-            )
+            logger.debug(f"[DM_CONTRACT] user (last 800 chars):\n...{contract.user_prompt[-800:]}\n[/DM_CONTRACT]")
 
         if not contract.user_prompt.strip():
             # Контракт пустой — не отправляем в LLM, сразу fallback
@@ -894,7 +840,10 @@ class DmAgent:
                 _allowed_npcs.add(move_str.split()[0].strip())
 
         validation = validator.validate(
-            dm_text, recent_text=_recent, allowed_moving_npcs=_allowed_npcs
+            dm_text,
+            recent_text=_recent,
+            allowed_moving_npcs=_allowed_npcs,
+            addressee=getattr(self, "_last_target_name", None),
         )
 
         if validation.is_fallback and validation.violation == "non_russian":
@@ -928,7 +877,11 @@ class DmAgent:
             dm_text = DMResponseNormalizer.normalize(raw_retry).dm_text
             # A4-FIX: передаём recent_text для проверки повторов.
             _recent = self._get_last_dm_response()
-            validation = validator.validate(dm_text, recent_text=_recent)
+            validation = validator.validate(
+                dm_text,
+                recent_text=_recent,
+                addressee=getattr(self, "_last_target_name", None),
+            )
 
         if validation.is_fallback:
             jsonl_log(
@@ -990,16 +943,10 @@ class DmAgent:
             context,
         )
 
-        system_prompt = self._get_system_prompt(
-            is_r3_direct=(npc_result.get("dm_frame") is not None)
-        )
+        system_prompt = self._get_system_prompt(is_r3_direct=(npc_result.get("dm_frame") is not None))
 
         _prompt_preview = (prompt[:500] + "...") if len(prompt) > 500 else prompt
-        _sys_preview = (
-            (system_prompt[:200] + "...")
-            if system_prompt and len(system_prompt) > 200
-            else system_prompt
-        )
+        _sys_preview = (system_prompt[:200] + "...") if system_prompt and len(system_prompt) > 200 else system_prompt
         jsonl_log(
             {
                 "level": "INFO",
@@ -1013,12 +960,14 @@ class DmAgent:
         # COV-2/D65: playback — стрим обслуживается из replay-кэша ДО запроса
         # провайдера (модель не запрашивается); miss = громко (стандарт D67).
         _cached_stream = self.router.playback_stream_lookup(
-            "dm_narrative", prompt, system_prompt,
+            "dm_narrative",
+            prompt,
+            system_prompt,
             GenerationParams(max_tokens=settings.dm_max_tokens),
         )
         if _cached_stream is not None:
             for _i in range(0, len(_cached_stream), 8):
-                yield _cached_stream[_i:_i + 8]
+                yield _cached_stream[_i : _i + 8]
             return
 
         _stream_params = GenerationParams(max_tokens=settings.dm_max_tokens)
@@ -1047,8 +996,11 @@ class DmAgent:
         # Router observability: streaming проходит ЧЕРЕЗ Router, не в обход (ADR-147)
         _router = self.router
         _stream_ctx = _router.notify_stream_start(
-            "dm_narrative", "narrative",
-            prompt=prompt, system_prompt=system_prompt, params=_stream_params,
+            "dm_narrative",
+            "narrative",
+            prompt=prompt,
+            system_prompt=system_prompt,
+            params=_stream_params,
         )
         _total_chars = [0]  # mutable counter для closure (thread-safe via GIL)
         _full_text: list[str] = []  # COV-2/D65: буфер полного ответа для replay-кэша
@@ -1057,14 +1009,17 @@ class DmAgent:
         loop = asyncio.get_running_loop()
 
         import re as _re
+
         # S203/P0 FIX: Streaming-aware JSON field decoder.
         # Пропускает префикс JSON до значения dm_response и стримит только содержимое строки.
         class _StreamingJsonFieldDecoder:
             _PREFIX_RE = _re.compile(r'^\s*\{?\s*"dm_response"\s*:\s*"')
+
             def __init__(self) -> None:
                 self._buf = ""
                 self._streaming = False
                 self._done = False
+
             def feed(self, token: str) -> str:
                 if self._done:
                     return ""
@@ -1077,7 +1032,7 @@ class DmAgent:
                         self._buf = ""
                         return head
                     if m:
-                        self._buf = self._buf[m.end():]
+                        self._buf = self._buf[m.end() :]
                         self._streaming = True
                     else:
                         return ""
@@ -1085,8 +1040,8 @@ class DmAgent:
                 i = 0
                 while i < len(self._buf):
                     c = self._buf[i]
-                    if c == '\\' and i + 1 < len(self._buf):
-                        out.append(self._buf[i+1])
+                    if c == "\\" and i + 1 < len(self._buf):
+                        out.append(self._buf[i + 1])
                         i += 2
                         continue
                     if c == '"':
@@ -1139,17 +1094,13 @@ class DmAgent:
 
             except Exception as e:
                 if not loop.is_closed():
-                    asyncio.run_coroutine_threadsafe(
-                        q.put(f"\n[Ошибка стриминга: {e}]"), loop
-                    )
+                    asyncio.run_coroutine_threadsafe(q.put(f"\n[Ошибка стриминга: {e}]"), loop)
             finally:
                 # Router observability: streaming завершён (ADR-147)
                 if _stream_ctx is not None:
                     try:
                         # COV-2/D65: полный декодированный ответ уходит в кэш
-                        _router.notify_stream_end(
-                            _stream_ctx, _total_chars[0], full_text="".join(_full_text)
-                        )
+                        _router.notify_stream_end(_stream_ctx, _total_chars[0], full_text="".join(_full_text))
                     except Exception as e:
                         logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
                 if not loop.is_closed():
@@ -1167,9 +1118,7 @@ class DmAgent:
         from app.services.llm.provider_manager import get_model_pool
         from app.services.llm.router import CAPABILITY_MODEL_PREFERENCES, Capability
 
-        capability_obj = (
-            Capability(capability) if isinstance(capability, str) else capability
-        )
+        capability_obj = Capability(capability) if isinstance(capability, str) else capability
         preferred_keys = CAPABILITY_MODEL_PREFERENCES.get(capability_obj, [])
 
         pool = get_model_pool()
@@ -1178,9 +1127,7 @@ class DmAgent:
 
         for model_key in preferred_keys:
             if pool.is_model_available(model_key):
-                model_provider = await pool.get_model_async(
-                    model_key, agent="dm_narrative", timeout_sec=60
-                )
+                model_provider = await pool.get_model_async(model_key, agent="dm_narrative", timeout_sec=60)
                 if model_provider and model_provider.is_available():
                     return model_provider.provider
 

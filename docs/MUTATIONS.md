@@ -723,3 +723,22 @@ Lumimaid non-deterministic на уровне первого токена (temp=0
 - **ADR-O-XXX** для BC-2 не назначен. Разрешить при closeout А3.1 (не произвольным номером).
 - А3.1: ADR на `physical_strength` в `NPCState` и/или aggression taxonomy в `L1Chronicle` — отдельный вердикт Master.
 - Cross-branch на 4 точки в zone Б — в силе (симметрично BC-1).
+
+---
+
+### STEP 2a-4 (TRIPLE) · Stage 2 — relay (2026-11-14, ветвь А)
+
+**Статус:** Stage 2 patch complete; baseline pending (quiet window §3.12). Commit: none. HEAD at patch: `6641760a`.
+
+**Сделано:**
+- `backend/tests/micro/test_lint_mem_triple.py` — 31 тест, 391 строка.
+- `test_b8_literal_field_not_skip_crit` — path `models/npc_state.py` → `models/custom_npc.py`. Master verdict A: `models/npc_state.py` → `app.models.npc_state` (authority `{"*"}`) глушит CRIT; тест изолирован от домена, `_infer("self")` видит NPCState через `class_def.name`.
+- `test_b8_npcstate_own_setattr_skip` — не тронут (skip-паттерн на `npc_state.py` сохраняется).
+- `backend/tests/IPT.py` — патч `inv_mem_triple` + регистрация в `INVARIANTS`; `py_compile OK`.
+- `scripts/lint_mem_triple.py` — не изменялся (Master: linter менять не нужно).
+
+**T1 GREEN (до чужой правки):** pytest micro 31/31 (1 warning: asyncio deprecation, не наш); IPT `INV-MEM-TRIPLE` 10 CRIT — все в `life_project_resolver.py` (MEM-TRIPLE-DEBT-01, accepted по Master verdict D).
+
+**T3–T7 RED (атрибуция внешняя):** pytest micro baseline 11 CRIT (10 baseline + 1 `PARSE_ERROR decision_hub.py:1058`); IPT exit=1/2. Причина: параллельная сессия пишет `backend/app/services/npc/decision_hub.py` (`.M`, `4+/1-`, `py_compile FAIL`, `IndentationError` line 1058, col=8, строка 1055 на колонке 0); §3.12 quiet window не соблюдено. Не дефект TRIPLE; не откат, не синхронизация. По Master 2026-11-14: параллельная сессия работает свободно без взаимных блокировок.
+
+**Closeout gate (после quiet window):** pytest micro = 31/0; IPT `INV-MEM-TRIPLE` = 10 CRIT + 0 PARSE_ERROR.

@@ -143,6 +143,10 @@ class SocialSubscriber:
             or getattr(ctx.shared_context, "relationship_store", None)  # noqa: ENIGMA002
         )
         _gate = getattr(ctx.shared_context, "relationship_write_gate", None)  # noqa: ENIGMA002
+        if not isinstance(_campaign_id, str) or not _campaign_id:
+            logger.warning("[SOCIAL_SUBSCRIBER] campaign_id отсутствует — trust-fallback пропущен")
+            _store = None
+            _gate = None
         if _store is None and _gate is None:
             # M1b.2.1-fix: стор ещё не собран (lazy-сборка game_loop) —
             # детерминированный skip с наблюдаемым логом (§1.2).
@@ -202,7 +206,8 @@ class SocialSubscriber:
             else:
                 if _gate is None:
                     _gate = RelationshipWriteGate(_store)
-                _campaign_id = ctx.shared_context.campaign_id
+
+            assert isinstance(_campaign_id, str) and _campaign_id
             for _ev in events:
                 if _ev.type == EventType.NPC_SPOKE.value:
                     _sp = _ev.source
@@ -228,16 +233,28 @@ class SocialSubscriber:
                                 _gate.apply(_campaign_id, _sp, _tg, {"fear": 1.0}, cause=f"social_sub:{_intent}")
                             elif _intent == "gossip":
                                 # Сплетни разрушают доверие ИГРОКА к сплетнику
-                                _gate.apply(_campaign_id, "player", _sp, {"trust": _TRUST_DELTA}, cause="social_sub:gossip")
+                                _gate.apply(
+                                    _campaign_id, "player", _sp, {"trust": _TRUST_DELTA}, cause="social_sub:gossip"
+                                )
                             elif _intent == "praise":
                                 # Хвала повышает доверие ИГРОКА к хвалимому
-                                _gate.apply(_campaign_id, "player", _tg, {"trust": _TARGET_TRUST_DELTA}, cause="social_sub:praise")
+                                _gate.apply(
+                                    _campaign_id,
+                                    "player",
+                                    _tg,
+                                    {"trust": _TARGET_TRUST_DELTA},
+                                    cause="social_sub:praise",
+                                )
                             elif _intent == "accuse":
                                 # Обвинение повышает страх ИГРОКА к обвиняемому
-                                _gate.apply(_campaign_id, "player", _tg, {"fear": _TARGET_FEAR_DELTA}, cause="social_sub:accuse")
+                                _gate.apply(
+                                    _campaign_id, "player", _tg, {"fear": _TARGET_FEAR_DELTA}, cause="social_sub:accuse"
+                                )
                             else:
                                 # Симуляция светской беседы — рост доверия игрока к спикеру
-                                _gate.apply(_campaign_id, "player", _sp, {"trust": _TRUST_DELTA}, cause="social_sub:talk")
+                                _gate.apply(
+                                    _campaign_id, "player", _sp, {"trust": _TRUST_DELTA}, cause="social_sub:talk"
+                                )
                         except Exception as _e:
                             logger.error(f"[SOCIAL_SUB] RelationshipStore fallback failed: {_e}")
 

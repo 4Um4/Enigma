@@ -12,8 +12,6 @@ GameLoop не знает про FastAPI, HTTP, SSE-формат.
 Он только вызывает processor + engines + agents + memory.
 """
 
-
-
 from __future__ import annotations
 
 import asyncio
@@ -67,6 +65,70 @@ from app.services.world_scheduler import WorldScheduler
 logger = logging.getLogger(__name__)
 
 
+def _filter_direct_reply_rce_reactions(
+    reactions: list[Any],
+    target_id: str | None,
+    target_name: str | None,
+) -> list[Any]:
+    if not target_id:
+        return reactions
+    target_speakers = {
+        target_id.casefold(),
+        str(target_name or "").casefold(),
+    }
+    return [
+        reaction
+        for reaction in reactions
+        if not (isinstance(reaction, str) and reaction.partition(":")[0].strip().casefold() in target_speakers)
+    ]
+
+
+def _append_direct_reply_reactions(
+    dm_result: Any,
+    entries: list[dict],
+    target_id: str | None,
+    target_name: str | None,
+    npc_roster: Any,
+) -> None:
+    if not entries:
+        return
+    if not isinstance(dm_result, dict):
+        logger.error("[PLAYER_REPLY] direct line was materialized but game response " "is not a dictionary")
+        return
+
+    reactions = dm_result.get("npc_reactions")
+    if reactions is None:
+        reactions = []
+        dm_result["npc_reactions"] = reactions
+    if not isinstance(reactions, list):
+        logger.error(
+            "[PLAYER_REPLY] npc_reactions is not a list; direct line " "remains in dialogue journal/snapshot only"
+        )
+        return
+
+    roster = (
+        npc_roster
+        if isinstance(npc_roster, list)
+        else list(npc_roster.values())
+        if isinstance(npc_roster, dict)
+        else []
+    )
+    name_by_id = {
+        str(npc.get("npc_id") or npc.get("id") or ""): str(npc.get("name") or "")
+        for npc in roster
+        if isinstance(npc, dict)
+    }
+    for entry in entries:
+        speaker_id = str(entry.get("speaker_id") or "")
+        text = str(entry.get("text") or "").strip()
+        if speaker_id != target_id or not text:
+            continue
+        speaker_name = target_name or name_by_id.get(speaker_id) or speaker_id
+        reaction = f"{speaker_name}: {text}"
+        if reaction not in reactions:
+            reactions.append(reaction)
+
+
 # ────────────────────────────────────────────────────────────────────────────────
 # DEGOD ITER5: _PipelineState и build_traces экстрагированы в
 # app/services/game_loop/pipeline_state.py. Re-export сохраняет локальные имена.
@@ -117,6 +179,7 @@ class GameLoop:
         self.memory_manager = memory_manager
         # S159: Инъекция NarrativeProjector для фильтрации реплик
         from app.services.perception.narrative_projector import NarrativeProjector
+
         self._narrative_projector = NarrativeProjector()
         # S313: pre-declare lazy-атрибутов (использование в lambda/ветках
         # раньше присвоения; типы Any — классы импортируются локально ниже).
@@ -129,6 +192,7 @@ class GameLoop:
         # N1 FIX (v7): Используем BASE_DIR напрямую, чтобы найти config/canon/ от корня проекта
         from app.core.config import BASE_DIR
         from app.services.social.mvp_tavern_controller import MvpTavernController
+
         _canon_path = BASE_DIR / "config" / "canon" / "truth_state_tavern.json"
         if _canon_path.exists():
             # M1b.4.2 (ADR-O-371): V2 cutover — ДО первого захвата _relationships
@@ -141,12 +205,12 @@ class GameLoop:
                 # _load_npcs присвоится ниже (:196), лямбда выполнится
                 # много позже (lazy-bootstrap при первом API-вызове) —
                 # порядок построения не нарушен
-                memory_manager.switch_to_v2_relationships(
-                    npc_provider=lambda: self._load_npcs()
-                )
+                memory_manager.switch_to_v2_relationships(npc_provider=lambda: self._load_npcs())
             # P2 FIX: Проброс RelationshipStore в MVP-контроллер для эмерджентной драмы.
             _rel_store = memory_manager._relationships if memory_manager else None  # noqa: ENIGMA001
-            self.mvp_controller = MvpTavernController(_canon_path, event_bus=get_event_bus(), relationship_store=_rel_store)
+            self.mvp_controller = MvpTavernController(
+                _canon_path, event_bus=get_event_bus(), relationship_store=_rel_store
+            )
         else:
             logger.error(
                 f"TruthState canon file not found at {_canon_path}. "
@@ -179,9 +243,8 @@ class GameLoop:
         # S118 FIX: Внедрение LLM Slow-Path компрессора (P0: BUG-S117.1)
         from app.services.input.intent_compressor import IntentCompressor
         from app.services.input.llm_compressor_client import LlamaCppCompressorClient
-        self._intent_compressor = IntentCompressor(
-            llm_client=LlamaCppCompressorClient()
-        )
+
+        self._intent_compressor = IntentCompressor(llm_client=LlamaCppCompressorClient())
         # ФАЗА 3.4: WorldTickEngine — проактивные действия NPC
         from app.services.world.world_tick_engine import WorldTickEngine
 
@@ -203,9 +266,7 @@ class GameLoop:
         # оркестратор — Фаза 6 (ORDER) и Фаза 0 (SERVE/settlement) получают
         # профили из ServiceFactory (service_factories.py:105), не из
         # NpcServices. Симметрия паттерна set_social_engine_factory (P1.1f).
-        self._tick_orch._economic_profiles_getter = (
-            self._svc.get_or_create_economic_profiles
-        )
+        self._tick_orch._economic_profiles_getter = self._svc.get_or_create_economic_profiles
         # ADR-O-391: EconomyTracker — тот же DI-паттерн (settlement-контур
         # record_income; контракт трекера замыкается здесь, не в NpcServices).
         self._tick_orch._economy_tracker = self._svc.economy_tracker
@@ -239,6 +300,7 @@ class GameLoop:
             settings.replay_record = True
             from app.services.replay.replay_recorder import ReplayRecorder
             from app.services.replay.replay_store import ReplayStore
+
             # R3 (Phantom fix): путь из settings.replay_store_path —
             # вне зоны изоляции/удаления DriftLab. wiring записи не тронут.
             _replay_db_path = Path(settings.replay_store_path)
@@ -253,9 +315,7 @@ class GameLoop:
             # ядро — логируем warning и продолжаем без recorder.
             if settings.replay_budget_keep_last > 0:
                 try:
-                    _pruned = _replay_store.prune_old_sessions(
-                        keep_last=settings.replay_budget_keep_last
-                    )
+                    _pruned = _replay_store.prune_old_sessions(keep_last=settings.replay_budget_keep_last)
                     if _pruned:
                         logger.info(
                             f"[GAME_LOOP] Replay budget: pruned "
@@ -269,14 +329,8 @@ class GameLoop:
                         f"(keep_last={settings.replay_budget_keep_last}): "
                         f"{_prune_err}"
                     )
-            _session_id = _replay_store.start_session(
-                campaign_id="Open_road",
-                commit_hash="dev"
-            )
-            self._tick_orch._replay_recorder = ReplayRecorder(
-                store=_replay_store,
-                session_id=_session_id
-            )
+            _session_id = _replay_store.start_session(campaign_id="Open_road", commit_hash="dev")
+            self._tick_orch._replay_recorder = ReplayRecorder(store=_replay_store, session_id=_session_id)
             logger.info(f"[GAME_LOOP] Replay Recorder started. Session ID: {_session_id}")
 
             # Инъекция контекста в ModelRouter для LLM Cache (Этап 2.3)
@@ -353,7 +407,7 @@ class GameLoop:
         # B4-R8: Late wiring of epistemic_store to DialogueExecutor.
         # set_epistemic_wiring (line 224) ran before _register_epistemic_core (line 345)
         # set _epistemic_store on _tick_orch. Re-call with epistemic_store now available.
-        if hasattr(self, '_task_scheduler'):
+        if hasattr(self, "_task_scheduler"):
             self._task_scheduler.set_epistemic_wiring(
                 epistemic_store=getattr(self._tick_orch, "_epistemic_store", None),
             )
@@ -362,22 +416,27 @@ class GameLoop:
 
         # InjuryProcessor — мост Injury → Physiology (кровотечение из ран)
         from app.services.combat.injury_processor import InjuryProcessor
+
         self._tick_orch.add_idle_handler(InjuryProcessor())
 
         # PhysiologyDecayHandler — leaky integrator (экспоненциальное затухание боли/усталости)
         from app.services.combat.physiology_decay_handler import PhysiologyDecayHandler
+
         self._tick_orch.add_idle_handler(PhysiologyDecayHandler())
         # S2B.1: BodyEngine — energy expenditure/recovery (pure calculator;
         # reads body_state SSOT + activity → PhysiologyPayload + Cause).
         from app.services.body.body_engine import BodyEngine
+
         self._tick_orch.add_idle_handler(BodyEngine())
 
         # S74: Непрерывное время психики. Аффективный интеграл затухает в idle.
         from app.services.affective.affective_decay_handler import AffectiveDecayHandler
+
         self._tick_orch.add_idle_handler(AffectiveDecayHandler())
 
         # TZ-08 Addendum: Time Skip Executor (Observation Layer)
         from app.services.world.time_skip_executor import TimeSkipExecutor
+
         self._time_skip = TimeSkipExecutor(self._tick_orch)
         self._skip_locks: Dict[str, threading.Lock] = {}  # Real locks per campaign
         # ADR-O-407 (APPROVED-BY-MASTER, реализация): player-turn time-gate.
@@ -447,16 +506,16 @@ class GameLoop:
 
         if _scene:
             from app.services.spatial.spatial_query_service import SpatialQueryService
-            _new_sq = SpatialQueryService(
-                npc_positions=_scene.get("npc_positions", {}),
-                scene_state=_scene
-            )
+
+            _new_sq = SpatialQueryService(npc_positions=_scene.get("npc_positions", {}), scene_state=_scene)
             self._current_spatial_query = _new_sq
             logger.warning("[SPATIAL_FALLBACK] SpatialQueryService was missing, constructed on-the-fly.")
             return _new_sq
 
         logger.error("SpatialQueryService missing in GameLoop for NpcDialogueSubscriber (eavesdrop).")
-        raise RuntimeError("INV-SPATIAL-QUERY: Missing spatial_query during NPC_SPOKE handling and scene_state is unavailable.")
+        raise RuntimeError(
+            "INV-SPATIAL-QUERY: Missing spatial_query during NPC_SPOKE handling and scene_state is unavailable."
+        )
 
     def _on_npc_spoke_economy_tracker(self, event: Any) -> None:
         """S150 FIX: Регистрирует диалоги для EconomyTracker (потребность SOCIAL)."""
@@ -481,6 +540,7 @@ class GameLoop:
                 return
 
             from app.services.memory.dialogue_update_extractor import DialogueUpdateExtractor
+
             _extractor = DialogueUpdateExtractor(router=self.dm_agent.router)
 
             # AG1-D8p Шаг 3.2 (ADR-O-382): проводка IntelligenceQueue.
@@ -493,6 +553,7 @@ class GameLoop:
             from app.services.memory.intelligence_queue import (
                 wire_intelligence_queue,
             )
+
             wire_intelligence_queue(
                 memory_manager=memory_manager,
                 extractor=_extractor,
@@ -500,9 +561,7 @@ class GameLoop:
                 npc_states_provider=lambda: (
                     self._resolve_npcs_snapshot(getattr(self, "_current_campaign_id", "Open_road"))
                 ),
-                pool_provider=lambda: (
-                    self._get_task_scheduler()._executor_pool
-                ),
+                pool_provider=lambda: (self._get_task_scheduler()._executor_pool),
             )
 
             # P7-B: production-резолвер темы речи → SubjectRef (канонический
@@ -530,7 +589,9 @@ class GameLoop:
                 # E2 (S256): late-binding моста (прецедент :552-556);
                 # инстанс = инстанс E1 — единый PlayerEpistemicState.
                 discovery_bridge_provider=lambda: getattr(  # noqa: ENIGMA002
-                    getattr(self, "mvp_controller", None), "discovery_bridge", None  # noqa: ENIGMA002
+                    getattr(self, "mvp_controller", None),
+                    "discovery_bridge",
+                    None,  # noqa: ENIGMA002
                 ),
                 # P7-B: провенанс-метка EAVESDROP — резолвер темы в SubjectRef
                 # (тот же P3-резолвер, что у E1; отсутствие = observation only).
@@ -541,6 +602,7 @@ class GameLoop:
 
             # V8-DLG-06 FIX: Регистрируем DialogueMemorySubscriber для записи в L2
             from app.services.events.dialogue_memory_subscriber import DialogueMemorySubscriber
+
             _mem_subscriber = DialogueMemorySubscriber(
                 memory_manager=memory_manager,
                 # Фаза A 9.12: тот же мёртвый атрибут — тот же тихий глоток.
@@ -549,13 +611,14 @@ class GameLoop:
                     self._resolve_npcs_snapshot(getattr(self, "_current_campaign_id", "Open_road"))
                 ),  # noqa: ENIGMA002
                 campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
-                spatial_query_provider=self._get_spatial_query_for_subscriber
+                spatial_query_provider=self._get_spatial_query_for_subscriber,
             )
 
             from app.services.events.event_types import EventType
+
             _bus = get_event_bus()
             _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
-            _bus.subscribe(EventType.NPC_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
+            _bus.subscribe(EventType.NPC_SPOKE, _mem_subscriber.on_event)  # V8-DLG-06
             # DLG-1 (Speaker Symmetry, §3.6 DLG-L1): NPC semantic_acts → Claim в cognition listener.
             # Симметричный PlayerSpeechActSubscriber для NPC-пути. Без LLM.
             # Дедупликация по event_id (Claim Bridge) — между контурами.
@@ -565,11 +628,12 @@ class GameLoop:
                 tick_provider=lambda: int(getattr(self, "_current_tick", 0)),
             )
             _bus.subscribe(EventType.NPC_SPOKE, _npc_speech_act_sub.on_npc_spoke)
-            _bus.subscribe(EventType.PLAYER_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
+            _bus.subscribe(EventType.PLAYER_SPOKE, _mem_subscriber.on_event)  # V8-DLG-06
             # Consumption v0 (вердикт Мастера): речевые акты игрока → Claim.
             from app.services.events.player_speech_act_subscriber import (
                 PlayerSpeechActSubscriber,
             )
+
             _speech_act_sub = PlayerSpeechActSubscriber(
                 memory_manager=memory_manager,
                 campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
@@ -618,7 +682,7 @@ class GameLoop:
             _subscriber = ClaimEventSubscriber(
                 engine=_belief_engine,
                 store=_epistemic_store,
-                spatial_query_provider=self._get_spatial_query_for_subscriber
+                spatial_query_provider=self._get_spatial_query_for_subscriber,
             )
             # Шаг 4 (1α): ссылка для PlayerSpeechActSubscriber — детерминированный
             # канал SELF_INTRODUCTION → EpistemicStore (без публикаций в шину).
@@ -640,6 +704,7 @@ class GameLoop:
 
             # S201: Регистрация SocialActionSubscriber для маршрутизации SOCIAL_ACTION
             from app.services.events.social_action_subscriber import SocialActionSubscriber
+
             _social_sub = SocialActionSubscriber(_bus)
             _bus.subscribe(EventType.SOCIAL_ACTION, _social_sub.on_social_action)
 
@@ -648,6 +713,7 @@ class GameLoop:
             # (event.radius НЕ используется — DEBT-R1). Tick — через оркестратор
             # (существующий метод, без фантомных импортов).
             from app.services.events.observation_subscriber import ObservationSubscriber
+
             _obs_sub = ObservationSubscriber(
                 engine=_belief_engine,
                 store=_epistemic_store,
@@ -675,29 +741,21 @@ class GameLoop:
                 # Dormant-дисциплина (INV-BC1-NOOP): restore только при ON;
                 # при OFF старые conclusions лежат в scene_state нетронутыми
                 # (байт-идентичный проход, ключ не переписывается).
-                _conclusion_data = (
-                    _scene.get("conclusions", [])
-                    if _scene and bc1_enabled()
-                    else []
-                )
+                _conclusion_data = _scene.get("conclusions", []) if _scene and bc1_enabled() else []
                 if _conclusion_data:
                     # Restore ВНУТРИ try — если layer выключен (BC1_ENABLED
                     # off), стор всё равно восстановится (проекция в
                     # scene_state это допускает), но слой остаётся
                     # не-wired до ensure: слои создаются лениво в
                     # orchestrator'е при ON (см. conclusion_runtime).
-                    self._tick_orch._conclusion_store = (
-                        ConclusionStore.from_dict(_conclusion_data)
-                    )
+                    self._tick_orch._conclusion_store = ConclusionStore.from_dict(_conclusion_data)
                     logger.info(
                         "[BC1] Restore: %s conclusion(s) из scene_state",
                         len(_conclusion_data),
                     )
             except Exception as _bc1_restore_err:  # noqa: ENIGMA001
                 # D5-деградация: restore не роняет сцену (паттерн G2)
-                logger.warning(
-                    f"[BC1] conclusions restore failed: {_bc1_restore_err}"
-                )
+                logger.warning(f"[BC1] conclusions restore failed: {_bc1_restore_err}")
 
             # BC-2/ADR-O-XXX: restore expectations из scene_state
             # (симметрично BC-1, S193-паттерн). Dormant-дисциплина
@@ -708,23 +766,15 @@ class GameLoop:
                     ContextualExpectationStore,
                 )
 
-                _expectation_data = (
-                    _scene.get("expectations", [])
-                    if _scene and bc2_enabled()
-                    else []
-                )
+                _expectation_data = _scene.get("expectations", []) if _scene and bc2_enabled() else []
                 if _expectation_data:
-                    self._tick_orch._expectation_store = (
-                        ContextualExpectationStore.from_dict(_expectation_data)
-                    )
+                    self._tick_orch._expectation_store = ContextualExpectationStore.from_dict(_expectation_data)
                     logger.info(
                         "[BC2] Restore: %s expectation(s) из scene_state",
                         len(_expectation_data),
                     )
             except Exception as _bc2_restore_err:  # noqa: ENIGMA001
-                logger.warning(
-                    f"[BC2] expectations restore failed: {_bc2_restore_err}"
-                )
+                logger.warning(f"[BC2] expectations restore failed: {_bc2_restore_err}")
 
             # S211 (§18): инъекция резолвера в ACCUSE-гейт компилятора
             # последствий (late binding: контроллер собирается раньше ядра).
@@ -755,20 +805,17 @@ class GameLoop:
     # ПУБЛИЧНЫЙ API
     # ────────────────────────────────────────────────────────────────────────────
 
-
     # ADR-O-146: New Game Reset — сброс runtime мира при сохранении static
     def new_game(
         self,
         campaign_id: str,
         continuity_mode: Optional["WorldContinuityMode"] = None,
-        source_campaign_id: Optional[str] = None
+        source_campaign_id: Optional[str] = None,
     ) -> dict:
         """Фасад CampaignLifecycle (DEGOD Phase3B). GameLoop-owned:
         _current_campaign_id (wiring-лямбды) + _preserved_tick (bridge к scene_init)."""
         self._current_campaign_id = campaign_id
-        result = self._campaign_lifecycle.reset_campaign(
-            campaign_id, continuity_mode, source_campaign_id
-        )
+        result = self._campaign_lifecycle.reset_campaign(campaign_id, continuity_mode, source_campaign_id)
         if hasattr(self, "_preserved_tick"):
             self._preserved_tick = None
         return result
@@ -833,7 +880,12 @@ class GameLoop:
             scene_manager=self.scene_manager,
             load_npcs_with_runtime=self._load_npcs_with_runtime,
             task_scheduler_getter=self._get_task_scheduler,
-            get_or_create_continuity=lambda cid: self._scene_continuities.setdefault(cid, __import__("app.services.verbalization.scene_continuity", fromlist=["SceneContinuity"]).SceneContinuity()),
+            get_or_create_continuity=lambda cid: self._scene_continuities.setdefault(
+                cid,
+                __import__(
+                    "app.services.verbalization.scene_continuity", fromlist=["SceneContinuity"]
+                ).SceneContinuity(),
+            ),
             crystallized_belief_store=getattr(self._tick_orch, "crystallized_belief_store", None),  # noqa: ENIGMA002
         )
 
@@ -864,9 +916,7 @@ class GameLoop:
         """B-setter: _current_tick читается wiring-лямбдами подписчиков (владелец GameLoop)."""
         self._current_tick = value
 
-    def _e1_relationship_reader(
-        self, campaign_id: str, knower_id: str, recipient_id: str
-    ) -> dict:
+    def _e1_relationship_reader(self, campaign_id: str, knower_id: str, recipient_id: str) -> dict:
         """DEGOD ITER5: делегат — тело в game_loop/e1_wiring.py."""
         from app.services.game_loop.e1_wiring import e1_relationship_reader
 
@@ -878,15 +928,15 @@ class GameLoop:
             recipient_id,
         )
 
-    def _project_perception(
-        self, campaign_id: str, scene_state: dict, all_npcs_raw: list
-    ) -> Any:
+    def _project_perception(self, campaign_id: str, scene_state: dict, all_npcs_raw: list) -> Any:
         """ADR-TZ08-8: Вызов PerceptionProjector вне ядра."""
         from app.services.perception.perception_projector import PerceptionProjector
 
         _projector = PerceptionProjector()
         _tick = self.get_current_tick(campaign_id)
-        logger.debug(f"[ARCHAE_PROJECTOR] scene_state={bool(scene_state)} all_npcs_raw={len(all_npcs_raw) if all_npcs_raw else 0}")
+        logger.debug(
+            f"[ARCHAE_PROJECTOR] scene_state={bool(scene_state)} all_npcs_raw={len(all_npcs_raw) if all_npcs_raw else 0}"
+        )
         _res = _projector.project(scene_state, all_npcs_raw, _tick)
         logger.debug(f"[ARCHAE_PROJECTOR] result={_res}")
         return _res
@@ -922,9 +972,7 @@ class GameLoop:
         # Удаляем протухшего аватара из кэша LifeEngine, если он там есть,
         # чтобы гарантированно инжектить свежий стейт из AvatarService.
         session = player_session_service.get_session(campaign_id)
-        npcs = [
-            n for n in npcs if n.get("id") != "player" and n.get("npc_id") != "player"
-        ]
+        npcs = [n for n in npcs if n.get("id") != "player" and n.get("npc_id") != "player"]
         if session and session.player_name:
             try:
                 _char_svc = CharacterService(root=str(self._saves_dir))
@@ -937,15 +985,11 @@ class GameLoop:
                     # Используем getattr для совместимости со старыми Pydantic-моделями
                     # ADR-035: Инъекция живого состояния аватара (плоть и кровь)
                     # Шаблон персонажа (player_char) — это кости. Нам нужна живая ткань из avatar_service.
-                    _avatar_state = self.avatar_service.load_state(
-                        campaign_id, player_char.name
-                    )
+                    _avatar_state = self.avatar_service.load_state(campaign_id, player_char.name)
                     from app.models.npc_state import BODY_STATE_HEALTHY
 
                     _live_body = getattr(_avatar_state, "body_state", None)  # noqa: ENIGMA002
-                    if (
-                        not _live_body
-                    ):  # None или {} — новый аватар без сохранённой физиологии
+                    if not _live_body:  # None или {} — новый аватар без сохранённой физиологии
                         _live_body = dict(BODY_STATE_HEALTHY)
 
                     # V8-WL-3 FIX: fear и willpower лежат внутри psyche dict, а не в корне NPCState
@@ -974,13 +1018,11 @@ class GameLoop:
                             "debt": 0.0,
                         },
                         "status_profile": {"faction_rank": {}},
-                        "tier": "major", # P3 FIX: Игрок участвует в макро-симуляции (NeedEngine, Stress)
+                        "tier": "major",  # P3 FIX: Игрок участвует в макро-симуляции (NeedEngine, Stress)
                     }
                     npcs.append(player_dict)
             except Exception as e:
-                logging.getLogger(__name__).warning(
-                    f"[AVATAR_INJECT] Ошибка инъекции аватара: {e}"
-                )
+                logging.getLogger(__name__).warning(f"[AVATAR_INJECT] Ошибка инъекции аватара: {e}")
 
         # ADR-O-146: Страховка body_state для ВСЕХ NPC (не только аватара).
         # Если load_npcs_merged вернул static NPC без body_state — инжектим HEALTHY.
@@ -1023,14 +1065,13 @@ class GameLoop:
                         campaign_id=campaign_id, location_id=_loc_id, scene_state=_scene
                     )
                     from app.services.spatial.spatial_query_service import SpatialQueryService
+
                     self._current_spatial_query = SpatialQueryService(
                         npc_positions=_scene.get("npc_positions", {}),
                         scene_state=_scene,
                     )
                 except Exception as e:
-                    logger.warning(
-                        f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}"
-                    )
+                    logger.warning(f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}")
                     self._current_spatial_query = None
 
             # AUDIT-003 §3.3: сервисный контекст NPC для тиков вне хода игрока
@@ -1078,20 +1119,28 @@ class GameLoop:
             from app.services.integration.world_snapshot_builder import (
                 WorldSnapshotBuilder,
             )
+
             _builder = WorldSnapshotBuilder()
-            _recent_d = self._get_task_scheduler().get_recent_dialogues(result.final_state.get("game_time_seconds", 0.0))
+            _recent_d = self._get_task_scheduler().get_recent_dialogues(
+                result.final_state.get("game_time_seconds", 0.0)
+            )
             logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
             _player_eco_profile = self._svc.get_or_create_economic_profiles(campaign_id).get("player")
 
             # S159: Фильтрация реплик через NarrativeProjector
             from app.domain.presentation import AvatarPerceptionProfile, PerceptionContext
+
             _npc_pos = result.final_state.get("npc_positions", {})
             _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
-            _sp_positions = {nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0)) for nid, d in _npc_pos.items() if nid != "player"}
+            _sp_positions = {
+                nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0))
+                for nid, d in _npc_pos.items()
+                if nid != "player"
+            }
             _ctx = PerceptionContext(
                 player_position=(_p_pos_data.get("x", 0.0), _p_pos_data.get("y", 0.0)),
                 speaker_positions=_sp_positions,
-                avatar_profile=AvatarPerceptionProfile(perceptual_stability=1.0)
+                avatar_profile=AvatarPerceptionProfile(perceptual_stability=1.0),
             )
             _narratives = self._narrative_projector.project(_recent_d, _ctx)
 
@@ -1189,7 +1238,13 @@ class GameLoop:
         Thread-safe, idempotent. Не меняет NPCState.
         """
         return self._tick_orch.ack_addressing(campaign_id, event_id)
-    def idle_tick(self, campaign_id: str, location_id: Optional[str] = None, interventions: Optional[List["InterventionEvent"]] = None) -> dict:
+
+    def idle_tick(
+        self,
+        campaign_id: str,
+        location_id: Optional[str] = None,
+        interventions: Optional[List["InterventionEvent"]] = None,
+    ) -> dict:
         """Idle tick — делегирует TickOrchestrator (10 фаз, Устав §3).
 
         Вызывается когда игрок бездействует (таймер pygame).
@@ -1216,10 +1271,7 @@ class GameLoop:
         # диалоги продолжают материализоваться через TaskScheduler в
         # run_turn (ADR-O-313) — НЕ паузится. Anti-Race: ядро не тронуто.
         if campaign_id in self._player_turn_in_flight:
-            logger.debug(
-                f"[IDLE_TICK] ADR-O-407: skip — player turn in-flight "
-                f"(campaign={campaign_id})"
-            )
+            logger.debug(f"[IDLE_TICK] ADR-O-407: skip — player turn in-flight " f"(campaign={campaign_id})")
             return {
                 "status": "player_turn_in_flight",
                 "npc_positions": {},
@@ -1241,12 +1293,12 @@ class GameLoop:
             try:
                 from app.services.campaign_state_service import get_campaign_state_service
 
-                _cs: Any = get_campaign_state_service().get_campaign_state(campaign_id)  # S313: Optional по контракту сервиса; :1227 тот же запрос в другом контуре
+                _cs: Any = get_campaign_state_service().get_campaign_state(
+                    campaign_id
+                )  # S313: Optional по контракту сервиса; :1227 тот же запрос в другом контуре
                 _player_loc = _cs.metadata.get("current_location") if _cs else None  # noqa: ENIGMA001
                 if _player_loc and _player_loc != _active_loc:
-                    logger.info(
-                        f"[IDLE_TICK] Player location authority: {_active_loc} → {_player_loc}"
-                    )
+                    logger.info(f"[IDLE_TICK] Player location authority: {_active_loc} → {_player_loc}")
                     _active_loc = _player_loc
             except Exception as _loc_err:
                 logger.warning(f"[IDLE_TICK] player location lookup failed: {_loc_err}")
@@ -1256,6 +1308,7 @@ class GameLoop:
         _active_scene = self.scene_manager.get_scene_state(campaign_id, _active_loc)
         if _active_scene is None:
             from app.services.game_loop.scene_init import _ensure_player_topology
+
             _active_scene = _ensure_player_topology(
                 loop=self,
                 campaign_id=campaign_id,
@@ -1267,6 +1320,7 @@ class GameLoop:
         _location_ids = [_active_loc]
         try:
             from app.services.spatial.spatial_registry import SpatialRegistry
+
             _registry = SpatialRegistry.get_or_load(campaign_id)
             if _registry:
                 _all_locs = _registry.get_all_location_ids()
@@ -1295,6 +1349,7 @@ class GameLoop:
                     continue
                 if self.scene_manager.get_scene_state(campaign_id, _ploc) is None:
                     from app.services.game_loop.scene_init import _ensure_player_topology
+
                     _target_scene = _ensure_player_topology(
                         loop=self,
                         campaign_id=campaign_id,
@@ -1313,7 +1368,6 @@ class GameLoop:
         # Шаг 2: LOCK всех локаций (Дополнение Б, п. Б.6.1)
         self.scene_manager.lock_all_for_tick(campaign_id, _location_ids)
         try:
-
             # F3 (S292): heal топологии ВНУТРИ lock-фазы. Снаружи lock
             # save_scene_state пишет на диск, но тик читает _tick_scenes-кэш,
             # куда lock положил pre-heal копию — heal до lock не доезжал до
@@ -1321,6 +1375,7 @@ class GameLoop:
             # Здесь: tick-кэш — единственная истина тика; heal мутит её
             # напрямую; персист — штатный unlock_tick.
             from app.services.game_loop.scene_init import _ensure_player_topology
+
             _scene = self.scene_manager.get_scene_state(campaign_id, _active_loc)
             if _scene is None:
                 return {"status": "no_scene", "npc_positions": {}, "npc_addressing": []}
@@ -1331,6 +1386,7 @@ class GameLoop:
             # Spatial Oracle корректирует локацию только для активной сцены
             try:
                 from app.services.campaign_state_service import get_campaign_state_service
+
                 _campaign_svc = get_campaign_state_service()
                 _cs = _campaign_svc.get_campaign_state(campaign_id) if _campaign_svc else None  # noqa: ENIGMA001
                 if _cs:
@@ -1338,6 +1394,7 @@ class GameLoop:
                     _saved_wy = _cs.metadata.get("player_world_y")
                     if _saved_wx is not None and _saved_wy is not None:
                         from app.services.spatial.spatial_registry import SpatialRegistry
+
                         _registry = SpatialRegistry.get_or_load(campaign_id)
                         if _registry is not None:
                             # P2-01 (D.2): детерминированный владелец границы вместо [0].
@@ -1348,6 +1405,7 @@ class GameLoop:
                                 _oracle_loc = _primary_chunk.location_id
                                 # P2-02: структурный лог (без поведенческих изменений).
                                 from app.services.spatial.oracle_log import log_oracle_decision
+
                                 log_oracle_decision(
                                     tag="IDLE",
                                     world_x=_saved_wx,
@@ -1368,10 +1426,16 @@ class GameLoop:
             _spatial_svc = None
             if _active_loc:
                 from app.services.spatial.spatial_factory import SpatialFactory
+
                 try:
-                    _spatial_svc = SpatialFactory.build_for_campaign(campaign_id=campaign_id, location_id=_active_loc, scene_state=_scene)
+                    _spatial_svc = SpatialFactory.build_for_campaign(
+                        campaign_id=campaign_id, location_id=_active_loc, scene_state=_scene
+                    )
                     from app.services.spatial.spatial_query_service import SpatialQueryService
-                    self._current_spatial_query = SpatialQueryService(npc_positions=_scene.get("npc_positions", {}), scene_state=_scene)
+
+                    self._current_spatial_query = SpatialQueryService(
+                        npc_positions=_scene.get("npc_positions", {}), scene_state=_scene
+                    )
                 except Exception as e:
                     logger.warning(f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}")
                     self._current_spatial_query = None
@@ -1461,9 +1525,12 @@ class GameLoop:
 
             # Коммит результатов оркестратора (если ядро не сделало это само)
             if result and result.final_scene_state is not None:
-
                 # S193: Epistemic Persistence. Сохраняем убеждения в scene_state перед коммитом.
-                if result.status == "ok" and hasattr(self._tick_orch, '_epistemic_store') and self._tick_orch._epistemic_store:
+                if (
+                    result.status == "ok"
+                    and hasattr(self._tick_orch, "_epistemic_store")
+                    and self._tick_orch._epistemic_store
+                ):
                     result.final_scene_state["epistemic_records"] = self._tick_orch._epistemic_store.to_dict()
                 self.scene_manager.commit_tick_result(campaign_id, result.final_scene_state)
 
@@ -1555,12 +1622,17 @@ class GameLoop:
                     logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
                     from app.domain.presentation import PerceptionContext
                     from app.services.integration.legacy_dialogue_adapter import LegacyDialogueAdapter
+
                     _npc_pos = _scene.get("npc_positions", {})
                     _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
-                    _sp_positions = {nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0)) for nid, d in _npc_pos.items() if nid != "player"}
+                    _sp_positions = {
+                        nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0))
+                        for nid, d in _npc_pos.items()
+                        if nid != "player"
+                    }
                     _ctx = PerceptionContext(
                         player_position=(_p_pos_data.get("x", 0.0), _p_pos_data.get("y", 0.0)),
-                        speaker_positions=_sp_positions
+                        speaker_positions=_sp_positions,
                     )
                     _narratives = self._narrative_projector.project(_recent_d, _ctx)
                     _ws["perceived_narratives"] = [asdict(n) for n in _narratives]
@@ -1572,6 +1644,7 @@ class GameLoop:
                 # Фаза 2 PresentationProjection: проекция поверх SSOT AvatarService
                 # (второго хранилища нет — чистая функция, ADR-O-404)
                 from app.services.integration.journal_presentation import project_journal
+
                 _ws["dialog_journal"] = project_journal(self.avatar_service.get_journal(campaign_id))
 
             # S83.1: UNLOCK — единственная точка persist для idle_tick.
@@ -1596,12 +1669,7 @@ class GameLoop:
         # наблюдателя = деградация канала, не тика (§11.2).
         _idle_events: list = []
         if _idle_tap is not None and _idle_tap.captured:
-            _idle_events = [
-                _p.to_front()
-                for _p in project_idle_events(
-                    _idle_tap.captured, _auth_scene or _scene
-                )
-            ]
+            _idle_events = [_p.to_front() for _p in project_idle_events(_idle_tap.captured, _auth_scene or _scene)]
 
         return {
             "status": result.status,
@@ -1652,6 +1720,7 @@ class GameLoop:
             # G1 Intent Projection: observation-only снимок понимания. Объект
             # frozen и создан ДО WillpowerGate — чтение здесь = снимок «до».
             from app.services.game_loop.phase_1_input import build_intent_projection
+
             _intent_projection = (
                 build_intent_projection(state.shared_context.intent_resolution)  # noqa: ENIGMA001
                 if state.shared_context
@@ -1714,7 +1783,8 @@ class GameLoop:
                         from app.services.game_loop.dialogue_log import log_turn
 
                         _uir = getattr(state.shared_context, "intent_resolution", None)  # noqa: ENIGMA002
-                        _uip = getattr(getattr(_uir, "original_intent", None), "parameters", None)  # noqa: ENIGMA002
+                        _ui_intent = getattr(_uir, "original_intent", None)  # noqa: ENIGMA002
+                        _uip = getattr(_ui_intent, "parameters", None)  # noqa: ENIGMA002
                         log_turn(
                             campaign_id=req.campaign_id,
                             location=req.location,
@@ -1723,7 +1793,7 @@ class GameLoop:
                             npc_reactions=[],
                             understanding={
                                 "semantic_action": getattr(_uip, "semantic_action", None),  # noqa: ENIGMA002
-                                "target_id": getattr(_uip, "target_id", None),  # noqa: ENIGMA002
+                                "target_id": getattr(_ui_intent, "target", None),  # noqa: ENIGMA002
                                 "intent_readiness": getattr(_uip, "intent_readiness", None),  # noqa: ENIGMA002
                                 "acts": [a.get("type") for a in (getattr(_uip, "semantic_acts", None) or [])],  # noqa: ENIGMA002
                                 "llm_degraded": True,
@@ -1743,6 +1813,7 @@ class GameLoop:
                         player_intent_projection=_intent_projection,
                         llm_degraded=True,
                     )
+
                 # Recovery: пробуем перезапустить llama-server и повторить запрос
                 try:
                     from app.services.llm.server_lifecycle import restart_llama_server as _restart_llama_server
@@ -1779,6 +1850,19 @@ class GameLoop:
                     return _dm_unavailable_response()
             logger.debug(f"[DM_RESULT] type={type(dm_result).__name__}")
 
+            _ir_for_reply = getattr(state.shared_context, "intent_resolution", None)  # noqa: ENIGMA002
+            _intent_for_reply = getattr(_ir_for_reply, "original_intent", None)  # noqa: ENIGMA002
+            _params_for_reply = getattr(_intent_for_reply, "parameters", None)  # noqa: ENIGMA002
+            _reply_semantic_action = getattr(_params_for_reply, "semantic_action", None)
+            _reply_semantic_action = getattr(_reply_semantic_action, "value", _reply_semantic_action)
+            _direct_reply_target_id = None
+            if _intent_for_reply and str(_reply_semantic_action).upper() == "DIALOGUE" and _intent_for_reply.target:
+                _direct_reply_target_id = _intent_for_reply.target
+            _npc_roster_for_reply = getattr(  # noqa: ENIGMA002
+                state.shared_context, "all_npcs_raw_snapshot", None
+            )
+            _direct_reply_target_name = None
+
             # RCE: Reality Commit Extractor — извлекаем npc_reactions из DM-нарратива
             # Инвариант: ни один LLM-выход не считается состоянием мира, пока не прошёл RCE-коммит
             # UX-FB (Тай): фоллбэк деградации — НЕ реплика NPC: RCE-атрибуция и
@@ -1795,7 +1879,25 @@ class GameLoop:
                         _anr_rce = self._load_npcs_with_runtime(req.campaign_id)
                     except Exception:
                         _anr_rce = []
-                _target_id = getattr(state.shared_context, "player_target_id", None)  # noqa: ENIGMA002
+                _npc_roster_for_reply = _anr_rce
+                if _direct_reply_target_id:
+                    _npc_iter = (
+                        _anr_rce
+                        if isinstance(_anr_rce, list)
+                        else list(_anr_rce.values())
+                        if isinstance(_anr_rce, dict)
+                        else []
+                    )
+                    for _npc in _npc_iter:
+                        if not isinstance(_npc, dict):
+                            continue
+                        _npc_id = _npc.get("npc_id", _npc.get("id", ""))
+                        if _npc_id == _direct_reply_target_id:
+                            _direct_reply_target_name = _npc.get("name")
+                            break
+                _target_id = _direct_reply_target_id or getattr(  # noqa: ENIGMA002
+                    state.shared_context, "player_target_id", None
+                )
                 _player_name = req.actions[0].player_name if req.actions else None  # noqa: ENIGMA001
                 _rce_reactions = extract_speech_events(
                     dm_text=dm_result.get("dm_response", ""),
@@ -1803,6 +1905,13 @@ class GameLoop:
                     all_npcs_raw=_anr_rce,
                     player_name=_player_name,
                 )
+
+                if _direct_reply_target_id:
+                    _rce_reactions = _filter_direct_reply_rce_reactions(
+                        _rce_reactions,
+                        _direct_reply_target_id,
+                        _direct_reply_target_name,
+                    )
 
                 if _rce_reactions:
                     # Инжектим извлечённые реакции обратно в dm_result для downstream
@@ -1822,6 +1931,15 @@ class GameLoop:
                     except Exception as _rce_err:
                         logger.warning(f"[RCE] STM write failed: {_rce_err}")
 
+            if _direct_reply_target_id and isinstance(dm_result, dict):
+                _existing_reactions = dm_result.get("npc_reactions", [])
+                if isinstance(_existing_reactions, list):
+                    dm_result["npc_reactions"] = _filter_direct_reply_rce_reactions(
+                        _existing_reactions,
+                        _direct_reply_target_id,
+                        _direct_reply_target_name,
+                    )
+
             # R2.1: NarrativeExtractor R2.2.8 — синхронный путь (REST)
             try:
                 from app.services.scene.narrative_extractor import get_extractor
@@ -1831,18 +1949,10 @@ class GameLoop:
                 if dm_text and scene_state:
                     current_tick = self.get_current_tick(req.campaign_id)
                     extraction = get_extractor().extract(dm_text, scene_state, current_tick)
-                    if (
-                        extraction.new_objects
-                        or extraction.new_events
-                        or extraction.updated_states
-                    ):
-                        self.scene_manager.apply_narrative_extractions(
-                            req.campaign_id, scene_state, extraction
-                        )
+                    if extraction.new_objects or extraction.new_events or extraction.updated_states:
+                        self.scene_manager.apply_narrative_extractions(req.campaign_id, scene_state, extraction)
                         if current_tick % 50 == 0:
-                            self.scene_manager.prune_dynamic_objects(
-                                req.campaign_id, scene_state, current_tick
-                            )
+                            self.scene_manager.prune_dynamic_objects(req.campaign_id, scene_state, current_tick)
             except Exception as e:
                 logger.warning(f"[R2.1] NarrativeExtractor REST error: {e}")
 
@@ -1857,14 +1967,22 @@ class GameLoop:
             # вербальным обращением. Целеполагание (клик «подойти к X», движение)
             # ставит player_target_id, но имя не подтверждает.
             _verbal = getattr(state.shared_context, "action_type", "") in (  # noqa: ENIGMA002
-                "dialogue", "blackmail", "bribe", "accuse"
+                "dialogue",
+                "blackmail",
+                "bribe",
+                "accuse",
             )
             # DIAG-M17 (Часть VIII.5, ВРЕМЕННЫЙ): почему confirmed не рождается.
-            print(f"[DIAG-M17] action_type={getattr(state.shared_context, 'action_type', None)!r} "  # noqa: ENIGMA002
-                  f"target_id={_target_id!r} verbal={_verbal}")
+            print(
+                f"[DIAG-M17] action_type={getattr(state.shared_context, 'action_type', None)!r} "  # noqa: ENIGMA002
+                f"target_id={_target_id!r} verbal={_verbal}"
+            )
             if (
-                _target_id and _verbal
-                and hasattr(state, "shared_context") and state.shared_context and state.shared_context.scene_state
+                _target_id
+                and _verbal
+                and hasattr(state, "shared_context")
+                and state.shared_context
+                and state.shared_context.scene_state
             ):
                 _recog_map = state.shared_context.scene_state.setdefault("player_recognition", {})
                 _recog_entry = _recog_map.setdefault(_target_id, {"confidence": 0.0})
@@ -1891,6 +2009,7 @@ class GameLoop:
             # WOUNDS-TZ FIX: _auth_scene объявляется ДО ветки — иначе при пустом
             # shared_context ниже был NameError, а при непустом — передача None.
             _auth_scene: dict | None = None
+            _player_reply_entries: list[dict] = []
             if state.shared_context and state.shared_context.scene_state:
                 _turn_scene = state.shared_context.scene_state
                 if self.scene_manager:
@@ -1902,7 +2021,14 @@ class GameLoop:
                 # реплики видны в recent_dialogues этого же хода; LLM-задачи уходят
                 # на executor-пул, REST не блокируется (ADR-O-343/O-364).
                 if _auth_scene.get("pending_tasks"):
-                    self._get_task_scheduler().execute_pending(_auth_scene, req.campaign_id)
+                    _player_reply_entries = self._get_task_scheduler().execute_pending(_auth_scene, req.campaign_id)
+                _append_direct_reply_reactions(
+                    dm_result,
+                    _player_reply_entries,
+                    _direct_reply_target_id,
+                    _direct_reply_target_name,
+                    _npc_roster_for_reply,
+                )
                 # S203.4 (ADR-O-365, D-2): безусловный дренаж outbox до unlock (F24),
                 # терминалы прошлого цикла применяются даже при пустой очереди.
                 self._get_task_scheduler().drain_commitment_outbox(_auth_scene)
@@ -1915,6 +2041,7 @@ class GameLoop:
             _npc_pos_dict = None
             if state.shared_context and state.shared_context.world_snapshot:
                 from dataclasses import asdict
+
                 _ws_dict = asdict(state.shared_context.world_snapshot)
                 _npc_pos_dict = _ws_dict.get("npc_positions", {})
                 # ADR-O-313: Внедряем кэш реплик для Speech Bubbles (UI)
@@ -1924,12 +2051,17 @@ class GameLoop:
                     logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
                     from app.domain.presentation import PerceptionContext
                     from app.services.integration.legacy_dialogue_adapter import LegacyDialogueAdapter
+
                     _npc_pos = _scene.get("npc_positions", {})
                     _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
-                    _sp_positions = {nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0)) for nid, d in _npc_pos.items() if nid != "player"}
+                    _sp_positions = {
+                        nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0))
+                        for nid, d in _npc_pos.items()
+                        if nid != "player"
+                    }
                     _ctx = PerceptionContext(
                         player_position=(_p_pos_data.get("x", 0.0), _p_pos_data.get("y", 0.0)),
-                        speaker_positions=_sp_positions
+                        speaker_positions=_sp_positions,
                     )
                     _narratives = self._narrative_projector.project(_recent_d, _ctx)
                     _ws_dict["perceived_narratives"] = [asdict(n) for n in _narratives]
@@ -1938,6 +2070,7 @@ class GameLoop:
                     logger.warning(f"[IDLE_TICK_WS] Failed to get recent dialogues: {e}")
                 # Фаза 2 PresentationProjection: проекция поверх SSOT (ADR-O-404)
                 from app.services.integration.journal_presentation import project_journal
+
                 _ws_dict["dialog_journal"] = project_journal(self.avatar_service.get_journal(req.campaign_id))
 
             # ADR-SCENE-LOCK: Разблокируем тик — финальный персист кэша.
@@ -1962,7 +2095,9 @@ class GameLoop:
             if _a.action:
                 # B1.3-FIX: Передача campaign_id для привязки журнала к кампании
                 self.avatar_service.append_journal(
-                    campaign_id=req.campaign_id, speaker=_a.player_name, text=_a.action,
+                    campaign_id=req.campaign_id,
+                    speaker=_a.player_name,
+                    text=_a.action,
                     channel="self",
                 )
 
@@ -1978,6 +2113,7 @@ class GameLoop:
             # завершён до возврата publish).
             from app.domain.events import EventDTO
             from app.services.events.event_types import EventType
+
             _dm_evt = EventDTO.create(
                 event_type=EventType.DM_NARRATED.value,
                 source="Рассказчик",
@@ -1991,7 +2127,9 @@ class GameLoop:
             get_event_bus().publish(_dm_evt)
             _final = get_event_bus()._event_log[-1]
             self.avatar_service.append_journal(
-                campaign_id=req.campaign_id, speaker="Рассказчик", text=_dm_text,
+                campaign_id=req.campaign_id,
+                speaker="Рассказчик",
+                text=_dm_text,
                 channel="narrative",
                 event_id=str(_final.id),
                 tick=int(_final.timestamp),
@@ -2002,9 +2140,8 @@ class GameLoop:
             # B1.3-FIX: Передача campaign_id для получения журнала
             # Фаза 2 PresentationProjection: проекция поверх SSOT (ADR-O-404)
             from app.services.integration.journal_presentation import project_journal
-            _ws_dict["dialog_journal"] = project_journal(
-                self.avatar_service.get_journal(req.campaign_id)
-            )
+
+            _ws_dict["dialog_journal"] = project_journal(self.avatar_service.get_journal(req.campaign_id))
             # G3-B: beliefs-канал — пересборка из ФИНАЛЬНОГО store на границе
             # run_turn (snapshot ядра строился до publication'ов тика)
             try:
@@ -2025,7 +2162,8 @@ class GameLoop:
             from app.services.game_loop.dialogue_log import log_turn
 
             _ir = getattr(state.shared_context, "intent_resolution", None)  # noqa: ENIGMA002
-            _ip = getattr(getattr(_ir, "original_intent", None), "parameters", None)  # noqa: ENIGMA002
+            _logged_intent = getattr(_ir, "original_intent", None)  # noqa: ENIGMA002
+            _ip = getattr(_logged_intent, "parameters", None)  # noqa: ENIGMA002
             log_turn(
                 campaign_id=req.campaign_id,
                 location=req.location,
@@ -2034,7 +2172,7 @@ class GameLoop:
                 npc_reactions=dm_result.get("npc_reactions", []),
                 understanding={
                     "semantic_action": getattr(_ip, "semantic_action", None),  # noqa: ENIGMA002
-                    "target_id": getattr(_ip, "target_id", None),  # noqa: ENIGMA002
+                    "target_id": getattr(_logged_intent, "target", None),  # noqa: ENIGMA002
                     "intent_readiness": getattr(_ip, "intent_readiness", None),  # noqa: ENIGMA002
                     "acts": [a.get("type") for a in (getattr(_ip, "semantic_acts", None) or [])],  # noqa: ENIGMA002
                     "llm_degraded": bool(dm_result.get("llm_degraded", False)),
@@ -2062,7 +2200,8 @@ class GameLoop:
             # D1 fix (GC-01): degraded path must NOT persist fallback as journal entry.
             # _dm_degraded is set above (@1668) from dm_result.get("llm_degraded").
             journal_entry_id=(
-                "" if _dm_degraded
+                ""
+                if _dm_degraded
                 else self.memory_manager.persist_dm_response(
                     req.campaign_id,
                     world_id=req.world_id,
@@ -2141,10 +2280,7 @@ class GameLoop:
             yield event
 
         # NPC реакции — ДО токенов DM
-        if npc_reactions := (
-            state.npc_result.get("npc_reactions", [])
-            + state.npc_result.get("npc_actions", [])
-        ):
+        if npc_reactions := (state.npc_result.get("npc_reactions", []) + state.npc_result.get("npc_actions", [])):
             yield {
                 "type": "npc",
                 "data": npc_reactions,
@@ -2190,14 +2326,8 @@ class GameLoop:
             )
             # Лог вопроса + ответа для отладки
             _player_msg = next((a.action for a in actions if a.action), "")
-            _preview_q = (
-                f"{_player_msg[:80]}..." if len(_player_msg) > 80 else _player_msg
-            )
-            _preview_a = (
-                f"{dm_full_text_for_mem[:120]}..."
-                if len(dm_full_text_for_mem) > 120
-                else dm_full_text_for_mem
-            )
+            _preview_q = f"{_player_msg[:80]}..." if len(_player_msg) > 80 else _player_msg
+            _preview_a = f"{dm_full_text_for_mem[:120]}..." if len(dm_full_text_for_mem) > 120 else dm_full_text_for_mem
             logger.warning(f"[DM] {_preview_q}")
             logger.warning(f"[NPC] {_preview_a}")
 
@@ -2225,22 +2355,12 @@ class GameLoop:
             scene_state = state.shared_context.scene_state or {}
             if dm_full_text and scene_state:
                 current_tick = self.get_current_tick(campaign_id)
-                extraction = get_extractor().extract(
-                    dm_full_text, scene_state, current_tick
-                )
-                if (
-                    extraction.new_objects
-                    or extraction.new_events
-                    or extraction.updated_states
-                ):
-                    self.scene_manager.apply_narrative_extractions(
-                        campaign_id, scene_state, extraction
-                    )
+                extraction = get_extractor().extract(dm_full_text, scene_state, current_tick)
+                if extraction.new_objects or extraction.new_events or extraction.updated_states:
+                    self.scene_manager.apply_narrative_extractions(campaign_id, scene_state, extraction)
                     # Фикс #6: prune каждые 50 тиков
                     if current_tick % 50 == 0:
-                        self.scene_manager.prune_dynamic_objects(
-                            campaign_id, scene_state, current_tick
-                        )
+                        self.scene_manager.prune_dynamic_objects(campaign_id, scene_state, current_tick)
                     logger.debug(
                         f"[R2.1] objects={len(extraction.new_objects)} "
                         f"events={len(extraction.new_events)} "
@@ -2266,7 +2386,15 @@ class GameLoop:
             _cp = getattr(self.mvp_controller, "confession_parser", None) if self.mvp_controller else None  # noqa: ENIGMA001, ENIGMA002
             if _cp is None and self.mvp_controller is not None:
                 logger.error("MvpTavernController missing confession_parser. Check wiring.")
-            _scheduler = TaskScheduler(router=_router, context_provider=_ctx, economy_tracker=_et, belief_store=_cbs, memory_manager=self.memory_manager, confession_parser=_cp, npc_states_provider=lambda cid: self._resolve_npcs_snapshot(cid))
+            _scheduler = TaskScheduler(
+                router=_router,
+                context_provider=_ctx,
+                economy_tracker=_et,
+                belief_store=_cbs,
+                memory_manager=self.memory_manager,
+                confession_parser=_cp,
+                npc_states_provider=lambda cid: self._resolve_npcs_snapshot(cid),
+            )
             self._task_scheduler = _scheduler
         return self._task_scheduler
 
@@ -2281,9 +2409,7 @@ class GameLoop:
             logger.warning(f"[GAME_LOOP] Персонаж '{player_name}' не найден: {e}")
         return {}
 
-    def _build_traces(
-        self, state: _PipelineState, dm_result: dict, elapsed_ms: int
-    ) -> list:
+    def _build_traces(self, state: _PipelineState, dm_result: dict, elapsed_ms: int) -> list:
         """DEGOD ITER5: делегат — тело в game_loop/pipeline_state.py."""
         return build_traces(state, dm_result, elapsed_ms)
 
@@ -2335,6 +2461,7 @@ class GameLoop:
         _resume_loc = ""
         try:
             from app.services.campaign_state_service import get_campaign_state_service
+
             _cs_resume = get_campaign_state_service().get_campaign_state(campaign_id)
             if _cs_resume is not None:
                 _resume_loc = _cs_resume.metadata.get("current_location", "") or ""
@@ -2369,6 +2496,7 @@ class GameLoop:
             if _sched is not None and _sched.is_loop_running:
                 # dispose синхронный — используем asyncio.run для stop_background_loop
                 import asyncio as _asyncio
+
                 try:
                     _loop = _asyncio.get_event_loop()
                     if _loop.is_running():
@@ -2376,9 +2504,7 @@ class GameLoop:
                     else:
                         _asyncio.run(_sched.stop_background_loop())
                 except Exception as _dispose_inner:
-                    logger.warning(
-                        f"[GAME_LOOP] WorldScheduler stop_background_loop inner failed: {_dispose_inner}"
-                    )
+                    logger.warning(f"[GAME_LOOP] WorldScheduler stop_background_loop inner failed: {_dispose_inner}")
         except Exception as e:
             print(f"[GAME_LOOP] WorldScheduler stop on dispose warning: {e}")
         # 0. S269-QUIESCE (закрытие DEBT-QUIESCE, S213): собственный
@@ -2425,9 +2551,7 @@ class GameLoop:
         # 4. Обнуляем NPC loader — предотвращаем stale cache
         self._load_npcs = lambda runtime_path=None: []
 
-        logger.info(
-            "[GAME_LOOP] Disposed — all SQLite connections closed, services released"
-        )
+        logger.info("[GAME_LOOP] Disposed — all SQLite connections closed, services released")
 
 
 __all__ = ["GameLoop", "_PipelineState"]  # _PipelineState — контракт фасада __init__

@@ -17,15 +17,18 @@ from typing import Any, Dict, Optional
 # P1-07: Лемматизация для Fuzzy Matching (уменьшает ложные срабатывания падежей)
 try:
     from pymorphy3 import MorphAnalyzer
+
     _morph = MorphAnalyzer()
 except ImportError:
     _morph = None
+
 
 def _lemmatize(text: str) -> str:
     """Возвращает нормальную форму слова, если доступен pymorphy3."""
     if not _morph or not text:
         return text
     return str(_morph.parse(text)[0].normal_form)
+
 
 import re  # S-UE Блок 2: токенизация _content_words (регекс; пункт «не»-детектора — Блок 3)
 
@@ -86,9 +89,7 @@ def _resolve_target_reference(field: IntentSemanticField, scene_context: Any) ->
                         npc_name_map[_lemmatize(_name.lower())] = npc_id
 
     # ADR-046: Диагностика Fuzzy Matching (Слой 2)
-    logger.warning(
-        f"[TARGET_RESOLVE] ref='{ref}', map_size={len(npc_name_map)}, keys={list(npc_name_map.keys())[:5]}"
-    )
+    logger.warning(f"[TARGET_RESOLVE] ref='{ref}', map_size={len(npc_name_map)}, keys={list(npc_name_map.keys())[:5]}")
 
     if not npc_name_map:
         return ""
@@ -166,16 +167,13 @@ def compute_intent_readiness(
     if _world_changing or _has_order:
         _negated_known = any(a.get("negated") is not None for a in _acts)
         if not _negated_known and any(
-            w in _UNRESOLVED_NEGATION_LEMMAS
-            for w in _content_words(field.raw_text, keep_short=True)
+            w in _UNRESOLVED_NEGATION_LEMMAS for w in _content_words(field.raw_text, keep_short=True)
         ):
             return "PARTIAL"
     return "RESOLVED"
 
 
-def resolve_target_with_candidates(
-    field: IntentSemanticField, scene_context: Any
-) -> tuple[str, list]:
+def resolve_target_with_candidates(field: IntentSemanticField, scene_context: Any) -> tuple[str, list]:
     """S-UE Блок 2 (поеапный GO): запрет молчаливого автопика цели.
 
     Эмпирика baseline: REF-01/NEG-05 — LLM сама возвращала id ОДНОГО из
@@ -289,12 +287,8 @@ def resolve_player_intent(
     """
     # S118 FIX: LLM Slow-Path вынесен в GameLoop. Ядро только потребляет готовое поле.
     if semantic_field is None:
-        logger.debug(
-            "[ARCHAE-FASTPATH-FALLBACK] semantic_field is None → UNCERTAIN"
-        )
-        semantic_field = IntentSemanticField(
-            raw_text=raw_action, action=ActionType.UNCERTAIN
-        )
+        logger.debug("[ARCHAE-FASTPATH-FALLBACK] semantic_field is None → UNCERTAIN")
+        semantic_field = IntentSemanticField(raw_text=raw_action, action=ActionType.UNCERTAIN)
     else:
         logger.debug(
             f"[ARCHAE-FASTPATH] raw={raw_action!r} result={semantic_field.action_type} target_ref={semantic_field.target_reference}"
@@ -303,9 +297,7 @@ def resolve_player_intent(
     # 2. Слой 2: Разрешение цели (Строка -> ID). S-UE Блок 2: обёртка с
     # кандидатами — молчаливый автопик при неточном матче >1 запрещён
     # (baseline REF-01); readiness по кандидатам — Блок 3.
-    resolved_target_id, _ref_candidates = resolve_target_with_candidates(
-        semantic_field, scene_context
-    )
+    resolved_target_id, _ref_candidates = resolve_target_with_candidates(semantic_field, scene_context)
     # ADR-O-315: Разрешение актора (Кто действует?)
     resolved_actor_id = _resolve_actor_reference(semantic_field, scene_context)
 
@@ -345,9 +337,7 @@ def resolve_player_intent(
         reference_candidates=(_ref_candidates if _ref_candidates else None),  # noqa: ENIGMA001
         # S-UE Блок 3: readiness — после резолва (поправка №1); гейт
         # исполнения в publish_classified_player_event
-        intent_readiness=compute_intent_readiness(
-            semantic_field, resolved_target_id, _ref_candidates
-        ),
+        intent_readiness=compute_intent_readiness(semantic_field, resolved_target_id, _ref_candidates),
     )
 
     intent = IntentDTO(
@@ -372,14 +362,8 @@ def resolve_player_intent(
 
     # ADR-O-315: Сборка готового контракта движения для Симуляции
     _movement_req = None
-    if (
-        semantic_field.action_type == ActionType.MOVE
-        and resolved_actor_id
-        and resolved_target_id
-    ):
-        _movement_req = MovementRequest(
-            actor_id=resolved_actor_id, target_actor_id=resolved_target_id
-        )
+    if semantic_field.action_type == ActionType.MOVE and resolved_actor_id and resolved_target_id:
+        _movement_req = MovementRequest(actor_id=resolved_actor_id, target_actor_id=resolved_target_id)
 
     return IntentResolution(
         original_intent=intent,
@@ -407,13 +391,12 @@ def build_intent_projection(
     projection: Dict[str, Any] = {
         "action": intent.action,
         "target": intent.target,
+        "target_id": intent.target,
     }
     if params.semantic_action is not None:
         projection["semantic_action"] = params.semantic_action
     if params.target_reference is not None:
         projection["target_reference"] = params.target_reference
-    if params.target_id is not None:
-        projection["target_id"] = params.target_id
     if params.actor_id is not None:
         projection["actor_id"] = params.actor_id
     # UnderstandingSchema: новые поля проекции → SP-метрика измерима с B-блока
@@ -437,6 +420,43 @@ def build_intent_projection(
             "polarity": params.proposition_polarity,
         }
     return projection
+
+
+def project_intent_to_hub_event(
+    hub_event: Any,
+    resolution: Optional[IntentResolution],
+) -> Any:
+    """Project the resolved player intent onto the NPC decision event.
+
+    The intent's top-level target is canonical; parameters.target_id is
+    deprecated and must not be used as a fallback.
+    """
+    if hub_event is None or resolution is None:
+        return hub_event
+
+    from dataclasses import replace
+
+    intent = resolution.original_intent
+    params = intent.parameters
+    target_id = intent.target.strip() or None
+    semantic_action = params.semantic_action
+    payload = dict(getattr(hub_event, "payload", {}) or {})
+    payload.pop("target_id", None)
+    payload.pop("semantic_action", None)
+    payload.pop("target_reference", None)
+    if target_id:
+        payload["target_id"] = target_id
+    if semantic_action:
+        payload["semantic_action"] = semantic_action
+    if params.target_reference:
+        payload["target_reference"] = params.target_reference.lower()
+
+    return replace(
+        hub_event,
+        target_id=target_id,
+        semantic_action=semantic_action,
+        payload=payload,
+    )
 
 
 # --- LEGACY PUBLISHERS (оставлены для совместимости) ---
@@ -487,9 +507,7 @@ def publish_player_speech(
         if semantic_action:
             _payload["semantic_action"] = semantic_action
         if target_reference:
-            _payload["target_reference"] = (
-                target_reference.lower()
-            )  # Нормализация для маппинга
+            _payload["target_reference"] = target_reference.lower()  # Нормализация для маппинга
 
         get_event_bus().publish(
             EventDTO.create(
@@ -563,24 +581,20 @@ def publish_classified_player_event(
     _social_pressure = 0.0
     _semantic_acts: list = []
     _params = None  # S-UE Блок 3: гейт читает readiness — гвард отсутствия DTO (UnboundLocal-урок)
-    if (
-        hasattr(shared_context, "intent_resolution")
-        and shared_context.intent_resolution
-    ):
+    if hasattr(shared_context, "intent_resolution") and shared_context.intent_resolution:
         _params = shared_context.intent_resolution.original_intent.parameters
         if isinstance(_params, IntentParametersDTO):
             _semantic_action = _params.semantic_action
             _target_reference = _params.target_reference
-            _target_id = _params.target_id  # Извлекаем ID Слоя 2
             _physical_force = _params.physical_force
             _social_pressure = _params.social_pressure
             # Consumption v0: акты едут с событием (копии, не живые ссылки).
             _semantic_acts = [dict(a) for a in (_params.semantic_acts or [])]
         else:
-            logger.error(
-                f"[SEMANTIC_BRIDGE] Legacy dict parameters detected: {_params}"
-            )
+            logger.error(f"[SEMANTIC_BRIDGE] Legacy dict parameters detected: {_params}")
 
+        _original_intent = shared_context.intent_resolution.original_intent
+        _target_id = _original_intent.target
         if not _semantic_action:
             logger.debug("[SEMANTIC_BRIDGE] No semantic_action in DTO")
         else:
@@ -603,9 +617,7 @@ def publish_classified_player_event(
         }
         _ic_override = _IC_PRIORITY_MAP.get(_semantic_action)
         if _ic_override and _ic_override != _raw_type:
-            logger.debug(
-                f"[ADR-091] IntentCompressor override: DM_Router='{_raw_type}' → IC='{_ic_override}'"
-            )
+            logger.debug(f"[ADR-091] IntentCompressor override: DM_Router='{_raw_type}' → IC='{_ic_override}'")
             _raw_type = _ic_override
             _resolved_type = _evt_map.get(_raw_type.lower(), EventType.PLAYER_SPOKE)
             _evt_radius = action_perception_radius(_raw_type)
@@ -617,9 +629,12 @@ def publish_classified_player_event(
     # ADR-091 IC-override: даже переклассифицированный 'attack' не
     # становится PLAYER_ATTACKED при не-RESOLVED. Readiness вычислена в
     # resolve_player_intent (после резолва ссылок).
-    _readiness = getattr(_params, "intent_readiness", None) if (  # noqa: ENIGMA001,ENIGMA002
-        _params is not None and isinstance(_params, IntentParametersDTO)
-    ) else None
+    _readiness = (
+        getattr(_params, "intent_readiness", None)
+        # noqa: ENIGMA001,ENIGMA002
+        if (_params is not None and isinstance(_params, IntentParametersDTO))
+        else None
+    )
     if _readiness and _readiness != "RESOLVED" and _resolved_type != EventType.PLAYER_SPOKE:
         logger.warning(
             f"[UE-GATE] intent_readiness={_readiness}: '{_raw_type}' деградирует до PLAYER_SPOKE "
@@ -632,7 +647,7 @@ def publish_classified_player_event(
     _payload = {
         "location": location,
         "campaign_id": campaign_id,
-        "target_id": shared_context.player_target_id,
+        "target_id": _target_id or "",
         "raw_input": raw_input,
         "action_type": _raw_type,
         "intensity": _intensity,
@@ -649,10 +664,6 @@ def publish_classified_player_event(
     # Потребитель: PlayerSpeechActSubscriber (SELF_INTRODUCTION → Claim).
     if _semantic_acts:
         _payload["semantic_acts"] = _semantic_acts
-    # Перехват ID цели из Слоя 2, если старый контекст пуст
-    if _target_id and not _payload.get("target_id"):
-        _payload["target_id"] = _target_id
-
     # G3-C FIX (кардинальность): PLAYER_ATTACKED публикует ЕДИНСТВЕННЫЙ
     # владелец — INPUT_MERGE боевая труба (tick_orchestrator, rng_seed
     # детерминизм F3-1, payload дополнен semantic_action). Здесь публикация

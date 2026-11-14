@@ -52,9 +52,9 @@ def test_fastpath_submit_tick_is_scene_tick():
     sched = TaskScheduler()
     sched.execute_pending(_scene(42), "test_campaign")
     assert len(sched._task_outbox) == 1, f"ожидался 1 артефакт в outbox: {sched._task_outbox}"
-    assert sched._task_outbox[0].submit_tick == 42, (
-        f"fast-path submit_tick == 0 (дефект S271 воспроизведён): {sched._task_outbox[0].submit_tick}"
-    )
+    assert (
+        sched._task_outbox[0].submit_tick == 42
+    ), f"fast-path submit_tick == 0 (дефект S271 воспроизведён): {sched._task_outbox[0].submit_tick}"
 
 
 def test_fastpath_event_tick_stamped_on_drain():
@@ -81,6 +81,62 @@ def test_fastpath_event_tick_stamped_on_drain():
     for ev in captured:
         _payload = getattr(ev, "payload", None)
         assert isinstance(_payload, dict), f"событие без dict-payload: {type(_payload)}"
-        assert _payload.get("event_tick") == 42, (
-            f"event_tick != 42 после фикса S271: {_payload.get('event_tick')}"
-        )
+        assert _payload.get("event_tick") == 42, f"event_tick != 42 после фикса S271: {_payload.get('event_tick')}"
+
+
+def test_spread_rumor_with_proposition_uses_worker_pool(monkeypatch):
+    sched = TaskScheduler()
+    scene = _scene(43)
+    payload = scene["pending_tasks"][0]["payload"]
+    payload["intent_type"] = "spread_rumor"
+    payload["proposition"] = {"claim": "test"}
+
+    direct_calls = []
+
+    def _direct_execution(*args, **kwargs):
+        direct_calls.append((args, kwargs))
+
+    class _PoolSpy:
+        def __init__(self):
+            self.calls = []
+
+        def submit(self, fn, *args, **kwargs):
+            self.calls.append((fn, args, kwargs))
+
+    pool = _PoolSpy()
+    monkeypatch.setattr(sched, "_process_tasks_async", _direct_execution)
+    sched._executor_pool = pool
+
+    sched.execute_pending(scene, "test_campaign")
+
+    assert not direct_calls, "LLM-задача ошибочно исполнилась синхронно"
+    assert pool.calls, "Задача с proposition не была отправлена в worker pool"
+
+
+def test_spread_rumor_without_proposition_keeps_fastpath(monkeypatch):
+    sched = TaskScheduler()
+    scene = _scene(44)
+    payload = scene["pending_tasks"][0]["payload"]
+    payload["intent_type"] = "spread_rumor"
+    payload["proposition"] = None
+
+    direct_calls = []
+
+    def _direct_execution(*args, **kwargs):
+        direct_calls.append((args, kwargs))
+
+    class _PoolSpy:
+        def __init__(self):
+            self.calls = []
+
+        def submit(self, fn, *args, **kwargs):
+            self.calls.append((fn, args, kwargs))
+
+    pool = _PoolSpy()
+    monkeypatch.setattr(sched, "_process_tasks_async", _direct_execution)
+    sched._executor_pool = pool
+
+    sched.execute_pending(scene, "test_campaign")
+
+    assert direct_calls, "Детерминированная задача потеряла fast-path"
+    assert not pool.calls, "Детерминированная задача ошибочно отправлена в worker pool"

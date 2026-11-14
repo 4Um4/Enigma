@@ -17,6 +17,7 @@ import logging
 import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union, cast
+
 from app.domain.epistemology import Predicate
 
 if TYPE_CHECKING:
@@ -66,8 +67,8 @@ from app.services.economy.opportunity_engine import (
     OpportunityEngine,
     OpportunityResult,
 )
-from app.services.events.event_types import EventType
 from app.services.events.claim_event_subscriber import HEARING_RADIUS
+from app.services.events.event_types import EventType
 from app.services.npc.decision.risk import perceive_risk
 from app.services.npc.decision.social_deltas import SocialDeltaEngine
 
@@ -265,9 +266,7 @@ class DecisionHub:
 
         self._social_delta_engine = SocialDeltaEngine()
         self._last_redirect = 0.0  # инициализация scoring component
-        self._last_dominant_drive = (
-            "neutral"  # redirect direction: control/fear/neutral
-        )
+        self._last_dominant_drive = "neutral"  # redirect direction: control/fear/neutral
 
     # Вербальные интенты — для них строится CommunicationIntent (Устав 2.2)
     _VERBAL_INTENTS: Set[str] = {
@@ -315,7 +314,7 @@ class DecisionHub:
         topic: Optional[str],
         emotion_value: str,
         scores: Optional[Dict[str, float]] = None,
-        epistemic_context: Optional[Any] = None, # S197: Для извлечения trigger_proposition
+        epistemic_context: Optional[Any] = None,  # S197: Для извлечения trigger_proposition
     ) -> Optional[CommunicationIntent]:
         """Создаёт CommunicationIntent для вербального intent (Устав 2.2).
 
@@ -326,6 +325,7 @@ class DecisionHub:
         # observer / источник события / объект убеждений — запрещено ТОЛЬКО
         # авторство. Ось контроля — ControlSource, не строковый гард.
         from app.domain.control_source import ControlSource, resolve_control_source
+
         if resolve_control_source(npc_id) is not ControlSource.NPC_DECISION:
             logger.info(
                 f"[INV-PLAYER-AUTHORSHIP] speaker={npc_id!r}: авторский "
@@ -338,11 +338,7 @@ class DecisionHub:
         # Тема: из фазы 4 или фоллбэк по intent
         _topic = topic or intent_value
         # Трассировка скоринга: показываем топ-3 интента и их финальный вес
-        _top_intents = (
-            sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
-            if scores is not None
-            else []
-        )
+        _top_intents = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3] if scores is not None else []
         logger.info(
             f"[TRACE][DECISION_SCORE] npc={npc_id} winner={intent_value} "
             f"top3={[(i, round(s, 2)) for i, s in _top_intents]}"
@@ -358,8 +354,9 @@ class DecisionHub:
         # scoring (to_modifiers) и CognitionContextResolver (cog_block) —
         # развязка только коммуникации, не знания.
         from app.domain.intent_profiles import produces_claim
+
         if produces_claim(intent_value):
-            if epistemic_context and hasattr(epistemic_context, 'trigger_proposition'):
+            if epistemic_context and hasattr(epistemic_context, "trigger_proposition"):
                 _proposition = epistemic_context.trigger_proposition
             # COGNITIVE-CONTINUITY-01: report-пропозиция — фолбэк, trigger (угроза) приоритетен.
             if _proposition is None and epistemic_context is not None:
@@ -379,6 +376,7 @@ class DecisionHub:
         # Расширение существующего jsonl_log mechanism (logging_tools.py:14).
         try:
             from app.services.logging_tools import jsonl_log
+
             _trig_prop = getattr(epistemic_context, "trigger_proposition", None) if epistemic_context else None
             _rep_prop = getattr(epistemic_context, "report_proposition", None) if epistemic_context else None
             _trig = _trig_prop is not None
@@ -408,19 +406,21 @@ class DecisionHub:
                     _reason = "no_compatible_proposition"
                 else:
                     _reason = "no_proposition"
-            jsonl_log({
-                "level": "INFO",
-                "agent": "proposition_selection",
-                "npc_id": npc_id,
-                "intent_type": intent_value,
-                "target_id": intent_target,
-                "trigger_available": _trig,
-                "report_available": _rep,
-                "claims_about_self_count": _claims_n,
-                "selected_source": _src,
-                "fallback_reason": _reason,
-                "proposition_key": _pkey,
-            })
+            jsonl_log(
+                {
+                    "level": "INFO",
+                    "agent": "proposition_selection",
+                    "npc_id": npc_id,
+                    "intent_type": intent_value,
+                    "target_id": intent_target,
+                    "trigger_available": _trig,
+                    "report_available": _rep,
+                    "claims_about_self_count": _claims_n,
+                    "selected_source": _src,
+                    "fallback_reason": _reason,
+                    "proposition_key": _pkey,
+                }
+            )
         except Exception:
             logger.debug("[OBS] proposition_selection observability skipped (non-critical)")
 
@@ -431,8 +431,8 @@ class DecisionHub:
             intent_type=intent_value,
             emotional_state=emotion_value,
             exposure_level=ExposureLevel.from_semantic("normal"),
-            target_id=intent_target, # V8-MEM-2 FIX: Проброс target_id для Attack Windup
-            proposition=_proposition, # S197
+            target_id=intent_target,  # V8-MEM-2 FIX: Проброс target_id для Attack Windup
+            proposition=_proposition,  # S197
         )
 
     @staticmethod
@@ -455,11 +455,17 @@ class DecisionHub:
         R2: need_modifiers — давление потребностей (intimacy/sexual) искривляет utility,
         не приказывает (принцип 4: NeedLevel ≠ влюблённость).
         """
-        result = dict(scores) # Создаём копию, чтобы не мутировать вход
+        result = dict(scores)  # Создаём копию, чтобы не мутировать вход
         all_mods = [
-            eco_modifiers, social_modifiers, reputation_modifiers,
-            drive_modifiers, contract_modifiers, npc_memory_modifiers,
-            epistemic_modifiers, causal_modifiers, cognition_modifiers,
+            eco_modifiers,
+            social_modifiers,
+            reputation_modifiers,
+            drive_modifiers,
+            contract_modifiers,
+            npc_memory_modifiers,
+            epistemic_modifiers,
+            causal_modifiers,
+            cognition_modifiers,
             need_modifiers,
         ]
         for mod_dict in all_mods:
@@ -540,16 +546,12 @@ class DecisionHub:
         # OpportunityEngine требует контекст и строку will_state, а не весь state
         opportunity = OpportunityEngine().calculate(
             ctx=opportunity_ctx or OpportunityContext(),
-            will_state=state.will_state.value
-            if hasattr(state.will_state, "value")
-            else str(state.will_state),
+            will_state=state.will_state.value if hasattr(state.will_state, "value") else str(state.will_state),
         )
 
         # L1 черты: только из NPCIdentityL1
         active_traits: Dict[str, float] = identity.active_traits if identity else {}
-        possible = self._get_possible_intents(
-            state, personality, event, opportunity, effective_drives=effective_drives
-        )
+        possible = self._get_possible_intents(state, personality, event, opportunity, effective_drives=effective_drives)
         scores, components_trace = self._score_all(
             state,
             personality,
@@ -576,11 +578,7 @@ class DecisionHub:
         )
         _expected_intent = action_to_intent(_sa_pop)
 
-        if (
-            _expected_intent == Intent.APPROACH.value
-            and _tid_pop == state.npc_id
-            and Intent.APPROACH.value in scores
-        ):
+        if _expected_intent == Intent.APPROACH.value and _tid_pop == state.npc_id and Intent.APPROACH.value in scores:
             _fear_raw = self._get_rel_value(state, "player", "fear")
             # L3-P2: Воля определяется текущей проекцией, не архетипом
             _will_pop = effective_drives.get("control", 0.5)
@@ -629,9 +627,7 @@ class DecisionHub:
         # env-гейт по канону COGNITION_DIAG (Часть VIII.5-прецедент).
         import os as _os_util  # noqa: PLC0415 — диагностика, ленивый импорт
 
-        if _os_util.environ.get("COGNITION_DIAG", "").strip().lower() in (
-            "1", "true", "yes"
-        ):
+        if _os_util.environ.get("COGNITION_DIAG", "").strip().lower() in ("1", "true", "yes"):
             _post_top = sorted(scores.items(), key=lambda kv: -kv[1])[:5]
             _winner = _post_top[0][0] if _post_top else "?"
             print(
@@ -663,12 +659,15 @@ class DecisionHub:
             # 0 < f < 1 → множитель utility ("существенно затруднено", chronic
             # cap; SOMATIC_VETO/ActiveCommitment оживают по замыслу своих ADR).
             import os as _os_r2  # noqa: PLC0415 — DIAG-зонд (Часть VIII.5)
+
             _r2_diag = _os_r2.environ.get("R2_DIAG", "").strip().lower() in ("1", "true")
             for intent_str, feasibility in decision_ctx.compression.constraints.items():
                 _k = intent_str.lower()
                 if _r2_diag and (_k == "trade" or feasibility <= 0.0):
-                    print(f"[R2_DIAG] npc={state.npc_id} c={intent_str}:{feasibility} "
-                          f"in_scores={_k in scores} score={scores.get(_k)}")
+                    print(
+                        f"[R2_DIAG] npc={state.npc_id} c={intent_str}:{feasibility} "
+                        f"in_scores={_k in scores} score={scores.get(_k)}"
+                    )
                 if _k not in scores:
                     continue
                 if feasibility <= 0.0:
@@ -694,9 +693,7 @@ class DecisionHub:
                 # Подавление инициативы бьет по всем активным действиям, кроме пассивных (OBSERVE, FLEE)
                 for active_intent in ["ATTACK", "INTIMIDATE", "APPROACH", "TALK"]:
                     if active_intent in scores:
-                        scores[active_intent] = round(
-                            scores[active_intent] * init_sup, 4
-                        )
+                        scores[active_intent] = round(scores[active_intent] * init_sup, 4)
 
             if deformation.escape_salience > 0:
                 escape_amp = 1.0 + deformation.escape_salience
@@ -743,9 +740,7 @@ class DecisionHub:
             scores[Intent.FLEE] = round(scores.get(Intent.FLEE, 0.0) + _threat_mod, 4)
             # Высокая угроза → отчаянная атака возможна
             if _threat_acc.total > 50:
-                scores[Intent.ATTACK] = round(
-                    scores.get(Intent.ATTACK, 0.0) + (_threat_acc.total - 50) / 100.0, 4
-                )
+                scores[Intent.ATTACK] = round(scores.get(Intent.ATTACK, 0.0) + (_threat_acc.total - 50) / 100.0, 4)
 
         # Wounds → штраф к эффективности (шрамы болят)
         if _wounds:
@@ -770,26 +765,17 @@ class DecisionHub:
             if _is_target and Intent.ATTACK.value in scores:
                 _self_defense = 1.0 + event.intensity
                 _attack_score_pre = scores.get(Intent.ATTACK.value, 0.0)
-                scores[Intent.ATTACK.value] = round(
-                    _attack_score_pre * _self_defense, 4
-                )
+                scores[Intent.ATTACK.value] = round(_attack_score_pre * _self_defense, 4)
 
                 # Ослабляем FLEE при прямой атаке ТОЛЬКО если ATTACK действительно валиден.
                 # Иначе fear_early_exit убил ATTACK, и штраф к FLEE парализует NPC (он не бьёт и не бежит).
-                if (
-                    _attack_score_pre > 0.0
-                    and Intent.FLEE.value in scores
-                    and scores.get(Intent.FLEE.value, 0.0) > 0
-                ):
-                    scores[Intent.FLEE.value] = round(
-                        scores.get(Intent.FLEE.value, 0.0) * 0.6, 4
-                    )
+                if _attack_score_pre > 0.0 and Intent.FLEE.value in scores and scores.get(Intent.FLEE.value, 0.0) > 0:
+                    scores[Intent.FLEE.value] = round(scores.get(Intent.FLEE.value, 0.0) * 0.6, 4)
             elif not _is_target:
                 # Свидетель насилия: бегство предпочтительнее атаки
                 if Intent.FLEE.value in scores:
                     scores[Intent.FLEE.value] = round(
-                        scores.get(Intent.FLEE.value, 0.0)
-                        * (1.0 + event.intensity * 0.3),
+                        scores.get(Intent.FLEE.value, 0.0) * (1.0 + event.intensity * 0.3),
                         4,
                     )
 
@@ -813,30 +799,22 @@ class DecisionHub:
 
         if current_intent_str_pre and current_intent_str_pre in scores:
             # Бонус к текущему intent — инерция в пространстве score
-            scores[current_intent_str_pre] = round(
-                scores[current_intent_str_pre] + commitment * COMMITMENT_BONUS_K, 4
-            )
+            scores[current_intent_str_pre] = round(scores[current_intent_str_pre] + commitment * COMMITMENT_BONUS_K, 4)
             # Switching cost — вычитается из всех остальных
             # ПУТЬ А: Проброс L3 в инерцию личности
-            cost = self._switching_cost(
-                state, personality, commitment, effective_drives=effective_drives
-            )
+            cost = self._switching_cost(state, personality, commitment, effective_drives=effective_drives)
             for k in scores:
                 if k != current_intent_str_pre:
                     scores[k] = round(scores[k] - cost, 4)
 
-        best_candidate_str, best_score = max(
-            scores.items(), key=lambda x: x[1]
-        )  # (str, float)
+        best_candidate_str, best_score = max(scores.items(), key=lambda x: x[1])  # (str, float)
 
         # ── Commitment Model: порог смены intent ──
         threshold = self._commitment_threshold(commitment)
 
         # Текущий score (если intent есть и он в кандидатах)
         current_intent_str = state.intent.value if state.intent else None  # noqa: ENIGMA001
-        current_score = (
-            scores.get(current_intent_str, 0.0) if current_intent_str else 0.0
-        )
+        current_score = scores.get(current_intent_str, 0.0) if current_intent_str else 0.0
         pressure = best_score - current_score  # >0 значит новый лучше
 
         # Reactive urgency: высокая тревога → принудительная смена
@@ -869,9 +847,7 @@ class DecisionHub:
                 # Локальный импорт (прецедент файла: math, PerceptualKernel).
                 import os as _os_n18  # noqa: PLC0415 — экспериментальный гейт
 
-                _n18 = _os_n18.environ.get("N18_EXP", "").strip().lower() in (
-                    "1", "true", "yes"
-                )
+                _n18 = _os_n18.environ.get("N18_EXP", "").strip().lower() in ("1", "true", "yes")
                 if _n18 and "observe" in scores:
                     _cog_obs = float((cognition_modifiers or {}).get("observe", 0.0))
                     if _cog_obs > 0.0:
@@ -887,9 +863,7 @@ class DecisionHub:
 
         # 7.4: WHY-лог. Чтение capture-based трассировки (чистая функция).
         _why_comps = components_trace.get(best_candidate_str, {})
-        _why_fmt = {
-            k: round(v, 3) for k, v in _why_comps.items() if isinstance(v, (int, float))
-        }
+        _why_fmt = {k: round(v, 3) for k, v in _why_comps.items() if isinstance(v, (int, float))}
         _threat_total = _threat_acc.total if _threat_acc else 0.0
 
         logger.debug(
@@ -932,7 +906,7 @@ class DecisionHub:
             spatial_query=spatial_query,
             all_npc_ids=all_npc_ids or [],
             pending_response_target=pending_response_target,
-            epistemic_context=epistemic_context, # S197: Передаём для выбора цели убеждения
+            epistemic_context=epistemic_context,  # S197: Передаём для выбора цели убеждения
         )
         # ADR-O-410 (G3 Этап 2): объектная цель воли. STEAL без цели
         # деградирует в OBSERVE (BUG-01), а _resolve_target отдаёт
@@ -958,9 +932,7 @@ class DecisionHub:
             Intent.CALL_FOR_HELP,
             Intent.REQUEST_SERVICE,
         ):
-            logger.info(
-                f"[INTENT_DEGRADE] {state.npc_id}: {best_intent.value} без target → OBSERVE"
-            )
+            logger.info(f"[INTENT_DEGRADE] {state.npc_id}: {best_intent.value} без target → OBSERVE")
             best_intent = Intent.OBSERVE
         deltas = self._compute_deltas(state, personality, event, best_intent)
         # [D-A02 / A2] pressure-дельта (special field, по образцу intent):
@@ -968,6 +940,7 @@ class DecisionHub:
         # _apply_deltas → state.pressure_accumulator.
         if _pressure_updates:
             from app.models.state_delta import StateDeltas
+
             deltas = list(deltas or []) + [
                 StateDeltas(
                     npc_id=state.npc_id,
@@ -979,11 +952,7 @@ class DecisionHub:
 
         # В scores_trace попадают ТОЛЬКО числа для калибровки R4.2.
         # Строки (причины срабатывания) отсекаются.
-        opp_trace = {
-            f"opp_{k}": v
-            for k, v in opportunity.score_trace.items()
-            if isinstance(v, (int, float))
-        }
+        opp_trace = {f"opp_{k}": v for k, v in opportunity.score_trace.items() if isinstance(v, (int, float))}
 
         logger.info(
             f"[DECISION_HUB] {state.npc_id}: intent={best_intent} score={round(best_score, 3)} event={event.event_type}"
@@ -1004,16 +973,12 @@ class DecisionHub:
         try:
             _communication = self._build_communication(
                 npc_id=state.npc_id,
-                intent_value=best_intent
-                if isinstance(best_intent, str)
-                else best_intent.value,
+                intent_value=best_intent if isinstance(best_intent, str) else best_intent.value,
                 intent_target=str(intent_target) if intent_target else "all",
                 topic=topic,
-                emotion_value=state.emotion.value
-                if hasattr(state.emotion, "value")
-                else str(state.emotion),
+                emotion_value=state.emotion.value if hasattr(state.emotion, "value") else str(state.emotion),
                 scores=scores if scores is not None else {},
-                epistemic_context=epistemic_context, # S197
+                epistemic_context=epistemic_context,  # S197
             )
         except Exception as _comm_err:
             logger.exception(f"[BUILD_COMM_FAILED] npc={state.npc_id} intent={best_intent}: {_comm_err}")
@@ -1056,9 +1021,7 @@ class DecisionHub:
         # Проактивные интенты — ТОЛЬКО при world_tick, не при реакциях на игрока
         _is_proactive_tick = event.event_type == EventType.WORLD_TICK
 
-        all_intents = [
-            i.value for i in Intent if i not in (Intent.IDLE, Intent.EXPLAIN)
-        ]
+        all_intents = [i.value for i in Intent if i not in (Intent.IDLE, Intent.EXPLAIN)]
 
         filtered = []
         for intent in all_intents:
@@ -1116,11 +1079,13 @@ class DecisionHub:
             # Если L3 нет — это pipeline fault, обрабатываемый на уровне выше.
             if not effective_drives:
                 from app.errors import SimulationIntegrityError
+
                 raise SimulationIntegrityError(
                     invariant_id="INV-L3-EPHEMERAL",
                     message=f"DecisionHub: effective_drives missing for {state.npc_id}. L3 pipeline broken.",
                     suspect_files=["backend/app/services/npc/decision_hub.py:900"],
-                    file=__file__, line=900,
+                    file=__file__,
+                    line=900,
                 )
             drives = dict(effective_drives.values)
             fear = drives.get("fear", 0.25)
@@ -1155,9 +1120,7 @@ class DecisionHub:
         possible: List[str],
         opportunity: OpportunityResult,
         active_traits: Optional[Dict[str, float]] = None,  # L1 черты, опционально
-        decision_ctx: Optional[
-            "DecisionContext"
-        ] = None,  # S74: Affective Field Propagation
+        decision_ctx: Optional["DecisionContext"] = None,  # S74: Affective Field Propagation
         effective_drives: Optional["EffectiveDrives"] = None,  # L3-P2: проекция драйвов
     ) -> Tuple[Dict[str, float], Dict[str, Any]]:
         """
@@ -1165,9 +1128,7 @@ class DecisionHub:
         Early exit: трусливый NPC (fear > 0.6) не рассматривает агрессию.
         """
         scores: Dict[str, float] = {}
-        components_trace: Dict[
-            str, Dict[str, Any]
-        ] = {}  # 7.4: Чистая трассировка без side-channel
+        components_trace: Dict[str, Dict[str, Any]] = {}  # 7.4: Чистая трассировка без side-channel
         inertia = self._intent_inertia(state)
         # L3-P2: Страх определяется текущей проекцией, не архетипом
         fear_drive = effective_drives.get("fear", 0.0) if effective_drives else 0.0
@@ -1370,12 +1331,8 @@ class DecisionHub:
         event: EventContext,
         opportunity: OpportunityResult,
         active_traits: Optional[Dict[str, float]] = None,  # L1 черты из NPCIdentityL1
-        decision_ctx: Optional[
-            "DecisionContext"
-        ] = None,  # S74: Affective Field Propagation
-        effective_drives: Optional[
-            "EffectiveDrives"
-        ] = None,  # ПУТЬ А: L3 проекция драйвов
+        decision_ctx: Optional["DecisionContext"] = None,  # S74: Affective Field Propagation
+        effective_drives: Optional["EffectiveDrives"] = None,  # ПУТЬ А: L3 проекция драйвов
     ) -> Dict[str, float]:
         """
         Возвращает словарь компонентов score — для полного trace в R4.2.
@@ -1409,9 +1366,7 @@ class DecisionHub:
         # ADR-067: Приказ (MOVE) = single-target pressure. Свидетели не должны лезть в объятия.
         if intent == Intent.APPROACH.value:
             _payload = getattr(event, "payload", {})  # noqa: ENIGMA002
-            _is_directive = (
-                isinstance(_payload, dict) and _payload.get("semantic_action") == "MOVE"
-            )
+            _is_directive = isinstance(_payload, dict) and _payload.get("semantic_action") == "MOVE"
             _is_target = getattr(event, "target_id", None) == state.npc_id  # noqa: ENIGMA002
             if _is_directive and not _is_target:
                 rel_mod -= 0.8  # Жёсткий штраф для свидетелей директивы
@@ -1466,23 +1421,17 @@ class DecisionHub:
             else:
                 risk_penalty = round((-fear * risk * 1.25 - 0.6), 4)
         else:
-            risk_penalty = round(
-                -fear * risk * 0.3, 4
-            )  # лёгкий штраф для всего остального
+            risk_penalty = round(-fear * risk * 0.3, 4)  # лёгкий штраф для всего остального
 
         # Делает скрытое действие конкурентоспособным без ломания баланса формулы.
         # Буст даётся только если интент разблокирован (R6.3).
-        opportunity_mod = (
-            opportunity.score if intent in opportunity.unlocked_intents else 0.0
-        )
+        opportunity_mod = opportunity.score if intent in opportunity.unlocked_intents else 0.0
 
         # S209 (Vertical Slice): вес STEAL — archetype-weighted, не npc_id-хардкод.
         # Эмерджентная затравка: красть МОЖЕТ каждый разблокированный моментом,
         # РЕШАЕТ — натура. Вор использует весь opportunity-буст; прочие — почти нет.
         if intent == Intent.STEAL.value and opportunity_mod > 0.0:
-            opportunity_mod = round(
-                opportunity_mod * self._steal_affinity(state, personality), 4
-            )
+            opportunity_mod = round(opportunity_mod * self._steal_affinity(state, personality), 4)
 
         # Social battery modifier (предшественник Homeostasis)
         social_mod = 0.0  # ADR-O-312: social_satiation deprecated, EMA handles this via behavior_modifiers
@@ -1658,9 +1607,7 @@ class DecisionHub:
                 )
                 if _ptid:
                     _effective_tid = _ptid
-            is_targeted = _effective_tid is None or (
-                state and _effective_tid == state.npc_id
-            )
+            is_targeted = _effective_tid is None or (state and _effective_tid == state.npc_id)
             if is_targeted:
                 if intent in (Intent.TALK.value, Intent.OBSERVE.value):
                     base += _desire * 2.0  # desire=0.25 → +0.5
@@ -1691,7 +1638,7 @@ class DecisionHub:
                 if getattr(state, "life_project_state", "ACTIVE") in ("ACTIVE", "COMMITTED", "COMPLETED"):
                     _project = getattr(state, "life_project", "survival")
                 else:
-                    _project = "survival" # Нейтральный проект при кризисе
+                    _project = "survival"  # Нейтральный проект при кризисе
                 _direction_intents = {
                     "family_builder": ["seek_ally", "help", "call_for_help", "talk"],
                     "wealth_creator": ["offer_job", "request_service", "trade"],
@@ -1799,9 +1746,7 @@ class DecisionHub:
             redirect = _energy * _control_dev * 1.5 - _energy * _fear_dev * 0.3
         elif intent == Intent.OBSERVE.value:
             # Значимость и страх усиливают бдительность
-            redirect = (
-                _energy * (_significance_dev + 0.25) * 0.5 + _energy * _fear_dev * 0.2
-            )
+            redirect = _energy * (_significance_dev + 0.25) * 0.5 + _energy * _fear_dev * 0.2
         elif intent == Intent.WARN.value:
             # Значимость = социальное предупреждение об угрозе
             redirect = _energy * _significance_dev * 0.7 + _energy * _fear_dev * 0.1
@@ -1819,9 +1764,7 @@ class DecisionHub:
         # redirect и победивший драйв передаются наверх для формирования Нарратива
         self._last_redirect = redirect
         self._last_dominant_drive = (
-            "control"
-            if redirect > 0 and _control_dev > _fear_dev
-            else ("fear" if redirect < 0 else "neutral")
+            "control" if redirect > 0 and _control_dev > _fear_dev else ("fear" if redirect < 0 else "neutral")
         )
 
         return _field_mod  # E0-PILOT-10 FIX: redirect — отдельный компонент (components["redirect"]), не в emotion (double-count fix)
@@ -1924,9 +1867,7 @@ class DecisionHub:
         ratio = min(state.intent_duration / INTENT_INERTIA_MAX_TICKS, 1.0)
 
         # Decay при отсутствии прогресса — снижает commitment
-        effective_stall = state.intent_duration - min(
-            state.intent_progress_ticks, state.intent_duration
-        )
+        effective_stall = state.intent_duration - min(state.intent_progress_ticks, state.intent_duration)
         if effective_stall > INTENT_SATURATION_TICKS:
             excess = effective_stall - INTENT_SATURATION_TICKS
             decay = excess * INTENT_DECAY_RATE * 2  # агрессивнее чем у inertia bonus
@@ -2014,7 +1955,7 @@ class DecisionHub:
         spatial_query: Optional[Any] = None,
         all_npc_ids: Optional[List[str]] = None,
         pending_response_target: Optional[str] = None,
-        epistemic_context: Optional[Any] = None, # S197: Для целеполагания на основе убеждений
+        epistemic_context: Optional[Any] = None,  # S197: Для целеполагания на основе убеждений
     ) -> Optional[str]:
         """Определяет цель intent."""
         # S197: Epistemic Targeting. Если NPC warn и имеет trigger_proposition, целью является subject_id.
@@ -2033,6 +1974,7 @@ class DecisionHub:
                 # → фоллбэк на обычный резолв ниже (не None — WARN сохраняет
                 # шанс найти легальную цель).
                 from app.domain.sanity_membrane import can_address
+
                 if can_address(state.npc_id, str(_prop.subject_id)):
                     logger.info(
                         f"[EPISTEMIC_TARGET] npc={state.npc_id} intent=warn target={_prop.subject_id} "
@@ -2045,34 +1987,33 @@ class DecisionHub:
                     f"→ фоллбэк-резолв (шторм не-акторных задач пресечён на источнике)"
                 )
 
-
         # R4 (Autonomous Conversation): Целеполагание на автора реплики.
         # Приоритет: существующий subject_id (выше) → trigger_source_id / claim_source_id → fallback.
         if epistemic_context is not None:
             _epi_target = None
-            if intent == 'warn' and getattr(epistemic_context, 'trigger_source_id', None):
+            if intent == "warn" and getattr(epistemic_context, "trigger_source_id", None):
                 _epi_target = str(epistemic_context.trigger_source_id)
-            elif intent in ('talk', 'spread_rumor') and getattr(epistemic_context, 'claim_source_id', None):
+            elif intent == "talk" and getattr(epistemic_context, "claim_source_id", None):
                 _epi_target = str(epistemic_context.claim_source_id)
-            
+
             if _epi_target:
                 # Проверка допустимости адресата (ограничитель 2)
-                _is_valid = (_epi_target != state.npc_id)  # Не сам себе
+                _is_valid = _epi_target != state.npc_id  # Не сам себе
                 if _is_valid and all_npc_ids is not None and _epi_target not in all_npc_ids:
                     # Разрешаем 'player' как легальный адресат, даже если его нет в all_npc_ids
-                    if _epi_target != 'player':
+                    if _epi_target != "player":
                         _is_valid = False
-                
+
                 if _is_valid:
                     logger.info(
-                        f'[EPISTEMIC_TARGET] npc={state.npc_id} intent={intent} target={_epi_target} '
-                        f'(provenance: author of {intent} trigger/claim)'
+                        f"[EPISTEMIC_TARGET] npc={state.npc_id} intent={intent} target={_epi_target} "
+                        f"(provenance: author of {intent} trigger/claim)"
                     )
                     return _epi_target
                 else:
                     logger.debug(
-                        f'[EPISTEMIC_TARGET] npc={state.npc_id}: source_id={_epi_target!r} недопустим '
-                        f'(self или отсутствует в all_npc_ids) → фоллбэк-резолв'
+                        f"[EPISTEMIC_TARGET] npc={state.npc_id}: source_id={_epi_target!r} недопустим "
+                        f"(self или отсутствует в all_npc_ids) → фоллбэк-резолв"
                     )
         # R5 (Social Propagation): Целеполагание для SPREAD_RUMOR.
         # Использует только существующие каналы: spatial_query и _get_rel_value.
@@ -2081,7 +2022,7 @@ class DecisionHub:
             for _cid in all_npc_ids:
                 if _cid == state.npc_id:
                     continue  # Нельзя рассказывать слух самому себе
-                
+
                 # 1. Физическая доступность
                 try:
                     _dist = spatial_query.distance(state.npc_id, _cid)
@@ -2089,12 +2030,12 @@ class DecisionHub:
                         continue
                 except Exception:
                     continue
-                
+
                 # 2. Социальный фильтр: trust > 0
                 _trust = self._get_rel_value(state, _cid, "trust") or 0.0
                 if _trust > 0.0:
                     _candidates.append(_cid)
-            
+
             # 3. Детерминированный выбор: только если ровно один кандидат
             if len(_candidates) == 1:
                 logger.info(
@@ -2102,7 +2043,7 @@ class DecisionHub:
                     f"(reason: single physically available candidate with trust > 0)"
                 )
                 return _candidates[0]
-            
+
             # Если 0 или >1, возвращаем None (деградация сработает ниже)
             logger.debug(
                 f"[EPISTEMIC_TARGET] npc={state.npc_id} intent=spread_rumor target=None "
@@ -2120,6 +2061,7 @@ class DecisionHub:
                 _stakeholder = str(_rep.object_id or "")
                 if _stakeholder and _stakeholder != state.npc_id:
                     from app.domain.sanity_membrane import can_address
+
                     if can_address(state.npc_id, _stakeholder):
                         logger.info(
                             f"[EPISTEMIC_REPORT_TARGET] npc={state.npc_id} "
@@ -2142,6 +2084,18 @@ class DecisionHub:
         from app.services.events.event_types import EventType
         from app.services.npc.social_target_resolver import SocialTargetResolver
 
+        # Direct player dialogue: входящая цель — NPC,
+        # но адресат его самостоятельно выбранной вербальной
+        # реакции — игрок. Не путать направления коммуникации.
+        if (
+            intent in self._VERBAL_INTENTS
+            and event.event_type in ("player_interacts", "player_spoke", "dialogue")
+            and event.actor_id == "player"
+            and event.target_id == state.npc_id
+            and event.semantic_action == "DIALOGUE"
+        ):
+            return event.actor_id
+
         # 1. Приоритет: Явная цель (игрок атаковал/приказал)
         if event.target_id and event.event_type != EventType.WORLD_TICK:
             return event.target_id
@@ -2158,11 +2112,7 @@ class DecisionHub:
             return cast(str, _causal_addr)
 
         # 2. S129: Bridge 7 — Если NPC отвечает на реплику (TALK), адресат уже известен причинно.
-        if (
-            intent == Intent.TALK.value
-            and pending_response_target
-            and pending_response_target != state.npc_id
-        ):
+        if intent == Intent.TALK.value and pending_response_target and pending_response_target != state.npc_id:
             return pending_response_target
 
         # 3. S96: Социальные интенты ищут цель пространственно
@@ -2172,7 +2122,7 @@ class DecisionHub:
                 spatial_query=spatial_query,
                 all_npc_ids=all_npc_ids,
                 relationship_store=_rel_store,
-                campaign_id=_campaign_id
+                campaign_id=_campaign_id,
             )
             if _target:
                 return _target
@@ -2232,11 +2182,7 @@ class DecisionHub:
             intent_value=Intent.EXPLAIN.value,
             intent_target=event.actor_id,
             topic="объяснение_поведения",
-            emotion_value=state.emotion.value
-            if hasattr(state.emotion, "value")
-            else str(state.emotion),
+            emotion_value=state.emotion.value if hasattr(state.emotion, "value") else str(state.emotion),
             scores=None,
         )
         return AgentAction(decision=_decision, communication=_communication)
-
-

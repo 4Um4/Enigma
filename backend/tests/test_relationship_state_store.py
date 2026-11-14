@@ -69,9 +69,7 @@ def scene_state() -> Dict[str, Any]:
 
 @pytest.fixture()
 def applicator() -> StateApplicator:
-    return StateApplicator(
-        relationship_store=RelationshipStore(data_dir=tempfile.mkdtemp())
-    )
+    return StateApplicator(relationship_store=RelationshipStore(data_dir=tempfile.mkdtemp()))
 
 
 # ── 1. Контракты домена: валидация и инварианты ──
@@ -165,21 +163,21 @@ class TestStoreWriteContract:
 
     def test_nan_delta_rejected(self, applicator, scene_state):
         with pytest.raises(ContractValidationError):
-            applicator.update_needs(
-                scene_state, NPC_ID, NEED_ID_SEXUAL, pressure_delta=float("nan")
-            )
+            applicator.update_needs(scene_state, NPC_ID, NEED_ID_SEXUAL, pressure_delta=float("nan"))
 
     def test_foreign_writer_rejected_before_mutation(self, scene_state):
         with pytest.raises(ArchitecturalViolationError):
-            RelationshipStateStore.apply_need_deltas(
-                scene_state, NPC_ID, NEED_ID_SEXUAL, pressure_delta=0.1
-            )
+            RelationshipStateStore.apply_need_deltas(scene_state, NPC_ID, NEED_ID_SEXUAL, pressure_delta=0.1)
         assert scene_state["relationship_state"] == {}  # guard ДО мутации
 
     def test_three_accumulators_independent(self, applicator, scene_state):
         lvl = applicator.update_needs(
-            scene_state, NPC_ID, NEED_ID_SEXUAL,
-            pressure_delta=0.2, satiation_delta=0.4, frustration_delta=0.6,
+            scene_state,
+            NPC_ID,
+            NEED_ID_SEXUAL,
+            pressure_delta=0.2,
+            satiation_delta=0.4,
+            frustration_delta=0.6,
         )
         assert (lvl.current_intensity, lvl.satiation, lvl.frustration) == pytest.approx((0.2, 0.4, 0.6))
         # Тройная семантика §5.1: дельта одного аккумулятора не трогает другие
@@ -193,8 +191,12 @@ class TestStoreWriteContract:
 class TestRoundTrip:
     def test_need_level_roundtrip_bitwise(self, applicator, scene_state):
         applicator.update_needs(
-            scene_state, NPC_ID, NEED_ID_SEXUAL,
-            pressure_delta=0.25, satiation_delta=0.5, frustration_delta=0.75,
+            scene_state,
+            NPC_ID,
+            NEED_ID_SEXUAL,
+            pressure_delta=0.25,
+            satiation_delta=0.5,
+            frustration_delta=0.75,
         )
         # «Сейв»: вынимаем сырой dict реальной структуры scene_state
         saved = scene_state["relationship_state"]["needs"][NPC_ID][NEED_ID_SEXUAL]
@@ -203,14 +205,14 @@ class TestRoundTrip:
         assert loaded == saved
         again = need_level_from_dict(loaded)
         assert (again.current_intensity, again.satiation, again.frustration) == (
-            pytest.approx(0.25), pytest.approx(0.5), pytest.approx(0.75),
+            pytest.approx(0.25),
+            pytest.approx(0.5),
+            pytest.approx(0.75),
         )
 
     def test_preference_roundtrip(self):
         d = preference_to_dict(PreferenceModel(pref_id="evening_talk", strength=-0.3))
-        assert preference_from_dict(d) == PreferenceModel(
-            pref_id="evening_talk", strength=-0.3
-        )
+        assert preference_from_dict(d) == PreferenceModel(pref_id="evening_talk", strength=-0.3)
 
     def test_hard_constraint_roundtrip(self):
         c = HardConstraint(constraint_id="honesty")
@@ -237,9 +239,8 @@ class TestSubstrateIsDormant:
         assert '"relationship_state": {}' in src
 
 
-
-
 # ── 6. Cross-zone санация S225: S2B-extraction на payload БЕЗ новых полей ──
+
 
 class TestS2BExtractionBackwardCompat:
     """S225: PHYSIOLOGY-extraction обязан пережить payload ЛЮБОЙ версии —
@@ -289,9 +290,6 @@ class TestS2BExtractionBackwardCompat:
             )
             assert after_wt.body_state["current_hp"] == 100.0
             assert after_wt.body_state.get("energy") == 85.0
-
-
-
 
 
 # ── 7. M1b.1: миграционный адаптер — приёмка по семи пунктам вердикта ──
@@ -369,7 +367,9 @@ class TestM1b1MigrationAdapter:
         # но фиксируем, что перенос НЕ применяет сатурацию даже к крайним числам
         data = {"a→b": {"trust": 99.99999999, "fear": -99.99999999}}
         ss = {}
-        RelationshipStateStore.migrate_legacy_relationships(ss, "c", self._make_legacy(tmp_path, campaign="c", data=data))
+        RelationshipStateStore.migrate_legacy_relationships(
+            ss, "c", self._make_legacy(tmp_path, campaign="c", data=data)
+        )
         raw = ss["relationship_state"]["directed"]["a→b"]
         assert raw["trust"] == 99.99999999  # бит-в-бит, не 100.0 (сатурация), не round
         assert raw["fear"] == -99.99999999
@@ -397,19 +397,21 @@ class TestM1b1MigrationAdapter:
         data = {"повреждённая пара без стрелки": {"trust": 1.0}}
         ss = {}
         with pytest.raises(ContractValidationError):
-            RelationshipStateStore.migrate_legacy_relationships(ss, "c", self._make_legacy(tmp_path, campaign="c", data=data))
-        assert "relationship_state" not in ss or "directed" not in ss.get("relationship_state", {})  # частичной миграции нет
+            RelationshipStateStore.migrate_legacy_relationships(
+                ss, "c", self._make_legacy(tmp_path, campaign="c", data=data)
+            )
+        assert "relationship_state" not in ss or "directed" not in ss.get(
+            "relationship_state", {}
+        )  # частичной миграции нет
 
     def test_real_testdata_format_smoke(self):
         """§12.4: REAL DATA — фактический test_data/test_campaign/npc_relationships.json
         (если присутствует в репо) мигрируется без ошибок. Пишем в temp-копию,
         репо-файл не трогаем; маркер в temp — идемпотентность репо не ломает."""
         import shutil as _sh
+
         # Абсолютный путь от тест-файла: pytest-cwd непредсказуем (backend/ или корень проекта)
-        src = (
-            Path(__file__).resolve().parents[1]
-            / "test_data" / "test_campaign" / "npc_relationships.json"
-        )
+        src = Path(__file__).resolve().parents[1] / "test_data" / "test_campaign" / "npc_relationships.json"
         if not src.exists():
             pytest.skip("test_data недоступен из cwd — формат покрыт фикстурами выше")
         with tempfile.TemporaryDirectory() as td:
@@ -420,9 +422,9 @@ class TestM1b1MigrationAdapter:
             report = RelationshipStateStore.migrate_legacy_relationships(ss, "test_campaign", td)
             assert report["migrated_pairs"] >= 0
             if report["migrated_pairs"]:
-                assert RelationshipStateStore.get_directed_pair(ss, *next(iter(ss["relationship_state"]["directed"])).split("→"))
-
-
+                assert RelationshipStateStore.get_directed_pair(
+                    ss, *next(iter(ss["relationship_state"]["directed"])).split("→")
+                )
 
 
 # ── 8. M1b.2.0: RelationshipWriteGate — D3-паритет против legacy update() ──
@@ -465,9 +467,7 @@ class TestWriteGateD3Parity:
             gate = RelationshipWriteGate(store_g)
             gate.apply("parity", "a", "b", {scalar: delta}, cause="parity_test")
             got_g = store_g.get_pair("parity", "a", "b")[scalar]
-            assert got_l == got_g, (
-                f"PARITY BREAK {scalar}: prior={prior} Δ={delta} → legacy={got_l} gate={got_g}"
-            )
+            assert got_l == got_g, f"PARITY BREAK {scalar}: prior={prior} Δ={delta} → legacy={got_l} gate={got_g}"
 
     def test_parity_composite_delta(self, tmp_path):
         """Композитная дельта (fear+30/trust−30 — паттерн BLACKMAIL) одним вызовом."""
@@ -596,12 +596,30 @@ class TestSocialSubscriberGateParity:
             assert key in got_g, f"PARITY BREAK {intent}: пара {key} не создана через гейт: {got_g}"
             assert got_g[key] == vals, f"PARITY BREAK {intent} {key}: L={vals} G={got_g[key]}"
 
+    def test_campaign_id_falls_back_to_phase8_context(self, tmp_path):
+        """Неполный shared_context не должен ронять социальную обработку."""
+        import types
 
+        from app.models.phase8 import Phase8Context
+        from app.services.memory.relationship_store import RelationshipStore
 
+        campaign = "campaign_id_fallback"
+        store = RelationshipStore(data_dir=str(tmp_path / "fallback"))
+        sub = self._make_subscriber(tmp_path, campaign)
 
+        shared = types.SimpleNamespace(relationship_store=store)
+        ctx = Phase8Context(
+            all_npcs_raw=[],
+            all_npc_contexts=[],
+            shared_context=shared,
+            campaign_id=campaign,
+            tick_ctx=types.SimpleNamespace(tick=0),
+        )
 
+        sub.handle([self._event("maid_lusya", "merchant_goran", "talk")], ctx)
 
-
+        relationships = store.get_all(campaign)
+        assert "player→maid_lusya" in relationships
 
 
 # ── 10. M1b.5 / AUD-D5(б): corrupt legacy JSON → fail-loud ──
@@ -619,9 +637,7 @@ class TestLegacyStoreCorruptFailLoud:
         d = tmp_path / "corrupt"
         camp = d / "broken_campaign"
         camp.mkdir(parents=True)
-        (camp / "npc_relationships.json").write_text(
-            "{not valid json", encoding="utf-8"
-        )
+        (camp / "npc_relationships.json").write_text("{not valid json", encoding="utf-8")
         store = RelationshipStore(data_dir=str(d))
         with pytest.raises(ContractValidationError, match="повреждён"):
             store.get("broken_campaign", "player")
@@ -642,15 +658,12 @@ class TestApplicatorGateParity:
     legacy store.update() с теми же дельтами; кэш-гидратация сохранена."""
 
     def test_social_route_parity(self, tmp_path):
-
         from app.models.npc_state import NPCStateAdapter
         from app.services.npc.state_applicator import StateApplicator
 
         store_g = RelationshipStore(data_dir=str(tmp_path / "G"))
         sa = StateApplicator(relationship_store=store_g)
-        real = NPCStateAdapter.from_legacy(
-            {"npc_id": "maid_lusya", "psyche": {"state": "free"}, "social_stats": {}}
-        )
+        real = NPCStateAdapter.from_legacy({"npc_id": "maid_lusya", "psyche": {"state": "free"}, "social_stats": {}})
         sa.update_relationships(real, "app_parity", "player", trust_delta=3.0, fear_delta=-1.0)
         store_l = RelationshipStore(data_dir=str(tmp_path / "L"))
         store_l.update("app_parity", "maid_lusya", "player", {"trust": 3.0, "fear": -1.0})
@@ -659,7 +672,6 @@ class TestApplicatorGateParity:
         assert got_g == want_l, f"PARITY BREAK applicator: L={want_l} G={got_g}"
         # Кэш-гидратация сохранена (read-проекция из SSOT — не тронута):
         assert real.relationship_cache["player"]["trust"] == got_g["trust"]
-
 
 
 # ── 12. M1b.2.5: decay-маршрут замкнут через гейт — доказательство ──
@@ -674,7 +686,6 @@ class TestDecayRouteThroughGate:
     через Applicator (и значит — через гейт M1b.2.4)."""
 
     def test_decay_delta_reaches_store_via_applicator(self, tmp_path):
-
         from app.models.npc_state import NPCStateAdapter
         from app.services.npc.state_applicator import StateApplicator
         from app.services.social.social_decay_handler import SocialDecayHandler
@@ -703,13 +714,15 @@ class TestDecayRouteThroughGate:
         store = RelationshipStore(data_dir=str(tmp_path))
         store.update("decay_route", "maid_lusya", "player", {"trust": 30.0, "fear": 10.0})
         sa = StateApplicator(relationship_store=store)
-        real = NPCStateAdapter.from_legacy(
-            {"npc_id": d.npc_id, "psyche": {"state": "free"}, "social_stats": {}}
-        )
+        real = NPCStateAdapter.from_legacy({"npc_id": d.npc_id, "psyche": {"state": "free"}, "social_stats": {}})
         sa.update_relationships(
-            real, "decay_route", d.social_target,
-            trust_delta=d.trust_delta, fear_delta=d.fear_delta,
+            real,
+            "decay_route",
+            d.social_target,
+            trust_delta=d.trust_delta,
+            fear_delta=d.fear_delta,
         )
+
         # Стор получил значения (через гейт — гарантировано M1b.2.4-паритетом).
         # Ожидание считаем ПО КАНОНИЧЕСКОЙ ФОРМУЛЕ стора (ADR-121 headroom),
         # не хардкодом: effective = Δ × (100−|prior|)/100; result = prior+effective.
@@ -720,7 +733,6 @@ class TestDecayRouteThroughGate:
         pair = store.get_pair("decay_route", "maid_lusya", "player")
         assert pair["trust"] == pytest.approx(_saturated(30.0, d.trust_delta))
         assert pair["fear"] == pytest.approx(_saturated(10.0, d.fear_delta))
-
 
 
 # ── 13. M1b.2.6: направленный комплимент — семантический контракт §8.6 ──
@@ -742,14 +754,18 @@ class TestDirectionalComplimentSemantics:
             "npc_id": target_id,
             "relationship_cache": {},  # пустой: подписчик НЕ имеет права его наполнить
         }
-        return {
-            "raw_input": "какая ты милая",
-            "all_npcs_raw": [npc_raw],
-            "relationship_store": store,
-            "campaign_id": "camp",
-            "tick_number": 1,
-            "target_id": target_id,
-        }, store, npc_raw
+        return (
+            {
+                "raw_input": "какая ты милая",
+                "all_npcs_raw": [npc_raw],
+                "relationship_store": store,
+                "campaign_id": "camp",
+                "tick_number": 1,
+                "target_id": target_id,
+            },
+            store,
+            npc_raw,
+        )
 
     def test_directional_write_and_no_mirror_no_cache_surgery(self, tmp_path):
         from app.services.events.rules_subscriber import RulesSubscriber
@@ -849,10 +865,11 @@ class TestSingleWriterInvariant:
             except OSError:
                 continue
             for lineno, line in enumerate(lines, start=1):
-                if _re.search(r'attraction["\']?\]?\s*=\s*[^=]', line) and "relationship_cache" in "".join(lines[max(0, lineno - 5):lineno]):
+                if _re.search(r'attraction["\']?\]?\s*=\s*[^=]', line) and "relationship_cache" in "".join(
+                    lines[max(0, lineno - 5) : lineno]
+                ):
                     violations.append(f"{py.name}:{lineno}: {line.strip()[:80]}")
         assert not violations, "attraction-хирургия кэша: " + "\n  ".join(violations)
-
 
 
 # ── 15. M1b.4.1: V2RelationshipBackend — контрактная сетка D3 (вердикт Мастера:
@@ -875,9 +892,7 @@ class TestV2BackendD3Parity:
         d = tmp_path / f"L{prior}{scalar}".replace(".", "_").replace("-", "m")
         camp = d / "grid"
         camp.mkdir(parents=True, exist_ok=True)
-        (camp / "npc_relationships.json").write_text(
-            json.dumps({"a→b": {scalar: prior}}), encoding="utf-8"
-        )
+        (camp / "npc_relationships.json").write_text(json.dumps({"a→b": {scalar: prior}}), encoding="utf-8")
         return RelationshipStore(data_dir=str(d))
 
     def _v2(self, prior, scalars=("trust",)):
@@ -945,8 +960,8 @@ class TestV2BackendD3Parity:
         v2 = V2RelationshipBackend(lambda: ss)
         v2.bind("camp", scene_state=ss)  # hydrate: пары → RAM
         assert v2.reset_campaign("camp") == 2
-        assert v2._directed_ram == {}                       # RAM сброшен
-        assert ss["relationship_state"]["directed"] == {}   # проекция сброшена
+        assert v2._directed_ram == {}  # RAM сброшен
+        assert ss["relationship_state"]["directed"] == {}  # проекция сброшена
 
     def test_get_all_for_source_normalizes(self):
         from app.services.social.v2_relationship_backend import V2RelationshipBackend
@@ -956,7 +971,6 @@ class TestV2BackendD3Parity:
         v2.bind("camp", scene_state=ss)
         got = v2.get_all_for_source("camp", "a")
         assert got == {"b": {"trust": 10.0, "fear": 0.0, "debt": 0.0, "respect": 0.0, "attraction": 0.0}}
-
 
 
 # ── 16. M1b.4.2: cutover — bind/миграция/заморозка/локации ──
@@ -987,9 +1001,7 @@ class TestV2CutoverLifecycle:
         ss = {}
         camp = tmp_path / "c"
         camp.mkdir()
-        (camp / "npc_relationships.json").write_text(
-            json.dumps({"a→b": {"trust": 10.0}}), encoding="utf-8"
-        )
+        (camp / "npc_relationships.json").write_text(json.dumps({"a→b": {"trust": 10.0}}), encoding="utf-8")
         report = RelationshipStateStore.migrate_legacy_relationships(ss, "c", str(tmp_path))
         assert report == {"migrated_pairs": 1, "skipped": False}
         # SPLIT: transform завершён, маркера НЕТ (до atomic commit)
@@ -1065,7 +1077,6 @@ class TestV2CutoverLifecycle:
         assert ss_hall["relationship_state"]["directed"]["maid_lusya→player"]["trust"] > 25.0
 
 
-
 # ── 17. M1b.4.2 RAM-GO: pre-scene lifecycle + sync-идемпотентность ──
 
 
@@ -1137,7 +1148,7 @@ class TestRAMAuthorityLifecycle:
         # Первый осмысленный вызов — всё происходит само:
         v2.update("camp", "a", "c", {"trust": 5.0})
         assert v2.get_pair("camp", "a", "b")["trust"] == 25.0  # bootstrap поднял
-        assert v2.get_pair("camp", "a", "c")["trust"] == 5.0   # и запись жива
+        assert v2.get_pair("camp", "a", "c")["trust"] == 5.0  # и запись жива
 
 
 # ── 18. M1b.3.1: fallback DecisionHub удалён — кэш не источник истины ──
@@ -1153,7 +1164,9 @@ class TestDecisionHubFallbackRemoved:
         import re as _re
         from pathlib import Path as _P
 
-        src = (_P(__file__).resolve().parents[1] / "app" / "services" / "npc" / "decision_hub.py").read_text(encoding="utf-8", errors="replace")
+        src = (_P(__file__).resolve().parents[1] / "app" / "services" / "npc" / "decision_hub.py").read_text(
+            encoding="utf-8", errors="replace"
+        )
         # Запрещённые паттерны (двух удалённых веток + страховка новых):
         for pattern in (
             r"Fallback\s+на\s+relationship_cache",
@@ -1193,8 +1206,7 @@ class TestBootstrapFromNpcDicts:
         {
             "npc_id": "maid_lusya",
             "relationship_cache": {
-                "merchant_goran": {"trust": 30.0, "fear": 0.0,
-                                   "base_trust": 30.0, "nature": "collegial"},
+                "merchant_goran": {"trust": 30.0, "fear": 0.0, "base_trust": 30.0, "nature": "collegial"},
                 "player": {"trust": 45.0, "fear": 5.0},
             },
             "base_values": {"merchant_goran": 30.0, "player": 50.0},
@@ -1251,8 +1263,6 @@ class TestBootstrapFromNpcDicts:
             assert set(_entry.keys()) <= {"trust", "fear", "debt", "respect", "attraction"}
 
 
-
-
 # ── 20. M1b.3.3+3.4: снапшот-гидратация из V2 (decay/BehaviorMask на каноне) ──
 
 
@@ -1280,8 +1290,8 @@ class TestSnapshotV2Hydration:
         v2.update("camp", "maid_lusya", "merchant_goran", {"trust": 30.0})
         snaps = build_npc_snapshots([self._npc()], relationship_store=v2, campaign_id="camp")
         rc = snaps[0]["relationship_cache"]
-        assert rc["player"]["trust"] == 80.0        # канон перекрыл stale/дефолт
-        assert rc["merchant_goran"]["trust"] == 30.0 # V2-пара поднята
+        assert rc["player"]["trust"] == 80.0  # канон перекрыл stale/дефолт
+        assert rc["merchant_goran"]["trust"] == 30.0  # V2-пара поднята
         assert "stale_ghost" in rc  # merge, не затирание (дicts-остатки — фолбэк-данные)
         # base_values НЕ из V2 (drift-конфиг):
         assert snaps[0]["base_values"]["player"] == 50.0
@@ -1291,8 +1301,8 @@ class TestSnapshotV2Hydration:
 
         snaps = build_npc_snapshots([self._npc()])
         rc = snaps[0]["relationship_cache"]
-        assert rc["stale_ghost"]["trust"] == 99.0   # легаси-путь (смоуки/тесты)
-        assert rc["player"]["trust"] == 1.0          # social_stats-дефолт
+        assert rc["stale_ghost"]["trust"] == 99.0  # легаси-путь (смоуки/тесты)
+        assert rc["player"]["trust"] == 1.0  # social_stats-дефолт
 
     def test_decay_drifts_to_v2_current(self):
         """Интеграционный: decay-дельта дрейфует к V2-base, снапшот-текущее

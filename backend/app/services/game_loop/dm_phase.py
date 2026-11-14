@@ -31,12 +31,13 @@ logger = logging.getLogger(__name__)
 class DmPhaseDeps:
     """Контракт зависимостей dm_phase (DEGOD Phase3-B1). Контракт принадлежит фазе.
     A = DI-ссылка; B = GameLoop-owned mutable (доступ только через accessors); C = узкая фазовая зависимость."""
-    load_npcs: Callable[[], list]                # A: static lru-фабрика NPC
-    memory_manager: Any                          # A: STM/recent-speech/dialogue/clear
-    dm_orchestrator: Any                         # A: классификация + обогащение
-    scene_manager: Any                           # A: LoS SceneChange
-    l1_chronicle: Any                            # C: L1-коммит dialogue events (только эта фаза)
-    get_prev_distances: Callable[[str], dict]    # B: чтение кросс-turn дистанций
+
+    load_npcs: Callable[[], list]  # A: static lru-фабрика NPC
+    memory_manager: Any  # A: STM/recent-speech/dialogue/clear
+    dm_orchestrator: Any  # A: классификация + обогащение
+    scene_manager: Any  # A: LoS SceneChange
+    l1_chronicle: Any  # C: L1-коммит dialogue events (только эта фаза)
+    get_prev_distances: Callable[[str], dict]  # B: чтение кросс-turn дистанций
     commit_distances: Callable[[str, dict], None]  # B: запись кросс-turn дистанций
 
 
@@ -112,9 +113,7 @@ def run_dm_phase(
 
     # R1: DM видит прошлую речь NPC — из DialogueSession
     try:
-        _recent_speech = deps.memory_manager.get_recent_speech_all_npcs(
-            campaign_id
-        )
+        _recent_speech = deps.memory_manager.get_recent_speech_all_npcs(campaign_id)
         shared_context.npc_recent_speech = _recent_speech
     except Exception as _rs_err:
         logger.debug(f"[RECENT_SPEECH] error: {_rs_err}")
@@ -139,9 +138,7 @@ def run_dm_phase(
     )
     if dm_result.event_context:
         shared_context.action_type = dm_result.event_context.event_type
-        logger.warning(
-            f"[EVENT_TYPE] Router classified as: {dm_result.event_context.event_type}"
-        )
+        logger.warning(f"[EVENT_TYPE] Router classified as: {dm_result.event_context.event_type}")
 
         # FIX: Пред-проверка дистанции для боя. DM-агент запускается раньше ImpactEngine,
         # поэтому мы должны сообщить ему о промахе заранее, чтобы он не галлюцинировал попадание.
@@ -150,6 +147,7 @@ def run_dm_phase(
             # WV (Q1): дубль порогов устранён — SSOT. (tool здесь ещё неизвестен,
             # уточнение reach — в post-resolution WV-блоке turn_pipeline)
             from app.domain.constants import BODY_REACH_M
+
             _MELEE_RANGE = BODY_REACH_M
             if _dist > _MELEE_RANGE:
                 _combat_target_id = shared_context.player_target_id or "target"
@@ -166,12 +164,7 @@ def run_dm_phase(
                     f"[DM_PHASE] Pre-check: Attack out of range (dist={_dist:.1f}m). Injected combat_data for DM."
                 )
             else:
-                logger.warning(
-                    f"[DM_PHASE] Pre-check: Attack in range (dist={_dist:.1f}m). DM will narrate hit."
-                )
-
-    # Rule 47: Инициализация ДО условных веток — Python Scoping Trap
-    _sem_payload: Dict[str, Any] = {}
+                logger.warning(f"[DM_PHASE] Pre-check: Attack in range (dist={_dist:.1f}m). DM will narrate hit.")
 
     # Публикация + STM + время — только при валидном результате
     if dm_result.is_valid:
@@ -222,7 +215,7 @@ def run_dm_phase(
     # Scene Event Layer — всегда, даже если DM ошибся
     _scene_events = emit_and_accumulate_scene_events(
         action_type=shared_context.action_type or "player_interacts",
-        target_id=_sem_payload.get("target_id", ""),
+        target_id="",
         location_id=location,
         tick=shared_context.current_tick or 0,
         action_text=raw_input,
@@ -250,9 +243,7 @@ def run_dm_phase(
                 )
                 _scene_manager.apply_change(campaign_id, _los_change, scene_state)
             else:
-                logger.warning(
-                    "[DM_PHASE] scene_manager not found in game_loop. LoS change skipped."
-                )
+                logger.warning("[DM_PHASE] scene_manager not found in game_loop. LoS change skipped.")
         # ADR-ACTION-BRIDGE: Гарантируем, что DecisionHub получит EventContext, а не EventDTO.
         # EventDTO имеет поле 'type', EventContext имеет 'event_type' и прямые поля семантики.
         _raw_event = dm_result.event_context
@@ -263,69 +254,8 @@ def run_dm_phase(
                 event_type=EventType(getattr(_raw_event, "type", "player_interacts")),
                 actor_id=getattr(_raw_event, "source", "player"),
             )
-        # _sem_payload уже инициализирован наверху функции (Rule 47 fix)
-        if (
-            shared_context
-            and hasattr(shared_context, "intent_resolution")
-            and shared_context.intent_resolution
-        ):
-            _params = (
-                shared_context.intent_resolution.original_intent.parameters  # noqa: ENIGMA001
-                if shared_context.intent_resolution.original_intent
-                else None
-            )
-            if _params:
-                _sa = getattr(_params, "semantic_action", None)  # noqa: ENIGMA002
-                _tid = getattr(_params, "target_id", None)  # noqa: ENIGMA002
-                _tref = getattr(_params, "target_reference", None)  # noqa: ENIGMA002
-                # ADR-ACTION-BRIDGE: Инъекция семантики в EventContext
-                if _sa:
-                    _base_event.semantic_action = _sa
-                    _sem_payload["semantic_action"] = _sa
-                if _tid:
-                    _base_event.target_id = _tid
-                    _sem_payload["target_id"] = _tid
-                if _tref:
-                    _sem_payload["target_reference"] = _tref.lower()
-        # Пакет C (вердикт Мастера): канонизированная проекция хода игрока
-        # для DM-промпта. Источник замены raw-text (инвариант C):
-        # dm_agent._presentation_safe_actions читает её из context.
-        try:
-            from app.services.game_loop.phase_1_input import (
-                build_intent_projection,
-            )
-            shared_context.player_intent_projection = build_intent_projection(
-                shared_context.intent_resolution
-            )
-        except Exception as _proj_err:
-            logger.warning(f"[DM_PHASE] intent projection failed: {_proj_err}")
-
-        # P1 ARCH: Referential Closure Principle.
-        # EventContext отражает ТОЛЬКО Intent.
-        # Запрет fallback на shared_context (Ghost Causality).
-
-        _intent_target_id = _sem_payload.get("target_id")
-
-        # P1 ARCH: Referential Closure (§ENIGMA-005) + Incompleteness Semantics (§ENIGMA-006).
-        # Запрет fallback на shared_context.
-        # Если Intent не дал ID, сохраняем Unresolved Reference.
-        import dataclasses
-
-        if _intent_target_id:
-            # Intent полностью замкнут — цель известна
-            if getattr(_base_event, "target_id", None) is None:  # noqa: ENIGMA002
-                _base_event = dataclasses.replace(
-                    _base_event, target_id=_intent_target_id
-                )
-            ctx.hub_event = dataclasses.replace(_base_event, payload=_sem_payload)
-        else:
-            # Intent недоспецифицирован.
-            # target_id = None, но payload сохраняет target_reference (например, "люся").
-            # Это не "нет цели", это "Неразрешённая ссылка".
-            ctx.hub_event = dataclasses.replace(
-                _base_event,
-                target_id=None,
-                payload=_sem_payload,  # _sem_payload содержит semantic_action и target_reference
-            )
+        # Intent resolution runs after this phase. The resolved canonical target
+        # is attached by turn_pipeline before NPC orchestration.
+        ctx.hub_event = _base_event
 
     return dm_result

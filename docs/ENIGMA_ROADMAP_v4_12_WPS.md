@@ -2310,6 +2310,15 @@ Feature считается **CLOSED** только если:
 | C3-A2-UI-2 (S-номер за Мастером; S384 занят CCH-6 Ветвь А — Anti-Race §11.1.1) | LC-IMPL-3 подшаг: жизненный цикл индикаторов обращений NPC (NPC_ADDRESSES_PLAYER delivery consumer) | d252d6d1 | GREEN | 9 контрактов в backend/tests/micro/test_npc_addressing_lifecycle.py: intent_formed_at extraction (SSOT в NPCState, backend propagation не нужен), stale re-delivery guard, stale removal по смене intent, безусловный ACK через try/except sibling guard `if not _skip_add`, изоляция кампаний через сброс в run() (game_screen.py:567), запрет удаления по отсутствию NPC в npc_coords (Phase A Q3 — нет достоверного сигнала ухода); backend НЕ тронут (C2 producer commit_phase.py / C3-A1 subscriber / DELIVERY-1 / ACK-1 / EventBus / NPCState / DecisionHub / PlayerAction / EventType — без изменений per §15 ограничения); game_screen.py addressing parsing block 1260-1329, rendering 2238-2241 | — |
 | S398 | ADR-O-436 RECONCILIATION — статус PROPOSED → IMPLEMENTED; раздел «Фактическая реализация» (producer: commit_phase.py; identity: next_event_identity; delivery: npc_addressing_delivery_subscriber; frontend: C3-A2-UI-2); тест producer re-entry найден (test_C1_same_intent_next_tick_no_republish) | (doc-only) | GREEN | ADR атлас + roadmap §15.2/§15.5/§10.3 + MUTATIONS S398; код НЕ тронут | — |
 
+### STEP 2a-4 (TRIPLE) · Stage 2 — patch complete / baseline pending (2026-11-14, ветвь А)
+
+- **Гейт-статус Stage 2:** `COMPLETED (patch)`; `baseline IPT/pytest` — **DEFERRED to quiet window §3.12**.
+- **HEAD at patch:** `6641760a` · **commit:** none (Stage 2 = no commit).
+- **Что сделано:** `backend/tests/micro/test_lint_mem_triple.py` (31 тест, 391 строка); `test_b8_literal_field_not_skip_crit` — path `models/npc_state.py` → `models/custom_npc.py` (Master verdict A: изоляция от domain authority `app.models.npc_state = {"*"}`); `test_b8_npcstate_own_setattr_skip` не тронут; `backend/tests/IPT.py` — патч `inv_mem_triple` + `py_compile OK`; `scripts/lint_mem_triple.py` не изменялся (Master: linter менять не нужно).
+- **Валидный GREEN (T1, до чужой правки):** pytest micro 31 passed (1 warning: asyncio deprecation, не наш); IPT `INV-MEM-TRIPLE` = 10 CRIT — все в `life_project_resolver.py` (MEM-TRIPLE-DEBT-01, accepted по Master verdict D).
+- **DEFERRED (RED в T3–T7, атрибуция внешняя):** pytest micro baseline = 11 CRIT (10 baseline + 1 `PARSE_ERROR decision_hub.py:1058`); IPT exit≠0. Причина — параллельная сессия пишет `backend/app/services/npc/decision_hub.py` (`.M`, `4+/1-`, `py_compile FAIL`); §3.12 quiet window не соблюдено. Не дефект TRIPLE; не откат, не синхронизация (Master 2026-11-14: параллельная сессия работает свободно без взаимных блокировок).
+- **Гейт закрытия Stage 2 (после quiet window):** pytest micro = 31/0; IPT `INV-MEM-TRIPLE` = 10 CRIT + 0 PARSE_ERROR; IPT exit≠0 допустим только из-за `INV-MEM-TRIPLE` (10 findings) и `INV-MEM-CONTRADICTION` (0 findings, тот же debt-класс).
+
 ---
 
 ## 11. Гейты, Stop-criteria, Recovery, Ресурсы

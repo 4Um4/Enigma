@@ -4,6 +4,7 @@ path: /backend/app/services/execution/dialogue_executor.py
 Зависимости: app.domain.execution, app.domain.communication
 Основные сущности: DialogueExecutor
 """
+
 from __future__ import annotations
 
 import logging
@@ -27,8 +28,10 @@ logger = logging.getLogger(__name__)
 
 _L_TIMEOUT_SEC: float = 30.0  # 021 calibration (ARCH-022 timeout)
 
+
 class DialogueContractViolation(Exception):
     """Нарушение контракта диалоговой системы (например, отсутствие STM)."""
+
     pass
 
 
@@ -53,9 +56,7 @@ class DialogueExecutor:
     ) -> None:
         self._router = router
         self._memory_manager = memory_manager
-        self._get_context = context_provider or (
-            lambda npc_id, camp_id: {"name": npc_id, "description": ""}
-        )
+        self._get_context = context_provider or (lambda npc_id, camp_id: {"name": npc_id, "description": ""})
         self._belief_store = belief_store
         self._confession_parser = confession_parser
         # P6/E1 (S255): игрок-контур (late-binding: set_epistemic_wiring)
@@ -81,6 +82,7 @@ class DialogueExecutor:
                 "задавать вопросы игроку напрямую",
                 "упоминать игру, симуляцию, интерфейс",
             )
+
             @property
             def forbidden_actions(self) -> list[str]:
                 return list(self._forbidden_tuple)
@@ -127,9 +129,7 @@ class DialogueExecutor:
         # machine-id латиницей BY DESIGN — LANG_LEAK (замок S292) к ней не
         # применяется: ложный ретрай звал LLM с потока петли → RE-D2.
         _text_source = "deterministic"
-        logger.debug(
-            f"[DIALOGUE_EXEC] Executing task for {task.owner_id} -> {req.target_id} on topic '{req.topic}'"
-        )
+        logger.debug(f"[DIALOGUE_EXEC] Executing task for {task.owner_id} -> {req.target_id} on topic '{req.topic}'")
 
         # S197: Извлекаем Proposition на верхнем уровне, чтобы он был доступен во всех ветках
         _proposition = getattr(req, "proposition", None)  # noqa: ENIGMA002
@@ -152,6 +152,7 @@ class DialogueExecutor:
             # Использует существующий cancellation boundary (router._abort_generation).
             # В будущем LLM_TIMEOUT_SEC будет вынесен в CalibrationProfile.
             import threading
+
             _timer = threading.Timer(_L_TIMEOUT_SEC, self._router._abort_generation)
 
             try:
@@ -161,13 +162,7 @@ class DialogueExecutor:
             except DialogueContractViolation as e:
                 logger.warning(f"[DIALOGUE_EXEC] Contract violated: {e}")
                 # BUGFIX: Возвращаем error artifact, а не success, т.к. текст не сгенерирован
-                yield Artifact(
-                    task_id=task.task_id,
-                    success=False,
-                    result_type="error",
-                    data={},
-                    error_message=str(e)
-                )
+                yield Artifact(task_id=task.task_id, success=False, result_type="error", data={}, error_message=str(e))
                 return
             except Exception as e:
                 logger.error(f"[DIALOGUE_EXEC] LLM call failed (timeout or error) for {task.owner_id}: {e}")
@@ -179,34 +174,39 @@ class DialogueExecutor:
                     # Stage B Observability: preserve llm_materialization_failed
                     try:
                         from app.services.logging_tools import jsonl_log
-                        jsonl_log({
-                            "level": "ERROR",
-                            "agent": "template_fallback",
-                            "fallback_reason": "llm_materialization_failed",
-                            "npc_id": task.owner_id,
-                            "intent_type": req.intent_type,
-                            "target_id": req.target_id,
-                            "error": str(e),
-                        })
+
+                        jsonl_log(
+                            {
+                                "level": "ERROR",
+                                "agent": "template_fallback",
+                                "fallback_reason": "llm_materialization_failed",
+                                "npc_id": task.owner_id,
+                                "intent_type": req.intent_type,
+                                "target_id": req.target_id,
+                                "error": str(e),
+                            }
+                        )
                     except Exception:
                         logger.debug("[OBS] llm_materialization_failed observability skipped (non-critical)")
                     # B5-D2 FIX: log that fallback was used
                     try:
                         from app.services.logging_tools import jsonl_log
-                        jsonl_log({
-                            "level": "WARNING",
-                            "agent": "spread_rumor_fallback",
-                            "fallback_reason": "spread_rumor_fallback_used",
-                            "npc_id": task.owner_id,
-                            "intent_type": req.intent_type,
-                            "target_id": req.target_id,
-                            "error": str(e),
-                        })
+
+                        jsonl_log(
+                            {
+                                "level": "WARNING",
+                                "agent": "spread_rumor_fallback",
+                                "fallback_reason": "spread_rumor_fallback_used",
+                                "npc_id": task.owner_id,
+                                "intent_type": req.intent_type,
+                                "target_id": req.target_id,
+                                "error": str(e),
+                            }
+                        )
                     except Exception:
                         logger.debug("[OBS] spread_rumor_fallback_used observability skipped (non-critical)")
                     logger.warning(
-                        f"[DIALOGUE_EXEC] LLM failed for spread_rumor, "
-                        f"falling back to deterministic stub: {e}"
+                        f"[DIALOGUE_EXEC] LLM failed for spread_rumor, " f"falling back to deterministic stub: {e}"
                     )
                     text = f"[spread_rumor] {task.owner_id} -> {req.target_id}: {req.topic}"
                     # Don't return — continue to yield SUCCESS Artifact (L269-283)
@@ -214,15 +214,18 @@ class DialogueExecutor:
                     # Original error handling for other intents
                     try:
                         from app.services.logging_tools import jsonl_log
-                        jsonl_log({
-                            "level": "ERROR",
-                            "agent": "template_fallback",
-                            "fallback_reason": "llm_materialization_failed",
-                            "npc_id": task.owner_id,
-                            "intent_type": req.intent_type,
-                            "target_id": req.target_id,
-                            "error": str(e),
-                        })
+
+                        jsonl_log(
+                            {
+                                "level": "ERROR",
+                                "agent": "template_fallback",
+                                "fallback_reason": "llm_materialization_failed",
+                                "npc_id": task.owner_id,
+                                "intent_type": req.intent_type,
+                                "target_id": req.target_id,
+                                "error": str(e),
+                            }
+                        )
                     except Exception:
                         logger.debug("[OBS] llm_materialization_failed observability skipped (non-critical)")
                     yield Artifact(
@@ -230,21 +233,22 @@ class DialogueExecutor:
                         success=False,
                         result_type="error",
                         data={},
-                        error_message=f"LLM execution failed: {e}"
+                        error_message=f"LLM execution failed: {e}",
                     )
                     return
             finally:
                 _timer.cancel()
 
-        if not text:
+        if not text or not text.strip():
             yield Artifact(
                 task_id=task.task_id,
                 success=False,
                 result_type="error",
                 data={},
-                error_message="LLM failed or returned empty text (stub avoided)."
+                error_message="LLM failed or returned empty text (stub avoided).",
             )
             return
+        text = text.strip()
 
         # №3 (S292): language-leak gate. Русскоязычный мир — латинные вставки
         # LLM («Give me a name») ломают нарратив. Честная деградация (ADR-113):
@@ -269,16 +273,19 @@ class DialogueExecutor:
             _retry_timer = None  # пред-связывание: finally ссылается всегда
             try:
                 import threading as _th
+
                 _retry_timer = _th.Timer(_L_TIMEOUT_SEC, self._router._abort_generation)
                 _retry_timer.start()
-                _reinforced = (  # noqa: ENIGMA001
-                    f"{req.prepared_prompt}\n\n[СТРОГО: ответ ТОЛЬКО кириллицей. "
-                    f"Ни одного латинского слова. Предыдущая попытка отклонена.]"
-                ) if req.prepared_prompt else None
+                _reinforced = (
+                    (  # noqa: ENIGMA001
+                        f"{req.prepared_prompt}\n\n[СТРОГО: ответ ТОЛЬКО кириллицей. "
+                        f"Ни одного латинского слова. Предыдущая попытка отклонена.]"
+                    )
+                    if req.prepared_prompt
+                    else None
+                )
                 _retry_req = (
-                    type(req)(**{**req.__dict__, "prepared_prompt": _reinforced})
-                    if hasattr(req, "__dict__")
-                    else req
+                    type(req)(**{**req.__dict__, "prepared_prompt": _reinforced}) if hasattr(req, "__dict__") else req
                 )
                 text = self._generate_with_router(task, _retry_req, _verdict)
             except Exception as _retry_err:
@@ -317,8 +324,8 @@ class DialogueExecutor:
                 "exposure": req.exposure.semantic,
                 "topic": req.topic,
                 "emotional_state": req.emotional_state,
-                "proposition": _proposition, # S198 FIX: Сохраняем эпистемическое утверждение для COMMUNICATION_CLAIM
-                "intent_type": req.intent_type, # S201 FIX: Пробрасываем intent_type для ClaimEventSubscriber fallback
+                "proposition": _proposition,  # S198 FIX: Сохраняем эпистемическое утверждение для COMMUNICATION_CLAIM
+                "intent_type": req.intent_type,  # S201 FIX: Пробрасываем intent_type для ClaimEventSubscriber fallback
             },
         )
 
@@ -336,7 +343,7 @@ class DialogueExecutor:
             return None
         try:
             owner_raw = None
-            for _n in (self._npc_states_provider(task.campaign_id) or []):
+            for _n in self._npc_states_provider(task.campaign_id) or []:
                 if isinstance(_n, dict):
                     if (_n.get("npc_id") or _n.get("id")) == task.owner_id:
                         owner_raw = _n
@@ -351,17 +358,11 @@ class DialogueExecutor:
                 return None
             rel: dict = {}
             if self._relationship_provider is not None:
-                rel = self._relationship_provider(
-                    task.campaign_id, task.owner_id, "player"
-                ) or {}
+                rel = self._relationship_provider(task.campaign_id, task.owner_id, "player") or {}
             pressure = 0.0
             if self._memory_manager is not None:
                 try:
-                    pressure = float(
-                        self._memory_manager.get_dialogue_pressure(
-                            task.campaign_id, task.owner_id
-                        )
-                    )
+                    pressure = float(self._memory_manager.get_dialogue_pressure(task.campaign_id, task.owner_id))
                 except Exception:
                     pressure = 0.0
             ctx = DisclosureContext(
@@ -406,8 +407,11 @@ class DialogueExecutor:
         Не новый SSOT — читает существующий causal_ledger.
         """
         _FIELD_MAP = {
-            "trust": "доверие", "fear": "страх", "hp": "здоровье",
-            "stress": "напряжение", "anger": "гнев",
+            "trust": "доверие",
+            "fear": "страх",
+            "hp": "здоровье",
+            "stress": "напряжение",
+            "anger": "гнев",
         }
         lines = []
         for entry in ledger[-10:]:
@@ -421,10 +425,7 @@ class DialogueExecutor:
             _delta = float(entry.get("delta", 0.0) or 0.0)
             _tick = entry.get("tick", 0)
             _sign = "+" if _delta > 0 else ""
-            lines.append(
-                f"  • {_field_text} изменилось на {_sign}{_delta:.1f} "
-                f"(причина: {_source}, тик: {_tick})"
-            )
+            lines.append(f"  • {_field_text} изменилось на {_sign}{_delta:.1f} " f"(причина: {_source}, тик: {_tick})")
         if lines:
             return "[Причины изменений твоего состояния]:\n" + "\n".join(lines)
         return ""
@@ -448,8 +449,10 @@ class DialogueExecutor:
         if not negations:
             return ""
         _PRED_MAP = {
-            "insulted": "оскорблял", "stole": "воровал у",
-            "attacked": "нападал на", "helped": "помогал",
+            "insulted": "оскорблял",
+            "stole": "воровал у",
+            "attacked": "нападал на",
+            "helped": "помогал",
             "asserts": "утверждал",
         }
         lines = []
@@ -533,17 +536,23 @@ class DialogueExecutor:
         # BUG-DL-02 FIX: Инъекция STM-блока (контекст текущего разговора)
         _stm_text = ""
         if self._memory_manager is not None and task.campaign_id:
-            _stm_text = self._memory_manager.get_stm_prompt_block_pair(
-                task.campaign_id, task.owner_id, req.target_id
-            )
+            _stm_text = self._memory_manager.get_stm_prompt_block_pair(task.campaign_id, task.owner_id, req.target_id)
 
         # Hard Contract (Принцип 2): Нет STM -> нельзя говорить canonical dialogue
         # Разрешаем только первый ход (intent_type="greeting"), чтобы установить контакт
         # Исключение: claim-producing интенты (warn, intimidate) не требуют контекста диалога.
-        if not _stm_text and req.intent_type not in ("greeting", "approach") and requires_dialogue_context(req.intent_type) and not getattr(req, "proposition", None):
-            logger.warning(f"[DIALOGUE_EXEC] No STM for {task.owner_id} -> {req.target_id}, "
-                           f"intent '{req.intent_type}' demoted to 'approach' (auto-recover).")
+        if (
+            not _stm_text
+            and req.intent_type not in ("greeting", "approach")
+            and requires_dialogue_context(req.intent_type)
+            and not getattr(req, "proposition", None)
+        ):
+            logger.warning(
+                f"[DIALOGUE_EXEC] No STM for {task.owner_id} -> {req.target_id}, "
+                f"intent '{req.intent_type}' demoted to 'approach' (auto-recover)."
+            )
             from dataclasses import replace as _dc_replace
+
             req = _dc_replace(req, intent_type="approach")
 
         if _stm_text:
@@ -587,18 +596,14 @@ class DialogueExecutor:
             _claim_block = f"[Факт, которым ты делишься]: {_subj_name} {_pred_text} {_obj_name}. Передай это собеседнику своими словами.\n"
 
         # Динамическая часть (добавляется всегда, так как STM и beliefs могли измениться)
-        user_prompt += (
-            f"Ты обращаешься к: {_target_name}. "
-            f"{_beliefs_text}"
-            f"{_history_text}"
-            f"{_claim_block}"
-        )
+        user_prompt += f"Ты обращаешься к: {_target_name}. " f"{_beliefs_text}" f"{_history_text}" f"{_claim_block}"
 
         # COGNITIVE-CONTINUITY-01: cognition block — what NPC knows (beliefs + provenance)
         # Same CognitionContextResolver that feeds DMFrame — one mechanism, all consumers.
         if self._epistemic_store is not None and self._memory_manager is not None:
             try:
                 from app.services.npc.cognition_context import CognitionContextResolver
+
                 _cog = CognitionContextResolver(
                     self._memory_manager,
                     epistemic_store=self._epistemic_store,
@@ -617,8 +622,7 @@ class DialogueExecutor:
             try:
                 _states = self._npc_states_provider(task.campaign_id)
                 _npc_dict = next(
-                    (s for s in (_states or [])
-                     if s.get("npc_id") == task.owner_id or s.get("id") == task.owner_id),
+                    (s for s in (_states or []) if s.get("npc_id") == task.owner_id or s.get("id") == task.owner_id),
                     None,
                 )
                 if _npc_dict:
@@ -651,37 +655,44 @@ class DialogueExecutor:
         # B4-R6: Full prompt capture (observability only — no game logic change)
         try:
             import time
+
             from app.services.logging_tools import log_full_prompt
-            log_full_prompt({
-                "event": "llm_request",
-                "request_id": task.task_id,
-                "speaker_id": task.owner_id,
-                "agent_name": "npc",
-                "tick": getattr(task, "tick", None),
-                "campaign_id": task.campaign_id,
-                "intent_type": req.intent_type,
-                "topic": req.topic,
-                "target_id": req.target_id,
-                "proposition": getattr(req, "proposition", None),
-                "system_prompt": system_prompt,
-                "user_prompt": user_prompt,
-                "max_tokens": 100,
-                "timestamp": time.time(),
-                "system_prompt_chars": len(system_prompt),
-                "user_prompt_chars": len(user_prompt),
-                "token_count": "unavailable — use llama-server /tokenize for exact counts",
-            })
+
+            log_full_prompt(
+                {
+                    "event": "llm_request",
+                    "request_id": task.task_id,
+                    "speaker_id": task.owner_id,
+                    "agent_name": "npc",
+                    "tick": getattr(task, "tick", None),
+                    "campaign_id": task.campaign_id,
+                    "intent_type": req.intent_type,
+                    "topic": req.topic,
+                    "target_id": req.target_id,
+                    "proposition": getattr(req, "proposition", None),
+                    "system_prompt": system_prompt,
+                    "user_prompt": user_prompt,
+                    "max_tokens": 100,
+                    "timestamp": time.time(),
+                    "system_prompt_chars": len(system_prompt),
+                    "user_prompt_chars": len(user_prompt),
+                    "token_count": "unavailable — use llama-server /tokenize for exact counts",
+                }
+            )
         except Exception:
             logger.debug("[OBS] full prompt capture skipped (request)")
 
         try:
             from app.services.llm.router import GenerationParams
+
             raw = self._router.request_for_agent(
                 agent_name="npc",
                 prompt=user_prompt,
                 system_prompt=system_prompt,
-                params=GenerationParams(max_tokens=100)
+                params=GenerationParams(max_tokens=100),
             )
+            if not isinstance(raw, str) or not raw.strip():
+                raise DialogueContractViolation("LLM returned empty text.")
 
             # L-02: Валидация ответа LLM (отсечение китайского, английского, 4-й стены)
             validation = self._validator.validate(raw)
@@ -693,15 +704,18 @@ class DialogueExecutor:
             # B4-R6: Response capture
             try:
                 from app.services.logging_tools import log_full_prompt
-                log_full_prompt({
-                    "event": "llm_response",
-                    "request_id": task.task_id,
-                    "speaker_id": task.owner_id,
-                    "raw_response": raw,
-                    "validated_text": validation.text,
-                    "validation_fallback": validation.is_fallback,
-                    "validation_violation": getattr(validation, "violation", None),
-                })
+
+                log_full_prompt(
+                    {
+                        "event": "llm_response",
+                        "request_id": task.task_id,
+                        "speaker_id": task.owner_id,
+                        "raw_response": raw,
+                        "validated_text": validation.text,
+                        "validation_fallback": validation.is_fallback,
+                        "validation_violation": getattr(validation, "violation", None),
+                    }
+                )
             except Exception:
                 logger.debug("[OBS] response capture skipped")
             return validation.text

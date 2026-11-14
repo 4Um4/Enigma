@@ -16,9 +16,19 @@ from app.services.game_loop.phase_1_input import (
 )
 
 _ALLOWED_KEYS = {
-    "action", "target", "semantic_action", "target_reference", "target_id",
-    "actor_id", "condition", "tool_reference", "target_zone", "proposition",
-    "addressee", "zone_raw", "semantic_acts",
+    "action",
+    "target",
+    "semantic_action",
+    "target_reference",
+    "target_id",
+    "actor_id",
+    "condition",
+    "tool_reference",
+    "target_zone",
+    "proposition",
+    "addressee",
+    "zone_raw",
+    "semantic_acts",
 }
 
 
@@ -57,12 +67,12 @@ def test_factory_projection_structure():
     assert set(proj.keys()) <= _ALLOWED_KEYS
     # G2-триада в данных: raw-ссылка vs extractor-цель vs Слой 2.
     # Расхождение трёх target-полей = то, что проекция обязана показывать.
-    assert proj["action"] == "ATTACK"           # каноническое (fallback не сработал)
+    assert proj["action"] == "ATTACK"  # каноническое (fallback не сработал)
     assert proj["semantic_action"] == "ATTACK"  # семантика компрессора
-    assert proj["target"] == "maid_lusya"       # extractor-результат (fallback Слоя 2)
-    assert proj["target_reference"] == "Люся"   # сырая ссылка из текста
-    assert proj["target_id"] == ""              # Слой 2 не резолвил (scene_context=None)
-    assert proj["actor_id"] == "player"         # дефолт резолвера актора
+    assert proj["target"] == "maid_lusya"  # extractor-результат (fallback Слоя 2)
+    assert proj["target_reference"] == "Люся"  # сырая ссылка из текста
+    assert proj["target_id"] == "maid_lusya"  # канонический IntentDTO.target
+    assert proj["actor_id"] == "player"  # дефолт резолвера актора
 
 
 def test_projection_does_not_mutate_source():
@@ -96,11 +106,9 @@ def test_uncertain_fallback_pair_and_key_omission():
     )
     proj = build_intent_projection(resolution)
     assert proj is not None
-    assert proj["action"] == "player_interacts"   # fallback на classifier
-    assert proj["semantic_action"] == "UNCERTAIN" # сырое значение компрессора
+    assert proj["action"] == "player_interacts"  # fallback на classifier
+    assert proj["semantic_action"] == "UNCERTAIN"  # сырое значение компрессора
     # §ENIGMA-003: значение никогда не существовало (None) → ключ опущен
     assert "target_reference" not in proj
-    # Резолвер Слоя 2 ОТРАБОТАЛ и вернул "" — это факт «нет совпадения»,
-    # не отсутствие поля. target_id="" (не None) → ключ присутствует.
-    # Различие None vs "" = сигнал «запускался/не запускался» для G2.
+    # Каноническая цель пуста: проекция честно показывает отсутствие адресата.
     assert proj["target_id"] == ""

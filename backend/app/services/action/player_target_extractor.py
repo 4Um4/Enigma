@@ -23,6 +23,7 @@ TODO: интегрировать с LifeEngine для получения реа�
 """
 
 import logging
+import re
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.services.spatial.spatial_runtime import euclidean_distance
@@ -301,6 +302,24 @@ class PlayerTargetExtractor:
         "старуха": "female",
         "старушка": "female",
         "ребёнок": None,
+    }
+
+    _THIRD_PERSON_ANAPHORA = {
+        "\u043e\u043d",
+        "\u043e\u043d\u0430",
+        "\u043e\u043d\u043e",
+        "\u043e\u043d\u0438",
+        "\u0435\u0433\u043e",
+        "\u0435\u0451",
+        "\u0435\u043c\u0443",
+        "\u0435\u0439",
+        "\u0438\u043c",
+        "\u0438\u0445",
+        "\u043d\u0435\u0433\u043e",
+        "\u043d\u0435\u043c\u0443",
+        "\u043d\u0435\u0439",
+        "\u043d\u0438\u043c",
+        "\u043d\u0438\u043c\u0438",
     }
 
     _PRONOUNS = [
@@ -590,26 +609,45 @@ class PlayerTargetExtractor:
         player_position = None
         player_distances: Dict[str, float] = {}
 
-        # R4-FIX (NPC Silence): Если у игрока есть предыдущая цель, но её нет в current_npc_ids
-        # (рассинхрон локации или баг загрузки), мы ВСЁ РАВНО возвращаем prev_target_id, 
-        # если только игрок явно не упоминает имя ДРУГОГО NPC из текущей сцены.
-        # Это позволяет DM-фазе обработать обращение (например, ответить "его здесь нет"), 
-        # вместо полного игнорирования ввода и молчания.
         _other_npc_mentioned = any(
-            ctx.get("npc_name", "").lower() in lower 
-            for ctx in npc_contexts 
-            if ctx.get("npc_id") != prev_target_id and ctx.get("npc_name")
+            (bool(ctx.get("npc_name")) and ctx["npc_name"].lower() in lower)
+            or (
+                bool(ctx.get("npc_id"))
+                and bool(
+                    re.search(
+                        rf"(?<!\w){re.escape(ctx['npc_id'].lower())}(?!\w)",
+                        lower,
+                    )
+                )
+            )
+            for ctx in npc_contexts
+            if ctx.get("npc_id") != prev_target_id
         )
-        
-        if prev_target_id and not _other_npc_mentioned:
+        # Preserve sticky targeting only while the previous NPC is present,
+        # or when the player explicitly mentions that absent NPC by saved name.
+        _previous_target_explicitly_named = bool(prev_target_name and prev_target_name.lower() in lower)
+        _previous_target_referenced_anaphorically = any(
+            re.search(rf"(?<!\w){re.escape(pronoun)}(?!\w)", lower) for pronoun in self._THIRD_PERSON_ANAPHORA
+        )
+
+        if (
+            prev_target_id
+            and not _other_npc_mentioned
+            and (
+                _previous_target_explicitly_named
+                or _previous_target_referenced_anaphorically
+                or (
+                    prev_target_id in current_npc_ids
+                    and (has_only_pronoun or any(kw in lower for kw in self._PROXIMITY_KEYWORDS))
+                )
+            )
+        ):
             target_npc_id = prev_target_id
             target_npc_name = prev_target_name
             for ctx in npc_contexts:
                 npc_id = ctx.get("npc_id", "")
                 is_proximate = any(kw in lower for kw in self._PROXIMITY_KEYWORDS)
-                player_distances[npc_id] = (
-                    0.5 if npc_id == target_npc_id and is_proximate else 3.0
-                )
+                player_distances[npc_id] = 0.5 if npc_id == target_npc_id and is_proximate else 3.0
             for pos_label, patterns in self._POSITION_PATTERNS.items():
                 if any(p in lower for p in patterns):
                     player_position = pos_label
@@ -625,9 +663,7 @@ class PlayerTargetExtractor:
         # 1. Поиск целевого NPC — собираем ВСЕХ кандидатов, выбираем по позиции в тексте
         # Если упоминаются несколько NPC (например "подойти к Люсе и спросить про Торнина"),
         # главная цель = тот, чьё имя ближе к началу фразы (прямое действие).
-        _candidates: List[
-            Tuple[int, str, str]
-        ] = []  # (позиция_в_тексте, npc_id, npc_name)
+        _candidates: List[Tuple[int, str, str]] = []  # (позиция_в_тексте, npc_id, npc_name)
 
         # Лемматизация текста один раз — для descriptor-мэтчинга через pymorphy3
         _lemma_to_word: Dict[str, str] = {}
@@ -678,14 +714,10 @@ class PlayerTargetExtractor:
                             "до",
                             "без",
                         }
-                        _is_indirect = any(
-                            _prefix.endswith(f" {p} ") for p in _PREPOSITIONS
-                        )
+                        _is_indirect = any(_prefix.endswith(f" {p} ") for p in _PREPOSITIONS)
                         if _is_indirect:
                             continue  # не делаем целем из косвенного упоминания
-                        logger.debug(
-                            f"[S.0 MATCH] name_form '{form}' at pos {pos} → {npc_id}"
-                        )
+                        logger.debug(f"[S.0 MATCH] name_form '{form}' at pos {pos} → {npc_id}")
                         _candidates.append((pos, npc_id, npc_name))
                         break
 
@@ -693,27 +725,18 @@ class PlayerTargetExtractor:
             if not any(c[1] == npc_id for c in _candidates):
                 role = self._get_role_from_id(npc_id)
                 if role and any(
-                    f" {kw} " in f" {lower} "
-                    or lower.startswith(f"{kw} ")
-                    or lower.endswith(f" {kw}")
-                    or lower == kw
+                    f" {kw} " in f" {lower} " or lower.startswith(f"{kw} ") or lower.endswith(f" {kw}") or lower == kw
                     for kw in self._ROLE_KEYWORDS.get(role, [])
                 ):
-                    matched = [
-                        kw for kw in self._ROLE_KEYWORDS.get(role, []) if kw in lower
-                    ]
+                    matched = [kw for kw in self._ROLE_KEYWORDS.get(role, []) if kw in lower]
                     pos = lower.find(matched[0]) if matched else 999
-                    logger.debug(
-                        f"[S.0 MATCH] role_kw {matched!r} at pos {pos} via role={role!r} → {npc_id}"
-                    )
+                    logger.debug(f"[S.0 MATCH] role_kw {matched!r} at pos {pos} via role={role!r} → {npc_id}")
                     _candidates.append((pos, npc_id, npc_name))
 
             # Дескриптор по полу/возрасту (если name_forms и role не сработали)
             if not any(c[1] == npc_id for c in _candidates) and _lemma_to_word:
                 npc_gender_raw = ctx.get("gender", "")
-                npc_gender = self._GENDER_NORM.get(
-                    npc_gender_raw, npc_gender_raw.lower()
-                )
+                npc_gender = self._GENDER_NORM.get(npc_gender_raw, npc_gender_raw.lower())
                 if npc_gender:
                     for desc_lemma, req_gender in self._DESCRIPTORS.items():
                         if req_gender is not None and npc_gender != req_gender:
@@ -795,24 +818,13 @@ class PlayerTargetExtractor:
             has_address_signal = (
                 has_only_pronoun
                 or any(kw in lower for kw in self._PROXIMITY_KEYWORDS)
-                or any(
-                    _morph.parse(w)[0].normal_form in _ADDRESS_LEMMAS
-                    for w in lower.split()
-                    if w
-                )
+                or any(_morph.parse(w)[0].normal_form in _ADDRESS_LEMMAS for w in lower.split() if w)
             )
         except Exception:
             # Fallback если pymorphy3 недоступен
-            has_address_signal = has_only_pronoun or any(
-                kw in lower for kw in self._PROXIMITY_KEYWORDS
-            )
+            has_address_signal = has_only_pronoun or any(kw in lower for kw in self._PROXIMITY_KEYWORDS)
 
-        if (
-            target_npc_id is None
-            and prev_target_id in current_npc_ids
-            and target_object is None
-            and has_address_signal
-        ):
+        if target_npc_id is None and prev_target_id in current_npc_ids and target_object is None and has_address_signal:
             target_npc_id = prev_target_id
             target_npc_name = prev_target_name
 
@@ -839,9 +851,7 @@ class PlayerTargetExtractor:
             try:
                 from app.services.spatial.spatial_runtime import sound_reach
 
-                _voice_radius = sound_reach(
-                    8.0, scene_state or {}
-                )  # голос ≈ 8м базовый
+                _voice_radius = sound_reach(8.0, scene_state or {})  # голос ≈ 8м базовый
             except Exception:
                 _voice_radius = 8.0
 
@@ -851,17 +861,11 @@ class PlayerTargetExtractor:
                 if _prev_dist is not None and _prev_dist <= _voice_radius:
                     target_npc_id = prev_target_id
                     target_npc_name = prev_target_name
-                    logger.debug(
-                        f"[TARGET] Sticky dialog: {target_npc_name} ({target_npc_id}) dist={_prev_dist:.1f}"
-                    )
+                    logger.debug(f"[TARGET] Sticky dialog: {target_npc_name} ({target_npc_id}) dist={_prev_dist:.1f}")
 
             # Fallback 2: нет предыдущего или он вне зоны — берём ближайшего СЛЫШАЩЕГО NPC
             if target_npc_id is None:
-                _audible_candidates = {
-                    nid: dist
-                    for nid, dist in player_distances.items()
-                    if dist <= _voice_radius
-                }
+                _audible_candidates = {nid: dist for nid, dist in player_distances.items() if dist <= _voice_radius}
                 if _audible_candidates:
                     _nearest_id = min(_audible_candidates, key=lambda k: _audible_candidates[k])
                     _nearest_dist = _audible_candidates[_nearest_id]

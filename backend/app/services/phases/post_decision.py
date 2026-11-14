@@ -4,6 +4,7 @@ path: /project/backend/app/services/phases/post_decision.py
 Зависимости: app.services.events.intent_event_adapter, app.domain.action_windup
 Основные сущности: run_phase_6_post_decision, run_phase_7_windup_resolution
 """
+
 from __future__ import annotations
 
 # S203.4 (Э6, Н-40): ключи scene_state для персистентности RAM-структур
@@ -16,11 +17,14 @@ def _windup_key(campaign_id: str, actor_id: str) -> str:
     """F3: строковый ключ для JSON-сериализации tuple-ключа."""
     return f"{campaign_id}::{actor_id}"
 
+
 import copy
 import dataclasses
 import logging
 import uuid
 from typing import Any, Dict, cast
+
+from app.domain.intent_profiles import requires_dialogue_context
 
 logger = logging.getLogger(__name__)
 
@@ -44,15 +48,16 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
     # activity_state не порождает реплик (голодный трактирщик доедает,
     # не отвлекаясь; EAT-диагноз: TALK конкурировал с eat-шагами →
     # hunger 0.67 при DESTROYED=2). Желание остаётся давлением — не задачей.
-    _by_id = {
-        str(n.get("npc_id") or n.get("id") or ""): n
-        for n in (ctx.all_npcs_raw or [])
-    }
+    _by_id = {str(n.get("npc_id") or n.get("id") or ""): n for n in (ctx.all_npcs_raw or [])}
     ctx.communication_intents = [
-        _i for _i in ctx.communication_intents
-        if not isinstance(
-            _by_id.get(str(getattr(_i, "speaker", "")), {}).get("activity_state"),  # noqa: ENIGMA002
-            dict,
+        _i
+        for _i in ctx.communication_intents
+        if (
+            getattr(_i, "intent_type", "") == "player_reply"  # noqa: ENIGMA002
+            or not isinstance(
+                _by_id.get(str(getattr(_i, "speaker", "")), {}).get("activity_state"),  # noqa: ENIGMA002
+                dict,
+            )
         )
     ]
     if not ctx.communication_intents:
@@ -112,29 +117,30 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
             from app.domain.communication import SELF_TALK_SENTINEL  # Р-А: доменный сентинел
 
             if _memory_mgr and _target_id and _target_id not in ("all", SELF_TALK_SENTINEL):
-                _stm_check = _memory_mgr.get_stm_prompt_block_pair(
-                    ctx.campaign_id, intent.speaker, _target_id
-                )
+                _stm_check = _memory_mgr.get_stm_prompt_block_pair(ctx.campaign_id, intent.speaker, _target_id)
                 # S199.2: Классификация интентов для обхода ADR-O-342.
                 # claim-producing действия (warn, intimidate) не требуют контекста диалога (STM)
                 # и могут быть материализованы детерминированно.
                 _CLAIM_PRODUCING_INTENTS = {"warn", "intimidate"}
                 # COGNITIVE-CONTINUITY-01: proposition-carrying клейм — cold-start delivery.
                 _PROP_CARRY = getattr(intent, "proposition", None) is not None
-                if (not _stm_check
-                        and _intent_type not in ("greeting", "approach")
-                        and _intent_type not in _CLAIM_PRODUCING_INTENTS
-                        and not (_PROP_CARRY and _prop_target_in_reach(ctx.scene_state, intent.speaker, _target_id))):
-                    logger.debug(f"[POST_DECISION] Intercept {intent.speaker} -> {_target_id}: No STM, changing intent '{_intent_type}' to 'approach'")
+                if (
+                    not _stm_check
+                    and _intent_type not in ("greeting", "approach")
+                    and _intent_type not in _CLAIM_PRODUCING_INTENTS
+                    and requires_dialogue_context(_intent_type)
+                    and not (_PROP_CARRY and _prop_target_in_reach(ctx.scene_state, intent.speaker, _target_id))
+                ):
+                    logger.debug(
+                        f"[POST_DECISION] Intercept {intent.speaker} -> {_target_id}: No STM, changing intent '{_intent_type}' to 'approach'"
+                    )
                     _intent_type = "approach"
 
             # T-04: Формируем npc_npc_context (историю взаимодействий с целью)
             _history_text = ""
             if _svc and _svc.memory_manager and _target_id and _target_id != "all":
                 try:
-                    _cache = _svc.memory_manager.load_narrative_from_sqlite(
-                        ctx.campaign_id, intent.speaker
-                    )
+                    _cache = _svc.memory_manager.load_narrative_from_sqlite(ctx.campaign_id, intent.speaker)
                     _memories = _svc.memory_manager.recall(
                         narrative_cache=_cache,
                         target_npc_id=_target_id,
@@ -142,8 +148,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                     )
                     if _memories:
                         _history_text = " ".join(
-                            getattr(_m, 'summary', getattr(_m, 'description', str(_m)))
-                            for _m in _memories[:3]
+                            getattr(_m, "summary", getattr(_m, "description", str(_m))) for _m in _memories[:3]
                         )
                 except Exception as _e:
                     logger.warning(f"[POST_DECISION] T-04: Failed to recall memory for {intent.speaker}: {_e}")
@@ -161,7 +166,14 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                     )
                     from app.services.npc.npc_tick_pipeline import build_verbalization_context
 
-                    _npc_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == intent.speaker or n.get("id") == intent.speaker), None)
+                    _npc_dict = next(
+                        (
+                            n
+                            for n in ctx.all_npcs_raw
+                            if n.get("npc_id") == intent.speaker or n.get("id") == intent.speaker
+                        ),
+                        None,
+                    )
                     if _npc_dict:
                         _npc_dict_copy = copy.deepcopy(dict(_npc_dict))
                         _profile_l0 = load_profile_from_legacy_json(_npc_dict_copy)
@@ -179,7 +191,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                             hub_event=_hub_event,
                             raw_input=_raw_input,
                             campaign_id=ctx.campaign_id,
-                            topic=intent.topic
+                            topic=intent.topic,
                         )
 
                         # V8-DLG-10 FIX: Собираем статическую часть промпта из VerbalizationContext.
@@ -195,7 +207,9 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                         if _v_ctx.emotional_nuance:
                             _prepared_prompt += f"Твоё текущее состояние: {_v_ctx.emotional_nuance}. "
                 except Exception as _e:
-                    logger.warning(f"[POST_DECISION] V8-DLG-10: Failed to build prepared_prompt for {intent.speaker}: {_e}")
+                    logger.warning(
+                        f"[POST_DECISION] V8-DLG-10: Failed to build prepared_prompt for {intent.speaker}: {_e}"
+                    )
 
             # S197: Конвертация Proposition в dict для сериализуемого DialogueRequest
             _prop = getattr(intent, "proposition", None)  # noqa: ENIGMA002
@@ -205,7 +219,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                     "subject_id": _prop.subject_id,
                     "predicate": _prop.predicate.value,
                     "object_id": _prop.object_id,
-                    "polarity": _prop.polarity
+                    "polarity": _prop.polarity,
                 }
 
             _req = DialogueRequest(
@@ -252,8 +266,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                         ctx.tick_number,
                     )
             ctx.scene_state["pending_tasks"] = [
-                t for t in ctx.scene_state["pending_tasks"]
-                if t.get("tick", 0) >= ctx.tick_number - 1
+                t for t in ctx.scene_state["pending_tasks"] if t.get("tick", 0) >= ctx.tick_number - 1
             ]
             # Ручная сериализация, чтобы избежать проблем с frozen dataclasses и Enums
             _task_dict: Dict[str, Any] = {
@@ -274,8 +287,8 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                     "emotional_state": _req.emotional_state,
                     "npc_npc_context": _req.npc_npc_context,
                     "thread_id": _req.thread_id,
-                    "prepared_prompt": _req.prepared_prompt, # V8-DLG-10 FIX
-                    "proposition": _req.proposition, # S197: Добавлено для сериализации
+                    "prepared_prompt": _req.prepared_prompt,  # V8-DLG-10 FIX
+                    "proposition": _req.proposition,  # S197: Добавлено для сериализации
                 },
                 "created_tick": _task.created_tick,
             }
@@ -284,9 +297,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
             # получает владельца; ambient — non-ownership Sims-слой (ADR-O-365).
             from app.domain.intent_profiles import produces_claim
 
-            if produces_claim(_intent_type) or bool(
-                _task_dict["payload"].get("proposition")
-            ):
+            if produces_claim(_intent_type) or bool(_task_dict["payload"].get("proposition")):
                 from app.domain.action_priority import resolve_candidate_priority
                 from app.services.action.commitment_registry import CommitmentRegistry
 
@@ -326,7 +337,6 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                 )
 
                 if not _has_active:
-
                     # S203.4 (Э5-c): зеркало владения ДО windup — commitment_id
                     # становится held_intent_id (детерминизм, закон №4; Н-31 не
                     # размножается). Коллизия → legacy uuid4-путь без владения.
@@ -340,9 +350,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                         target_id=_target_id,
                         cause=f"windup:{_gate_intent_type}",
                     )
-                    _intent_id = (
-                        _w_cm["commitment_id"] if _w_cm else uuid.uuid4().hex
-                    )
+                    _intent_id = _w_cm["commitment_id"] if _w_cm else uuid.uuid4().hex
                     # S203.4 (Э6): held intent → scene_state (персистентность).
                     _held_store = ctx.scene_state.setdefault(_KEY_HELD_INTENTS, {})
                     _held_store[_intent_id] = intent.to_dict()
@@ -360,11 +368,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                         target_id=_target_id,
                         action_type=_gate_intent_type,
                         started_tick=ctx.tick_number,
-                        duration_ticks=(
-                            STEAL_WINDUP_DURATION_TICKS
-                            if _is_steal
-                            else ATTACK_WINDUP_DURATION_TICKS
-                        ),
+                        duration_ticks=(STEAL_WINDUP_DURATION_TICKS if _is_steal else ATTACK_WINDUP_DURATION_TICKS),
                         status=WindupStatus.PENDING,
                         held_intent_id=_intent_id,
                     )
@@ -377,9 +381,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
         bus.publish(event)
         converted += 1
 
-    logger.info(
-        f"[TICK_ORCH] Фаза 6: {converted} intents → EventDTO, {windups_created} windups created"
-    )
+    logger.info(f"[TICK_ORCH] Фаза 6: {converted} intents → EventDTO, {windups_created} windups created")
 
 
 def _gate_type_is_object_action(action_type: str) -> bool:
@@ -448,25 +450,19 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
                                 (
                                     n
                                     for n in ctx.all_npcs_raw
-                                    if n.get("npc_id") == _actor_id
-                                    or n.get("id") == _actor_id
+                                    if n.get("npc_id") == _actor_id or n.get("id") == _actor_id
                                 ),
                                 None,
                             )
                             if not _actor_dict:
                                 _is_stale, _reason = True, "actor_missing"
-                            elif (
-                                _actor_dict.get("body_state", {}).get("life_status")
-                                == "DEAD"
-                            ):
+                            elif _actor_dict.get("body_state", {}).get("life_status") == "DEAD":
                                 _is_stale, _reason = True, "actor_dead"
 
                             # 2. Target validation (if actor is valid)
                             if not _is_stale and _target_id:
                                 if _target_id == "player":
-                                    if "player" not in ctx.scene_state.get(
-                                        "npc_positions", {}
-                                    ):
+                                    if "player" not in ctx.scene_state.get("npc_positions", {}):
                                         _is_stale, _reason = (
                                             True,
                                             "target_player_missing",
@@ -483,23 +479,14 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
                                         (
                                             n
                                             for n in ctx.all_npcs_raw
-                                            if n.get("npc_id") == _target_id
-                                            or n.get("id") == _target_id
+                                            if n.get("npc_id") == _target_id or n.get("id") == _target_id
                                         ),
                                         None,
                                     )
-                                    if (
-                                        _target_dict
-                                        and _target_dict.get("body_state", {}).get(
-                                            "life_status"
-                                        )
-                                        == "DEAD"
-                                    ):
+                                    if _target_dict and _target_dict.get("body_state", {}).get("life_status") == "DEAD":
                                         _is_stale, _reason = True, "target_dead"
-                                    elif (
-                                        not _target_dict
-                                        and _target_id
-                                        not in ctx.scene_state.get("npc_positions", {})
+                                    elif not _target_dict and _target_id not in ctx.scene_state.get(
+                                        "npc_positions", {}
                                     ):
                                         _is_stale, _reason = True, "target_missing"
 
@@ -507,9 +494,7 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
                                 logger.info(
                                     f"[PHASE_7][STALE_INTERRUPT] npc={_actor_id} target={_target_id} reason={_reason}"
                                 )
-                                windup = dataclasses.replace(
-                                    windup, status=WindupStatus.INTERRUPTED
-                                )
+                                windup = dataclasses.replace(windup, status=WindupStatus.INTERRUPTED)
                             else:
                                 # G3 (ADR-O-410): объектная цель — исполнитель
                                 # мира ДО проекции-события (D4: событие =
@@ -528,24 +513,16 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
                                         f"target={_target_id} reason={_g3.reason}"
                                     )
                                     _g3_interrupt_reason = INTERRUPT_G3_OBJECT_REJECT
-                                    windup = dataclasses.replace(
-                                        windup, status=WindupStatus.INTERRUPTED
-                                    )
+                                    windup = dataclasses.replace(windup, status=WindupStatus.INTERRUPTED)
                                 else:
                                     event = adapter.to_event(_held_intent)
                                     bus.publish(event)
                                     executed_windups += 1
-                                    windup = dataclasses.replace(
-                                        windup, status=WindupStatus.COMPLETED
-                                    )
+                                    windup = dataclasses.replace(windup, status=WindupStatus.COMPLETED)
                         else:
-                            windup = dataclasses.replace(
-                                windup, status=WindupStatus.COMPLETED
-                            )
+                            windup = dataclasses.replace(windup, status=WindupStatus.COMPLETED)
                     else:
-                        windup = dataclasses.replace(
-                            windup, status=WindupStatus.COMPLETED
-                        )
+                        windup = dataclasses.replace(windup, status=WindupStatus.COMPLETED)
             # S203.4 (Э5-c terminals): windup достиг терминала — зеркало.
             # Одна точка после всего if/else (4 ветки COMPLETED + 1 INTERRUPTED).
             if windup.status == WindupStatus.INTERRUPTED:
@@ -553,19 +530,22 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
                 from app.services.action.commitment_registry import CommitmentRegistry
 
                 CommitmentRegistry.mirror_task_terminal(
-                    ctx.scene_state, windup.actor_id, ctx.tick_number,
+                    ctx.scene_state,
+                    windup.actor_id,
+                    ctx.tick_number,
                     "INTERRUPTED",
-                    interrupt_reason=(
-                        _g3_interrupt_reason or INTERRUPT_WINDUP_STALE_INTENT
-                    ),
+                    interrupt_reason=(_g3_interrupt_reason or INTERRUPT_WINDUP_STALE_INTENT),
                     executor="windup",
                 )
             elif windup.status == WindupStatus.COMPLETED:
                 from app.services.action.commitment_registry import CommitmentRegistry
 
                 CommitmentRegistry.mirror_task_terminal(
-                    ctx.scene_state, windup.actor_id, ctx.tick_number,
-                    "COMPLETED", executor="windup",
+                    ctx.scene_state,
+                    windup.actor_id,
+                    ctx.tick_number,
+                    "COMPLETED",
+                    executor="windup",
                 )
 
             if windup.status == WindupStatus.PENDING:
@@ -578,9 +558,8 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
             del _windup_store[_wkey]
 
     if executed_windups > 0:
-        logger.info(
-            f"[TICK_ORCH] Фаза 7: {executed_windups} windups executed (EventDTO published)"
-        )
+        logger.info(f"[TICK_ORCH] Фаза 7: {executed_windups} windups executed (EventDTO published)")
+
 
 def _prop_target_in_reach(scene_state: dict, speaker_id: str, target_id: str) -> bool:
     """COGNITIVE-CONTINUITY-01: клейм доставляем, если адресат в пределах речи
@@ -602,6 +581,7 @@ def _prop_target_in_reach(scene_state: dict, speaker_id: str, target_id: str) ->
         if _s_local is None or _t_local is None:
             return False
         import math
+
         # FIX: local_position is dict {"x":.., "y":..} — use .get(), not [0]/[1]
         _sx = _s_local.get("x", 0.0) if isinstance(_s_local, dict) else _s_local[0]
         _sy = _s_local.get("y", 0.0) if isinstance(_s_local, dict) else _s_local[1]
@@ -610,5 +590,6 @@ def _prop_target_in_reach(scene_state: dict, speaker_id: str, target_id: str) ->
         return math.hypot(_sx - _tx, _sy - _ty) <= 6.0
     except Exception as _e:
         import logging
+
         logging.getLogger(__name__).warning(f"[PROP_TARGET_IN_REACH] failed for {speaker_id}->{target_id}: {_e}")
         return False

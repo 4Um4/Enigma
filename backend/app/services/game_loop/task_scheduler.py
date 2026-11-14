@@ -4,6 +4,7 @@ path: /backend/app/services/game_loop/task_scheduler.py
 Зависимости: app.domain.execution, app.services.execution.dialogue_executor, app.services.execution.dialogue_materializer
 Основные сущности: TaskScheduler
 """
+
 from __future__ import annotations
 
 import logging
@@ -22,6 +23,8 @@ class _TaskArtifactRecord:
     dialogue_entry: Optional[dict]
     economy_talks: tuple
     speech_reset: Optional[dict]
+
+
 from typing import Dict
 
 from app.domain.communication import DialogueRequest
@@ -49,16 +52,35 @@ _UI_TTL_SEC: float = 7.0
 _RECENT_TTL_GAME_SEC: float = 120.0
 _MAX_TASKS_PER_TICK: int = 1
 
+
 class TaskScheduler:
     """
     Инфраструктурный компонент. Живёт в game_loop.
     Читает scene_state["pending_tasks"], вызывает исполнителей, генерирует события.
     """
 
-    def __init__(self, router: Any = None, context_provider: Any = None, economy_tracker: Any = None, belief_store: Any = None, memory_manager: Any = None, confession_parser: Any = None, npc_states_provider: Any = None, epistemic_store: Any = None) ->None:
+    def __init__(
+        self,
+        router: Any = None,
+        context_provider: Any = None,
+        economy_tracker: Any = None,
+        belief_store: Any = None,
+        memory_manager: Any = None,
+        confession_parser: Any = None,
+        npc_states_provider: Any = None,
+        epistemic_store: Any = None,
+    ) -> None:
         from app.services.execution.npc_conversation import NpcConversation
+
         self._executors: Dict[TaskKind, TaskExecutor] = {
-            TaskKind.DIALOGUE: DialogueExecutor(router, context_provider, belief_store=belief_store, memory_manager=memory_manager, confession_parser=confession_parser, epistemic_store=epistemic_store)
+            TaskKind.DIALOGUE: DialogueExecutor(
+                router,
+                context_provider,
+                belief_store=belief_store,
+                memory_manager=memory_manager,
+                confession_parser=confession_parser,
+                epistemic_store=epistemic_store,
+            )
         }
         # ADR-O-342: Сохраняем для проверки STM при резолве цели
         self._memory_manager = memory_manager
@@ -79,6 +101,7 @@ class TaskScheduler:
         # своём setUp (через _install_sync_pool или эквивалент).
         from app.services.cognition.proposition_verifier import PropositionVerifier
         from app.services.cognition.router_adapter import RouterAdapter
+
         _proposition_verifier: Any = None
         if router is not None:
             _proposition_verifier = PropositionVerifier(
@@ -99,9 +122,7 @@ class TaskScheduler:
             )
 
         self._materializers: Dict[str, Materializer] = {
-            "dialogue_line": DialogueMaterializer(
-                proposition_verifier=_proposition_verifier
-            )
+            "dialogue_line": DialogueMaterializer(proposition_verifier=_proposition_verifier)
         }
         # BUG-N8 FIX: Инъекция EconomyTracker для трекинга разговоров
         self._economy_tracker = economy_tracker
@@ -110,6 +131,7 @@ class TaskScheduler:
         self._dialogue_ttl = _DIALOGUE_TTL
         # ADR-O-343 FIX: Блокировка для защиты _recent_dialogues от гонки с ThreadPoolExecutor
         import threading
+
         self._dialogue_lock = threading.Lock()
         # P1 FIX: Асинхронный пул для неблокирающего выполнения LLM
         # ADR-O-343 FIX: Сериализация LLM-вызовов (max_workers=1).
@@ -128,6 +150,7 @@ class TaskScheduler:
         self.total_processed_tasks = 0
         self._spatial_query_service = None
         from app.services.execution.dialogue_queue import DialogueQueue
+
         self._dialogue_queue = DialogueQueue()
         # S262: множество enqueue-дедупа (speaker, intent) — см. DLG_ENQ_DEDUP
         self._enqueued_keys: set = set()
@@ -177,15 +200,21 @@ class TaskScheduler:
             if not isinstance(_n, dict):
                 continue
             if _n.get("npc_id") == owner_id or _n.get("id") == owner_id:
-                return _n.get("intent") == "flee"
+                return bool(_n.get("intent") == "flee")
         return False
 
     @staticmethod
     def _is_player_reply_task(task_dict: dict) -> bool:
-        return task_dict.get("payload", {}).get("intent_type") == "player_reply"
+        return bool(task_dict.get("payload", {}).get("intent_type") == "player_reply")
 
-    def set_epistemic_wiring(self, discovery_bridge: Any = None, npc_states_provider: Any = None,
-                             relationship_provider: Any = None, subject_resolver: Any = None, epistemic_store: Any = None) -> None:
+    def set_epistemic_wiring(
+        self,
+        discovery_bridge: Any = None,
+        npc_states_provider: Any = None,
+        relationship_provider: Any = None,
+        subject_resolver: Any = None,
+        epistemic_store: Any = None,
+    ) -> None:
         """P6/E1 (S255): проброс игрок-контура P3→P4→P5→P6 в DialogueExecutor
         (late-binding; прецедент set_spatial_query_service)."""
         _dlg = self._executors.get(TaskKind.DIALOGUE)
@@ -283,21 +312,30 @@ class TaskScheduler:
                     self._recent_dialogues.append(_rec.dialogue_entry)
                 # ADR-O-313: зеркалирование в scene_state — только здесь, main thread
                 scene_state.setdefault("recent_dialogues", []).append(_rec.dialogue_entry)
-            if _rec.speech_reset is not None and hasattr(self, '_speech_scheduler'):
+            if _rec.speech_reset is not None and hasattr(self, "_speech_scheduler"):
                 self._speech_scheduler.reset_context(_rec.speech_reset)
 
-    def _push_task_artifact(self, submit_tick: int, task_id: str, events: list[Any],
-                            dialogue_entry: Any, talks: list[Any], speech_reset: Any) -> None:
+    def _push_task_artifact(
+        self,
+        submit_tick: int,
+        task_id: str,
+        events: list[Any],
+        dialogue_entry: Any,
+        talks: list[Any],
+        speech_reset: Any,
+    ) -> None:
         """ADR-O-399: единственный push воркера в outbox (данные, не эффекты)."""
         with self._task_outbox_lock:
-            self._task_outbox.append(_TaskArtifactRecord(
-                submit_tick=submit_tick,
-                task_id=task_id,
-                events=tuple(events),
-                dialogue_entry=dialogue_entry,
-                economy_talks=tuple(talks),
-                speech_reset=speech_reset,
-            ))
+            self._task_outbox.append(
+                _TaskArtifactRecord(
+                    submit_tick=submit_tick,
+                    task_id=task_id,
+                    events=tuple(events),
+                    dialogue_entry=dialogue_entry,
+                    economy_talks=tuple(talks),
+                    speech_reset=speech_reset,
+                )
+            )
 
     def get_recent_dialogues(self, current_time: float) -> list:
         """Возвращает активные реплики для WorldSnapshotDTO.
@@ -312,10 +350,7 @@ class TaskScheduler:
         """
         with self._dialogue_lock:
             self._recent_dialogues = [
-                d
-                for d in self._recent_dialogues
-                if (current_time - d.get("timestamp", 0.0))
-                < _RECENT_TTL_GAME_SEC
+                d for d in self._recent_dialogues if (current_time - d.get("timestamp", 0.0)) < _RECENT_TTL_GAME_SEC
             ]
             return list(self._recent_dialogues)
 
@@ -324,9 +359,7 @@ class TaskScheduler:
         if not pending:
             return True
 
-        logger.debug(
-            f"[SCHEDULER] Found {len(pending)} pending tasks. Submitting to background pool."
-        )
+        logger.debug(f"[SCHEDULER] Found {len(pending)} pending tasks. Submitting to background pool.")
 
         # Копируем задачи и очищаем список в scene_state, чтобы не запустить повторно
         tasks_to_process = pending[:max_tasks_per_tick]
@@ -352,10 +385,7 @@ class TaskScheduler:
             # материализуется, задача INTERRUPTED(TASK_STALE_INTENT).
             from app.domain.action_commitment import INTERRUPT_TASK_STALE_INTENT  # noqa: ENIGMA002
 
-            if (
-                self._owner_intent_flees(_camp, _own)
-                and not self._is_player_reply_task(_td)
-            ):
+            if self._owner_intent_flees(_camp, _own) and not self._is_player_reply_task(_td):
                 self._record_task_outcome(_own, "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
                 logger.info(
                     f"[TASK_SCHED] stale-intent-gate (process_tasks): owner={_own} "
@@ -368,8 +398,7 @@ class TaskScheduler:
 
         # Запускаем фоновую обработку
         self._executor_pool.submit(
-            self._process_tasks_async, scene_state, tasks_to_process,
-            submit_tick=scene_state.get("tick", 0)
+            self._process_tasks_async, scene_state, tasks_to_process, submit_tick=scene_state.get("tick", 0)
         )
 
         return True
@@ -385,10 +414,7 @@ class TaskScheduler:
         # autonomous ambient speech. It still uses DialogueExecutor and the
         # normal materializer/outbox path.
         for task_dict in pending:
-            if (
-                task_dict.get("kind") == "dialogue"
-                and self._is_player_reply_task(task_dict)
-            ):
+            if task_dict.get("kind") == "dialogue" and self._is_player_reply_task(task_dict):
                 direct_replies.extend(
                     self._process_tasks_async(
                         scene_state,
@@ -408,8 +434,9 @@ class TaskScheduler:
             return direct_replies
 
         # ADR-O-343: SpeechScheduler Arbitration инициализируется здесь
-        if not hasattr(self, '_speech_scheduler'):
+        if not hasattr(self, "_speech_scheduler"):
             from app.services.game_loop.speech_scheduler import SpeechScheduler
+
             self._speech_scheduler = SpeechScheduler(self._memory_manager)
 
         # [GC-I01-E2] GC-INTERRUPT-01: причина прерывания (закон №16, локальный
@@ -429,7 +456,10 @@ class TaskScheduler:
 
                 # S216 FIX (027.1): Fast-path для задач, не требующих LLM (warn, spread_rumor, steal).
                 # Они исполняются синхронно, минуя DialogueQueue, чтобы не создавать backlog.
-                if not requires_llm_materialization(_intent_type):
+                _requires_llm = requires_llm_materialization(_intent_type) or (
+                    _intent_type == "spread_rumor" and _payload.get("proposition") is not None
+                )
+                if not _requires_llm:
                     # FIX [4]: fast-path исполняется СИНХРОННО на вызывающем потоке
                     # (не через _executor_pool). warn/spread_rumor/steal не используют
                     # LLM (stub-режим или детерминированный текст) → мгновенно. Пул с
@@ -450,7 +480,9 @@ class TaskScheduler:
                     # death-check): warn/spread_rumor убегающего тоже не
                     # материализуются — воля владельца сильнее типа задачи.
                     if self._owner_intent_flees(campaign_id, speaker_id):
-                        self._record_task_outcome(speaker_id, "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+                        self._record_task_outcome(
+                            speaker_id, "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT
+                        )
                         logger.info(
                             f"[TASK_SCHED] stale-intent-gate (fast-path): owner={speaker_id} "
                             f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
@@ -460,7 +492,9 @@ class TaskScheduler:
                     # дефолт 0 → _TaskArtifactRecord.submit_tick=0 → event_tick=0
                     # в drain. Симметрично process_tasks:333 и dequeue-пути :556 —
                     # восстановление существующего контракта, не новая семантика.
-                    self._process_tasks_async(scene_state, [task_dict], campaign_id, "canonical", _game_time, scene_state.get("tick", 0))
+                    self._process_tasks_async(
+                        scene_state, [task_dict], campaign_id, "canonical", _game_time, scene_state.get("tick", 0)
+                    )
                     continue
 
                 # S216 FIX (027.1): Классификация canonical/ambient через intent_profiles.
@@ -496,7 +530,8 @@ class TaskScheduler:
                         self._record_task_outcome(speaker_id, "CANCELLED")
                     logger.info(
                         "[DLG_ENQ_DEDUP] skip дубликата: speaker=%s intent=%s",
-                        speaker_id, _intent_type,
+                        speaker_id,
+                        _intent_type,
                     )
                     continue
                 # S262: overflow-наблюдаемость (L4; закрывает молчаливую
@@ -520,15 +555,13 @@ class TaskScheduler:
                         "task_dict": task_dict,
                     },
                     priority=_priority,
-                    game_time_seconds=_game_time
+                    game_time_seconds=_game_time,
                 )
 
         # BUG-CORE-010 / BUG-DLG-005 FIX: Диалоговые задачи перенесены в DialogueQueue.
         # Удаляем их из pending_tasks, чтобы предотвратить бесконечный ре-enqueue и спам кучи.
         # Non-dialogue задачи (если появятся в будущем) остаются в pending.
-        scene_state["pending_tasks"] = [
-            t for t in pending if t.get("kind") != "dialogue"
-        ]
+        scene_state["pending_tasks"] = [t for t in pending if t.get("kind") != "dialogue"]
 
         # ADR-O-343: Жёсткий лимит 1 задача на тик для размеренного пейсинга (Human Pacing).
         # В сочетании с SpeechScheduler (2 сек) это даёт плавную последовательность реплик.
@@ -540,11 +573,7 @@ class TaskScheduler:
         # стабильно превышал дренаж 1/тик → очередь на капе 20 →
         # молчаливая потеря задач (DLG_QUEUE OVERFLOW, Н-56) → реплики-
         # лотерея (25/3/0/0 в замерах S262).
-        _pending_now = (
-            self._dialogue_queue.pending_count()
-            if hasattr(self._dialogue_queue, "pending_count")
-            else 0
-        )
+        _pending_now = self._dialogue_queue.pending_count() if hasattr(self._dialogue_queue, "pending_count") else 0
         _drain_limit = _MAX_TASKS_PER_TICK + 2 if _pending_now > 10 else _MAX_TASKS_PER_TICK
         _processed_count = 0
 
@@ -561,9 +590,7 @@ class TaskScheduler:
             # ADR-O-343: Narrative Arbitration после извлечения из очереди
             # IRON RIVER D-1/P0-2 (F2): admission на каузальной оси —
             # game_time (в scope, BUG-DLG-006), не wall-clock.
-            _admitted, _reason = self._speech_scheduler.admit(
-                task_dict, campaign_id, game_time_seconds=_game_time
-            )
+            _admitted, _reason = self._speech_scheduler.admit(task_dict, campaign_id, game_time_seconds=_game_time)
 
             if not _admitted:
                 if _reason == "PACING":
@@ -577,8 +604,8 @@ class TaskScheduler:
                     self._dialogue_queue.enqueue(
                         task_type=_task_type,
                         payload=_eligible.payload,
-                        priority=-_eligible.priority, # heapq инвертирует обратно
-                        game_time_seconds=_game_time
+                        priority=-_eligible.priority,  # heapq инвертирует обратно
+                        game_time_seconds=_game_time,
                     )
                     continue
                 elif _reason == "DEDUP":
@@ -611,7 +638,9 @@ class TaskScheduler:
             # death-check). In-flight-политика = death-прецедент ADR-O-387:
             # гейт стоит до executor.execute — начатая генерация не отзывается.
             if self._owner_intent_flees(campaign_id, task_dict.get("owner_id", "")):
-                self._record_task_outcome(task_dict.get("owner_id", ""), "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+                self._record_task_outcome(
+                    task_dict.get("owner_id", ""), "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT
+                )
                 logger.info(
                     f"[TASK_SCHED] stale-intent-gate (dequeue): owner={task_dict.get('owner_id', '')} "
                     f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
@@ -625,20 +654,34 @@ class TaskScheduler:
             _submit_intent = task_dict.get("payload", {}).get("intent_type", "")
             if _submit_intent:
                 self._enqueued_keys.discard((task_dict.get("owner_id", ""), _submit_intent))
-            
+
             # Запускаем в асинхронном пуле, чтобы не блокировать idle_tick.
             # Передаём _game_time явно, чтобы избежать гонки с мутирующим scene_state.
             self._executor_pool.submit(
-                self._process_tasks_async, scene_state, [task_dict], campaign_id, _task_type, _game_time,
-                scene_state.get("tick", 0)
+                self._process_tasks_async,
+                scene_state,
+                [task_dict],
+                campaign_id,
+                _task_type,
+                _game_time,
+                scene_state.get("tick", 0),
             )
             _processed_count += 1
         return direct_replies
 
-    def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = "", _task_type: str = "canonical", _game_time: float = 0.0, submit_tick: int = 0) -> list[dict]:
+    def _process_tasks_async(
+        self,
+        scene_state: dict,
+        tasks: list,
+        campaign_id: str = "",
+        _task_type: str = "canonical",
+        _game_time: float = 0.0,
+        submit_tick: int = 0,
+    ) -> list[dict]:
         """Фоновая обработка задач LLM (ADR-O-399: только compute, observable-эффекты — в drain)."""
         import os as _os
         import time
+
         dialogue_entries: list[dict] = []
         # ADR-O-399 / §15.2-паттерн DRIFT_*: test-only латентность воркера.
         # Моделирует время ГОТОВНОСТИ артефакта, не меняет его содержание —
@@ -654,6 +697,7 @@ class TaskScheduler:
             FAIL_TASK_ERROR,
             INTERRUPT_TASK_STALE_INTENT,
         )
+
         # ADR-O-399: bus воркеру больше не нужен — publish только в drain
         # (main thread). Если это последнее использование get_event_bus в
         # функции — импорт ниже не встречается (проверяет structural probe).
@@ -684,11 +728,12 @@ class TaskScheduler:
             # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт worker — последний рубеж
             # до executor.execute (прецедент B8: задача, сабмиченная до
             # изменения воли, не исполняется; начатая генерация не отзывается).
-            if (
-                self._owner_intent_flees(campaign_id, task_dict.get("owner_id", ""))
-                and not self._is_player_reply_task(task_dict)
+            if self._owner_intent_flees(campaign_id, task_dict.get("owner_id", "")) and not self._is_player_reply_task(
+                task_dict
             ):
-                self._record_task_outcome(task_dict.get("owner_id", ""), "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+                self._record_task_outcome(
+                    task_dict.get("owner_id", ""), "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT
+                )
                 logger.info(
                     f"[TASK_SCHED] stale-intent-gate (worker): owner={task_dict.get('owner_id', '')} "
                     f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
@@ -754,22 +799,27 @@ class TaskScheduler:
                 if _candidates:
                     # BUG-CORE-011 FIX: Используем KernelRNG вместо глобального random (ADR-O-301).
                     from app.services.npc.kernel_rng import KernelRNG
+
                     _tick = scene_state.get("tick", 0)
                     _rng = KernelRNG(tick=_tick, npc_id=task.owner_id, salt="task_target_resolve")
                     _resolved_target = _rng.choice(_candidates)
 
                 task.payload = dc_replace(task.payload, target_id=_resolved_target)
-                logger.debug(
-                    f"[SCHEDULER] Resolved missing target_id to '{_resolved_target}' for {task.owner_id}"
-                )
+                logger.debug(f"[SCHEDULER] Resolved missing target_id to '{_resolved_target}' for {task.owner_id}")
 
                 # ADR-O-342: Hard Contract. Если STM пуст для резолвнутой цели, меняем intent на approach
-                if self._memory_manager and task.payload.intent_type not in ("greeting", "approach") and requires_dialogue_context(task.payload.intent_type):
+                if (
+                    self._memory_manager
+                    and task.payload.intent_type not in ("greeting", "approach")
+                    and requires_dialogue_context(task.payload.intent_type)
+                ):
                     _stm_check = self._memory_manager.get_stm_prompt_block_pair(
                         campaign_id, task.owner_id, _resolved_target
                     )
                     if not _stm_check:
-                        logger.debug(f"[SCHEDULER] Intercept {task.owner_id} -> {_resolved_target}: No STM, changing intent '{task.payload.intent_type}' to 'approach'")
+                        logger.debug(
+                            f"[SCHEDULER] Intercept {task.owner_id} -> {_resolved_target}: No STM, changing intent '{task.payload.intent_type}' to 'approach'"
+                        )
                         task.payload = dc_replace(task.payload, intent_type="approach")
 
             artifacts = executor.execute(task)
@@ -780,7 +830,9 @@ class TaskScheduler:
                         task.state = TaskState.FINISHED
                         if _task_type == "canonical":
                             self._record_task_outcome(task.owner_id, "COMPLETED")
-                        logger.info(f"[TASK_SCHED] dialogue executed: speaker={task.owner_id} target={task.payload.target_id if hasattr(task.payload, 'target_id') else 'unknown'}")
+                        logger.info(
+                            f"[TASK_SCHED] dialogue executed: speaker={task.owner_id} target={task.payload.target_id if hasattr(task.payload, 'target_id') else 'unknown'}"
+                        )
 
                         materializer = self._materializers.get(artifact.result_type)
                         if materializer:
@@ -791,7 +843,9 @@ class TaskScheduler:
                                 for ev in events:
                                     _events_collected.append(ev)
                             except Exception as mat_exc:
-                                logger.error(f"[SCHEDULER] Materializer failed for task {task.task_id}: {mat_exc}", exc_info=True)
+                                logger.error(
+                                    f"[SCHEDULER] Materializer failed for task {task.task_id}: {mat_exc}", exc_info=True
+                                )
                                 events = []
                         else:
                             logger.warning(f"[SCHEDULER] No materializer for result_type={artifact.result_type}")
@@ -804,6 +858,7 @@ class TaskScheduler:
                                 # ADR-O-399: observable economy — в drain
                                 _talks_collected.append((ev.source, scene_state.get("tick", 0)))
                             import time
+
                             _dlg_entry = {
                                 "speaker_id": ev.source,
                                 "target_id": ev.payload.get("target_id", ""),
@@ -827,15 +882,13 @@ class TaskScheduler:
                             # ADR-O-313 FIX: Зеркалим в scene_state, иначе CDS видит 0 реплик (INV-DIALOGUE-PIPELINE)
                             # ADR-O-399: зеркалирование в scene_state — только в drain
                     else:
-                        logger.error(
-                            f"[SCHEDULER] Task {task.task_id} failed: {artifact.error_message}"
-                        )
+                        logger.error(f"[SCHEDULER] Task {task.task_id} failed: {artifact.error_message}")
                         task.state = TaskState.FINISHED  # Пока без сложного ретрая
                         if _task_type == "canonical":
                             self._record_task_outcome(task.owner_id, "FAILED", FAIL_TASK_ERROR)
                         self.failed_tasks += 1
                         # ADR-O-343: Сбрасываем DEDUP в SpeechScheduler, чтобы NPC мог повторить попытку
-                        if hasattr(self, '_speech_scheduler'):
+                        if hasattr(self, "_speech_scheduler"):
                             # ADR-O-399: мутация admission-состояния — в drain
                             _speech_reset = task_dict
             except Exception as task_exc:
@@ -844,7 +897,7 @@ class TaskScheduler:
                     # Закрывает PROCESSING-лимбо (F9): crash-исполнение = FAILED.
                     self._record_task_outcome(task.owner_id, "FAILED", FAIL_TASK_CRASH)
                 self.failed_tasks += 1
-                if hasattr(self, '_speech_scheduler'):
+                if hasattr(self, "_speech_scheduler"):
                     # ADR-O-399: reset admission-состояния — в drain (главный поток)
                     _speech_reset = task_dict
                 break
@@ -852,8 +905,12 @@ class TaskScheduler:
                 # ADR-O-399: артефакт задачи уходит в outbox при любом исходе
                 # (success / failed / crash) — эффекты применит drain.
                 self._push_task_artifact(
-                    submit_tick, task.task_id, _events_collected,
-                    _dlg_entry, _talks_collected, _speech_reset,
+                    submit_tick,
+                    task.task_id,
+                    _events_collected,
+                    _dlg_entry,
+                    _talks_collected,
+                    _speech_reset,
                 )
         return dialogue_entries
 
@@ -873,7 +930,9 @@ class TaskScheduler:
         try:
             kind = TaskKind(kind_str)
         except (ValueError, TypeError):
-            logger.error(f"[SCHEDULER] Reconstruction FAILED for task {task_id}: unknown kind '{kind_str}'. Task dropped.")
+            logger.error(
+                f"[SCHEDULER] Reconstruction FAILED for task {task_id}: unknown kind '{kind_str}'. Task dropped."
+            )
             # S203.4 (terminal-mapping v2): drop-до-исполнения → CANCELLED
             # (ambient-дропы безопасно ноу-опят по executor-mismatch).
             self._record_task_outcome(task_dict.get("owner_id", ""), "CANCELLED")
@@ -887,7 +946,9 @@ class TaskScheduler:
             else:
                 priority = TaskPriority[priority_val]
         except (ValueError, KeyError, TypeError):
-            logger.error(f"[SCHEDULER] Reconstruction FAILED for task {task_id}: invalid priority '{priority_val}'. Task dropped.")
+            logger.error(
+                f"[SCHEDULER] Reconstruction FAILED for task {task_id}: invalid priority '{priority_val}'. Task dropped."
+            )
             self._record_task_outcome(task_dict.get("owner_id", ""), "CANCELLED")
             return None
 
@@ -896,7 +957,18 @@ class TaskScheduler:
         if kind == TaskKind.DIALOGUE:
             _intent_type = payload_dict.get("intent_type", "")
             _has_prop = bool(payload_dict.get("proposition"))
-            _is_canonical = _has_prop or _intent_type in ("warn", "talk", "intimidate", "threaten", "report", "spread_rumor", "call_for_help", "offer_job", "request_service", "trade")
+            _is_canonical = _has_prop or _intent_type in (
+                "warn",
+                "talk",
+                "intimidate",
+                "threaten",
+                "report",
+                "spread_rumor",
+                "call_for_help",
+                "offer_job",
+                "request_service",
+                "trade",
+            )
 
             try:
                 semantic = payload_dict.get("exposure_semantic", "normal")
@@ -917,7 +989,7 @@ class TaskScheduler:
                 logger.error(
                     f"[SCHEDULER] Reconstruction FAILED for task {task_id} (Canonical: {_is_canonical}): {e}. "
                     f"Task dropped. Payload: {payload_dict}",
-                    exc_info=True
+                    exc_info=True,
                 )
                 # S203.4 (terminal-mapping v2): drop-до-исполнения → CANCELLED.
                 self._record_task_outcome(task_dict.get("owner_id", ""), "CANCELLED")

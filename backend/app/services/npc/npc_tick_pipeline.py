@@ -44,6 +44,7 @@ from app.models.npc_state import Intent
 
 _OPP_ATTENTION_RANGE_M: float = 10.0  # 021 calibration (ADR-O-366 producer proxy)
 
+
 def _resolve_proactive_target(
     intent_value: str,
     npc_id: str,
@@ -70,6 +71,7 @@ def _resolve_proactive_target(
 
     # 2. Резолвим по intent type через NodeRole
     from app.models.spatial_contracts import NodeRole
+
     _INTENT_TO_ROLE = {
         "request_service": NodeRole.BAR,
         "offer_job": NodeRole.BAR,
@@ -111,6 +113,65 @@ def _resolve_proactive_target(
     return None
 
 
+def _ensure_direct_player_reply(
+    state: TickState,
+    npc_id: str,
+    state_l2: Any,
+    communication_intents: List[Any],
+) -> None:
+    """Create one NPC-owned reply only for an explicitly addressed verbal act."""
+    event = state.hub_event
+    if event is None or not state.raw_input.strip():
+        return
+
+    event_type = getattr(event, "event_type", "")
+    event_type = getattr(event_type, "value", event_type)
+    if str(event_type).lower() not in {
+        "player_interacts",
+        "player_spoke",
+        "dialogue",
+    }:
+        return
+
+    payload = getattr(event, "payload", {}) or {}
+    semantic_action = (payload.get("semantic_action") if isinstance(payload, dict) else None) or getattr(
+        event, "semantic_action", None
+    )
+    semantic_action = getattr(semantic_action, "value", semantic_action)
+    target_id = getattr(event, "target_id", None)
+    if target_id is None and isinstance(payload, dict):
+        target_id = payload.get("target_id")
+    if str(semantic_action).upper() != "DIALOGUE" or target_id != npc_id:
+        return
+
+    from app.domain.control_source import ControlSource, resolve_control_source
+
+    if resolve_control_source(npc_id) is not ControlSource.NPC_DECISION:
+        return
+
+    import dataclasses
+
+    topic = state.raw_input.strip()[:300]
+    direct_indices = [
+        index
+        for index, intent in enumerate(communication_intents)
+        if getattr(intent, "speaker", None) == npc_id and getattr(intent, "audience", None) == "player"
+    ]
+    if direct_indices:
+        first = direct_indices[0]
+        communication_intents[first] = dataclasses.replace(
+            communication_intents[first],
+            topic=topic,
+            intent_type="player_reply",
+            target_id="player",
+        )
+        for index in reversed(direct_indices[1:]):
+            communication_intents.pop(index)
+        return
+
+    return
+
+
 class NpcTickPipeline:
     """
     TZ-09: Execution Kernel as Pure Deterministic Reducer.
@@ -145,16 +206,18 @@ class NpcTickPipeline:
         )
 
         _is_player_turn = state.hub_event is not None
-        _idle_pressure_updates: Dict[Any, float] = {} # V8-SOC-5 FIX
+        _idle_pressure_updates: Dict[Any, float] = {}  # V8-SOC-5 FIX
 
         # V8-SOC-5 FIX: Константы для аккумуляции давления
         from app.core.constants import IDLE_PRESSURE_ACCUM_RATE, IDLE_PRESSURE_DECAY_RATE
+
         _npcs_to_process = state.nearby_npcs if _is_player_turn else state.all_npcs_raw
 
         # S198 DIAGNOSTIC: Неопровержимый маркер входа в цикл
         _npc_ids_in_pipeline = [n.get("npc_id") or n.get("id") for n in (_npcs_to_process or [])]
-        logger.warning(f"[S198_PIPELINE_ENTER] is_player_turn={_is_player_turn} count={len(_npc_ids_in_pipeline)} ids={_npc_ids_in_pipeline}")
-
+        logger.warning(
+            f"[S198_PIPELINE_ENTER] is_player_turn={_is_player_turn} count={len(_npc_ids_in_pipeline)} ids={_npc_ids_in_pipeline}"
+        )
 
         logger.debug(
             f"[SHI_TRACE_2] NpcTickPipeline.run ENTERED. is_player_turn={_is_player_turn} npcs_to_process={len(_npcs_to_process or [])} nearby_npcs={len(state.nearby_npcs or [])} all_npcs={len(state.all_npcs_raw or [])}"
@@ -163,7 +226,7 @@ class NpcTickPipeline:
         communication_intents: List[Any] = []
         movement_intents: List[Any] = []
         npc_deltas: List[Any] = []
-        _scores_trace_map: Dict[str, Dict[str, float]] = {} # S189: SUPERBOX-005
+        _scores_trace_map: Dict[str, Dict[str, float]] = {}  # S189: SUPERBOX-005
         _l1_events: List[Any] = []
         memory_events: List[Any] = []
 
@@ -185,9 +248,7 @@ class NpcTickPipeline:
 
         for npc in _npcs_to_process:
             npc_id = npc.get("npc_id") or npc.get("id")
-            _los = (
-                state.line_of_sight.get(npc_id, False) if state.line_of_sight else False
-            )
+            _los = state.line_of_sight.get(npc_id, False) if state.line_of_sight else False
             _is_attack_target = npc_id == _attack_target
 
             # S1 FIX: Используем deepcopy для проверки слуха, чтобы избежать мутации оригинального npc
@@ -195,41 +256,106 @@ class NpcTickPipeline:
             # S266: shallow dict() достаточно — load_l2 строит НОВЫЙ объект;
             # deepcopy копировал весь профиль ради конструктора
 
+            _npc_hub_event = state.hub_event
+            _is_hearing_only = False
+
             if npc_id and (_is_player_turn and not (_los or _is_attack_target)):
-                # P1-02: NPC не видит, но может слышать.
-                # Если NPC в радиусе слуха, он записывает обобщённое событие в память, но пропускает DecisionHub.
+                # NPC ??? LOS ????? ???????????? ???? ?????? ?? ????.
                 _npc_pos_dict = npc.get("local_position", {"x": 0.0, "y": 0.0})
-                _npc_pos = (_npc_pos_dict.get("x", 0.0), _npc_pos_dict.get("y", 0.0))
-                _player_pos_dict = state.scene_state.get("npc_positions", {}).get("player", {}).get("local_position", {"x": 0.0, "y": 0.0})
-                _player_pos = (_player_pos_dict.get("x", 0.0), _player_pos_dict.get("y", 0.0))
-                _dist_to_player = math.hypot(_npc_pos[0] - _player_pos[0], _npc_pos[1] - _player_pos[1])
-                # COGNITIVE-CONTINUITY-01 S7: SSOT радиус из action_perception_radius
+                _npc_pos = (
+                    _npc_pos_dict.get("x", 0.0),
+                    _npc_pos_dict.get("y", 0.0),
+                )
+                _player_pos_dict = (
+                    state.scene_state.get("npc_positions", {})
+                    .get("player", {})
+                    .get("local_position", {"x": 0.0, "y": 0.0})
+                )
+                _player_pos = (
+                    _player_pos_dict.get("x", 0.0),
+                    _player_pos_dict.get("y", 0.0),
+                )
+                _dist_to_player = math.hypot(
+                    _npc_pos[0] - _player_pos[0],
+                    _npc_pos[1] - _player_pos[1],
+                )
+
                 if state.hub_event is None:
                     continue
+
                 _et = state.hub_event.event_type
                 _et_val = _et.value if hasattr(_et, "value") else str(_et)
-                _has_sound = sound_reach(action_perception_radius(_et_val), state.scene_state) >= _dist_to_player
+                _et_name = str(_et_val).lower()
+                _has_sound = (
+                    sound_reach(
+                        action_perception_radius(_et_val),
+                        state.scene_state,
+                    )
+                    >= _dist_to_player
+                )
 
-                if _has_sound and state.hub_event and state_l2 is not None:
-                    _p_target = state.player_target_id or state.hub_event.target_id or ""
-                    try:
-                        _mem_evt = apply_perception_memory(
-                            None,
-                            state_l2,
-                            state.hub_event,
-                            npc_id,
-                            _p_target,
-                            "(обрывки разговора)", # Обобщённый текст для слуха
-                            state.campaign_id,
-                            spatial_query=state.spatial_query,
-                        )
-                        if _mem_evt:
-                            memory_events.append(_mem_evt)
-                    except Exception as _perc_mem_err:
-                        logger.warning(
-                            f"[MEMORY] hearing perception apply failed for {npc_id}: {_perc_mem_err}"
-                        )
-                continue
+                if not _has_sound:
+                    continue
+
+                _is_spoken_event = _et_name in {"player_interacts", "player_spoke", "dialogue"} and bool(
+                    state.raw_input and state.raw_input.strip()
+                )
+
+                if _is_spoken_event:
+                    # ???????? ????????: ????? ? ????????? ????????,
+                    # ?????????? ???????? ? ????? ? ???.
+                    import dataclasses
+
+                    _source_payload = getattr(state.hub_event, "payload", {})
+                    _source_payload = _source_payload if isinstance(_source_payload, dict) else {}
+                    _audible_payload_keys = {
+                        "raw_input",
+                        "action_type",
+                        "semantic_action",
+                        "target_id",
+                        "semantic_acts",
+                        "target_reference",
+                        "force",
+                        "social_pressure",
+                    }
+                    _audible_payload = {
+                        key: value for key, value in _source_payload.items() if key in _audible_payload_keys
+                    }
+
+                    _npc_hub_event = dataclasses.replace(
+                        state.hub_event,
+                        distance=_dist_to_player,
+                        witness_count=0,
+                        visible_threat_markers=[],
+                        target_routine="",
+                        scene_flags=set(),
+                        scene_facts=[],
+                        payload=_audible_payload,
+                    )
+                    _is_hearing_only = True
+                else:
+                    # ???????????? ??????? ????????? ??????? ?????:
+                    # ?????????? ?????? ? ?????? ??? ??????? DecisionHub.
+                    if state_l2 is not None:
+                        _p_target = state.player_target_id or state.hub_event.target_id or ""
+                        try:
+                            _mem_evt = apply_perception_memory(
+                                None,
+                                state_l2,
+                                state.hub_event,
+                                npc_id,
+                                _p_target,
+                                "(??????? ???????)",
+                                state.campaign_id,
+                                spatial_query=state.spatial_query,
+                            )
+                            if _mem_evt:
+                                memory_events.append(_mem_evt)
+                        except Exception as _perc_mem_err:
+                            logger.warning(
+                                f"[MEMORY] hearing perception apply failed " f"for {npc_id}: {_perc_mem_err}"
+                            )
+                    continue
 
             _npc_drf_ctx = drf_ctx.for_npc(npc_id) if drf_ctx else None  # noqa: ENIGMA001
 
@@ -277,9 +403,7 @@ class NpcTickPipeline:
                 relationship_store=state.relationship_store,
             )
 
-            state_l2 = tick_conditions(
-                state_l2, _npc_dict_for_write, state.tick_id, state.scene_continuity
-            )
+            state_l2 = tick_conditions(state_l2, _npc_dict_for_write, state.tick_id, state.scene_continuity)
             reset_session_state(state_l2, npc_id, state.is_session_start)
 
             # TZ-10: Чтение preloaded memory weights из TickState
@@ -290,29 +414,35 @@ class NpcTickPipeline:
                     # Применяем player отдельно, так как его нет в nearby_npcs.
                     _player_weights = _mem_weights.get("player", {})
                     if _player_weights:
-                        state_l2.relationship_cache.setdefault("player", {}).update(
-                            _player_weights
-                        )
+                        state_l2.relationship_cache.setdefault("player", {}).update(_player_weights)
 
                     # ADR-O-331: Safe Position Extraction. local_position может быть dict {"x":, "y":} или tuple (x, y).
                     _raw_pos = state_l2.local_position if hasattr(state_l2, "local_position") else (0.0, 0.0)
-                    _npc_pos = (_raw_pos.get("x", 0.0), _raw_pos.get("y", 0.0)) if isinstance(_raw_pos, dict) else tuple(_raw_pos)
+                    _npc_pos = (
+                        (_raw_pos.get("x", 0.0), _raw_pos.get("y", 0.0))
+                        if isinstance(_raw_pos, dict)
+                        else tuple(_raw_pos)
+                    )
 
                     for _nearby_npc in state.nearby_npcs:
                         _nearby_id = _nearby_npc.get("npc_id") or _nearby_npc.get("id")
                         if _nearby_id and _nearby_id != npc_id:
                             _raw_target = _nearby_npc.get("local_position", _npc_pos)
-                            _target_pos = (_raw_target.get("x", 0.0), _raw_target.get("y", 0.0)) if isinstance(_raw_target, dict) else tuple(_raw_target)
+                            _target_pos = (
+                                (_raw_target.get("x", 0.0), _raw_target.get("y", 0.0))
+                                if isinstance(_raw_target, dict)
+                                else tuple(_raw_target)
+                            )
                             _dist = math.hypot(_npc_pos[0] - _target_pos[0], _npc_pos[1] - _target_pos[1])
-                            _has_los = line_of_sight(_dist, state.scene_state, _npc_pos[0], _npc_pos[1], _target_pos[0], _target_pos[1])
+                            _has_los = line_of_sight(
+                                _dist, state.scene_state, _npc_pos[0], _npc_pos[1], _target_pos[0], _target_pos[1]
+                            )
                             # COGNITIVE-CONTINUITY-01 S7: SSOT default radius (ambient NPC-NPC)
                             _has_sound = sound_reach(action_perception_radius(""), state.scene_state) >= _dist
                             if not _has_los and not _has_sound:
                                 continue
                             _npc_weights = _mem_weights.get(_nearby_id, {})
-                            state_l2.relationship_cache.setdefault(
-                                _nearby_id, {}
-                            ).update(_npc_weights)
+                            state_l2.relationship_cache.setdefault(_nearby_id, {}).update(_npc_weights)
                 except Exception as _mem_e:
                     logger.error(
                         f"[MEMORY] get_weights failed for {npc_id}: {_mem_e}",
@@ -320,14 +450,19 @@ class NpcTickPipeline:
                     )
 
             # TZ-10: Сборка memory_events для отложенного применения (без I/O внутри run)
-            if state.hub_event:
+            if _npc_hub_event:
                 try:
+                    _memory_target = (
+                        (getattr(_npc_hub_event, "target_id", None) or "")
+                        if _is_hearing_only
+                        else (state.player_target_id or "player")
+                    )
                     _mem_evt = apply_perception_memory(
                         None,
                         state_l2,
-                        state.hub_event,
+                        _npc_hub_event,
                         npc_id,
-                        state.player_target_id or "player",
+                        _memory_target,
                         state.raw_input,
                         state.campaign_id,
                         spatial_query=state.spatial_query,
@@ -335,9 +470,7 @@ class NpcTickPipeline:
                     if _mem_evt:
                         memory_events.append(_mem_evt)
                 except Exception as _perc_mem_err:
-                    logger.warning(
-                        f"[MEMORY] perception apply failed for {npc_id}: {_perc_mem_err}"
-                    )
+                    logger.warning(f"[MEMORY] perception apply failed for {npc_id}: {_perc_mem_err}")
 
             try:
                 from app.services.npc.belief_transition_engine import (
@@ -345,8 +478,8 @@ class NpcTickPipeline:
                 )
 
                 _event_for_belief = (
-                    state.hub_event
-                    if state.hub_event
+                    _npc_hub_event
+                    if _npc_hub_event
                     else EventContext(
                         event_type=EventType.WORLD_TICK,
                         actor_id=npc_id,
@@ -359,24 +492,20 @@ class NpcTickPipeline:
                         scene_facts=[],
                     )
                 )
-                _belief_deltas = BeliefTransitionEngine().commit(
-                    state_l2, _event_for_belief, state.tick_id
-                )
+                _belief_deltas = BeliefTransitionEngine().commit(state_l2, _event_for_belief, state.tick_id)
                 if state.relationship_store is not None:
                     _applicator = StateApplicator(state.relationship_store)
                     for _bd in _belief_deltas:
                         _applicator.apply_belief_delta(state_l2, _bd)
             except Exception as _belief_err:
-                logger.warning(
-                    f"[BELIEF] belief update failed for {npc_id}: {_belief_err}"
-                )
+                logger.warning(f"[BELIEF] belief update failed for {npc_id}: {_belief_err}")
 
             # ADR-O-208: L3-P2. InterpretationEngine использует эфемерную проекцию (L3).
             _ed = state.effective_drives_map.get(npc_id)
             _drives_for_interp = _ed.values if _ed else profile_l0.drives_base
             _event_for_interp = (
-                state.hub_event
-                if state.hub_event
+                _npc_hub_event
+                if _npc_hub_event
                 else EventContext(
                     event_type=EventType.WORLD_TICK,
                     actor_id=npc_id,
@@ -422,24 +551,20 @@ class NpcTickPipeline:
                 for _d in npc.get("desires") or []:
                     _subj = str(_d.get("subject_class", "") or "")
                     _urg = float(_d.get("urgency", 0.0) or 0.0)
-                    if (
-                        _subj in GOODS_PRICES
-                        and _urg >= 0.5
-                        and _subj in {
-                            _s for (_s, _t) in _NEED_TO_DESIRE.values()
-                        }
-                    ):
-                        _work_trade_pressure = max(
-                            _work_trade_pressure, _urg * WORK_TRADE_PRESSURE_K
-                        )
+                    if _subj in GOODS_PRICES and _urg >= 0.5 and _subj in {_s for (_s, _t) in _NEED_TO_DESIRE.values()}:
+                        _work_trade_pressure = max(_work_trade_pressure, _urg * WORK_TRADE_PRESSURE_K)
                 if _work_trade_pressure > 0.0:
                     logger.info(
                         "[WORK] %s: trade pressure +%.3f (desire)",
-                        npc_id, _work_trade_pressure,
+                        npc_id,
+                        _work_trade_pressure,
                     )
 
             _eco_result = compute_economy(
-                npc_id, _eco_profile, state_l2, _current_activity,
+                npc_id,
+                _eco_profile,
+                state_l2,
+                _current_activity,
                 relationship_store=state.relationship_store,
             )
             # FIX (Phase-0 0.3): eco-стресс применяется через StateApplicator
@@ -455,9 +580,7 @@ class NpcTickPipeline:
             # commands (L-W2: DecisionHub не тронут). OFF = блок не исполняется
             # (L-W5). Линейный по urgency; предмет — рыночный (GOODS_PRICES).
             if _work_trade_pressure > 0.0:
-                _all_modifiers["trade"] = (
-                    _all_modifiers.get("trade", 0.0) + _work_trade_pressure
-                )
+                _all_modifiers["trade"] = _all_modifiers.get("trade", 0.0) + _work_trade_pressure
 
             # TZ-10: Чтение preloaded reputation modifier из TickState
             _rep_modifiers_for_hub = state.reputation_modifiers_map.get(npc_id)
@@ -500,9 +623,7 @@ class NpcTickPipeline:
                     CrystallizedBeliefModifierResolver,
                 )
 
-                _crystallized_mods = CrystallizedBeliefModifierResolver().resolve(
-                    _crystallized_beliefs
-                )
+                _crystallized_mods = CrystallizedBeliefModifierResolver().resolve(_crystallized_beliefs)
                 if _crystallized_mods:
                     for _ck, _cv in _crystallized_mods.items():
                         _existing = _belief_layer_mods.get(_ck, 0.0)
@@ -516,12 +637,9 @@ class NpcTickPipeline:
             if _belief_layer_mods:
                 if _drive_modifiers_for_hub:
                     for _bk, _bv in _belief_layer_mods.items():
-                        _drive_modifiers_for_hub[_bk] = round(
-                            _drive_modifiers_for_hub.get(_bk, 0.0) + _bv, 4
-                        )
+                        _drive_modifiers_for_hub[_bk] = round(_drive_modifiers_for_hub.get(_bk, 0.0) + _bv, 4)
                 else:
                     _drive_modifiers_for_hub = _belief_layer_mods
-
 
             # S129: Bridge 7 — Если Фаза 4 уже сформировала тему ответа, используем её.
             _topic = state.npc_topics.get(npc_id)
@@ -537,12 +655,12 @@ class NpcTickPipeline:
                 )
 
             _dir = getattr(  # noqa: ENIGMA002
-                getattr(state_l2, "perceptual_kernel", None), "recent_directive", None  # noqa: ENIGMA002
+                getattr(state_l2, "perceptual_kernel", None),
+                "recent_directive",
+                None,  # noqa: ENIGMA002
             ) or (
                 isinstance(_npc_dict_for_write, dict)
-                and _npc_dict_for_write.get("perceptual_kernel", {}).get(
-                    "recent_directive"
-                )
+                and _npc_dict_for_write.get("perceptual_kernel", {}).get("recent_directive")
             )
             if _dir:
                 _topic = "разговор" if _dir.get("is_obedience") else "угроза"
@@ -555,9 +673,7 @@ class NpcTickPipeline:
             _kernel = getattr(state_l2, "perceptual_kernel", None)  # noqa: ENIGMA002
             _social_input_ema = getattr(state_l2, "social_input_ema", 0.0)
             _psyche = getattr(state_l2, "psyche", {})  # noqa: ENIGMA002
-            _greg = (
-                _psyche.get("gregariousness", 0.5) if isinstance(_psyche, dict) else 0.5
-            )
+            _greg = _psyche.get("gregariousness", 0.5) if isinstance(_psyche, dict) else 0.5
             from app.services.action.commitment_registry import CommitmentRegistry
 
             # S189 ARCH-SLEEP Phase C → S203.2 (Stage 2A, ADR-O-363): проекция
@@ -566,9 +682,7 @@ class NpcTickPipeline:
             # traversal-only реестре NEW == OLD; FLAG=OFF → fallback → поведение
             # байтово прежнее. ACTIVE = {PROPOSED, COMMITTED, EXECUTING, BLOCKED}.
             if state.scene_state:
-                _has_active_commitment = CommitmentRegistry.has_behavioral_owner(
-                    state.scene_state, npc_id
-                )
+                _has_active_commitment = CommitmentRegistry.has_behavioral_owner(state.scene_state, npc_id)
             else:
                 _has_active_commitment = False
 
@@ -591,7 +705,7 @@ class NpcTickPipeline:
             # Редюсер читает EpistemicStore (read-only) и преобразует в нейтральные модификаторы.
             # DecisionHub остаётся изолирован от эпистемической семантики.
             _epistemic_modifiers: Optional[Dict[str, float]] = None
-            _epistemic_ctx = None # S197: Инициализация для предотвращения UnboundLocalError
+            _epistemic_ctx = None  # S197: Инициализация для предотвращения UnboundLocalError
 
             if state.epistemic_store and state.epistemic_context_resolver:
                 try:
@@ -602,9 +716,7 @@ class NpcTickPipeline:
                         _epistemic_ctx, archetype=profile_l0.archetype
                     )
                 except Exception as _epistemic_err:
-                    logger.exception(
-                        f"[EPISTEMIC] Context resolution failed for {npc_id}: {_epistemic_err}"
-                    )
+                    logger.exception(f"[EPISTEMIC] Context resolution failed for {npc_id}: {_epistemic_err}")
 
             # R5 CAUSAL SLICE 1 (мини-АДР CS1-CS6): DesiredChange из
             # угрозы ДО выбора способа; сборка существующих машин
@@ -628,9 +740,7 @@ class NpcTickPipeline:
                 )
 
                 if state.relationship_store is not None and state.campaign_id:
-                    _all_rel = state.relationship_store.get(
-                        state.campaign_id, npc_id
-                    ) or {}
+                    _all_rel = state.relationship_store.get(state.campaign_id, npc_id) or {}
                     for _rk, _rv in _all_rel.items():
                         _t = _rk.split("→", 1)
                         if len(_t) == 2 and _t[0] == npc_id and isinstance(_rv, dict):
@@ -646,9 +756,7 @@ class NpcTickPipeline:
                     # ниже по циклу.
                     state=state_l2,
                     rel=_rel_view,
-                    disposition=get_epistemic_disposition(
-                        getattr(profile_l0, "archetype", "commoner")
-                    ),
+                    disposition=get_epistemic_disposition(getattr(profile_l0, "archetype", "commoner")),
                     # DEBT-R5-ALLIES: исходная проводка ссылалась на
                     # _allies_cache, не существующий в этом скоупе —
                     # threat-блок был мёртв в живом конвейере с мержа
@@ -669,9 +777,7 @@ class NpcTickPipeline:
                         f"{_dc.state_type}:{_dc.target_of_change} methods={_dc.method_weights}"
                     )
             except Exception as _causal_err:
-                logger.warning(
-                    f"[CAUSAL_SLICE] producer failed (no-op) for {npc_id}: {_causal_err}"
-                )
+                logger.warning(f"[CAUSAL_SLICE] producer failed (no-op) for {npc_id}: {_causal_err}")
 
             # R6 CAUSAL SLICE 2b-i (ADR-O-395): hunger-проводка зеркально
             # срезу-1. Приоритет причин: угроза (R5) > голод (R6) —
@@ -703,8 +809,7 @@ class NpcTickPipeline:
                         _opp_will = getattr(state, "will_state", None)  # noqa: ENIGMA002
                         _will_str = (
                             _opp_will.value
-                            if _opp_will is not None
-                            and hasattr(_opp_will, "value")
+                            if _opp_will is not None and hasattr(_opp_will, "value")
                             else str(_opp_will or "free")
                         )
                         _eco_map = getattr(state, "economic_profiles_map", {}) or {}  # noqa: ENIGMA002
@@ -714,9 +819,7 @@ class NpcTickPipeline:
                                 if _nid == npc_id:
                                     continue
                                 try:
-                                    _dist_view[_nid] = float(
-                                        state.spatial_query.distance(npc_id, _nid)
-                                    )
+                                    _dist_view[_nid] = float(state.spatial_query.distance(npc_id, _nid))
                                 except Exception:
                                     _dist_view[_nid] = float("inf")
                         _dc_h = HungerDesiredChangeProducer.resolve(
@@ -730,9 +833,7 @@ class NpcTickPipeline:
                             archetype=getattr(profile_l0, "archetype", "commoner"),
                             will_state=_will_str,
                         )
-                        _causal_modifiers = (
-                            HungerDesiredChangeProducer.to_modifiers(_dc_h) or None
-                        )
+                        _causal_modifiers = HungerDesiredChangeProducer.to_modifiers(_dc_h) or None
                         if _dc_h is not None:
                             _causal_addressee = _dc_h.addressee
                             logger.info(
@@ -742,10 +843,7 @@ class NpcTickPipeline:
                                 f"methods={_dc_h.method_weights}"
                             )
                 except Exception as _hunger_err:
-                    logger.warning(
-                        f"[CAUSAL_SLICE_HUNGER] producer failed (no-op) "
-                        f"for {npc_id}: {_hunger_err}"
-                    )
+                    logger.warning(f"[CAUSAL_SLICE_HUNGER] producer failed (no-op) " f"for {npc_id}: {_hunger_err}")
 
             # R7 CAUSAL SLICE 3 (ADR-O-396): grievance-проводка. Каскад
             # причин: threat (R5) > hunger (R6) > grievance (R7) — обида
@@ -764,9 +862,7 @@ class NpcTickPipeline:
                         who=npc_id,
                         state=state,
                         rel=_rel_view,
-                        disposition=get_epistemic_disposition(
-                            getattr(profile_l0, "archetype", "commoner")
-                        ),
+                        disposition=get_epistemic_disposition(getattr(profile_l0, "archetype", "commoner")),
                         # DEBT-R5-ALLIES: союзники = 0 до проводки
                         # OpportunityContext (см. DEBT в threat-блоке)
                         allies=0,
@@ -779,15 +875,10 @@ class NpcTickPipeline:
                     # кандидат). Системное решение — 2b-ii: addressee→
                     # _resolve_target (координация с SOCIAL-сессией).
                     if _dc_g is not None:
-                        _g_others = {
-                            _n.get("npc_id") or _n.get("id")
-                            for _n in (state.all_npcs_raw or [])
-                        } - {npc_id}
+                        _g_others = {_n.get("npc_id") or _n.get("id") for _n in (state.all_npcs_raw or [])} - {npc_id}
                         if not _g_others:
                             _dc_g = None
-                    _causal_modifiers = (
-                        GrievanceDesiredChangeProducer.to_modifiers(_dc_g) or None
-                    )
+                    _causal_modifiers = GrievanceDesiredChangeProducer.to_modifiers(_dc_g) or None
                     if _dc_g is not None:
                         _causal_addressee = _dc_g.addressee
                         logger.info(
@@ -797,10 +888,7 @@ class NpcTickPipeline:
                             f"methods={_dc_g.method_weights}"
                         )
                 except Exception as _griev_err:
-                    logger.warning(
-                        f"[CAUSAL_SLICE_GRIEVANCE] producer failed (no-op) "
-                        f"for {npc_id}: {_griev_err}"
-                    )
+                    logger.warning(f"[CAUSAL_SLICE_GRIEVANCE] producer failed (no-op) " f"for {npc_id}: {_griev_err}")
 
             # R8 CAUSAL SLICE 4 (ADR-O-398): affection-проводка. Каскад
             # причин: threat > hunger > grievance > affection. Тёплая
@@ -816,20 +904,16 @@ class NpcTickPipeline:
 
                     _eco_map = getattr(state, "economic_profiles_map", {}) or {}  # noqa: ENIGMA002
                     _others_state: Dict[str, Dict[str, float]] = {}
-                    for _n in (state.all_npcs_raw or []):
+                    for _n in state.all_npcs_raw or []:
                         _nid = _n.get("npc_id") or _n.get("id")
                         if _nid and _nid != npc_id:
                             _bs = _n.get("body_state") or {}
-                            _others_state[_nid] = {
-                                "hunger": float(_bs.get("hunger", 0.0) or 0.0)
-                            }
+                            _others_state[_nid] = {"hunger": float(_bs.get("hunger", 0.0) or 0.0)}
                     _aff_dist: Dict[str, float] = {}
                     if state.spatial_query is not None:
                         for _nid in _others_state:
                             try:
-                                _aff_dist[_nid] = float(
-                                    state.spatial_query.distance(npc_id, _nid)
-                                )
+                                _aff_dist[_nid] = float(state.spatial_query.distance(npc_id, _nid))
                             except Exception:
                                 _aff_dist[_nid] = float("inf")
                     _dc_a = AffectionDesiredChangeProducer.resolve(
@@ -840,9 +924,7 @@ class NpcTickPipeline:
                         distances=_aff_dist,
                         food_price=float(GOODS_PRICES.get("food", 2.0)),
                     )
-                    _causal_modifiers = (
-                        AffectionDesiredChangeProducer.to_modifiers(_dc_a) or None
-                    )
+                    _causal_modifiers = AffectionDesiredChangeProducer.to_modifiers(_dc_a) or None
                     if _dc_a is not None:
                         _causal_addressee = _dc_a.addressee
                         logger.info(
@@ -852,10 +934,7 @@ class NpcTickPipeline:
                             f"methods={_dc_a.method_weights}"
                         )
                 except Exception as _aff_err:
-                    logger.warning(
-                        f"[CAUSAL_SLICE_AFFECTION] producer failed (no-op) "
-                        f"for {npc_id}: {_aff_err}"
-                    )
+                    logger.warning(f"[CAUSAL_SLICE_AFFECTION] producer failed (no-op) " f"for {npc_id}: {_aff_err}")
 
             # R6: дубликат-черновик hunger-блока удалён (двойное применение
             # патча; урок D-R6-DUPLICATE-PATCH). Единственный блок — выше.
@@ -878,25 +957,26 @@ class NpcTickPipeline:
                 _parse_game_time,
                 _time_to_minutes,
             )
+
             _game_time_str = _parse_game_time(state.scene_state)
             _game_minutes = _time_to_minutes(_game_time_str)
             _schedule = _npc_dict_for_write.get("routine", {}).get("schedule", {})
             _scheduled_activity = next(
-                (act for _range, act in _schedule.items()
-                 if _in_time_range(_range, _game_minutes)),
+                (act for _range, act in _schedule.items() if _in_time_range(_range, _game_minutes)),
                 "",
             )
-            _should_sleep = (
-                _scheduled_activity in ("sleeping", "resting", "спит")
-                or _current_activity in ("sleeping", "resting", "спит")
+            _should_sleep = _scheduled_activity in ("sleeping", "resting", "спит") or _current_activity in (
+                "sleeping",
+                "resting",
+                "спит",
             )
             if _should_sleep:
                 from app.services.npc.decision_hub import PROACTIVE_INTENTS
+
                 for _p_intent in PROACTIVE_INTENTS:
                     _p_key = getattr(_p_intent, "value", _p_intent)
                     _all_modifiers[_p_key] = _all_modifiers.get(_p_key, 0.0) - 10.0
                 _all_modifiers["flee"] = _all_modifiers.get("flee", 0.0) - 10.0
-
 
             # Phase 4.5 (Фаза A, P0): Temporal Validation — УДАЛЁНА целиком.
             # Легаси-читатель list[dict] из active_commitments конфликтовал с
@@ -914,11 +994,7 @@ class NpcTickPipeline:
             from app.services.npc.attention_reflex import produce_cognition_modifiers
 
             _cognition_mods = produce_cognition_modifiers(
-                [
-                    _s
-                    for _s in _pass.cognition_snapshots
-                    if _s.get("observer_id") == npc_id
-                ],
+                [_s for _s in _pass.cognition_snapshots if _s.get("observer_id") == npc_id],
                 drives=dict(getattr(_effective_drives, "values", {}) or {}),  # noqa: ENIGMA002
             )
 
@@ -929,19 +1005,13 @@ class NpcTickPipeline:
             from app.services.npc.attention_reflex import produce_cognition_modifiers
 
             _cognition_mods = produce_cognition_modifiers(
-                [
-                    _s
-                    for _s in _pass.cognition_snapshots
-                    if _s.get("observer_id") == npc_id
-                ],
+                [_s for _s in _pass.cognition_snapshots if _s.get("observer_id") == npc_id],
                 drives=dict(getattr(_effective_drives, "values", {}) or {}),  # noqa: ENIGMA002
             )
 
             # KERNEL-ISOLATION: DecisionHub получает deterministic RNG через единую фабрику.
             _rng = KernelRNG(tick=state.tick_id, npc_id=npc_id, salt="decision_hub")
-            _all_npc_ids = [
-                n.get("npc_id") for n in state.all_npcs_raw if n.get("npc_id")
-            ]
+            _all_npc_ids = [n.get("npc_id") for n in state.all_npcs_raw if n.get("npc_id")]
 
             # ADR-O-366: OpportunityProducer (DEBT-OPP-PRODUCER fix).
             # Phase 1: proximity proxy for player_attention; real distance
@@ -949,6 +1019,7 @@ class NpcTickPipeline:
             # (subjective, per ENIGMA Invariant V); weapon=False (Phase 2).
             # INVARIANT: producer builds DATA only — no Intent/score/unlocked.
             from app.services.economy.opportunity_engine import OpportunityContext as _OppCtx
+
             _opp_dist = state.spatial_query.distance_player(npc_id) if state.spatial_query else 999.0
             _opp_att = max(0.0, min(1.0, 1.0 - _opp_dist / _OPP_ATTENTION_RANGE_M))
             _opp_allies = len(getattr(_epistemic_ctx, "perceived_allies", ())) if _epistemic_ctx else 0
@@ -970,8 +1041,10 @@ class NpcTickPipeline:
                 npc_id
             )
             _opp_ctx = _OppCtx(
-                player_attention=_opp_att, distance=_opp_dist,
-                weapon_access=_weapon_access_fact, allies=_opp_allies,
+                player_attention=_opp_att,
+                distance=_opp_dist,
+                weapon_access=_weapon_access_fact,
+                allies=_opp_allies,
                 steal_target=_steal_target_fact,
             )
             # [HOTFIX-FOR-ADR-O-366, санкция Мастера W2, DIAGNOSTIC_PROBE_CRASH]:
@@ -981,8 +1054,7 @@ class NpcTickPipeline:
             _opp_will_state = getattr(state, "will_state", None)  # noqa: ENIGMA002
             _opp_will = (
                 _opp_will_state.value
-                if _opp_will_state is not None
-                and hasattr(_opp_will_state, "value")
+                if _opp_will_state is not None and hasattr(_opp_will_state, "value")
                 else str(_opp_will_state)
             )
             logger.debug(
@@ -997,35 +1069,24 @@ class NpcTickPipeline:
                 from app.services.social.relationship_state_store import (
                     RelationshipStateStore,
                 )
-                _need_levels = RelationshipStateStore.get_need_levels(
-                    state.scene_state, npc_id
-                )
+
+                _need_levels = RelationshipStateStore.get_need_levels(state.scene_state, npc_id)
                 _need_modifiers = {}
                 # intimacy → seek_ally / talk / approach (принцип 1: раздельные потребности)
                 _intimacy = _need_levels.get("intimacy")
                 if _intimacy and _intimacy.current_intensity > 0.0:
                     _int = _intimacy.current_intensity
-                    _need_modifiers["seek_ally"] = (
-                        _need_modifiers.get("seek_ally", 0.0) + _int * 0.5
-                    )
-                    _need_modifiers["talk"] = (
-                        _need_modifiers.get("talk", 0.0) + _int * 0.3
-                    )
-                    _need_modifiers["approach"] = (
-                        _need_modifiers.get("approach", 0.0) + _int * 0.2
-                    )
+                    _need_modifiers["seek_ally"] = _need_modifiers.get("seek_ally", 0.0) + _int * 0.5
+                    _need_modifiers["talk"] = _need_modifiers.get("talk", 0.0) + _int * 0.3
+                    _need_modifiers["approach"] = _need_modifiers.get("approach", 0.0) + _int * 0.2
                 # sexual → approach (телесная близость; принцип 5: без эксклюзивности)
                 _sexual = _need_levels.get("sexual")
                 if _sexual and _sexual.current_intensity > 0.0:
-                    _need_modifiers["approach"] = (
-                        _need_modifiers.get("approach", 0.0) + _sexual.current_intensity * 0.4
-                    )
+                    _need_modifiers["approach"] = _need_modifiers.get("approach", 0.0) + _sexual.current_intensity * 0.4
                 if not _need_modifiers:
                     _need_modifiers = None
             except Exception as _need_err:
-                logger.warning(
-                    f"[NEED_MODIFIERS] failed to read NeedLevel for {npc_id}: {_need_err}"
-                )
+                logger.warning(f"[NEED_MODIFIERS] failed to read NeedLevel for {npc_id}: {_need_err}")
                 _need_modifiers = None
             # E0: Autonomous Social Impulse — LifeEngine needs["social_urge"] → need_modifiers["talk"]
             # Источник: npc["needs"]["social_urge"] ∈ [0..1] (LifeEngine._tick_needs, production).
@@ -1035,18 +1096,14 @@ class NpcTickPipeline:
             # scoring (Phase 5) = decision (want to talk). Ортогональные фазы.
             # Вес 0.3 = parity с intimacy * 0.3 (существующий паттерн bridge→modifier).
             try:
-                _npc_raw_e0 = next(
-                    (n for n in state.all_npcs_raw if n.get("npc_id") == npc_id), None
-                )
+                _npc_raw_e0 = next((n for n in state.all_npcs_raw if n.get("npc_id") == npc_id), None)
                 if _npc_raw_e0 is not None:
                     _su_e0 = _npc_raw_e0.get("needs", {}).get("social_urge", 0.0)
                     _su_e0 = float(_su_e0) if _su_e0 else 0.0
                     if _su_e0 > 0.0:
                         if _need_modifiers is None:
                             _need_modifiers = {}
-                        _need_modifiers["talk"] = (
-                            _need_modifiers.get("talk", 0.0) + _su_e0 * 0.3
-                        )
+                        _need_modifiers["talk"] = _need_modifiers.get("talk", 0.0) + _su_e0 * 0.3
             except Exception as _e0_su:
                 logger.debug(f"[E0_SOCIAL_URGE] fallback for {npc_id}: {_e0_su}")
             # MEM-3 (F5): npc_memory_modifiers — оживление MEM-D28.
@@ -1059,13 +1116,10 @@ class NpcTickPipeline:
                 _mm = getattr(state, "memory_manager", None)
                 if _mm is not None:
                     _all_tgt_ids = [
-                        n.get("npc_id") for n in state.all_npcs_raw
-                        if n.get("npc_id") and n.get("npc_id") != npc_id
+                        n.get("npc_id") for n in state.all_npcs_raw if n.get("npc_id") and n.get("npc_id") != npc_id
                     ]
                     if _all_tgt_ids:
-                        _mem_weights = _mm.get_weights_for_decision(
-                            state.campaign_id, npc_id, _all_tgt_ids
-                        )
+                        _mem_weights = _mm.get_weights_for_decision(state.campaign_id, npc_id, _all_tgt_ids)
                         _total_pressure = 0.0
                         for _tid, _w in _mem_weights.items():
                             _total_pressure += _w.get("recent_pressure", 0.0)
@@ -1092,20 +1146,18 @@ class NpcTickPipeline:
                 decision_ctx=_decision_ctx,
                 spatial_query=state.spatial_query,
                 all_npc_ids=_all_npc_ids,
-                pending_response_target=_response_target, # S129: Bridge 7
-                relationship_store=state.relationship_store, # S135: SSOT
-                campaign_id=state.campaign_id, # S135: SSOT
-                epistemic_modifiers=_epistemic_modifiers, # S189: ADR-O-354/355
-                causal_modifiers=_causal_modifiers, # R5: ADR среза CS2
-                causal_addressee=_causal_addressee, # 2b-ii: причина→адресат→действие
-                cognition_modifiers=_cognition_mods, # P3d: внимание→utility (санкция)
-                need_modifiers=_need_modifiers, # R2 (CCH-15 P1): NeedLevel→utility
-                npc_memory_modifiers=_npc_memory_modifiers, # MEM-3 (F5): memory→utility
-                epistemic_context=_epistemic_ctx, # S197: Causal Provenance
+                pending_response_target=_response_target,  # S129: Bridge 7
+                relationship_store=state.relationship_store,  # S135: SSOT
+                campaign_id=state.campaign_id,  # S135: SSOT
+                epistemic_modifiers=_epistemic_modifiers,  # S189: ADR-O-354/355
+                causal_modifiers=_causal_modifiers,  # R5: ADR среза CS2
+                causal_addressee=_causal_addressee,  # 2b-ii: причина→адресат→действие
+                cognition_modifiers=_cognition_mods,  # P3d: внимание→utility (санкция)
+                need_modifiers=_need_modifiers,  # R2 (CCH-15 P1): NeedLevel→utility
+                npc_memory_modifiers=_npc_memory_modifiers,  # MEM-3 (F5): memory→utility
+                epistemic_context=_epistemic_ctx,  # S197: Causal Provenance
                 opportunity_ctx=_opp_ctx,  # ADR-O-366: DEBT-OPP-PRODUCER
             )
-
-
 
             # Phase 5.5 (Фаза A, P0): Temporal Commitment — УДАЛЁН.
             # Легаси-писатель list[dict] в active_commitments конфликтовал
@@ -1116,11 +1168,10 @@ class NpcTickPipeline:
             # унифицировано за реестром; TemporalSpec-слой — домен, его
             # интеграция — будущий S203.x, не легаси-ветка.
 
-            _evt_type = getattr(state.hub_event, "event_type", "unknown")
+            _evt_type = getattr(_npc_hub_event, "event_type", "unknown")
             logger.info(
                 f"[DECISION_HUB] {npc_id}: intent=Intent.{decision.intent.value} score={decision.score:.3f} event={_evt_type}"
             )
-
 
             # V8-SOC-5 FIX: Накопление idle_pressure
             _key = (state.campaign_id, npc_id)
@@ -1134,12 +1185,9 @@ class NpcTickPipeline:
             _idle_pressure_updates[_key] = _new_pressure
 
             _is_move_command = False
-            if state.hub_event:
-                _payload = getattr(state.hub_event, "payload", {})  # noqa: ENIGMA002
-                if (
-                    isinstance(_payload, dict)
-                    and _payload.get("semantic_action") == "MOVE"
-                ):
+            if _npc_hub_event:
+                _payload = getattr(_npc_hub_event, "payload", {})  # noqa: ENIGMA002
+                if isinstance(_payload, dict) and _payload.get("semantic_action") == "MOVE":
                     _target_ref = _payload.get("target_reference", "").lower()
                     npc_name = _npc_dict_for_write.get("name", "").lower()
                     npc_id_lower = npc_id.lower()
@@ -1149,19 +1197,14 @@ class NpcTickPipeline:
                     elif (
                         _target_ref in npc_name
                         or _target_ref in npc_id_lower
-                        or any(
-                            _target_ref in w or w in _target_ref for w in _name_words
-                        )
+                        or any(_target_ref in w or w in _target_ref for w in _name_words)
                     ):
                         _is_move_command = True
 
             if _is_move_command and decision.intent.value != "approach":
                 import dataclasses
 
-
-                new_result = dataclasses.replace(
-                    decision.decision, intent=Intent.APPROACH, intent_target="player"
-                )
+                new_result = dataclasses.replace(decision.decision, intent=Intent.APPROACH, intent_target="player")
                 decision = dataclasses.replace(decision, decision=new_result)
 
             if decision.communication is not None:
@@ -1169,12 +1212,35 @@ class NpcTickPipeline:
 
             _intent_value = decision.intent.value if decision.intent else ""
 
-            if _intent_value not in {"approach", "flee", "seek_ally", "offer_job", "request_service", "call_for_help", "spread_rumor", "block_path", "ambush", "talk", "change_role"}:
+            if _intent_value not in {
+                "approach",
+                "flee",
+                "seek_ally",
+                "offer_job",
+                "request_service",
+                "call_for_help",
+                "spread_rumor",
+                "block_path",
+                "ambush",
+                "talk",
+                "change_role",
+            }:
                 if _is_move_command:
                     _intent_value = "approach"
                     decision.decision.intent_target = "player"
 
-            _MOVE_INTENTS = {"approach", "flee", "seek_ally", "offer_job", "request_service", "call_for_help", "spread_rumor", "block_path", "ambush", "change_role"} # V8-SOC-8 FIX: убран "talk"
+            _MOVE_INTENTS = {
+                "approach",
+                "flee",
+                "seek_ally",
+                "offer_job",
+                "request_service",
+                "call_for_help",
+                "spread_rumor",
+                "block_path",
+                "ambush",
+                "change_role",
+            }  # V8-SOC-8 FIX: убран "talk"
             # S-143 FIX: Sleep non-interruptible. Если NPC спит, блокируем реактивные движения.
             _current_routine = _npc_dict_for_write.get("routine", {})
 
@@ -1182,6 +1248,7 @@ class NpcTickPipeline:
                 # INV-PLAYER-AUTHORSHIP (мини-ADR F1, уровень 2): attack-фабрика
                 # обходит _build_communication — симметричный гвард creation-time.
                 from app.domain.control_source import ControlSource, resolve_control_source
+
                 if resolve_control_source(npc_id) is not ControlSource.NPC_DECISION:
                     logger.info(
                         f"[INV-PLAYER-AUTHORSHIP] attack-factory: speaker={npc_id!r} "
@@ -1227,15 +1294,22 @@ class NpcTickPipeline:
                     # X1: веточный импорт удалён (создавал локальную тень Intent
                     # для всей run() → UnboundLocalError на MOVE-command ветке).
                     # Канонический источник — модульный импорт (голова файла).
-                    decision = dataclasses.replace(decision, decision=dataclasses.replace(decision.decision, intent=Intent.OBSERVE, intent_target=None))
+                    decision = dataclasses.replace(
+                        decision,
+                        decision=dataclasses.replace(decision.decision, intent=Intent.OBSERVE, intent_target=None),
+                    )
 
                 if _intent_value in _MOVE_INTENTS and _should_sleep:
-                    logger.info(f"[SLEEP_GUARD] npc={npc_id} scheduled=sleeping, blocking reactive movement={_intent_value}")
+                    logger.info(
+                        f"[SLEEP_GUARD] npc={npc_id} scheduled=sleeping, blocking reactive movement={_intent_value}"
+                    )
                     _intent_value = "idle"
                     import dataclasses
 
                     # X1: веточный импорт удалён (вторая тень, см. вхождение 1)
-                    decision = dataclasses.replace(decision, decision=dataclasses.replace(decision.decision, intent=Intent.IDLE))
+                    decision = dataclasses.replace(
+                        decision, decision=dataclasses.replace(decision.decision, intent=Intent.IDLE)
+                    )
 
                 if _intent_value in _MOVE_INTENTS:
                     _movement = _resolve_reactive_movement(
@@ -1259,22 +1333,34 @@ class NpcTickPipeline:
                                     spatial_service=state.spatial_service,
                                     location_id=state.scene_state.get("location_id", ""),
                                 )
-                                logger.debug(f"[PROACTIVE_MOVE] npc={npc_id} intent={_intent_value} target_node={_target_node}")
+                                logger.debug(
+                                    f"[PROACTIVE_MOVE] npc={npc_id} intent={_intent_value} target_node={_target_node}"
+                                )
                                 if _target_node:
                                     from app.domain.movement import MacroMovementGoal
+
                                     _movement = MacroMovementGoal(
                                         actor_id=npc_id,
                                         target_node_id=_target_node,
                                         reason=f"proactive_{_intent_value}",
                                         intent_type=_intent_value,
-                                        body_capabilities=state_l2.body_capabilities
+                                        body_capabilities=state_l2.body_capabilities,
                                     )
                             except Exception as _e:
                                 logger.exception(f"[PROACTIVE_MOVE_ERROR] npc={npc_id} intent={_intent_value}: {_e}")
                         else:
-                            logger.warning(f"[PROACTIVE_MOVE_SKIP] npc={npc_id} intent={_intent_value} reason=spatial_query is None")
+                            logger.warning(
+                                f"[PROACTIVE_MOVE_SKIP] npc={npc_id} intent={_intent_value} reason=spatial_query is None"
+                            )
                     if _movement:
                         movement_intents.append(_movement)
+
+            _ensure_direct_player_reply(
+                state,
+                npc_id,
+                state_l2,
+                communication_intents,
+            )
 
             # S1 FIX (Pure Reducer): Сборка npc_deltas напрямую из DecisionResult.
             # StateApplicator удалён из ядра. Мутация relationship_store и l1_chronicle
@@ -1286,6 +1372,7 @@ class NpcTickPipeline:
             from app.models.state_delta import (
                 StateDeltas,  # [GC-I01-E1b-fix1] локальный импорт (прецедент attack-ветки)
             )
+
             npc_deltas.append(
                 StateDeltas(
                     npc_id=npc_id,
@@ -1303,13 +1390,16 @@ class NpcTickPipeline:
                 npc_deltas.extend(decision.deltas)
                 # Генерируем L1-событие для этого NPC, так как у него есть дельта (Causal Provenance)
                 from app.domain.identity_events import TraitDriftEvent
-                _l1_events.append(TraitDriftEvent(
-                    tick_id=state.tick_id,
-                    target_id=npc_id,
-                    source_id="world_tick",
-                    effect_value=0.0,
-                    observation_weight=0.1
-                ))
+
+                _l1_events.append(
+                    TraitDriftEvent(
+                        tick_id=state.tick_id,
+                        target_id=npc_id,
+                        source_id="world_tick",
+                        effect_value=0.0,
+                        observation_weight=0.1,
+                    )
+                )
 
             # S189: Сохраняем scores_trace для SUPERBOX-005
             _scores_trace_map[npc_id] = decision.decision.scores_trace
@@ -1317,8 +1407,8 @@ class NpcTickPipeline:
             # Сборка memory_events для отложенного применения
             try:
                 _mem_evt = create_memory_event(
-                    memory_manager=None, # NpcTickPipeline — pure reducer, MemoryManager применяется в Фазе 3
-                    state_l2=state_l2, # Используем pre-decision state
+                    memory_manager=None,  # NpcTickPipeline — pure reducer, MemoryManager применяется в Фазе 3
+                    state_l2=state_l2,  # Используем pre-decision state
                     decision=decision,
                     npc_id=npc_id,
                     hub_event=_event_for_interp,
@@ -1342,6 +1432,7 @@ class NpcTickPipeline:
         # будущие — падают ЗДЕСЬ громко (ADR-INV-DEF), не тихим удалением.
         from app.domain.control_source import ControlSource, resolve_control_source
         from app.errors import SimulationIntegrityError
+
         _ghost_authors = [
             getattr(_ci, "speaker", "")  # noqa: ENIGMA002
             for _ci in communication_intents
@@ -1368,11 +1459,11 @@ class NpcTickPipeline:
             movement_intents=movement_intents,
             l1_drift_events=_l1_events,
             memory_events=memory_events,
-            idle_pressure_updates=_idle_pressure_updates, # V8-SOC-5 FIX
-            scores_trace_map=_scores_trace_map, # S189: SUPERBOX-005
-            attention_states_delta=_attention_delta, # CognitionContext v0 (P2)
-            orient_scene_changes=_orient_changes, # CognitionContext v0 (P2)
-            cognition_snapshots=list(_pass.cognition_snapshots), # P3c-3 (DATA-only)
+            idle_pressure_updates=_idle_pressure_updates,  # V8-SOC-5 FIX
+            scores_trace_map=_scores_trace_map,  # S189: SUPERBOX-005
+            attention_states_delta=_attention_delta,  # CognitionContext v0 (P2)
+            orient_scene_changes=_orient_changes,  # CognitionContext v0 (P2)
+            cognition_snapshots=list(_pass.cognition_snapshots),  # P3c-3 (DATA-only)
         )
 
 
@@ -1431,13 +1522,9 @@ def apply_perception_memory(
         _importance = 0.5
 
     _summary = (
-        f"{_evt_actor} → {player_target_id}: {player_text[:60]}"
-        if _has_target
-        else f"{_evt_actor}: {player_text[:60]}"
+        f"{_evt_actor} → {player_target_id}: {player_text[:60]}" if _has_target else f"{_evt_actor}: {player_text[:60]}"
     )
-    _emotion = (
-        getattr(state_l2.emotion, "value", "neutral") if state_l2.emotion else "neutral"
-    )
+    _emotion = getattr(state_l2.emotion, "value", "neutral") if state_l2.emotion else "neutral"
 
     _evt_dto = EventDTO.create(
         event_type=_evt_type,
@@ -1526,11 +1613,7 @@ def create_memory_event(
             or hub_event.payload.get("text")
             or f"[{_evt_type}] {_evt_actor}"
         )
-        _emotion = (
-            getattr(state_l2.emotion, "value", "neutral")
-            if state_l2.emotion
-            else "neutral"
-        )
+        _emotion = getattr(state_l2.emotion, "value", "neutral") if state_l2.emotion else "neutral"
         _evt_dto = EventDTO.create(
             event_type=_evt_type,
             source=_evt_actor,
@@ -1581,7 +1664,11 @@ def build_verbalization_context(
     # DecisionHub должен видеть ТЕКУЩИЕ драйвы (с учётом мутаций), не seed.
     # ИСПРАВЛЕНО: аргумент называется state_for_llm, не state. NameError на `state`.
     # ADR-O-208: L3-P2. VerbalizationContext использует эфемерную проекцию (L3).
-    _ed = state_for_llm.effective_drives_map.get(profile_l0.id) if hasattr(state_for_llm, 'effective_drives_map') else None  # noqa: ENIGMA001
+    _ed = (
+        state_for_llm.effective_drives_map.get(profile_l0.id)
+        if hasattr(state_for_llm, "effective_drives_map")
+        else None
+    )  # noqa: ENIGMA001
     _drives_raw = _ed.values if _ed else profile_l0.drives_base
     if isinstance(_drives_raw, dict) and _drives_raw:
         _dominant_drive = max(_drives_raw.items(), key=lambda x: x[1])[0]
@@ -1590,16 +1677,10 @@ def build_verbalization_context(
 
     _scene_hint = raw_input[:500].strip() if raw_input else ""
     _interpreter = StateInterpreter()
-    _npc_desc = _interpreter.interpret(
-        state_for_llm
-    )  # GAP5 FIX: Витализм — боль и шок перекрывают HP
+    _npc_desc = _interpreter.interpret(state_for_llm)  # GAP5 FIX: Витализм — боль и шок перекрывают HP
 
     # Этап 3.5-3.6 + 5: Recall с поддержкой секретов
-    _pressure = (
-        memory_manager.get_dialogue_pressure(campaign_id, profile_l0.id)
-        if campaign_id
-        else 0
-    )
+    _pressure = memory_manager.get_dialogue_pressure(campaign_id, profile_l0.id) if campaign_id else 0
     _npc_stress = getattr(state_for_llm, "stress", 0.0)
     _recalled = memory_manager.recall(
         state_for_llm.narrative_cache,
@@ -1613,11 +1694,8 @@ def build_verbalization_context(
 
     # Инвариант 2: Намерение → Физика. LLM знает о движении только через этот флаг.
     _movement_intents = {"APPROACH", "FLEE", "RETREAT", "FOLLOW", "PATROL"}
-    _is_moving = (
-        intent_value in _movement_intents
-        and _interpreter.derive_can_move(
-            state_for_llm.posture, state_for_llm.conditions, state_for_llm.effective_hp
-        )
+    _is_moving = intent_value in _movement_intents and _interpreter.derive_can_move(
+        state_for_llm.posture, state_for_llm.conditions, state_for_llm.effective_hp
     )
 
     return VerbalizationContext(
@@ -1636,9 +1714,7 @@ def build_verbalization_context(
         voice_profile=profile_l0.voice_profile,
         backstory=profile_l0.backstory,
         author_notes=profile_l0.author_notes,
-        can_speak=_interpreter.derive_can_speak(
-            state_for_llm.posture, state_for_llm.conditions
-        ),
+        can_speak=_interpreter.derive_can_speak(state_for_llm.posture, state_for_llm.conditions),
         can_move=_interpreter.derive_can_move(
             state_for_llm.posture, state_for_llm.conditions, state_for_llm.effective_hp
         ),
@@ -1665,9 +1741,7 @@ def _resolve_reactive_movement(
     location_id: str,
     spatial_service: Optional[Any] = None,
     spatial_query: Optional[Any] = None,  # ADR-048: Authoritative Spatial Spine
-    drf_ctx: Optional[
-        Any
-    ] = None,  # DRF: scoped causal execution context (DRFExecutionContext)
+    drf_ctx: Optional[Any] = None,  # DRF: scoped causal execution context (DRFExecutionContext)
 ) -> Optional["MacroMovementGoal | LocalSteeringGoal"]:
     """Конвертирует пространственный intent в MovementIntent.
 
@@ -1714,14 +1788,10 @@ def _resolve_reactive_movement(
         _x = _lp.get("x")
         _y = _lp.get("y")
         if _x is not None and _y is not None:
-            _nearest = spatial_service.get_nearest(
-                zone_id=location_id, origin_xy=(_x, _y)
-            )
+            _nearest = spatial_service.get_nearest(zone_id=location_id, origin_xy=(_x, _y))
             if _nearest:
                 current_node = getattr(_nearest, "node_id", str(_nearest))
-                logger.debug(
-                    f"[PIPELINE][NAV] npc={npc_id} recovered current_node={current_node} from xy=({_x},{_y})"
-                )
+                logger.debug(f"[PIPELINE][NAV] npc={npc_id} recovered current_node={current_node} from xy=({_x},{_y})")
 
     # ADR-045: Макро-зона цели берется НАПРЯМУЮ из position, без поиска по координатам.
     target_node_id: Optional[str] = None
@@ -1743,9 +1813,7 @@ def _resolve_reactive_movement(
 
         # Путь 1: Точное позиционирование через local_position (предпочтительно)
         if target_x is not None and target_y is not None and spatial_service:
-            nearest_ref = spatial_service.get_nearest(
-                zone_id=location_id, origin_xy=(target_x, target_y)
-            )
+            nearest_ref = spatial_service.get_nearest(zone_id=location_id, origin_xy=(target_x, target_y))
             if nearest_ref:
                 target_node_id = getattr(nearest_ref, "node_id", str(nearest_ref))
 
@@ -1758,9 +1826,7 @@ def _resolve_reactive_movement(
         )
 
         if not target_node_id:
-            logger.warning(
-                f"[APPROACH_NAV] target={_target_id} not found in npc_positions! Movement blocked."
-            )
+            logger.warning(f"[APPROACH_NAV] target={_target_id} not found in npc_positions! Movement blocked.")
             return None
 
     elif intent == "flee":
@@ -1772,9 +1838,7 @@ def _resolve_reactive_movement(
             threat_x = lp.get("x")
             threat_y = lp.get("y")
         else:
-            logger.warning(
-                f"[FLEE_NAV] threat={_target_id} not found in npc_positions! Flee blocked."
-            )
+            logger.warning(f"[FLEE_NAV] threat={_target_id} not found in npc_positions! Flee blocked.")
             return None
 
         if threat_x is not None and threat_y is not None:
@@ -1787,7 +1851,7 @@ def _resolve_reactive_movement(
                 target_id=None,
                 reason="flee",
                 confidence=0.9,
-                context_ref=_target_id  # ID угрозы
+                context_ref=_target_id,  # ID угрозы
             )
             return MacroMovementGoal(
                 actor_id=npc_id,
@@ -1826,9 +1890,7 @@ def _resolve_reactive_movement(
 
         if intent == "flee":
             # Для побега из той же зоны ищем другой узел
-            logger.info(
-                f"[PIPELINE][REACTIVE_MOVEMENT][FLEE_MICRO] npc={npc_id} пытается бежать из своей зоны"
-            )
+            logger.info(f"[PIPELINE][REACTIVE_MOVEMENT][FLEE_MICRO] npc={npc_id} пытается бежать из своей зоны")
         else:
             logger.warning(
                 f"[PIPELINE][REACTIVE_MOVEMENT][SKIP] npc={npc_id} already at target macro-zone {current_base}, no local coords"
@@ -1843,9 +1905,7 @@ def _resolve_reactive_movement(
     logger.debug(
         f"[PIPELINE][REACTIVE_MOVEMENT][CREATE] npc={npc_id} target_node={target_node_id} from_node={current_node}"
     )
-    logger.debug(
-        f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:{intent} target_node={target_node_id}"
-    )
+    logger.debug(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:{intent} target_node={target_node_id}")
 
     # DRF: Испускаем претензию через scoped контекст (авто-привязка npc_id, tick_id)
     _claim = {

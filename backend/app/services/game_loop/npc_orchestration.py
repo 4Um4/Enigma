@@ -22,19 +22,20 @@ logger = logging.getLogger(__name__)
 class NpcOrchDeps:
     """Контракт зависимостей npc_orchestration (DEGOD Phase3-B2). Контракт принадлежит фазе.
     A=DI; B=GameLoop-owned mutable (accessor); C=callable (ownership DEFERRED/lazy); D=уже захваченный объект."""
-    character_service: Any                          # A :42/:64
-    reputation_engine_getter: Callable[[], Any]     # A :65/:149/:368/:388
-    social_engine_getter: Callable[[str], Any]      # A :148
+
+    character_service: Any  # A :42/:64
+    reputation_engine_getter: Callable[[], Any]  # A :65/:149/:368/:388
+    social_engine_getter: Callable[[str], Any]  # A :148
     economic_profiles_getter: Callable[[str], Any]  # A :150/:390
-    economy_tracker: Any                            # A :396
-    world_tick_engine: Any                          # A :387
-    memory_manager: Any                             # A :146
-    rel_store: Any                                  # D :147/:389 (identity = memory_manager._relationships, 159b)
-    scene_manager: Any                              # A :202/:211/:248/:259/:349 (+is_tick_locked_for :249/:261)
-    load_npcs_with_runtime: Callable[[str], list]   # C :83/:91 (ownership DEFERRED — trio)
-    task_scheduler_getter: Callable[[], Any]        # C :241 (lazy identity-инвариант)
+    economy_tracker: Any  # A :396
+    world_tick_engine: Any  # A :387
+    memory_manager: Any  # A :146
+    rel_store: Any  # D :147/:389 (identity = memory_manager._relationships, 159b)
+    scene_manager: Any  # A :202/:211/:248/:259/:349 (+is_tick_locked_for :249/:261)
+    load_npcs_with_runtime: Callable[[str], list]  # C :83/:91 (ownership DEFERRED — trio)
+    task_scheduler_getter: Callable[[], Any]  # C :241 (lazy identity-инвариант)
     get_or_create_continuity: Callable[[str], Any]  # B :73
-    crystallized_belief_store: Any                  # A :140-144
+    crystallized_belief_store: Any  # A :140-144
 
 
 def run_npc_orchestration(
@@ -52,7 +53,6 @@ def run_npc_orchestration(
 
     Возвращает список npc_contexts. Мутирует ctx, scene_state, shared_context.
     """
-
 
     npc_contexts: List[Any] = []
     raw_input = actions[0].action if actions else ""
@@ -123,27 +123,22 @@ def run_npc_orchestration(
     # ADR-048: Authoritative Spatial Spine
     _scene_state = shared_context.scene_state
     if _scene_state is None:
-        logger.error(
-            "[SCENE_IDENTITY] npc_orchestration: shared_context.scene_state is None! Traversals will be lost."
-        )
+        logger.error("[SCENE_IDENTITY] npc_orchestration: shared_context.scene_state is None! Traversals will be lost.")
         from app.services.tick_orchestrator import TickPlayerResultDTO
+
         return TickPlayerResultDTO()
 
     # ADR-048: npc_positions.player — авторитетный источник позиции игрока.
     # _update_player_position (scene_init) уже записал актуальные координаты от фронтенда.
     # player_spatial НЕ обновляется (запись запрещена ADR-048 Phase 3) — читать из него ЗАПРЕЩЕНО.
     # Fallback на player_spatial только если фронтенд не прислал позицию (npc_positions.player пуст).
-    _player_entry = _scene_state.setdefault("npc_positions", {}).setdefault(
-        "player", {}
+    _player_entry = _scene_state.setdefault("npc_positions", {}).setdefault("player", {})
+    _plp = _player_entry.get("local_position") or _scene_state.get("npc_positions", {}).get("player", {}).get(
+        "local_position", {}
     )
-    _plp = _player_entry.get("local_position") or _scene_state.get(
-        "npc_positions", {}
-    ).get("player", {}).get("local_position", {})
     if isinstance(_plp, dict) and isinstance(_plp.get("x"), (int, float)):
         if _spatial_svc:
-            _p_node_ref = _spatial_svc.get_nearest(
-                zone_id=location, origin_xy=(_plp.get("x", 0.0), _plp.get("y", 0.0))
-            )
+            _p_node_ref = _spatial_svc.get_nearest(zone_id=location, origin_xy=(_plp.get("x", 0.0), _plp.get("y", 0.0)))
             if _p_node_ref:
                 _p_node_id = getattr(_p_node_ref, "node_id", str(_p_node_ref))
                 if _p_node_id.startswith(f"{location}:"):
@@ -166,11 +161,7 @@ def run_npc_orchestration(
         spatial_query=_spatial_query,
         crystallized_belief_store=_cryst_store,  # AUDIT-002 §3.2
     )
-    _pl = (
-        getattr(ctx.hub_event, "payload", "<NO_PAYLOAD>")
-        if ctx.hub_event
-        else "<NO_HUB_EVENT>"
-    )
+    _pl = getattr(ctx.hub_event, "payload", "<NO_PAYLOAD>") if ctx.hub_event else "<NO_HUB_EVENT>"
     logger.debug(
         f"[ARCHAE-ORCH] hub_event id={id(ctx.hub_event) if ctx.hub_event else 0} payload={_pl} event_type={getattr(ctx.hub_event, 'event_type', 'NO_TYPE')}"
     )
@@ -184,7 +175,7 @@ def run_npc_orchestration(
 
     _sem_action = getattr(_params, "semantic_action", "") if _params else ""  # noqa: ENIGMA002
     _target_ref = getattr(_params, "target_reference", "") if _params else ""  # noqa: ENIGMA002
-    _target_id = getattr(_params, "target_id", "") if _params else ""  # noqa: ENIGMA002
+    _target_id = getattr(_orig_intent, "target", "") if _orig_intent else ""  # noqa: ENIGMA002
 
     _intervention = InterventionEvent(
         source="player",
@@ -192,7 +183,7 @@ def run_npc_orchestration(
             "text": raw_input,
             "player_name": actions[0].player_name if actions else "player",
             "semantic_action": _sem_action,
-            "target_id": _target_id or shared_context.player_target_id or "",
+            "target_id": _target_id or "",
             "target_reference": _target_ref or "",
             "tick": shared_context.current_tick or 0,
         },
@@ -203,6 +194,7 @@ def run_npc_orchestration(
     _active_loc = shared_context.scene_state.get("location_id", "")
     try:
         from app.services.spatial.spatial_registry import SpatialRegistry
+
         _registry = SpatialRegistry.get_or_load(campaign_id)
         if _registry:
             _location_ids = _registry.get_all_location_ids()
@@ -230,7 +222,10 @@ def run_npc_orchestration(
         _loc_spatial_svc = None
         try:
             from app.services.spatial.spatial_factory import SpatialFactory
-            _loc_spatial_svc = SpatialFactory.build_for_campaign(campaign_id=campaign_id, location_id=_loc_id, scene_state=_current_scene)
+
+            _loc_spatial_svc = SpatialFactory.build_for_campaign(
+                campaign_id=campaign_id, location_id=_loc_id, scene_state=_current_scene
+            )
         except Exception as e:
             logger.warning(f"SpatialFactory failed for loc={_loc_id}: {e}")
 
@@ -272,26 +267,19 @@ def run_npc_orchestration(
     _scene_manager = deps.scene_manager
     if _tick_result is not None and _tick_result.final_scene_state is not None and _scene_manager:
         if _scene_manager.is_tick_locked_for(campaign_id):
-            _scene_manager.commit_tick_result(
-                campaign_id, _tick_result.final_scene_state
-            )
+            _scene_manager.commit_tick_result(campaign_id, _tick_result.final_scene_state)
             shared_context.scene_state = _tick_result.final_scene_state
         else:
-            logger.warning(
-                f"[NPC_ORCH] campaign mismatch in commit (tick locked for other campaign): {campaign_id}"
-            )
+            logger.warning(f"[NPC_ORCH] campaign mismatch in commit (tick locked for other campaign): {campaign_id}")
 
     # SHI-FIX CAUSAL: L1 Фиксация на основе semantic_action (Fast Path).
     _sem_action = ""
-    if (
-        shared_context.intent_resolution
-        and shared_context.intent_resolution.original_intent
-    ):
+    if shared_context.intent_resolution and shared_context.intent_resolution.original_intent:
         _params = shared_context.intent_resolution.original_intent.parameters
         if _params:
             _sem_action = getattr(_params, "semantic_action", "").upper()  # noqa: ENIGMA002
 
-    _target_id = shared_context.player_target_id or ""
+    _target_id = getattr(_orig_intent, "target", "") if _orig_intent else ""
     _tick = shared_context.current_tick or 0
 
     if _target_id and _sem_action:
@@ -331,10 +319,7 @@ def run_npc_orchestration(
             )
             _ue_ready = getattr(_ue_ready, "intent_readiness", None)  # noqa: ENIGMA002
             if _ue_ready and _ue_ready != "RESOLVED":
-                logger.warning(
-                    f"[UE-GATE-L1] attack/damage-дрифт подавлен "
-                    f"(intent_readiness={_ue_ready})"
-                )
+                logger.warning(f"[UE-GATE-L1] attack/damage-дрифт подавлен " f"(intent_readiness={_ue_ready})")
             else:
                 _l1_events.append(
                     TraitDriftEvent(
@@ -373,9 +358,7 @@ def run_npc_orchestration(
             try:
                 tick_orchestrator.l1_chronicle.bind_campaign(campaign_id)
                 tick_orchestrator.l1_chronicle.commit_tick_buffer(_l1_events, _tick)
-                logger.warning(
-                    f"[L1_FIXATION] sem_action={_sem_action} → L1: target={_target_id} tick={_tick}"
-                )
+                logger.warning(f"[L1_FIXATION] sem_action={_sem_action} → L1: target={_target_id} tick={_tick}")
             except Exception as _l1_err:
                 logger.warning(f"[L1_FIXATION] failed: {_l1_err}")
     # TZ-08 v0.2: Чтение Narrative Projection из единого TickResultDTO.
@@ -405,9 +388,7 @@ def run_npc_orchestration(
             )
             _scene_manager.apply_change(campaign_id, _change, scene_state)
     else:
-        logger.warning(
-            "[NPC_ORCH] scene_manager not found in game_loop. Metadata changes skipped."
-        )
+        logger.warning("[NPC_ORCH] scene_manager not found in game_loop. Metadata changes skipped.")
 
     # TZ-08 v0.2: movement_intents больше не покидают ядро. Исполняются внутри Фазы 8.
 
@@ -419,13 +400,11 @@ def run_npc_orchestration(
             _rep_deltas = _rep_eng.apply_event_impact(
                 event_type=_action_type_for_rep,
                 actor_npc_id=None,  # игрок — не NPC
-                target_npc_id=shared_context.player_target_id,
+                target_npc_id=_target_id or None,
             )
             if _rep_deltas:
                 _rep_eng.apply_deltas(_rep_deltas)
-                logger.warning(
-                    f"[REPUTATION] {len(_rep_deltas)} faction deltas applied"
-                )
+                logger.warning(f"[REPUTATION] {len(_rep_deltas)} faction deltas applied")
         except Exception as _rep_err:
             logger.warning(f"[REPUTATION] Impact error: {_rep_err}")
 
@@ -445,9 +424,7 @@ def run_npc_orchestration(
 
     # Salience Engine: метаданные для фильтрации объектов в промпте
     _scene_for_dm = shared_context.scene_state or {}
-    _scene_for_dm["_salience_event_type"] = getattr(
-        ctx.hub_event, "event_type", "player_interacts"
-    )
+    _scene_for_dm["_salience_event_type"] = getattr(ctx.hub_event, "event_type", "player_interacts")
     _scene_for_dm["_salience_max_stress"] = ctx.max_npc_stress
     _scene_for_dm["_salience_target_object"] = _scene_for_dm.get("player_target_object")
 

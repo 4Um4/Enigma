@@ -1,4 +1,4 @@
-﻿# path: backend/app/services/game_loop/turn_pipeline.py
+# path: backend/app/services/game_loop/turn_pipeline.py
 """
 TurnPipeline — владелец фазовой машины player-turn (DEGOD Phase3-3A.3).
 
@@ -28,6 +28,8 @@ from app.services.game_loop.dm_phase import run_dm_phase
 from app.services.game_loop.npc_orchestration import run_npc_orchestration
 from app.services.game_loop.phase_1_input import (
     _lemmatize,
+    build_intent_projection,
+    project_intent_to_hub_event,
     publish_classified_player_event,
     resolve_player_intent,
 )
@@ -47,7 +49,7 @@ def _tool_in_topology(topo: dict, tool_reference: str) -> bool:
     Семантическая подмена предмета запрещена (вердикт Q3)."""
     _want = {_lemmatize(tool_reference.lower()), tool_reference.lower()}
     for _slot_items in (topo.get("contents") or {}).values():
-        for _it in (_slot_items or []):
+        for _it in _slot_items or []:
             _name = _it.get("name", "") if isinstance(_it, dict) else getattr(_it, "name", "")
             _iid = _it.get("item_id", "") if isinstance(_it, dict) else getattr(_it, "item_id", "")
             if _lemmatize(str(_name).lower()) in _want or str(_iid).lower() in _want:
@@ -107,9 +109,7 @@ class TurnPipeline:
 
     # ── B-провайдеры (GameLoop-owned) ──────────────────────────────────────
 
-    def _sync_shared_context_with_scene(
-        self, scene_state: dict, shared_context: Any
-    ) -> None:
+    def _sync_shared_context_with_scene(self, scene_state: dict, shared_context: Any) -> None:
         """Синхронизирует shared_context с заблокированным scene_state."""
         shared_context.scene_state = scene_state
 
@@ -134,24 +134,18 @@ class TurnPipeline:
     ) -> tuple[dict, dict]:
         """ФАЗА 7 (Rules) + ФАЗЫ 8-10 (R3 Frame) + Avatar Sync."""
         _state_observed_facts = getattr(_player_result, "observed_facts", [])  # noqa: ENIGMA002
-        logger.debug(
-            f"[DEBUG_GAME_LOOP] _state_observed_facts count={len(_state_observed_facts)}"
-        )
+        logger.debug(f"[DEBUG_GAME_LOOP] _state_observed_facts count={len(_state_observed_facts)}")
 
         from app.services.events.rules_subscriber import RulesSubscriber
 
         _action_type = shared_context.action_type or "player_interacts"
-        _rules_action_type = self.dm_orchestrator._router.get_rules_action_type(
-            _action_type
-        )
+        _rules_action_type = self.dm_orchestrator._router.get_rules_action_type(_action_type)
 
         _rules_event = type(
             "Event",
             (),
             {
-                "type": "player_attacks"
-                if "attack" in _rules_action_type.lower()
-                else "player_interacts",
+                "type": "player_attacks" if "attack" in _rules_action_type.lower() else "player_interacts",
                 "payload": {"target_id": shared_context.player_target_id},
                 "source": actions[0].player_name if actions else "player",
                 "id": f"rules_{shared_context.current_tick}",
@@ -185,10 +179,7 @@ class TurnPipeline:
         _ue_readiness = getattr(_ue_readiness, "intent_readiness", None)
         _rules_delta = None
         if _ue_readiness and _ue_readiness != "RESOLVED":
-            logger.warning(
-                f"[UE-GATE-RULES] rules-последствия подавлены "
-                f"(intent_readiness={_ue_readiness})"
-            )
+            logger.warning(f"[UE-GATE-RULES] rules-последствия подавлены " f"(intent_readiness={_ue_readiness})")
         else:
             _rules_sub = RulesSubscriber()
             _rules_delta = _rules_sub.handle(_rules_event, _rules_snapshot)
@@ -196,6 +187,7 @@ class TurnPipeline:
         # Priority 2 Commit 2: TRADE → create_order (shared mechanism)
         if _rules_delta and _rules_delta.trade_request:
             from app.services.economy.work_orders import create_order
+
             _tr = _rules_delta.trade_request
             _order_id = create_order(
                 ctx=_ctx,
@@ -207,12 +199,12 @@ class TurnPipeline:
             if _order_id:
                 logger.info(f"[TRADE_ORDER] Created order {_order_id} for player (good={_tr.get('good')})")
             else:
-                logger.warning(f"[TRADE_ORDER] create_order returned None (good={_tr.get('good')}, seller={_tr.get('seller_ref')})")
+                logger.warning(
+                    f"[TRADE_ORDER] create_order returned None (good={_tr.get('good')}, seller={_tr.get('seller_ref')})"
+                )
 
         rules_result = {"checks": _rules_delta.checks} if _rules_delta else {}
-        logger.warning(
-            f"[RULES] action_type={_action_type} → {_rules_action_type} (synchronous reducer)"
-        )
+        logger.warning(f"[RULES] action_type={_action_type} → {_rules_action_type} (synchronous reducer)")
 
         _player_name = actions[0].player_name if actions else ""
         _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
@@ -230,13 +222,15 @@ class TurnPipeline:
             _eco_delta = StateDeltas(
                 npc_id="player",
                 domain=DeltaDomain.ECONOMY,
-                payload=EconomicPayload(money_delta=_rules_delta.money_delta)
+                payload=EconomicPayload(money_delta=_rules_delta.money_delta),
             )
             _state_applicator = self._svc.get_state_applicator(campaign_id)
             _player_dict = next((n for n in _ctx.all_npcs_raw if n.get("npc_id") == "player"), None)
             if _player_dict and _state_applicator:
                 _state_applicator.apply_batch([_eco_delta], _ctx.all_npcs_raw, campaign_id)
-                logger.info(f"[TRADE_FIX] Applied money_delta={_rules_delta.money_delta} to avatar via StateApplicator.")
+                logger.info(
+                    f"[TRADE_FIX] Applied money_delta={_rules_delta.money_delta} to avatar via StateApplicator."
+                )
 
         from dataclasses import asdict, is_dataclass
 
@@ -245,20 +239,14 @@ class TurnPipeline:
             _avatar_dict["npc_id"] = "player"
             _avatar_dict["id"] = "player"
             if hasattr(_ctx, "all_npcs_raw") and _ctx.all_npcs_raw is not None:
-                _ctx.all_npcs_raw = [
-                    n for n in _ctx.all_npcs_raw if n.get("npc_id") != "player"
-                ]
+                _ctx.all_npcs_raw = [n for n in _ctx.all_npcs_raw if n.get("npc_id") != "player"]
                 _ctx.all_npcs_raw.append(_avatar_dict)
 
         shared_context.npc_contexts = getattr(_player_result, "npc_contexts", []) or []  # noqa: ENIGMA002
         try:
             from app.services.scene.r3_direct_builder import build_r3_dm_frame
 
-            npc_result = (
-                build_r3_dm_frame(shared_context, actions, rules_result)
-                if R3_DIRECT_MODE
-                else {}
-            )
+            npc_result = build_r3_dm_frame(shared_context, actions, rules_result) if R3_DIRECT_MODE else {}
 
             logger.debug(
                 f"[TRAV_CHECK_P1_5] after_finalize_return: id={id(shared_context.scene_state)} traversals={list(shared_context.scene_state.get('active_traversals', {}).keys()) if shared_context.scene_state else 'NONE'}"
@@ -273,20 +261,15 @@ class TurnPipeline:
                 None,
             )
             from app.models.npc_state import NPCState
+
             if _updated_avatar_dict and isinstance(_avatar_state, NPCState):
                 # S208 (P0-B): GameLoop — оркестратор, не писатель NPCState.
                 # Каноническая граница мутации — AvatarStateApplicator.
                 from app.services.avatar_state_applicator import AvatarStateApplicator
 
-                AvatarStateApplicator.apply_pipeline_result(
-                    _avatar_state, _updated_avatar_dict
-                )
+                AvatarStateApplicator.apply_pipeline_result(_avatar_state, _updated_avatar_dict)
 
-            if (
-                _avatar_state
-                and _avatar_state_before
-                and _avatar_state != _avatar_state_before
-            ):
+            if _avatar_state and _avatar_state_before and _avatar_state != _avatar_state_before:
                 self.avatar_service.save_state(campaign_id, _avatar_state)
                 _avatar_hp = getattr(_avatar_state, "effective_hp", getattr(_avatar_state, "hp", 0))
                 logger.warning(
@@ -294,11 +277,7 @@ class TurnPipeline:
                 )
 
             _engine = self._get_life_engine()
-            if (
-                _engine
-                and hasattr(_ctx, "all_npcs_raw")
-                and _ctx.all_npcs_raw is not None
-            ):
+            if _engine and hasattr(_ctx, "all_npcs_raw") and _ctx.all_npcs_raw is not None:
                 _engine.update_cache(campaign_id, _ctx.all_npcs_raw)
 
         except Exception as _fin_err:
@@ -352,6 +331,7 @@ class TurnPipeline:
             )
 
             import dataclasses as _dc
+
             # Порядок условий по контракту typeshed: is_dataclass сужает тип к
             # DataclassInstance | type[...], затем isinstance исключает класс —
             # asdict получает чистый DataclassInstance.
@@ -369,17 +349,13 @@ class TurnPipeline:
             if self.memory_manager and _target_npc != "player":
                 try:
                     _dialogue_session = self.memory_manager.get_dialogue_session(
-                        campaign_id=campaign_id,
-                        npc_id=_target_npc,
-                        partner_id="player"
+                        campaign_id=campaign_id, npc_id=_target_npc, partner_id="player"
                     )
                 except Exception as _ds_err:
                     logger.warning(f"[S200] Failed to get dialogue session for {_target_npc}: {_ds_err}")
 
             _semantic_field = await self._intent_compressor.compress(
-                raw_text=_raw_action,
-                scene_context=scene_state,
-                dialogue_session=_dialogue_session
+                raw_text=_raw_action, scene_context=scene_state, dialogue_session=_dialogue_session
             )
 
             _resolution = resolve_player_intent(
@@ -391,6 +367,9 @@ class TurnPipeline:
                 semantic_field=_semantic_field,
             )
             shared_context.intent_resolution = _resolution
+            _resolved_target_id = _resolution.original_intent.target
+            shared_context.player_intent_projection = build_intent_projection(_resolution)
+            _ctx.hub_event = project_intent_to_hub_event(_ctx.hub_event, _resolution)
 
             # Step 3.1: Player Intent Identity — симметрия с AvatarIntentRecord.
             # Player Intent получает детерминированный intent_id через
@@ -416,7 +395,7 @@ class TurnPipeline:
                     scene_state=scene_state,
                     player_name=_player_name,
                     action=shared_context.action_type or "player_interacts",
-                    target=shared_context.player_target_id or "",
+                    target=_resolved_target_id,
                     tick=shared_context.current_tick or 0,
                 )
                 shared_context.player_intent_id = _player_intent_id
@@ -437,9 +416,7 @@ class TurnPipeline:
                 from app.services.body_arbiter import BodyArbiter
 
                 _arbiter = BodyArbiter()
-                shared_context.body_arbiter_result = _arbiter.authorize(
-                    scene_state, shared_context.current_tick or 0
-                )
+                shared_context.body_arbiter_result = _arbiter.authorize(scene_state, shared_context.current_tick or 0)
             except Exception as _arb_err:
                 logger.warning(f"[BODY_ARBITER] fault: {_arb_err}")
                 shared_context.body_arbiter_result = None
@@ -457,28 +434,32 @@ class TurnPipeline:
                     _topo = scene_state.get("player_body_topology") or {}
                     if _topo.get("contents") is not None:
                         if not _tool_in_topology(_topo, _wv_params.tool_reference):
-                            _wv_notes.append({
-                                "valid": False,
-                                "reason": f"действие инструментом {_wv_params.tool_reference!r}",
-                                "explanation": f"у тебя нет {_wv_params.tool_reference!r}",
-                                "alternative": "действие без инструмента или найди его",
-                            })
+                            _wv_notes.append(
+                                {
+                                    "valid": False,
+                                    "reason": f"действие инструментом {_wv_params.tool_reference!r}",
+                                    "explanation": f"у тебя нет {_wv_params.tool_reference!r}",
+                                    "alternative": "действие без инструмента или найди его",
+                                }
+                            )
                     else:
                         logger.warning("[WV] player_body_topology отсутствует — tool-check пропущен")
                 # WV-2: дистанция (канон SpatialQuery; нет канона — gate disabled)
-                _wv_target = shared_context.player_target_id
+                _wv_target = _resolved_target_id
                 _wv_sq = getattr(shared_context, "spatial_query", None)
                 if _wv_target and _wv_sq is not None:
                     try:
                         _wv_dist = float((_wv_sq.player_distances([_wv_target]) or {}).get(_wv_target, 0.0))
                         _wv_reach = effective_reach_m(_wv_params.tool_reference)
                         if _wv_dist > _wv_reach:
-                            _wv_notes.append({
-                                "valid": False,
-                                "reason": f"атака {_wv_target}",
-                                "explanation": f"цель в {_wv_dist:.1f} м, досягаемость {_wv_reach:.1f} м",
-                                "alternative": "подойти ближе",
-                            })
+                            _wv_notes.append(
+                                {
+                                    "valid": False,
+                                    "reason": f"атака {_wv_target}",
+                                    "explanation": f"цель в {_wv_dist:.1f} м, досягаемость {_wv_reach:.1f} м",
+                                    "alternative": "подойти ближе",
+                                }
+                            )
                     except Exception as _wv_err:
                         logger.warning(f"[WV] distance check failed: {_wv_err}")
                 elif _wv_target:
@@ -503,14 +484,10 @@ class TurnPipeline:
                 AuthorizationResult,
             )
 
-            _arb_result: Optional[AuthorizationResult] = getattr(
-                shared_context, "body_arbiter_result", None
-            )
+            _arb_result: Optional[AuthorizationResult] = getattr(shared_context, "body_arbiter_result", None)
             _arb_authorized = False  # Default: blocked (fail-closed)
             if _arb_result is not None:
-                _arb_authorized = (
-                    _arb_result.player_decision == AuthorizationDecision.AUTHORIZED
-                )
+                _arb_authorized = _arb_result.player_decision == AuthorizationDecision.AUTHORIZED
             _wv_rejected = getattr(shared_context, "action_rejected", False)
 
             # Step 3.2 Stage C2b: SOCIOAL_ACTION публикуется только при
@@ -533,26 +510,23 @@ class TurnPipeline:
                         "subject_id": _semantic_field.proposition.subject_id,
                         "predicate": _semantic_field.proposition.predicate.value,
                         "object_id": _semantic_field.proposition.object_id,
-                        "polarity": _semantic_field.proposition.polarity
+                        "polarity": _semantic_field.proposition.polarity,
                     }
 
                 _payload = {
                     "action": _sem_action_val,
                     "actor": _semantic_field.actor or "player",
-                    "target": _semantic_field.target or shared_context.player_target_id or "",
+                    "target": _resolved_target_id or _semantic_field.target or "",
                     "speech_act": _semantic_field.speech_act.value if _semantic_field.speech_act else "assert",
                     "proposition": _prop,
                     "physical_force": _semantic_field.physical_force,
                     "emotional_charge": _semantic_field.emotional_charge,
                     "social_pressure": _semantic_field.social_pressure,
-                    "tick": shared_context.current_tick
+                    "tick": shared_context.current_tick,
                 }
 
                 _event = EventDTO.create_social_action(
-                    source=_semantic_field.actor or "player",
-                    payload=_payload,
-                    visibility="public",
-                    radius=10.0
+                    source=_semantic_field.actor or "player", payload=_payload, visibility="public", radius=10.0
                 )
                 _bus = get_event_bus()
                 _bus.publish(_event)
@@ -564,22 +538,18 @@ class TurnPipeline:
             # DEFERRED or WV rejected → movement blocked.
             # _arb_authorized and _wv_rejected computed above (unified gate).
             _sem_action_val = _semantic_field.action_type.value if _semantic_field else ""
-            if (
-                _sem_action_val == "MOVE"
-                and shared_context.player_target_id
-                and _arb_authorized
-                and not _wv_rejected
-            ):
-                _target_id = shared_context.player_target_id
+            if _sem_action_val == "MOVE" and _resolved_target_id and _arb_authorized and not _wv_rejected:
+                _target_id = _resolved_target_id
                 _target_pos = scene_state.get("npc_positions", {}).get(_target_id, {}).get("position", "")
                 if _target_pos:
                     from app.domain.movement import MacroMovementGoal
+
                     _player_goal = MacroMovementGoal(
                         actor_id="player",
                         target_node_id=_target_pos,
                         location_id=location,
                         reason="player_action:approach",
-                        priority=1.0
+                        priority=1.0,
                     )
                     shared_context.pending_movement_intents.append(_player_goal)
                     logger.warning(f"[PLAYER_MOVE] Injected MacroMovementGoal for player -> {_target_pos}")
@@ -590,10 +560,11 @@ class TurnPipeline:
                 # S199: Уничтожен раздвоенный semantic authority.
                 # MvpTavernController теперь получает PlayerAction через bridge из расширенного IntentSemanticField.
                 from app.services.player_cognition.legacy_bridge import intent_to_player_action
+
                 _action = intent_to_player_action(
                     intent=_semantic_field,
                     tick=shared_context.current_tick,
-                    truth_state=self.mvp_controller.truth_state
+                    truth_state=self.mvp_controller.truth_state,
                 )
                 self.mvp_controller.action_compiler.process_action(_action)
 
@@ -616,9 +587,7 @@ class TurnPipeline:
                     if _sem_payload:
                         import dataclasses
 
-                        _ctx.hub_event = dataclasses.replace(
-                            _ctx.hub_event, payload=_sem_payload
-                        )
+                        _ctx.hub_event = dataclasses.replace(_ctx.hub_event, payload=_sem_payload)
                         logger.warning(
                             f"[PAYLOAD_INJECT] hub_event.payload={_sem_payload} id={id(_ctx.hub_event)} event_type={_ctx.hub_event.event_type}"
                         )
@@ -682,19 +651,11 @@ class TurnPipeline:
                 else "ALIVE"
             )
             if _player_life == "DEAD":
-                logger.warning(
-                    f"[DEATH_GATE] Player '{_player_name}' is DEAD. DM narrates death."
-                )
+                logger.warning(f"[DEATH_GATE] Player '{_player_name}' is DEAD. DM narrates death.")
                 from app.services.game_loop.phase_6_avatar import avatar_to_prompt
 
-                shared_context.player_state = {
-                    _player_name: avatar_to_prompt(_avatar_state)
-                }
-                _bs = (
-                    _avatar_state.body_state
-                    if _avatar_state and _avatar_state.body_state
-                    else {}
-                )
+                shared_context.player_state = {_player_name: avatar_to_prompt(_avatar_state)}
+                _bs = _avatar_state.body_state if _avatar_state and _avatar_state.body_state else {}
                 _death_avatar_dict = {
                     "physical_state": "dead",
                     "mental_state": "broken",
@@ -704,9 +665,7 @@ class TurnPipeline:
                     "motor_disruption": 1.0,
                     "perceptual_latency": 1.0,
                     "reality_reconciliation_rate": 0.0,
-                    "blood_visibility": min(
-                        1.0, float(_bs.get("blood_loss", 0.0)) * 1.5
-                    ),
+                    "blood_visibility": min(1.0, float(_bs.get("blood_loss", 0.0)) * 1.5),
                     "breathing_profile": "none",
                     "posture_state": "collapsed",
                     "will_resistance": 0.0,
@@ -725,7 +684,9 @@ class TurnPipeline:
                         }
                 except Exception as e:
                     logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
-                _death_dm_response = "Тьма поглощает тебя. Твоё тело безжизненно, а сознание растворяется в абсолютной тишине."
+                _death_dm_response = (
+                    "Тьма поглощает тебя. Твоё тело безжизненно, а сознание растворяется в абсолютной тишине."
+                )
                 try:
                     _death_result = await run_agent_safe(
                         "dm",
@@ -733,14 +694,10 @@ class TurnPipeline:
                         (location, actions, {}, {}, {}, False, shared_context),
                         {},
                     )
-                    if isinstance(_death_result, dict) and _death_result.get(
-                        "dm_response"
-                    ):
+                    if isinstance(_death_result, dict) and _death_result.get("dm_response"):
                         _death_dm_response = _death_result["dm_response"]
                 except Exception as _dg_err:
-                    logger.warning(
-                        f"[DEATH_GATE] DM narration failed: {_dg_err}, using fallback"
-                    )
+                    logger.warning(f"[DEATH_GATE] DM narration failed: {_dg_err}, using fallback")
                 return ChatTurnResponse(
                     dm_response=_death_dm_response,
                     npc_reactions=[],
@@ -754,19 +711,12 @@ class TurnPipeline:
 
             _sheets = self.character_service.list_characters(campaign_id)
             _match = next((s for s in _sheets if s.name == _player_name), None)
-            if (
-                _match
-                and self.avatar_service.load_avatar(campaign_id, _player_name) is None
-            ):
+            if _match and self.avatar_service.load_avatar(campaign_id, _player_name) is None:
                 self.avatar_service.migrate_from_characters_json(campaign_id, _match)
-                _avatar_state = self.avatar_service.load_state(
-                    campaign_id, _player_name
-                )
+                _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
             from app.services.game_loop.phase_6_avatar import avatar_to_prompt
 
-            shared_context.player_state = {
-                _player_name: avatar_to_prompt(_avatar_state)
-            }
+            shared_context.player_state = {_player_name: avatar_to_prompt(_avatar_state)}
 
             # ТЗ Presentation v2.0: Инициализация BodyTopology игрока
             from app.services.body.body_topology_service import BodyTopologyService
@@ -785,7 +735,10 @@ class TurnPipeline:
                         for item_id, qty in _old_inv.items():
                             for _ in range(qty if isinstance(qty, int) else 1):
                                 from app.domain.body import Item
-                                BodyTopologyService.add_item(_topo, "backpack_main", Item(item_id=item_id, name=item_id))
+
+                                BodyTopologyService.add_item(
+                                    _topo, "backpack_main", Item(item_id=item_id, name=item_id)
+                                )
                 _tmp_scene = self.scene_manager.lock_for_tick(campaign_id, location)
                 if _tmp_scene:
                     _tmp_scene["player_body_topology"] = BodyTopologyService.serialize(_topo)
@@ -795,9 +748,7 @@ class TurnPipeline:
 
         return None
 
-    def _init_pipeline_context(
-        self, actions: list, campaign_id: str, world_id: str, location: str
-    ) -> tuple[Any, dict]:
+    def _init_pipeline_context(self, actions: list, campaign_id: str, world_id: str, location: str) -> tuple[Any, dict]:
         """Инициализирует shared_context и запускает фоновый world tick."""
         # 0. World tick — асинхронный фон, не блокирует ответ игроку
         world_tick_meta = {"triggered": False, "events": []}
@@ -823,9 +774,7 @@ class TurnPipeline:
         # 1. Базовый shared_context
         _raw_mem = self.memory_manager.read_campaign_history(campaign_id, limit=3)
         if _raw_mem:
-            logger.warning(
-                f"[RECENT_MEM] {len(_raw_mem)} entries, dm_fields={[bool(e.get('dm')) for e in _raw_mem]}"
-            )
+            logger.warning(f"[RECENT_MEM] {len(_raw_mem)} entries, dm_fields={[bool(e.get('dm')) for e in _raw_mem]}")
         shared_context = build_context(
             campaign_id=campaign_id,
             world_id=world_id,
@@ -835,7 +784,7 @@ class TurnPipeline:
             python_engines={},
             recent_memory=[e["dm"] for e in _raw_mem if e.get("dm")],
             reaction_order=[],
-            relationship_store=getattr(self, "_rel_store", None), # Phase 8.2
+            relationship_store=getattr(self, "_rel_store", None),  # Phase 8.2
         )
         return shared_context, world_tick_meta
 
@@ -861,14 +810,10 @@ class TurnPipeline:
             memory_manager=self.memory_manager,
         )
 
-        shared_context, world_tick_meta = self._init_pipeline_context(
-            actions, campaign_id, world_id, location
-        )
+        shared_context, world_tick_meta = self._init_pipeline_context(actions, campaign_id, world_id, location)
 
         # 2. Загрузка аватара игрока
-        _death_response = await self._load_player_avatar(
-            actions, campaign_id, location, shared_context
-        )
+        _death_response = await self._load_player_avatar(actions, campaign_id, location, shared_context)
         if _death_response is not None:
             return _death_response  # S313: легаси-контракт возврата смерти сквозь state-пайплайн (заявлен в сигнатуре)
 
@@ -897,15 +842,9 @@ class TurnPipeline:
             if _arb_result is not None:
                 from app.services.body_arbiter import AuthorizationDecision
 
-                _arb_authorized = (
-                    _arb_result.player_decision == AuthorizationDecision.AUTHORIZED
-                )
+                _arb_authorized = _arb_result.player_decision == AuthorizationDecision.AUTHORIZED
 
-            if (
-                dm_result.is_valid
-                and not getattr(shared_context, "action_rejected", False)
-                and _arb_authorized
-            ):
+            if dm_result.is_valid and not getattr(shared_context, "action_rejected", False) and _arb_authorized:
                 publish_classified_player_event(
                     shared_context,
                     location,
@@ -956,5 +895,3 @@ class TurnPipeline:
             start_ms=start_ms,
             observed_facts=_state_observed_facts,
         )
-
-
