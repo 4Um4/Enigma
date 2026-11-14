@@ -65,6 +65,7 @@ class EpistemicContextResolver:
         max_conf = 0.0
         # S197: Сохраняем утверждение с максимальной уверенностью для Causal Provenance.
         _trigger_prop = None
+        _trigger_source = None
         _trigger_conf = 0.0  # GATE-TRIGGER-01: трекер conf только угрозных записей
         # GC-RELEVANCE-01 (R1): клеймы о самом себе — отдельный канал сбора.
         # Stage B: track (proposition, confidence) pairs for sort-by-confidence
@@ -84,7 +85,7 @@ class EpistemicContextResolver:
             # Канал about_self: салиентность собственного имени. Работает при любой
             # confidence > 0 (оскорбление себя — всегда салиентно).
             if pred == Predicate.INSULTED and _obj == agent_id:
-                about_self_with_conf.append((record.proposition, record.confidence))
+                about_self_with_conf.append((record.proposition, record.confidence, record.source_id))
                 if record.confidence > max_self_conf:
                     max_self_conf = record.confidence
                 continue
@@ -108,7 +109,7 @@ class EpistemicContextResolver:
                 # GC-RELEVANCE-01 (R1): «обо мне» — не угроза в собственном лице,
                 # не violation и не trigger (Epistemic Targeting DecisionHub:1922
                 # целился бы warn-ом в самого себя). Полная развязка каналов.
-                about_self_with_conf.append((record.proposition, record.confidence))
+                about_self_with_conf.append((record.proposition, record.confidence, record.source_id))
                 if record.confidence > max_self_conf:
                     max_self_conf = record.confidence
                 continue
@@ -122,6 +123,7 @@ class EpistemicContextResolver:
             if pred in _THREAT_PREDICATES and record.confidence > _trigger_conf:
                 _trigger_conf = record.confidence
                 _trigger_prop = record.proposition
+                _trigger_source = record.source_id
 
             if pred in _THREAT_PREDICATES:
                 if subj not in threats:
@@ -134,6 +136,7 @@ class EpistemicContextResolver:
         # Stage B: sort by confidence (desc) — consistent with trigger/report
         # selection pattern. claims_about_self[0] = highest-confidence self-claim.
         about_self_with_conf.sort(key=lambda x: x[1], reverse=True)
+        _claim_source = about_self_with_conf[0][2] if about_self_with_conf else None
         return EpistemicContext(
             agent_id=agent_id,
             perceived_threats=tuple(threats),
@@ -141,7 +144,9 @@ class EpistemicContextResolver:
             perceived_violations=violations,
             max_confidence=max_conf,
             trigger_proposition=_trigger_prop,
-            claims_about_self=tuple(p for p, _ in about_self_with_conf),
+            trigger_source_id=_trigger_source,
+            claims_about_self=tuple(p for p, _, _ in about_self_with_conf),
+            claim_source_id=_claim_source,
             max_self_confidence=max_self_conf,
             # COGNITIVE-CONTINUITY-01: report-канал. Proposition об оскорблении
             # третьего лица — для DecisionHub report-targeting (Этап 4).

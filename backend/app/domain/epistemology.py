@@ -158,11 +158,13 @@ class EpistemicContext:
     # S197: Causal Provenance. Утверждение, породившее max_confidence.
     # DecisionHub пробрасывает его в CommunicationIntent, чтобы избежать угадывания (causal break) в post_decision.
     trigger_proposition: Optional[Proposition] = None
+    trigger_source_id: Optional[str] = None  # R4: Автор trigger_proposition (для целеполагания)
     # GC-RELEVANCE-01 (R1): клеймы, адресованные самому агенту (subject == agent).
     # Обвинение в свой адрес — не новость о третьем лице и не угроза в собственном
     # лице (проб S258: perceived_threats содержал самого агента). Отдельный канал
     # самореферентности, развязанный с threat/violation/trigger-путём.
     claims_about_self: tuple[Proposition, ...] = ()
+    claim_source_id: Optional[str] = None    # R4: Автор топ-claim_about_self (для целеполагания)
     max_self_confidence: float = 0.0
     # COGNITIVE-CONTINUITY-01: report-канал. Знание об оскорблении третьего
     # лица — отдельный канал от threat (trigger) и self-relevance

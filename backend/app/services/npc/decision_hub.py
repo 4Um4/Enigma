@@ -2045,6 +2045,35 @@ class DecisionHub:
                     f"→ фоллбэк-резолв (шторм не-акторных задач пресечён на источнике)"
                 )
 
+
+        # R4 (Autonomous Conversation): Целеполагание на автора реплики.
+        # Приоритет: существующий subject_id (выше) → trigger_source_id / claim_source_id → fallback.
+        if epistemic_context is not None:
+            _epi_target = None
+            if intent == 'warn' and getattr(epistemic_context, 'trigger_source_id', None):
+                _epi_target = str(epistemic_context.trigger_source_id)
+            elif intent in ('talk', 'spread_rumor') and getattr(epistemic_context, 'claim_source_id', None):
+                _epi_target = str(epistemic_context.claim_source_id)
+            
+            if _epi_target:
+                # Проверка допустимости адресата (ограничитель 2)
+                _is_valid = (_epi_target != state.npc_id)  # Не сам себе
+                if _is_valid and all_npc_ids is not None and _epi_target not in all_npc_ids:
+                    # Разрешаем 'player' как легальный адресат, даже если его нет в all_npc_ids
+                    if _epi_target != 'player':
+                        _is_valid = False
+                
+                if _is_valid:
+                    logger.info(
+                        f'[EPISTEMIC_TARGET] npc={state.npc_id} intent={intent} target={_epi_target} '
+                        f'(provenance: author of {intent} trigger/claim)'
+                    )
+                    return _epi_target
+                else:
+                    logger.debug(
+                        f'[EPISTEMIC_TARGET] npc={state.npc_id}: source_id={_epi_target!r} недопустим '
+                        f'(self или отсутствует в all_npc_ids) → фоллбэк-резолв'
+                    )
         # COGNITIVE-CONTINUITY-01: report-канал — «сообщить жертве».
         # Для report-пропозиции (INSULTED третьего лица) заинтересованная
         # сторона — object_id (жертва), не subject_id (оскорбитель).
