@@ -67,6 +67,7 @@ from app.services.economy.opportunity_engine import (
     OpportunityResult,
 )
 from app.services.events.event_types import EventType
+from app.services.events.claim_event_subscriber import HEARING_RADIUS
 from app.services.npc.decision.risk import perceive_risk
 from app.services.npc.decision.social_deltas import SocialDeltaEngine
 
@@ -954,7 +955,6 @@ class DecisionHub:
             Intent.OBSERVE,
             Intent.FLEE,
             Intent.EXPLAIN,
-            Intent.SPREAD_RUMOR,
             Intent.CALL_FOR_HELP,
             Intent.REQUEST_SERVICE,
         ):
@@ -2074,6 +2074,42 @@ class DecisionHub:
                         f'[EPISTEMIC_TARGET] npc={state.npc_id}: source_id={_epi_target!r} недопустим '
                         f'(self или отсутствует в all_npc_ids) → фоллбэк-резолв'
                     )
+        # R5 (Social Propagation): Целеполагание для SPREAD_RUMOR.
+        # Использует только существующие каналы: spatial_query и _get_rel_value.
+        if intent == "spread_rumor" and spatial_query is not None and all_npc_ids is not None:
+            _candidates = []
+            for _cid in all_npc_ids:
+                if _cid == state.npc_id:
+                    continue  # Нельзя рассказывать слух самому себе
+                
+                # 1. Физическая доступность
+                try:
+                    _dist = spatial_query.distance(state.npc_id, _cid)
+                    if _dist > HEARING_RADIUS:
+                        continue
+                except Exception:
+                    continue
+                
+                # 2. Социальный фильтр: trust > 0
+                _trust = self._get_rel_value(state, _cid, "trust") or 0.0
+                if _trust > 0.0:
+                    _candidates.append(_cid)
+            
+            # 3. Детерминированный выбор: только если ровно один кандидат
+            if len(_candidates) == 1:
+                logger.info(
+                    f"[EPISTEMIC_TARGET] npc={state.npc_id} intent=spread_rumor target={_candidates[0]} "
+                    f"(reason: single physically available candidate with trust > 0)"
+                )
+                return _candidates[0]
+            
+            # Если 0 или >1, возвращаем None (деградация сработает ниже)
+            logger.debug(
+                f"[EPISTEMIC_TARGET] npc={state.npc_id} intent=spread_rumor target=None "
+                f"(reason: {len(_candidates)} candidates with trust > 0 in range; no deterministic rank)"
+            )
+            return None
+
         # COGNITIVE-CONTINUITY-01: report-канал — «сообщить жертве».
         # Для report-пропозиции (INSULTED третьего лица) заинтересованная
         # сторона — object_id (жертва), не subject_id (оскорбитель).
