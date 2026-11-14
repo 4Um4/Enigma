@@ -2494,6 +2494,48 @@ def inv_player_turn_time_gate(_ctx=None) -> InvariantResult:
         )
 
 
+def inv_mem_anti_archive(world: TestWorld) -> InvariantResult:
+    """INV-MEM-ANTI-ARCHIVE: запрет vector/embedding-DB как memory (§16.1.9, ADR-O-443)."""
+    import sys
+    from pathlib import Path
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+    try:
+        from lint_mem_anti_archive import run_lint
+    except Exception as e:
+        return InvariantResult(
+            "INV-MEM-ANTI-ARCHIVE", "CRITICAL", False,
+            f"Ошибка импорта линтера: {e!r}",
+            ["scripts/lint_mem_anti_archive.py"],
+        )
+    try:
+        raw = run_lint()
+    except Exception as e:
+        return InvariantResult(
+            "INV-MEM-ANTI-ARCHIVE", "CRITICAL", False,
+            f"Ошибка запуска линтера: {e!r}",
+            ["scripts/lint_mem_anti_archive.py"],
+        )
+    crit = [v for v in raw if v.startswith("CRIT|")]
+    warn = [v for v in raw if v.startswith("WARN|")]
+    if crit:
+        return InvariantResult(
+            "INV-MEM-ANTI-ARCHIVE", "CRITICAL", False,
+            f"Нарушений ANTI-ARCHIVE (CRIT): {len(crit)}. Первые: {crit[:5]}"
+            + (f"; WARN={len(warn)}" if warn else ""),
+            ["backend/app/services/memory/", "backend/app/services/npc/",
+             "scripts/lint_mem_anti_archive.py"],
+        )
+    if warn:
+        return InvariantResult(
+            "INV-MEM-ANTI-ARCHIVE", "WARNING", True,
+            f"WARN={len(warn)}: {warn[:5]}",
+            [],
+        )
+    return InvariantResult("INV-MEM-ANTI-ARCHIVE", "CRITICAL", True, "", [])
+
+
 INVARIANTS: List[Callable] = [
     inv_re_cache_allowlist,  # ADR-O-415: freeze-поверхность relationship_cache (M1b.3.7)
     inv_flag_registry,  # COV-0: флаг-реестр (COV-D73 -> COV-GC-04)
@@ -2550,6 +2592,7 @@ INVARIANTS: List[Callable] = [
     inv_n18_source,
     inv_consumer_gap_orphan,
     inv_player_turn_time_gate,  # ADR-O-407: player_turn_in_flight time-gate
+    inv_mem_anti_archive,  # ADR-O-443: запрет vector/embedding-DB как memory (§16.1.9)
 ]
 
 
