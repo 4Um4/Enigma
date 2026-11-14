@@ -114,7 +114,7 @@ def test_direct_player_dialogue_routes_npc_verbal_intent_to_player():
     )
 
     assert resolved_target == "player"
-    
+
 
 def test_explicit_player_dialogue_normalizes_decision_created_reply():
     state = SimpleNamespace(
