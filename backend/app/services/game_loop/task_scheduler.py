@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: /backend/app/services/game_loop/task_scheduler.py
 Назначение: Читает pending_tasks из scene_state, исполняет их через Executor'ы и публикует WorldEvent'ы.
 Зависимости: app.domain.execution, app.services.execution.dialogue_executor, app.services.execution.dialogue_materializer
@@ -180,6 +180,10 @@ class TaskScheduler:
                 return _n.get("intent") == "flee"
         return False
 
+    @staticmethod
+    def _is_player_reply_task(task_dict: dict) -> bool:
+        return task_dict.get("payload", {}).get("intent_type") == "player_reply"
+
     def set_epistemic_wiring(self, discovery_bridge: Any = None, npc_states_provider: Any = None,
                              relationship_provider: Any = None, subject_resolver: Any = None, epistemic_store: Any = None) -> None:
         """P6/E1 (S255): проброс игрок-контура P3→P4→P5→P6 в DialogueExecutor
@@ -348,7 +352,10 @@ class TaskScheduler:
             # материализуется, задача INTERRUPTED(TASK_STALE_INTENT).
             from app.domain.action_commitment import INTERRUPT_TASK_STALE_INTENT  # noqa: ENIGMA002
 
-            if self._owner_intent_flees(_camp, _own):
+            if (
+                self._owner_intent_flees(_camp, _own)
+                and not self._is_player_reply_task(_td)
+            ):
                 self._record_task_outcome(_own, "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
                 logger.info(
                     f"[TASK_SCHED] stale-intent-gate (process_tasks): owner={_own} "
@@ -367,19 +374,38 @@ class TaskScheduler:
 
         return True
 
-    def execute_pending(self, scene_state: dict, campaign_id: str) -> None:
-        """Берёт задачи из очереди с учётом rate limit и запускает в фоне."""
-        # S203.4 (D-2): дренаж ДО разбора — терминалы прошлого цикла применяются
-        # ADR-O-399 (точка (а)): артефакты воркера коммитятся ДО dequeue новых задач
-        self.drain_task_worker_outbox(scene_state)
-        # даже при пустой очереди этого вызова.
-        self.drain_commitment_outbox(scene_state)
+    def execute_pending(self, scene_state: dict, campaign_id: str) -> list[dict]:
+        """Deliver direct player replies now and schedule remaining queued tasks."""
         pending = scene_state.get("pending_tasks", [])
-        if not pending:
-            return
-
         # BUG-DLG-006 FIX: Используем game_time_seconds из scene_state вместо wall-clock.
         _game_time = scene_state.get("game_time_seconds", 0.0)
+        direct_replies: list[dict] = []
+
+        # A player-initiated reply is delivered in this request, not paced as
+        # autonomous ambient speech. It still uses DialogueExecutor and the
+        # normal materializer/outbox path.
+        for task_dict in pending:
+            if (
+                task_dict.get("kind") == "dialogue"
+                and self._is_player_reply_task(task_dict)
+            ):
+                direct_replies.extend(
+                    self._process_tasks_async(
+                        scene_state,
+                        [task_dict],
+                        campaign_id,
+                        "player_reply",
+                        _game_time,
+                        scene_state.get("tick", 0),
+                    )
+                )
+
+        # S203.4 (D-2): commit completed worker artifacts before dequeuing
+        # autonomous tasks; includes any synchronous player reply above.
+        self.drain_task_worker_outbox(scene_state)
+        self.drain_commitment_outbox(scene_state)
+        if not pending:
+            return direct_replies
 
         # ADR-O-343: SpeechScheduler Arbitration инициализируется здесь
         if not hasattr(self, '_speech_scheduler'):
@@ -393,6 +419,8 @@ class TaskScheduler:
 
         for task_dict in pending:
             if task_dict.get("kind") == "dialogue":
+                if self._is_player_reply_task(task_dict):
+                    continue
                 speaker_id = task_dict.get("owner_id", "")
                 _payload = task_dict.get("payload", {})
                 _tone = _payload.get("emotional_state", "neutral").upper()
@@ -556,11 +584,11 @@ class TaskScheduler:
                 elif _reason == "DEDUP":
                     # Уничтожаем спам-дубликат
                     if _task_type == "canonical":
-                        # S203.4: DEDUP-смерть → CANCELLED (main-thread sync-путь;
-                        # применится дренажем ЭТОГО же idle-окна ниже).
-                        self._record_task_outcome(
-                            task_dict.get("owner_id", ""), "CANCELLED"
-                        )
+                        self._record_task_outcome(task_dict.get("owner_id", ""), "CANCELLED")
+                    # FIX: освобождаем ключ дедупа, задача покидает очередь
+                    _dedup_intent = task_dict.get("payload", {}).get("intent_type", "")
+                    if _dedup_intent:
+                        self._enqueued_keys.discard((task_dict.get("owner_id", ""), _dedup_intent))
                     continue
 
             # B (пункт 10, решение Мастера): liveness-гейт при dequeue — смерть
@@ -574,6 +602,10 @@ class TaskScheduler:
                     f"[TASK_SCHED] liveness-gate: owner={task_dict.get('owner_id', '')} "
                     f"DEAD → task EXPIRED (mid-generation interrupt)"
                 )
+                # FIX: освобождаем ключ, задача не будет исполнена
+                _dead_intent = task_dict.get("payload", {}).get("intent_type", "")
+                if _dead_intent:
+                    self._enqueued_keys.discard((task_dict.get("owner_id", ""), _dead_intent))
                 continue
             # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт при dequeue (после
             # death-check). In-flight-политика = death-прецедент ADR-O-387:
@@ -584,7 +616,16 @@ class TaskScheduler:
                     f"[TASK_SCHED] stale-intent-gate (dequeue): owner={task_dict.get('owner_id', '')} "
                     f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
                 )
+                # FIX: освобождаем ключ, задача прервана
+                _flee_intent = task_dict.get("payload", {}).get("intent_type", "")
+                if _flee_intent:
+                    self._enqueued_keys.discard((task_dict.get("owner_id", ""), _flee_intent))
                 continue
+            # FIX: освобождаем ключ перед передачей в пул, задача покидает очередь
+            _submit_intent = task_dict.get("payload", {}).get("intent_type", "")
+            if _submit_intent:
+                self._enqueued_keys.discard((task_dict.get("owner_id", ""), _submit_intent))
+            
             # Запускаем в асинхронном пуле, чтобы не блокировать idle_tick.
             # Передаём _game_time явно, чтобы избежать гонки с мутирующим scene_state.
             self._executor_pool.submit(
@@ -592,11 +633,13 @@ class TaskScheduler:
                 scene_state.get("tick", 0)
             )
             _processed_count += 1
+        return direct_replies
 
-    def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = "", _task_type: str = "canonical", _game_time: float = 0.0, submit_tick: int = 0) -> None:
+    def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = "", _task_type: str = "canonical", _game_time: float = 0.0, submit_tick: int = 0) -> list[dict]:
         """Фоновая обработка задач LLM (ADR-O-399: только compute, observable-эффекты — в drain)."""
         import os as _os
         import time
+        dialogue_entries: list[dict] = []
         # ADR-O-399 / §15.2-паттерн DRIFT_*: test-only латентность воркера.
         # Моделирует время ГОТОВНОСТИ артефакта, не меняет его содержание —
         # гейт controlled-latency детерминизма. Production default = 0.
@@ -641,7 +684,10 @@ class TaskScheduler:
             # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт worker — последний рубеж
             # до executor.execute (прецедент B8: задача, сабмиченная до
             # изменения воли, не исполняется; начатая генерация не отзывается).
-            if self._owner_intent_flees(campaign_id, task_dict.get("owner_id", "")):
+            if (
+                self._owner_intent_flees(campaign_id, task_dict.get("owner_id", ""))
+                and not self._is_player_reply_task(task_dict)
+            ):
                 self._record_task_outcome(task_dict.get("owner_id", ""), "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
                 logger.info(
                     f"[TASK_SCHED] stale-intent-gate (worker): owner={task_dict.get('owner_id', '')} "
@@ -775,6 +821,7 @@ class TaskScheduler:
                                 # ADR-O-343 FIX: Используем зафиксированное время тика, чтобы избежать гонки с scene_state.
                                 "game_time": _game_time,
                             }
+                            dialogue_entries.append(_dlg_entry)
                             # ADR-O-399: append в RAM-кэш перенесён в drain (main thread);
                             # _dlg_entry уходит в артефакт как есть
                             # ADR-O-313 FIX: Зеркалим в scene_state, иначе CDS видит 0 реплик (INV-DIALOGUE-PIPELINE)
@@ -808,6 +855,7 @@ class TaskScheduler:
                     submit_tick, task.task_id, _events_collected,
                     _dlg_entry, _talks_collected, _speech_reset,
                 )
+        return dialogue_entries
 
     def _reconstruct_task(self, task_dict: dict) -> "Optional[QueuedTask]":
         """Собирает QueuedTask из словаря (после JSON сериализации).
