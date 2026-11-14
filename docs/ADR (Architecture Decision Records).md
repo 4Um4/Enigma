@@ -1217,5 +1217,6 @@ ADR-O-441 [STANDARD] **NPC Runtime Persistence Recovery — восстановл
 ❌ Taboo: поверхностная копия снимка (разделит body_state/drives/psyche с живым кэшем); переиспользование _last_committed_npcs_src под коммит (иная семантика state_t-1); молчаливое проглатывание False от atomic_commit_all; сброс снимка только в persist-ветке; изменение адаптеров/порта/сериализатора ради проводки; выдумывание утраченных injuries/blood_loss/stress; расширение патча на legacy-диагностику загрузчика.
 Status: IMPLEMENTED (S424, коммит `67a13349`; IPT 55/0/0 против 54/1/1 без патча; adapter-level round-trip 4 passed; регрессия сцен 16 passed)
 Files: `backend/app/services/scene_state_manager.py` (R1 init, R2 commit, R3+R4 unlock_tick, R5 finally), `backend/tests/IPT.py` (INV-NPC-RUNTIME-ROUNDTRIP), `backend/tests/micro/test_npc_runtime_persistence.py` (T1/T2/T3/T6)
+Дополнение: дефект маркера миграции закрыт фиксом в релизном коммите `01047197` (см. IMPACT, секция «Дефект маркера миграции (ЗАКРЫТ)»).
 
 ---
