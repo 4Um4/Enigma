@@ -78,7 +78,9 @@ class EpistemicStore:
                 "last_updated_tick": record.last_updated_tick,
                 # COGNITIVE-CONTINUITY-01: provenance chain serialization (§12 WARA).
                 "source_type": record.source_type,
-                "original_source_id": record.original_source_id
+                "original_source_id": record.original_source_id,
+                # A19.5: Сериализация истории обработанных claim_id для идемпотентности
+                "seen_claim_ids": list(record.seen_claim_ids)
             })
         return records
 
@@ -98,6 +100,15 @@ class EpistemicStore:
                     object_id=prop_data.get("object_id"),
                     polarity=prop_data.get("polarity", True)
                 )
+                # A19.5: Обратная совместимость — если seen_claim_ids отсутствует,
+                # восстанавливаем хотя бы последний известный source_claim_id.
+                _seen_raw = item.get("seen_claim_ids")
+                if _seen_raw is None:
+                    _source_claim = item.get("source_claim_id", "")
+                    _seen = (_source_claim,) if _source_claim else ()
+                else:
+                    _seen = tuple(cid for cid in _seen_raw if cid)
+                
                 record = EpistemicRecord(
                     agent_id=item.get("agent_id"),
                     proposition=prop,
@@ -109,7 +120,8 @@ class EpistemicStore:
                     # COGNITIVE-CONTINUITY-01: provenance chain deserialization.
                     # .get default "" — обратная совместимость со старыми сейвами.
                     source_type=item.get("source_type", ""),
-                    original_source_id=item.get("original_source_id", "")
+                    original_source_id=item.get("original_source_id", ""),
+                    seen_claim_ids=_seen
                 )
                 store.upsert(record)
             except Exception as e:

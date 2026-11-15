@@ -1,3 +1,4 @@
+import dataclasses
 # backend/app/services/npc/belief_revision_engine.py
 """
 path: /project/backend/app/services/npc/belief_revision_engine.py
@@ -80,10 +81,20 @@ class BeliefRevisionEngine:
                 first_observed_tick=current_tick,
                 last_updated_tick=current_tick,
                 source_type=_src_type,
-                original_source_id=_orig_src
+                original_source_id=_orig_src,
+                # A19.5: Инициализация истории обработанных claim_id
+                seen_claim_ids=(claim.claim_id,)
             )
             logger.info(f"[BELIEF_REVISE] New belief: {listener_id} believes {claim.proposition.subject_id} {claim.proposition.predicate.value} {claim.proposition.object_id} (conf={new_record.confidence:.2f})")
         else:
+            # A19.5: ИДЕМПОТЕНТНОСТЬ — проверка на повторную доставку того же claim_id
+            if claim.claim_id in existing_record.seen_claim_ids:
+                # Этот claim уже был обработан. Возвращаем существующую запись БЕЗ ИЗМЕНЕНИЙ.
+                # Не обновляем ни confidence, ни last_updated_tick.
+                # Повторная доставка старого слуха — не новая информация.
+                logger.debug(f"[BELIEF_REVISE] Idempotent: {listener_id} already processed claim_id={claim.claim_id}, returning existing record unchanged")
+                return existing_record
+
             # Обновление существующего убеждения
             if existing_record.source_id == claim.speaker_id:
                 # Подтверждение от того же источника (небольшой буст)
@@ -98,6 +109,10 @@ class BeliefRevisionEngine:
             # source_type сохраняется от прежней записи, если не пуст.
             _orig_src = existing_record.original_source_id or claim.speaker_id
             _src_type = existing_record.source_type or (reliability_context or {}).get("source_type", "testimony")
+            
+            # A19.5: Добавляем текущий claim_id в историю обработанных
+            new_seen = existing_record.seen_claim_ids + (claim.claim_id,)
+            
             new_record = EpistemicRecord(
                 agent_id=listener_id,
                 proposition=claim.proposition,
@@ -107,7 +122,8 @@ class BeliefRevisionEngine:
                 first_observed_tick=existing_record.first_observed_tick,
                 last_updated_tick=current_tick,
                 source_type=_src_type,
-                original_source_id=_orig_src
+                original_source_id=_orig_src,
+                seen_claim_ids=new_seen  # A19.5: Обновлённая история
             )
             logger.info(f"[BELIEF_REVISE] Updated belief: {listener_id} belief updated to conf={new_record.confidence:.2f}")
 
