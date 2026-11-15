@@ -10,6 +10,7 @@ from typing import Dict, List
 from app.domain.identity_events import CrystallizedBelief
 from app.models.npc_state import Intent
 
+_FEAR_MOD_CAP: float = 0.4  # RT-LLM-02: cap accumulated fear on FLEE (was unbounded)
 
 class CrystallizedBeliefModifierResolver:
     """
@@ -30,7 +31,8 @@ class CrystallizedBeliefModifierResolver:
             # Страх к источнику (fear) -> повышает приоритет FLEE и WARN
             if belief.trait == "fear":
                 fear_mod = belief.weight * 0.5  # Нормализованный вес
-                mods[Intent.FLEE.value] = mods.get(Intent.FLEE.value, 0.0) + fear_mod
+                _new_flee = mods.get(Intent.FLEE.value, 0.0) + fear_mod
+                mods[Intent.FLEE.value] = min(_new_flee, _FEAR_MOD_CAP)  # RT-LLM-02
                 mods[Intent.WARN.value] = mods.get(Intent.WARN.value, 0.0) + (fear_mod * 0.5)
                 mods[Intent.APPROACH.value] = mods.get(Intent.APPROACH.value, 0.0) - fear_mod
 

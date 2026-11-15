@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 
 from app.models.npc.beliefs import BeliefType
 
+_BELIEF_FLEE_CAP: float = 0.35  # RT-LLM-02: cap aggregate flee from beliefs
 
 class BeliefModifierResolver:
     """
@@ -44,6 +45,8 @@ class BeliefModifierResolver:
         self._apply_danger(beliefs, mods)
         self._apply_player_hostile(beliefs, mods)
 
+        if "flee" in mods:  # RT-LLM-02: cap aggregate belief-layer flee
+            mods["flee"] = round(min(mods["flee"], _BELIEF_FLEE_CAP), 4)
         return mods
 
     # ──────────────────────────────────────────────────────────────────────

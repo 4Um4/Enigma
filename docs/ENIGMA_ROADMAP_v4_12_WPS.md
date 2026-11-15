@@ -2319,6 +2319,16 @@ Feature считается **CLOSED** только если:
 - **DEFERRED (RED в T3–T7, атрибуция внешняя):** pytest micro baseline = 11 CRIT (10 baseline + 1 `PARSE_ERROR decision_hub.py:1058`); IPT exit≠0. Причина — параллельная сессия пишет `backend/app/services/npc/decision_hub.py` (`.M`, `4+/1-`, `py_compile FAIL`); §3.12 quiet window не соблюдено. Не дефект TRIPLE; не откат, не синхронизация (Master 2026-11-14: параллельная сессия работает свободно без взаимных блокировок).
 - **Гейт закрытия Stage 2 (после quiet window):** pytest micro = 31/0; IPT `INV-MEM-TRIPLE` = 10 CRIT + 0 PARSE_ERROR; IPT exit≠0 допустим только из-за `INV-MEM-TRIPLE` (10 findings) и `INV-MEM-CONTRADICTION` (0 findings, тот же debt-класс).
 
+### A6 (D-A05 causal slices) — Ablation Harness PREPARED / scoring matrix BLOCKED (2026-11-15, ветвь А)
+
+- **Статус A6:** **HARNESS PREPARED**; **scoring matrix** — **BLOCKED / PENDING quiet pre-flight + GO Master**. **HEAD at closeout:** `f40401ed` · **commit:** none.
+- **S1 (layer off) — VERIFIED (unit + integration):** unit 6/6; integration real DriftLab 1 tick — 6 `apply_modifiers` calls, все с `causal_modifiers=None` (downstream подтверждает skip).
+- **S2 (allies wiring, Variant C — partial 2/4) — VERIFIED (unit + real-file safe cycle):** unit 10/10; real-file dry-run на `npc_tick_pipeline.py` — 2 injections + 2 replacements + 0 stale `allies=0,`; `py_compile OK` patched+restored; byte-exact restore `H_after == H_pre` (`5bd6d659...`). Scope: **threat + grievance** IN SCOPE; **hunger + affection NOT APPLICABLE** (нет `allies` параметра в формуле).
+- **S3 (fail-loud proxy logger) — VERIFIED (unit + integration):** unit 6/6; integration real DriftLab 1 tick — `SETUP_OK=True`, `TICK_OK=True`, `TEARDOWN_OK=True`, `PROXY_FAILURES_COUNT=0`, SCENARIO=`NO_SILENT_FAILURES_IN_THIS_TICK` (диагностика, не scoring).
+- **Baseline preserved:** Stage 2 `test_lint_mem_triple.py` 31/31, S1 6/6, S2 10/10, S3 6/6 — unchanged through all gates.
+- **Условие эксперимента (Master, обязательно):** scoring S0/S1 + диагностический S2 — **в одном quiet window без параллельных production-edits**. Иначе Δ(S0−S1) contaminated by external drift (§3.12). **Наблюдение S1↔S3:** tick drifted 5→4 intents (`guard_borko` dropped) — параллельная сессия правит 4 foreign `.M` в epistemic zone.
+- **PENDING:** scoring matrix (S0/S1 × 3 seeds × 200 ticks) — отдельный GO после quiet pre-flight. A6 YAML registry entry (D-X07, `architecture/pipeline.yaml`) — после ablation result.
+
 ---
 
 ## 11. Гейты, Stop-criteria, Recovery, Ресурсы

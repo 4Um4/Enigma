@@ -743,6 +743,29 @@ Lumimaid non-deterministic на уровне первого токена (temp=0
 
 **Closeout gate (после quiet window):** pytest micro = 31/0; IPT `INV-MEM-TRIPLE` = 10 CRIT + 0 PARSE_ERROR.
 
+## S426 — Lumimaid non-determinism: multi-run methodology + A/B test + addressee wiring (ветвь Б, 2026-11-15)
+
+**ТЗ:** ТЗ_NEXT_SESSION_LLM_v4.md (S424 → S426)
+**Branches:** P0 на V.0.5.4.6.5_ЛЛМ_5; P1/P3 на V.0.5.4.6.5_Говори!_1
+
+**Commits:**
+- `959ed5a5` (_ЛЛМ_5) — P0: --runs N + averaging + stddev contract
+- `8aec2489` (_Говори!_1) — P1 infra: --no-grammar CLI flag
+- `db9d41f4` (_Говори!_1) — P3 test: addressee micro test (4/4 passed)
+- `f40401ed` (_Говори!_1) — P1 A/B reports (evidence)
+- dm_agent.py P3 changes swept by `cac69cb7` (S354 pattern)
+
+**Что сделано:**
+- P0 (BLOCKING): multi-run averaging — --runs N, mean+stddev, контракт stddev >0.05 → INVALID. First valid methodology for non-deterministic Lumimaid.
+- P1 infra: --no-grammar flag (S424 had ALWAYS ON, no toggle)
+- P1 A/B test (3 runs x 2 configs): grammar = REAL effect (+31 composite, GATE_JSON flip, 8.3x constraint reduction). Non-determinism persists: ID stddev 0.112-0.137, CMP 0.072 — content-level.
+- P3: addressee wiring — dm_agent passes resolved display name to validate(addressee=). Micro test 4/4.
+
+**Главная находка:** Multi-run averaging = единственный способ получить signal через noise. Grammar necessary but not sufficient (fixes format, not content).
+
+**Anti-Race:** dm_agent.py swept by parallel save (cac69cb7). IPT 3 CRITICAL foreign on _Говори!_1 (decision_hub:2031, causality_manifest, life_project_resolver) — TECH_DEBT_NOTE.
+
+**→ ТЗ-v5:** P2 deterministic inference, P4 model migration, foreign IPT violations, cleanup.
 ## S427 — P0-X2 entries LIKE cross-campaign + errata (ветвь А, 2026-11-15)
 
 **ERRATA (sweep, S354/S358 class):**

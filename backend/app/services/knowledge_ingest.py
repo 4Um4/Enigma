@@ -2,15 +2,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from io import BytesIO
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
+PdfReader: Any = None
 try:
-    from pypdf import PdfReader
+    from pypdf import PdfReader as _PdfReader
 except Exception:  # pragma: no cover
     # pypdf — опциональная runtime-зависимость; без неё PDF-импорт деградирует
-    # в понятную ошибку (_extract_pdf → RuntimeError). Ignore нужен, потому что
-    # имя PdfReader связано с классом из успешного импорта.
-    PdfReader = None  # type: ignore[assignment, misc]
+    # в понятную ошибку (_extract_pdf → RuntimeError).
+    pass
+else:
+    PdfReader = _PdfReader
 
 if TYPE_CHECKING:
     from app.services.memory.memory_manager import MemoryManager

@@ -178,6 +178,28 @@ class CommitmentArbiter:
                 # (PROPOSED-инкумбентов зеркала не создляют — ветка
                 # превентивная, матрица полноты.)
                 _threshold = 0 if incumbent_status == "PROPOSED" else INTERRUPT_THRESHOLD
+                # FLEE-DEDUP (RT-LLM-01): flee re-emits every tick (F2: 73 supersede for maid_lusya
+                # over 30 ticks). If flee-candidate targets same zone as EXECUTING traversal,
+                # don't INTERRUPT — REJECT instead. Traversal completes; flee re-fires next tick.
+                if (
+                    candidate_source == "reactive:flee"
+                    and incumbent_status == "EXECUTING"
+                    and _inc_executor == "traversal"
+                    and candidate_target is not None
+                    and incumbent_target is not None
+                    and candidate_target.split(":")[0] == incumbent_target.split(":")[0]
+                ):
+                    logger.info(
+                        f"[ARBITER_FLEE_DEDUP] tick={tick} npc={npc_id} "
+                        f"candidate_target={candidate_target} incumbent_target={incumbent_target} "
+                        f"same_zone — candidate rejected (flee re-emission)"
+                    )
+                    return ArbitrationResult(
+                        verdict=VERDICT_REJECT,
+                        reason="FLEE_REDUNDANT_SAME_ZONE",
+                        incumbent_id=incumbent.get("commitment_id"),
+                        incumbent_target=incumbent_target,
+                    )
                 if (
                     candidate_priority > 0
                     and candidate_priority > _inc_priority + _threshold

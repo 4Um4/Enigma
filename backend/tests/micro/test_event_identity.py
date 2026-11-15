@@ -115,3 +115,81 @@ def test_H_no_provider_provisional_id_preserved():
     e = EventDTO.create(event_type="npc_spoke", source="lusya", payload={})
     bus.publish(e)
     assert bus._event_log[-1].id == e.id
+
+
+def test_I_provisional_no_bus_collision_reproduces():
+    """D-X03 X-A-T1: reproduce provisional-identity collision mechanism.
+
+    Two EventDTO.create() calls with identical (event_type, source) and
+    default timestamp=0.0, ordinal=0, WITHOUT EventBus finalization,
+    produce identical event.id. Downstream _mem_id formula from
+    memory_manager.py:371-372 (reproduced here locally, no apply() call)
+    yields identical _mem_id when npc_id and summary also match.
+
+    This proves the COLLISION MECHANISM is reproducible.
+    It does NOT prove production reachability — that requires proof that
+    two identical dialogue_line events actually flow through BUG-DL-06
+    fallback in the same session (deferred to X-A runtime evidence).
+
+    Contract reference (ADR-O-404, events.py:96-100):
+    "ordinal=0 legal only for paths with proven cardinality 1".
+    The investigated paths (npc_dialogue_subscriber.py:564,
+    npc_tick_pipeline.py:1529/1617) do not carry that proof.
+    """
+    import hashlib
+
+    # Two provisional creations, identical args, no bus finalization.
+    # payload is DATA, not identity (events.py:97-98) — deliberately identical.
+    e1 = EventDTO.create(
+        event_type="dialogue_line",
+        source="lusya",
+        payload={"npc_id": "borko", "text": "Привет"},
+    )
+    e2 = EventDTO.create(
+        event_type="dialogue_line",
+        source="lusya",
+        payload={"npc_id": "borko", "text": "Привет"},
+    )
+
+    # X1: provisional id collision — same (event_type, source, ts, ordinal)
+    assert e1.id == e2.id, (
+        f"provisional id collision expected, got {e1.id} != {e2.id}; "
+        "either EventDTO.create changed its seed formula, or a default "
+        "timestamp/ordinal became non-deterministic"
+    )
+
+    # X2: _mem_id formula from memory_manager.py:371-372 reproduced locally.
+    # No apply() call — no production side effect.
+    def _mem_id_for(ev, npc_id, summary):
+        digest = hashlib.md5(
+            (summary or "").encode("utf-8")
+        ).hexdigest()[:12]
+        return f"{ev.id}:{npc_id}:{digest}"
+
+    m1 = _mem_id_for(e1, "borko", "Привет")
+    m2 = _mem_id_for(e2, "borko", "Привет")
+    assert m1 == m2, (
+        "identical (event.id, npc_id, summary) must yield identical _mem_id; "
+        "if this fails, digest discriminates and collision is mitigated downstream"
+    )
+
+    # X3: control — different summary must yield different _mem_id (digest discriminates)
+    m1_alt = _mem_id_for(e1, "borko", "Уходи")
+    assert m1 != m1_alt, (
+        "different summary must yield different _mem_id; "
+        "if this fails, digest is not actually discriminating"
+    )
+
+    # X4: control — different npc must yield different _mem_id
+    m1_other = _mem_id_for(e1, "ivan", "Привет")
+    assert m1 != m1_other, (
+        "different npc_id must yield different _mem_id"
+    )
+
+    # X5: control — different source must yield different event.id (finalized or provisional)
+    e3 = EventDTO.create(
+        event_type="dialogue_line",
+        source="borko",
+        payload={"npc_id": "lusya", "text": "Привет"},
+    )
+    assert e1.id != e3.id, "different source must yield different event.id"

@@ -15,7 +15,11 @@ response_validator.py — валидация ответа LLM + fallback.
 Основные сущности: ValidationResult, ResponseValidator
 """
 
+import logging
 import re
+
+logger = logging.getLogger(__name__)
+
 from dataclasses import dataclass
 from typing import Optional
 
@@ -313,6 +317,7 @@ class ResponseValidator:
 
     def _fallback(self, reason: str) -> ValidationResult:
         """Возвращает fallback результат."""
+        logger.warning(f"[DM_VALIDATOR] fallback reason={reason}")  # _DM_VALIDATOR_LOG
         # Универсальный fallback — можно переопределить через наследование
         fallback_text = self._get_fallback_text(reason)
         return ValidationResult(

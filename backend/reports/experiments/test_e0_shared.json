@@ -72,15 +72,17 @@
         "",
         ""
       ],
-      "psyche_beliefs_keys": [],
-      "affective_imprints_count": 0,
+      "psyche_beliefs_keys": [
+        "danger"
+      ],
+      "affective_imprints_count": 1,
       "relationship_cache": {
         "maid_lusya": {
-          "trust": 30.0,
+          "trust": -40.0,
           "fear": 0.0
         },
         "guard_borko": {
-          "trust": -40.0,
+          "trust": 20.0,
           "fear": 0.0
         },
         "merchant_goran": {
@@ -90,23 +92,25 @@
         "thief_shadow": {
           "trust": -20.0,
           "fear": 0.0
-        },
-        "blacksmith_orm": {
-          "trust": -40.0,
-          "fear": 0.0
         }
       }
     },
     "blacksmith_orm": {
       "present": true,
-      "narrative_cache_count": 6,
+      "narrative_cache_count": 12,
       "narrative_cache_target_ids": [
         "",
         "",
         "",
         "",
         "",
-        ""
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "maid_lusya"
       ],
       "psyche_beliefs_keys": [],
       "affective_imprints_count": 0,
@@ -116,7 +120,7 @@
           "fear": 0.0
         },
         "tavern_keeper_tornin": {
-          "trust": 30.0,
+          "trust": -40.0,
           "fear": 0.0
         },
         "merchant_goran": {
@@ -141,14 +145,17 @@
     {
       "tick_id": 1,
       "game_time": 43210,
-      "recent_dialogues": [],
-      "movement_intents": [
+      "recent_dialogues": [
         {
-          "tick": 1,
-          "npc_id": "guard_borko",
-          "intent": "?",
-          "target": "tavern:right_table"
-        },
+          "speaker_id": "merchant_goran",
+          "target_id": "blacksmith_orm",
+          "text": "Надеюсь, они не придут сюда. Надеюсь...",
+          "timestamp": 43210,
+          "thread_id": "",
+          "intent": ""
+        }
+      ],
+      "movement_intents": [
         {
           "tick": 1,
           "npc_id": "merchant_goran",
@@ -165,13 +172,13 @@
           "tick": 1,
           "npc_id": "blacksmith_orm",
           "intent": "?",
-          "target": "tavern:node_17"
+          "target": "tavern:behind_bar"
         },
         {
           "tick": 1,
           "npc_id": "tavern_keeper_tornin",
           "intent": "?",
-          "target": "tavern:kitchen"
+          "target": "tavern:fireplace"
         }
       ],
       "scene_changes": [
@@ -230,31 +237,17 @@
           "field": "body_heading",
           "new_value": "",
           "cause": "semantic_relocation_heading"
-        },
-        {
-          "tick": 1,
-          "target": "guard_borko",
-          "field": "position",
-          "new_value": "",
-          "cause": "semantic_relocation:proactive_spread_rumor"
-        },
-        {
-          "tick": 1,
-          "target": "guard_borko",
-          "field": "body_heading",
-          "new_value": "",
-          "cause": "semantic_relocation_heading"
         }
       ],
       "errors": [],
       "npc_positions": {
-        "maid_lusya": "{'x': 7.98736111111111, 'y': 1.8263888888888888, 'z': 0.0}",
-        "blacksmith_orm": "{'x': 10.5, 'y': 4.0, 'z': 0.0}",
-        "tavern_keeper_tornin": "{'x': 4.5, 'y': 2.5, 'z': 0.0}",
-        "merchant_goran": "{'x': 10.1, 'y': 6.1, 'z': 0.0}",
-        "guard_borko": "{'x': 13.5, 'y': 3.0}",
-        "thief_shadow": "{'x': 11.5, 'y': 11.0}",
-        "player": "{'x': 8.204957561728396, 'y': 11.90991512345679}"
+        "maid_lusya": "{'x': 32.94835648148147, 'y': 6.8685015432098835, 'z': 0.0}",
+        "blacksmith_orm": "{'x': 35.53333333333332, 'y': 9.018000000000008, 'z': 0.0}",
+        "tavern_keeper_tornin": "{'x': 29.53333333333332, 'y': 7.518000000000007, 'z': 0.0}",
+        "merchant_goran": "{'x': 35.13333333333332, 'y': 11.118000000000006, 'z': 0.0}",
+        "guard_borko": "{'x': 41.73333333333332, 'y': 8.793000000000006}",
+        "thief_shadow": "{'x': 36.53333333333332, 'y': 16.018000000000008}",
+        "player": "{'x': 33.239764664290234, 'y': 15.183648057033853}"
       }
     },
     {
@@ -262,21 +255,15 @@
       "game_time": 43220,
       "recent_dialogues": [
         {
-          "speaker_id": "guard_borko",
-          "target_id": "merchant_goran",
-          "text": "Мне нужно отдохнуть.",
+          "speaker_id": "merchant_goran",
+          "target_id": "blacksmith_orm",
+          "text": "Надеюсь, они не придут сюда. Надеюсь...",
           "timestamp": 43210,
           "thread_id": "",
           "intent": ""
         }
       ],
       "movement_intents": [
-        {
-          "tick": 2,
-          "npc_id": "guard_borko",
-          "intent": "?",
-          "target": "tavern:fireplace"
-        },
         {
           "tick": 2,
           "npc_id": "merchant_goran",
@@ -293,7 +280,7 @@
           "tick": 2,
           "npc_id": "blacksmith_orm",
           "intent": "?",
-          "target": "tavern:fireplace"
+          "target": "tavern:bar_west"
         },
         {
           "tick": 2,
@@ -316,17 +303,31 @@
           "field": "body_heading",
           "new_value": "",
           "cause": "semantic_relocation_heading"
+        },
+        {
+          "tick": 2,
+          "target": "guard_borko",
+          "field": "position",
+          "new_value": "",
+          "cause": "semantic_relocation:exploration:frontier"
+        },
+        {
+          "tick": 2,
+          "target": "guard_borko",
+          "field": "body_heading",
+          "new_value": "",
+          "cause": "semantic_relocation_heading"
         }
       ],
       "errors": [],
       "npc_positions": {
-        "maid_lusya": "{'x': 9.824907407407407, 'y': 2.2175925925925926, 'z': 0.0}",
-        "blacksmith_orm": "{'x': 9.166666666666666, 'y': 4.5, 'z': 0.0}",
-        "tavern_keeper_tornin": "{'x': 6.0, 'y': 2.625, 'z': 0.0}",
-        "merchant_goran": "{'x': 8.3, 'y': 5.8, 'z': 0.7053061224489818}",
-        "guard_borko": "{'x': 15.100000000000001, 'y': 3.3875, 'z': 0.0}",
-        "thief_shadow": "{'x': 11.5, 'y': 11.0, 'z': 0.0}",
-        "player": "{'x': 8.204957561728396, 'y': 11.90991512345679}"
+        "maid_lusya": "{'x': 34.44660069444443, 'y': 7.189408564814822, 'z': 0.0}",
+        "blacksmith_orm": "{'x': 34.19999999999999, 'y': 9.518000000000008, 'z': 0.0}",
+        "tavern_keeper_tornin": "{'x': 31.03333333333332, 'y': 7.643000000000007, 'z': 0.0}",
+        "merchant_goran": "{'x': 33.33333333333332, 'y': 10.818000000000007, 'z': 0.7053061224489948}",
+        "guard_borko": "{'x': 41.73333333333332, 'y': 8.793000000000006, 'z': 0.0}",
+        "thief_shadow": "{'x': 36.53333333333332, 'y': 16.018000000000008, 'z': 0.0}",
+        "player": "{'x': 33.239764664290234, 'y': 15.183648057033853}"
       }
     },
     {
@@ -334,29 +335,23 @@
       "game_time": 43230,
       "recent_dialogues": [
         {
-          "speaker_id": "guard_borko",
-          "target_id": "merchant_goran",
-          "text": "Мне нужно отдохнуть.",
+          "speaker_id": "merchant_goran",
+          "target_id": "blacksmith_orm",
+          "text": "Надеюсь, они не придут сюда. Надеюсь...",
           "timestamp": 43210,
           "thread_id": "",
           "intent": ""
         },
         {
-          "speaker_id": "merchant_goran",
-          "target_id": "blacksmith_orm",
-          "text": "Мать говорит, что пора жениться. Я говорю, что у меня нет денег. Она говорит: 'Твой отец тоже не имел'. Я говорю: 'И посмотри, к чему это привело'.",
+          "speaker_id": "blacksmith_orm",
+          "target_id": "tavern_keeper_tornin",
+          "text": "Ведьма на болоте продаёт приворотное зелье. Говорят, оно работает. Говорят, оно работает слишком хорошо. Говорят, её муж уже двадцать лет не может отойти от забора.",
           "timestamp": 43220,
           "thread_id": "",
           "intent": ""
         }
       ],
       "movement_intents": [
-        {
-          "tick": 3,
-          "npc_id": "guard_borko",
-          "intent": "?",
-          "target": "tavern:main_hall"
-        },
         {
           "tick": 3,
           "npc_id": "merchant_goran",
@@ -373,40 +368,25 @@
           "tick": 3,
           "npc_id": "blacksmith_orm",
           "intent": "?",
-          "target": "tavern:fireplace"
+          "target": "tavern:bar_west"
         },
         {
           "tick": 3,
           "npc_id": "tavern_keeper_tornin",
           "intent": "?",
-          "target": "tavern:main_hall"
+          "target": "tavern:fireplace"
         }
       ],
-      "scene_changes": [
-        {
-          "tick": 3,
-          "target": "guard_borko",
-          "field": "position",
-          "new_value": "",
-          "cause": "semantic_relocation:proactive_spread_rumor"
-        },
-        {
-          "tick": 3,
-          "target": "guard_borko",
-          "field": "body_heading",
-          "new_value": "",
-          "cause": "semantic_relocation_heading"
-        }
-      ],
+      "scene_changes": [],
       "errors": [],
       "npc_positions": {
-        "maid_lusya": "{'x': 11.662453703703703, 'y': 2.6087962962962963, 'z': 0.0}",
-        "blacksmith_orm": "{'x': 7.833333333333334, 'y': 5.0, 'z': 0.0}",
-        "tavern_keeper_tornin": "{'x': 7.5, 'y': 2.75, 'z': 0.0}",
-        "merchant_goran": "{'x': 6.5, 'y': 5.5, 'z': 0.0}",
-        "guard_borko": "{'x': 10.5, 'y': 3.0}",
-        "thief_shadow": "{'x': 9.82357863940329, 'y': 12.014591049382716, 'z': 0.0}",
-        "player": "{'x': 8.204957561728396, 'y': 11.90991512345679}"
+        "maid_lusya": "{'x': 35.94484490740739, 'y': 7.510315586419761, 'z': 0.0}",
+        "blacksmith_orm": "{'x': 32.86666666666665, 'y': 10.018000000000008, 'z': 0.0}",
+        "tavern_keeper_tornin": "{'x': 32.53333333333332, 'y': 7.768000000000008, 'z': 0.0}",
+        "merchant_goran": "{'x': 31.53333333333332, 'y': 10.518000000000008, 'z': 0.0}",
+        "guard_borko": "{'x': 40.33733333333332, 'y': 8.472564814814822, 'z': 0.0}",
+        "thief_shadow": "{'x': 34.865245306069944, 'y': 17.034591049382726, 'z': 0.0}",
+        "player": "{'x': 33.239764664290234, 'y': 15.183648057033853}"
       }
     }
   ],
@@ -464,15 +444,17 @@
         "",
         ""
       ],
-      "psyche_beliefs_keys": [],
-      "affective_imprints_count": 0,
+      "psyche_beliefs_keys": [
+        "danger"
+      ],
+      "affective_imprints_count": 1,
       "relationship_cache": {
         "maid_lusya": {
-          "trust": 30.0,
+          "trust": -40.0,
           "fear": 0.0
         },
         "guard_borko": {
-          "trust": -40.0,
+          "trust": 20.0,
           "fear": 0.0
         },
         "merchant_goran": {
@@ -481,10 +463,6 @@
         },
         "thief_shadow": {
           "trust": -20.0,
-          "fear": 0.0
-        },
-        "blacksmith_orm": {
-          "trust": -40.0,
           "fear": 0.0
         }
       }
@@ -502,7 +480,7 @@
         "",
         "",
         "",
-        "blacksmith_orm"
+        ""
       ],
       "psyche_beliefs_keys": [],
       "affective_imprints_count": 0,
@@ -512,7 +490,7 @@
           "fear": 0.0
         },
         "tavern_keeper_tornin": {
-          "trust": 30.0,
+          "trust": -40.0,
           "fear": 0.0
         },
         "merchant_goran": {
@@ -522,6 +500,6 @@
       }
     }
   },
-  "elapsed_seconds": 6.75,
+  "elapsed_seconds": 0.34,
   "errors": []
 }

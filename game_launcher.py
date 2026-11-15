@@ -415,6 +415,11 @@ def _ensure_servers_running() -> tuple:
         _env = os.environ.copy()
         _env["PYTHONIOENCODING"] = "utf-8"
         _env["PYTHONUTF8"] = "1"
+        # ROLLOUT-ON (S377 / architecture/flags.yaml): queue LLM_RESILIENCE_V1 default ON.
+        # OFF rollback: explicit LLM_RESILIENCE_V1=0 in parent env is preserved.
+        # Schema D: empty/absent -> ON; only explicit "0" -> OFF (cross-platform).
+        if not _env.get("LLM_RESILIENCE_V1"):
+            _env["LLM_RESILIENCE_V1"] = "1"
 
         with open(_backend_log_path, "x", encoding="utf-8") as _subprocess_log:
             backend_proc = subprocess.Popen(

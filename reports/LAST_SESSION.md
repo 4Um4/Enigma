@@ -1,4 +1,4 @@
-# ENIGMA Session State — 2026-11-15 00:40
+# ENIGMA Session State — 2026-11-15 23:06
 
 Кампания: `?` | Игрок: `?`
 
@@ -16,25 +16,25 @@
 
 ## DNA — МЕТРИКИ ЗДОРОВЬЯ СИСТЕМЫ
 
-_Сессия: 1.6 мин | Тиков: 86 | LLM-вызовов: 16_
+_Сессия: 0.7 мин | Тиков: 70 | LLM-вызовов: 2_
 
 | Метрика | Значение | Δ от прошлой | Интерпретация для LLM |
 |---------|----------|--------------|----------------------|
 | **SHI** (Simulation Health) | 100% | → +0.0% | ✅ норма: NPC активно принимают решения |
-| **NPI** (NPC Pipeline) | 100% | → +0.0% | ✅ 6/6 NPC с реальными координатами |
+| **NPI** (NPC Pipeline) | 86% | ↓ -14.3% | ⚠️ 6/7 NPC с координатами: есть потери в traversal |
 | **OBI** (Obedience) | 0% | → +0.0% | нет директив в сессии — OBI не применим |
 | **SCF** (Spatial Coherence) | 1.0 | → +0.0 | ✅ пространство целостно: граф загружен корректно |
 | **ADR** (Debt Ratio) | 0.00 | → +0.0 | нет ADR-записей — невозможно оценить |
-| **CVS** (Causal Velocity) | 9.76/мин | ↑ +6.2 | ✅ 9.76/мин: активная сессия |
+| **CVS** (Causal Velocity) | 3.00/мин | ↓ -1.2 | ✅ 3.00/мин: активная сессия |
 | **PFI** (Pre-Bus Failure) | 0% | → +0.0% | ✅ норма: пред-шинных отказов нет — CDS видит всё |
 | **Tracebacks** | 0 (AttrErr=0, TypeErr=0) | → | ✅ норма |
-| **BCI** (Belief Crystallization) | 432 (idx=5.02) | → | ✅ Убеждения формируются |
-| **BPI** (Break Progress) | 601 (broken=0) | → | ✅ Давление доходит |
+| **BCI** (Belief Crystallization) | 372 (idx=5.31) | → | ✅ Убеждения формируются |
+| **BPI** (Break Progress) | 489 (broken=0) | → | ✅ Давление доходит |
 | **NEI** (Need Urgency) | 0 (critical=0) | → | ⚠️ NPC слишком комфортны (NEI=0) |
 | **DRI** (Response Integrity) | 100% | → +0.0% | ✅ LLM отвечает на все запросы |
 | **DPI** (Dialogue Pipeline) | 100% | → +0.0% | ✅ Конвейер диалогов стабилен |
 
-_История: `reports/dna_history.jsonl` — 1360 записей_
+_История: `reports/dna_history.jsonl` — 1365 записей_
 
 ## 🟢 КРАСНЫЕ ИНВАРИАНТЫ — ТИХИЕ ДЕГРАДАЦИИ
 
@@ -54,11 +54,11 @@ _Не обнаружено — игра жива._
 _(баги не обнаружены в этой сессии)_
 
 ### Последние изменения (git log -5):
-  - 4a51f00f docs: update WORK_ORDER_TWO_BRANCHES.md with completed Social Propagation (A17)
-  - 3a2297f0 feat(Social Propagation): implement R5 targeting for SPREAD_RUMOR with distance & trust filters
-  - 6641760a docs: update WORK_ORDER_TWO_BRANCHES.md with completed NPC Conversation Lifecycle (A16)
-  - 3e34387f feat(NPC Conversation Lifecycle): enable autonomous NPC-to-NPC dialogue targeting
-  - 73cd806e ﻿INV-MEM-CONTRADICTION (#10): lint_mem_contradiction + inv_mem_contradiction in IPT (ADR-O-443 Step 2a-3)
+  - 333cb89e fix(A19.5): enforce semantic role distinction (subject vs object) in scoring
+  - e857f810 feat(A19.5 Step 3): target-aware epistemic scoring in DecisionHub
+  - 30a6b743 S427: P0-X2 — entries LIKE %cid% replaced with exact IN (cross-campaign fix)
+  - 190c178e feat(A19.5 Step 2): enrich EpistemicContext with recent_beliefs for DecisionHub
+  - ea15631a feat(A19.5 Step 1): idempotent belief revision with seen_claim_ids
 
 ### Последние записи MUTATIONS.md:
   - (MUTATIONS.md не найден)
@@ -84,14 +84,14 @@ _(баги не обнаружены в этой сессии)_
 
 ### Состояние рендеринга (из последней сессии игры):
 - NPC с известными координатами (6):
-  - `merchant_goran`: x=74.6 y=9.4
-  - `maid_lusya`: x=35.5 y=11.5
-  - `blacksmith_orm`: x=74.6 y=9.4
+  - `merchant_goran`: x=67.0 y=11.0
+  - `maid_lusya`: x=32.9 y=9.7
+  - `blacksmith_orm`: x=67.0 y=11.0
   - `thief_shadow`: x=78.8 y=9.5
-  - `tavern_keeper_tornin`: x=35.5 y=11.5
-  - `guard_borko`: x=36.6 y=9.4
-- NPC без координат (lerp не работает, 0):
-  - _(нет)_
+  - `tavern_keeper_tornin`: x=43.5 y=11.3
+  - `guard_borko`: x=35.5 y=11.5
+- NPC без координат (lerp не работает, 1):
+  - `player` (intent=?)
 - Граф-fallback локаций: нет
 
 ### Визуальные аномалии:
@@ -111,7 +111,7 @@ _(см. секции #1 и #3 — файлы backend/app/services/)_
 ### Состояние симуляции (последняя сессия игры):
 
 **Tick Pipeline:**
-Тиков: 86 | Decisions > 0: 5/86 | LLM: 16 вызовов / 14 ответов | Симуляция: ✅ живёт
+Тиков: 70 | Decisions > 0: 2/70 | LLM: 2 вызовов / 4 ответов | Симуляция: ✅ живёт
 - LLM "Ничего не произошло": 0 раз
 - LLM CJK-галлюцинации: 0 строк
 - Стартап backend: ✅
@@ -123,12 +123,13 @@ _(см. секции #1 и #3 — файлы backend/app/services/)_
 **Movement Pipeline (по NPC):**
 | NPC | Intent | Score | Traversal | Координаты | Виден игроку |
 |-----|--------|-------|-----------|------------|--------------|
-| blacksmith_orm | change_role | 0.683 | ✅ | x=74.6 y=9.4 | ❌ |
-| guard_borko | flee | 0.956 | ✅ | x=36.6 y=9.4 | ❌ |
-| maid_lusya | flee | 1.403 | ✅ | x=35.5 y=11.5 | ❌ |
-| merchant_goran | change_role | 0.693 | ✅ | x=74.6 y=9.4 | ❌ |
-| tavern_keeper_tornin | talk | 1.468 | ✅ | x=35.5 y=11.5 | ❌ |
-| thief_shadow | observe | 0.506 | ✅ | x=78.8 y=9.5 | ❌ |
+| blacksmith_orm | change_role | 0.688 | ✅ | x=67.0 y=11.0 | ❌ |
+| guard_borko | flee | 0.669 | ✅ | x=35.5 y=11.5 | ❌ |
+| maid_lusya | flee | 0.769 | ✅ | x=32.9 y=9.7 | ❌ |
+| merchant_goran | change_role | 0.621 | ✅ | x=67.0 y=11.0 | ❌ |
+| player | ? | 0.000 | ✅ | None | ❌ |
+| tavern_keeper_tornin | observe | 1.082 | ✅ | x=43.5 y=11.3 | ❌ |
+| thief_shadow | observe | 0.459 | ✅ | x=78.8 y=9.5 | ❌ |
 
 **NPC с разрывом в pipeline (intent есть, traversal нет):**
   - _(нет разрывов в movement pipeline)_

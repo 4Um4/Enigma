@@ -1802,13 +1802,19 @@ class GameLoop:
                         )
                     except Exception as _dlg_log_err:  # noqa: ENIGMA002
                         logger.warning(f"[DIALOGUE_LOG] hook failed: {_dlg_log_err}")
+
+                    from dataclasses import asdict
+
+                    _snapshot = getattr(state.shared_context, "world_snapshot", None)
+                    _snapshot_dict = asdict(_snapshot) if _snapshot is not None else {}
+
                     return ChatTurnResponse(
                         dm_response="[СИСТЕМА] Движок не ответил — мир ждёт.",
                         npc_reactions=[],
                         world_changes=[],
                         journal_entry_id="",
                         traces=[],
-                        world_snapshot=state.shared_context.world_snapshot or {},
+                        world_snapshot=_snapshot_dict,
                         will_conflict_data=None,
                         player_intent_projection=_intent_projection,
                         llm_degraded=True,
